@@ -241,9 +241,10 @@ export async function POST(request: NextRequest) {
       // Don't fail the request if saving fails
     }
 
-    // V5: Get user's voice profile for woo level and determine perspective
+    // V5: Get user's voice profile for woo level
+    // NOTE: Perspective should be passed from the calling page or default to 'singular'
     let wooLevel: 'high' | 'medium' | 'low' = 'medium'
-    let perspective: Perspective = 'singular'
+    const perspective: Perspective = 'singular' // TODO: Accept perspective from request body
     
     try {
       const { data: voiceProfile } = await supabase

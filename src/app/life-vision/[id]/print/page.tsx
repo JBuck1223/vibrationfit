@@ -6,8 +6,18 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Download, Palette, RefreshCw, Loader2 } from 'lucide-react'
-import { Button } from '@/lib/design-system/components'
+import { Download, Palette, RefreshCw, Loader2, Home, CalendarDays } from 'lucide-react'
+import { Button, VersionBadge, StatusBadge } from '@/lib/design-system/components'
+import { createClient } from '@/lib/supabase/client'
+
+interface VisionInfo {
+  id: string
+  household_id?: string | null
+  version_number: number
+  is_active: boolean
+  is_draft: boolean
+  created_at: string
+}
 
 export default function PrintPreviewPage() {
   const params = useParams()
@@ -20,6 +30,58 @@ export default function PrintPreviewPage() {
   })
   const [iframeUrl, setIframeUrl] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [visionInfo, setVisionInfo] = useState<VisionInfo | null>(null)
+  const [loadingVisionInfo, setLoadingVisionInfo] = useState(true)
+
+  useEffect(() => {
+    // Fetch vision info
+    async function fetchVisionInfo() {
+      try {
+        setLoadingVisionInfo(true)
+        const supabase = createClient()
+        
+        console.log('[Print Page] Fetching vision:', visionId)
+        
+        const { data: vision, error } = await supabase
+          .from('vision_versions')
+          .select('id, household_id, is_active, is_draft, created_at')
+          .eq('id', visionId)
+          .single()
+        
+        console.log('[Print Page] Vision fetch result:', { 
+          success: !!vision, 
+          household_id: vision?.household_id,
+          error: error?.message 
+        })
+        
+        if (vision) {
+          // Get calculated version number
+          const { data: versionNumber, error: versionError } = await supabase
+            .rpc('get_vision_version_number', { p_vision_id: vision.id })
+          
+          console.log('[Print Page] Version number:', versionNumber, 'error:', versionError)
+          
+          const visionData = {
+            ...vision,
+            version_number: versionNumber || 1
+          }
+          
+          console.log('[Print Page] Setting vision info:', visionData)
+          setVisionInfo(visionData)
+        } else {
+          console.error('[Print Page] No vision data returned')
+        }
+      } catch (err) {
+        console.error('[Print Page] Error fetching vision:', err)
+      } finally {
+        setLoadingVisionInfo(false)
+      }
+    }
+    
+    if (visionId) {
+      fetchVisionInfo()
+    }
+  }, [visionId])
 
   useEffect(() => {
     // Build API URL with color parameters for preview
@@ -136,6 +198,31 @@ export default function PrintPreviewPage() {
       <div className="sticky top-0 z-10 bg-neutral-800 border-b border-neutral-700 px-4 py-6 lg:py-8">
         <div className="max-w-7xl mx-auto flex flex-col items-center justify-center gap-4">
           <h1 className="text-xl lg:text-2xl font-bold text-white">PDF Preview & Editor</h1>
+          
+          {/* Vision Info */}
+          {loadingVisionInfo ? (
+            <div className="text-neutral-400 text-sm">Loading vision info...</div>
+          ) : visionInfo ? (
+            <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+              <VersionBadge 
+                versionNumber={visionInfo.version_number} 
+                status={visionInfo.is_active ? 'active' : visionInfo.is_draft ? 'draft' : 'complete'}
+                isHouseholdVision={!!visionInfo.household_id}
+              />
+              <StatusBadge 
+                status={visionInfo.is_active ? 'active' : visionInfo.is_draft ? 'draft' : 'complete'}
+                subtle={!visionInfo.is_active}
+                className="uppercase tracking-[0.25em]"
+              />
+              <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+                <CalendarDays className="w-4 h-4 text-neutral-500" />
+                <span className="font-medium">Created:</span>
+                <span>{new Date(visionInfo.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="text-neutral-500 text-sm">Vision info unavailable</div>
+          )}
           
           <Button
             onClick={handleDownload}

@@ -26,6 +26,7 @@ interface AudioSet {
 
 interface VisionVersionWithAudios {
   vision_id: string
+  household_id?: string | null
   version_number: number
   is_active: boolean
   is_draft: boolean
@@ -92,7 +93,7 @@ export default function AllVisionAudiosPage() {
       
       const visionsResponse = await supabase
         .from('vision_versions')
-        .select('id, is_active, is_draft, created_at')
+        .select('id, household_id, is_active, is_draft, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
 
@@ -236,6 +237,7 @@ export default function AllVisionAudiosPage() {
           
           visionVersionsMap.set(audioSet.vision_id, {
             vision_id: audioSet.vision_id,
+            household_id: vision?.household_id,
             version_number: audioSet.vision_version_number,
             is_active: audioSet.vision_is_active,
             is_draft: audioSet.vision_is_draft,
@@ -391,7 +393,8 @@ export default function AllVisionAudiosPage() {
                         <div className="flex flex-col md:flex-row items-center gap-2 flex-wrap">
                           <VersionBadge 
                             versionNumber={visionVersion.version_number} 
-                            status={displayStatus} 
+                            status={displayStatus}
+                            isHouseholdVision={!!visionVersion.household_id}
                           />
                           <StatusBadge 
                             status={displayStatus} 

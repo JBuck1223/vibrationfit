@@ -27,6 +27,7 @@ import { generateVisionPDF } from '@/lib/pdf'
 interface VisionData {
   id: string
   user_id: string
+  household_id?: string | null
   version_number: number
   forward: string
   fun: string
@@ -405,13 +406,13 @@ export default function VisionExperimentPage({ params }: { params: Promise<{ id:
       <Stack gap="lg">
         {/* Header */}
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
+          eyebrow={vision?.household_id ? "THE LIFE WE CHOOSE" : "THE LIFE I CHOOSE"}
           title="Life Vision Experiment"
           subtitle={`Version ${vision.version_number} • ${completionPercentage}% Complete`}
         >
           <div className="text-center">
             <div className="flex items-center justify-center gap-3 mb-3">
-              <VersionBadge versionNumber={vision.version_number} status={vision.is_active ? 'active' : vision.is_draft ? 'draft' : 'complete'} />
+              <VersionBadge versionNumber={vision.version_number} status={vision.is_active ? 'active' : vision.is_draft ? 'draft' : 'complete'} isHouseholdVision={!!vision.household_id} />
               <StatusBadge status={vision.is_active ? 'active' : vision.is_draft ? 'draft' : 'complete'} />
             </div>
           </div>

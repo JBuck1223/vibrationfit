@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict pXqG9NAdfY1hu01elgIKHH2UOsr5J5OIheMbZtKiMYo7FhKpKGWf6aLbaoA8vt5
+\restrict Esd8UBNylbIkYdv83vRDweV8CVRgpVlAO34wwvSDlIH1ckZAoZ3lQ3XdORdKBsk
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Homebrew)
@@ -873,21 +873,22 @@ COMMENT ON FUNCTION extensions.set_graphql_placeholder() IS 'Reintroduces placeh
 
 CREATE FUNCTION pgbouncer.get_auth(p_usename text) RETURNS TABLE(username text, password text)
     LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
     AS $_$
-begin
-    raise debug 'PgBouncer auth request: %', p_usename;
+  BEGIN
+      RAISE DEBUG 'PgBouncer auth request: %', p_usename;
 
-    return query
-    select 
-        rolname::text, 
-        case when rolvaliduntil < now() 
-            then null 
-            else rolpassword::text 
-        end 
-    from pg_authid 
-    where rolname=$1 and rolcanlogin;
-end;
-$_$;
+      RETURN QUERY
+      SELECT
+          rolname::text,
+          CASE WHEN rolvaliduntil < now()
+              THEN null
+              ELSE rolpassword::text
+          END
+      FROM pg_authid
+      WHERE rolname=$1 and rolcanlogin;
+  END;
+  $_$;
 
 
 --
@@ -1442,10 +1443,12 @@ CREATE FUNCTION public.calculate_vision_version_number(p_vision_id uuid, p_user_
     AS $$
 DECLARE
   vision_created_at TIMESTAMP WITH TIME ZONE;
+  vision_household_id UUID;
   version_num INTEGER;
 BEGIN
-  -- Get the created_at timestamp for this vision
-  SELECT created_at INTO vision_created_at
+  -- Get the created_at timestamp and household_id for this vision
+  SELECT created_at, household_id 
+  INTO vision_created_at, vision_household_id
   FROM vision_versions
   WHERE id = p_vision_id AND user_id = p_user_id;
   
@@ -1453,14 +1456,23 @@ BEGIN
     RETURN 0;
   END IF;
   
-  -- Count how many visions were created before or at the same time as this one
-  -- Order: oldest first = version 1, newest = highest version
-  -- This ensures sequential numbering even after deletions
-  SELECT COUNT(*) INTO version_num
-  FROM vision_versions
-  WHERE user_id = p_user_id
-    AND created_at <= vision_created_at
-    AND id != p_vision_id; -- Don't count self (will add 1 below)
+  -- Separate numbering based on personal vs household
+  IF vision_household_id IS NULL THEN
+    -- PERSONAL VISION: Count only personal visions for this user
+    SELECT COUNT(*) INTO version_num
+    FROM vision_versions
+    WHERE user_id = p_user_id
+      AND household_id IS NULL  -- Only personal visions
+      AND created_at <= vision_created_at
+      AND id != p_vision_id;
+  ELSE
+    -- HOUSEHOLD VISION: Count only household visions for this household
+    SELECT COUNT(*) INTO version_num
+    FROM vision_versions
+    WHERE household_id = vision_household_id  -- Same household
+      AND created_at <= vision_created_at
+      AND id != p_vision_id;
+  END IF;
   
   -- Add 1 because we want 1-based indexing
   RETURN version_num + 1;
@@ -1475,7 +1487,7 @@ $$;
 -- Name: FUNCTION calculate_vision_version_number(p_vision_id uuid, p_user_id uuid); Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON FUNCTION public.calculate_vision_version_number(p_vision_id uuid, p_user_id uuid) IS 'Calculates version number based on chronological order (created_at) for a user. Returns sequential numbers (1, 2, 3...) without gaps even after deletions.';
+COMMENT ON FUNCTION public.calculate_vision_version_number(p_vision_id uuid, p_user_id uuid) IS 'Calculates version number with separate sequences: Personal visions (household_id IS NULL) count only personal. Household visions count only household visions for that household.';
 
 
 --
@@ -2016,7 +2028,10 @@ CREATE TABLE public.customer_subscriptions (
     trial_start timestamp with time zone,
     trial_end timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    promo_code text,
+    referral_source text,
+    campaign_name text
 );
 
 
@@ -2025,6 +2040,27 @@ CREATE TABLE public.customer_subscriptions (
 --
 
 COMMENT ON TABLE public.customer_subscriptions IS 'Source of truth for user subscriptions. Join with membership_tiers for pricing. Use payment_history to calculate LTV/MRR.';
+
+
+--
+-- Name: COLUMN customer_subscriptions.promo_code; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.customer_subscriptions.promo_code IS 'Promo/coupon code used for this subscription (e.g., VISIONPRO50, EARLYBIRD)';
+
+
+--
+-- Name: COLUMN customer_subscriptions.referral_source; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.customer_subscriptions.referral_source IS 'Marketing source/affiliate identifier (e.g., partner_john, instagram_ad, email_campaign)';
+
+
+--
+-- Name: COLUMN customer_subscriptions.campaign_name; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.customer_subscriptions.campaign_name IS 'Campaign name for grouping (e.g., Vision Pro Launch, Black Friday 2024)';
 
 
 --
@@ -2057,34 +2093,52 @@ COMMENT ON FUNCTION public.get_active_subscription(p_user_id uuid) IS 'Returns u
 
 
 --
+-- Name: get_ai_tool_config(text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.get_ai_tool_config(p_tool_key text) RETURNS TABLE(tool_key text, tool_name text, model_name text, temperature numeric, max_tokens integer, system_prompt text, supports_temperature boolean, supports_json_mode boolean, supports_streaming boolean, is_reasoning_model boolean, max_tokens_param text, token_multiplier integer, context_window integer, input_price_per_1m numeric, output_price_per_1m numeric)
+    LANGUAGE sql STABLE SECURITY DEFINER
+    AS $$
+  SELECT 
+    t.tool_key,
+    t.tool_name,
+    t.model_name,
+    t.temperature,
+    t.max_tokens,
+    t.system_prompt,
+    m.supports_temperature,
+    m.supports_json_mode,
+    m.supports_streaming,
+    m.is_reasoning_model,
+    m.max_tokens_param,
+    m.token_multiplier,
+    m.context_window,
+    m.input_price_per_1m,
+    m.output_price_per_1m
+  FROM ai_tools t
+  JOIN ai_model_pricing m ON t.model_name = m.model_name
+  WHERE t.tool_key = p_tool_key
+    AND t.is_active = true
+    AND m.is_active = true;
+$$;
+
+
+--
+-- Name: FUNCTION get_ai_tool_config(p_tool_key text); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION public.get_ai_tool_config(p_tool_key text) IS 'Returns complete AI tool configuration including model capabilities and pricing (per 1M tokens). Used by all VIVA endpoints.';
+
+
+--
 -- Name: get_field_label(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.get_field_label(p_field_name text) RETURNS text
-    LANGUAGE plpgsql IMMUTABLE
+    LANGUAGE plpgsql
     AS $$
 DECLARE
-  label_map JSONB;
-BEGIN
-  label_map := '{
-    "first_name": "First Name",
-    "last_name": "Last Name",
-    "email": "Email",
-    "phone": "Phone",
-    "date_of_birth": "Date of Birth",
-    "gender": "Gender",
-    "relationship_status": "Relationship Status",
-    "has_children": "Has Children",
-    "children_ages": "Children Ages",
-    "height": "Height",
-    "weight": "Weight",
-    "exercise_frequency": "Exercise Frequency",
-    "city": "City",
-    "state": "State",
-    "country": "Country",
-    "occupation": "Occupation",
-    "company": "Company",
-    "household_income": "Household Income",
+  field_labels JSONB := '{
     "clarity_health": "Health Clarity",
     "clarity_love": "Love Clarity",
     "clarity_family": "Family Clarity",
@@ -2108,34 +2162,11 @@ BEGIN
     "contrast_home": "Home Contrast",
     "contrast_stuff": "Stuff Contrast",
     "contrast_spirituality": "Spirituality Contrast",
-    "contrast_giving": "Giving Contrast",
-    "dream_health": "Health Dreams",
-    "dream_love": "Love Dreams",
-    "dream_family": "Family Dreams",
-    "dream_work": "Work Dreams",
-    "dream_money": "Money Dreams",
-    "dream_fun": "Fun Dreams",
-    "dream_travel": "Travel Dreams",
-    "dream_social": "Social Dreams",
-    "dream_home": "Home Dreams",
-    "dream_stuff": "Stuff Dreams",
-    "dream_spirituality": "Spirituality Dreams",
-    "dream_giving": "Giving Dreams",
-    "worry_health": "Health Worries",
-    "worry_love": "Love Worries",
-    "worry_family": "Family Worries",
-    "worry_work": "Work Worries",
-    "worry_money": "Money Worries",
-    "worry_fun": "Fun Worries",
-    "worry_travel": "Travel Worries",
-    "worry_social": "Social Worries",
-    "worry_home": "Home Worries",
-    "worry_stuff": "Stuff Worries",
-    "worry_spirituality": "Spirituality Worries",
-    "worry_giving": "Giving Worries"
-  }'::JSONB;
-  
-  RETURN COALESCE(label_map->>p_field_name, INITCAP(REPLACE(p_field_name, '_', ' ')));
+    "contrast_giving": "Giving Contrast"
+  }';
+BEGIN
+  -- Return the label from the JSONB object, or the p_field_name if not found
+  RETURN COALESCE(field_labels->>p_field_name, p_field_name);
 END;
 $$;
 
@@ -2144,7 +2175,7 @@ $$;
 -- Name: FUNCTION get_field_label(p_field_name text); Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON FUNCTION public.get_field_label(p_field_name text) IS 'Returns human-readable labels for profile field names - updated to use new category keys (love, work, stuff)';
+COMMENT ON FUNCTION public.get_field_label(p_field_name text) IS 'Returns human-readable labels for profile field keys (dream/worry fields removed)';
 
 
 --
@@ -3003,7 +3034,7 @@ BEGIN
     AND refined_categories IS NOT NULL
     AND jsonb_array_length(refined_categories) > 0;
 
-  -- Return total count and list of all unique categories (for reference)
+  -- Return total count and list of all unique categories
   RETURN QUERY
   SELECT 
     COALESCE(total_count, 0)::integer,
@@ -3016,7 +3047,7 @@ $$;
 -- Name: FUNCTION get_user_total_refinements(p_user_id uuid); Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON FUNCTION public.get_user_total_refinements(p_user_id uuid) IS 'Returns the total sum of all category refinements across all vision versions for a user. Each refined category in each version counts separately.';
+COMMENT ON FUNCTION public.get_user_total_refinements(p_user_id uuid) IS 'Returns the total sum of all category refinements across all vision versions for a user.';
 
 
 --
@@ -3396,6 +3427,29 @@ $$;
 
 
 --
+-- Name: is_active_household_member(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.is_active_household_member(h uuid, u uuid) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM household_members
+    WHERE household_id = h
+      AND user_id = u
+      AND status = 'active'
+  );
+$$;
+
+
+--
+-- Name: FUNCTION is_active_household_member(h uuid, u uuid); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION public.is_active_household_member(h uuid, u uuid) IS 'SECURITY DEFINER function to check if user is active household member. Bypasses RLS for membership checks.';
+
+
+--
 -- Name: mark_category_refined(uuid, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3476,6 +3530,74 @@ COMMENT ON FUNCTION public.reset_monthly_vibe_assistant_allowances() IS 'Resets 
 
 
 --
+-- Name: set_draft_parent_id(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.set_draft_parent_id() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  -- If creating a draft and parent_id is not set, try to find the active profile
+  IF NEW.is_draft = true AND NEW.parent_id IS NULL THEN
+    SELECT id INTO NEW.parent_id
+    FROM user_profiles
+    WHERE user_id = NEW.user_id
+      AND is_active = true
+      AND is_draft = false
+    ORDER BY created_at DESC
+    LIMIT 1;
+  END IF;
+  
+  RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: set_initial_profile_email(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.set_initial_profile_email() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  -- On new profile creation, pull email from auth.users if not provided
+  IF NEW.email IS NULL THEN
+    NEW.email := (
+      SELECT email 
+      FROM auth.users 
+      WHERE id = NEW.user_id
+    );
+  END IF;
+  
+  RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: set_new_profile_email(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.set_new_profile_email() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  -- Set email from auth.users when a new profile is created
+  IF NEW.email IS NULL THEN
+    NEW.email := (
+      SELECT email 
+      FROM auth.users 
+      WHERE id = NEW.user_id
+    );
+  END IF;
+  
+  RETURN NEW;
+END;
+$$;
+
+
+--
 -- Name: set_ticket_number(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3552,6 +3674,27 @@ $$;
 --
 
 COMMENT ON FUNCTION public.set_version_active(p_profile_id uuid, p_user_id uuid) IS 'Sets a version as active and deactivates others';
+
+
+--
+-- Name: sync_auth_users_email(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.sync_auth_users_email() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+BEGIN
+  -- Update auth.users email when user_profiles email changes
+  -- Note: This updates Supabase Auth, which may trigger other auth flows
+  UPDATE auth.users
+  SET email = NEW.email,
+      updated_at = NOW()
+  WHERE id = NEW.user_id
+    AND email IS DISTINCT FROM NEW.email;
+  
+  RETURN NEW;
+END;
+$$;
 
 
 --
@@ -3648,6 +3791,25 @@ COMMENT ON FUNCTION public.sync_refined_categories_from_active(draft_vision_id u
 
 
 --
+-- Name: sync_user_profile_email(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.sync_user_profile_email() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+BEGIN
+  -- Update user_profiles email when auth.users email changes
+  UPDATE user_profiles
+  SET email = NEW.email,
+      updated_at = NOW()
+  WHERE user_id = NEW.id;
+  
+  RETURN NEW;
+END;
+$$;
+
+
+--
 -- Name: track_category_refinement(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3657,55 +3819,121 @@ CREATE FUNCTION public.track_category_refinement() RETURNS trigger
 DECLARE
   category_field TEXT;
   refined_cats JSONB;
-  cat_exists BOOLEAN;
+  active_vision RECORD;
+  draft_value TEXT;
+  active_value TEXT;
 BEGIN
   -- Only track for draft visions
   IF NEW.is_draft = true AND NEW.is_active = false THEN
     
-    -- Check each category field for changes (REMOVED OLD KEY REFERENCES)
-    IF (OLD.forward IS DISTINCT FROM NEW.forward) THEN
-      category_field := 'forward';
-    ELSIF (OLD.fun IS DISTINCT FROM NEW.fun) THEN
-      category_field := 'fun';
-    ELSIF (OLD.travel IS DISTINCT FROM NEW.travel) THEN
-      category_field := 'travel';
-    ELSIF (OLD.home IS DISTINCT FROM NEW.home) THEN
-      category_field := 'home';
-    ELSIF (OLD.family IS DISTINCT FROM NEW.family) THEN
-      category_field := 'family';
-    ELSIF (OLD.love IS DISTINCT FROM NEW.love) THEN
-      category_field := 'love';
-    ELSIF (OLD.health IS DISTINCT FROM NEW.health) THEN
-      category_field := 'health';
-    ELSIF (OLD.money IS DISTINCT FROM NEW.money) THEN
-      category_field := 'money';
-    ELSIF (OLD.work IS DISTINCT FROM NEW.work) THEN
-      category_field := 'work';
-    ELSIF (OLD.social IS DISTINCT FROM NEW.social) THEN
-      category_field := 'social';
-    ELSIF (OLD.stuff IS DISTINCT FROM NEW.stuff) THEN
-      category_field := 'stuff';
-    ELSIF (OLD.giving IS DISTINCT FROM NEW.giving) THEN
-      category_field := 'giving';
-    ELSIF (OLD.spirituality IS DISTINCT FROM NEW.spirituality) THEN
-      category_field := 'spirituality';
-    ELSIF (OLD.conclusion IS DISTINCT FROM NEW.conclusion) THEN
-      category_field := 'conclusion';
+    -- Get the baseline vision for comparison
+    -- First try to get via parent_id (the source this draft was created from)
+    IF NEW.parent_id IS NOT NULL THEN
+      SELECT * INTO active_vision 
+      FROM vision_versions 
+      WHERE id = NEW.parent_id
+      LIMIT 1;
     END IF;
     
-    -- If a category changed, add it to refined_categories
-    IF category_field IS NOT NULL THEN
-      refined_cats := COALESCE(NEW.refined_categories, '[]'::jsonb);
-      
-      -- Check if category already exists in array
-      cat_exists := refined_cats ? category_field;
-      
-      -- Add to array if not already present
-      IF NOT cat_exists THEN
-        refined_cats := refined_cats || jsonb_build_array(category_field);
-        NEW.refined_categories := refined_cats;
-      END IF;
+    -- If no parent, get current active vision for this user as baseline
+    IF active_vision IS NULL THEN
+      SELECT * INTO active_vision 
+      FROM vision_versions 
+      WHERE user_id = NEW.user_id 
+        AND is_active = true 
+        AND is_draft = false
+      LIMIT 1;
     END IF;
+    
+    -- If still no baseline vision, skip tracking
+    IF active_vision IS NULL THEN
+      RAISE NOTICE 'No baseline vision found for draft %, skipping refinement tracking', NEW.id;
+      RETURN NEW;
+    END IF;
+    
+    RAISE NOTICE 'Comparing draft % against baseline %', NEW.id, active_vision.id;
+    
+    -- ALWAYS recalculate refined_categories to ensure accuracy
+    -- This fixes the bug where clicking save without changes marks categories as refined
+    RAISE NOTICE 'Recalculating refined_categories based on comparison with baseline';
+    
+    refined_cats := '[]'::jsonb;
+    
+    -- Check all category fields and build refined_categories array
+    -- Only include categories that differ from the baseline
+    
+    -- Forward
+    IF COALESCE(TRIM(NEW.forward), '') <> COALESCE(TRIM(active_vision.forward), '') THEN
+      refined_cats := refined_cats || jsonb_build_array('forward');
+    END IF;
+    
+    -- Fun
+    IF COALESCE(TRIM(NEW.fun), '') <> COALESCE(TRIM(active_vision.fun), '') THEN
+      refined_cats := refined_cats || jsonb_build_array('fun');
+    END IF;
+    
+    -- Travel
+    IF COALESCE(TRIM(NEW.travel), '') <> COALESCE(TRIM(active_vision.travel), '') THEN
+      refined_cats := refined_cats || jsonb_build_array('travel');
+    END IF;
+    
+    -- Home
+    IF COALESCE(TRIM(NEW.home), '') <> COALESCE(TRIM(active_vision.home), '') THEN
+      refined_cats := refined_cats || jsonb_build_array('home');
+    END IF;
+    
+    -- Family
+    IF COALESCE(TRIM(NEW.family), '') <> COALESCE(TRIM(active_vision.family), '') THEN
+      refined_cats := refined_cats || jsonb_build_array('family');
+    END IF;
+    
+    -- Love
+    IF COALESCE(TRIM(NEW.love), '') <> COALESCE(TRIM(active_vision.love), '') THEN
+      refined_cats := refined_cats || jsonb_build_array('love');
+    END IF;
+    
+    -- Health
+    IF COALESCE(TRIM(NEW.health), '') <> COALESCE(TRIM(active_vision.health), '') THEN
+      refined_cats := refined_cats || jsonb_build_array('health');
+    END IF;
+    
+    -- Money
+    IF COALESCE(TRIM(NEW.money), '') <> COALESCE(TRIM(active_vision.money), '') THEN
+      refined_cats := refined_cats || jsonb_build_array('money');
+    END IF;
+    
+    -- Work
+    IF COALESCE(TRIM(NEW.work), '') <> COALESCE(TRIM(active_vision.work), '') THEN
+      refined_cats := refined_cats || jsonb_build_array('work');
+    END IF;
+    
+    -- Social
+    IF COALESCE(TRIM(NEW.social), '') <> COALESCE(TRIM(active_vision.social), '') THEN
+      refined_cats := refined_cats || jsonb_build_array('social');
+    END IF;
+    
+    -- Stuff
+    IF COALESCE(TRIM(NEW.stuff), '') <> COALESCE(TRIM(active_vision.stuff), '') THEN
+      refined_cats := refined_cats || jsonb_build_array('stuff');
+    END IF;
+    
+    -- Giving
+    IF COALESCE(TRIM(NEW.giving), '') <> COALESCE(TRIM(active_vision.giving), '') THEN
+      refined_cats := refined_cats || jsonb_build_array('giving');
+    END IF;
+    
+    -- Spirituality
+    IF COALESCE(TRIM(NEW.spirituality), '') <> COALESCE(TRIM(active_vision.spirituality), '') THEN
+      refined_cats := refined_cats || jsonb_build_array('spirituality');
+    END IF;
+    
+    -- Conclusion
+    IF COALESCE(TRIM(NEW.conclusion), '') <> COALESCE(TRIM(active_vision.conclusion), '') THEN
+      refined_cats := refined_cats || jsonb_build_array('conclusion');
+    END IF;
+  
+    RAISE NOTICE 'Calculated refined_categories: %', refined_cats;
+    NEW.refined_categories := refined_cats;
   END IF;
   
   RETURN NEW;
@@ -3717,7 +3945,9 @@ $$;
 -- Name: FUNCTION track_category_refinement(); Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON FUNCTION public.track_category_refinement() IS 'Tracks which categories have been refined in a draft vision (updated to use new category keys: love, work, stuff)';
+COMMENT ON FUNCTION public.track_category_refinement() IS 'Tracks which vision categories have been refined compared to the baseline (parent or active) vision. 
+Always recalculates refined_categories on every update to ensure accuracy and handle reverts correctly.
+Categories are only marked as refined if their text differs from the baseline.';
 
 
 --
@@ -3809,6 +4039,20 @@ COMMENT ON FUNCTION public.update_assessment_scores() IS 'Automatically updates 
 --
 
 CREATE FUNCTION public.update_assessment_updated_at() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: update_audio_generation_batches_updated_at(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_audio_generation_batches_updated_at() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -5965,6 +6209,25 @@ CREATE TABLE auth.oauth_authorizations (
 
 
 --
+-- Name: oauth_client_states; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.oauth_client_states (
+    id uuid NOT NULL,
+    provider_type text NOT NULL,
+    code_verifier text,
+    created_at timestamp with time zone NOT NULL
+);
+
+
+--
+-- Name: TABLE oauth_client_states; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.oauth_client_states IS 'Stores OAuth states for third-party provider authentication flows where Supabase acts as the OAuth client.';
+
+
+--
 -- Name: oauth_clients; Type: TABLE; Schema: auth; Owner: -
 --
 
@@ -6358,15 +6621,23 @@ CREATE TABLE public.ai_model_pricing (
     model_name text NOT NULL,
     provider text DEFAULT 'openai'::text NOT NULL,
     model_family text,
-    input_price_per_1k numeric(10,6) NOT NULL,
-    output_price_per_1k numeric(10,6) NOT NULL,
+    input_price_per_1m numeric(10,2) NOT NULL,
+    output_price_per_1m numeric(10,2) NOT NULL,
     price_per_unit numeric(10,6),
     unit_type text,
     is_active boolean DEFAULT true,
     effective_date timestamp with time zone DEFAULT now(),
     notes text,
     created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now()
+    updated_at timestamp with time zone DEFAULT now(),
+    supports_temperature boolean DEFAULT true,
+    supports_json_mode boolean DEFAULT true,
+    supports_streaming boolean DEFAULT true,
+    is_reasoning_model boolean DEFAULT false,
+    max_tokens_param text DEFAULT 'max_tokens'::text,
+    token_multiplier integer DEFAULT 1,
+    context_window integer,
+    capabilities_notes text
 );
 
 
@@ -6374,7 +6645,117 @@ CREATE TABLE public.ai_model_pricing (
 -- Name: TABLE ai_model_pricing; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON TABLE public.ai_model_pricing IS 'Stores pricing information for AI models to calculate accurate usage costs';
+COMMENT ON TABLE public.ai_model_pricing IS 'Only contains models actively used in ai_tools. Dated OpenAI versions (e.g., gpt-4o-2024-08-06) are auto-normalized to base names (gpt-4o) in code.';
+
+
+--
+-- Name: COLUMN ai_model_pricing.supports_temperature; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ai_model_pricing.supports_temperature IS 'Whether model supports custom temperature - configure in admin';
+
+
+--
+-- Name: COLUMN ai_model_pricing.supports_json_mode; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ai_model_pricing.supports_json_mode IS 'Whether model supports response_format json_object mode - configure in admin';
+
+
+--
+-- Name: COLUMN ai_model_pricing.supports_streaming; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ai_model_pricing.supports_streaming IS 'Whether model supports streaming responses - configure in admin';
+
+
+--
+-- Name: COLUMN ai_model_pricing.is_reasoning_model; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ai_model_pricing.is_reasoning_model IS 'Whether model uses tokens for internal reasoning - configure in admin';
+
+
+--
+-- Name: COLUMN ai_model_pricing.max_tokens_param; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ai_model_pricing.max_tokens_param IS 'OpenAI parameter name: max_tokens or max_completion_tokens - configure in admin';
+
+
+--
+-- Name: COLUMN ai_model_pricing.token_multiplier; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ai_model_pricing.token_multiplier IS 'Token allocation multiplier (e.g., reasoning models may need more) - configure in admin';
+
+
+--
+-- Name: COLUMN ai_model_pricing.context_window; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ai_model_pricing.context_window IS 'Maximum context window size in tokens - configure in admin';
+
+
+--
+-- Name: ai_tools; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ai_tools (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    tool_key text NOT NULL,
+    tool_name text NOT NULL,
+    description text,
+    model_name text NOT NULL,
+    temperature numeric(3,2) DEFAULT 0.7,
+    max_tokens integer DEFAULT 1500,
+    system_prompt text,
+    is_active boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+
+--
+-- Name: TABLE ai_tools; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.ai_tools IS 'Blueprint generation now uses 8000 max_tokens (safe for gpt-4o which has 16384 limit). With token_multiplier=1.25, actual request will be 10000 tokens.';
+
+
+--
+-- Name: COLUMN ai_tools.tool_key; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ai_tools.tool_key IS 'Unique key used in code: getAIToolConfig(tool_key)';
+
+
+--
+-- Name: COLUMN ai_tools.model_name; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ai_tools.model_name IS 'References ai_model_pricing.model_name';
+
+
+--
+-- Name: COLUMN ai_tools.temperature; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ai_tools.temperature IS 'Temperature setting (0 for non-chat models like Whisper/TTS)';
+
+
+--
+-- Name: COLUMN ai_tools.max_tokens; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ai_tools.max_tokens IS 'Max tokens (0 for non-chat models that dont use token limits)';
+
+
+--
+-- Name: COLUMN ai_tools.system_prompt; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ai_tools.system_prompt IS 'System prompt (NULL for non-chat models like Whisper/TTS)';
 
 
 --
@@ -6497,6 +6878,69 @@ COMMENT ON COLUMN public.assessment_results.green_line_status IS 'JSONB object w
 --
 
 COMMENT ON COLUMN public.assessment_results.assessment_version IS 'Version of assessment questions used (for tracking changes over time)';
+
+
+--
+-- Name: audio_generation_batches; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.audio_generation_batches (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    vision_id uuid NOT NULL,
+    audio_set_ids uuid[] DEFAULT '{}'::uuid[] NOT NULL,
+    variant_ids text[] NOT NULL,
+    voice_id text NOT NULL,
+    sections_requested jsonb NOT NULL,
+    total_tracks_expected integer NOT NULL,
+    tracks_completed integer DEFAULT 0 NOT NULL,
+    tracks_failed integer DEFAULT 0 NOT NULL,
+    tracks_pending integer DEFAULT 0 NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    error_message text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    started_at timestamp with time zone,
+    completed_at timestamp with time zone,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    metadata jsonb DEFAULT '{}'::jsonb,
+    CONSTRAINT valid_status CHECK ((status = ANY (ARRAY['pending'::text, 'processing'::text, 'completed'::text, 'partial_success'::text, 'failed'::text]))),
+    CONSTRAINT valid_track_counts CHECK (((tracks_completed >= 0) AND (tracks_failed >= 0) AND (tracks_pending >= 0) AND (((tracks_completed + tracks_failed) + tracks_pending) <= total_tracks_expected)))
+);
+
+
+--
+-- Name: TABLE audio_generation_batches; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.audio_generation_batches IS 'Tracks audio generation requests for full observability and retry logic';
+
+
+--
+-- Name: COLUMN audio_generation_batches.audio_set_ids; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.audio_generation_batches.audio_set_ids IS 'Array of audio_sets.id created in this batch';
+
+
+--
+-- Name: COLUMN audio_generation_batches.variant_ids; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.audio_generation_batches.variant_ids IS 'Audio variants requested (standard, sleep, meditation, energy)';
+
+
+--
+-- Name: COLUMN audio_generation_batches.sections_requested; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.audio_generation_batches.sections_requested IS 'Array of {sectionKey, text} pairs that were requested for generation';
+
+
+--
+-- Name: COLUMN audio_generation_batches.status; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.audio_generation_batches.status IS 'pending: created, not started | processing: in progress | completed: all succeeded | partial_success: some failed | failed: all failed';
 
 
 --
@@ -6627,6 +7071,31 @@ CREATE TABLE public.audio_variants (
 
 
 --
+-- Name: audio_voice_clones; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.audio_voice_clones (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    elevenlabs_voice_id text NOT NULL,
+    voice_name text NOT NULL,
+    sample_audio_url text,
+    sample_duration_seconds integer,
+    provider text DEFAULT 'elevenlabs'::text,
+    is_active boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    last_used_at timestamp with time zone
+);
+
+
+--
+-- Name: TABLE audio_voice_clones; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.audio_voice_clones IS 'Stores user voice clones from ElevenLabs for personalized TTS generation';
+
+
+--
 -- Name: conversation_sessions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -6744,6 +7213,48 @@ CREATE TABLE public.email_messages (
 --
 
 COMMENT ON TABLE public.email_messages IS 'Stores all email communications (outbound via SES, inbound via IMAP from Google Workspace)';
+
+
+--
+-- Name: COLUMN email_messages.guest_email; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.email_messages.guest_email IS 'Email address for non-registered users (for guest support tickets)';
+
+
+--
+-- Name: COLUMN email_messages.ses_message_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.email_messages.ses_message_id IS 'AWS SES Message ID for tracking';
+
+
+--
+-- Name: COLUMN email_messages.imap_message_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.email_messages.imap_message_id IS 'IMAP Message-ID header for deduplication';
+
+
+--
+-- Name: COLUMN email_messages.imap_uid; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.email_messages.imap_uid IS 'IMAP UID for tracking';
+
+
+--
+-- Name: COLUMN email_messages.is_reply; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.email_messages.is_reply IS 'Whether this email is a reply to a support ticket';
+
+
+--
+-- Name: COLUMN email_messages.sent_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.email_messages.sent_at IS 'Original sent date from email headers';
 
 
 --
@@ -6988,6 +7499,9 @@ CREATE TABLE public.intensive_purchases (
     started_at timestamp without time zone,
     completed_at timestamp without time zone,
     refunded_at timestamp without time zone,
+    promo_code text,
+    referral_source text,
+    campaign_name text,
     CONSTRAINT valid_completion_status CHECK ((completion_status = ANY (ARRAY['pending'::text, 'in_progress'::text, 'completed'::text, 'refunded'::text]))),
     CONSTRAINT valid_payment_plan CHECK ((payment_plan = ANY (ARRAY['full'::text, '2pay'::text, '3pay'::text])))
 );
@@ -7019,6 +7533,27 @@ COMMENT ON COLUMN public.intensive_purchases.created_at IS 'When purchase was ma
 --
 
 COMMENT ON COLUMN public.intensive_purchases.started_at IS 'When user clicked Start button (timer begins)';
+
+
+--
+-- Name: COLUMN intensive_purchases.promo_code; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.intensive_purchases.promo_code IS 'Promo/coupon code used for this purchase (e.g., FREEINTENSIVE, BETA2024)';
+
+
+--
+-- Name: COLUMN intensive_purchases.referral_source; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.intensive_purchases.referral_source IS 'Marketing source/affiliate identifier (e.g., partner_john, facebook_ad, email_campaign)';
+
+
+--
+-- Name: COLUMN intensive_purchases.campaign_name; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.intensive_purchases.campaign_name IS 'Campaign name for grouping (e.g., Beta Launch 2024, Holiday Sale)';
 
 
 --
@@ -7110,67 +7645,6 @@ CREATE TABLE public.leads (
     CONSTRAINT leads_status_check CHECK ((status = ANY (ARRAY['new'::text, 'contacted'::text, 'qualified'::text, 'converted'::text, 'lost'::text]))),
     CONSTRAINT leads_type_check CHECK ((type = ANY (ARRAY['contact'::text, 'demo'::text, 'intensive_intake'::text])))
 );
-
-
---
--- Name: life_vision_category_state; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.life_vision_category_state (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    user_id uuid NOT NULL,
-    category character varying(50) NOT NULL,
-    transcript text,
-    ai_summary text,
-    ideal_state text,
-    blueprint_data jsonb,
-    created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now(),
-    ideal_state_prompts jsonb DEFAULT '[]'::jsonb,
-    CONSTRAINT life_vision_category_state_category_check CHECK (((category)::text = ANY (ARRAY[('fun'::character varying)::text, ('health'::character varying)::text, ('travel'::character varying)::text, ('love'::character varying)::text, ('family'::character varying)::text, ('social'::character varying)::text, ('home'::character varying)::text, ('work'::character varying)::text, ('money'::character varying)::text, ('stuff'::character varying)::text, ('giving'::character varying)::text, ('spirituality'::character varying)::text])))
-);
-
-
---
--- Name: TABLE life_vision_category_state; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON TABLE public.life_vision_category_state IS 'V3 Life Vision per-category state storage';
-
-
---
--- Name: COLUMN life_vision_category_state.transcript; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.life_vision_category_state.transcript IS 'Step 1: User audio/text transcript';
-
-
---
--- Name: COLUMN life_vision_category_state.ai_summary; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.life_vision_category_state.ai_summary IS 'Step 1: VIVA-generated category summary';
-
-
---
--- Name: COLUMN life_vision_category_state.ideal_state; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.life_vision_category_state.ideal_state IS 'Step 2: User imagination/ideal state answers';
-
-
---
--- Name: COLUMN life_vision_category_state.blueprint_data; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.life_vision_category_state.blueprint_data IS 'Step 3: Being/Doing/Receiving loops as JSONB';
-
-
---
--- Name: COLUMN life_vision_category_state.ideal_state_prompts; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.life_vision_category_state.ideal_state_prompts IS 'Step 2: AI-generated imagination prompts. Array of {title, prompt, focus} objects';
 
 
 --
@@ -7589,16 +8063,16 @@ CREATE TABLE public.token_usage (
     error_message text,
     metadata jsonb DEFAULT '{}'::jsonb,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    calculated_cost_cents integer,
+    calculated_cost_cents numeric(12,4),
     audio_seconds numeric(10,2),
     audio_duration_formatted text,
     openai_request_id text,
     openai_created bigint,
     system_fingerprint text,
-    actual_cost_cents integer,
+    actual_cost_cents numeric(12,4),
     reconciled_at timestamp with time zone,
     reconciliation_status text DEFAULT 'pending'::text,
-    CONSTRAINT token_usage_action_type_check CHECK ((action_type = ANY (ARRAY['assessment_scoring'::text, 'vision_generation'::text, 'vision_refinement'::text, 'blueprint_generation'::text, 'chat_conversation'::text, 'audio_generation'::text, 'image_generation'::text, 'transcription'::text, 'admin_grant'::text, 'admin_deduct'::text, 'subscription_grant'::text, 'trial_grant'::text, 'token_pack_purchase'::text, 'life_vision_category_summary'::text, 'life_vision_master_assembly'::text, 'prompt_suggestions'::text, 'frequency_flip'::text, 'vibrational_analysis'::text, 'viva_scene_generation'::text, 'north_star_reflection'::text]))),
+    CONSTRAINT token_usage_action_type_check CHECK ((action_type = ANY (ARRAY['assessment_scoring'::text, 'vision_generation'::text, 'vision_refinement'::text, 'blueprint_generation'::text, 'chat_conversation'::text, 'audio_generation'::text, 'image_generation'::text, 'transcription'::text, 'admin_grant'::text, 'admin_deduct'::text, 'subscription_grant'::text, 'trial_grant'::text, 'token_pack_purchase'::text, 'life_vision_category_summary'::text, 'life_vision_master_assembly'::text, 'prompt_suggestions'::text, 'frequency_flip'::text, 'vibrational_analysis'::text, 'viva_scene_generation'::text, 'north_star_reflection'::text, 'voice_profile_analysis'::text, 'vision_board_ideas'::text]))),
     CONSTRAINT token_usage_reconciliation_consistency_check CHECK ((((reconciled_at IS NULL) AND (actual_cost_cents IS NULL)) OR ((reconciled_at IS NOT NULL) AND (actual_cost_cents IS NOT NULL)))),
     CONSTRAINT token_usage_reconciliation_status_check CHECK ((reconciliation_status = ANY (ARRAY['pending'::text, 'matched'::text, 'discrepancy'::text, 'not_applicable'::text])))
 );
@@ -7615,7 +8089,7 @@ COMMENT ON TABLE public.token_usage IS 'Tracks AI token usage and costs for each
 -- Name: COLUMN token_usage.calculated_cost_cents; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.token_usage.calculated_cost_cents IS 'NEW: Accurate cost calculated from ai_model_pricing';
+COMMENT ON COLUMN public.token_usage.calculated_cost_cents IS 'Calculated cost in cents (supports 4 decimal places for sub-cent precision)';
 
 
 --
@@ -7657,7 +8131,7 @@ COMMENT ON COLUMN public.token_usage.system_fingerprint IS 'OpenAI system finger
 -- Name: COLUMN token_usage.actual_cost_cents; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.token_usage.actual_cost_cents IS 'Actual cost in cents from OpenAI billing (populated during reconciliation).';
+COMMENT ON COLUMN public.token_usage.actual_cost_cents IS 'Actual reconciled cost from OpenAI in cents (supports 4 decimal places)';
 
 
 --
@@ -7672,6 +8146,13 @@ COMMENT ON COLUMN public.token_usage.reconciled_at IS 'Timestamp when this recor
 --
 
 COMMENT ON COLUMN public.token_usage.reconciliation_status IS 'Status of cost reconciliation: pending (not yet reconciled), matched (within tolerance), discrepancy (significant difference), not_applicable (non-OpenAI action)';
+
+
+--
+-- Name: CONSTRAINT token_usage_action_type_check ON token_usage; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON CONSTRAINT token_usage_action_type_check ON public.token_usage IS 'Ensures action_type matches one of the supported AI action types';
 
 
 --
@@ -7696,11 +8177,11 @@ CREATE VIEW public.token_usage_with_costs AS
     reconciled_at,
     reconciliation_status,
         CASE
-            WHEN ((actual_cost_cents IS NOT NULL) AND (calculated_cost_cents IS NOT NULL)) THEN (((actual_cost_cents - calculated_cost_cents))::numeric / 100.0)
+            WHEN ((actual_cost_cents IS NOT NULL) AND (calculated_cost_cents IS NOT NULL)) THEN ((actual_cost_cents - calculated_cost_cents) / 100.0)
             ELSE NULL::numeric
         END AS reconciliation_difference_usd,
         CASE
-            WHEN ((actual_cost_cents IS NOT NULL) AND (calculated_cost_cents > 0)) THEN round((((actual_cost_cents)::numeric / (calculated_cost_cents)::numeric) * (100)::numeric), 2)
+            WHEN ((actual_cost_cents IS NOT NULL) AND (calculated_cost_cents > (0)::numeric)) THEN round((((actual_cost_cents)::numeric / (calculated_cost_cents)::numeric) * (100)::numeric), 2)
             ELSE NULL::numeric
         END AS reconciliation_accuracy_percentage,
         CASE
@@ -7850,30 +8331,10 @@ CREATE TABLE public.user_profiles (
     has_vehicle boolean DEFAULT false,
     trips jsonb DEFAULT '[]'::jsonb,
     children jsonb DEFAULT '[]'::jsonb,
-    dream_fun text,
-    dream_health text,
-    dream_travel text,
-    dream_love text,
-    dream_family text,
-    dream_social text,
-    dream_home text,
-    dream_work text,
-    dream_money text,
-    dream_stuff text,
-    dream_giving text,
-    dream_spirituality text,
-    worry_fun text,
-    worry_health text,
-    worry_travel text,
-    worry_love text,
-    worry_family text,
-    worry_social text,
-    worry_home text,
-    worry_work text,
-    worry_money text,
-    worry_stuff text,
-    worry_giving text,
-    worry_spirituality text,
+    parent_id uuid,
+    sms_opt_in boolean DEFAULT false,
+    sms_opt_in_date timestamp with time zone,
+    sms_opt_in_ip text,
     CONSTRAINT user_profiles_assets_equity_check CHECK ((assets_equity = ANY (ARRAY['<10,000'::text, '10,000-24,999'::text, '25,000-49,999'::text, '50,000-99,999'::text, '100,000-249,999'::text, '250,000-499,999'::text, '500,000-999,999'::text, '1,000,000+'::text, 'Prefer not to say'::text]))),
     CONSTRAINT user_profiles_consumer_debt_check CHECK ((consumer_debt = ANY (ARRAY['None'::text, 'Under 10,000'::text, '10,000-24,999'::text, '25,000-49,999'::text, '50,000-99,999'::text, '100,000-249,999'::text, '250,000-499,999'::text, '500,000-999,999'::text, '1,000,000+'::text, 'Prefer not to say'::text]))),
     CONSTRAINT user_profiles_countries_visited_check CHECK ((countries_visited >= 0)),
@@ -8288,171 +8749,10 @@ COMMENT ON COLUMN public.user_profiles.children IS 'Array of child objects: [{fi
 
 
 --
--- Name: COLUMN user_profiles.dream_fun; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN user_profiles.parent_id; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.user_profiles.dream_fun IS 'User''s dream/aspiration in the Fun & Recreation category';
-
-
---
--- Name: COLUMN user_profiles.dream_health; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.dream_health IS 'User''s dream/aspiration in the Health & Vitality category';
-
-
---
--- Name: COLUMN user_profiles.dream_travel; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.dream_travel IS 'User''s dream/aspiration in the Travel & Adventure category';
-
-
---
--- Name: COLUMN user_profiles.dream_love; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.dream_love IS 'User''s dream/aspiration in the Love & Romance category';
-
-
---
--- Name: COLUMN user_profiles.dream_family; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.dream_family IS 'User''s dream/aspiration in the Family & Parenting category';
-
-
---
--- Name: COLUMN user_profiles.dream_social; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.dream_social IS 'User''s dream/aspiration in the Social & Friendships category';
-
-
---
--- Name: COLUMN user_profiles.dream_home; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.dream_home IS 'User''s dream/aspiration in the Home & Environment category';
-
-
---
--- Name: COLUMN user_profiles.dream_work; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.dream_work IS 'User''s dream/aspiration in the Work & Career category';
-
-
---
--- Name: COLUMN user_profiles.dream_money; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.dream_money IS 'User''s dream/aspiration in the Money & Wealth category';
-
-
---
--- Name: COLUMN user_profiles.dream_stuff; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.dream_stuff IS 'User''s dream/aspiration in the Stuff & Possessions category';
-
-
---
--- Name: COLUMN user_profiles.dream_giving; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.dream_giving IS 'User''s dream/aspiration in the Giving & Legacy category';
-
-
---
--- Name: COLUMN user_profiles.dream_spirituality; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.dream_spirituality IS 'User''s dream/aspiration in the Spirituality category';
-
-
---
--- Name: COLUMN user_profiles.worry_fun; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.worry_fun IS 'User''s worry/concern in the Fun & Recreation category';
-
-
---
--- Name: COLUMN user_profiles.worry_health; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.worry_health IS 'User''s worry/concern in the Health & Vitality category';
-
-
---
--- Name: COLUMN user_profiles.worry_travel; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.worry_travel IS 'User''s worry/concern in the Travel & Adventure category';
-
-
---
--- Name: COLUMN user_profiles.worry_love; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.worry_love IS 'User''s worry/concern in the Love & Romance category';
-
-
---
--- Name: COLUMN user_profiles.worry_family; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.worry_family IS 'User''s worry/concern in the Family & Parenting category';
-
-
---
--- Name: COLUMN user_profiles.worry_social; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.worry_social IS 'User''s worry/concern in the Social & Friendships category';
-
-
---
--- Name: COLUMN user_profiles.worry_home; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.worry_home IS 'User''s worry/concern in the Home & Environment category';
-
-
---
--- Name: COLUMN user_profiles.worry_work; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.worry_work IS 'User''s worry/concern in the Work & Career category';
-
-
---
--- Name: COLUMN user_profiles.worry_money; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.worry_money IS 'User''s worry/concern in the Money & Wealth category';
-
-
---
--- Name: COLUMN user_profiles.worry_stuff; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.worry_stuff IS 'User''s worry/concern in the Stuff & Possessions category';
-
-
---
--- Name: COLUMN user_profiles.worry_giving; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.worry_giving IS 'User''s worry/concern in the Giving & Legacy category';
-
-
---
--- Name: COLUMN user_profiles.worry_spirituality; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.worry_spirituality IS 'User''s worry/concern in the Spirituality category';
+COMMENT ON COLUMN public.user_profiles.parent_id IS 'References the profile version this was created from (for drafts and clones)';
 
 
 --
@@ -8566,6 +8866,63 @@ CREATE TABLE public.video_mapping (
 
 
 --
+-- Name: vision_board_ideas; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.vision_board_ideas (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    vision_version_id uuid NOT NULL,
+    category text NOT NULL,
+    generated_at timestamp with time zone DEFAULT now() NOT NULL,
+    model_used text NOT NULL,
+    tokens_used integer,
+    suggestions jsonb DEFAULT '[]'::jsonb NOT NULL,
+    items_created integer DEFAULT 0,
+    created_item_ids uuid[] DEFAULT '{}'::uuid[],
+    status text DEFAULT 'active'::text,
+    expires_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+
+--
+-- Name: TABLE vision_board_ideas; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.vision_board_ideas IS 'Stores VIVA-generated vision board item suggestions';
+
+
+--
+-- Name: COLUMN vision_board_ideas.category; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.vision_board_ideas.category IS 'Category key (fun, travel, etc.) or "all" for full generation';
+
+
+--
+-- Name: COLUMN vision_board_ideas.suggestions; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.vision_board_ideas.suggestions IS 'Array of {name, description} objects';
+
+
+--
+-- Name: COLUMN vision_board_ideas.items_created; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.vision_board_ideas.items_created IS 'Count of items user actually created from these suggestions';
+
+
+--
+-- Name: COLUMN vision_board_ideas.created_item_ids; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.vision_board_ideas.created_item_ids IS 'Array of vision_board_items.id that came from these suggestions';
+
+
+--
 -- Name: vision_board_items; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8600,6 +8957,123 @@ COMMENT ON COLUMN public.vision_board_items.actualization_story IS 'Story descri
 
 
 --
+-- Name: vision_generation_batches; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.vision_generation_batches (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    categories_requested text[] DEFAULT ARRAY['fun'::text, 'health'::text, 'travel'::text, 'love'::text, 'family'::text, 'social'::text, 'home'::text, 'work'::text, 'money'::text, 'stuff'::text, 'giving'::text, 'spirituality'::text] NOT NULL,
+    categories_completed text[] DEFAULT '{}'::text[] NOT NULL,
+    categories_failed text[] DEFAULT '{}'::text[] NOT NULL,
+    current_category text,
+    status text DEFAULT 'pending'::text NOT NULL,
+    error_message text,
+    retry_count integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    started_at timestamp with time zone,
+    completed_at timestamp with time zone,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    vision_id uuid,
+    perspective text DEFAULT 'singular'::text NOT NULL,
+    metadata jsonb DEFAULT '{}'::jsonb,
+    CONSTRAINT valid_status CHECK ((status = ANY (ARRAY['pending'::text, 'processing'::text, 'completed'::text, 'partial_success'::text, 'failed'::text, 'retrying'::text])))
+);
+
+
+--
+-- Name: TABLE vision_generation_batches; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.vision_generation_batches IS 'Persistent queue for Life Vision category generation. Allows background processing independent of page state.';
+
+
+--
+-- Name: vision_new_category_state; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.vision_new_category_state (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    category character varying(50) NOT NULL,
+    transcript text,
+    ideal_state text,
+    blueprint_data jsonb,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    ideal_state_prompts jsonb DEFAULT '[]'::jsonb,
+    master_vision_raw text,
+    clarity_keys jsonb DEFAULT '[]'::jsonb,
+    contrast_flips jsonb DEFAULT '[]'::jsonb,
+    category_vision_text text,
+    CONSTRAINT vision_new_category_state_category_check CHECK (((category)::text = ANY ((ARRAY['fun'::character varying, 'health'::character varying, 'travel'::character varying, 'love'::character varying, 'family'::character varying, 'social'::character varying, 'home'::character varying, 'work'::character varying, 'money'::character varying, 'stuff'::character varying, 'giving'::character varying, 'spirituality'::character varying, '_master'::character varying])::text[])))
+);
+
+
+--
+-- Name: TABLE vision_new_category_state; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.vision_new_category_state IS 'Stores per-category vision creation state including clarity, imagination, blueprint, scenes, and generated vision text.';
+
+
+--
+-- Name: COLUMN vision_new_category_state.transcript; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.vision_new_category_state.transcript IS 'Step 1: User audio/text transcript';
+
+
+--
+-- Name: COLUMN vision_new_category_state.ideal_state; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.vision_new_category_state.ideal_state IS 'Step 2: User imagination/ideal state answers';
+
+
+--
+-- Name: COLUMN vision_new_category_state.blueprint_data; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.vision_new_category_state.blueprint_data IS 'Step 3: Being/Doing/Receiving loops as JSONB';
+
+
+--
+-- Name: COLUMN vision_new_category_state.ideal_state_prompts; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.vision_new_category_state.ideal_state_prompts IS 'Step 2: AI-generated imagination prompts. Array of {title, prompt, focus} objects';
+
+
+--
+-- Name: COLUMN vision_new_category_state.master_vision_raw; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.vision_new_category_state.master_vision_raw IS 'Raw AI output from master vision assembly (full markdown+JSON) - stored once per user';
+
+
+--
+-- Name: COLUMN vision_new_category_state.clarity_keys; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.vision_new_category_state.clarity_keys IS 'Array of clarity keys from profile for this category';
+
+
+--
+-- Name: COLUMN vision_new_category_state.contrast_flips; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.vision_new_category_state.contrast_flips IS 'Array of contrast flips from profile for this category';
+
+
+--
+-- Name: COLUMN vision_new_category_state.category_vision_text; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.vision_new_category_state.category_vision_text IS 'Generated vision text for this category (from queue system)';
+
+
+--
 -- Name: vision_progress; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8614,6 +9088,34 @@ CREATE TABLE public.vision_progress (
     created_at timestamp with time zone DEFAULT now(),
     completed_at timestamp with time zone
 );
+
+
+--
+-- Name: vision_refinements; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.vision_refinements (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    vision_id uuid NOT NULL,
+    category text NOT NULL,
+    input_text text NOT NULL,
+    output_text text NOT NULL,
+    refinement_inputs jsonb DEFAULT '{}'::jsonb,
+    weave_settings jsonb DEFAULT '{}'::jsonb,
+    applied boolean DEFAULT false,
+    applied_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT valid_category CHECK ((category = ANY (ARRAY['forward'::text, 'fun'::text, 'travel'::text, 'home'::text, 'family'::text, 'love'::text, 'health'::text, 'money'::text, 'work'::text, 'social'::text, 'stuff'::text, 'giving'::text, 'spirituality'::text, 'conclusion'::text])))
+);
+
+
+--
+-- Name: TABLE vision_refinements; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.vision_refinements IS 'Stores history of VIVA Refine operations with inputs and outputs';
 
 
 --
@@ -8653,6 +9155,7 @@ CREATE TABLE public.vision_versions (
     perspective text DEFAULT 'singular'::text,
     refined_categories jsonb DEFAULT '[]'::jsonb,
     parent_id uuid,
+    household_id uuid,
     CONSTRAINT vision_versions_perspective_check CHECK ((perspective = ANY (ARRAY['singular'::text, 'plural'::text])))
 );
 
@@ -8661,7 +9164,14 @@ CREATE TABLE public.vision_versions (
 -- Name: TABLE vision_versions; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON TABLE public.vision_versions IS 'Life vision versions. Version numbers are calculated dynamically using get_vision_version_number() based on created_at order. Completion percentage is calculated in frontend based on filled fields.';
+COMMENT ON TABLE public.vision_versions IS 'Life visions. Personal visions have household_id = NULL. Household visions have household_id set and are accessible to all active household members.';
+
+
+--
+-- Name: COLUMN vision_versions.user_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.vision_versions.user_id IS 'Creator/owner of the vision. Always set. For household visions, this is the person who created it.';
 
 
 --
@@ -8812,6 +9322,13 @@ COMMENT ON COLUMN public.vision_versions.parent_id IS 'ID of the vision this was
 
 
 --
+-- Name: COLUMN vision_versions.household_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.vision_versions.household_id IS 'NULL = personal vision. Set = household vision (all household members can access).';
+
+
+--
 -- Name: viva_conversations; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8853,8 +9370,16 @@ CREATE TABLE public.voice_profiles (
     last_refined_at timestamp with time zone,
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     is_active boolean DEFAULT true,
+    forbidden_words text[],
     CONSTRAINT voice_profiles_woo_level_check CHECK (((woo_level >= 1) AND (woo_level <= 3)))
 );
+
+
+--
+-- Name: COLUMN voice_profiles.forbidden_words; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.voice_profiles.forbidden_words IS 'Array of words that should be avoided in AI-generated content for this user';
 
 
 --
@@ -9204,6 +9729,14 @@ ALTER TABLE ONLY auth.oauth_authorizations
 
 
 --
+-- Name: oauth_client_states oauth_client_states_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.oauth_client_states
+    ADD CONSTRAINT oauth_client_states_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: oauth_clients oauth_clients_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -9364,6 +9897,22 @@ ALTER TABLE ONLY public.ai_model_pricing
 
 
 --
+-- Name: ai_tools ai_tools_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ai_tools
+    ADD CONSTRAINT ai_tools_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: ai_tools ai_tools_tool_key_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ai_tools
+    ADD CONSTRAINT ai_tools_tool_key_key UNIQUE (tool_key);
+
+
+--
 -- Name: assessment_insights assessment_insights_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -9385,6 +9934,14 @@ ALTER TABLE ONLY public.assessment_responses
 
 ALTER TABLE ONLY public.assessment_results
     ADD CONSTRAINT assessment_results_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: audio_generation_batches audio_generation_batches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audio_generation_batches
+    ADD CONSTRAINT audio_generation_batches_pkey PRIMARY KEY (id);
 
 
 --
@@ -9417,6 +9974,14 @@ ALTER TABLE ONLY public.audio_tracks
 
 ALTER TABLE ONLY public.audio_variants
     ADD CONSTRAINT audio_variants_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: audio_voice_clones audio_voice_clones_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audio_voice_clones
+    ADD CONSTRAINT audio_voice_clones_pkey PRIMARY KEY (id);
 
 
 --
@@ -9601,22 +10166,6 @@ ALTER TABLE ONLY public.lead_tracking_events
 
 ALTER TABLE ONLY public.leads
     ADD CONSTRAINT leads_pkey PRIMARY KEY (id);
-
-
---
--- Name: life_vision_category_state life_vision_category_state_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.life_vision_category_state
-    ADD CONSTRAINT life_vision_category_state_pkey PRIMARY KEY (id);
-
-
---
--- Name: life_vision_category_state life_vision_category_state_user_id_category_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.life_vision_category_state
-    ADD CONSTRAINT life_vision_category_state_user_id_category_key UNIQUE (user_id, category);
 
 
 --
@@ -9892,11 +10441,43 @@ ALTER TABLE ONLY public.video_mapping
 
 
 --
+-- Name: vision_board_ideas vision_board_ideas_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vision_board_ideas
+    ADD CONSTRAINT vision_board_ideas_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: vision_board_items vision_board_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.vision_board_items
     ADD CONSTRAINT vision_board_items_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: vision_generation_batches vision_generation_batches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vision_generation_batches
+    ADD CONSTRAINT vision_generation_batches_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: vision_new_category_state vision_new_category_state_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vision_new_category_state
+    ADD CONSTRAINT vision_new_category_state_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: vision_new_category_state vision_new_category_state_user_id_category_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vision_new_category_state
+    ADD CONSTRAINT vision_new_category_state_user_id_category_key UNIQUE (user_id, category);
 
 
 --
@@ -9913,6 +10494,14 @@ ALTER TABLE ONLY public.vision_progress
 
 ALTER TABLE ONLY public.vision_progress
     ADD CONSTRAINT vision_progress_vision_id_key UNIQUE (vision_id);
+
+
+--
+-- Name: vision_refinements vision_refinements_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vision_refinements
+    ADD CONSTRAINT vision_refinements_pkey PRIMARY KEY (id);
 
 
 --
@@ -10127,6 +10716,13 @@ CREATE INDEX identities_user_id_idx ON auth.identities USING btree (user_id);
 --
 
 CREATE INDEX idx_auth_code ON auth.flow_state USING btree (auth_code);
+
+
+--
+-- Name: idx_oauth_client_states_created_at; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX idx_oauth_client_states_created_at ON auth.oauth_client_states USING btree (created_at);
 
 
 --
@@ -10459,6 +11055,27 @@ CREATE INDEX idx_ai_conversations_user_id ON public.ai_conversations USING btree
 
 
 --
+-- Name: idx_ai_tools_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_ai_tools_active ON public.ai_tools USING btree (is_active) WHERE (is_active = true);
+
+
+--
+-- Name: idx_ai_tools_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_ai_tools_key ON public.ai_tools USING btree (tool_key);
+
+
+--
+-- Name: idx_ai_tools_model; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_ai_tools_model ON public.ai_tools USING btree (model_name);
+
+
+--
 -- Name: idx_assessment_insights_assessment_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -10526,6 +11143,34 @@ CREATE INDEX idx_assessment_results_user_id ON public.assessment_results USING b
 --
 
 CREATE INDEX idx_assessment_results_user_status ON public.assessment_results USING btree (user_id, status);
+
+
+--
+-- Name: idx_audio_batches_created_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audio_batches_created_at ON public.audio_generation_batches USING btree (created_at DESC);
+
+
+--
+-- Name: idx_audio_batches_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audio_batches_status ON public.audio_generation_batches USING btree (status, created_at DESC);
+
+
+--
+-- Name: idx_audio_batches_user_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audio_batches_user_status ON public.audio_generation_batches USING btree (user_id, status, created_at DESC);
+
+
+--
+-- Name: idx_audio_batches_user_vision; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audio_batches_user_vision ON public.audio_generation_batches USING btree (user_id, vision_id);
 
 
 --
@@ -10613,6 +11258,27 @@ CREATE INDEX idx_audio_variants_id ON public.audio_variants USING btree (id);
 
 
 --
+-- Name: idx_audio_voice_clones_elevenlabs_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audio_voice_clones_elevenlabs_id ON public.audio_voice_clones USING btree (elevenlabs_voice_id);
+
+
+--
+-- Name: idx_audio_voice_clones_user_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_audio_voice_clones_user_active ON public.audio_voice_clones USING btree (user_id) WHERE (is_active = true);
+
+
+--
+-- Name: idx_audio_voice_clones_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audio_voice_clones_user_id ON public.audio_voice_clones USING btree (user_id);
+
+
+--
 -- Name: idx_campaigns_created_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -10683,6 +11349,20 @@ CREATE INDEX idx_conversation_sessions_vision_id ON public.conversation_sessions
 
 
 --
+-- Name: idx_customer_subscriptions_promo_code; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_customer_subscriptions_promo_code ON public.customer_subscriptions USING btree (promo_code) WHERE (promo_code IS NOT NULL);
+
+
+--
+-- Name: idx_customer_subscriptions_referral_source; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_customer_subscriptions_referral_source ON public.customer_subscriptions USING btree (referral_source) WHERE (referral_source IS NOT NULL);
+
+
+--
 -- Name: idx_customer_subscriptions_status; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -10736,6 +11416,41 @@ CREATE INDEX idx_email_direction ON public.email_messages USING btree (direction
 --
 
 CREATE INDEX idx_email_imap_id ON public.email_messages USING btree (imap_message_id);
+
+
+--
+-- Name: idx_email_messages_guest_email; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_email_messages_guest_email ON public.email_messages USING btree (guest_email);
+
+
+--
+-- Name: idx_email_messages_imap_message_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_email_messages_imap_message_id ON public.email_messages USING btree (imap_message_id);
+
+
+--
+-- Name: idx_email_messages_imap_uid; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_email_messages_imap_uid ON public.email_messages USING btree (imap_uid);
+
+
+--
+-- Name: idx_email_messages_is_reply; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_email_messages_is_reply ON public.email_messages USING btree (is_reply);
+
+
+--
+-- Name: idx_email_messages_ses_message_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_email_messages_ses_message_id ON public.email_messages USING btree (ses_message_id);
 
 
 --
@@ -10837,6 +11552,13 @@ CREATE INDEX idx_household_members_status ON public.household_members USING btre
 
 
 --
+-- Name: idx_household_members_user_household; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_household_members_user_household ON public.household_members USING btree (user_id, household_id) WHERE (status = 'active'::text);
+
+
+--
 -- Name: idx_household_members_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -10890,6 +11612,20 @@ CREATE INDEX idx_intensive_checklist_user_status ON public.intensive_checklist U
 --
 
 CREATE INDEX idx_intensive_payment_intent ON public.intensive_purchases USING btree (stripe_payment_intent_id);
+
+
+--
+-- Name: idx_intensive_purchases_promo_code; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_intensive_purchases_promo_code ON public.intensive_purchases USING btree (promo_code) WHERE (promo_code IS NOT NULL);
+
+
+--
+-- Name: idx_intensive_purchases_referral_source; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_intensive_purchases_referral_source ON public.intensive_purchases USING btree (referral_source) WHERE (referral_source IS NOT NULL);
 
 
 --
@@ -10967,34 +11703,6 @@ CREATE INDEX idx_leads_type ON public.leads USING btree (type);
 --
 
 CREATE INDEX idx_leads_utm_campaign ON public.leads USING btree (utm_campaign);
-
-
---
--- Name: idx_lv_category_state_blueprint; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_lv_category_state_blueprint ON public.life_vision_category_state USING gin (blueprint_data);
-
-
---
--- Name: idx_lv_category_state_created; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_lv_category_state_created ON public.life_vision_category_state USING btree (created_at DESC);
-
-
---
--- Name: idx_lv_category_state_prompts; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_lv_category_state_prompts ON public.life_vision_category_state USING gin (ideal_state_prompts);
-
-
---
--- Name: idx_lv_category_state_user_category; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_lv_category_state_user_category ON public.life_vision_category_state USING btree (user_id, category);
 
 
 --
@@ -11481,10 +12189,31 @@ CREATE UNIQUE INDEX idx_user_profiles_one_draft_per_user ON public.user_profiles
 
 
 --
+-- Name: idx_user_profiles_parent_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_user_profiles_parent_id ON public.user_profiles USING btree (parent_id);
+
+
+--
 -- Name: idx_user_profiles_parent_version; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_user_profiles_parent_version ON public.user_profiles USING btree (parent_version_id);
+
+
+--
+-- Name: idx_user_profiles_phone; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_user_profiles_phone ON public.user_profiles USING btree (phone) WHERE (phone IS NOT NULL);
+
+
+--
+-- Name: idx_user_profiles_sms_opt_in; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_user_profiles_sms_opt_in ON public.user_profiles USING btree (sms_opt_in) WHERE (sms_opt_in = true);
 
 
 --
@@ -11579,6 +12308,111 @@ CREATE INDEX idx_vibrational_links_user ON public.vibrational_links USING btree 
 
 
 --
+-- Name: idx_vision_batches_processing; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vision_batches_processing ON public.vision_generation_batches USING btree (status, updated_at) WHERE (status = ANY (ARRAY['pending'::text, 'processing'::text, 'retrying'::text]));
+
+
+--
+-- Name: idx_vision_batches_status_created; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vision_batches_status_created ON public.vision_generation_batches USING btree (status, created_at DESC);
+
+
+--
+-- Name: idx_vision_batches_user_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_vision_batches_user_active ON public.vision_generation_batches USING btree (user_id) WHERE (status = ANY (ARRAY['pending'::text, 'processing'::text, 'retrying'::text]));
+
+
+--
+-- Name: idx_vision_batches_user_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vision_batches_user_status ON public.vision_generation_batches USING btree (user_id, status);
+
+
+--
+-- Name: idx_vision_board_ideas_category; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vision_board_ideas_category ON public.vision_board_ideas USING btree (category);
+
+
+--
+-- Name: idx_vision_board_ideas_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vision_board_ideas_status ON public.vision_board_ideas USING btree (status) WHERE (status = 'active'::text);
+
+
+--
+-- Name: idx_vision_board_ideas_user; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vision_board_ideas_user ON public.vision_board_ideas USING btree (user_id);
+
+
+--
+-- Name: idx_vision_board_ideas_user_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vision_board_ideas_user_active ON public.vision_board_ideas USING btree (user_id, status) WHERE (status = 'active'::text);
+
+
+--
+-- Name: idx_vision_board_ideas_vision; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vision_board_ideas_vision ON public.vision_board_ideas USING btree (vision_version_id);
+
+
+--
+-- Name: idx_vision_new_category_state_blueprint; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vision_new_category_state_blueprint ON public.vision_new_category_state USING gin (blueprint_data);
+
+
+--
+-- Name: idx_vision_new_category_state_clarity_keys; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vision_new_category_state_clarity_keys ON public.vision_new_category_state USING gin (clarity_keys);
+
+
+--
+-- Name: idx_vision_new_category_state_contrast_flips; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vision_new_category_state_contrast_flips ON public.vision_new_category_state USING gin (contrast_flips);
+
+
+--
+-- Name: idx_vision_new_category_state_created; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vision_new_category_state_created ON public.vision_new_category_state USING btree (created_at DESC);
+
+
+--
+-- Name: idx_vision_new_category_state_prompts; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vision_new_category_state_prompts ON public.vision_new_category_state USING gin (ideal_state_prompts);
+
+
+--
+-- Name: idx_vision_new_category_state_user_category; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vision_new_category_state_user_category ON public.vision_new_category_state USING btree (user_id, category);
+
+
+--
 -- Name: idx_vision_progress_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -11590,6 +12424,55 @@ CREATE INDEX idx_vision_progress_user_id ON public.vision_progress USING btree (
 --
 
 CREATE INDEX idx_vision_progress_vision_id ON public.vision_progress USING btree (vision_id);
+
+
+--
+-- Name: idx_vision_refinements_applied; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vision_refinements_applied ON public.vision_refinements USING btree (applied) WHERE (applied = false);
+
+
+--
+-- Name: idx_vision_refinements_category; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vision_refinements_category ON public.vision_refinements USING btree (category);
+
+
+--
+-- Name: idx_vision_refinements_created_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vision_refinements_created_at ON public.vision_refinements USING btree (created_at DESC);
+
+
+--
+-- Name: idx_vision_refinements_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vision_refinements_user_id ON public.vision_refinements USING btree (user_id);
+
+
+--
+-- Name: idx_vision_refinements_user_vision; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vision_refinements_user_vision ON public.vision_refinements USING btree (user_id, vision_id);
+
+
+--
+-- Name: idx_vision_refinements_vision_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vision_refinements_vision_id ON public.vision_refinements USING btree (vision_id);
+
+
+--
+-- Name: idx_vision_versions_household_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vision_versions_household_id ON public.vision_versions USING btree (household_id);
 
 
 --
@@ -11796,6 +12679,13 @@ CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXEC
 
 
 --
+-- Name: users trigger_sync_profile_email; Type: TRIGGER; Schema: auth; Owner: -
+--
+
+CREATE TRIGGER trigger_sync_profile_email AFTER UPDATE OF email ON auth.users FOR EACH ROW WHEN (((old.email)::text IS DISTINCT FROM (new.email)::text)) EXECUTE FUNCTION public.sync_user_profile_email();
+
+
+--
 -- Name: ai_conversations ai_conversations_update_session; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -11828,6 +12718,13 @@ CREATE TRIGGER households_updated_at BEFORE UPDATE ON public.households FOR EACH
 --
 
 CREATE TRIGGER on_vision_created AFTER INSERT ON public.vision_versions FOR EACH ROW EXECUTE FUNCTION public.initialize_vision_progress();
+
+
+--
+-- Name: user_profiles set_draft_parent_id_trigger; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER set_draft_parent_id_trigger BEFORE INSERT ON public.user_profiles FOR EACH ROW EXECUTE FUNCTION public.set_draft_parent_id();
 
 
 --
@@ -11880,10 +12777,31 @@ CREATE TRIGGER trigger_audio_tracks_updated_at BEFORE UPDATE ON public.audio_tra
 
 
 --
+-- Name: user_profiles trigger_set_initial_email; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trigger_set_initial_email BEFORE INSERT ON public.user_profiles FOR EACH ROW EXECUTE FUNCTION public.set_initial_profile_email();
+
+
+--
+-- Name: user_profiles trigger_set_new_profile_email; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trigger_set_new_profile_email BEFORE INSERT ON public.user_profiles FOR EACH ROW EXECUTE FUNCTION public.set_new_profile_email();
+
+
+--
 -- Name: support_tickets trigger_set_ticket_number; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE TRIGGER trigger_set_ticket_number BEFORE INSERT ON public.support_tickets FOR EACH ROW EXECUTE FUNCTION public.set_ticket_number();
+
+
+--
+-- Name: user_profiles trigger_sync_auth_email; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trigger_sync_auth_email AFTER UPDATE OF email ON public.user_profiles FOR EACH ROW WHEN (((old.email IS DISTINCT FROM new.email) AND (new.email IS NOT NULL))) EXECUTE FUNCTION public.sync_auth_users_email();
 
 
 --
@@ -11950,6 +12868,13 @@ CREATE TRIGGER trigger_update_vision_refinement_tracking AFTER INSERT ON public.
 
 
 --
+-- Name: ai_tools update_ai_tools_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_ai_tools_updated_at BEFORE UPDATE ON public.ai_tools FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
 -- Name: assessment_insights update_assessment_insights_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -11971,6 +12896,13 @@ CREATE TRIGGER update_assessment_results_updated_at BEFORE UPDATE ON public.asse
 
 
 --
+-- Name: audio_generation_batches update_audio_generation_batches_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_audio_generation_batches_updated_at BEFORE UPDATE ON public.audio_generation_batches FOR EACH ROW EXECUTE FUNCTION public.update_audio_generation_batches_updated_at();
+
+
+--
 -- Name: customer_subscriptions update_customer_subscriptions_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -11982,13 +12914,6 @@ CREATE TRIGGER update_customer_subscriptions_updated_at BEFORE UPDATE ON public.
 --
 
 CREATE TRIGGER update_generated_images_updated_at BEFORE UPDATE ON public.generated_images FOR EACH ROW EXECUTE FUNCTION public.update_generated_images_updated_at();
-
-
---
--- Name: life_vision_category_state update_lv_category_state_updated_at; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER update_lv_category_state_updated_at BEFORE UPDATE ON public.life_vision_category_state FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 
 --
@@ -12024,6 +12949,34 @@ CREATE TRIGGER update_scores_on_response_change AFTER INSERT OR DELETE OR UPDATE
 --
 
 CREATE TRIGGER update_vibrational_links_updated_at BEFORE UPDATE ON public.vibrational_links FOR EACH ROW EXECUTE FUNCTION public.update_vibrational_links_updated_at();
+
+
+--
+-- Name: vision_board_ideas update_vision_board_ideas_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_vision_board_ideas_updated_at BEFORE UPDATE ON public.vision_board_ideas FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- Name: vision_generation_batches update_vision_generation_batches_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_vision_generation_batches_updated_at BEFORE UPDATE ON public.vision_generation_batches FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- Name: vision_new_category_state update_vision_new_category_state_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_vision_new_category_state_updated_at BEFORE UPDATE ON public.vision_new_category_state FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- Name: vision_refinements update_vision_refinements_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_vision_refinements_updated_at BEFORE UPDATE ON public.vision_refinements FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 
 --
@@ -12234,6 +13187,14 @@ ALTER TABLE ONLY public.ai_conversations
 
 
 --
+-- Name: ai_tools ai_tools_model_name_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ai_tools
+    ADD CONSTRAINT ai_tools_model_name_fkey FOREIGN KEY (model_name) REFERENCES public.ai_model_pricing(model_name);
+
+
+--
 -- Name: assessment_insights assessment_insights_assessment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -12263,6 +13224,22 @@ ALTER TABLE ONLY public.assessment_results
 
 ALTER TABLE ONLY public.assessment_results
     ADD CONSTRAINT assessment_results_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: audio_generation_batches audio_generation_batches_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audio_generation_batches
+    ADD CONSTRAINT audio_generation_batches_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: audio_generation_batches audio_generation_batches_vision_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audio_generation_batches
+    ADD CONSTRAINT audio_generation_batches_vision_id_fkey FOREIGN KEY (vision_id) REFERENCES public.vision_versions(id) ON DELETE CASCADE;
 
 
 --
@@ -12303,6 +13280,14 @@ ALTER TABLE ONLY public.audio_tracks
 
 ALTER TABLE ONLY public.audio_tracks
     ADD CONSTRAINT audio_tracks_vision_id_fkey FOREIGN KEY (vision_id) REFERENCES public.vision_versions(id) ON DELETE CASCADE;
+
+
+--
+-- Name: audio_voice_clones audio_voice_clones_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audio_voice_clones
+    ADD CONSTRAINT audio_voice_clones_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
 
 --
@@ -12530,14 +13515,6 @@ ALTER TABLE ONLY public.leads
 
 
 --
--- Name: life_vision_category_state life_vision_category_state_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.life_vision_category_state
-    ADD CONSTRAINT life_vision_category_state_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
---
 -- Name: marketing_campaigns marketing_campaigns_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -12722,6 +13699,14 @@ ALTER TABLE ONLY public.user_profiles
 
 
 --
+-- Name: user_profiles user_profiles_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_profiles
+    ADD CONSTRAINT user_profiles_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.user_profiles(id) ON DELETE SET NULL;
+
+
+--
 -- Name: user_profiles user_profiles_parent_version_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -12786,11 +13771,51 @@ ALTER TABLE ONLY public.vibrational_links
 
 
 --
+-- Name: vision_board_ideas vision_board_ideas_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vision_board_ideas
+    ADD CONSTRAINT vision_board_ideas_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: vision_board_ideas vision_board_ideas_vision_version_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vision_board_ideas
+    ADD CONSTRAINT vision_board_ideas_vision_version_id_fkey FOREIGN KEY (vision_version_id) REFERENCES public.vision_versions(id) ON DELETE CASCADE;
+
+
+--
 -- Name: vision_board_items vision_board_items_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.vision_board_items
     ADD CONSTRAINT vision_board_items_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: vision_generation_batches vision_generation_batches_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vision_generation_batches
+    ADD CONSTRAINT vision_generation_batches_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: vision_generation_batches vision_generation_batches_vision_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vision_generation_batches
+    ADD CONSTRAINT vision_generation_batches_vision_id_fkey FOREIGN KEY (vision_id) REFERENCES public.vision_versions(id) ON DELETE SET NULL;
+
+
+--
+-- Name: vision_new_category_state vision_new_category_state_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vision_new_category_state
+    ADD CONSTRAINT vision_new_category_state_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
 
 --
@@ -12807,6 +13832,30 @@ ALTER TABLE ONLY public.vision_progress
 
 ALTER TABLE ONLY public.vision_progress
     ADD CONSTRAINT vision_progress_vision_id_fkey FOREIGN KEY (vision_id) REFERENCES public.vision_versions(id) ON DELETE CASCADE;
+
+
+--
+-- Name: vision_refinements vision_refinements_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vision_refinements
+    ADD CONSTRAINT vision_refinements_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: vision_refinements vision_refinements_vision_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vision_refinements
+    ADD CONSTRAINT vision_refinements_vision_id_fkey FOREIGN KEY (vision_id) REFERENCES public.vision_versions(id) ON DELETE CASCADE;
+
+
+--
+-- Name: vision_versions vision_versions_household_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vision_versions
+    ADD CONSTRAINT vision_versions_household_id_fkey FOREIGN KEY (household_id) REFERENCES public.households(id) ON DELETE CASCADE;
 
 
 --
@@ -13068,6 +14117,24 @@ CREATE POLICY "Admins can manage all tickets" ON public.support_tickets USING ((
 
 
 --
+-- Name: ai_tools Admins can manage all tools; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can manage all tools" ON public.ai_tools TO authenticated USING ((EXISTS ( SELECT 1
+   FROM auth.users
+  WHERE ((users.id = auth.uid()) AND ((((users.raw_user_meta_data ->> 'is_admin'::text))::boolean = true) OR ((users.email)::text = ANY (ARRAY['buckinghambliss@gmail.com'::text, 'admin@vibrationfit.com'::text]))))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM auth.users
+  WHERE ((users.id = auth.uid()) AND ((((users.raw_user_meta_data ->> 'is_admin'::text))::boolean = true) OR ((users.email)::text = ANY (ARRAY['buckinghambliss@gmail.com'::text, 'admin@vibrationfit.com'::text])))))));
+
+
+--
+-- Name: POLICY "Admins can manage all tools" ON ai_tools; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON POLICY "Admins can manage all tools" ON public.ai_tools IS 'Only admin users (via auth metadata or email whitelist) can insert/update/delete tools';
+
+
+--
 -- Name: marketing_campaigns Admins can manage campaigns; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -13175,6 +14242,20 @@ CREATE POLICY "Authenticated users can manage audio variants" ON public.audio_va
 
 
 --
+-- Name: ai_tools Authenticated users can modify ai_tools; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Authenticated users can modify ai_tools" ON public.ai_tools TO authenticated USING (true) WITH CHECK (true);
+
+
+--
+-- Name: ai_tools Authenticated users can view ai_tools; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Authenticated users can view ai_tools" ON public.ai_tools FOR SELECT TO authenticated USING (true);
+
+
+--
 -- Name: household_invitations Invitees can view their invitations; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -13211,6 +14292,20 @@ CREATE POLICY "Service role can insert token transactions" ON public.token_trans
 --
 
 CREATE POLICY "Service role can manage all refinements" ON public.refinements USING ((auth.role() = 'service_role'::text));
+
+
+--
+-- Name: audio_generation_batches Service role can update audio generation batches; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Service role can update audio generation batches" ON public.audio_generation_batches FOR UPDATE USING ((auth.role() = 'service_role'::text));
+
+
+--
+-- Name: audio_generation_batches Service role has full access to audio generation batches; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Service role has full access to audio generation batches" ON public.audio_generation_batches USING ((auth.role() = 'service_role'::text));
 
 
 --
@@ -13263,6 +14358,13 @@ CREATE POLICY "Users can create households" ON public.households FOR INSERT WITH
 
 
 --
+-- Name: audio_generation_batches Users can create own audio generation batches; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can create own audio generation batches" ON public.audio_generation_batches FOR INSERT WITH CHECK ((auth.uid() = user_id));
+
+
+--
 -- Name: journal_entries Users can create own journal entries; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -13307,6 +14409,13 @@ CREATE POLICY "Users can create their own generated images" ON public.generated_
 
 
 --
+-- Name: audio_voice_clones Users can create their own voice clones; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can create their own voice clones" ON public.audio_voice_clones FOR INSERT WITH CHECK ((auth.uid() = user_id));
+
+
+--
 -- Name: support_tickets Users can create tickets; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -13314,10 +14423,24 @@ CREATE POLICY "Users can create tickets" ON public.support_tickets FOR INSERT WI
 
 
 --
--- Name: life_vision_category_state Users can delete own category state; Type: POLICY; Schema: public; Owner: -
+-- Name: audio_generation_batches Users can delete own audio generation batches; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Users can delete own category state" ON public.life_vision_category_state FOR DELETE USING ((auth.uid() = user_id));
+CREATE POLICY "Users can delete own audio generation batches" ON public.audio_generation_batches FOR DELETE USING ((auth.uid() = user_id));
+
+
+--
+-- Name: POLICY "Users can delete own audio generation batches" ON audio_generation_batches; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON POLICY "Users can delete own audio generation batches" ON public.audio_generation_batches IS 'Allows users to delete their own audio generation batch records';
+
+
+--
+-- Name: vision_new_category_state Users can delete own category state; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can delete own category state" ON public.vision_new_category_state FOR DELETE USING ((auth.uid() = user_id));
 
 
 --
@@ -13435,10 +14558,31 @@ CREATE POLICY "Users can delete their own refinements" ON public.refinements FOR
 
 
 --
--- Name: vision_versions Users can delete their own vision versions; Type: POLICY; Schema: public; Owner: -
+-- Name: vision_refinements Users can delete their own refinements; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Users can delete their own vision versions" ON public.vision_versions FOR DELETE USING ((auth.uid() = user_id));
+CREATE POLICY "Users can delete their own refinements" ON public.vision_refinements FOR DELETE USING ((auth.uid() = user_id));
+
+
+--
+-- Name: vision_board_ideas Users can delete their own vision board ideas; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can delete their own vision board ideas" ON public.vision_board_ideas FOR DELETE USING ((auth.uid() = user_id));
+
+
+--
+-- Name: audio_voice_clones Users can delete their own voice clones; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can delete their own voice clones" ON public.audio_voice_clones FOR DELETE USING ((auth.uid() = user_id));
+
+
+--
+-- Name: scenes Users can delete their scenes; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can delete their scenes" ON public.scenes FOR DELETE USING ((auth.uid() = user_id));
 
 
 --
@@ -13449,10 +14593,10 @@ CREATE POLICY "Users can insert media metadata" ON public.media_metadata FOR INS
 
 
 --
--- Name: life_vision_category_state Users can insert own category state; Type: POLICY; Schema: public; Owner: -
+-- Name: vision_new_category_state Users can insert own category state; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Users can insert own category state" ON public.life_vision_category_state FOR INSERT WITH CHECK ((auth.uid() = user_id));
+CREATE POLICY "Users can insert own category state" ON public.vision_new_category_state FOR INSERT WITH CHECK ((auth.uid() = user_id));
 
 
 --
@@ -13547,6 +14691,13 @@ CREATE POLICY "Users can insert their own refinements" ON public.refinements FOR
 
 
 --
+-- Name: vision_refinements Users can insert their own refinements; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can insert their own refinements" ON public.vision_refinements FOR INSERT WITH CHECK ((auth.uid() = user_id));
+
+
+--
 -- Name: vibrational_links Users can insert their own vibrational links; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -13554,10 +14705,10 @@ CREATE POLICY "Users can insert their own vibrational links" ON public.vibration
 
 
 --
--- Name: vision_versions Users can insert their own vision versions; Type: POLICY; Schema: public; Owner: -
+-- Name: vision_board_ideas Users can insert their own vision board ideas; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Users can insert their own vision versions" ON public.vision_versions FOR INSERT WITH CHECK ((auth.uid() = user_id));
+CREATE POLICY "Users can insert their own vision board ideas" ON public.vision_board_ideas FOR INSERT WITH CHECK ((auth.uid() = user_id));
 
 
 --
@@ -13612,17 +14763,31 @@ CREATE POLICY "Users can select their own audio tracks" ON public.audio_tracks F
 
 
 --
--- Name: life_vision_category_state Users can update own category state; Type: POLICY; Schema: public; Owner: -
+-- Name: audio_generation_batches Users can update own audio generation batches; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Users can update own category state" ON public.life_vision_category_state FOR UPDATE USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+CREATE POLICY "Users can update own audio generation batches" ON public.audio_generation_batches FOR UPDATE USING ((auth.uid() = user_id));
+
+
+--
+-- Name: vision_new_category_state Users can update own category state; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can update own category state" ON public.vision_new_category_state FOR UPDATE USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
 
 
 --
 -- Name: intensive_checklist Users can update own intensive checklist; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Users can update own intensive checklist" ON public.intensive_checklist FOR UPDATE USING ((auth.uid() = user_id));
+CREATE POLICY "Users can update own intensive checklist" ON public.intensive_checklist FOR UPDATE TO authenticated USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+
+
+--
+-- Name: POLICY "Users can update own intensive checklist" ON intensive_checklist; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON POLICY "Users can update own intensive checklist" ON public.intensive_checklist IS 'Allows users to update their own intensive checklist records (status, started_at, completed_at, step completions)';
 
 
 --
@@ -13775,6 +14940,13 @@ CREATE POLICY "Users can update their own refinements" ON public.refinements FOR
 
 
 --
+-- Name: vision_refinements Users can update their own refinements; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can update their own refinements" ON public.vision_refinements FOR UPDATE USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+
+
+--
 -- Name: vibrational_links Users can update their own vibrational links; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -13782,10 +14954,17 @@ CREATE POLICY "Users can update their own vibrational links" ON public.vibration
 
 
 --
--- Name: vision_versions Users can update their own vision versions; Type: POLICY; Schema: public; Owner: -
+-- Name: vision_board_ideas Users can update their own vision board ideas; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Users can update their own vision versions" ON public.vision_versions FOR UPDATE USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+CREATE POLICY "Users can update their own vision board ideas" ON public.vision_board_ideas FOR UPDATE USING ((auth.uid() = user_id));
+
+
+--
+-- Name: audio_voice_clones Users can update their own voice clones; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can update their own voice clones" ON public.audio_voice_clones FOR UPDATE USING ((auth.uid() = user_id));
 
 
 --
@@ -13821,10 +15000,17 @@ CREATE POLICY "Users can view household members" ON public.household_members FOR
 
 
 --
--- Name: life_vision_category_state Users can view own category state; Type: POLICY; Schema: public; Owner: -
+-- Name: audio_generation_batches Users can view own audio generation batches; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Users can view own category state" ON public.life_vision_category_state FOR SELECT USING ((auth.uid() = user_id));
+CREATE POLICY "Users can view own audio generation batches" ON public.audio_generation_batches FOR SELECT USING ((auth.uid() = user_id));
+
+
+--
+-- Name: vision_new_category_state Users can view own category state; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can view own category state" ON public.vision_new_category_state FOR SELECT USING ((auth.uid() = user_id));
 
 
 --
@@ -14057,6 +15243,13 @@ CREATE POLICY "Users can view their own refinements" ON public.refinements FOR S
 
 
 --
+-- Name: vision_refinements Users can view their own refinements; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can view their own refinements" ON public.vision_refinements FOR SELECT USING ((auth.uid() = user_id));
+
+
+--
 -- Name: customer_subscriptions Users can view their own subscriptions; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -14078,10 +15271,17 @@ CREATE POLICY "Users can view their own vibrational links" ON public.vibrational
 
 
 --
--- Name: vision_versions Users can view their own vision versions; Type: POLICY; Schema: public; Owner: -
+-- Name: vision_board_ideas Users can view their own vision board ideas; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Users can view their own vision versions" ON public.vision_versions FOR SELECT USING ((auth.uid() = user_id));
+CREATE POLICY "Users can view their own vision board ideas" ON public.vision_board_ideas FOR SELECT USING ((auth.uid() = user_id));
+
+
+--
+-- Name: audio_voice_clones Users can view their own voice clones; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can view their own voice clones" ON public.audio_voice_clones FOR SELECT USING ((auth.uid() = user_id));
 
 
 --
@@ -14123,6 +15323,12 @@ ALTER TABLE public.ai_conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ai_model_pricing ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: ai_tools; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.ai_tools ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: assessment_insights; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -14141,6 +15347,12 @@ ALTER TABLE public.assessment_responses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.assessment_results ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: audio_generation_batches; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.audio_generation_batches ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: audio_sets; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -14157,6 +15369,12 @@ ALTER TABLE public.audio_tracks ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.audio_variants ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: audio_voice_clones; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.audio_voice_clones ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: conversation_sessions; Type: ROW SECURITY; Schema: public; Owner: -
@@ -14201,6 +15419,15 @@ ALTER TABLE public.frequency_flip ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.generated_images ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: vision_versions household_admins_can_delete_household_visions; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY household_admins_can_delete_household_visions ON public.vision_versions FOR DELETE TO authenticated USING (((household_id IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM public.household_members
+  WHERE ((household_members.household_id = vision_versions.household_id) AND (household_members.user_id = auth.uid()) AND (household_members.status = 'active'::text) AND (household_members.role = 'admin'::text))))));
+
+
+--
 -- Name: household_invitations; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -14211,6 +15438,27 @@ ALTER TABLE public.household_invitations ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.household_members ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: vision_versions household_members_can_insert_household_visions; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY household_members_can_insert_household_visions ON public.vision_versions FOR INSERT TO authenticated WITH CHECK (((household_id IS NOT NULL) AND (user_id = auth.uid()) AND public.is_active_household_member(household_id, auth.uid())));
+
+
+--
+-- Name: vision_versions household_members_can_update_household_visions; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY household_members_can_update_household_visions ON public.vision_versions FOR UPDATE TO authenticated USING (((household_id IS NOT NULL) AND public.is_active_household_member(household_id, auth.uid()))) WITH CHECK (((household_id IS NOT NULL) AND public.is_active_household_member(household_id, auth.uid())));
+
+
+--
+-- Name: vision_versions household_members_can_view_household_visions; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY household_members_can_view_household_visions ON public.vision_versions FOR SELECT TO authenticated USING (((household_id IS NOT NULL) AND public.is_active_household_member(household_id, auth.uid())));
+
 
 --
 -- Name: households; Type: ROW SECURITY; Schema: public; Owner: -
@@ -14247,12 +15495,6 @@ ALTER TABLE public.lead_tracking_events ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.leads ENABLE ROW LEVEL SECURITY;
-
---
--- Name: life_vision_category_state; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.life_vision_category_state ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: marketing_campaigns; Type: ROW SECURITY; Schema: public; Owner: -
@@ -14395,16 +15637,34 @@ ALTER TABLE public.vibrational_links ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.video_mapping ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: vision_board_ideas; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.vision_board_ideas ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: vision_board_items; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.vision_board_items ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: vision_new_category_state; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.vision_new_category_state ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: vision_progress; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.vision_progress ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: vision_refinements; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.vision_refinements ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: vision_versions; Type: ROW SECURITY; Schema: public; Owner: -
@@ -14736,5 +15996,5 @@ CREATE EVENT TRIGGER pgrst_drop_watch ON sql_drop
 -- PostgreSQL database dump complete
 --
 
-\unrestrict pXqG9NAdfY1hu01elgIKHH2UOsr5J5OIheMbZtKiMYo7FhKpKGWf6aLbaoA8vt5
+\unrestrict Esd8UBNylbIkYdv83vRDweV8CVRgpVlAO34wwvSDlIH1ckZAoZ3lQ3XdORdKBsk
 

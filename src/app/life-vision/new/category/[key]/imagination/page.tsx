@@ -26,13 +26,9 @@ export default function ImaginationPage() {
   const [completedSteps, setCompletedSteps] = useState<{
     clarity: boolean
     imagination: boolean
-    blueprint: boolean
-    scenes: boolean
   }>({
     clarity: false,
-    imagination: false,
-    blueprint: false,
-    scenes: false
+    imagination: false
   })
 
   const category = getVisionCategory(categoryKey)
@@ -49,12 +45,10 @@ export default function ImaginationPage() {
     c => c.key !== 'forward' && c.key !== 'conclusion'
   )
   
-  // Define the 4 steps for each category
+  // Define the 2 steps for each category
   const categorySteps = [
     { key: 'clarity', label: 'Clarity', path: `/life-vision/new/category/${categoryKey}` },
-    { key: 'imagination', label: 'Imagination', path: `/life-vision/new/category/${categoryKey}/imagination` },
-    { key: 'blueprint', label: 'Blueprint', path: `/life-vision/new/category/${categoryKey}/blueprint` },
-    { key: 'scenes', label: 'Scenes', path: `/life-vision/new/category/${categoryKey}/scenes` }
+    { key: 'imagination', label: 'Imagination', path: `/life-vision/new/category/${categoryKey}/imagination` }
   ]
   
   // Determine current step (this is imagination, so step 1)
@@ -110,20 +104,10 @@ export default function ImaginationPage() {
         }
       }
       
-      // Check for existing scenes for this category
-      const { data: existingScenes } = await supabase
-        .from('scenes')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('category', categoryKey)
-        .limit(1)
-      
       // Set step completion status based on actual data
       setCompletedSteps({
         clarity: !!(categoryState?.clarity_keys && Array.isArray(categoryState.clarity_keys) && categoryState.clarity_keys.length > 0),
-        imagination: !!(categoryState?.ideal_state && categoryState.ideal_state.trim().length > 0),
-        blueprint: !!(categoryState?.blueprint_data && Object.keys(categoryState.blueprint_data).length > 0),
-        scenes: !!(existingScenes && existingScenes.length > 0)
+        imagination: !!(categoryState?.ideal_state && categoryState.ideal_state.trim().length > 0)
       })
       
       // Load completion status for all categories for the grid
@@ -169,8 +153,12 @@ export default function ImaginationPage() {
 
       if (updateError) throw updateError
 
-      // Navigate to blueprint
-      router.push(`/life-vision/new/category/${categoryKey}/blueprint`)
+      // Navigate to next category or assembly
+      if (nextCategory) {
+        router.push(`/life-vision/new/category/${nextCategory.key}`)
+      } else {
+        router.push('/life-vision/new/assembly')
+      }
     } catch (err) {
       console.error('Error saving ideal state:', err)
       setError('Failed to save your vision')

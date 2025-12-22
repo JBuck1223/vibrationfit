@@ -702,8 +702,8 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
       <Stack gap="lg">
         {/* Header */}
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
-          title={displayStatus === 'draft' ? 'Refine Life Vision' : 'The Life I Choose'}
+          eyebrow={vision.household_id ? "THE LIFE WE CHOOSE" : "THE LIFE I CHOOSE"}
+          title={displayStatus === 'draft' ? 'Refine Life Vision' : (vision.household_id ? 'The Life We Choose' : 'The Life I Choose')}
           subtitle={displayStatus === 'draft' ? 'Refined categories will show in yellow. Once you are happy with your refinement(s), click "Commit as Active Vision".' : undefined}
         >
           {/* Version Info Badges */}
@@ -711,7 +711,8 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
             <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
               <VersionBadge 
                 versionNumber={vision.version_number} 
-                status={displayStatus} 
+                status={displayStatus}
+                isHouseholdVision={!!vision.household_id}
               />
               <StatusBadge status={displayStatus} subtle={displayStatus !== 'active'} className="uppercase tracking-[0.25em]" />
               <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">

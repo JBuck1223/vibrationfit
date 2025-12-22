@@ -48,17 +48,13 @@ export default function CategoryPage() {
   // Track completion across all categories for the grid
   const [completedCategoryKeys, setCompletedCategoryKeys] = useState<string[]>([])
   
-  // Track completion of individual steps (clarity, imagination, blueprint, scenes)
+  // Track completion of individual steps (clarity, imagination)
   const [completedSteps, setCompletedSteps] = useState<{
     clarity: boolean
     imagination: boolean
-    blueprint: boolean
-    scenes: boolean
   }>({
     clarity: false,
-    imagination: false,
-    blueprint: false,
-    scenes: false
+    imagination: false
   })
 
   // No longer needed - using getCategoryFields() from vision-categories
@@ -253,20 +249,10 @@ export default function CategoryPage() {
         setContrastFromProfile(contrastValue || '')
       }
       
-      // Check for existing scenes for this category
-      const { data: existingScenes } = await supabase
-        .from('scenes')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('category', categoryKey)
-        .limit(1)
-      
       // Set step completion status based on actual data
       setCompletedSteps({
         clarity: hasClarity,
-        imagination: !!(categoryState?.ideal_state && categoryState.ideal_state.trim().length > 0),
-        blueprint: !!(categoryState?.blueprint_data && Object.keys(categoryState.blueprint_data).length > 0),
-        scenes: !!(existingScenes && existingScenes.length > 0)
+        imagination: !!(categoryState?.ideal_state && categoryState.ideal_state.trim().length > 0)
       })
       
       // Load completion status for all categories for the grid
@@ -352,19 +338,14 @@ export default function CategoryPage() {
     c => c.key !== 'forward' && c.key !== 'conclusion'
   )
 
-  // Define the 4 steps for each category
+  // Define the 2 steps for each category
   const categorySteps = [
     { key: 'clarity', label: 'Clarity', path: `/life-vision/new/category/${categoryKey}` },
-    { key: 'imagination', label: 'Imagination', path: `/life-vision/new/category/${categoryKey}/imagination` },
-    { key: 'blueprint', label: 'Blueprint', path: `/life-vision/new/category/${categoryKey}/blueprint` },
-    { key: 'scenes', label: 'Scenes', path: `/life-vision/new/category/${categoryKey}/scenes` }
+    { key: 'imagination', label: 'Imagination', path: `/life-vision/new/category/${categoryKey}/imagination` }
   ]
 
   // Determine current step based on URL
-  const currentStepIndex = pathname?.includes('/imagination') ? 1 
-    : pathname?.includes('/blueprint') ? 2 
-    : pathname?.includes('/scenes') ? 3 
-    : 0
+  const currentStepIndex = pathname?.includes('/imagination') ? 1 : 0
 
   return (
     <Container size="xl">

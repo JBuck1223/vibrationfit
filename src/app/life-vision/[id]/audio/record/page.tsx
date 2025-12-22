@@ -214,8 +214,8 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
       {/* Header */}
       <div className="mb-8">
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
-          title="Personal Voice Recording"
+          eyebrow={vision?.household_id ? "THE LIFE WE CHOOSE" : "THE LIFE I CHOOSE"}
+          title={vision?.household_id ? "Our Voice Recording" : "Personal Voice Recording"}
           subtitle="Read your Life Vision in your own voice"
         >
           {/* Stats */}
