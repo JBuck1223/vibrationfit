@@ -26,7 +26,8 @@ import {
   Eye,
   Gem,
   CheckCircle,
-  X
+  X,
+  Plus
 } from 'lucide-react'
 import { 
    
@@ -45,7 +46,7 @@ import {
   Container,
   Stack
 } from '@/lib/design-system'
-import { VISION_CATEGORIES } from '@/lib/design-system'
+import { VISION_CATEGORIES, getVisionCategoryLabel } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { VivaChatInput } from '@/components/viva/VivaChatInput'
 import { colors } from '@/lib/design-system/tokens'
@@ -61,6 +62,7 @@ import { calculateVersionNumber } from '@/lib/life-vision/version-helpers'
 interface VisionData {
   id: string
   user_id: string
+  household_id?: string | null
   forward: string
   fun: string
   travel: string
@@ -304,10 +306,6 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const [addInput, setAddInput] = useState('')
   const [removeItems, setRemoveItems] = useState<string[]>([])
   const [removeInput, setRemoveInput] = useState('')
-  const [emphasize, setEmphasize] = useState('')
-  const [deemphasize, setDeemphasize] = useState('')
-  const [intensity, setIntensity] = useState<'less' | 'same' | 'more'>('same')
-  const [detail, setDetail] = useState<'simpler' | 'same' | 'richer'>('same')
   const [weaveEnabled, setWeaveEnabled] = useState(false)
   const [weaveStrength, setWeaveStrength] = useState<'light' | 'medium' | 'deep'>('light')
   const [weaveStyle, setWeaveStyle] = useState<'inline' | 'addon'>('inline')
@@ -1168,6 +1166,22 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     const activeVisionText = getCategoryValue(selectedCategory)
     if (!activeVisionText.trim()) return
     
+    // Auto-add any pending text in the input fields
+    let finalAddItems = [...addItems]
+    let finalRemoveItems = [...removeItems]
+    
+    if (addInput.trim()) {
+      finalAddItems.push(addInput.trim())
+      setAddItems(finalAddItems)
+      setAddInput('')
+    }
+    
+    if (removeInput.trim()) {
+      finalRemoveItems.push(removeInput.trim())
+      setRemoveItems(finalRemoveItems)
+      setRemoveInput('')
+    }
+    
     setIsVivaRefining(true)
     setOriginalVisionText(activeVisionText) // Store original active vision
     setCurrentRefinement('') // Clear refinement field to stream into it
@@ -1176,17 +1190,10 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     setViewMode('edit') // Reset to edit mode
     
     try {
-      // Map intensity to numeric value
-      const intensityMap = { less: 2, same: 3, more: 4 } as const
-      
       // Build refinement inputs
       const refinement = {
-        add: addItems.filter(item => item.trim()),
-        remove: removeItems.filter(item => item.trim()),
-        emphasize: emphasize.trim() || undefined,
-        deemphasize: deemphasize.trim() || undefined,
-        intensity: intensityMap[intensity] as 1 | 2 | 3 | 4 | 5,
-        detail,
+        add: finalAddItems.filter(item => item.trim()),
+        remove: finalRemoveItems.filter(item => item.trim()),
         notes: refinementNotes.trim() || undefined
       }
       
@@ -1450,8 +1457,8 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       <Stack gap="lg">
         {/* Header */}
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
-          title="Refine Life Vision"
+          eyebrow={draftVision?.household_id ? "THE LIFE WE CHOOSE" : "THE LIFE I CHOOSE"}
+          title={draftVision?.household_id ? "Refine Our Life Vision" : "Refine Life Vision"}
           subtitle="Select a category and let VIVA help you refine your vision through intelligent conversation"
         >
           {/* Version Info & Status Badges */}
@@ -1462,7 +1469,8 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                 {/* Version Circle Badge */}
                 <VersionBadge 
                   versionNumber={draftVision.version_number ?? 1} 
-                  status="draft" 
+                  status="draft"
+                  isHouseholdVision={!!draftVision.household_id}
                 />
                 
                 {/* Status Badge */}
@@ -1508,7 +1516,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                 onClick={() => router.push(`/life-vision/${draftVision.id}/draft`)}
                 variant="primary"
                 size="sm"
-                className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
               >
                 <Icon icon={CheckCircle} size="sm" className="shrink-0" />
                 <span>Review & Commit</span>
@@ -1581,8 +1589,10 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                   <Wand2 className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-white">VIVA Refine</h3>
-                  <p className="text-sm text-neutral-400">Structured refinement with AI assistance</p>
+                  <h3 className="text-lg font-semibold text-white">
+                    Refine {getVisionCategoryLabel(selectedCategory as any)} With VIVA
+                  </h3>
+                  <p className="text-sm text-neutral-400">Structured refinement with VIVA's assistance</p>
                 </div>
               </div>
               <Button
@@ -1611,153 +1621,109 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                 </div>
 
                 {/* Add Items */}
-                <div>
-                  <label className="block text-sm font-medium text-neutral-300 mb-2">
-                    Add
-                  </label>
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {addItems.map((item, index) => (
-                      <span key={index} className="px-3 py-1 bg-primary-500/20 text-primary-300 rounded-full text-sm flex items-center gap-2">
-                        {item}
-                        <button
-                          onClick={() => setAddItems(addItems.filter((_, i) => i !== index))}
-                          className="hover:text-red-400 transition-colors"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      value={addInput}
-                      onChange={(e) => setAddInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && addInput.trim()) {
-                          setAddItems([...addItems, addInput.trim()])
-                          setAddInput('')
-                        }
-                      }}
-                      placeholder="What to add..."
-                      className="flex-1 bg-neutral-800 border-2 border-neutral-700 rounded-lg px-4 py-2 text-white placeholder-neutral-500 focus:border-purple-500 focus:outline-none"
-                    />
+                <div className="bg-neutral-800/50 rounded-lg border border-neutral-700 p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-sm font-semibold text-white">Add</h4>
                     <button
+                      type="button"
                       onClick={() => {
                         if (addInput.trim()) {
                           setAddItems([...addItems, addInput.trim()])
                           setAddInput('')
                         }
                       }}
-                      className="w-8 h-8 rounded-full border-2 border-primary-500 text-primary-500 hover:bg-primary-500/10 transition-colors flex items-center justify-center flex-shrink-0"
+                      className="flex items-center gap-2 px-3 py-1.5 bg-[rgba(57,255,20,0.1)] text-[#39FF14] border-2 border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.2)] active:opacity-80 rounded-lg transition-colors text-sm font-medium"
                     >
-                      +
+                      <Plus className="w-4 h-4" />
+                      Add
                     </button>
                   </div>
+                  
+                  <input
+                    value={addInput}
+                    onChange={(e) => setAddInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && addInput.trim()) {
+                        setAddItems([...addItems, addInput.trim()])
+                        setAddInput('')
+                      }
+                    }}
+                    placeholder="Enter item to add..."
+                    className="w-full bg-neutral-800 border-2 border-neutral-700 rounded-lg px-4 py-2 text-white placeholder-neutral-500 focus:border-purple-500 focus:outline-none mb-3"
+                  />
+
+                  {addItems.length === 0 ? (
+                    <p className="text-sm text-neutral-400 text-center py-4">
+                      Click "Add" to add your first item
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {addItems.map((item, index) => (
+                        <div key={index} className="flex items-center justify-between bg-neutral-900/50 border border-neutral-700 rounded-lg px-4 py-2">
+                          <span className="text-sm text-white">{item}</span>
+                          <button
+                            onClick={() => setAddItems(addItems.filter((_, i) => i !== index))}
+                            className="text-red-400 hover:text-red-300 transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Remove Items */}
-                <div>
-                  <label className="block text-sm font-medium text-neutral-300 mb-2">
-                    Remove
-                  </label>
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {removeItems.map((item, index) => (
-                      <span key={index} className="px-3 py-1 bg-red-500/20 text-red-300 rounded-full text-sm flex items-center gap-2">
-                        {item}
-                        <button
-                          onClick={() => setRemoveItems(removeItems.filter((_, i) => i !== index))}
-                          className="hover:text-red-400 transition-colors"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      value={removeInput}
-                      onChange={(e) => setRemoveInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && removeInput.trim()) {
-                          setRemoveItems([...removeItems, removeInput.trim()])
-                          setRemoveInput('')
-                        }
-                      }}
-                      placeholder="What to remove..."
-                      className="flex-1 bg-neutral-800 border-2 border-neutral-700 rounded-lg px-4 py-2 text-white placeholder-neutral-500 focus:border-purple-500 focus:outline-none"
-                    />
+                <div className="bg-neutral-800/50 rounded-lg border border-neutral-700 p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-sm font-semibold text-white">Remove</h4>
                     <button
+                      type="button"
                       onClick={() => {
                         if (removeInput.trim()) {
                           setRemoveItems([...removeItems, removeInput.trim()])
                           setRemoveInput('')
                         }
                       }}
-                      className="w-8 h-8 rounded-full border-2 border-primary-500 text-primary-500 hover:bg-primary-500/10 transition-colors flex items-center justify-center flex-shrink-0"
+                      className="flex items-center gap-2 px-3 py-1.5 bg-[rgba(208,55,57,0.1)] text-[#D03739] border-2 border-[rgba(208,55,57,0.2)] hover:bg-[rgba(208,55,57,0.2)] active:opacity-80 rounded-lg transition-colors text-sm font-medium"
                     >
-                      +
+                      <Plus className="w-4 h-4" />
+                      Remove
                     </button>
                   </div>
-                </div>
+                  
+                  <input
+                    value={removeInput}
+                    onChange={(e) => setRemoveInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && removeInput.trim()) {
+                        setRemoveItems([...removeItems, removeInput.trim()])
+                        setRemoveInput('')
+                      }
+                    }}
+                    placeholder="Enter item to remove..."
+                    className="w-full bg-neutral-800 border-2 border-neutral-700 rounded-lg px-4 py-2 text-white placeholder-neutral-500 focus:border-purple-500 focus:outline-none mb-3"
+                  />
 
-                {/* Emphasize / De-emphasize */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-300 mb-2">
-                      Emphasize
-                    </label>
-                    <AutoResizeTextarea
-                      value={emphasize}
-                      onChange={setEmphasize}
-                      placeholder="What to emphasize more..."
-                      className="!bg-neutral-800 !border-neutral-700"
-                      minHeight={80}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-300 mb-2">
-                      De-emphasize
-                    </label>
-                    <AutoResizeTextarea
-                      value={deemphasize}
-                      onChange={setDeemphasize}
-                      placeholder="What to de-emphasize..."
-                      className="!bg-neutral-800 !border-neutral-700"
-                      minHeight={80}
-                    />
-                  </div>
-                </div>
-
-                {/* Intensity & Detail */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-300 mb-2">
-                      Intensity
-                    </label>
-                    <select
-                      value={intensity}
-                      onChange={(e) => setIntensity(e.target.value as 'less' | 'same' | 'more')}
-                      className="w-full bg-neutral-800 border-2 border-neutral-700 rounded-lg px-4 py-2 text-white focus:border-purple-500 focus:outline-none"
-                    >
-                      <option value="less">Less</option>
-                      <option value="same">Same</option>
-                      <option value="more">More</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-300 mb-2">
-                      Detail Level
-                    </label>
-                    <select
-                      value={detail}
-                      onChange={(e) => setDetail(e.target.value as 'simpler' | 'same' | 'richer')}
-                      className="w-full bg-neutral-800 border-2 border-neutral-700 rounded-lg px-4 py-2 text-white focus:border-purple-500 focus:outline-none"
-                    >
-                      <option value="simpler">Simpler</option>
-                      <option value="same">Same</option>
-                      <option value="richer">Richer</option>
-                    </select>
-                  </div>
+                  {removeItems.length === 0 ? (
+                    <p className="text-sm text-neutral-400 text-center py-4">
+                      Click "Remove" to add your first item
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {removeItems.map((item, index) => (
+                        <div key={index} className="flex items-center justify-between bg-neutral-900/50 border border-neutral-700 rounded-lg px-4 py-2">
+                          <span className="text-sm text-white">{item}</span>
+                          <button
+                            onClick={() => setRemoveItems(removeItems.filter((_, i) => i !== index))}
+                            className="text-red-400 hover:text-red-300 transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Section Divider */}
@@ -2023,7 +1989,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                 {/* Centered Header */}
                 <div className="text-center mb-4 md:mb-6 lg:mb-8">
                   <h3 className="text-sm font-semibold tracking-widest mb-3" style={{ color: colors.accent[500] }}>
-                    VIVA REFINEMENT
+                    REFINE {getVisionCategoryLabel(selectedCategory as any).toUpperCase()} WITH VIVA
                   </h3>
                   <div className="flex flex-row items-center justify-center gap-2">
                     {(() => {

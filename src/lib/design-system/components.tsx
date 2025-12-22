@@ -1545,12 +1545,14 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
 interface VersionBadgeProps {
   versionNumber: number
   status: StatusType | string
+  isHouseholdVision?: boolean
   className?: string
 }
 
 export const VersionBadge: React.FC<VersionBadgeProps> = ({ 
   versionNumber, 
-  status, 
+  status,
+  isHouseholdVision = false,
   className = '' 
 }) => {
   // Normalize status to lowercase for matching
@@ -1563,18 +1565,23 @@ export const VersionBadge: React.FC<VersionBadgeProps> = ({
   }
 
   return (
-    <span 
-      className={cn(
-        'w-7 h-7 flex items-center justify-center rounded-full text-xs font-semibold',
-        className
+    <div className="flex items-center gap-1.5">
+      <span 
+        className={cn(
+          'w-7 h-7 flex items-center justify-center rounded-full text-xs font-semibold',
+          className
+        )}
+        style={{
+          backgroundColor: statusColors.bg,
+          color: statusColors.text,
+        }}
+      >
+        V{versionNumber}
+      </span>
+      {isHouseholdVision && (
+        <Home className="w-4 h-4 text-secondary-500" />
       )}
-      style={{
-        backgroundColor: statusColors.bg,
-        color: statusColors.text,
-      }}
-    >
-      V{versionNumber}
-    </span>
+    </div>
   )
 }
 

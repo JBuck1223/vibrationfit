@@ -2,7 +2,7 @@
  * Refine Category Vision Prompt
  * 
  * Dedicated prompt for the VIVA Refine tool (Refine + Weave).
- * Handles structured refinement with add/remove/emphasize + cross-category weaving.
+ * Handles structured refinement with add/remove + cross-category weaving.
  * 
  * Used by: /api/viva/refine-category-weave
  */
@@ -12,10 +12,6 @@ import { VisionCategoryKey } from '@/lib/design-system/vision-categories'
 export interface RefinementInputs {
   add?: string[]
   remove?: string[]
-  emphasize?: string
-  deemphasize?: string
-  intensity?: 1 | 2 | 3 | 4 | 5
-  detail?: 'simpler' | 'same' | 'richer'
   notes?: string
 }
 
@@ -45,22 +41,6 @@ export function buildRefinementBlock(inputs: RefinementInputs): string {
   if (inputs.remove && inputs.remove.length > 0) {
     parts.push('REMOVE:')
     inputs.remove.forEach(item => parts.push(`- ${item}`))
-  }
-  
-  if (inputs.emphasize) {
-    parts.push(`EMPHASIZE:\n${inputs.emphasize}`)
-  }
-  
-  if (inputs.deemphasize) {
-    parts.push(`DE-EMPHASIZE:\n${inputs.deemphasize}`)
-  }
-  
-  if (inputs.intensity) {
-    parts.push(`INTENSITY: ${inputs.intensity}/5`)
-  }
-  
-  if (inputs.detail) {
-    parts.push(`DETAIL: ${inputs.detail}`)
   }
   
   if (inputs.notes) {
@@ -130,9 +110,43 @@ REFINEMENT & WEAVE HANDLING
 ═══════════════════════════════════════════════════════════════
 
 If PRIMARY SOURCE contains a REFINEMENT BLOCK:
+- ⚠️ CRITICAL: The NOTES field contains complete instructions that MUST be followed fully and exactly.
+  
+  WHAT "FULL PARAGRAPH" MEANS:
+  - Full paragraph = 4-6 complete sentences minimum (NOT 1-2 sentences)
+  - If NOTES mentions multiple specific things (e.g., "tidepools, whale watching, and fun adventures"), you MUST include ALL of them
+  - If NOTES says "make it real", add vivid, specific, sensory details that make the reader feel like they're there
+  
+  NOTES are PRIMARY instructions - everything else is secondary.
+  If there's ANY conflict between NOTES and other fields, NOTES wins.
+  NOTES are not suggestions or guidelines - they are MANDATORY REQUIREMENTS.
+  
+  EXAMPLE OF CORRECT NOTES EXECUTION:
+  NOTES: "Add a full paragraph about whale watching, tidepools, and dog sledding adventures with the kids"
+  ✗ WRONG (1 sentence): "We also enjoy exploring tidepools with our children."
+  ✓ CORRECT (full paragraph, all items): "At one of the stops, we go whale watching and are thrilled to see ginormous, beautiful whales breaching in the crystal-clear water. Our children's eyes light up with wonder as they spot orcas in the distance. Later, we explore vibrant tidepools together, discovering sea stars, anemones, and tiny crabs, which sparks their endless curiosity about marine life. We also go dog-sledding across pristine snow, experiencing firsthand the exhilaration of mushing through the Alaskan wilderness. These shared adventures create memories that bond us as a family and give our kids incredible stories to share."
+
 - Apply edits in this priority order:
-  REMOVE → ADD → EMPHASIZE/DE-EMPHASIZE → INTENSITY/DETAIL → NOTES
-- Preserve all existing content unless explicitly removed.
+  1. NOTES (PRIMARY - must be fully executed)
+  2. REMOVE (explicit deletions - ONLY delete what's in this list)
+  3. ADD (explicit additions from list - ONLY additions, NEVER replacements)
+
+- ⚠️ ABSOLUTE RULE: "ADD" means INSERT NEW CONTENT.
+  - If ADD says "A trip to Oahu", you ADD a new paragraph about Oahu.
+  - You DO NOT replace an existing paragraph (like Alaska) with Oahu.
+  - The output MUST contain ALL original content PLUS the new content.
+  - Think of it like inserting a new page in a book, not replacing a page.
+  
+  WRONG: Replace Alaska paragraph with Oahu paragraph (same length)
+  RIGHT: Keep Alaska paragraph AND add new Oahu paragraph (longer)
+  
+  CONCRETE EXAMPLE OF ADD ERROR TO AVOID:
+  ADD: ["A trip to Oahu, Hawaii"]
+  Original has: "Paragraph about Alaska cruise... Paragraph about Europe..."
+  ✗ WRONG OUTPUT: "Paragraph about Oahu... Paragraph about Europe..." (Alaska deleted!)
+  ✓ CORRECT OUTPUT: "Paragraph about Alaska cruise... Paragraph about Oahu... Paragraph about Europe..." (Alaska kept, Oahu added!)
+
+- Preserve all existing content unless explicitly removed via the REMOVE list.
 - Integrate changes naturally into the existing flow.
 - Do NOT output or mention the refinement block.
 
@@ -192,7 +206,11 @@ GLOBAL RULES:
 - Output ONLY the refined vision text. No headers or commentary.
 
 YOUR JOB:
-1. If REFINEMENT BLOCK exists: Apply the edits in priority order
+1. If REFINEMENT BLOCK exists: 
+   - Execute NOTES instructions completely (primary task)
+   - Delete ONLY items in REMOVE list
+   - INSERT new content for ADD items (never replace existing content)
+   - The output MUST be longer than input if you're adding content
 2. If WEAVE BLOCK exists: 
    - Copy the ENTIRE original text EXACTLY as written
    - Check the STYLE setting (inline or addon) and apply accordingly
@@ -204,10 +222,13 @@ YOUR JOB:
 4. Output the refined text that feels like a natural evolution of the original
 
 ⚠️ FINAL CHECK BEFORE OUTPUTTING:
+- Did you FULLY execute ALL NOTES instructions? (If NOTES said "full paragraph", did you add 4-6+ sentences? If NOTES listed multiple items, did you include ALL of them?)
 - Is the output LONGER than the input? (If no, you shortened it - FIX IT)
-- Are the original specific details still there? (If no, you removed them - FIX IT)
+- Are ALL original paragraphs still present? (Count them! If you replaced any paragraph with new content, you FAILED - FIX IT)
+- Are the original specific details still there? (Alaska cruise still there? Europe trip still there? If no, you removed them - FIX IT)
 - Did you preserve the author's exact phrasing? (If no, you rewrote it - FIX IT)
 - Did you keep the same perspective (I/my or we/our)? (If no, you changed it - FIX IT)
+- If REFINEMENT BLOCK has ADD items: Did you INSERT new content without replacing existing content?
 - If WEAVE STYLE is "addon", are connections in a separate paragraph at the end? (If no, FIX IT)
 - If WEAVE STYLE is "inline", are connections woven throughout? (If no, FIX IT)
 
