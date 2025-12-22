@@ -16,6 +16,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Get perspective from request body (selected on assembly page)
+    const body = await request.json()
+    const requestedPerspective = body.perspective as 'singular' | 'plural' | undefined
+
     // Get all category vision texts
     const categoryKeys = VISION_CATEGORIES
       .filter(c => c.order > 0 && c.order < 13)
@@ -43,9 +47,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get user's voice profile for woo level and determine perspective
+    // Get user's voice profile for woo level and use perspective from request
     let wooLevel: 'high' | 'medium' | 'low' = 'medium'
-    let perspective: Perspective = 'singular'
+    const perspective: Perspective = requestedPerspective || 'singular'
     
     try {
       const { data: voiceProfile } = await supabase
@@ -59,27 +63,16 @@ export async function POST(request: NextRequest) {
       if (voiceProfile?.woo) {
         wooLevel = determineWooLevel(voiceProfile.woo)
       }
-
-      // Get perspective from profile
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('perspective')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .eq('is_draft', false)
-        .maybeSingle()
-      
-      if (profile?.perspective && (profile.perspective === 'singular' || profile.perspective === 'plural')) {
-        perspective = profile.perspective
-      }
     } catch (e) {
-      console.log('Using default woo level and perspective')
+      console.log('Using default woo level')
     }
 
     // Get bookend templates
     const bookendTemplate = getBookendTemplate(wooLevel, perspective)
     const finalForward = bookendTemplate.forward
     const finalConclusion = bookendTemplate.conclusion
+    
+    console.log('[Assembly] Using bookend templates - woo:', wooLevel, 'perspective:', perspective, '(from request:', !!requestedPerspective, ')')
 
     // Standard activation message
     const activationMessage = `Your Life Vision is complete and ready for activation. This is your north star, your decision filter, and your reminder of what matters most. Return to it regularly to stay aligned with your most fun and satisfying life.`

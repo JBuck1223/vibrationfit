@@ -43,21 +43,21 @@ export default function NewProfileVersionPage({ params }: { params: Promise<{ id
   const [completionPercentage, setCompletionPercentage] = useState(0)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
 
-  // Profile sections for mobile dropdown (matching ProfileSidebar)
+  // Profile sections - Using canonical category keys from vision-categories.ts
   const profileSections = [
     { id: 'personal', title: 'Personal Info', description: 'Basic information about you' },
-    { id: 'fun-recreation', title: 'Fun', description: 'Hobbies and joyful activities' },
+    { id: 'fun', title: 'Fun', description: 'Hobbies and joyful activities' },
     { id: 'health', title: 'Health', description: 'Physical and mental well-being' },
-    { id: 'travel-adventure', title: 'Travel', description: 'Places to explore and adventures' },
-    { id: 'relationship', title: 'Love', description: 'Romantic relationships' },
+    { id: 'travel', title: 'Travel', description: 'Places to explore and adventures' },
+    { id: 'love', title: 'Love', description: 'Romantic relationships' },
     { id: 'family', title: 'Family', description: 'Family relationships and life' },
-    { id: 'social-friends', title: 'Social', description: 'Social connections and friendships' },
-    { id: 'location', title: 'Home', description: 'Living space and environment' },
-    { id: 'career', title: 'Work', description: 'Work and career aspirations' },
-    { id: 'financial', title: 'Money', description: 'Financial goals and wealth' },
-    { id: 'possessions-lifestyle', title: 'Stuff', description: 'Material belongings and things' },
-    { id: 'giving-legacy', title: 'Giving', description: 'Contribution and legacy' },
-    { id: 'spirituality-growth', title: 'Spirituality', description: 'Spiritual growth and expansion' },
+    { id: 'social', title: 'Social', description: 'Social connections and friendships' },
+    { id: 'home', title: 'Home', description: 'Living space and environment' },
+    { id: 'work', title: 'Work', description: 'Work and career aspirations' },
+    { id: 'money', title: 'Money', description: 'Financial goals and wealth' },
+    { id: 'stuff', title: 'Stuff', description: 'Material belongings and things' },
+    { id: 'giving', title: 'Giving', description: 'Contribution and legacy' },
+    { id: 'spirituality', title: 'Spirituality', description: 'Spiritual growth and expansion' },
     { id: 'photos-notes', title: 'Photos & Notes', description: 'Media and additional notes' }
   ]
 
@@ -231,29 +231,29 @@ export default function NewProfileVersionPage({ params }: { params: Promise<{ id
       switch (activeSection) {
         case 'personal':
           return <PersonalInfoSection {...sectionProps} />
-        case 'relationship':
+        case 'love':
           return <RelationshipSection {...sectionProps} />
         case 'family':
           return <FamilySection {...sectionProps} />
         case 'health':
           return <HealthSection {...sectionProps} />
-        case 'location':
+        case 'home':
           return <LocationSection {...sectionProps} />
-        case 'career':
+        case 'work':
           return <CareerSection {...sectionProps} />
-        case 'financial':
+        case 'money':
           return <FinancialSection {...sectionProps} />
-        case 'fun-recreation':
+        case 'fun':
           return <FunRecreationSection {...sectionProps} />
-        case 'travel-adventure':
+        case 'travel':
           return <TravelAdventureSection {...sectionProps} />
-        case 'social-friends':
+        case 'social':
           return <SocialFriendsSection {...sectionProps} />
-        case 'possessions-lifestyle':
+        case 'stuff':
           return <PossessionsLifestyleSection {...sectionProps} />
-        case 'spirituality-growth':
+        case 'spirituality':
           return <SpiritualityGrowthSection {...sectionProps} />
-        case 'giving-legacy':
+        case 'giving':
           return <GivingLegacySection {...sectionProps} />
         case 'photos-notes':
           return <PhotosAndNotesSection {...sectionProps} />

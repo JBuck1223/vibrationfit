@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import puppeteer from 'puppeteer'
 
@@ -12,6 +13,7 @@ export const maxDuration = 60 // Allow 60 seconds for PDF generation
 interface VisionData {
   id: string
   user_id: string
+  household_id?: string | null
   title?: string
   version_number: number
   status: 'draft' | 'complete' | string
@@ -73,11 +75,40 @@ export async function GET(req: NextRequest) {
       .from('vision_versions')
       .select('*')
       .eq('id', visionId)
-      .eq('user_id', user.id)
       .single()
 
     if (visionError || !vision) {
       return NextResponse.json({ error: 'Vision not found' }, { status: 404 })
+    }
+
+    // Permission check - use service client to bypass RLS recursion
+    const serviceSupabase = createServiceClient()
+    
+    if (vision.household_id) {
+      // For household visions, check if user is a household member
+      const { data: membership, error: memberError } = await serviceSupabase
+        .from('household_members')
+        .select('id')
+        .eq('household_id', vision.household_id)
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .maybeSingle()
+      
+      console.log('Household permission check:', { 
+        householdId: vision.household_id, 
+        userId: user.id, 
+        hasMembership: !!membership,
+        error: memberError 
+      })
+      
+      if (!membership && !memberError) {
+        return NextResponse.json({ error: 'Not a household member' }, { status: 403 })
+      }
+    } else {
+      // For personal visions, check if user is the creator
+      if (vision.user_id !== user.id) {
+        return NextResponse.json({ error: 'Not authorized for this vision' }, { status: 403 })
+      }
     }
 
     // Get calculated version number using database function
@@ -87,40 +118,70 @@ export async function GET(req: NextRequest) {
     const versionNumber = versionData || 1 // Fallback to 1 if function fails
     console.log('Vision version number:', versionNumber, 'from function get_vision_version_number')
 
-    // Fetch user profile for name (get active profile)
-    const { data: profile, error: profileError } = await supabase
-      .from('user_profiles')
-      .select('first_name, last_name')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .single()
-
-    if (profileError) {
-      console.warn('Failed to fetch user profile for PDF:', profileError.message)
-      console.log('Attempted to fetch profile for user_id:', user.id)
-    }
-    
-    console.log('Profile data:', profile)
-
-    // Get user name from profile, or fall back to email
+    const isHouseholdVision = !!vision.household_id
     let userName = 'User'
-    if (profile?.first_name && profile?.last_name) {
-      userName = `${profile.first_name} ${profile.last_name}`
-    } else if (profile?.first_name) {
-      userName = profile.first_name
-    } else if (profile?.last_name) {
-      userName = profile.last_name
-    } else if (user.email) {
-      // Extract name from email as last resort (e.g., "john.doe@example.com" -> "John Doe")
-      const emailName = user.email.split('@')[0]
-      userName = emailName
-        .split(/[._-]/)
-        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(' ')
+    let title = 'The Life I Choose'
+
+    // Fetch household members if it's a household vision
+    if (isHouseholdVision) {
+      title = 'The Life We Choose'
+      
+      // Get household members - use service client to bypass RLS
+      const { data: members, error: membersError } = await serviceSupabase
+        .from('household_members')
+        .select('user_id')
+        .eq('household_id', vision.household_id)
+        .eq('status', 'active')
+      
+      if (members && members.length > 0) {
+        const userIds = members.map(m => m.user_id)
+        
+        const { data: profiles, error: profilesError } = await serviceSupabase
+          .from('user_profiles')
+          .select('user_id, first_name, last_name')
+          .in('user_id', userIds)
+          .eq('is_active', true)
+        
+        if (profiles && profiles.length > 0) {
+          const names = profiles
+            .map(p => p.first_name || '')
+            .filter(Boolean)
+          
+          if (names.length === 1) {
+            userName = names[0]
+          } else if (names.length === 2) {
+            userName = `${names[0]} & ${names[1]}`
+          } else if (names.length > 2) {
+            const lastMember = names[names.length - 1]
+            const otherMembers = names.slice(0, -1).join(', ')
+            userName = `${otherMembers}, & ${lastMember}`
+          }
+        }
+      }
+    } else {
+      // Personal vision - get creator's profile
+      const { data: profile } = await serviceSupabase
+        .from('user_profiles')
+        .select('first_name, last_name')
+        .eq('user_id', vision.user_id)
+        .eq('is_active', true)
+        .single()
+      
+      if (profile?.first_name && profile?.last_name) {
+        userName = `${profile.first_name} ${profile.last_name}`
+      } else if (profile?.first_name) {
+        userName = profile.first_name
+      } else if (profile?.last_name) {
+        userName = profile.last_name
+      }
     }
     
-    console.log('PDF Generation - User name:', userName, '(from profile:', !!profile, ', email:', !!user.email, ')')
-    const title = 'The Life I Choose' // Fixed title for all PDFs
+    console.log('PDF Generation - Vision:', { 
+      id: vision.id, 
+      isHousehold: isHouseholdVision, 
+      title, 
+      userName 
+    })
     const createdDate = new Date(vision.created_at).toLocaleDateString('en-US', {
       month: 'long',
       day: 'numeric',
@@ -391,9 +452,9 @@ export async function GET(req: NextRequest) {
 <body>
   <main>
     <header class="cover">
-      <h1 class="cover-title">The Life I Choose</h1>
+      <h1 class="cover-title">${escapeHtml(title)}</h1>
       <div class="cover-version">VERSION ${versionNumber}</div>
-      <div class="cover-by"><strong>By:</strong> ${escapeHtml(userName)}</div>
+      <div class="cover-by"><strong>${isHouseholdVision ? 'By:' : 'Created by:'}</strong> ${escapeHtml(userName)}</div>
       <div class="cover-date"><strong>Created:</strong> ${createdDate}</div>
       <div class="cover-logo">
         <img src="https://media.vibrationfit.com/site-assets/brand/logo/black-bar-top-of-vfit.png" alt="VibrationFit" style="max-width: 300px; width: 100%; height: auto;" />
@@ -480,7 +541,8 @@ ${paragraphs.map(paragraph => `<p>${escapeHtml(paragraph)}</p>`).join('')}
     await browser.close()
 
     // Return PDF as response
-    const filename = `The-Life-I-Choose-V${versionNumber}.pdf`
+    const filenameTitle = isHouseholdVision ? 'The-Life-We-Choose' : 'The-Life-I-Choose'
+    const filename = `${filenameTitle}-V${versionNumber}.pdf`
     return new NextResponse(Buffer.from(pdfBuffer), {
         headers: {
           'Content-Type': 'application/pdf',

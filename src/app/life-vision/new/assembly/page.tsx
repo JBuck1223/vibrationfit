@@ -143,17 +143,7 @@ export default function AssemblyPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      // Get user profile for perspective
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('perspective')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .maybeSingle()
-      
-      if (profile?.perspective) {
-        setPerspective(profile.perspective as 'singular' | 'plural')
-      }
+      // Perspective defaults to 'singular' - user will select on page before assembly
 
       // Check for active batch (only pending/processing/retrying - not completed/failed/cancelled)
       const { data: batch } = await supabase
@@ -599,7 +589,7 @@ export default function AssemblyPage() {
         const response = await fetch('/api/viva/assemble-vision-from-queue', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({})
+          body: JSON.stringify({ perspective })
         })
 
         if (!response.ok) {
@@ -713,20 +703,9 @@ export default function AssemblyPage() {
     }
   }
 
-  const handlePerspectiveChange = async (newPerspective: 'singular' | 'plural') => {
+  const handlePerspectiveChange = (newPerspective: 'singular' | 'plural') => {
     setPerspective(newPerspective)
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      
-      await supabase
-        .from('user_profiles')
-        .update({ perspective: newPerspective })
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-    } catch (err) {
-      console.error('Error saving perspective:', err)
-    }
+    // Perspective will be saved to vision_versions when assembly completes
   }
 
   const waitingMessages = [

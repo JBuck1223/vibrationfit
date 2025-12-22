@@ -8,6 +8,7 @@ import Link from 'next/link'
 
 interface VisionData {
   id: string
+  household_id?: string | null
   version_number: number
   is_active: boolean
   is_draft: boolean
@@ -44,7 +45,7 @@ export default function AudioHubPage({ params }: { params: Promise<{ id: string 
     // Load vision data
     const { data: visionData, error: visionError } = await supabase
       .from('vision_versions')
-      .select('id, is_active, is_draft, created_at, title')
+      .select('id, household_id, is_active, is_draft, created_at, title')
       .eq('id', visionId)
       .single()
     
@@ -108,7 +109,7 @@ export default function AudioHubPage({ params }: { params: Promise<{ id: string 
       <Stack gap="lg">
         {/* Hero Header */}
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
+          eyebrow={vision?.household_id ? "THE LIFE WE CHOOSE" : "THE LIFE I CHOOSE"}
           title="Audio Studio"
           subtitle="Transform your vision into powerful audio experiences"
         >
@@ -118,7 +119,8 @@ export default function AudioHubPage({ params }: { params: Promise<{ id: string 
               <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
                 <VersionBadge 
                   versionNumber={vision.version_number} 
-                  status={vision.is_active ? 'active' : vision.is_draft ? 'draft' : 'complete'} 
+                  status={vision.is_active ? 'active' : vision.is_draft ? 'draft' : 'complete'}
+                  isHouseholdVision={!!vision.household_id}
                 />
                 <StatusBadge 
                   status={vision.is_active ? 'active' : vision.is_draft ? 'draft' : 'complete'} 

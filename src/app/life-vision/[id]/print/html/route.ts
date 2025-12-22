@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic'
 interface VisionData {
   id: string
   user_id: string
+  household_id?: string | null
   title?: string
   version_number: number
   is_draft: boolean
@@ -39,7 +40,13 @@ interface UserProfile {
   email?: string
 }
 
-async function getVisionById(id: string): Promise<{ vision: VisionData; userProfile?: UserProfile } | null> {
+interface HouseholdMember {
+  first_name?: string
+  last_name?: string
+  full_name?: string
+}
+
+async function getVisionById(id: string): Promise<{ vision: VisionData; userProfile?: UserProfile; householdMembers?: HouseholdMember[] } | null> {
   try {
     const supabase = await createClient()
     
@@ -55,22 +62,67 @@ async function getVisionById(id: string): Promise<{ vision: VisionData; userProf
       return null
     }
 
-    if (user && vision.user_id !== user.id) {
-      return null
+    // Permission check
+    if (user) {
+      if (vision.household_id) {
+        // For household visions, check if user is a household member
+        const { data: membership } = await supabase
+          .from('household_members')
+          .select('id')
+          .eq('household_id', vision.household_id)
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .single()
+        
+        if (!membership) {
+          return null // User is not a household member
+        }
+      } else {
+        // For personal visions, check if user is the creator
+        if (vision.user_id !== user.id) {
+          return null
+        }
+      }
     }
 
     let userProfile: UserProfile | undefined
-    if (vision.user_id) {
+    let householdMembers: HouseholdMember[] | undefined
+
+    // If this is a household vision, get all household members
+    if (vision.household_id) {
+      // First get household members
+      const { data: members } = await supabase
+        .from('household_members')
+        .select('user_id')
+        .eq('household_id', vision.household_id)
+        .eq('status', 'active')
+      
+      if (members && members.length > 0) {
+        // Then get their profiles
+        const userIds = members.map((m: any) => m.user_id)
+        const { data: profiles } = await supabase
+          .from('user_profiles')
+          .select('first_name, last_name, full_name')
+          .in('user_id', userIds)
+          .eq('is_active', true)
+        
+        if (profiles) {
+          householdMembers = profiles
+        }
+      }
+    } else if (vision.user_id) {
+      // Personal vision - get just the creator's profile
       const { data: profile } = await supabase
         .from('user_profiles')
         .select('first_name, full_name, email')
         .eq('user_id', vision.user_id)
+        .eq('is_active', true)
         .single()
       
       userProfile = profile || undefined
     }
 
-    return { vision: vision as VisionData, userProfile }
+    return { vision: vision as VisionData, userProfile, householdMembers }
   } catch (error) {
     return null
   }
@@ -106,9 +158,39 @@ export async function GET(
   const textColor = `#${url.searchParams.get('text') || '1F1F1F'}`
   const bgColor = `#${url.searchParams.get('bg') || 'FFFFFF'}`
 
-  const { vision, userProfile } = data
-  const title = vision.title || 'The Life I Choose'
-  const userName = userProfile?.first_name || userProfile?.full_name || ''
+  const { vision, userProfile, householdMembers } = data
+  const isHouseholdVision = !!vision.household_id
+  
+  // Debug logging
+  console.log('[PDF Print] Vision ID:', vision.id)
+  console.log('[PDF Print] Household ID:', vision.household_id)
+  console.log('[PDF Print] Is Household Vision:', isHouseholdVision)
+  console.log('[PDF Print] Household Members:', householdMembers)
+  
+  const title = vision.title || (isHouseholdVision ? 'The Life We Choose' : 'The Life I Choose')
+  
+  // Format authors
+  let authorText = ''
+  if (isHouseholdVision && householdMembers && householdMembers.length > 0) {
+    const names = householdMembers
+      .map(m => m.first_name || m.full_name?.split(' ')[0] || '')
+      .filter(Boolean)
+    
+    if (names.length === 0) {
+      authorText = ''
+    } else if (names.length === 1) {
+      authorText = names[0]
+    } else if (names.length === 2) {
+      authorText = `${names[0]} & ${names[1]}`
+    } else {
+      const lastMember = names[names.length - 1]
+      const otherMembers = names.slice(0, -1).join(', ')
+      authorText = `${otherMembers}, & ${lastMember}`
+    }
+  } else {
+    authorText = userProfile?.first_name || userProfile?.full_name || ''
+  }
+  
   const createdDate = new Date(vision.created_at).toLocaleDateString('en-US', {
     month: 'long',
     day: 'numeric',
@@ -284,8 +366,8 @@ export async function GET(
         Version ${vision.version_number} • ${!vision.is_draft ? (vision.is_active ? 'Active' : 'Complete') : 'Draft'}
       </div>
       
-      ${userName ? `
-      <div class="cover-meta">Created by ${escapeHtml(userName)}</div>
+      ${authorText ? `
+      <div class="cover-meta">${isHouseholdVision ? 'By' : 'Created by'} ${escapeHtml(authorText)}</div>
       ` : ''}
       <div class="cover-meta">${createdDate}</div>
       <div class="cover-meta" style="margin-top: 40pt; font-size: 9pt; letter-spacing: 2px;">

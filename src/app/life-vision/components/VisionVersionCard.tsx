@@ -13,6 +13,7 @@ interface VisionVersionCardProps {
     is_active: boolean
     completion_percent: number
     created_at: string
+    household_id?: string | null
     isDraft?: boolean  // For display override
     draftCategories?: number
     totalCategories?: number
@@ -59,7 +60,8 @@ export const VisionVersionCard: React.FC<VisionVersionCardProps> = ({
             <div className="flex flex-col md:flex-row items-center gap-2">
               <VersionBadge 
                 versionNumber={version.version_number} 
-                status={displayStatus} 
+                status={displayStatus}
+                isHouseholdVision={!!version.household_id}
               />
               <StatusBadge 
                 status={displayStatus} 

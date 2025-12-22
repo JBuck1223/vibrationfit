@@ -51,6 +51,7 @@ const getCategoryInfo = (categoryId: string) => {
 }
 
 // Sections in design system order (excluding forward and conclusion)
+// Using canonical category keys from vision-categories.ts as single source of truth
 const sections = [
   {
     id: 'personal',
@@ -61,9 +62,9 @@ const sections = [
     order: 0 // Personal info comes first
   },
   {
-    id: 'fun-recreation',
+    id: 'fun',
     title: 'Fun',
-    icon: getCategoryInfo('fun-recreation').icon,
+    icon: getCategoryInfo('fun').icon,
     description: 'Hobbies and joyful activities',
     category: 'life-vision',
     order: 2
@@ -77,17 +78,17 @@ const sections = [
     order: 3
   },
   {
-    id: 'travel-adventure',
+    id: 'travel',
     title: 'Travel',
-    icon: getCategoryInfo('travel-adventure').icon,
+    icon: getCategoryInfo('travel').icon,
     description: 'Places to explore and adventures',
     category: 'life-vision',
     order: 4
   },
   {
-    id: 'relationship',
+    id: 'love',
     title: 'Love',
-    icon: getCategoryInfo('relationship').icon,
+    icon: getCategoryInfo('love').icon,
     description: 'Romantic relationships',
     category: 'life-vision',
     order: 5
@@ -101,57 +102,57 @@ const sections = [
     order: 6
   },
   {
-    id: 'social-friends',
+    id: 'social',
     title: 'Social',
-    icon: getCategoryInfo('social-friends').icon,
+    icon: getCategoryInfo('social').icon,
     description: 'Social connections and friendships',
     category: 'life-vision',
     order: 7
   },
   {
-    id: 'location',
+    id: 'home',
     title: 'Home',
-    icon: getCategoryInfo('location').icon,
+    icon: getCategoryInfo('home').icon,
     description: 'Living space and environment',
     category: 'life-vision',
     order: 8
   },
   {
-    id: 'career',
+    id: 'work',
     title: 'Work',
-    icon: getCategoryInfo('career').icon,
+    icon: getCategoryInfo('work').icon,
     description: 'Work and career aspirations',
     category: 'life-vision',
     order: 9
   },
   {
-    id: 'financial',
+    id: 'money',
     title: 'Money',
-    icon: getCategoryInfo('financial').icon,
+    icon: getCategoryInfo('money').icon,
     description: 'Financial goals and wealth',
     category: 'life-vision',
     order: 10
   },
   {
-    id: 'possessions-lifestyle',
+    id: 'stuff',
     title: 'Stuff',
-    icon: getCategoryInfo('possessions-lifestyle').icon,
+    icon: getCategoryInfo('stuff').icon,
     description: 'Material belongings and things',
     category: 'life-vision',
     order: 11
   },
   {
-    id: 'giving-legacy',
+    id: 'giving',
     title: 'Giving',
-    icon: getCategoryInfo('giving-legacy').icon,
+    icon: getCategoryInfo('giving').icon,
     description: 'Contribution and legacy',
     category: 'life-vision',
     order: 12
   },
   {
-    id: 'spirituality-growth',
+    id: 'spirituality',
     title: 'Spirituality',
-    icon: getCategoryInfo('spirituality-growth').icon,
+    icon: getCategoryInfo('spirituality').icon,
     description: 'Spiritual growth and expansion',
     category: 'life-vision',
     order: 13

@@ -61,6 +61,7 @@ import { calculateVersionNumber } from '@/lib/life-vision/version-helpers'
 interface VisionData {
   id: string
   user_id: string
+  household_id?: string | null
   forward: string
   fun: string
   travel: string
@@ -1450,7 +1451,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       <Stack gap="lg">
         {/* Header */}
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
+          eyebrow={draftVision?.household_id ? "THE LIFE WE CHOOSE" : "THE LIFE I CHOOSE"}
           title="Refine Life Vision"
           subtitle="Select a category and let VIVA help you refine your vision through intelligent conversation"
         >
@@ -1462,7 +1463,8 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                 {/* Version Circle Badge */}
                 <VersionBadge 
                   versionNumber={draftVision.version_number ?? 1} 
-                  status="draft" 
+                  status="draft"
+                  isHouseholdVision={!!draftVision.household_id}
                 />
                 
                 {/* Status Badge */}
