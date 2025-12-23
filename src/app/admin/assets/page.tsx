@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Container, Card, Button, Badge, Input, Stack, PageHero } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
-import { Upload, Copy, Check, Image as ImageIcon, Video, Music, File, Folder, Plus, ChevronRight, ArrowLeft, CheckCircle2, X, Search, Trash2, Play, Pause, ChevronLeft } from 'lucide-react'
+import { Upload, Copy, Check, Image as ImageIcon, Video, Music, File, Folder, Plus, ChevronRight, ArrowLeft, CheckCircle2, X, Search, Trash2, Play, Pause, ChevronLeft, FileText, ExternalLink } from 'lucide-react'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 
 interface AssetFile {
@@ -59,9 +59,11 @@ function AssetsAdminContent() {
   const [errorMessage, setErrorMessage] = useState<{ title: string; details?: string[] } | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedFileKeys, setSelectedFileKeys] = useState<Set<string>>(new Set())
+  const [selectedFileOrder, setSelectedFileOrder] = useState<string[]>([]) // Track order of selection
   const [deleting, setDeleting] = useState(false)
   const [deletingKeys, setDeletingKeys] = useState<Set<string>>(new Set())
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
   
   // Video modal state
   const [videoModalOpen, setVideoModalOpen] = useState(false)
@@ -137,12 +139,13 @@ function AssetsAdminContent() {
 
     files.forEach(file => {
       // Check if this is a video variant (-original, -1080p, -720p, -thumb)
-      const variantMatch = file.name.match(/^(.+)-(original|1080p|720p|thumb)\.(mp4|jpg|jpeg)$/i)
+      // Handles formats like: name-thumb.0000000.jpg, name-1080p.mp4, name-original.mp4
+      const variantMatch = file.name.match(/^(.+)-(original|1080p|720p|thumb)(?:\.\d+)?\.(mp4|jpg|jpeg)$/i)
       
       if (variantMatch) {
         const baseName = variantMatch[1]
         const variantType = variantMatch[2].toLowerCase() as 'original' | '1080p' | '720p' | 'thumb'
-        const baseKey = file.key.replace(/-(original|1080p|720p|thumb)\.(mp4|jpg|jpeg)$/i, '')
+        const baseKey = file.key.replace(/-(original|1080p|720p|thumb)(?:\.\d+)?\.(mp4|jpg|jpeg)$/i, '')
 
         // Store variant
         if (!variantMap.has(baseKey)) {
@@ -192,32 +195,73 @@ function AssetsAdminContent() {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
     if (files.length > 0) {
-      setSelectedFiles(files)
-      
-      // Initialize upload status for all files
-      const status: Record<string, 'pending'> = {}
-      const progress: Record<string, number> = {}
-      files.forEach(file => {
-        status[file.name] = 'pending'
-        progress[file.name] = 0
-      })
-      setUploadStatus(status)
-      setUploadProgress(progress)
-      
-      // Auto-set upload path to current path if not set
-      if (!uploadCategory && currentPath.length > 0) {
-        setUploadCategory(currentPath.join('/'))
-      } else if (!uploadCategory && files.length > 0) {
-        // Auto-detect category from first file type if at root
-        const firstFile = files[0]
-        if (firstFile.type.startsWith('image/')) {
-          setUploadCategory('images')
-        } else if (firstFile.type.startsWith('video/')) {
-          setUploadCategory('video')
-        } else if (firstFile.type.startsWith('audio/')) {
-          setUploadCategory('audio')
-        }
+      processFiles(files)
+    }
+  }
+
+  const processFiles = (files: File[]) => {
+    setSelectedFiles(files)
+    
+    // Initialize upload status for all files
+    const status: Record<string, 'pending'> = {}
+    const progress: Record<string, number> = {}
+    files.forEach(file => {
+      status[file.name] = 'pending'
+      progress[file.name] = 0
+    })
+    setUploadStatus(status)
+    setUploadProgress(progress)
+    
+    // Auto-set upload path to current path if not set
+    if (!uploadCategory && currentPath.length > 0) {
+      setUploadCategory(currentPath.join('/'))
+    } else if (!uploadCategory && files.length > 0) {
+      // Auto-detect category from first file type if at root
+      const firstFile = files[0]
+      if (firstFile.type.startsWith('image/')) {
+        setUploadCategory('images')
+      } else if (firstFile.type.startsWith('video/')) {
+        setUploadCategory('video')
+      } else if (firstFile.type.startsWith('audio/')) {
+        setUploadCategory('audio')
       }
+    }
+    
+    // Show upload form if hidden
+    if (!showUploadForm) {
+      setShowUploadForm(true)
+    }
+  }
+
+  // Drag and drop handlers
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    // Only set dragging to false if leaving the main container
+    if (e.currentTarget === e.target) {
+      setIsDragging(false)
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    const droppedFiles = Array.from(e.dataTransfer.files)
+    if (droppedFiles.length > 0) {
+      processFiles(droppedFiles)
     }
   }
 
@@ -387,20 +431,65 @@ function AssetsAdminContent() {
   const toggleFileSelection = (fileKey: string) => {
     setSelectedFileKeys(prev => {
       const next = new Set(prev)
-      if (next.has(fileKey)) {
+      const wasSelected = next.has(fileKey)
+      
+      if (wasSelected) {
         next.delete(fileKey)
       } else {
         next.add(fileKey)
       }
+      
       return next
+    })
+    
+    // Update order array separately to avoid race condition
+    setSelectedFileOrder(order => {
+      const wasInOrder = order.includes(fileKey)
+      if (wasInOrder) {
+        return order.filter(key => key !== fileKey)
+      } else {
+        return [...order, fileKey]
+      }
     })
   }
 
   const selectAllFiles = () => {
     if (selectedFileKeys.size === filteredFiles.length) {
       setSelectedFileKeys(new Set())
+      setSelectedFileOrder([])
     } else {
-      setSelectedFileKeys(new Set(filteredFiles.map(f => f.key)))
+      const allKeys = filteredFiles.map(f => f.key)
+      setSelectedFileKeys(new Set(allKeys))
+      setSelectedFileOrder(allKeys)
+    }
+  }
+
+  const copySelectedLinks = async () => {
+    if (selectedFileOrder.length === 0) return
+
+    try {
+      // Get files in order of selection
+      const orderedFiles = selectedFileOrder
+        .map(key => files.find(f => f.key === key))
+        .filter(f => f !== undefined) as AssetFile[]
+
+      // Format as list of URLs (one per line)
+      const urls = orderedFiles.map(file => file.url).join('\n')
+
+      await navigator.clipboard.writeText(urls)
+      
+      setSuccessMessage({
+        title: `Copied ${orderedFiles.length} link${orderedFiles.length !== 1 ? 's' : ''} to clipboard!`,
+        details: [`Links are in the order you selected them`]
+      })
+      setTimeout(() => setSuccessMessage(null), 3000)
+    } catch (error) {
+      console.error('Failed to copy links:', error)
+      setErrorMessage({
+        title: 'Copy Failed',
+        details: ['Failed to copy links to clipboard'],
+      })
+      setTimeout(() => setErrorMessage(null), 3000)
     }
   }
 
@@ -475,6 +564,7 @@ function AssetsAdminContent() {
       
       // Clear selection
       setSelectedFileKeys(new Set())
+      setSelectedFileOrder([])
       
       // Show results
       if (errors.length === 0) {
@@ -522,6 +612,9 @@ function AssetsAdminContent() {
     }
     if (['mp3', 'wav', 'ogg', 'm4a'].includes(ext || '')) {
       return Music
+    }
+    if (ext === 'pdf') {
+      return FileText
     }
     return File
   }
@@ -970,7 +1063,25 @@ function AssetsAdminContent() {
       <Container size="xl">
         <Stack gap="lg">
           <PageHero title="Media Assets" subtitle="Manage audio and visual assets" />
-      <div className="mb-6 md:mb-8 lg:mb-12">
+      
+      {/* Drag and Drop Overlay */}
+      {isDragging && (
+        <div className="fixed inset-0 z-40 bg-primary-500/20 backdrop-blur-sm flex items-center justify-center pointer-events-none">
+          <div className="bg-black/90 border-4 border-dashed border-primary-500 rounded-2xl p-12 text-center">
+            <Upload className="w-16 h-16 text-primary-500 mx-auto mb-4" />
+            <h3 className="text-2xl font-bold text-white mb-2">Drop files to upload</h3>
+            <p className="text-neutral-300">Release to add files to {currentPath.length > 0 ? currentPath.join('/') : 'root'}</p>
+          </div>
+        </div>
+      )}
+      
+      <div 
+        className="mb-6 md:mb-8 lg:mb-12"
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 md:gap-4 mb-4 md:mb-6">
           <div>
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2">Site Assets Manager</h1>
@@ -1018,31 +1129,52 @@ function AssetsAdminContent() {
 
       {/* Selection Toolbar */}
       {filteredFiles.length > 0 && (
-        <div className="mb-4 md:mb-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 md:p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 md:gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={selectAllFiles}
-              className="w-full sm:w-auto"
-            >
-              {selectedFileKeys.size === filteredFiles.length ? 'Deselect All' : 'Select All'}
-            </Button>
-            <span className="text-xs md:text-sm text-neutral-400 text-center sm:text-left">
-              {selectedFileKeys.size > 0 ? `${selectedFileKeys.size} selected` : 'No files selected'}
-            </span>
+        <div className="mb-4 md:mb-6 flex flex-col gap-3 p-3 md:p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 md:gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={selectAllFiles}
+                className="w-full sm:w-auto"
+              >
+                {selectedFileKeys.size === filteredFiles.length ? 'Deselect All' : 'Select All'}
+              </Button>
+              <span className="text-xs md:text-sm text-neutral-400 text-center sm:text-left">
+                {selectedFileKeys.size > 0 ? `${selectedFileKeys.size} selected` : 'No files selected'}
+              </span>
+            </div>
+            {selectedFileKeys.size > 0 && (
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={copySelectedLinks}
+                  className="w-full sm:w-auto"
+                >
+                  <Copy className="w-4 h-4 mr-2" />
+                  Copy {selectedFileKeys.size} Link{selectedFileKeys.size !== 1 ? 's' : ''}
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={handleDeleteFiles}
+                  disabled={deleting}
+                  className="w-full sm:w-auto"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  {deleting ? 'Deleting...' : `Delete ${selectedFileKeys.size}`}
+                </Button>
+              </div>
+            )}
           </div>
-          {selectedFileKeys.size > 0 && (
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={handleDeleteFiles}
-              disabled={deleting}
-              className="w-full sm:w-auto"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              {deleting ? 'Deleting...' : `Delete ${selectedFileKeys.size} File(s)`}
-            </Button>
+          
+          {/* Selection order hint */}
+          {selectedFileKeys.size > 1 && (
+            <div className="text-xs text-neutral-500 flex items-center gap-2">
+              <span className="w-2 h-2 bg-primary-500 rounded-full"></span>
+              Links will be copied in the order you selected them
+            </div>
           )}
         </div>
       )}
@@ -1108,18 +1240,57 @@ function AssetsAdminContent() {
               <label className="block text-sm font-medium text-neutral-300 mb-2">
                 Files (Multiple Selection Enabled)
               </label>
-              <input
-                type="file"
-                multiple
-                onChange={handleFileSelect}
-                className="block w-full text-sm text-neutral-400
-                  file:mr-4 file:py-2 file:px-4
-                  file:rounded-full file:border-0
-                  file:text-sm file:font-semibold
-                  file:bg-primary-500 file:text-black
-                  hover:file:bg-primary-400
-                  cursor-pointer"
-              />
+              
+              {/* Drag and Drop Zone */}
+              <div
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+                className={`
+                  relative border-2 border-dashed rounded-xl p-8 transition-all
+                  ${isDragging 
+                    ? 'border-primary-500 bg-primary-500/10' 
+                    : 'border-neutral-600 bg-neutral-800/50 hover:border-primary-500/50 hover:bg-neutral-800'
+                  }
+                `}
+              >
+                <div className="flex flex-col items-center justify-center gap-4">
+                  <div className={`
+                    w-16 h-16 rounded-full flex items-center justify-center transition-colors
+                    ${isDragging ? 'bg-primary-500' : 'bg-neutral-700'}
+                  `}>
+                    <Upload className={`w-8 h-8 ${isDragging ? 'text-black' : 'text-neutral-400'}`} />
+                  </div>
+                  
+                  <div className="text-center">
+                    <p className="text-white font-medium mb-1">
+                      {isDragging ? 'Drop files here' : 'Drag and drop files here'}
+                    </p>
+                    <p className="text-sm text-neutral-400">
+                      or click the button below to browse
+                    </p>
+                  </div>
+                  
+                  <input
+                    type="file"
+                    multiple
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    id="file-input"
+                  />
+                  <label
+                    htmlFor="file-input"
+                    className="px-6 py-3 bg-primary-500 hover:bg-primary-400 text-black font-semibold rounded-full cursor-pointer transition-colors"
+                  >
+                    Choose Files
+                  </label>
+                  
+                  <p className="text-xs text-neutral-500 text-center">
+                    Supports images, videos, audio, PDFs, and more
+                  </p>
+                </div>
+              </div>
               {selectedFiles.length > 0 && (
                 <div className="mt-3 space-y-2 max-h-60 overflow-y-auto">
                   {selectedFiles.map((file) => {
@@ -1374,6 +1545,8 @@ function AssetsAdminContent() {
 
                 const isSelected = selectedFileKeys.has(file.key)
                 const isDeleting = deletingKeys.has(file.key)
+                const selectionOrder = selectedFileOrder.indexOf(file.key)
+                const selectionNumber = selectionOrder >= 0 ? selectionOrder + 1 : null
 
                 // Get thumbnail URL for videos
                 const thumbnailVariant = file.variants?.find(v => v.type === 'thumb')
@@ -1381,16 +1554,22 @@ function AssetsAdminContent() {
 
                 const isAudio = file.name.match(/\.(mp3|wav|ogg|m4a)$/i)
                 const isPlaying = playingAudio === file.key
+                const isPDF = file.name.match(/\.pdf$/i)
 
                 return (
                   <Card key={file.key} variant="elevated" className={`overflow-hidden ${isSelected ? 'ring-2 ring-primary-500 border-primary-500' : ''} ${isDeleting ? 'opacity-50' : ''}`}>
                     <div 
                       className="relative aspect-square bg-neutral-800 flex items-center justify-center mb-3 overflow-hidden group cursor-pointer" 
                       onClick={(e) => {
+                        // Prevent double-clicking from nested elements
+                        e.stopPropagation()
+                        
                         // If clicking on the overlay area (not the play button for audio), toggle selection
                         const target = e.target as HTMLElement
                         const isPlayButton = target.closest('.audio-play-button')
-                        if (!isPlayButton) {
+                        const isVideoOverlay = target.closest('.video-play-overlay')
+                        
+                        if (!isPlayButton && !isVideoOverlay) {
                           toggleFileSelection(file.key)
                         }
                       }}
@@ -1411,7 +1590,7 @@ function AssetsAdminContent() {
                           )}
                           {/* Play overlay for videos */}
                           <div 
-                            className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                            className="video-play-overlay absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
                             onClick={(e) => {
                               e.stopPropagation()
                               openVideoModal(file)
@@ -1467,16 +1646,39 @@ function AssetsAdminContent() {
                             )}
                           </button>
                         </div>
+                      ) : isPDF ? (
+                        <div 
+                          className="flex flex-col items-center justify-center gap-3 p-4 cursor-pointer hover:bg-neutral-700/50 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            window.open(file.url, '_blank')
+                          }}
+                        >
+                          <div className="relative">
+                            <FileText className="w-16 h-16 text-red-500" />
+                            <div className="absolute -bottom-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                              PDF
+                            </div>
+                          </div>
+                          <span className="text-xs text-neutral-400 flex items-center gap-1">
+                            Click to view
+                            <ExternalLink className="w-3 h-3" />
+                          </span>
+                        </div>
                       ) : (
                         <FileIcon className="w-16 h-16 text-neutral-600" />
                       )}
-                      {/* Checkbox overlay */}
+                      {/* Checkbox overlay with selection number */}
                       <div className={`absolute top-2 left-2 w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
                         isSelected 
                           ? 'bg-primary-500 border-primary-500' 
                           : 'bg-black/50 border-neutral-500 group-hover:border-primary-500'
                       }`}>
-                        {isSelected && <Check className="w-4 h-4 text-black" />}
+                        {isSelected && selectionNumber ? (
+                          <span className="text-xs font-bold text-black">{selectionNumber}</span>
+                        ) : isSelected ? (
+                          <Check className="w-4 h-4 text-black" />
+                        ) : null}
                       </div>
                       {/* Video badge */}
                       {isVideo && (
@@ -1569,6 +1771,42 @@ function AssetsAdminContent() {
                           >
                             <Play className="w-4 h-4 mr-2" />
                             Play Video
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              copyToClipboard(file.url)
+                            }}
+                          >
+                            {isCopied ? (
+                              <>
+                                <Check className="w-4 h-4 mr-2" />
+                                Copied!
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-4 h-4 mr-2" />
+                                Copy Link
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      ) : isPDF ? (
+                        <div className="space-y-2">
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            className="w-full"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              window.open(file.url, '_blank')
+                            }}
+                          >
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            Open PDF
                           </Button>
                           <Button
                             variant="outline"

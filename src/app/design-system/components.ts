@@ -6,7 +6,7 @@ import {
   Activity, Play, Monitor, CreditCard, List, CheckCircle, 
   Sparkles, Smartphone, PanelTop, FileText, Music, Type, 
   Users, Eye, Trash2, Zap, HardDrive, Headphones, Palette,
-  ArrowRight, Image
+  ArrowRight, Image, Maximize2
 } from 'lucide-react'
 
 export interface ComponentMetadata {
@@ -404,6 +404,15 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
     icon: Headphones,
     exportName: 'PlaylistPlayer',
     path: '/design-system/component/playlist-player'
+  },
+  {
+    id: 'image-lightbox',
+    name: 'Image Lightbox',
+    description: 'Full-screen image viewer with navigation, thumbnails, and copy link functionality',
+    category: 'Media',
+    icon: Maximize2,
+    exportName: 'ImageLightbox',
+    path: '/design-system/component/image-lightbox'
   },
 
   // Typography

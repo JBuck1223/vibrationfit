@@ -24,17 +24,16 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Committing draft:', draftId, 'for user:', user.id)
 
-    // Verify draft exists and user owns it
+    // Verify draft exists and user has access to it
     const { data: draft, error: draftError } = await supabase
       .from('vision_versions')
-      .select('*')
+      .select('id, user_id, household_id, is_draft')
       .eq('id', draftId)
-      .eq('user_id', user.id)
       .single()
 
     if (draftError || !draft) {
       return NextResponse.json({ 
-        error: 'Draft not found or access denied' 
+        error: 'Draft not found' 
       }, { status: 404 })
     }
 
@@ -44,69 +43,36 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Get current active vision (if exists) for deactivation
-    const { data: currentActive } = await supabase
-      .from('vision_versions')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .eq('is_draft', false)
-      .maybeSingle()
+    // Use the database function to commit the draft
+    // This handles both personal and household visions correctly
+    const { error: commitError } = await supabase.rpc('commit_vision_draft_as_active', {
+      p_draft_vision_id: draftId,
+      p_user_id: user.id
+    })
 
-    // Start transaction-like operations
-    // Step 1: Deactivate old active vision (if exists)
-    if (currentActive) {
-      const { error: deactivateError } = await supabase
-        .from('vision_versions')
-        .update({ 
-          is_active: false,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', currentActive.id)
-
-      if (deactivateError) {
-        console.error('Error deactivating old vision:', deactivateError)
-        return NextResponse.json({ 
-          error: 'Failed to deactivate old vision' 
-        }, { status: 500 })
-      }
+    if (commitError) {
+      console.error('Error committing draft:', commitError)
+      return NextResponse.json({ 
+        error: commitError.message || 'Failed to commit draft' 
+      }, { status: 500 })
     }
 
-    // Step 2: Activate draft as new active vision
-    const { data: newActive, error: activateError } = await supabase
+    // Fetch the newly committed vision
+    const { data: newActive, error: fetchError } = await supabase
       .from('vision_versions')
-      .update({
-        is_active: true,
-        is_draft: false,
-        title: draft.title?.replace('Draft', 'Active Vision') || 'Life Vision',
-        updated_at: new Date().toISOString()
-      })
+      .select('*')
       .eq('id', draftId)
-      .select()
       .single()
 
-    if (activateError) {
-      console.error('Error activating draft:', activateError)
-      
-      // Rollback: Reactivate old vision if it was deactivated
-      if (currentActive) {
-        await supabase
-          .from('vision_versions')
-          .update({ 
-            is_active: true,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', currentActive.id)
-      }
-      
+    if (fetchError || !newActive) {
+      console.error('Error fetching committed vision:', fetchError)
       return NextResponse.json({ 
-        error: 'Failed to activate draft' 
+        error: 'Failed to fetch committed vision' 
       }, { status: 500 })
     }
 
     return NextResponse.json({ 
       vision: newActive,
-      previousVersionId: currentActive?.id || null,
       message: 'Draft committed successfully'
     })
   } catch (error) {

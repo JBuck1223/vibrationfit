@@ -273,12 +273,14 @@ export async function POST(request: NextRequest) {
     console.log('[Master Vision V5] Using bookend templates (woo:', wooLevel, 'perspective:', perspective, ')')
 
     // V5: Create vision_versions row directly (complete, not draft)
-    // First, deactivate any existing active visions
+    // First, deactivate any existing active personal visions (household_id IS NULL)
+    // This ensures only one active personal vision per user
     await supabase
       .from('vision_versions')
       .update({ is_active: false })
       .eq('user_id', user.id)
       .eq('is_active', true)
+      .is('household_id', null)
 
     // Insert the new vision as complete and active
     const { data: insertedVision, error: insertError } = await supabase
