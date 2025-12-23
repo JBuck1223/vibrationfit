@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { Container, Card, Button, Badge, Input, Stack, PageHero } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
-import { Upload, Copy, Check, Image as ImageIcon, Video, Music, File, Folder, Plus, ChevronRight, ArrowLeft, CheckCircle2, X, Search, Trash2 } from 'lucide-react'
+import { Upload, Copy, Check, Image as ImageIcon, Video, Music, File, Folder, Plus, ChevronRight, ArrowLeft, CheckCircle2, X, Search, Trash2, Play, Pause, ChevronLeft } from 'lucide-react'
+import { OptimizedVideo } from '@/components/OptimizedVideo'
 
 interface AssetFile {
   key: string
@@ -61,6 +62,21 @@ function AssetsAdminContent() {
   const [deleting, setDeleting] = useState(false)
   const [deletingKeys, setDeletingKeys] = useState<Set<string>>(new Set())
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  
+  // Video modal state
+  const [videoModalOpen, setVideoModalOpen] = useState(false)
+  const [videoModalUrl, setVideoModalUrl] = useState<string>('')
+  const [videoModalVariants, setVideoModalVariants] = useState<VideoVariant[]>([])
+  
+  // Image lightbox state
+  const [imageLightboxOpen, setImageLightboxOpen] = useState(false)
+  const [imageLightboxUrl, setImageLightboxUrl] = useState<string>('')
+  const [imageLightboxIndex, setImageLightboxIndex] = useState(0)
+  const [imageLightboxFiles, setImageLightboxFiles] = useState<AssetFile[]>([])
+  
+  // Audio player state
+  const [playingAudio, setPlayingAudio] = useState<string | null>(null)
+  const [audioElements, setAudioElements] = useState<Record<string, HTMLAudioElement>>({})
 
   useEffect(() => {
     fetchAssets()
@@ -565,6 +581,121 @@ function AssetsAdminContent() {
     img.src = url
   }
 
+  // Open video in modal
+  const openVideoModal = (file: AssetFile) => {
+    // Get the best quality video URL (original or 1080p)
+    const originalVariant = file.variants?.find(v => v.type === 'original')
+    const highQualityVariant = file.variants?.find(v => v.type === '1080p')
+    const videoUrl = originalVariant?.url || highQualityVariant?.url || file.url
+    
+    setVideoModalUrl(videoUrl)
+    setVideoModalVariants(file.variants || [])
+    setVideoModalOpen(true)
+  }
+
+  const closeVideoModal = () => {
+    setVideoModalOpen(false)
+    setVideoModalUrl('')
+    setVideoModalVariants([])
+  }
+
+  // Open image in lightbox
+  const openImageLightbox = (file: AssetFile, index: number) => {
+    const imageFiles = filteredFiles.filter(f => {
+      const ext = f.name.split('.').pop()?.toLowerCase()
+      return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '')
+    })
+    
+    setImageLightboxFiles(imageFiles)
+    setImageLightboxIndex(index)
+    setImageLightboxUrl(file.url)
+    setImageLightboxOpen(true)
+  }
+
+  const closeImageLightbox = () => {
+    setImageLightboxOpen(false)
+    setImageLightboxUrl('')
+    setImageLightboxFiles([])
+  }
+
+  const nextImage = () => {
+    if (imageLightboxFiles.length > 0) {
+      const nextIndex = (imageLightboxIndex + 1) % imageLightboxFiles.length
+      setImageLightboxIndex(nextIndex)
+      setImageLightboxUrl(imageLightboxFiles[nextIndex].url)
+    }
+  }
+
+  const prevImage = () => {
+    if (imageLightboxFiles.length > 0) {
+      const prevIndex = (imageLightboxIndex - 1 + imageLightboxFiles.length) % imageLightboxFiles.length
+      setImageLightboxIndex(prevIndex)
+      setImageLightboxUrl(imageLightboxFiles[prevIndex].url)
+    }
+  }
+
+  // Play/pause audio
+  const toggleAudio = (fileKey: string, url: string) => {
+    if (playingAudio === fileKey) {
+      // Pause current audio
+      if (audioElements[fileKey]) {
+        audioElements[fileKey].pause()
+      }
+      setPlayingAudio(null)
+    } else {
+      // Stop any currently playing audio
+      if (playingAudio && audioElements[playingAudio]) {
+        audioElements[playingAudio].pause()
+        audioElements[playingAudio].currentTime = 0
+      }
+      
+      // Create or get audio element
+      let audio = audioElements[fileKey]
+      if (!audio) {
+        audio = new Audio(url)
+        audio.addEventListener('ended', () => {
+          setPlayingAudio(null)
+        })
+        setAudioElements(prev => ({ ...prev, [fileKey]: audio }))
+      }
+      
+      // Play new audio
+      audio.play()
+      setPlayingAudio(fileKey)
+    }
+  }
+
+  // Cleanup audio elements on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(audioElements).forEach(audio => {
+        audio.pause()
+        audio.src = ''
+      })
+    }
+  }, [audioElements])
+
+  // Keyboard navigation for lightbox
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (imageLightboxOpen) {
+        if (e.key === 'Escape') {
+          closeImageLightbox()
+        } else if (e.key === 'ArrowLeft') {
+          prevImage()
+        } else if (e.key === 'ArrowRight') {
+          nextImage()
+        }
+      }
+      if (videoModalOpen && e.key === 'Escape') {
+        closeVideoModal()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyPress)
+    return () => window.removeEventListener('keydown', handleKeyPress)
+  }, [imageLightboxOpen, videoModalOpen, imageLightboxIndex, imageLightboxFiles])
+
   return (
     <>
       {/* Delete Confirmation Dialog */}
@@ -673,6 +804,166 @@ function AssetsAdminContent() {
               </button>
             </div>
           </Card>
+        </div>
+      )}
+
+      {/* Video Player Modal */}
+      {videoModalOpen && (
+        <div 
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+          onClick={closeVideoModal}
+        >
+          <div 
+            className="relative w-full max-w-6xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              onClick={closeVideoModal}
+              className="absolute -top-12 right-0 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            {/* Video Player */}
+            <div className="bg-black rounded-lg overflow-hidden">
+              <OptimizedVideo
+                url={videoModalUrl}
+                context="single"
+                controls={true}
+                autoplay={true}
+                className="w-full aspect-video"
+              />
+            </div>
+
+            {/* Video Controls */}
+            <div className="mt-4 flex gap-2 justify-center flex-wrap">
+              {/* Copy Current Video Link Button */}
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  copyToClipboard(videoModalUrl)
+                }}
+              >
+                {copiedUrl === videoModalUrl ? (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy CloudFront Link
+                  </>
+                )}
+              </Button>
+
+              {/* Video Variant Quality Buttons */}
+              {videoModalVariants.length > 0 && (
+                <>
+                  <div className="w-px bg-neutral-700 self-stretch mx-1" />
+                  {videoModalVariants
+                    .filter(v => v.type !== 'thumb')
+                    .sort((a, b) => {
+                      const order: Record<string, number> = { 'original': 0, '1080p': 1, '720p': 2, 'thumb': 3 }
+                      return order[a.type] - order[b.type]
+                    })
+                    .map((variant) => (
+                      <Button
+                        key={variant.type}
+                        variant={videoModalUrl === variant.url ? 'primary' : 'secondary'}
+                        size="sm"
+                        onClick={() => setVideoModalUrl(variant.url)}
+                      >
+                        {variant.type.toUpperCase()}
+                        {variant.size && ` (${formatFileSize(variant.size)})`}
+                      </Button>
+                    ))}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Lightbox */}
+      {imageLightboxOpen && (
+        <div 
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center"
+          onClick={closeImageLightbox}
+        >
+          <div 
+            className="relative w-full h-full flex items-center justify-center p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              onClick={closeImageLightbox}
+              className="absolute top-4 right-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            {/* Navigation Buttons */}
+            {imageLightboxFiles.length > 1 && (
+              <>
+                <button
+                  onClick={prevImage}
+                  className="absolute left-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+                <button
+                  onClick={nextImage}
+                  className="absolute right-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
+              </>
+            )}
+
+            {/* Image Content */}
+            <div className="max-w-6xl max-h-full w-full h-full flex flex-col items-center justify-center gap-4">
+              <img
+                src={imageLightboxUrl}
+                alt="Preview"
+                className="max-w-full max-h-[calc(100vh-200px)] object-contain"
+              />
+              
+              {/* Copy CloudFront Link Button */}
+              <div className="flex gap-2">
+                <Button
+                  variant="primary"
+                  size="md"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    copyToClipboard(imageLightboxUrl)
+                  }}
+                >
+                  {copiedUrl === imageLightboxUrl ? (
+                    <>
+                      <Check className="w-4 h-4 mr-2" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4 mr-2" />
+                      Copy CloudFront Link
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {/* Image Counter */}
+            {imageLightboxFiles.length > 1 && (
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                {imageLightboxIndex + 1} of {imageLightboxFiles.length}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -1073,7 +1364,10 @@ function AssetsAdminContent() {
               {filteredFiles.map((file) => {
                 const FileIcon = getFileIcon(file.name)
                 const isImage = file.name.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)
-                const isVideo = file.variants && file.variants.length > 0
+                // Check if it's a video by file extension OR if it has video variants
+                const isVideoFile = file.name.match(/\.(mp4|webm|mov|avi)$/i)
+                const hasVideoVariants = file.variants && file.variants.length > 0
+                const isVideo = isVideoFile || hasVideoVariants
                 const isCopied = copiedUrl === file.url
                 const fileType = getFileType(file.name)
                 const dimensions = imageDimensions[file.key]
@@ -1085,20 +1379,63 @@ function AssetsAdminContent() {
                 const thumbnailVariant = file.variants?.find(v => v.type === 'thumb')
                 const thumbnailUrl = thumbnailVariant?.url
 
+                const isAudio = file.name.match(/\.(mp3|wav|ogg|m4a)$/i)
+                const isPlaying = playingAudio === file.key
+
                 return (
                   <Card key={file.key} variant="elevated" className={`overflow-hidden ${isSelected ? 'ring-2 ring-primary-500 border-primary-500' : ''} ${isDeleting ? 'opacity-50' : ''}`}>
-                    <div className="relative aspect-square bg-neutral-800 flex items-center justify-center mb-3 overflow-hidden group cursor-pointer" onClick={() => toggleFileSelection(file.key)}>
-                      {isVideo && thumbnailUrl ? (
-                        <img
-                          src={thumbnailUrl}
-                          alt={file.name}
-                          className="max-w-full max-h-full object-cover"
-                        />
+                    <div 
+                      className="relative aspect-square bg-neutral-800 flex items-center justify-center mb-3 overflow-hidden group cursor-pointer" 
+                      onClick={(e) => {
+                        // If clicking on the overlay area (not the play button for audio), toggle selection
+                        const target = e.target as HTMLElement
+                        const isPlayButton = target.closest('.audio-play-button')
+                        if (!isPlayButton) {
+                          toggleFileSelection(file.key)
+                        }
+                      }}
+                    >
+                      {isVideo ? (
+                        <>
+                          {thumbnailUrl ? (
+                            <img
+                              src={thumbnailUrl}
+                              alt={file.name}
+                              className="max-w-full max-h-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex flex-col items-center justify-center gap-2">
+                              <Video className="w-16 h-16 text-neutral-600" />
+                              <span className="text-xs text-neutral-400">Video File</span>
+                            </div>
+                          )}
+                          {/* Play overlay for videos */}
+                          <div 
+                            className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openVideoModal(file)
+                            }}
+                          >
+                            <div className="w-16 h-16 bg-primary-500 rounded-full flex items-center justify-center">
+                              <Play className="w-8 h-8 text-black ml-1" />
+                            </div>
+                          </div>
+                        </>
                       ) : isImage ? (
                         <img
                           src={file.url}
                           alt={file.name}
-                          className="max-w-full max-h-full object-contain"
+                          className="max-w-full max-h-full object-contain cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            const imageFiles = filteredFiles.filter(f => {
+                              const ext = f.name.split('.').pop()?.toLowerCase()
+                              return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '')
+                            })
+                            const imageIndex = imageFiles.findIndex(f => f.key === file.key)
+                            openImageLightbox(file, imageIndex)
+                          }}
                           onLoad={(e) => {
                             const img = e.currentTarget
                             if (!dimensions) {
@@ -1113,6 +1450,23 @@ function AssetsAdminContent() {
                             }
                           }}
                         />
+                      ) : isAudio ? (
+                        <div className="flex flex-col items-center justify-center gap-3 p-4">
+                          <Music className="w-16 h-16 text-neutral-600" />
+                          <button
+                            className="audio-play-button w-12 h-12 bg-primary-500 rounded-full flex items-center justify-center hover:bg-primary-400 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              toggleAudio(file.key, file.url)
+                            }}
+                          >
+                            {isPlaying ? (
+                              <Pause className="w-6 h-6 text-black" />
+                            ) : (
+                              <Play className="w-6 h-6 text-black ml-0.5" />
+                            )}
+                          </button>
+                        </div>
                       ) : (
                         <FileIcon className="w-16 h-16 text-neutral-600" />
                       )}
@@ -1129,8 +1483,16 @@ function AssetsAdminContent() {
                         <div className="absolute bottom-2 right-2 bg-black/80 px-2 py-1 rounded-lg flex items-center gap-1">
                           <Video className="w-3 h-3 text-primary-400" />
                           <span className="text-xs text-white font-medium">
-                            {file.variants?.length} variants
+                            {file.variants && file.variants.length > 0 
+                              ? `${file.variants.length} variants` 
+                              : 'Video'}
                           </span>
+                        </div>
+                      )}
+                      {/* Playing indicator for audio */}
+                      {isAudio && isPlaying && (
+                        <div className="absolute top-2 right-2 bg-primary-500 px-2 py-1 rounded-lg flex items-center gap-1">
+                          <span className="text-xs text-black font-medium">Playing</span>
                         </div>
                       )}
                     </div>
@@ -1155,7 +1517,7 @@ function AssetsAdminContent() {
                         </div>
                       </div>
 
-                      {/* Video variants dropdown */}
+                      {/* Video variants dropdown or video actions */}
                       {isVideo && file.variants && file.variants.length > 0 ? (
                         <div className="space-y-2">
                           <p className="text-xs text-neutral-400 font-medium">Available Versions:</p>
@@ -1193,6 +1555,42 @@ function AssetsAdminContent() {
                                 )}
                               </Button>
                             ))}
+                        </div>
+                      ) : isVideo ? (
+                        <div className="space-y-2">
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            className="w-full"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openVideoModal(file)
+                            }}
+                          >
+                            <Play className="w-4 h-4 mr-2" />
+                            Play Video
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              copyToClipboard(file.url)
+                            }}
+                          >
+                            {isCopied ? (
+                              <>
+                                <Check className="w-4 h-4 mr-2" />
+                                Copied!
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-4 h-4 mr-2" />
+                                Copy Link
+                              </>
+                            )}
+                          </Button>
                         </div>
                       ) : (
                         <Button

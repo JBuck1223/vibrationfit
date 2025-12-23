@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import puppeteer from 'puppeteer'
+import os from 'os'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60 // Allow 60 seconds for PDF generation
@@ -490,67 +491,98 @@ ${paragraphs.map(paragraph => `<p>${escapeHtml(paragraph)}</p>`).join('')}
       })
     }
 
-    // Launch Puppeteer
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--disable-gpu'
-      ]
-    })
-      
-      const page = await browser.newPage()
+    // Launch Puppeteer with better error handling
+    console.log('[PDF] Attempting to launch Puppeteer browser...')
+    console.log('[PDF] Platform:', os.platform(), 'Arch:', os.arch())
+    
+    let browser
+    try {
+      browser = await puppeteer.launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--disable-gpu',
+          '--disable-web-security'
+        ],
+        timeout: 30000
+      })
+      console.log('[PDF] Browser launched successfully')
+    } catch (launchError) {
+      console.error('[PDF] Failed to launch Puppeteer:', launchError)
+      throw new Error(`Failed to launch PDF browser: ${launchError instanceof Error ? launchError.message : 'Unknown error'}`)
+    }
 
-    // Set viewport to Letter size for accurate measurements
-    await page.setViewport({
-      width: 816,  // 8.5 inches * 96 DPI
-      height: 1056, // 11 inches * 96 DPI  
-    })
+    let page
+    try {
+      page = await browser.newPage()
+      console.log('[PDF] New page created')
 
-    // Set HTML content and wait for it to load
-    await page.setContent(html, { 
-      waitUntil: 'networkidle0',
-      timeout: 30000 
-    })
+      // Set viewport to Letter size for accurate measurements
+      await page.setViewport({
+        width: 816,  // 8.5 inches * 96 DPI
+        height: 1056, // 11 inches * 96 DPI  
+      })
+      console.log('[PDF] Viewport set')
 
+      // Set HTML content and wait for it to load
+      await page.setContent(html, { 
+        waitUntil: 'networkidle0',
+        timeout: 30000 
+      })
+      console.log('[PDF] HTML content loaded')
 
-    // Generate PDF (Puppeteer will handle page numbers in its footer template)
-    const pdfBuffer = await page.pdf({
-      format: 'Letter',
+      // Generate PDF (Puppeteer will handle page numbers in its footer template)
+      console.log('[PDF] Generating PDF buffer...')
+      const pdfBuffer = await page.pdf({
+        format: 'Letter',
         printBackground: true,
         displayHeaderFooter: true,
-      headerTemplate: '<div></div>',
-      footerTemplate: `
-        <div style="width: 100%; text-align: center; font-size: 10pt; color: #666; padding: 0 20pt; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;">
-          <span class="pageNumber"></span>
-        </div>
-      `,
-      margin: {
-        top: '0.5in',
-        right: '0.5in',
-        bottom: '0.5in',
-        left: '0.5in'
-      }
-    })
+        headerTemplate: '<div></div>',
+        footerTemplate: `
+          <div style="width: 100%; text-align: center; font-size: 10pt; color: #666; padding: 0 20pt; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;">
+            <span class="pageNumber"></span>
+          </div>
+        `,
+        margin: {
+          top: '0.5in',
+          right: '0.5in',
+          bottom: '0.5in',
+          left: '0.5in'
+        }
+      })
+      console.log('[PDF] PDF generated successfully, size:', pdfBuffer.length, 'bytes')
 
-    // Close browser
-    await browser.close()
+      // Close browser
+      await browser.close()
+      console.log('[PDF] Browser closed')
 
-    // Return PDF as response
-    const filenameTitle = isHouseholdVision ? 'The-Life-We-Choose' : 'The-Life-I-Choose'
-    const filename = `${filenameTitle}-V${versionNumber}.pdf`
-    return new NextResponse(Buffer.from(pdfBuffer), {
+      // Return PDF as response
+      const filenameTitle = isHouseholdVision ? 'The-Life-We-Choose' : 'The-Life-I-Choose'
+      const filename = `${filenameTitle}-V${versionNumber}.pdf`
+      return new NextResponse(Buffer.from(pdfBuffer), {
         headers: {
           'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${filename}"`,
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-      },
-    })
+          'Content-Disposition': `attachment; filename="${filename}"`,
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+        },
+      })
+    } catch (pdfError) {
+      console.error('[PDF] Error during PDF generation:', pdfError)
+      // Make sure to close browser even if there's an error
+      if (browser) {
+        try {
+          await browser.close()
+        } catch (closeError) {
+          console.error('[PDF] Error closing browser:', closeError)
+        }
+      }
+      throw pdfError
+    }
 
   } catch (error) {
     console.error('PDF generation error:', error)
