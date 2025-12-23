@@ -303,7 +303,7 @@ export default function PrintPreviewPage() {
               >
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 rounded-full" style={{ backgroundColor: colorPresets.forestGreen.primary }} />
-                  <span>Forest Green</span>
+                  <span>Green</span>
                 </div>
               </Button>
             </div>
