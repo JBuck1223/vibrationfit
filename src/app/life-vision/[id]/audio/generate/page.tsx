@@ -31,6 +31,24 @@ interface MixVariant {
   color: string
 }
 
+interface BackgroundTrack {
+  id: string
+  name: string
+  display_name: string
+  category: string
+  file_url: string
+  description?: string
+}
+
+interface MixRatio {
+  id: string
+  name: string
+  voice_volume: number
+  bg_volume: number
+  description?: string
+  icon?: string
+}
+
 interface Batch {
   id: string
   status: string
@@ -61,8 +79,15 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
   const [previewProgress, setPreviewProgress] = useState<number>(0)
   const previewAudioRef = React.useRef<HTMLAudioElement | null>(null)
   
-  // Mixing Section
+  // New Flexible Mixing Section
   const [selectedBaseVoice, setSelectedBaseVoice] = useState<string>('')
+  const [backgroundTracks, setBackgroundTracks] = useState<BackgroundTrack[]>([])
+  const [mixRatios, setMixRatios] = useState<MixRatio[]>([])
+  const [selectedBackgroundTrack, setSelectedBackgroundTrack] = useState<string>('')
+  const [selectedMixRatio, setSelectedMixRatio] = useState<string>('')
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  
+  // Old variant system (kept for backwards compatibility)
   const [selectedMixVariants, setSelectedMixVariants] = useState<string[]>([])
   
   useEffect(() => {
@@ -162,7 +187,38 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
       setSelectedBaseVoice(voiceSets[0].voice_id)
     }
 
-    // Load mix variants from database
+    // Load background tracks
+    const { data: tracks } = await supabase
+      .from('background_tracks')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order')
+    
+    if (tracks) {
+      setBackgroundTracks(tracks)
+      // Auto-select first track
+      if (tracks.length > 0 && !selectedBackgroundTrack) {
+        setSelectedBackgroundTrack(tracks[0].id)
+      }
+    }
+
+    // Load mix ratios
+    const { data: ratios } = await supabase
+      .from('mix_ratios')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order')
+    
+    if (ratios) {
+      setMixRatios(ratios)
+      // Auto-select balanced mix (50/50)
+      const balanced = ratios.find(r => r.voice_volume === 50)
+      if (balanced && !selectedMixRatio) {
+        setSelectedMixRatio(balanced.id)
+      }
+    }
+
+    // Load old mix variants for backwards compatibility
     const { data: variants } = await supabase
       .from('audio_variants')
       .select('*')
@@ -274,6 +330,142 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
       }).then(res => {
         if (!res.ok) {
           console.error('Generation API returned error:', res.status)
+        }
+      }).catch(err => {
+        console.error('Generation API error:', err)
+      })
+
+      // Redirect to queue page immediately
+      console.log('Redirecting to queue page:', `/life-vision/${visionId}/audio/queue/${batch.id}`)
+      router.push(`/life-vision/${visionId}/audio/queue/${batch.id}`)
+    } catch (error) {
+      console.error('Generation error:', error)
+      alert('An error occurred during generation. Please try again.')
+      setGenerating(false)
+    }
+  }
+
+  async function handleGenerateCustomMix() {
+    if (!selectedBackgroundTrack) {
+      alert('Please select a background track')
+      return
+    }
+
+    if (!selectedMixRatio) {
+      alert('Please select a mix ratio')
+      return
+    }
+
+    if (!selectedBaseVoice) {
+      alert('Please select a base voice')
+      return
+    }
+    
+    // Verify that voice-only tracks exist for this voice
+    const selectedVoiceSet = existingVoiceSets.find(set => set.voice_id === selectedBaseVoice)
+    if (!selectedVoiceSet || selectedVoiceSet.track_count === 0) {
+      alert('⚠️ No voice-only tracks found for this voice. Please generate voice-only tracks first (Step 1) before creating mixes.')
+      return
+    }
+
+    setGenerating(true)
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        alert('You must be logged in to generate audio')
+        setGenerating(false)
+        return
+      }
+
+      // Get vision data for sections
+      const { data: vv } = await supabase
+        .from('vision_versions')
+        .select('*')
+        .eq('id', visionId)
+        .single()
+
+      if (!vv) {
+        alert('Vision not found')
+        setGenerating(false)
+        return
+      }
+
+      const categoryKeys = getVisionCategoryKeys().filter(k => k !== 'forward' && k !== 'conclusion')
+      const sections = [
+        { key: 'forward', text: vv.forward || '' },
+        ...categoryKeys.map(key => ({ key, text: vv[key] || '' })),
+        { key: 'conclusion', text: vv.conclusion || '' }
+      ].filter(s => s.text.trim().length > 0)
+
+      const sectionsPayload = sections.map(s => ({
+        sectionKey: s.key,
+        text: s.text
+      }))
+
+      // Get selected track and ratio details
+      const selectedTrack = backgroundTracks.find(t => t.id === selectedBackgroundTrack)
+      const selectedRatio = mixRatios.find(r => r.id === selectedMixRatio)
+
+      if (!selectedTrack || !selectedRatio) {
+        alert('Invalid track or ratio selection')
+        setGenerating(false)
+        return
+      }
+
+      // Create batch with custom mix metadata
+      const { data: batch, error: batchError } = await supabase
+        .from('audio_generation_batches')
+        .insert({
+          user_id: user.id,
+          vision_id: visionId,
+          variant_ids: ['custom'],
+          voice_id: selectedBaseVoice,
+          sections_requested: sectionsPayload,
+          total_tracks_expected: sectionsPayload.length,
+          status: 'pending',
+          metadata: {
+            custom_mix: true,
+            background_track_id: selectedBackgroundTrack,
+            background_track_url: selectedTrack.file_url,
+            mix_ratio_id: selectedMixRatio,
+            voice_volume: selectedRatio.voice_volume,
+            bg_volume: selectedRatio.bg_volume
+          }
+        })
+        .select()
+        .single()
+
+      if (batchError || !batch) {
+        console.error('Failed to create batch:', batchError)
+        alert('Failed to create generation batch. Please try again.')
+        setGenerating(false)
+        return
+      }
+
+      // Start generation with custom mix parameters
+      console.log('Starting custom mix generation:', {
+        voice: selectedBaseVoice,
+        track: selectedTrack.display_name,
+        ratio: selectedRatio.name
+      })
+
+      fetch('/api/audio/generate-custom-mix', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          visionId,
+          sections: sectionsPayload,
+          voice: selectedBaseVoice,
+          batchId: batch.id,
+          backgroundTrackUrl: selectedTrack.file_url,
+          voiceVolume: selectedRatio.voice_volume,
+          bgVolume: selectedRatio.bg_volume
+        })
+      }).then(res => {
+        if (!res.ok) {
+          console.error('Generation API error:', res.status)
         }
       }).catch(err => {
         console.error('Generation API error:', err)
@@ -731,13 +923,13 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
           {/* Divider */}
           <div className="my-12 border-t border-neutral-700/50"></div>
 
-          {/* SECTION 2: Select Mix Variants */}
+          {/* SECTION 2: Select Background Track & Mix Ratio */}
           <div className="flex flex-col items-center text-center mb-8">
             <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mb-3">
               <span className="text-3xl font-bold text-purple-400">2</span>
             </div>
-            <h2 className="text-xl md:text-2xl font-semibold text-white">Select Mix Variants</h2>
-            <p className="text-sm text-neutral-400">Add background music to your voice recording.</p>
+            <h2 className="text-xl md:text-2xl font-semibold text-white">Create Custom Mix</h2>
+            <p className="text-sm text-neutral-400">Choose a background track and mix ratio for your voice recording.</p>
           </div>
 
           <div className={existingVoiceSets.length === 0 ? 'opacity-50 pointer-events-none' : ''}>
@@ -747,47 +939,115 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
               </div>
             ) : (
             <>
-              {/* Mix Variants Selection */}
-              <p className="text-sm text-neutral-400 mb-3 text-center">Choose which background mixes to create:</p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                {mixVariants.map((variant) => {
-                  const Icon = variant.icon
-                  const isSelected = selectedMixVariants.includes(variant.id)
-                  
-                  return (
-                    <Card
-                      key={variant.id}
-                      variant="default"
-                      hover
-                      className={`cursor-pointer transition-all ${
-                        isSelected
-                          ? 'border-primary-500 bg-primary-500/10'
-                          : ''
-                      }`}
-                      onClick={(e: React.MouseEvent) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        setSelectedMixVariants(prev =>
-                          prev.includes(variant.id)
-                            ? prev.filter(v => v !== variant.id)
-                            : [...prev, variant.id]
-                        )
-                      }}
+              {/* Background Track Selection */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold text-white mb-3">1. Choose Background Track</h3>
+                
+                {/* Category Filter */}
+                <div className="flex gap-2 mb-4 flex-wrap">
+                  <Button
+                    variant={selectedCategory === 'all' ? 'primary' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedCategory('all')}
+                  >
+                    All Tracks
+                  </Button>
+                  {Array.from(new Set(backgroundTracks.map(t => t.category))).map(category => (
+                    <Button
+                      key={category}
+                      variant={selectedCategory === category ? 'primary' : 'outline'}
+                      size="sm"
+                      onClick={() => setSelectedCategory(category)}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg ${variant.color}`}>
-                          <Icon className="w-5 h-5" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-white font-medium">{variant.name}</p>
-                          <p className="text-xs text-neutral-400">
-                            {variant.voice_volume}% voice • {variant.bg_volume}% background
+                      {category.charAt(0).toUpperCase() + category.slice(1)}
+                    </Button>
+                  ))}
+                </div>
+
+                {/* Track Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {backgroundTracks
+                    .filter(track => selectedCategory === 'all' || track.category === selectedCategory)
+                    .map((track) => {
+                      const isSelected = selectedBackgroundTrack === track.id
+                      return (
+                        <Card
+                          key={track.id}
+                          variant="default"
+                          hover
+                          className={`cursor-pointer transition-all ${
+                            isSelected
+                              ? 'border-primary-500 bg-primary-500/10'
+                              : ''
+                          }`}
+                          onClick={(e: React.MouseEvent) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            setSelectedBackgroundTrack(track.id)
+                          }}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={`p-2 rounded-lg ${
+                              track.category === 'nature' ? 'bg-green-500/20 text-green-400' :
+                              track.category === 'ambient' ? 'bg-purple-500/20 text-purple-400' :
+                              'bg-blue-500/20 text-blue-400'
+                            }`}>
+                              <Music2 className="w-5 h-5" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-white font-medium">{track.display_name}</p>
+                              {track.description && (
+                                <p className="text-xs text-neutral-400 mt-1">{track.description}</p>
+                              )}
+                              <Badge variant="neutral" className="mt-2">
+                                {track.category}
+                              </Badge>
+                            </div>
+                            {isSelected && (
+                              <CheckCircle className="w-5 h-5 text-primary-500" />
+                            )}
+                          </div>
+                        </Card>
+                      )
+                    })}
+                </div>
+              </div>
+
+              {/* Mix Ratio Selection */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold text-white mb-3">2. Choose Mix Ratio</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                  {mixRatios.map((ratio) => {
+                    const isSelected = selectedMixRatio === ratio.id
+                    return (
+                      <Card
+                        key={ratio.id}
+                        variant="default"
+                        hover
+                        className={`cursor-pointer transition-all ${
+                          isSelected
+                            ? 'border-primary-500 bg-primary-500/10'
+                            : ''
+                        }`}
+                        onClick={(e: React.MouseEvent) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          setSelectedMixRatio(ratio.id)
+                        }}
+                      >
+                        <div className="text-center">
+                          <p className="text-white font-medium text-sm">{ratio.name}</p>
+                          <p className="text-xs text-neutral-400 mt-1">
+                            {ratio.voice_volume}/{ratio.bg_volume}
                           </p>
+                          {isSelected && (
+                            <CheckCircle className="w-4 h-4 text-primary-500 mx-auto mt-2" />
+                          )}
                         </div>
-                      </div>
-                    </Card>
-                  )
-                })}
+                      </Card>
+                    )
+                  })}
+                </div>
               </div>
 
               {/* Generate Button */}
@@ -797,19 +1057,20 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                   onClick={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
-                    handleGenerateMixes()
+                    handleGenerateCustomMix()
                   }}
-                  disabled={generating || selectedMixVariants.length === 0 || !selectedBaseVoice}
+                  disabled={generating || !selectedBackgroundTrack || !selectedMixRatio || !selectedBaseVoice}
                   className="w-full md:w-auto"
                 >
                   {generating ? (
                     <>
                       <Spinner size="sm" className="mr-2" />
-                      Generating Mixes...
+                      Generating Mix...
                     </>
                   ) : (
                     <>
-                      Generate {selectedMixVariants.length} Mix{selectedMixVariants.length !== 1 ? 'es' : ''}
+                      <Music className="w-4 h-4 mr-2" />
+                      Generate Custom Mix
                     </>
                   )}
                 </Button>

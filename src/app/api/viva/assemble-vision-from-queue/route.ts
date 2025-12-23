@@ -77,12 +77,14 @@ export async function POST(request: NextRequest) {
     // Standard activation message
     const activationMessage = `Your Life Vision is complete and ready for activation. This is your north star, your decision filter, and your reminder of what matters most. Return to it regularly to stay aligned with your most fun and satisfying life.`
 
-    // Deactivate any existing active visions
+    // Deactivate any existing active personal visions (household_id IS NULL)
+    // This ensures only one active personal vision per user
     await supabase
       .from('vision_versions')
       .update({ is_active: false })
       .eq('user_id', user.id)
       .eq('is_active', true)
+      .is('household_id', null)
 
     // Create new vision_versions row
     const { data: insertedVision, error: insertError } = await supabase
