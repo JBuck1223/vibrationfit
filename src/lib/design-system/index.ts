@@ -79,6 +79,9 @@ export {
   
   // Upload Components
   FileUpload,
+  
+  // Media Viewers
+  ImageLightbox,
 } from './components'
 
 // Legacy alias for backward compatibility
