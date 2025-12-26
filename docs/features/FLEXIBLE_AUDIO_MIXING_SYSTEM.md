@@ -15,7 +15,7 @@ This replaces the old fixed variant system (sleep/meditation/energy) with a much
 
 ### Database Tables
 
-#### `background_tracks`
+#### `audio_background_tracks`
 Stores available background audio tracks that can be mixed with voice recordings.
 
 ```sql
@@ -42,7 +42,7 @@ Stores available background audio tracks that can be mixed with voice recordings
 - Calm Piano
 - Uplifting Energy
 
-#### `mix_ratios`
+#### `audio_mix_ratios`
 Stores preset mix ratios for voice/background volume levels.
 
 ```sql
@@ -61,14 +61,35 @@ Stores preset mix ratios for voice/background volume levels.
 **Seeded Ratios:**
 - Voice Only (100/0)
 - Voice Dominant (90/10)
-- Voice Focused (80/20)
-- Voice Strong (70/30)
-- Balanced (60/40)
+- Voice Strong (80/20)
+- Voice Focused (70/30)
+- Voice Balanced (60/40)
 - Even Mix (50/50)
-- Background Strong (40/60)
+- Background Balanced (40/60)
 - Background Focused (30/70)
-- Music Focused (20/80)
-- Music Dominant (10/90)
+- Background Strong (20/80)
+- Background Dominant (10/90)
+
+#### `audio_recommended_combos`
+Stores curated preset combinations of background tracks + mix ratios.
+
+```sql
+- id: uuid (primary key)
+- name: text (e.g., 'Deep Sleep Journey')
+- description: text (why this combo works well)
+- background_track_id: uuid (FK to audio_background_tracks)
+- mix_ratio_id: uuid (FK to audio_mix_ratios)
+- sort_order: integer
+- is_active: boolean
+- created_at, updated_at: timestamptz
+```
+
+**Seeded Combos:**
+- Deep Sleep Journey - Ocean Waves + Background Dominant (10/90)
+- Meditation Balance - Meditation Tones + Even Mix (50/50)
+- Focused Learning - Binaural Alpha + Voice Strong (80/20)
+- Energizing Morning - Uplifting Energy + Voice Dominant (90/10)
+- Nature Walk - Forest Ambience + Voice Balanced (60/40)
 
 ### User Flow
 
@@ -193,7 +214,7 @@ To add a new background track:
 
 2. Insert into database:
    ```sql
-   INSERT INTO public.background_tracks 
+   INSERT INTO public.audio_background_tracks 
      (name, display_name, category, file_url, description, sort_order)
    VALUES 
      ('new-track', 'New Track Name', 'nature', 
@@ -208,10 +229,30 @@ To add a new background track:
 To add a new mix ratio:
 
 ```sql
-INSERT INTO public.mix_ratios 
+INSERT INTO public.audio_mix_ratios 
   (name, voice_volume, bg_volume, description, sort_order)
 VALUES 
   ('Custom Ratio (65/35)', 65, 35, 'Custom description', 11);
+```
+
+## Adding Recommended Combos
+
+To add a recommended combo:
+
+```sql
+INSERT INTO public.audio_recommended_combos (name, description, background_track_id, mix_ratio_id, sort_order)
+SELECT 
+  'My Custom Combo',
+  'Description of why this combo works',
+  tracks.id,
+  ratios.id,
+  10
+FROM 
+  public.audio_background_tracks tracks,
+  public.audio_mix_ratios ratios
+WHERE 
+  tracks.name = 'ocean-waves-1'
+  AND ratios.name = 'Voice Balanced (60/40)';
 ```
 
 ## Technical Notes
@@ -255,9 +296,37 @@ VALUES
    - EQ adjustments
    - Reverb/effects
 
+## Admin Management
+
+The admin panel at `/admin/audio-mixer` provides full CRUD capabilities for:
+
+### Background Tracks Tab
+- ✅ View all tracks with preview playback
+- ✅ Add new tracks with name, category, URL, description
+- ✅ Edit existing tracks
+- ✅ Delete tracks
+- ✅ Set sort order and active status
+
+### Mix Ratios Tab
+- ✅ View all ratios with visual bar representation
+- ✅ Add new ratios with voice/bg percentages
+- ✅ Edit existing ratios
+- ✅ Delete ratios
+- ✅ Set descriptions, icons, and sort order
+
+### Recommended Combos Tab
+- ✅ View all combos with track and ratio details
+- ✅ Create curated combinations of tracks + ratios
+- ✅ Edit existing combos
+- ✅ Delete combos
+- ✅ Set display order and active status
+
 ## Related Files
 
-- Migration: `supabase/migrations/20251223161528_flexible_audio_mixing.sql`
+- Migrations: 
+  - `supabase/migrations/20251223161528_flexible_audio_mixing.sql`
+  - `supabase/migrations/20251223200122_audio_recommended_combos.sql`
+- Admin Page: `src/app/admin/audio-mixer/page.tsx`
 - UI Page: `src/app/life-vision/[id]/audio/generate/page.tsx`
 - API Routes:
   - `src/app/api/audio/generate-custom-mix/route.ts`

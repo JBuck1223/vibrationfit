@@ -2,19 +2,26 @@
 
 **Quick setup guide for the new flexible audio mixing system.**
 
-## Step 1: Run the Migration
+## Step 1: Run the Migrations
 
 ```bash
 cd /Users/jordanbuckingham/Desktop/vibrationfit
 supabase db push
 ```
 
-This will:
-- ✅ Create `background_tracks` table
-- ✅ Create `mix_ratios` table
+This will run two migrations:
+
+**Migration 1:** `20251223161528_flexible_audio_mixing.sql`
+- ✅ Create `audio_background_tracks` table
+- ✅ Create `audio_mix_ratios` table
 - ✅ Seed 10 background tracks
 - ✅ Seed 10 mix ratio presets
 - ✅ Set up RLS policies
+
+**Migration 2:** `20251223200122_audio_recommended_combos.sql`
+- ✅ Create `audio_recommended_combos` table
+- ✅ Seed 5 curated preset combos
+- ✅ Set up RLS policies and foreign keys
 
 ## Step 2: Verify Tables
 
@@ -24,7 +31,15 @@ supabase db diff --linked
 
 Should show no differences if migration applied successfully.
 
-## Step 3: Test the UI
+## Step 3: Test the Admin Panel
+
+1. Navigate to: `/admin/audio-mixer`
+2. You should see three tabs:
+   - **Background Tracks:** Manage audio files (10 seeded)
+   - **Mix Ratios:** Manage volume presets (10 seeded)
+   - **Recommended Combos:** Curated presets (5 seeded)
+
+## Step 4: Test the User UI
 
 1. Navigate to: `/life-vision/[id]/audio/generate`
 2. You should see:
@@ -43,7 +58,7 @@ aws s3 cp Ocean-Waves-1.mp3 s3://vibration-fit-client-storage/site-assets/audio/
 
 # Update database with correct URL
 psql -h [your-supabase-host] -U postgres -d postgres
-UPDATE background_tracks 
+UPDATE audio_background_tracks 
 SET file_url = 'https://media.vibrationfit.com/site-assets/audio/mixing-tracks/Ocean-Waves-1.mp3'
 WHERE name = 'ocean-waves-1';
 ```
@@ -51,8 +66,15 @@ WHERE name = 'ocean-waves-1';
 ## What Changed
 
 ### Database
-- **New tables:** `background_tracks`, `mix_ratios`
+- **New tables:** `audio_background_tracks`, `audio_mix_ratios`, `audio_recommended_combos`
 - **Old table:** `audio_variants` (still exists for backwards compatibility)
+
+### Admin Panel
+- **Page:** `/admin/audio-mixer` - Completely revamped with 3 tabs
+- **Features:**
+  - Full CRUD for background tracks (with preview playback)
+  - Full CRUD for mix ratios (with visual bars)
+  - Full CRUD for recommended combos
 
 ### API Routes
 - **New:** `/api/audio/generate-custom-mix` - Generates custom mixes
@@ -60,19 +82,36 @@ WHERE name = 'ocean-waves-1';
 - **Old:** `/api/audio/generate` - Still works for old variants
 - **Old:** `/api/audio/mix` - Still works for old variants
 
-### UI
+### User UI
 - **Page:** `/life-vision/[id]/audio/generate`
 - **New section:** Step 2 now shows track + ratio selectors
 - **Old section:** Still visible for backwards compatibility
 
 ## Testing Checklist
 
-- [ ] Migration runs without errors
+### Database
+- [ ] Migrations run without errors
 - [ ] Tables created with correct schema
 - [ ] 10 background tracks seeded
 - [ ] 10 mix ratios seeded
-- [ ] UI shows track selector with categories
-- [ ] UI shows ratio selector with presets
+- [ ] 5 recommended combos seeded
+
+### Admin Panel
+- [ ] `/admin/audio-mixer` page loads
+- [ ] Can view all background tracks
+- [ ] Can add/edit/delete background tracks
+- [ ] Can preview track audio playback
+- [ ] Can view all mix ratios
+- [ ] Can add/edit/delete mix ratios
+- [ ] Visual ratio bars display correctly
+- [ ] Can view all recommended combos
+- [ ] Can add/edit/delete combos
+- [ ] Combo dropdowns show tracks and ratios
+
+### User UI
+- [ ] `/life-vision/[id]/audio/generate` loads
+- [ ] Background track selector shows tracks by category
+- [ ] Mix ratio selector shows all ratios
 - [ ] Can select a track and ratio
 - [ ] Generate button is enabled when selections made
 - [ ] Generation creates batch and redirects to queue
@@ -95,8 +134,8 @@ supabase db reset
 supabase db diff --linked --schema public
 
 # Verify data
-psql -c "SELECT COUNT(*) FROM background_tracks;"
-psql -c "SELECT COUNT(*) FROM mix_ratios;"
+psql -c "SELECT COUNT(*) FROM audio_background_tracks;"
+psql -c "SELECT COUNT(*) FROM audio_mix_ratios;"
 ```
 
 ### Audio files not loading

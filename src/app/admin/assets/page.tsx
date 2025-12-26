@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Container, Card, Button, Badge, Input, Stack, PageHero } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
-import { Upload, Copy, Check, Image as ImageIcon, Video, Music, File, Folder, Plus, ChevronRight, ArrowLeft, CheckCircle2, X, Search, Trash2, Play, Pause, ChevronLeft, FileText, ExternalLink } from 'lucide-react'
+import { Upload, Copy, Check, Image as ImageIcon, Video, Music, File, Folder, Plus, ChevronRight, ArrowLeft, CheckCircle2, X, Search, Trash2, Play, Pause, ChevronLeft, FileText, ExternalLink, Grid, List } from 'lucide-react'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 
 interface AssetFile {
@@ -64,6 +64,9 @@ function AssetsAdminContent() {
   const [deletingKeys, setDeletingKeys] = useState<Set<string>>(new Set())
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [draggedFiles, setDraggedFiles] = useState<string[]>([])
+  const [dragOverFolder, setDragOverFolder] = useState<string | null>(null)
   
   // Video modal state
   const [videoModalOpen, setVideoModalOpen] = useState(false)
@@ -596,6 +599,90 @@ function AssetsAdminContent() {
     }
   }
 
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, fileKeys: string[]) => {
+    e.stopPropagation()
+    setDraggedFiles(fileKeys)
+    e.dataTransfer.effectAllowed = 'move'
+    // Add a subtle visual effect
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = '0.5'
+    }
+  }
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    e.stopPropagation()
+    setDraggedFiles([])
+    setDragOverFolder(null)
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = '1'
+    }
+  }
+
+  const handleDragOverFolder = (e: React.DragEvent, folder: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    e.dataTransfer.dropEffect = 'move'
+    setDragOverFolder(folder)
+  }
+
+  const handleDragLeaveFolder = (e: React.DragEvent) => {
+    e.stopPropagation()
+    setDragOverFolder(null)
+  }
+
+  const handleDropOnFolder = async (e: React.DragEvent, targetFolder: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragOverFolder(null)
+
+    if (draggedFiles.length === 0) return
+
+    try {
+      const targetPath = currentPath.length === 0 
+        ? targetFolder 
+        : [...currentPath, targetFolder].join('/')
+
+      const response = await fetch('/api/admin/assets/move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileKeys: draggedFiles,
+          targetFolder: targetPath
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || 'Failed to move files')
+      }
+
+      const result = await response.json()
+
+      // Show success message
+      setSuccessMessage({
+        title: `${result.movedCount} file${result.movedCount > 1 ? 's' : ''} moved to ${targetFolder}`,
+        details: result.moved.map((key: string) => files.find(f => f.key === key)?.name || key)
+      })
+      setTimeout(() => setSuccessMessage(null), 3000)
+
+      // Refresh the file list
+      await fetchCurrentPathAssets()
+      
+      // Clear selection
+      setSelectedFileKeys(new Set())
+      setSelectedFileOrder([])
+      setDraggedFiles([])
+    } catch (error) {
+      console.error('Move error:', error)
+      setErrorMessage({
+        title: 'Failed to move files',
+        details: [error instanceof Error ? error.message : 'Unknown error']
+      })
+      setTimeout(() => setErrorMessage(null), 5000)
+    }
+  }
+
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
@@ -1098,25 +1185,53 @@ function AssetsAdminContent() {
           </Button>
         </div>
         
-        {/* Search Bar */}
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
-          <Input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search files by name, type, or folder..."
-            className="w-full pl-12 pr-4"
-          />
-          {searchQuery && (
+        {/* Search Bar and View Toggle */}
+        <div className="flex gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
+            <Input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search files by name, type, or folder..."
+              className="w-full pl-12 pr-4"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors"
+                aria-label="Clear search"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+          
+          {/* View Toggle */}
+          <div className="flex gap-1 bg-neutral-800 rounded-lg p-1">
             <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors"
-              aria-label="Clear search"
+              onClick={() => setViewMode('grid')}
+              className={`p-2 rounded transition-colors ${
+                viewMode === 'grid' 
+                  ? 'bg-primary-500 text-black' 
+                  : 'text-neutral-400 hover:text-white'
+              }`}
+              aria-label="Grid view"
             >
-              <X className="w-5 h-5" />
+              <Grid className="w-5 h-5" />
             </button>
-          )}
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 rounded transition-colors ${
+                viewMode === 'list' 
+                  ? 'bg-primary-500 text-black' 
+                  : 'text-neutral-400 hover:text-white'
+              }`}
+              aria-label="List view"
+            >
+              <List className="w-5 h-5" />
+            </button>
+          </div>
         </div>
         {searchQuery && (
           <p className="text-sm text-neutral-400 mt-2">
@@ -1500,7 +1615,7 @@ function AssetsAdminContent() {
                 </p>
               </div>
             </Card>
-          ) : filteredFiles.length === 0 && !searchQuery ? (
+          ) : filteredSubfolders.length === 0 && filteredFiles.length === 0 && !searchQuery ? (
             <Card>
               <div className="text-center py-12">
                 <File className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
@@ -1516,11 +1631,11 @@ function AssetsAdminContent() {
                 </Button>
               </div>
             </Card>
-          ) : filteredFiles.length === 0 && searchQuery ? (
+          ) : filteredSubfolders.length === 0 && filteredFiles.length === 0 && searchQuery ? (
             <Card>
               <div className="text-center py-12">
                 <Search className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
-                <p className="text-neutral-400 mb-2">No files match your search</p>
+                <p className="text-neutral-400 mb-2">No folders or files match your search</p>
                 <p className="text-sm text-neutral-500 mb-4">Try a different search term</p>
                 <Button
                   variant="outline"
@@ -1530,8 +1645,48 @@ function AssetsAdminContent() {
                 </Button>
               </div>
             </Card>
-          ) : (
+          ) : viewMode === 'grid' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+              {/* Folders */}
+              {filteredSubfolders.map((folder) => (
+                <Card 
+                  key={folder} 
+                  variant="elevated" 
+                  className={`overflow-hidden hover:border-primary-500 transition-colors cursor-pointer ${
+                    dragOverFolder === folder ? 'ring-2 ring-primary-500 border-primary-500 bg-primary-500/10' : ''
+                  }`}
+                  onClick={() => {
+                    if (currentPath.length === 0) {
+                      setCurrentPath([folder])
+                    } else {
+                      setCurrentPath([...currentPath, folder])
+                    }
+                  }}
+                  onDragOver={(e) => handleDragOverFolder(e, folder)}
+                  onDragLeave={handleDragLeaveFolder}
+                  onDrop={(e) => handleDropOnFolder(e, folder)}
+                >
+                  <div className="relative aspect-square bg-neutral-800 flex flex-col items-center justify-center mb-3 overflow-hidden group">
+                    <Folder className="w-20 h-20 text-primary-500 mb-2 group-hover:scale-110 transition-transform" />
+                    <span className="text-sm text-neutral-300 font-medium">{folder}</span>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm font-semibold text-white truncate flex-1">
+                        {folder}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-xs">
+                        <Folder className="w-3 h-3 mr-1" />
+                        Folder
+                      </Badge>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+              
+              {/* Files */}
               {filteredFiles.map((file) => {
                 const FileIcon = getFileIcon(file.name)
                 const isImage = file.name.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)
@@ -1557,7 +1712,19 @@ function AssetsAdminContent() {
                 const isPDF = file.name.match(/\.pdf$/i)
 
                 return (
-                  <Card key={file.key} variant="elevated" className={`overflow-hidden ${isSelected ? 'ring-2 ring-primary-500 border-primary-500' : ''} ${isDeleting ? 'opacity-50' : ''}`}>
+                  <Card 
+                    key={file.key} 
+                    variant="elevated" 
+                    className={`overflow-hidden ${isSelected ? 'ring-2 ring-primary-500 border-primary-500' : ''} ${isDeleting ? 'opacity-50' : ''}`}
+                    draggable={isSelected}
+                    onDragStart={(e) => {
+                      const filesToDrag = isSelected 
+                        ? Array.from(selectedFileKeys)
+                        : [file.key]
+                      handleDragStart(e, filesToDrag)
+                    }}
+                    onDragEnd={handleDragEnd}
+                  >
                     <div 
                       className="relative aspect-square bg-neutral-800 flex items-center justify-center mb-3 overflow-hidden group cursor-pointer" 
                       onClick={(e) => {
@@ -1853,6 +2020,245 @@ function AssetsAdminContent() {
                           )}
                         </Button>
                       )}
+                    </div>
+                  </Card>
+                )
+              })}
+            </div>
+          ) : (
+            // List View
+            <div className="flex flex-col gap-2">
+              {/* Folders in List View */}
+              {filteredSubfolders.map((folder) => (
+                <Card 
+                  key={folder} 
+                  variant="elevated" 
+                  className={`hover:border-primary-500 transition-colors cursor-pointer ${
+                    dragOverFolder === folder ? 'ring-2 ring-primary-500 border-primary-500 bg-primary-500/10' : ''
+                  }`}
+                  onClick={() => {
+                    if (currentPath.length === 0) {
+                      setCurrentPath([folder])
+                    } else {
+                      setCurrentPath([...currentPath, folder])
+                    }
+                  }}
+                  onDragOver={(e) => handleDragOverFolder(e, folder)}
+                  onDragLeave={handleDragLeaveFolder}
+                  onDrop={(e) => handleDropOnFolder(e, folder)}
+                >
+                  <div className="flex items-center gap-4 p-3">
+                    <div className="flex-shrink-0">
+                      <Folder className="w-10 h-10 text-primary-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-white truncate">
+                        {folder}
+                      </p>
+                      <p className="text-xs text-neutral-400">Folder</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-neutral-400 flex-shrink-0" />
+                  </div>
+                </Card>
+              ))}
+              
+              {/* Files in List View */}
+              {filteredFiles.map((file) => {
+                const FileIcon = getFileIcon(file.name)
+                const isImage = file.name.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)
+                const isVideoFile = file.name.match(/\.(mp4|webm|mov|avi)$/i)
+                const hasVideoVariants = file.variants && file.variants.length > 0
+                const isVideo = isVideoFile || hasVideoVariants
+                const isCopied = copiedUrl === file.url
+                const fileType = getFileType(file.name)
+                const dimensions = imageDimensions[file.key]
+                const isSelected = selectedFileKeys.has(file.key)
+                const isDeleting = deletingKeys.has(file.key)
+                const selectionOrder = selectedFileOrder.indexOf(file.key)
+                const selectionNumber = selectionOrder >= 0 ? selectionOrder + 1 : null
+                const thumbnailVariant = file.variants?.find(v => v.type === 'thumb')
+                const thumbnailUrl = thumbnailVariant?.url
+                const isAudio = file.name.match(/\.(mp3|wav|ogg|m4a)$/i)
+                const isPlaying = playingAudio === file.key
+                const isPDF = file.name.match(/\.pdf$/i)
+
+                return (
+                  <Card 
+                    key={file.key} 
+                    variant="elevated" 
+                    className={`overflow-hidden transition-all ${isSelected ? 'ring-2 ring-primary-500 border-primary-500' : ''} ${isDeleting ? 'opacity-50' : ''}`}
+                    draggable={isSelected}
+                    onDragStart={(e) => {
+                      const filesToDrag = isSelected 
+                        ? Array.from(selectedFileKeys)
+                        : [file.key]
+                      handleDragStart(e, filesToDrag)
+                    }}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <div className="flex items-center gap-3 p-3">
+                      {/* Checkbox Selector */}
+                      <button
+                        className="flex-shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleFileSelection(file.key)
+                        }}
+                      >
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all border-2 ${
+                          isSelected 
+                            ? 'bg-primary-500 border-primary-500' 
+                            : 'bg-transparent border-neutral-500 hover:border-primary-500'
+                        }`}>
+                          {isSelected && selectionNumber ? (
+                            <span className="text-xs font-bold text-black">{selectionNumber}</span>
+                          ) : isSelected ? (
+                            <Check className="w-4 h-4 text-black" />
+                          ) : null}
+                        </div>
+                      </button>
+                      
+                      {/* Thumbnail/Icon */}
+                      <div 
+                        className="flex-shrink-0 w-16 h-16 bg-neutral-800 rounded flex items-center justify-center relative group"
+                      >
+                        {isVideo ? (
+                          <>
+                            {thumbnailUrl ? (
+                              <img
+                                src={thumbnailUrl}
+                                alt={file.name}
+                                className="w-full h-full object-cover rounded"
+                              />
+                            ) : (
+                              <Video className="w-8 h-8 text-neutral-600" />
+                            )}
+                            <div 
+                              className="video-play-overlay absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                openVideoModal(file)
+                              }}
+                            >
+                              <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center">
+                                <Play className="w-4 h-4 text-black ml-0.5" />
+                              </div>
+                            </div>
+                          </>
+                        ) : isImage ? (
+                          <img
+                            src={file.url}
+                            alt={file.name}
+                            className="max-w-full max-h-full object-cover rounded cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openImageLightbox(file, filteredFiles.indexOf(file))
+                            }}
+                          />
+                        ) : isAudio ? (
+                          <div className="flex items-center justify-center w-full h-full">
+                            <button
+                              className="audio-play-button w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center hover:bg-primary-600 transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                toggleAudio(file.key, file.url)
+                              }}
+                            >
+                              {isPlaying ? (
+                                <Pause className="w-5 h-5 text-black" />
+                              ) : (
+                                <Play className="w-5 h-5 text-black ml-0.5" />
+                              )}
+                            </button>
+                          </div>
+                        ) : isPDF ? (
+                          <div className="flex items-center justify-center w-full h-full">
+                            <FileText className="w-8 h-8 text-red-500" />
+                          </div>
+                        ) : (
+                          <FileIcon className="w-8 h-8 text-neutral-600" />
+                        )}
+                      </div>
+                      
+                      {/* File Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-white truncate">
+                          {file.name}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="secondary" className="text-xs">
+                            {fileType}
+                          </Badge>
+                          <span className="text-xs text-neutral-400">
+                            {formatFileSize(file.size)}
+                          </span>
+                          {dimensions?.loaded && (
+                            <span className="text-xs text-neutral-400">
+                              {dimensions.width} × {dimensions.height}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Actions */}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {isPDF ? (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                window.open(file.url, '_blank')
+                              }}
+                            >
+                              <ExternalLink className="w-4 h-4 mr-2" />
+                              Open
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                copyToClipboard(file.url)
+                              }}
+                            >
+                              {isCopied ? (
+                                <>
+                                  <Check className="w-4 h-4 mr-2" />
+                                  Copied!
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="w-4 h-4 mr-2" />
+                                  Copy
+                                </>
+                              )}
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              copyToClipboard(file.url)
+                            }}
+                          >
+                            {isCopied ? (
+                              <>
+                                <Check className="w-4 h-4 mr-2" />
+                                Copied!
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-4 h-4 mr-2" />
+                                Copy Link
+                              </>
+                            )}
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </Card>
                 )
