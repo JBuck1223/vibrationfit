@@ -362,7 +362,7 @@ export default function CategoryPage() {
               categories={categoriesWithout}
               selectedCategories={[categoryKey]}
               completedCategories={completedCategoryKeys}
-              onCategoryClick={(key) => router.push(`/life-vision/new/category/${key}`)}
+              onCategoryClick={(key: string) => router.push(`/life-vision/new/category/${key}`)}
               mode="completion"
               layout="12-column"
               withCard={true}

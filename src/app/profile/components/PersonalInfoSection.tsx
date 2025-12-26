@@ -187,7 +187,7 @@ export function PersonalInfoSection({ profile, onProfileChange, onError, onSave,
             <DatePicker
               label="Date of Birth *"
               value={profile.date_of_birth || ''}
-              onChange={(dateString) => handleDateChange(dateString)}
+              onChange={(dateString: string) => handleDateChange(dateString)}
               maxDate={new Date().toISOString().split('T')[0]}
               className="w-full"
             />

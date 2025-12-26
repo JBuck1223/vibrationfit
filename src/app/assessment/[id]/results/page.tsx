@@ -301,9 +301,7 @@ export default function AssessmentResultsPage() {
         }}
         onConfirm={handleDeleteConfirm}
         itemName="assessment"
-        itemType="assessment"
-        isLoading={deletingId !== null}
-        loadingText="Deleting assessment..."
+        isDeleting={deletingId !== null}
       />
     </Container>
   )

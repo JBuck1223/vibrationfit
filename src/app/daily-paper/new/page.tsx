@@ -220,7 +220,7 @@ export default function NewDailyPaperPage() {
                   <div className="ml-auto w-full md:w-auto">
                     <DatePicker
                       value={entryDate}
-                      onChange={(dateString) => setEntryDate(dateString)}
+                      onChange={(dateString: string) => setEntryDate(dateString)}
                       className="w-full md:w-auto"
                     />
                   </div>

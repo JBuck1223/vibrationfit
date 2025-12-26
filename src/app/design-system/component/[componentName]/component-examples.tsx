@@ -188,28 +188,28 @@ function SelectExamples() {
         <Stack gap="md">
           <h5 className="text-sm md:text-base font-semibold text-white">Select Features</h5>
           <BulletedList>
-            <ListItem icon={CheckCircle} variant="success">
+            <ListItem icon={CheckCircle} variant="checked">
               Matches input field styling (background, border, text colors)
             </ListItem>
-            <ListItem icon={CheckCircle} variant="success">
+            <ListItem icon={CheckCircle} variant="checked">
               Custom chevron icon that rotates on open
             </ListItem>
-            <ListItem icon={CheckCircle} variant="success">
+            <ListItem icon={CheckCircle} variant="checked">
               Click-outside-to-close with backdrop overlay
             </ListItem>
-            <ListItem icon={CheckCircle} variant="success">
+            <ListItem icon={CheckCircle} variant="checked">
               Selected option highlighted with primary green
             </ListItem>
-            <ListItem icon={CheckCircle} variant="success">
+            <ListItem icon={CheckCircle} variant="checked">
               Smooth transitions and hover states
             </ListItem>
-            <ListItem icon={CheckCircle} variant="success">
+            <ListItem icon={CheckCircle} variant="checked">
               Error and helper text support
             </ListItem>
-            <ListItem icon={CheckCircle} variant="success">
+            <ListItem icon={CheckCircle} variant="checked">
               Disabled state support
             </ListItem>
-            <ListItem icon={CheckCircle} variant="success">
+            <ListItem icon={CheckCircle} variant="checked">
               Mobile responsive design
             </ListItem>
           </BulletedList>
@@ -264,14 +264,7 @@ function VIVALoadingOverlayDemo() {
             </Button>
             <VIVALoadingOverlay 
               isVisible={showDemo2}
-              messages={[
-                "Analyzing your input...",
-                "Generating blueprint...",
-                "Almost ready...",
-                "Finalizing your vision..."
-              ]}
-              cycleDuration={2000}
-              estimatedTime="Usually takes 10-15 seconds"
+              message="Analyzing your input..."
             />
           </div>
         </Stack>
@@ -290,9 +283,7 @@ function VIVALoadingOverlayDemo() {
             </Button>
             <VIVALoadingOverlay 
               isVisible={showDemo3}
-              showProgressBar={false}
-              messages={["Processing your request..."]}
-              estimatedTime="Just a moment..."
+              message="Processing your request..."
             />
           </div>
         </Stack>
@@ -312,8 +303,7 @@ function VIVALoadingOverlayDemo() {
               </Button>
               <VIVALoadingOverlay 
                 isVisible={showDemoSm}
-                size="sm"
-                messages={["Loading..."]}
+                message="Loading..."
               />
             </div>
             <div className="relative h-48 bg-neutral-900 rounded-xl border-2 border-neutral-700 flex items-center justify-center">
@@ -322,8 +312,7 @@ function VIVALoadingOverlayDemo() {
               </Button>
               <VIVALoadingOverlay 
                 isVisible={showDemoMd}
-                size="md"
-                messages={["Processing..."]}
+                message="Processing..."
               />
             </div>
             <div className="relative h-48 bg-neutral-900 rounded-xl border-2 border-neutral-700 flex items-center justify-center">
@@ -332,8 +321,7 @@ function VIVALoadingOverlayDemo() {
               </Button>
               <VIVALoadingOverlay 
                 isVisible={showDemoLg}
-                size="lg"
-                messages={["Creating magic..."]}
+                message="Creating magic..."
               />
             </div>
           </Grid>
@@ -436,10 +424,10 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                   <Stack gap="md" className="items-center">
                     <Heading level={3} className="text-[#39FF14] text-center">What "active in 72 hours" means</Heading>
                     <BulletedList className="items-center">
-                      <ListItem icon={CheckCircle} variant="success" className="text-white">
+                      <ListItem icon={CheckCircle} variant="checked" className="text-white">
                         12-category vision completed
                       </ListItem>
-                      <ListItem icon={CheckCircle} variant="success" className="text-white">
+                      <ListItem icon={CheckCircle} variant="checked" className="text-white">
                         AM/PM audio recordings
                       </ListItem>
                     </BulletedList>
@@ -1758,28 +1746,28 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
             <Stack gap="md">
               <h5 className="text-sm md:text-base font-semibold text-white">DatePicker Features</h5>
               <BulletedList>
-                <ListItem icon={CheckCircle} variant="success">
+                <ListItem icon={CheckCircle} variant="checked">
                   Custom neon-themed calendar dropdown
                 </ListItem>
-                <ListItem icon={CheckCircle} variant="success">
+                <ListItem icon={CheckCircle} variant="checked">
                   Electric Green (#39FF14) selected dates with glow
                 </ListItem>
-                <ListItem icon={CheckCircle} variant="success">
+                <ListItem icon={CheckCircle} variant="checked">
                   Neon Cyan (#00FFFF) border for today
                 </ListItem>
-                <ListItem icon={CheckCircle} variant="success">
+                <ListItem icon={CheckCircle} variant="checked">
                   Month/year navigation with chevrons
                 </ListItem>
-                <ListItem icon={CheckCircle} variant="success">
+                <ListItem icon={CheckCircle} variant="checked">
                   "Today" quick-select button
                 </ListItem>
-                <ListItem icon={CheckCircle} variant="success">
+                <ListItem icon={CheckCircle} variant="checked">
                   Min/max date support with disabled states
                 </ListItem>
-                <ListItem icon={CheckCircle} variant="success">
+                <ListItem icon={CheckCircle} variant="checked">
                   Click-outside-to-close behavior
                 </ListItem>
-                <ListItem icon={CheckCircle} variant="success">
+                <ListItem icon={CheckCircle} variant="checked">
                   Mobile responsive design
                 </ListItem>
               </BulletedList>
@@ -1869,28 +1857,28 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
             <Stack gap="md">
               <h5 className="text-sm md:text-base font-semibold text-white">Radio & RadioGroup Features</h5>
               <BulletedList>
-                <ListItem icon={CheckCircle} variant="success">
+                <ListItem icon={CheckCircle} variant="checked">
                   Custom branded radio buttons with Electric Green (#39FF14) accents
                 </ListItem>
-                <ListItem icon={CheckCircle} variant="success">
+                <ListItem icon={CheckCircle} variant="checked">
                   Smooth hover states with green border glow
                 </ListItem>
-                <ListItem icon={CheckCircle} variant="success">
+                <ListItem icon={CheckCircle} variant="checked">
                   RadioGroup container for easy multi-option management
                 </ListItem>
-                <ListItem icon={CheckCircle} variant="success">
+                <ListItem icon={CheckCircle} variant="checked">
                   Horizontal and vertical orientation support
                 </ListItem>
-                <ListItem icon={CheckCircle} variant="success">
+                <ListItem icon={CheckCircle} variant="checked">
                   Supports string, number, and boolean values
                 </ListItem>
-                <ListItem icon={CheckCircle} variant="success">
+                <ListItem icon={CheckCircle} variant="checked">
                   Built-in label, error, and helper text support
                 </ListItem>
-                <ListItem icon={CheckCircle} variant="success">
+                <ListItem icon={CheckCircle} variant="checked">
                   Accessible with proper focus states and keyboard navigation
                 </ListItem>
-                <ListItem icon={CheckCircle} variant="success">
+                <ListItem icon={CheckCircle} variant="checked">
                   Matches design system styling (dark theme, neon accents)
                 </ListItem>
               </BulletedList>
@@ -1947,28 +1935,28 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
             <Stack gap="md">
               <h5 className="text-sm md:text-base font-semibold text-white">Checkbox Features</h5>
               <BulletedList>
-                <ListItem icon={CheckCircle} variant="success">
+                <ListItem icon={CheckCircle} variant="checked">
                   Custom branded checkboxes with Electric Green (#39FF14) fill when checked
                 </ListItem>
-                <ListItem icon={CheckCircle} variant="success">
+                <ListItem icon={CheckCircle} variant="checked">
                   Gray checkmark (#666666) for subtle contrast on green background
                 </ListItem>
-                <ListItem icon={CheckCircle} variant="success">
+                <ListItem icon={CheckCircle} variant="checked">
                   Gray border (#666666) that stays consistent when checked
                 </ListItem>
-                <ListItem icon={CheckCircle} variant="success">
+                <ListItem icon={CheckCircle} variant="checked">
                   Smooth hover states with green border glow (unselected only)
                 </ListItem>
-                <ListItem icon={CheckCircle} variant="success">
+                <ListItem icon={CheckCircle} variant="checked">
                   No hover effect on selected checkboxes
                 </ListItem>
-                <ListItem icon={CheckCircle} variant="success">
+                <ListItem icon={CheckCircle} variant="checked">
                   Built-in label, error, and helper text support
                 </ListItem>
-                <ListItem icon={CheckCircle} variant="success">
+                <ListItem icon={CheckCircle} variant="checked">
                   Accessible with proper focus states and keyboard navigation
                 </ListItem>
-                <ListItem icon={CheckCircle} variant="success">
+                <ListItem icon={CheckCircle} variant="checked">
                   Matches design system styling (dark theme, neon accents)
                 </ListItem>
               </BulletedList>
@@ -2078,7 +2066,7 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                 </div>
                 <div>
                   <h5 className="text-sm font-medium text-neutral-400 mb-2">Primary (Green)</h5>
-                  <BulletedList variant="primary">
+                  <BulletedList>
                     <ListItem>Above the Green Line</ListItem>
                     <ListItem>Growth and alignment</ListItem>
                     <ListItem>Success metrics</ListItem>
@@ -2086,7 +2074,7 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                 </div>
                 <div>
                   <h5 className="text-sm font-medium text-neutral-400 mb-2">Accent (Purple)</h5>
-                  <BulletedList variant="accent">
+                  <BulletedList>
                     <ListItem>Premium AI features</ListItem>
                     <ListItem>Advanced analytics</ListItem>
                     <ListItem>Priority support</ListItem>
@@ -2094,7 +2082,7 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                 </div>
                 <div>
                   <h5 className="text-sm font-medium text-neutral-400 mb-2">Warning (Yellow)</h5>
-                  <BulletedList variant="warning">
+                  <BulletedList>
                     <ListItem>Action required</ListItem>
                     <ListItem>Attention needed</ListItem>
                     <ListItem>Important updates</ListItem>

@@ -113,7 +113,7 @@ export default function AbundanceLogPage() {
                 label="Date"
                 value={date}
                 maxDate={today}
-                onChange={(dateString) => setDate(dateString)}
+                onChange={(dateString: string) => setDate(dateString)}
                 required
               />
 

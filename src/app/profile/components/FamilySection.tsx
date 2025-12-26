@@ -208,7 +208,7 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
                         </label>
                         <DatePicker
                           value={child.birthday || ''}
-                          onChange={(dateString) => handleChildChange(index, 'birthday', dateString)}
+                          onChange={(dateString: string) => handleChildChange(index, 'birthday', dateString)}
                           className="w-full text-sm"
                         />
                       </div>
