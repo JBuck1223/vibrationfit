@@ -775,7 +775,7 @@ export default function AdminScheduleCallPage() {
                     <DatePicker
                       label="Date"
                       value={singleSchedule.date}
-                      onChange={(dateString) => setSingleSchedule({ ...singleSchedule, date: dateString })}
+                      onChange={(dateString: string) => setSingleSchedule({ ...singleSchedule, date: dateString })}
                       minDate={new Date().toISOString().split('T')[0]}
                     />
                     <Input
@@ -813,13 +813,13 @@ export default function AdminScheduleCallPage() {
                       <DatePicker
                         label="Start Date"
                         value={rangeSchedule.startDate}
-                        onChange={(dateString) => setRangeSchedule({ ...rangeSchedule, startDate: dateString })}
+                        onChange={(dateString: string) => setRangeSchedule({ ...rangeSchedule, startDate: dateString })}
                         minDate={new Date().toISOString().split('T')[0]}
                       />
                       <DatePicker
                         label="End Date"
                         value={rangeSchedule.endDate}
-                        onChange={(dateString) => setRangeSchedule({ ...rangeSchedule, endDate: dateString })}
+                        onChange={(dateString: string) => setRangeSchedule({ ...rangeSchedule, endDate: dateString })}
                         minDate={rangeSchedule.startDate || new Date().toISOString().split('T')[0]}
                       />
                       <Input
@@ -885,13 +885,13 @@ export default function AdminScheduleCallPage() {
                       <DatePicker
                         label="Start Date"
                         value={recurringSchedule.startDate}
-                        onChange={(dateString) => setRecurringSchedule({ ...recurringSchedule, startDate: dateString })}
+                        onChange={(dateString: string) => setRecurringSchedule({ ...recurringSchedule, startDate: dateString })}
                         minDate={new Date().toISOString().split('T')[0]}
                       />
                       <DatePicker
                         label="End Date"
                         value={recurringSchedule.endDate}
-                        onChange={(dateString) => setRecurringSchedule({ ...recurringSchedule, endDate: dateString })}
+                        onChange={(dateString: string) => setRecurringSchedule({ ...recurringSchedule, endDate: dateString })}
                         minDate={recurringSchedule.startDate || new Date().toISOString().split('T')[0]}
                       />
                       <Input
@@ -1118,7 +1118,7 @@ export default function AdminScheduleCallPage() {
                   <DatePicker
                     label="Filter by Date"
                     value={filterDate}
-                    onChange={(dateString) => setFilterDate(dateString)}
+                    onChange={(dateString: string) => setFilterDate(dateString)}
                     className="flex-1"
                   />
                   <Button

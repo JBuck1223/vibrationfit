@@ -268,7 +268,7 @@ export default function NewCampaignPage() {
                 <label className="block text-sm font-medium mb-2">Start Date</label>
                 <DatePicker
                   value={formData.start_date}
-                  onChange={(date) => handleChange('start_date', date)}
+                  onChange={(date: string) => handleChange('start_date', date)}
                   placeholder="Select start date"
                 />
               </div>
@@ -277,7 +277,7 @@ export default function NewCampaignPage() {
                 <label className="block text-sm font-medium mb-2">End Date</label>
                 <DatePicker
                   value={formData.end_date}
-                  onChange={(date) => handleChange('end_date', date)}
+                  onChange={(date: string) => handleChange('end_date', date)}
                   placeholder="Select end date"
                 />
               </div>

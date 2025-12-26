@@ -406,8 +406,7 @@ export default function AssessmentHub() {
         }}
         onConfirm={handleConfirmDelete}
         itemName="assessment"
-        itemType="assessment"
-        isLoading={deletingId === assessmentToDelete}
+        isDeleting={deletingId === assessmentToDelete}
       />
     </Container>
   )

@@ -2033,7 +2033,7 @@ function AssetsAdminContent() {
                 <Card 
                   key={folder} 
                   variant="elevated" 
-                  className={`hover:border-primary-500 transition-colors cursor-pointer ${
+                  className={`!p-0 hover:border-primary-500 transition-colors cursor-pointer ${
                     dragOverFolder === folder ? 'ring-2 ring-primary-500 border-primary-500 bg-primary-500/10' : ''
                   }`}
                   onClick={() => {
@@ -2047,7 +2047,7 @@ function AssetsAdminContent() {
                   onDragLeave={handleDragLeaveFolder}
                   onDrop={(e) => handleDropOnFolder(e, folder)}
                 >
-                  <div className="flex items-center gap-4 p-3">
+                  <div className="flex items-center gap-3 p-3">
                     <div className="flex-shrink-0">
                       <Folder className="w-10 h-10 text-primary-500" />
                     </div>
@@ -2086,7 +2086,7 @@ function AssetsAdminContent() {
                   <Card 
                     key={file.key} 
                     variant="elevated" 
-                    className={`overflow-hidden transition-all ${isSelected ? 'ring-2 ring-primary-500 border-primary-500' : ''} ${isDeleting ? 'opacity-50' : ''}`}
+                    className={`!p-0 overflow-hidden transition-all ${isSelected ? 'ring-2 ring-primary-500 border-primary-500' : ''} ${isDeleting ? 'opacity-50' : ''}`}
                     draggable={isSelected}
                     onDragStart={(e) => {
                       const filesToDrag = isSelected 

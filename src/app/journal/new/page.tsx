@@ -284,7 +284,7 @@ export default function NewJournalEntryPage() {
                 <DatePicker
                   label="Date"
                   value={formData.date}
-                  onChange={(dateString) => setFormData({ ...formData, date: dateString })}
+                  onChange={(dateString: string) => setFormData({ ...formData, date: dateString })}
                   required
                 />
               </div>

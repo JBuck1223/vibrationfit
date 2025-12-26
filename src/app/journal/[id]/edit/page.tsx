@@ -294,7 +294,7 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
             <DatePicker
               label="Date"
               value={formData.date}
-              onChange={(dateString) => setFormData({ ...formData, date: dateString })}
+              onChange={(dateString: string) => setFormData({ ...formData, date: dateString })}
               required
             />
           </div>
