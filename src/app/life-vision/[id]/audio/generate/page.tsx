@@ -189,7 +189,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
 
     // Load background tracks
     const { data: tracks } = await supabase
-      .from('background_tracks')
+      .from('audio_background_tracks')
       .select('*')
       .eq('is_active', true)
       .order('sort_order')
@@ -204,7 +204,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
 
     // Load mix ratios
     const { data: ratios } = await supabase
-      .from('mix_ratios')
+      .from('audio_mix_ratios')
       .select('*')
       .eq('is_active', true)
       .order('sort_order')
