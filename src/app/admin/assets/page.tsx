@@ -819,29 +819,82 @@ function AssetsAdminContent() {
     if (playingAudio === fileKey) {
       // Pause current audio
       if (audioElements[fileKey]) {
-        audioElements[fileKey].pause()
+        const audio = audioElements[fileKey]
+        audio.pause()
+        // Only reset time if audio is ready to avoid errors
+        if (audio.readyState >= 2) {
+          audio.currentTime = 0
+        }
       }
       setPlayingAudio(null)
     } else {
       // Stop any currently playing audio
       if (playingAudio && audioElements[playingAudio]) {
-        audioElements[playingAudio].pause()
-        audioElements[playingAudio].currentTime = 0
+        const prevAudio = audioElements[playingAudio]
+        prevAudio.pause()
+        if (prevAudio.readyState >= 2) {
+          prevAudio.currentTime = 0
+        }
       }
       
       // Create or get audio element
       let audio = audioElements[fileKey]
+      let isNewAudio = false
+      
       if (!audio) {
-        audio = new Audio(url)
+        audio = new Audio()
+        isNewAudio = true
+        
+        // Set up event handlers
         audio.addEventListener('ended', () => {
           setPlayingAudio(null)
         })
+        
+        // Only show error alerts for actual playback errors, not pause/cleanup errors
+        audio.addEventListener('error', (e) => {
+          console.error('Audio error:', e)
+          console.error('Failed file:', fileKey, url)
+          // Only show alert if we were trying to play this audio
+          if (playingAudio === fileKey) {
+            setPlayingAudio(null)
+            alert(`Failed to play audio. The file may not exist or is not accessible.`)
+          }
+        })
+        
+        // Set source and load
+        audio.src = url
+        audio.load()
+        
         setAudioElements(prev => ({ ...prev, [fileKey]: audio }))
       }
       
-      // Play new audio
-      audio.play()
-      setPlayingAudio(fileKey)
+      // Wait for audio to be ready before playing
+      const playAudio = () => {
+        audio.play().catch(err => {
+          console.error('Play error:', err)
+          setPlayingAudio(null)
+          // Only show alert for actual play failures, not user-initiated stops
+          if (document.hasFocus()) {
+            alert(`Cannot play audio: ${err.message}`)
+          }
+        })
+      }
+      
+      if (audio.readyState >= 2) {
+        // Audio is ready, play immediately
+        setPlayingAudio(fileKey)
+        playAudio()
+      } else {
+        // Wait for audio to be ready
+        setPlayingAudio(fileKey)
+        const canplayHandler = () => {
+          // Only play if this is still the audio we want to play
+          if (playingAudio === fileKey) {
+            playAudio()
+          }
+        }
+        audio.addEventListener('canplay', canplayHandler, { once: true })
+      }
     }
   }
 
@@ -849,8 +902,11 @@ function AssetsAdminContent() {
   useEffect(() => {
     return () => {
       Object.values(audioElements).forEach(audio => {
-        audio.pause()
-        audio.src = ''
+        if (audio) {
+          audio.pause()
+          audio.src = ''
+          audio.load() // Force unload
+        }
       })
     }
   }, [audioElements])
@@ -1233,13 +1289,20 @@ function AssetsAdminContent() {
             </button>
           </div>
         </div>
-        {searchQuery && (
-          <p className="text-sm text-neutral-400 mt-2">
-            Showing {filteredFiles.length} file{filteredFiles.length !== 1 ? 's' : ''} 
-            {filteredSubfolders.length > 0 && ` and ${filteredSubfolders.length} folder${filteredSubfolders.length !== 1 ? 's' : ''}`}
-            {' '}matching "{searchQuery}"
-          </p>
-        )}
+        <div className="flex items-center justify-between gap-4 mt-2">
+          {searchQuery && (
+            <p className="text-sm text-neutral-400">
+              Showing {filteredFiles.length} file{filteredFiles.length !== 1 ? 's' : ''} 
+              {filteredSubfolders.length > 0 && ` and ${filteredSubfolders.length} folder${filteredSubfolders.length !== 1 ? 's' : ''}`}
+              {' '}matching "{searchQuery}"
+            </p>
+          )}
+          {!searchQuery && filteredFiles.length > 0 && (
+            <p className="text-sm text-neutral-400">
+              {filteredFiles.length} file{filteredFiles.length !== 1 ? 's' : ''} in this folder
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Selection Toolbar */}
@@ -1248,16 +1311,24 @@ function AssetsAdminContent() {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 md:gap-3">
               <Button
-                variant="outline"
+                variant={selectedFileKeys.size === filteredFiles.length ? 'primary' : 'outline'}
                 size="sm"
                 onClick={selectAllFiles}
                 className="w-full sm:w-auto"
               >
-                {selectedFileKeys.size === filteredFiles.length ? 'Deselect All' : 'Select All'}
+                <CheckCircle2 className="w-4 h-4 mr-2" />
+                {selectedFileKeys.size === filteredFiles.length ? 'Deselect All' : `Select All (${filteredFiles.length})`}
               </Button>
-              <span className="text-xs md:text-sm text-neutral-400 text-center sm:text-left">
-                {selectedFileKeys.size > 0 ? `${selectedFileKeys.size} selected` : 'No files selected'}
-              </span>
+              {selectedFileKeys.size > 0 && (
+                <Badge variant="primary" className="text-sm font-semibold px-3 py-1">
+                  {selectedFileKeys.size} of {filteredFiles.length} selected
+                </Badge>
+              )}
+              {selectedFileKeys.size === 0 && (
+                <span className="text-xs md:text-sm text-neutral-400 text-center sm:text-left">
+                  No files selected
+                </span>
+              )}
             </div>
             {selectedFileKeys.size > 0 && (
               <div className="flex flex-col sm:flex-row gap-2">

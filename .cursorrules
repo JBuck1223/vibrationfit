@@ -175,6 +175,42 @@ Always reference `vibrationfit-brand-kit.html` for design patterns and visual st
 
 ---
 
+## Code & Component Rules
+
+### NO EMOJIS IN CODE
+
+**CRITICAL:** Never use emojis in code, components, or user-facing content.
+
+**❌ NEVER:**
+- Use emoji characters in JSX/TSX components
+- Add emojis to button labels, headings, or UI text
+- Include emojis in error messages or notifications
+- Use emojis in variable names or comments
+
+**✅ ALWAYS:**
+- Use Lucide React icons for all visual elements
+- Import from `lucide-react` package
+- Choose semantic icon names that match the context
+- Apply consistent sizing and styling via Tailwind classes
+
+**Example:**
+```tsx
+import { CheckCircle, AlertCircle, Sparkles } from 'lucide-react';
+
+// ✅ Good - Lucide icons
+<Button>
+  <CheckCircle className="w-4 h-4 mr-2" />
+  Success
+</Button>
+
+// ❌ Bad - Emojis
+<Button>✨ Success</Button>
+```
+
+**Note:** Emojis in documentation files (`.md`) and this `.cursorrules` file are acceptable for visual organization, but never in actual code.
+
+---
+
 ## 📝 Documentation Guidelines
 
 **IMPORTANT:** Only create docs when they provide lasting value. Avoid doc debt!

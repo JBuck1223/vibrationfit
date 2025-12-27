@@ -12,7 +12,7 @@ const lambda = new LambdaClient({
 
 export async function POST(request: NextRequest) {
   try {
-    const { trackId, voiceUrl, backgroundTrackUrl, voiceVolume, bgVolume, outputKey } = await request.json()
+    const { trackId, voiceUrl, backgroundTrackUrl, voiceVolume, bgVolume, binauralTrackUrl, binauralVolume, outputKey } = await request.json()
 
     if (!trackId || !voiceUrl || !backgroundTrackUrl || !outputKey || voiceVolume === undefined || bgVolume === undefined) {
       return NextResponse.json(
@@ -21,27 +21,49 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Validate URLs
+    if (!voiceUrl || typeof voiceUrl !== 'string' || voiceUrl.trim() === '') {
+      throw new Error(`Invalid voice URL: ${voiceUrl}`)
+    }
+    if (!backgroundTrackUrl || typeof backgroundTrackUrl !== 'string' || backgroundTrackUrl.trim() === '') {
+      throw new Error(`Invalid background URL: ${backgroundTrackUrl}`)
+    }
+
     console.log('🎵 [MIX CUSTOM] Starting custom mix:', {
       trackId,
+      voiceUrl,
+      backgroundTrackUrl,
       voiceVolume,
       bgVolume,
-      backgroundTrackUrl
+      binauralTrackUrl: binauralTrackUrl || 'none',
+      binauralVolume: binauralVolume || 0
     })
 
     // Convert percentages (0-100) to decimal (0-1) for Lambda
     const voiceVolumeDecimal = voiceVolume / 100
     const bgVolumeDecimal = bgVolume / 100
+    const binauralVolumeDecimal = binauralVolume ? binauralVolume / 100 : 0
+
+    // Prepare Lambda payload
+    const lambdaPayload: any = {
+      voiceUrl,
+      bgUrl: backgroundTrackUrl,
+      voiceVolume: voiceVolumeDecimal,
+      bgVolume: bgVolumeDecimal,
+      outputKey,
+      trackId, // Lambda will update Supabase with mix status
+    }
+    
+    // Add optional binaural track (only if valid)
+    if (binauralTrackUrl && typeof binauralTrackUrl === 'string' && binauralTrackUrl.trim() !== '' && binauralVolume && binauralVolume > 0) {
+      lambdaPayload.binauralUrl = binauralTrackUrl
+      lambdaPayload.binauralVolume = binauralVolumeDecimal
+    }
 
     // Invoke Lambda function
     const command = new InvokeCommand({
-      FunctionName: 'audioMixerFunction',
-      Payload: JSON.stringify({
-        voiceUrl,
-        bgUrl: backgroundTrackUrl,
-        voiceVolume: voiceVolumeDecimal,
-        bgVolume: bgVolumeDecimal,
-        outputKey,
-      }),
+      FunctionName: 'audio-mixer',
+      Payload: JSON.stringify(lambdaPayload),
     })
 
     const response = await lambda.send(command)
