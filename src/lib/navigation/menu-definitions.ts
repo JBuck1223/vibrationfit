@@ -60,6 +60,7 @@ import {
   BookOpen,
   Star,
   Compass,
+  Music,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -293,6 +294,22 @@ export const adminNavigation: NavItem[] = [
   },
   
   // ============================================================================
+  // AUDIO MANAGEMENT
+  // ============================================================================
+  {
+    name: 'Audio',
+    href: '/admin/audio-mixer',
+    icon: Music,
+    requiresAdmin: true,
+    hasDropdown: true,
+    description: 'Audio mixing and generation tools',
+    children: [
+      { name: 'Audio Mixer', href: '/admin/audio-mixer', icon: Headphones, description: 'Manage audio tracks and mixing' },
+      { name: 'Audio Generator', href: '/admin/audio-generator', icon: Wand2, description: 'Generate Solfeggio & Binaural tracks' },
+    ]
+  },
+  
+  // ============================================================================
   // AI & INTELLIGENCE
   // ============================================================================
   {
@@ -304,7 +321,6 @@ export const adminNavigation: NavItem[] = [
     description: 'Configure AI models and pricing',
     children: [
       { name: 'AI Model Config', href: '/admin/ai-models', icon: Wand2, description: 'Configure AI model settings' },
-      { name: 'Audio Mixer', href: '/admin/audio-mixer', icon: Headphones, description: 'Audio mixing and generation' },
     ]
   },
   

@@ -1,0 +1,10 @@
+{
+  "name": "audio-mixer",
+  "version": "1.0.0",
+  "description": "AWS Lambda function to mix audio tracks with background music",
+  "main": "index.js",
+  "type": "module",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.490.0"
+  }
+}

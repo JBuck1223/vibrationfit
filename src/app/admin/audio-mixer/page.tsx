@@ -34,10 +34,13 @@ interface RecommendedCombo {
   description: string | null
   background_track_id: string
   mix_ratio_id: string
+  binaural_track_id: string | null
+  binaural_volume: number
   sort_order: number
   is_active: boolean
   background_track?: BackgroundTrack
   mix_ratio?: MixRatio
+  binaural_track?: BackgroundTrack
 }
 
 type TabType = 'tracks' | 'ratios' | 'combos'
@@ -81,8 +84,13 @@ export default function AudioMixerAdminPage() {
     description: '',
     background_track_id: '',
     mix_ratio_id: '',
+    binaural_track_id: '',
+    binaural_volume: 0,
     sort_order: 0
   })
+  
+  // Binaural Tracks (for combo form)
+  const [binauralTracks, setBinauralTracks] = useState<BackgroundTrack[]>([])
 
   // Audio playback
   const [playingTrackId, setPlayingTrackId] = useState<string | null>(null)
@@ -91,6 +99,17 @@ export default function AudioMixerAdminPage() {
   useEffect(() => {
     loadData()
   }, [activeTab])
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current.src = ''
+        audioRef.current = null
+      }
+    }
+  }, [])
 
   const loadData = async () => {
     setLoading(true)
@@ -114,7 +133,8 @@ export default function AudioMixerAdminPage() {
         .select(`
           *,
           background_track:audio_background_tracks!audio_recommended_combos_background_track_id_fkey(*),
-          mix_ratio:audio_mix_ratios!audio_recommended_combos_mix_ratio_id_fkey(*)
+          mix_ratio:audio_mix_ratios!audio_recommended_combos_mix_ratio_id_fkey(*),
+          binaural_track:audio_background_tracks!audio_recommended_combos_binaural_track_id_fkey(*)
         `)
         .order('sort_order')
       if (data) setRecommendedCombos(data)
@@ -124,8 +144,18 @@ export default function AudioMixerAdminPage() {
         .from('audio_background_tracks')
         .select('*')
         .eq('is_active', true)
+        .not('category', 'in', '(binaural,solfeggio)')
         .order('display_name')
       if (tracks) setBackgroundTracks(tracks)
+      
+      // Load binaural/solfeggio tracks separately
+      const { data: binauralData } = await supabase
+        .from('audio_background_tracks')
+        .select('*')
+        .eq('is_active', true)
+        .in('category', ['binaural', 'solfeggio'])
+        .order('display_name')
+      if (binauralData) setBinauralTracks(binauralData)
       
       const { data: ratios } = await supabase
         .from('audio_mix_ratios')
@@ -225,17 +255,64 @@ export default function AudioMixerAdminPage() {
 
   const toggleTrackPlayback = (track: BackgroundTrack) => {
     if (playingTrackId === track.id) {
-      audioRef.current?.pause()
-      setPlayingTrackId(null)
-    } else {
+      // Stop current playback
       if (audioRef.current) {
         audioRef.current.pause()
+        // Don't clear src immediately to avoid errors
+        if (audioRef.current.readyState >= 2) {
+          audioRef.current.currentTime = 0
+        }
       }
-      const audio = new Audio(track.file_url)
+      setPlayingTrackId(null)
+    } else {
+      // Stop any existing playback
+      if (audioRef.current) {
+        audioRef.current.pause()
+        if (audioRef.current.readyState >= 2) {
+          audioRef.current.currentTime = 0
+        }
+      }
+      
+      // Create new audio element
+      const audio = new Audio()
       audioRef.current = audio
-      audio.play()
+      
+      // Set playing state first
       setPlayingTrackId(track.id)
-      audio.onended = () => setPlayingTrackId(null)
+      
+      // Set up event handlers
+      audio.onended = () => {
+        setPlayingTrackId(null)
+        audioRef.current = null
+      }
+      
+      audio.onerror = (e) => {
+        console.error('Audio playback error:', e)
+        // Only show alert if we were actively trying to play this track
+        if (playingTrackId === track.id) {
+          alert(`Failed to play audio: ${track.display_name}. The file may not exist or is not accessible.`)
+        }
+        setPlayingTrackId(null)
+        audioRef.current = null
+      }
+      
+      audio.oncanplay = () => {
+        // Only play if this is still the track we want
+        if (playingTrackId === track.id || audioRef.current === audio) {
+          audio.play().catch(err => {
+            console.error('Play error:', err)
+            if (document.hasFocus()) {
+              alert(`Cannot play audio: ${err.message}`)
+            }
+            setPlayingTrackId(null)
+            audioRef.current = null
+          })
+        }
+      }
+      
+      // Set source and load
+      audio.src = track.file_url
+      audio.load()
     }
   }
 
@@ -345,6 +422,8 @@ export default function AudioMixerAdminPage() {
         description: comboFormData.description || null,
         background_track_id: comboFormData.background_track_id,
         mix_ratio_id: comboFormData.mix_ratio_id,
+        binaural_track_id: comboFormData.binaural_track_id || null,
+        binaural_volume: comboFormData.binaural_volume || 0,
         sort_order: comboFormData.sort_order,
         is_active: true
       }
@@ -370,6 +449,8 @@ export default function AudioMixerAdminPage() {
         description: '',
         background_track_id: '',
         mix_ratio_id: '',
+        binaural_track_id: '',
+        binaural_volume: 0,
         sort_order: 0
       })
     } catch (error: any) {
@@ -406,6 +487,8 @@ export default function AudioMixerAdminPage() {
       description: combo.description || '',
       background_track_id: combo.background_track_id,
       mix_ratio_id: combo.mix_ratio_id,
+      binaural_track_id: combo.binaural_track_id || '',
+      binaural_volume: combo.binaural_volume || 0,
       sort_order: combo.sort_order
     })
     setShowComboModal(true)
@@ -657,6 +740,8 @@ export default function AudioMixerAdminPage() {
                     description: '',
                     background_track_id: '',
                     mix_ratio_id: '',
+                    binaural_track_id: '',
+                    binaural_volume: 0,
                     sort_order: recommendedCombos.length
                   })
                   setEditingCombo(null)
@@ -702,6 +787,17 @@ export default function AudioMixerAdminPage() {
                         ({combo.mix_ratio?.voice_volume}/{combo.mix_ratio?.bg_volume})
                       </span>
                     </div>
+                    {combo.binaural_track_id && combo.binaural_track && (
+                      <div className="flex items-center gap-2 text-sm border-t border-neutral-700 pt-2">
+                        <Music className="w-4 h-4 text-purple-500" />
+                        <span className="text-purple-300 font-medium">
+                          {combo.binaural_track.display_name}
+                        </span>
+                        <Badge variant="accent" className="text-xs">
+                          {combo.binaural_volume}%
+                        </Badge>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2 text-xs text-neutral-500 mb-3">
@@ -1034,6 +1130,61 @@ export default function AudioMixerAdminPage() {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="border-t border-neutral-700 pt-4">
+            <label className="block text-sm font-medium text-purple-400 mb-2">
+              Binaural Enhancement (Optional)
+            </label>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">
+                  Binaural Track
+                </label>
+                <select
+                  value={comboFormData.binaural_track_id}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    setComboFormData({ 
+                      ...comboFormData, 
+                      binaural_track_id: value,
+                      binaural_volume: value ? (comboFormData.binaural_volume || 15) : 0
+                    })
+                  }}
+                  className="w-full px-6 py-3 rounded-full bg-[#1F1F1F] text-white text-sm border-2 border-[#333] focus:border-primary-500 focus:outline-none"
+                >
+                  <option value="">None</option>
+                  {binauralTracks.map((track) => (
+                    <option key={track.id} value={track.id}>
+                      {track.display_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {comboFormData.binaural_track_id && (
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Binaural Volume: {comboFormData.binaural_volume}%
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="30"
+                    value={comboFormData.binaural_volume}
+                    onChange={(e) => setComboFormData({ ...comboFormData, binaural_volume: parseInt(e.target.value) })}
+                    className="w-full h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                  />
+                  <div className="flex justify-between text-xs text-neutral-400 mt-1">
+                    <span>Off (0%)</span>
+                    <span>Subtle (10%)</span>
+                    <span>Balanced (15%)</span>
+                    <span>Strong (30%)</span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div>
