@@ -495,8 +495,8 @@ export default function AudioGeneratorPage() {
               <Waves className="w-6 h-6 text-blue-500" />
             </div>
             <div className="flex-1">
-              <h3 className="text-xl font-semibold text-white">Noise Generator</h3>
-              <p className="text-sm text-neutral-400">White, Pink & Brown Noise · 3 files</p>
+              <h3 className="text-xl font-semibold text-white">Ambient Sound Generator</h3>
+              <p className="text-sm text-neutral-400">White, Pink, Brown Noise, Rain & Ocean Waves · 5 files</p>
             </div>
           </div>
 
@@ -543,7 +543,7 @@ export default function AudioGeneratorPage() {
             ) : (
               <>
                 <Zap className="w-4 h-4 mr-2" />
-                Generate 3 Noise Tracks
+                Generate 5 Ambient Tracks
               </>
             )}
           </Button>

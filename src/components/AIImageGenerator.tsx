@@ -1,5 +1,5 @@
 // /src/components/AIImageGenerator.tsx
-// AI-powered image generation component using DALL-E 3
+// AI-powered image generation component using fal.ai Flux
 
 'use client'
 
@@ -7,6 +7,9 @@ import { useState, useEffect, useRef } from 'react'
 import { Button, Textarea, Card, Spinner } from '@/lib/design-system/components'
 import { Sparkles, Image as ImageIcon, Loader2, X } from 'lucide-react'
 import { toast } from 'sonner'
+
+// Dimension/aspect ratio options
+type ImageDimension = 'square' | 'landscape_4_3' | 'landscape_16_9' | 'portrait_4_3' | 'portrait_16_9'
 
 interface AIImageGeneratorProps {
   onImageGenerated: (imageUrl: string) => void
@@ -38,6 +41,9 @@ export function AIImageGenerator({
   const [generatedImage, setGeneratedImage] = useState<string | null>(null)
   const [revisedPrompt, setRevisedPrompt] = useState<string | null>(null)
   const [selectedStyle, setSelectedStyle] = useState<string>('photorealistic')
+  const [selectedDimension, setSelectedDimension] = useState<ImageDimension>(
+    type === 'vision_board' ? 'landscape_16_9' : 'square'
+  )
   const [customDescription, setCustomDescription] = useState<string>('')
   const [loadingMessageIndex, setLoadingMessageIndex] = useState(0)
 
@@ -51,8 +57,17 @@ export function AIImageGenerator({
     "Crafting your perfect image...",
     "Channeling creative energy...",
     "Manifesting your vision...",
-    "Weaving magic into pixels...",
     "Almost ready to actualize..."
+  ]
+
+  // Dimension options (matches fal.ai supported sizes)
+  // width/height are pixel units for visual representation (scaled to fit in 32px max height)
+  const dimensionOptions: { id: ImageDimension; name: string; ratio: string; width: number; height: number }[] = [
+    { id: 'square', name: 'Square', ratio: '1:1', width: 28, height: 28 },
+    { id: 'landscape_4_3', name: 'Landscape', ratio: '4:3', width: 36, height: 27 },
+    { id: 'landscape_16_9', name: 'Widescreen', ratio: '16:9', width: 50, height: 28 },
+    { id: 'portrait_4_3', name: 'Portrait', ratio: '3:4', width: 21, height: 28 },
+    { id: 'portrait_16_9', name: 'Tall', ratio: '9:16', width: 16, height: 28 },
   ]
 
   // Scroll to loading section when generating starts
@@ -204,9 +219,10 @@ export function AIImageGenerator({
       const requestBody: any = {
         type,
         quality: 'standard',
-        size: type === 'vision_board' ? '1792x1024' : '1024x1024',
+        dimension: selectedDimension,
         style: 'vivid',
-        prompt: enhancedPrompt
+        prompt: enhancedPrompt,
+        model: 'dev' // Always use balanced Flux dev model
       }
 
       const response = await fetch('/api/images/generate', {
@@ -289,7 +305,7 @@ export function AIImageGenerator({
             </div>
             
             <p className="text-sm text-neutral-400 px-4">
-              This usually takes 15-30 seconds
+              Usually takes 3-5 seconds
             </p>
           </div>
         </div>
@@ -299,10 +315,7 @@ export function AIImageGenerator({
         <div className="p-2 bg-gradient-to-br from-accent-500 to-secondary-500 rounded-xl">
           <Sparkles className="w-5 h-5 text-white" />
         </div>
-        <div>
-          <h3 className="text-lg font-bold text-white">Generate Image with VIVA</h3>
-          <p className="text-sm text-neutral-400">Powered by VIVA</p>
-        </div>
+        <h3 className="text-lg font-bold text-white">Generate Image with VIVA</h3>
       </div>
 
       {!generatedImage ? (
@@ -368,6 +381,44 @@ export function AIImageGenerator({
               disabled={generating}
             />
           )}
+
+          {/* Dimension Selection */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-neutral-200 mb-2">
+              Dimensions
+            </label>
+            <div className="flex gap-3 flex-wrap">
+              {dimensionOptions.map((dim) => (
+                <button
+                  key={dim.id}
+                  type="button"
+                  onClick={() => setSelectedDimension(dim.id)}
+                  className={`flex flex-col items-center justify-between p-2 rounded-lg border-2 transition-all h-16 ${
+                    selectedDimension === dim.id
+                      ? 'border-primary-500 bg-primary-500/10'
+                      : 'border-neutral-700 bg-neutral-800 hover:border-neutral-600'
+                  }`}
+                  disabled={generating}
+                >
+                  {/* Visual aspect ratio box - centered vertically */}
+                  <div className="flex-1 flex items-center justify-center">
+                    <div 
+                      className={`rounded-sm ${
+                        selectedDimension === dim.id 
+                          ? 'bg-primary-500' 
+                          : 'bg-neutral-500'
+                      }`}
+                      style={{ 
+                        width: `${dim.width}px`, 
+                        height: `${dim.height}px` 
+                      }}
+                    />
+                  </div>
+                  <span className="text-xs font-medium text-white mt-1">{dim.ratio}</span>
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Style Selection */}
           <div className="mb-4">

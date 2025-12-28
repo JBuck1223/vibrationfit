@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { type, prompt, visionText, category, journalText, mood, size, quality, style } = body
+    const { type, prompt, visionText, category, journalText, mood, size, quality, style, model, dimension } = body
 
     console.log('🎨 IMAGE GENERATION REQUEST:', {
       userId: user.id,
@@ -65,10 +65,11 @@ CRITICAL REQUIREMENTS:
         result = await generateImage({
           userId: user.id,
           prompt: enhancedPrompt,
-          size: size || '1792x1024', // Landscape format for vision boards
           quality: quality || 'standard',
           style: style || 'vivid',
           context: 'vision_board',
+          model,
+          dimension: dimension || 'landscape_16_9',
         })
         break
 
@@ -82,10 +83,11 @@ CRITICAL REQUIREMENTS:
         result = await generateImage({
           userId: user.id,
           prompt,
-          size: size || '1024x1024',
           quality: quality || 'standard',
           style: style || 'vivid',
           context: 'journal',
+          model,
+          dimension: dimension || 'square',
         })
         break
 
@@ -99,10 +101,11 @@ CRITICAL REQUIREMENTS:
         result = await generateImage({
           userId: user.id,
           prompt,
-          size,
           quality,
           style,
           context: 'custom',
+          model,
+          dimension,
         })
         break
 

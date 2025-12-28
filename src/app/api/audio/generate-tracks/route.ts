@@ -226,7 +226,9 @@ async function generateNoiseTracks(sendEvent: Function) {
   const NOISE_TYPES = [
     { type: 'white', name: 'White Noise', description: 'Equal energy across all frequencies, ideal for masking and focus' },
     { type: 'pink', name: 'Pink Noise', description: 'Natural 1/f spectrum, perfect for sleep and relaxation' },
-    { type: 'brown', name: 'Brown Noise', description: 'Deeper 1/f² spectrum, excellent for deep focus and calm' }
+    { type: 'brown', name: 'Brown Noise', description: 'Deeper 1/f² spectrum, excellent for deep focus and calm' },
+    { type: 'rain', name: 'Rain', description: 'Gentle rain sounds for relaxation and sleep' },
+    { type: 'ocean', name: 'Ocean Waves', description: 'Rhythmic ocean waves for deep relaxation and meditation' }
   ]
 
   const OUTPUT_DIR = join(process.cwd(), 'temp', 'noise')
@@ -257,7 +259,7 @@ async function generateNoiseTracks(sendEvent: Function) {
     })
 
     // Generate noise track (5 minutes)
-    await generateNoiseTrack(noise.type as 'white' | 'pink' | 'brown', outputPath, 300)
+    await generateNoiseTrack(noise.type as 'white' | 'pink' | 'brown' | 'rain' | 'ocean', outputPath, 300)
     
     // Upload to S3
     sendEvent({ type: 'status', status: 'uploading', message: `Uploading ${fileName}...` })
@@ -289,7 +291,7 @@ async function generateNoiseTracks(sendEvent: Function) {
 }
 
 async function generateNoiseTrack(
-  noiseType: 'white' | 'pink' | 'brown',
+  noiseType: 'white' | 'pink' | 'brown' | 'rain' | 'ocean',
   outputPath: string,
   duration: number
 ): Promise<void> {
@@ -297,7 +299,21 @@ async function generateNoiseTrack(
   const noiseFilters = {
     white: 'anoisesrc=color=white',
     pink: 'anoisesrc=color=pink',
-    brown: 'anoisesrc=color=brown'
+    brown: 'anoisesrc=color=brown',
+    rain: 'anoisesrc=color=white',  // Rain starts with white noise
+    ocean: 'anoisesrc=color=brown'  // Ocean starts with brown noise (deeper)
+  }
+
+  // Special filtering for different sounds
+  let audioFilter = 'loudnorm=I=-20:TP=-1.5:LRA=11'
+  
+  if (noiseType === 'rain') {
+    // Rain: bandpass filtering to sound like rain (1kHz-8kHz range)
+    audioFilter = 'bandpass=f=2000:width_type=h:width=3000,loudnorm=I=-20:TP=-1.5:LRA=11'
+  } else if (noiseType === 'ocean') {
+    // Ocean: tremolo (amplitude modulation) for wave rhythm + bandpass for ocean frequencies
+    // 0.2Hz tremolo = 5 second wave cycles, 70% depth for realistic swell
+    audioFilter = 'tremolo=f=0.2:d=0.7,bandpass=f=500:width_type=h:width=1500,loudnorm=I=-20:TP=-1.5:LRA=11'
   }
 
   return new Promise((resolve, reject) => {
@@ -305,7 +321,7 @@ async function generateNoiseTrack(
       '-y',
       '-f', 'lavfi',
       '-i', `${noiseFilters[noiseType]}:duration=${duration}`,
-      '-af', 'loudnorm=I=-20:TP=-1.5:LRA=11',
+      '-af', audioFilter,
       '-codec:a', 'libmp3lame',
       '-b:a', '192k',
       '-ar', '44100',

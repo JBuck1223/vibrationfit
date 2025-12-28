@@ -439,7 +439,6 @@ export default function AudioMixerAdminPage() {
     }
 
     setLoading(true)
-    const supabase = createClient()
 
     try {
       const comboData = {
@@ -453,17 +452,19 @@ export default function AudioMixerAdminPage() {
         is_active: true
       }
 
-      if (editingCombo) {
-        const { error } = await supabase
-          .from('audio_recommended_combos')
-          .update(comboData)
-          .eq('id', editingCombo.id)
-        if (error) throw error
-      } else {
-        const { error } = await supabase
-          .from('audio_recommended_combos')
-          .insert(comboData)
-        if (error) throw error
+      const url = '/api/admin/audio-combos'
+      const method = editingCombo ? 'PUT' : 'POST'
+      const body = editingCombo ? { id: editingCombo.id, ...comboData } : comboData
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to save combo')
       }
 
       await loadData()
@@ -489,19 +490,26 @@ export default function AudioMixerAdminPage() {
   const handleDeleteCombo = async (id: string) => {
     if (confirm('Are you sure you want to delete this recommended combo?')) {
       setLoading(true)
-      const supabase = createClient()
-      const { error } = await supabase
-        .from('audio_recommended_combos')
-        .delete()
-        .eq('id', id)
+      
+      try {
+        const response = await fetch('/api/admin/audio-combos', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id })
+        })
 
-      if (error) {
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || 'Failed to delete combo')
+        }
+
+        await loadData()
+      } catch (error: any) {
         console.error('Error deleting combo:', error)
         alert('Failed to delete combo')
-      } else {
-        await loadData()
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
   }
 

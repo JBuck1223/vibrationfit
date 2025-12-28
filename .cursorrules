@@ -167,6 +167,7 @@ Always reference `vibrationfit-brand-kit.html` for design patterns and visual st
 - Say "Actualize" not "Complete" or "Finish"
 - Say "Vision" not "Goal" or "Plan"
 - Say "Alignment" not "Progress"
+- **NEVER use "AI"** - Always say "VIVA" for AI-related features, descriptions, and references
 
 **File References:**
 - Brand Kit: `vibrationfit-brand-kit.html` (visual reference)
@@ -208,6 +209,30 @@ import { CheckCircle, AlertCircle, Sparkles } from 'lucide-react';
 ```
 
 **Note:** Emojis in documentation files (`.md`) and this `.cursorrules` file are acceptable for visual organization, but never in actual code.
+
+### TERMINOLOGY: VIVA, NOT "AI"
+
+**CRITICAL:** Always use "VIVA" (VibrationFit's branded AI assistant) instead of generic "AI" terminology.
+
+**❌ NEVER:**
+- Use "AI" in user-facing text, labels, or descriptions
+- Say "AI Assistant" or "AI Coach"
+- Write "Powered by AI" or "AI-generated"
+- Use "Ask AI" or "AI Help"
+
+**✅ ALWAYS:**
+- Use "VIVA" or "VIVA Assistant"
+- Say "VIVA Coach" or "Your VIVA Coach"
+- Write "Powered by VIVA" or "VIVA-generated"
+- Use "Ask VIVA" or "VIVA Help"
+
+**Examples:**
+- ✅ "Get personalized guidance from VIVA"
+- ❌ "Get AI-powered recommendations"
+- ✅ "VIVA will help you create your vision"
+- ❌ "Our AI assistant will guide you"
+
+**Note:** Component names like `AIButton` or technical variable names may retain "AI" for code clarity, but all user-facing content must use "VIVA".
 
 ---
 

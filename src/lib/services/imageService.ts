@@ -1,14 +1,26 @@
 // /src/lib/services/imageService.ts
 // VIVA image generation for vision boards and journal entries
+// Supports fal.ai (primary) and DALL-E 3 (fallback)
 
 import OpenAI from 'openai'
+import { fal } from '@fal-ai/client'
 import { trackTokenUsage } from '@/lib/tokens/tracking'
 import { createClient } from '@/lib/supabase/server'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 
+// ============================================================================
+// PROVIDER CONFIGURATION
+// ============================================================================
+
+// Image generation provider: 'fal' (recommended) or 'dalle'
+const IMAGE_PROVIDER = (process.env.IMAGE_PROVIDER || 'fal') as 'fal' | 'dalle'
+
+// Initialize OpenAI (fallback)
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null
+
+// Note: fal.ai is configured per-request in generateImageWithFal()
 
 // S3 client for server-side uploads
 const s3Client = new S3Client({
@@ -25,13 +37,22 @@ const BUCKET_NAME = 'vibration-fit-client-storage'
 // IMAGE GENERATION
 // ============================================================================
 
+// fal.ai model options
+export type FalModel = 'schnell' | 'dev' | 'pro'
+
+// Dimension/aspect ratio options (matches fal.ai supported sizes)
+export type ImageDimension = 'square' | 'landscape_4_3' | 'landscape_16_9' | 'portrait_4_3' | 'portrait_16_9'
+
 export interface GenerateImageParams {
   userId: string
   prompt: string
-  size?: '1024x1024' | '1792x1024' | '1024x1792'
+  size?: '1024x1024' | '1792x1024' | '1024x1792' // Legacy, prefer dimension
+  dimension?: ImageDimension // New: aspect ratio selection
   quality?: 'standard' | 'hd'
   style?: 'vivid' | 'natural'
   context?: 'vision_board' | 'journal' | 'profile' | 'custom'
+  provider?: 'fal' | 'dalle' // Override default provider
+  model?: FalModel // fal.ai model selection: schnell (fast), dev (balanced), pro (best)
 }
 
 export interface GenerateImageResult {
@@ -41,30 +62,280 @@ export interface GenerateImageResult {
   tokensUsed?: number
   galleryId?: string // ID of saved gallery entry
   error?: string
+  provider?: 'fal' | 'dalle' // Which provider was used
 }
+
+/**
+ * Generate an image using the configured provider (fal.ai or DALL-E 3)
+ */
+export async function generateImage({
+  userId,
+  prompt,
+  size,
+  dimension = 'square',
+  quality = 'standard',
+  style = 'vivid',
+  context = 'custom',
+  provider,
+  model,
+}: GenerateImageParams): Promise<GenerateImageResult> {
+  const activeProvider = provider || IMAGE_PROVIDER
+  
+  // Use fal.ai if configured, otherwise fall back to DALL-E
+  if (activeProvider === 'fal' && process.env.FAL_KEY) {
+    return generateImageWithFal({ userId, prompt, dimension, quality, style, context, model })
+  }
+  
+  // For DALL-E fallback, convert dimension to size
+  const dalleSize = dimensionToDalleSize(dimension)
+  return generateImageWithDalle({ userId, prompt, size: size || dalleSize, quality, style, context })
+}
+
+/**
+ * Convert dimension to DALL-E size format
+ */
+function dimensionToDalleSize(dimension: ImageDimension): '1024x1024' | '1792x1024' | '1024x1792' {
+  switch (dimension) {
+    case 'landscape_4_3':
+    case 'landscape_16_9':
+      return '1792x1024'
+    case 'portrait_4_3':
+    case 'portrait_16_9':
+      return '1024x1792'
+    case 'square':
+    default:
+      return '1024x1024'
+  }
+}
+
+// ============================================================================
+// FAL.AI PROVIDER
+// ============================================================================
+
+/**
+ * Generate an image using fal.ai Flux
+ */
+async function generateImageWithFal({
+  userId,
+  prompt,
+  dimension = 'square',
+  quality = 'standard',
+  style = 'vivid',
+  context = 'custom',
+  model: modelPreference,
+}: Omit<GenerateImageParams, 'provider' | 'size'>): Promise<GenerateImageResult> {
+  // Map model preference to fal.ai model ID (defined outside try for error tracking)
+  // schnell = fastest (~2s), dev = balanced (~4s), pro = highest quality (~8s)
+  const modelMap: Record<FalModel, string> = {
+    schnell: 'fal-ai/flux/schnell',
+    dev: 'fal-ai/flux/dev',
+    pro: 'fal-ai/flux-pro/v1.1-ultra',
+  }
+  
+  // Use model preference if provided, otherwise fall back to quality-based selection
+  const selectedModel = modelPreference || (quality === 'hd' ? 'pro' : 'dev')
+  const falModel = modelMap[selectedModel as FalModel] || modelMap.dev
+  
+  // Approximate cost in cents (fal.ai pricing)
+  const costMap: Record<FalModel, number> = {
+    schnell: 0.3,  // ~$0.003/image
+    dev: 2.5,      // ~$0.025/image
+    pro: 5,        // ~$0.05/image
+  }
+  const costInCents = costMap[selectedModel as FalModel] || 2.5
+  
+  // Map dimension to fal.ai image_size format (before try block for error handling)
+  const falImageSize = dimensionToFalSize(dimension)
+
+  try {
+    if (!process.env.FAL_KEY) {
+      console.warn('⚠️ FAL_KEY not configured, falling back to DALL-E')
+      const dalleSize = dimensionToDalleSize(dimension)
+      return generateImageWithDalle({ userId, prompt, size: dalleSize, quality, style, context })
+    }
+
+    console.log('🎨 fal.ai: Generating image...', {
+      userId,
+      model: falModel,
+      size: falImageSize,
+      costInCents,
+    })
+
+    // Ensure fal is configured with credentials
+    fal.config({ credentials: process.env.FAL_KEY })
+
+    const result = await fal.subscribe(falModel, {
+      input: {
+        prompt,
+        image_size: falImageSize,
+        num_images: 1,
+        enable_safety_checker: true,
+      },
+      logs: false,
+    })
+
+    // Handle response structure: { data: {...}, requestId: "..." }
+    const responseData = (result as any).data || result
+    const imageUrl = responseData?.images?.[0]?.url
+
+    if (!imageUrl) {
+      console.error('❌ fal.ai: No image URL in response:', result)
+      return {
+        success: false,
+        error: 'No image URL returned from fal.ai',
+        provider: 'fal',
+      }
+    }
+
+    // Track token usage
+    await trackTokenUsage({
+      user_id: userId,
+      action_type: 'image_generation',
+      model_used: falModel,
+      tokens_used: 1,
+      input_tokens: prompt.length,
+      output_tokens: 0,
+      actual_cost_cents: costInCents,
+      success: true,
+      metadata: {
+        context,
+        prompt: prompt.substring(0, 200),
+        size: falImageSize,
+        quality,
+        style,
+        provider: 'fal',
+      },
+    })
+
+    console.log('✅ fal.ai: Image generated successfully', {
+      model: falModel,
+      costInCents,
+    })
+
+    // Save to gallery (S3 + database)
+    let galleryId: string | undefined
+    let permanentImageUrl = imageUrl
+    try {
+      const galleryResult = await saveImageToGallery({
+        userId,
+        imageUrl,
+        prompt,
+        revisedPrompt: undefined,
+        size: falImageSize,
+        quality,
+        style,
+        context,
+        provider: 'fal',
+      })
+      galleryId = galleryResult.galleryId
+      permanentImageUrl = galleryResult.cdnUrl
+      console.log('✅ Image saved to gallery:', galleryId)
+    } catch (error) {
+      console.error('⚠️ Failed to save image to gallery:', error)
+    }
+
+    return {
+      success: true,
+      imageUrl: permanentImageUrl,
+      tokensUsed: 1,
+      galleryId,
+      provider: 'fal',
+    }
+
+  } catch (error: any) {
+    console.error('❌ fal.ai ERROR:', error)
+    
+    await trackTokenUsage({
+      user_id: userId,
+      action_type: 'image_generation',
+      model_used: falModel,
+      tokens_used: 0,
+      actual_cost_cents: 0,
+      success: false,
+      error_message: error.message || 'Failed to generate image',
+      metadata: {
+        context,
+        prompt: prompt.substring(0, 200),
+        size: falImageSize,
+        quality,
+        style,
+        provider: 'fal',
+      },
+    })
+    
+    return {
+      success: false,
+      error: error.message || 'Failed to generate image with fal.ai',
+      provider: 'fal',
+    }
+  }
+}
+
+/**
+ * Map DALL-E size format to fal.ai image_size format
+ */
+/**
+ * Convert dimension to fal.ai image_size format
+ */
+function dimensionToFalSize(dimension: ImageDimension): string {
+  switch (dimension) {
+    case 'square':
+      return 'square_hd'
+    case 'landscape_4_3':
+      return 'landscape_4_3'
+    case 'landscape_16_9':
+      return 'landscape_16_9'
+    case 'portrait_4_3':
+      return 'portrait_4_3'
+    case 'portrait_16_9':
+      return 'portrait_16_9'
+    default:
+      return 'square_hd'
+  }
+}
+
+/**
+ * Legacy: Map old size format to fal.ai image_size format
+ */
+function mapSizeToFal(size: string): string {
+  switch (size) {
+    case '1792x1024':
+      return 'landscape_16_9'
+    case '1024x1792':
+      return 'portrait_16_9'
+    case '1024x1024':
+    default:
+      return 'square_hd'
+  }
+}
+
+// ============================================================================
+// DALL-E PROVIDER (FALLBACK)
+// ============================================================================
 
 /**
  * Generate an image using DALL-E 3
  */
-export async function generateImage({
+async function generateImageWithDalle({
   userId,
   prompt,
   size = '1024x1024',
   quality = 'standard',
   style = 'vivid',
   context = 'custom',
-}: GenerateImageParams): Promise<GenerateImageResult> {
+}: Omit<GenerateImageParams, 'provider'>): Promise<GenerateImageResult> {
   try {
     if (!openai) {
       return {
         success: false,
         error: 'OpenAI not configured',
+        provider: 'dalle',
       }
     }
 
     // Calculate cost for DALL-E 3
     // DALL-E 3 pricing: $0.040 per image (standard), $0.080 per image (HD)
-    const costInCents = quality === 'hd' ? 8 : 4 // $0.08 or $0.04 in cents
+    const costInCents = quality === 'hd' ? 8 : 4
 
     console.log('🎨 DALL-E: Generating image...', {
       userId,
@@ -73,7 +344,6 @@ export async function generateImage({
       costInCents,
     })
 
-    // Generate image with DALL-E 3
     const response = await openai.images.generate({
       model: 'dall-e-3',
       prompt,
@@ -90,26 +360,27 @@ export async function generateImage({
       return {
         success: false,
         error: 'No image URL returned',
+        provider: 'dalle',
       }
     }
 
-    // Track token usage
     await trackTokenUsage({
       user_id: userId,
       action_type: 'image_generation',
       model_used: 'dall-e-3',
-      tokens_used: 1, // 1 image = 1 token equivalent
-      input_tokens: prompt.length, // Character count as input tokens
-      output_tokens: 0, // Images don't have output tokens
+      tokens_used: 1,
+      input_tokens: prompt.length,
+      output_tokens: 0,
       actual_cost_cents: costInCents,
       success: true,
       metadata: {
         context,
-        prompt: prompt.substring(0, 200), // First 200 chars
+        prompt: prompt.substring(0, 200),
         revised_prompt: revisedPrompt?.substring(0, 200),
         size,
         quality,
         style,
+        provider: 'dalle',
       },
     })
 
@@ -118,9 +389,8 @@ export async function generateImage({
       quality,
     })
 
-    // Save to gallery (S3 + database)
     let galleryId: string | undefined
-    let permanentImageUrl = imageUrl // Fallback to original URL if S3 upload fails
+    let permanentImageUrl = imageUrl
     try {
       const galleryResult = await saveImageToGallery({
         userId,
@@ -131,27 +401,27 @@ export async function generateImage({
         quality,
         style,
         context,
+        provider: 'dalle',
       })
       galleryId = galleryResult.galleryId
       permanentImageUrl = galleryResult.cdnUrl
       console.log('✅ Image saved to gallery:', galleryId)
     } catch (error) {
       console.error('⚠️ Failed to save image to gallery:', error)
-      // Don't fail the whole operation if gallery save fails
     }
 
     return {
       success: true,
-      imageUrl: permanentImageUrl, // Use permanent S3 URL if available, fallback to original
+      imageUrl: permanentImageUrl,
       revisedPrompt,
-      tokensUsed: 1, // 1 image = 1 token equivalent
+      tokensUsed: 1,
       galleryId,
+      provider: 'dalle',
     }
 
   } catch (error: any) {
     console.error('❌ DALL-E ERROR:', error)
     
-    // Track failed usage
     await trackTokenUsage({
       user_id: userId,
       action_type: 'image_generation',
@@ -166,12 +436,14 @@ export async function generateImage({
         size,
         quality,
         style,
+        provider: 'dalle',
       },
     })
     
     return {
       success: false,
       error: error.message || 'Failed to generate image',
+      provider: 'dalle',
     }
   }
 }
@@ -257,6 +529,7 @@ interface SaveImageToGalleryParams {
   quality: string
   style: string
   context: string
+  provider?: 'fal' | 'dalle'
 }
 
 /**
@@ -271,12 +544,13 @@ async function saveImageToGallery({
   quality,
   style,
   context,
+  provider = 'fal',
 }: SaveImageToGalleryParams): Promise<{ galleryId: string; cdnUrl: string }> {
   try {
     // Download the image from provider
     const imageResponse = await fetch(imageUrl)
     if (!imageResponse.ok) {
-      throw new Error('Failed to download image from OpenAI')
+      throw new Error(`Failed to download image from ${provider}`)
     }
     
     const imageBuffer = await imageResponse.arrayBuffer()

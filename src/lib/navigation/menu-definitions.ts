@@ -306,6 +306,7 @@ export const adminNavigation: NavItem[] = [
     children: [
       { name: 'Audio Mixer', href: '/admin/audio-mixer', icon: Headphones, description: 'Manage audio tracks and mixing' },
       { name: 'Audio Generator', href: '/admin/audio-generator', icon: Wand2, description: 'Generate Solfeggio & Binaural tracks' },
+      { name: 'Ambient Designer', href: '/admin/audio-designer', icon: Music, description: 'Create custom rain, ocean, waterfall sounds' },
     ]
   },
   

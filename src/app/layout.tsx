@@ -7,7 +7,10 @@ import { ASSETS } from '@/lib/storage/s3-storage-presigned'
 import { Toaster } from 'sonner'
 
 export const metadata: Metadata = {
-  title: "VibrationFit - Above the Green Line",
+  title: {
+    template: '%s | VibrationFit',
+    default: 'VibrationFit - Above the Green Line',
+  },
   description: "The SaaS platform for conscious creation. Build your vision, align daily, and actualize your dreams.",
   icons: {
     icon: ASSETS.brand.icon,
