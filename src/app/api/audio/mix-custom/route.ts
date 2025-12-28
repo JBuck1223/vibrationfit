@@ -11,10 +11,24 @@ const lambda = new LambdaClient({
 })
 
 export async function POST(request: NextRequest) {
+  let trackId: string | undefined
+  
   try {
-    const { trackId, voiceUrl, backgroundTrackUrl, voiceVolume, bgVolume, binauralTrackUrl, binauralVolume, outputKey } = await request.json()
+    const body = await request.json()
+    console.log('📥 [MIX-CUSTOM API] Received body:', JSON.stringify(body, null, 2))
+    
+    const { trackId: extractedTrackId, voiceUrl, backgroundTrackUrl, voiceVolume, bgVolume, binauralTrackUrl, binauralVolume, outputKey } = body
+    trackId = extractedTrackId
 
     if (!trackId || !voiceUrl || !backgroundTrackUrl || !outputKey || voiceVolume === undefined || bgVolume === undefined) {
+      console.error('❌ [MIX-CUSTOM API] Missing fields:', {
+        trackId: !!trackId,
+        voiceUrl: !!voiceUrl,
+        backgroundTrackUrl: !!backgroundTrackUrl,
+        outputKey: !!outputKey,
+        voiceVolume: voiceVolume !== undefined,
+        bgVolume: bgVolume !== undefined
+      })
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -33,16 +47,22 @@ export async function POST(request: NextRequest) {
       trackId,
       voiceUrl,
       backgroundTrackUrl,
-      voiceVolume,
-      bgVolume,
+      voiceVolume: `${voiceVolume}%`,
+      bgVolume: `${bgVolume}%`,
       binauralTrackUrl: binauralTrackUrl || 'none',
-      binauralVolume: binauralVolume || 0
+      binauralVolume: binauralVolume ? `${binauralVolume}%` : '0%'
     })
 
     // Convert percentages (0-100) to decimal (0-1) for Lambda
     const voiceVolumeDecimal = voiceVolume / 100
     const bgVolumeDecimal = bgVolume / 100
     const binauralVolumeDecimal = binauralVolume ? binauralVolume / 100 : 0
+    
+    console.log('📊 [MIX CUSTOM] Decimal volumes for FFmpeg:', {
+      voice: voiceVolumeDecimal.toFixed(3),
+      background: bgVolumeDecimal.toFixed(3),
+      binaural: binauralVolumeDecimal.toFixed(3)
+    })
 
     // Prepare Lambda payload
     const lambdaPayload: any = {
@@ -59,6 +79,8 @@ export async function POST(request: NextRequest) {
       lambdaPayload.binauralUrl = binauralTrackUrl
       lambdaPayload.binauralVolume = binauralVolumeDecimal
     }
+
+    console.log('🚀 [MIX CUSTOM] Lambda payload:', JSON.stringify(lambdaPayload, null, 2))
 
     // Invoke Lambda function
     const command = new InvokeCommand({
@@ -98,17 +120,19 @@ export async function POST(request: NextRequest) {
     console.error('❌ [MIX CUSTOM] Error:', error)
     
     // Update track status to failed
-    try {
-      const supabase = await createClient()
-      await supabase
-        .from('audio_tracks')
-        .update({
-          status: 'failed',
-          error_message: error.message
-        })
-        .eq('id', request.json().then((body: any) => body.trackId))
-    } catch (updateError) {
-      console.error('Failed to update track status:', updateError)
+    if (trackId) {
+      try {
+        const supabase = await createClient()
+        await supabase
+          .from('audio_tracks')
+          .update({
+            mix_status: 'failed',
+            error_message: error.message
+          })
+          .eq('id', trackId)
+      } catch (updateError) {
+        console.error('Failed to update track status:', updateError)
+      }
     }
 
     return NextResponse.json(

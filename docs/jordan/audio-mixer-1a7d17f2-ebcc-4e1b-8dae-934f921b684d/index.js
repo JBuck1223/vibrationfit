@@ -1,8 +1,8 @@
-import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
-import { exec } from 'child_process'
-import { promisify } from 'util'
-import { createWriteStream, unlink } from 'fs'
-import { pipeline } from 'stream/promises'
+const { S3Client, GetObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3')
+const { exec } = require('child_process')
+const { promisify } = require('util')
+const { createWriteStream, unlink } = require('fs')
+const { pipeline } = require('stream/promises')
 
 const execAsync = promisify(exec)
 
@@ -13,7 +13,7 @@ const s3Client = new S3Client({
 
 const BUCKET_NAME = process.env.BUCKET_NAME || 'vibration-fit-client-storage'
 
-export const handler = async (event) => {
+exports.handler = async (event) => {
   console.log('Raw Event:', JSON.stringify(event, null, 2))
   
   // Parse event body if it's a string (from API Gateway/Lambda invoke)
@@ -30,10 +30,13 @@ export const handler = async (event) => {
   
   const { voiceUrl, bgUrl, binauralUrl, outputKey, variant, voiceVolume, bgVolume, binauralVolume, trackId } = eventData
   
-  console.log('[Mixing] Extracted URLs:', {
+  console.log('[Mixing] Extracted parameters:', {
     voiceUrl: voiceUrl || 'MISSING',
     bgUrl: bgUrl || 'MISSING',
     binauralUrl: binauralUrl || 'none',
+    voiceVolume: voiceVolume || 'DEFAULT',
+    bgVolume: bgVolume || 'DEFAULT',
+    binauralVolume: binauralVolume || 'DEFAULT',
     trackId
   })
   
@@ -139,27 +142,40 @@ async function downloadFromS3(s3Url, localPath) {
   
   const fileStream = createWriteStream(localPath)
   await pipeline(response.Body, fileStream)
+  
+  // Verify download
+  const fs = require('fs')
+  const stats = fs.statSync(localPath)
+  console.log(`Downloaded ${key} -> ${localPath} (${stats.size} bytes)`)
 }
 
 async function mixAudio(voicePath, bgPath, binauralPath, outputPath, voiceVolume, bgVolume, binauralVolume) {
   // Use FFmpeg from layer
   const ffmpegPath = '/opt/ffmpeg-layer/bin/ffmpeg'
   
+  console.log(`[Mixing] Input volumes: Voice=${voiceVolume}, BG=${bgVolume}, Binaural=${binauralVolume || 'none'}`)
+  
   let command
   if (binauralPath) {
     // 3-track mix: Voice + Background + Binaural
+    // Use volume filters for explicit control
+    console.log(`[Mixing] Using volume filters: Voice=${voiceVolume}, BG=${bgVolume}, Binaural=${binauralVolume}`)
+    
     command = `${ffmpegPath} -i ${voicePath} -i ${bgPath} -i ${binauralPath} ` +
-      `-filter_complex "[0:a]volume=${voiceVolume}[a0];[1:a]volume=${bgVolume},aloop=loop=-1:size=2e+09[a1];[2:a]volume=${binauralVolume},aloop=loop=-1:size=2e+09[a2];[a0][a1][a2]amix=inputs=3:duration=first" ` +
+      `-filter_complex "[0:a]volume=${voiceVolume}[v];[1:a]aloop=loop=-1:size=2e+09,volume=${bgVolume}[bg];[2:a]aloop=loop=-1:size=2e+09,volume=${binauralVolume}[bin];[v][bg][bin]amix=inputs=3:duration=first:normalize=0" ` +
       `-codec:a libmp3lame -b:a 192k -y ${outputPath}`
     
-    console.log(`[Mixing] 3-track mix: Voice (${voiceVolume}) + Background (${bgVolume}) + Binaural (${binauralVolume})`)
+    console.log(`[Mixing] 3-track mix with volume filters`)
   } else {
     // 2-track mix: Voice + Background only
+    // Use volume filters for explicit control
+    console.log(`[Mixing] Using volume filters: Voice=${voiceVolume}, BG=${bgVolume}`)
+    
     command = `${ffmpegPath} -i ${voicePath} -i ${bgPath} ` +
-      `-filter_complex "[0:a]volume=${voiceVolume}[a0];[1:a]volume=${bgVolume},aloop=loop=-1:size=2e+09[a1];[a0][a1]amix=inputs=2:duration=first" ` +
+      `-filter_complex "[0:a]volume=${voiceVolume}[v];[1:a]aloop=loop=-1:size=2e+09,volume=${bgVolume}[bg];[v][bg]amix=inputs=2:duration=first:normalize=0" ` +
       `-codec:a libmp3lame -b:a 192k -y ${outputPath}`
     
-    console.log(`[Mixing] 2-track mix: Voice (${voiceVolume}) + Background (${bgVolume})`)
+    console.log(`[Mixing] 2-track mix with volume filters`)
   }
   
   console.log(`[Mixing] FFmpeg command: ${command}`)
@@ -223,7 +239,7 @@ async function updateMixStatus(trackId, status, mixedUrl, mixedS3Key, errorMessa
 
 async function removeFile(path) {
   try {
-    const fs = await import('fs')
+    const fs = require('fs')
     await fs.promises.unlink(path)
   } catch (e) {
     // Ignore

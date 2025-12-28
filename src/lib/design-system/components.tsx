@@ -58,7 +58,7 @@ export * from './components/navigation'
 export * from './components/overlays'
 
 // Utility Components (✅ COMPLETE)
-export * from './components/utils'
+export * from './components/utils/index'
 
 // Re-export tokens for convenience
 export * as tokens from './tokens'

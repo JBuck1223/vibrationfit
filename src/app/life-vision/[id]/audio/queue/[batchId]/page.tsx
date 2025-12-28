@@ -19,6 +19,7 @@ interface Batch {
   audio_set_ids: string[]
   variant_ids: string[]
   voice_id: string
+  sections_requested?: Array<{ sectionKey: string; text: string }>
   error_message?: string
   created_at: string
   started_at?: string
@@ -166,7 +167,13 @@ export default function AudioQueuePage({
 
         const setMap = new Map(setsData?.map(s => [s.id, { name: s.name, variant: s.variant }]) || [])
 
-        const formattedTracks = tracksData.map((track: any) => {
+        // Filter tracks based on sections requested in this batch
+        const requestedSections = batchData.sections_requested?.map((s: any) => s.sectionKey) || []
+        const relevantTracks = requestedSections.length > 0
+          ? tracksData.filter((track: any) => requestedSections.includes(track.section_key))
+          : tracksData
+
+        const formattedTracks = relevantTracks.map((track: any) => {
           const setInfo = setMap.get(track.audio_set_id)
           return {
             id: track.id,
@@ -240,18 +247,30 @@ export default function AudioQueuePage({
     }
   }
 
-  const progressPercentage = batch 
-    ? (batch.tracks_completed / batch.total_tracks_expected) * 100 
-    : 0
-
   const completedTracks = tracks.filter(t => 
-    t.status === 'completed' && (t.mixStatus === 'completed' || t.mixStatus === 'not_required')
+    t.status === 'completed' && (t.mixStatus === 'completed' || t.mixStatus === 'not_required' || !t.mixStatus)
   )
   const processingTracks = tracks.filter(t => 
-    t.status === 'processing' || t.status === 'pending' || 
-    t.mixStatus === 'pending' || t.mixStatus === 'mixing'
+    (t.status === 'processing' || t.status === 'pending') ||
+    (t.mixStatus === 'pending' || t.mixStatus === 'mixing')
   )
-  const failedTracks = tracks.filter(t => t.status === 'failed')
+  const failedTracks = tracks.filter(t => 
+    t.status === 'failed' || t.mixStatus === 'failed'
+  )
+  
+  // Calculate progress based on actual track completion (including mixing)
+  // Handle case where tracks are still being created
+  const totalTracks = batch?.total_tracks_expected || 1
+  const actuallyCompleted = completedTracks.length
+  const stillProcessing = processingTracks.length
+  const hasFailed = failedTracks.length
+  
+  // If we have some tracks but not all expected, still show processing
+  const effectiveCompleted = tracks.length < totalTracks && stillProcessing === 0 && hasFailed === 0 
+    ? 0 // Still loading tracks
+    : actuallyCompleted
+    
+  const progressPercentage = (effectiveCompleted / totalTracks) * 100
 
   if (loading) {
     return (
@@ -310,7 +329,12 @@ export default function AudioQueuePage({
               <div>
                 <h2 className="text-xl md:text-2xl font-semibold text-white mb-1">Generation Progress</h2>
                 <p className="text-sm md:text-base text-neutral-400">
-                  {batch.tracks_completed} of {batch.total_tracks_expected} tracks completed
+                  {actuallyCompleted} of {batch.total_tracks_expected} tracks completed
+                  {failedTracks.length > 0 && (
+                    <span className="text-red-400 ml-2">
+                      ({failedTracks.length} failed)
+                    </span>
+                  )}
                 </p>
               </div>
               {['pending', 'processing'].includes(batch.status) && (
@@ -384,10 +408,10 @@ export default function AudioQueuePage({
                 <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
                   <p className="text-yellow-400 font-medium text-center flex items-center justify-center gap-2">
                     <AlertCircle className="w-5 h-5" />
-                    {batch.tracks_completed} of {batch.total_tracks_expected} tracks completed successfully
+                    {actuallyCompleted} of {batch.total_tracks_expected} tracks completed successfully
                   </p>
                   <p className="text-yellow-300 text-sm text-center mt-1">
-                    {batch.tracks_failed} track{batch.tracks_failed > 1 ? 's' : ''} failed
+                    {failedTracks.length} track{failedTracks.length !== 1 ? 's' : ''} failed
                   </p>
                 </div>
               </div>
@@ -443,7 +467,7 @@ export default function AudioQueuePage({
                   const isProcessing = track.status === 'processing' || track.status === 'pending'
                   const isMixing = track.mixStatus === 'pending' || track.mixStatus === 'mixing'
                   const isComplete = track.status === 'completed' && (track.mixStatus === 'completed' || track.mixStatus === 'not_required')
-                  const isFailed = track.status === 'failed'
+                  const isFailed = track.status === 'failed' || track.mixStatus === 'failed'
                   
                   return (
                     <div 

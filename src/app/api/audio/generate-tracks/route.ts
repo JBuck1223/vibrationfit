@@ -149,7 +149,7 @@ async function generateSolfeggioBinaural(
     sendEvent({ type: 'status', status: 'inserting', message: `Adding ${fileName} to database...` })
     await insertIntoDatabase({
       name: `${solfeggio.hz}hz-pure`,
-      display_name: `${solfeggio.name} Pure`,
+      display_name: `${solfeggio.hz}Hz`,
       category: 'solfeggio',
       file_url: s3Url,
       description: `Pure ${solfeggio.hz}Hz ${solfeggio.name} frequency`,
@@ -188,7 +188,7 @@ async function generateSolfeggioBinaural(
       sendEvent({ type: 'status', status: 'inserting', message: `Adding ${fileName} to database...` })
       await insertIntoDatabase({
         name: `${solfeggio.hz}hz-${brainwave.name.toLowerCase()}`,
-        display_name: `${solfeggio.name} ${brainwave.displayName}`,
+        display_name: `${solfeggio.hz}Hz ${brainwave.displayName}`,
         category: 'solfeggio',
         file_url: s3Url,
         description: `${solfeggio.description} with ${brainwave.description}`,
@@ -305,6 +305,7 @@ async function generateNoiseTrack(
       '-y',
       '-f', 'lavfi',
       '-i', `${noiseFilters[noiseType]}:duration=${duration}`,
+      '-af', 'loudnorm=I=-20:TP=-1.5:LRA=11',
       '-codec:a', 'libmp3lame',
       '-b:a', '192k',
       '-ar', '44100',
@@ -331,6 +332,7 @@ async function generatePureTone(
       '-y',
       '-f', 'lavfi',
       '-i', `sine=frequency=${frequency}:duration=${duration}`,
+      '-af', 'volume=0.25',  // -12dB to match voice/noise with loudnorm
       '-codec:a', 'libmp3lame',
       '-b:a', '128k',
       '-ar', '44100',
@@ -364,7 +366,7 @@ async function generateSingleTrack(
       '-f', 'lavfi',
       '-i', `sine=frequency=${rightFreq}:duration=${duration}`,
       '-filter_complex',
-      '[0:a][1:a]join=inputs=2:channel_layout=stereo[out]',
+      '[0:a][1:a]join=inputs=2:channel_layout=stereo[a];[a]volume=0.25[out]',  // -12dB to match voice/noise with loudnorm
       '-map', '[out]',
       '-codec:a', 'libmp3lame',
       '-b:a', '128k',

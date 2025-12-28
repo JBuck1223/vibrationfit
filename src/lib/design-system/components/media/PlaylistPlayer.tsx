@@ -88,21 +88,26 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
   }, [tracks, trackDurations])
   
   const handleNext = useCallback(() => {
-    setCurrentTrackIndex((currentIndex) => {
-      let newIndex = currentIndex + 1
+    // Add a small gap before transitioning to next track
+    setIsPlaying(false)
+    
+    setTimeout(() => {
+      setCurrentTrackIndex((currentIndex) => {
+        let newIndex = currentIndex + 1
 
-      if (repeatMode === 'one') {
-        newIndex = currentIndex
-      } else if (repeatMode === 'all' && newIndex >= tracks.length) {
-        newIndex = 0
-      } else if (newIndex >= tracks.length) {
-        setIsPlaying(false)
-        return currentIndex
-      }
+        if (repeatMode === 'one') {
+          newIndex = currentIndex
+        } else if (repeatMode === 'all' && newIndex >= tracks.length) {
+          newIndex = 0
+        } else if (newIndex >= tracks.length) {
+          return currentIndex
+        }
 
-      setCurrentTime(0)
-      return newIndex
-    })
+        setCurrentTime(0)
+        setIsPlaying(true) // Resume playing after gap
+        return newIndex
+      })
+    }, 800) // 800ms gap between tracks
   }, [repeatMode, tracks.length])
 
   useEffect(() => {
@@ -145,8 +150,20 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
     hasTrackedCurrentPlay.current = false
     audio.src = currentTrack?.url || ''
     
+    // Wait for audio to be ready before playing to prevent cutting off the beginning
     if (isPlaying && currentTrack?.url) {
-      audio.play().catch(() => setIsPlaying(false))
+      const playWhenReady = () => {
+        audio.play().catch(() => setIsPlaying(false))
+        audio.removeEventListener('canplaythrough', playWhenReady)
+      }
+      
+      // If already loaded, play immediately
+      if (audio.readyState >= 3) {
+        audio.play().catch(() => setIsPlaying(false))
+      } else {
+        // Otherwise wait for it to be ready
+        audio.addEventListener('canplaythrough', playWhenReady, { once: true })
+      }
     }
   }, [currentTrackIndex, currentTrack?.url, isPlaying, checkAndTrackCompletion])
 
@@ -164,11 +181,21 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
 
   const handlePrevious = () => {
     checkAndTrackCompletion()
-    setCurrentTrackIndex((currentIndex) => {
-      const newIndex = currentIndex - 1 < 0 ? tracks.length - 1 : currentIndex - 1
-      setCurrentTime(0)
-      return newIndex
-    })
+    
+    // Add a small gap before transitioning to previous track
+    const wasPlaying = isPlaying
+    setIsPlaying(false)
+    
+    setTimeout(() => {
+      setCurrentTrackIndex((currentIndex) => {
+        const newIndex = currentIndex - 1 < 0 ? tracks.length - 1 : currentIndex - 1
+        setCurrentTime(0)
+        if (wasPlaying) {
+          setIsPlaying(true) // Resume playing after gap
+        }
+        return newIndex
+      })
+    }, 400) // Shorter gap for manual navigation
   }
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -323,7 +350,17 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
               key={track.id}
               onClick={() => {
                 checkAndTrackCompletion()
-                setCurrentTrackIndex(index)
+                
+                // Add a small gap before transitioning when clicking a track
+                const wasPlaying = isPlaying
+                setIsPlaying(false)
+                
+                setTimeout(() => {
+                  setCurrentTrackIndex(index)
+                  if (wasPlaying) {
+                    setIsPlaying(true)
+                  }
+                }, 300) // Short gap for direct selection
               }}
               className={cn(
                 'w-full text-left px-3 py-2 rounded-lg transition-colors',

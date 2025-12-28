@@ -176,7 +176,6 @@ export default function AudioMixerAdminPage() {
     }
 
     setLoading(true)
-    const supabase = createClient()
 
     try {
       const trackData = {
@@ -190,16 +189,29 @@ export default function AudioMixerAdminPage() {
       }
 
       if (editingTrack) {
-        const { error } = await supabase
-          .from('audio_background_tracks')
-          .update(trackData)
-          .eq('id', editingTrack.id)
-        if (error) throw error
+        // Update via API route (uses service role to bypass RLS)
+        const response = await fetch('/api/admin/audio-tracks', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editingTrack.id, ...trackData })
+        })
+        
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || 'Failed to update track')
+        }
       } else {
-        const { error } = await supabase
-          .from('audio_background_tracks')
-          .insert(trackData)
-        if (error) throw error
+        // Create via API route
+        const response = await fetch('/api/admin/audio-tracks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(trackData)
+        })
+        
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || 'Failed to create track')
+        }
       }
 
       await loadData()
@@ -224,19 +236,25 @@ export default function AudioMixerAdminPage() {
   const handleDeleteTrack = async (id: string) => {
     if (confirm('Are you sure you want to delete this background track?')) {
       setLoading(true)
-      const supabase = createClient()
-      const { error } = await supabase
-        .from('audio_background_tracks')
-        .delete()
-        .eq('id', id)
-
-      if (error) {
-        console.error('Error deleting track:', error)
-        alert('Failed to delete track')
-      } else {
+      
+      try {
+        // Delete via API route (uses service role to bypass RLS)
+        const response = await fetch(`/api/admin/audio-tracks?id=${id}`, {
+          method: 'DELETE'
+        })
+        
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || 'Failed to delete track')
+        }
+        
         await loadData()
+      } catch (error: any) {
+        console.error('Error deleting track:', error)
+        alert(`Failed to delete track: ${error.message}`)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
   }
 
@@ -257,16 +275,23 @@ export default function AudioMixerAdminPage() {
     if (playingTrackId === track.id) {
       // Stop current playback
       if (audioRef.current) {
+        // Remove event listeners first to prevent error events during cleanup
+        audioRef.current.onended = null
+        audioRef.current.onerror = null
+        audioRef.current.oncanplay = null
+        
+        // Pause and clean up
         audioRef.current.pause()
-        // Don't clear src immediately to avoid errors
-        if (audioRef.current.readyState >= 2) {
-          audioRef.current.currentTime = 0
-        }
+        audioRef.current.src = ''
+        audioRef.current = null
       }
       setPlayingTrackId(null)
     } else {
       // Stop any existing playback
       if (audioRef.current) {
+        audioRef.current.onended = null
+        audioRef.current.onerror = null
+        audioRef.current.oncanplay = null
         audioRef.current.pause()
         if (audioRef.current.readyState >= 2) {
           audioRef.current.currentTime = 0

@@ -228,11 +228,11 @@ export default function SingleTrackGeneratorPage() {
         }
       }
       
-      // Load background tracks
+      // Load background tracks (exclude binaural/solfeggio)
       const { data: bgTracks } = await supabase
         .from('audio_background_tracks')
         .select('*')
-        .in('category', ['nature', 'music', 'noise'])
+        .not('category', 'in', '(binaural,solfeggio)')
         .eq('is_active', true)
         .order('sort_order')
       
@@ -384,6 +384,12 @@ export default function SingleTrackGeneratorPage() {
         generatePayload.binauralVolume = binauralVolume
       }
       
+      console.log('🚀 [SINGLE GENERATOR] Sending payload to API:')
+      console.log('  Selected Track:', selectedTrack.display_name, '|', selectedTrack.file_url)
+      console.log('  Selected Ratio:', selectedRatio.name, '|', selectedRatio.voice_volume, '/', selectedRatio.bg_volume)
+      console.log('  Voice:', selectedVoice)
+      console.log('  Full Payload:', JSON.stringify(generatePayload, null, 2))
+      
       fetch('/api/audio/generate-custom-mix', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -392,12 +398,17 @@ export default function SingleTrackGeneratorPage() {
         if (!res.ok) {
           console.error('Generation API error:', res.status)
         }
+        console.log('✅ [SINGLE GENERATOR] Generation request completed!')
+        setGenerating(false)
       }).catch(err => {
         console.error('Generation API error:', err)
+        setGenerating(false)
       })
 
-      // Redirect to queue page immediately
-      router.push(`/life-vision/${visionId}/audio/queue/${batch.id}`)
+      // REDIRECT DISABLED FOR DEBUGGING - Check console logs
+      console.log('🚫 Redirect disabled - check console for logs')
+      console.log('🔗 Queue URL:', `/life-vision/${visionId}/audio/queue/${batch.id}`)
+      // router.push(`/life-vision/${visionId}/audio/queue/${batch.id}`)
     } catch (error) {
       console.error('Generation error:', error)
       alert('An error occurred during generation. Please try again.')

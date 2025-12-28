@@ -125,7 +125,40 @@ async function synthesizeWithOpenAI(text: string, voice: OpenAIVoice = 'alloy', 
   }
 
   const arrayBuffer = await response.arrayBuffer()
-  const buffer = Buffer.from(arrayBuffer)
+  let buffer = Buffer.from(arrayBuffer)
+
+  // Normalize voice audio to -20dB for consistent volume across all tracks
+  try {
+    const { execSync } = require('child_process')
+    const fs = require('fs')
+    const path = require('path')
+    const os = require('os')
+    
+    const tempDir = os.tmpdir()
+    const inputPath = path.join(tempDir, `voice-input-${Date.now()}.mp3`)
+    const outputPath = path.join(tempDir, `voice-normalized-${Date.now()}.mp3`)
+    
+    // Write original audio to temp file
+    fs.writeFileSync(inputPath, buffer)
+    
+    // Normalize to -20dB using FFmpeg loudnorm filter
+    execSync(
+      `ffmpeg -i "${inputPath}" -af "loudnorm=I=-20:TP=-1.5:LRA=11" -ar 44100 -y "${outputPath}"`,
+      { stdio: 'pipe' }
+    )
+    
+    // Read normalized audio
+    buffer = fs.readFileSync(outputPath)
+    
+    // Cleanup temp files
+    fs.unlinkSync(inputPath)
+    fs.unlinkSync(outputPath)
+    
+    console.log(`[TTS] Normalized voice audio to -20dB (${buffer.length} bytes)`)
+  } catch (normError) {
+    console.error('[TTS] Voice normalization failed, using original audio:', normError)
+    // Continue with original buffer if normalization fails
+  }
 
   // Track token usage for TTS
   if (userId) {
@@ -417,7 +450,42 @@ export async function generateAudioTracks(params: {
     let recordId: string | null = null
     if (existing) {
       if (!force && existing.status === 'completed') {
-        console.log(`[Track] Skipping ${section.sectionKey} - using existing completed track`)
+        // If track belongs to THIS audio set already, skip
+        if (existing.audio_set_id === targetAudioSetId) {
+          console.log(`[Track] Track already in this audio set for ${section.sectionKey}`)
+          results.push({ sectionKey: section.sectionKey, status: 'skipped', audioUrl: existing.audio_url, s3Key: existing.s3_key })
+          await updateBatchProgress()
+          continue
+        }
+        // Track exists but in different set - create new track record for THIS set
+        console.log(`[Track] Creating track reference in this audio set for ${section.sectionKey}`)
+        const { data: newTrack, error: insertError } = await supabase
+          .from('audio_tracks')
+          .insert({
+            user_id: userId,
+            vision_id: visionId,
+            audio_set_id: targetAudioSetId,
+            section_key: section.sectionKey,
+            content_hash: contentHash,
+            text_content: section.text,
+            voice_id: voice,
+            s3_bucket: existing.s3_bucket,
+            s3_key: existing.s3_key,
+            audio_url: existing.audio_url,
+            status: 'completed',
+            duration_seconds: existing.duration_seconds,
+            mix_status: 'pending'
+          })
+          .select()
+          .single()
+        
+        if (insertError || !newTrack) {
+          results.push({ sectionKey: section.sectionKey, status: 'failed', error: insertError?.message || 'Failed to create track reference' })
+          await updateBatchProgress()
+          continue
+        }
+        
+        recordId = newTrack.id
         results.push({ sectionKey: section.sectionKey, status: 'skipped', audioUrl: existing.audio_url, s3Key: existing.s3_key })
         await updateBatchProgress()
         continue
@@ -566,7 +634,8 @@ export async function generateAudioTracks(params: {
       await updateBatchProgress()
       
       // If variant requires mixing, trigger Lambda async
-      if (variant && variant !== 'standard' && updated && voiceAudioUrl) {
+      // Skip for custom variants (they handle mixing explicitly in the API route)
+      if (variant && variant !== 'standard' && !variant.startsWith('custom-') && updated && voiceAudioUrl) {
         // Mark as pending and trigger mixing in background
         triggerBackgroundMixing({
           trackId: updated.id,

@@ -868,6 +868,9 @@ function AssetsAdminContent() {
         setAudioElements(prev => ({ ...prev, [fileKey]: audio }))
       }
       
+      // Set playing state immediately
+      setPlayingAudio(fileKey)
+      
       // Wait for audio to be ready before playing
       const playAudio = () => {
         audio.play().catch(err => {
@@ -882,16 +885,11 @@ function AssetsAdminContent() {
       
       if (audio.readyState >= 2) {
         // Audio is ready, play immediately
-        setPlayingAudio(fileKey)
         playAudio()
       } else {
-        // Wait for audio to be ready
-        setPlayingAudio(fileKey)
+        // Wait for audio to be ready, then play
         const canplayHandler = () => {
-          // Only play if this is still the audio we want to play
-          if (playingAudio === fileKey) {
-            playAudio()
-          }
+          playAudio()
         }
         audio.addEventListener('canplay', canplayHandler, { once: true })
       }

@@ -19,6 +19,9 @@ interface AudioSet {
   track_count: number
   isReady: boolean
   isMixing: boolean
+  mixRatio?: string
+  backgroundTrack?: string
+  binauralTrack?: string
 }
 
 export default function AudioSetsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -100,6 +103,56 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
       const hasCompletedMixing = tracks?.some((t: any) => t.mix_status === 'completed')
       const isMixing = tracks?.some((t: any) => t.mix_status === 'mixing' || t.mix_status === 'pending')
 
+      // Fetch generation batch metadata to get mix ratios
+      const { data: batchData } = await supabase
+        .from('audio_generation_batches')
+        .select('metadata')
+        .contains('audio_set_ids', [set.id])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      let mixRatio = undefined
+      let backgroundTrack = undefined
+      let binauralTrack = undefined
+
+      if (batchData?.metadata) {
+        const metadata = batchData.metadata as any
+        const voiceVol = metadata.voice_volume
+        const bgVol = metadata.bg_volume
+        const binauralVol = metadata.binaural_volume
+        
+        if (voiceVol !== undefined && bgVol !== undefined) {
+          if (binauralVol && binauralVol > 0) {
+            mixRatio = `${voiceVol}% / ${bgVol}% / ${binauralVol}%`
+          } else {
+            mixRatio = `${voiceVol}% / ${bgVol}%`
+          }
+        }
+
+        // Get background track name
+        if (metadata.background_track_id) {
+          const { data: bgTrack } = await supabase
+            .from('audio_background_tracks')
+            .select('display_name')
+            .eq('id', metadata.background_track_id)
+            .single()
+          
+          backgroundTrack = bgTrack?.display_name
+        }
+
+        // Get binaural track name
+        if (metadata.binaural_track_id) {
+          const { data: binTrack } = await supabase
+            .from('audio_background_tracks')
+            .select('display_name')
+            .eq('id', metadata.binaural_track_id)
+            .single()
+          
+          binauralTrack = binTrack?.display_name
+        }
+      }
+
       return {
         id: set.id,
         name: set.name,
@@ -111,6 +164,9 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
         track_count: set.audio_tracks?.[0]?.count || 0,
         isReady: !!(hasCompletedVoice && (set.variant === 'standard' || hasCompletedMixing)),
         isMixing: !!isMixing,
+        mixRatio,
+        backgroundTrack,
+        binauralTrack,
       }
     }))
 
@@ -129,6 +185,13 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
   async function loadAudioTracks(audioSetId: string) {
     setLoadingTracks(true)
     const supabase = createClient()
+
+    // Get the audio set to check variant
+    const { data: audioSet } = await supabase
+      .from('audio_sets')
+      .select('variant')
+      .eq('id', audioSetId)
+      .single()
 
     // Load audio tracks for this set
     const { data: tracks, error: tracksError } = await supabase
@@ -181,7 +244,10 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
     
     const formattedTracks: AudioTrack[] = tracks
       .map(track => {
-        const url = track.mixed_audio_url && track.mix_status === 'completed' 
+        // For "standard" (Voice Only) variant, ALWAYS use audio_url
+        // For other variants, use mixed_audio_url if available and completed
+        const isVoiceOnly = audioSet?.variant === 'standard'
+        const url = !isVoiceOnly && track.mixed_audio_url && track.mix_status === 'completed' 
           ? track.mixed_audio_url 
           : track.audio_url
         
@@ -587,6 +653,36 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
                           )}
                         </div>
 
+                        {/* Mix Details */}
+                        {set.mixRatio && (
+                          <div className="w-full text-center">
+                            <div className="text-xs font-semibold text-primary-400 mb-1">
+                              {set.mixRatio}
+                            </div>
+                            <div className="text-[10px] text-neutral-500 uppercase tracking-wider">
+                              {set.binauralTrack ? 'Voice / Background / Binaural' : 'Voice / Background'}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Background Track Info */}
+                        {set.backgroundTrack && (
+                          <div className="w-full px-2">
+                            <div className="text-xs text-neutral-400 text-center">
+                              <span className="text-neutral-500">Background:</span> {set.backgroundTrack}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Binaural Track Info */}
+                        {set.binauralTrack && (
+                          <div className="w-full px-2">
+                            <div className="text-xs text-neutral-400 text-center">
+                              <span className="text-neutral-500">Binaural:</span> {set.binauralTrack}
+                            </div>
+                          </div>
+                        )}
+
                         {/* Status and Info - centered */}
                         <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-neutral-400">
                           <span>{set.track_count} tracks</span>
@@ -619,7 +715,15 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
                             {getVariantIcon(audioSets.find(s => s.id === selectedAudioSetId)?.variant || '')}
                           </div>
                         }
-                        setName={getVariantDisplayInfo(audioSets.find(s => s.id === selectedAudioSetId)?.variant || 'standard').title}
+                        setName={(() => {
+                          const selectedSet = audioSets.find(s => s.id === selectedAudioSetId)
+                          // Use the actual audio set name if it exists and is not a generic version name
+                          if (selectedSet?.name && !selectedSet.name.includes('Version') && !selectedSet.name.includes(':')) {
+                            return selectedSet.name
+                          }
+                          // Otherwise fall back to variant display info
+                          return getVariantDisplayInfo(selectedSet?.variant || 'standard').title
+                        })()}
                         trackCount={audioTracks.length}
                         createdDate={new Date(audioSets.find(s => s.id === selectedAudioSetId)?.created_at || '').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       />

@@ -8,8 +8,17 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     console.log('🎵 [CUSTOM MIX] Received request body:', JSON.stringify(body, null, 2))
+    console.log('🔍 [CUSTOM MIX] Extracted values:')
+    console.log('  backgroundTrackUrl:', body.backgroundTrackUrl)
+    console.log('  voiceVolume:', body.voiceVolume)
+    console.log('  bgVolume:', body.bgVolume)
     
     const { visionId, sections, voice, batchId, backgroundTrackUrl, voiceVolume, bgVolume, binauralTrackUrl, binauralVolume } = body
+    
+    console.log('🔍 [CUSTOM MIX] After destructuring:')
+    console.log('  backgroundTrackUrl:', backgroundTrackUrl)
+    console.log('  voiceVolume:', voiceVolume)
+    console.log('  bgVolume:', bgVolume)
 
     if (!visionId || !sections || !voice || !batchId) {
       console.error('❌ [CUSTOM MIX] Missing required fields:', {
@@ -112,13 +121,16 @@ export async function POST(request: NextRequest) {
       .eq('id', batchId)
 
     // Generate voice-only tracks first (or reuse existing ones)
+    // Use a unique variant identifier to ensure each generation gets its own audio_set
+    const uniqueVariant = `custom-${batchId.slice(0, 8)}`
+    
     const results = await generateAudioTracks({
       userId: user.id,
       visionId,
       sections,
       voice,
       format: 'mp3',
-      variant: 'custom',
+      variant: uniqueVariant,
       batchId,
       audioSetName,  // Pass the descriptive name
       audioSetDescription,  // Pass the descriptive description
@@ -126,6 +138,24 @@ export async function POST(request: NextRequest) {
     })
 
     console.log('🎵 [CUSTOM MIX] Voice generation results:', results)
+
+    // Get the audio set ID that was created/reused for this generation
+    const { data: audioSetData } = await supabase
+      .from('audio_sets')
+      .select('id')
+      .eq('vision_id', visionId)
+      .eq('variant', uniqueVariant)
+      .eq('voice_id', voice)
+      .single()
+    
+    const audioSetId = audioSetData?.id
+    
+    if (!audioSetId) {
+      console.error('❌ [CUSTOM MIX] Could not find audio set for variant:', uniqueVariant)
+      return NextResponse.json({ error: 'Audio set not found' }, { status: 500 })
+    }
+    
+    console.log(`🎯 [CUSTOM MIX] Using audio set ID: ${audioSetId}`)
 
     // Now trigger mixing for each completed track
     let mixSuccessCount = 0
@@ -136,20 +166,30 @@ export async function POST(request: NextRequest) {
       
       if (result.status === 'generated' || result.status === 'skipped') {
         try {
-          // Get the audio track record to get the track ID and voice URL
-          // Note: variant is stored on audio_sets, not audio_tracks
-          // We filter by vision + section + voice + audio_set to get the right track
+          // Get the audio track record for THIS audio set only
+          console.log(`🔍 [CUSTOM MIX] Looking for track: audioSet=${audioSetId}, section=${result.sectionKey}`)
+          
           const { data: tracks, error: trackError } = await supabase
             .from('audio_tracks')
-            .select('id, audio_url, s3_key, audio_set_id')
-            .eq('vision_id', visionId)
+            .select('id, audio_url, s3_key, audio_set_id, status, mix_status')
+            .eq('audio_set_id', audioSetId)  // Filter by THIS audio set only!
             .eq('section_key', result.sectionKey)
-            .eq('voice_id', voice)
             .order('created_at', { ascending: false })
-            .limit(10)  // Get recent tracks
+            .limit(1)  // Only need one track
           
-          // Find the track that matches our audio set (the one we just created/reused)
-          const track = tracks?.find(t => t.audio_url === result.audioUrl) || tracks?.[0]
+          console.log(`📊 [CUSTOM MIX] Found ${tracks?.length || 0} tracks for ${result.sectionKey}`)
+          if (tracks && tracks.length > 0) {
+            console.log(`📊 [CUSTOM MIX] Track details:`, tracks.map(t => ({
+              id: t.id,
+              audio_set_id: t.audio_set_id,
+              hasUrl: !!t.audio_url,
+              status: t.status,
+              mix_status: t.mix_status
+            })))
+          }
+          
+          // Use the track from THIS audio set
+          const track = tracks?.[0]
 
           if (trackError) {
             console.error(`❌ [CUSTOM MIX] Error fetching track for ${result.sectionKey}:`, trackError)
@@ -157,10 +197,19 @@ export async function POST(request: NextRequest) {
             continue
           }
 
-          console.log(`📍 [CUSTOM MIX] Track for ${result.sectionKey}:`, {
-            id: track?.id,
-            hasAudioUrl: !!track?.audio_url,
-            audioUrl: track?.audio_url
+          if (!track) {
+            console.error(`❌ [CUSTOM MIX] No track found for ${result.sectionKey}!`)
+            mixFailCount++
+            continue
+          }
+
+          console.log(`📍 [CUSTOM MIX] Using track for ${result.sectionKey}:`, {
+            id: track.id,
+            audio_set_id: track.audio_set_id,
+            hasAudioUrl: !!track.audio_url,
+            audioUrl: track.audio_url,
+            status: track.status,
+            mix_status: track.mix_status
           })
 
           if (track && track.audio_url) {
@@ -184,32 +233,52 @@ export async function POST(request: NextRequest) {
               continue
             }
             
-            // Generate output key for mixed version
-            const mixedKey = track.s3_key.replace('.mp3', '-mixed.mp3')
+            // Generate output key for mixed version (include track ID to ensure uniqueness)
+            const mixedKey = track.s3_key.replace('.mp3', `-mixed-${track.id.substring(0, 8)}.mp3`)
+
+            // Adjust voice and background volumes if binaural is present
+            let adjustedVoiceVolume = voiceVolume
+            let adjustedBgVolume = bgVolume
+            
+            if (binauralTrackUrl && binauralTrackUrl.trim() !== '' && binauralVolume && binauralVolume > 0) {
+              // Proportionally reduce voice and bg to make room for binaural
+              const remaining = 100 - binauralVolume
+              const total = voiceVolume + bgVolume
+              adjustedVoiceVolume = (voiceVolume / total) * remaining
+              adjustedBgVolume = (bgVolume / total) * remaining
+              
+              console.log(`📊 [CUSTOM MIX] Adjusting volumes for binaural:`, {
+                original: { voice: voiceVolume, bg: bgVolume },
+                adjusted: { voice: adjustedVoiceVolume, bg: adjustedBgVolume, binaural: binauralVolume }
+              })
+            }
 
             // Prepare mix payload
             const mixPayload: any = {
               trackId: track.id,
               voiceUrl: track.audio_url,
               backgroundTrackUrl,
-              voiceVolume,
-              bgVolume,
+              voiceVolume: adjustedVoiceVolume,
+              bgVolume: adjustedBgVolume,
               outputKey: mixedKey
             }
             
             // Add optional binaural track (only if valid URL and volume > 0)
             if (binauralTrackUrl && binauralTrackUrl.trim() !== '' && binauralVolume && binauralVolume > 0) {
-              mixPayload.binauralUrl = binauralTrackUrl
+              mixPayload.binauralTrackUrl = binauralTrackUrl
               mixPayload.binauralVolume = binauralVolume
             }
             
-            console.log(`🎵 [CUSTOM MIX] Mixing ${result.sectionKey}:`, {
-              trackId: track.id,
-              voiceUrl: track.audio_url,
-              backgroundTrackUrl,
-              binauralTrackUrl: mixPayload.binauralUrl || 'none',
-              outputKey: mixedKey
-            })
+            console.log(`🎵 [CUSTOM MIX] Mixing ${result.sectionKey}:`)
+            console.log('  Track ID:', track.id)
+            console.log('  Voice URL:', track.audio_url)
+            console.log('  Background URL:', backgroundTrackUrl)
+            console.log('  Voice Volume:', mixPayload.voiceVolume, '(should be decimal like 0.8)')
+            console.log('  BG Volume:', mixPayload.bgVolume, '(should be decimal like 0.2)')
+            console.log('  Binaural URL:', mixPayload.binauralTrackUrl || 'none')
+            console.log('  Binaural Volume:', mixPayload.binauralVolume || 0)
+            console.log('  Output Key:', mixedKey)
+            console.log('  Full Payload:', JSON.stringify(mixPayload, null, 2))
             
             // Call mixing API
             const mixResponse = await fetch(`${request.nextUrl.origin}/api/audio/mix-custom`, {
