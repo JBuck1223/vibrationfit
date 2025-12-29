@@ -9,7 +9,7 @@ import { Toaster } from 'sonner'
 export const metadata: Metadata = {
   title: {
     template: '%s | VibrationFit',
-    default: 'VibrationFit - Above the Green Line',
+    default: 'VibrationFit',
   },
   description: "The SaaS platform for conscious creation. Build your vision, align daily, and actualize your dreams.",
   icons: {

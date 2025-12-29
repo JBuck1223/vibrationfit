@@ -6,7 +6,7 @@ import {
   Activity, Play, Monitor, CreditCard, List, CheckCircle, 
   Sparkles, Smartphone, PanelTop, FileText, Music, Type, 
   Users, Eye, Trash2, Zap, HardDrive, Headphones, Palette,
-  ArrowRight, Image, Maximize2
+  ArrowRight, Image, Maximize2, Mic
 } from 'lucide-react'
 
 export interface ComponentMetadata {
@@ -265,6 +265,24 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
     icon: Edit,
     exportName: 'AutoResizeTextarea',
     path: '/design-system/component/auto-resize-textarea'
+  },
+  {
+    id: 'recording-textarea',
+    name: 'Recording Textarea',
+    description: 'Textarea with integrated audio/video recording, transcription, and S3 storage - powered by MediaRecorder',
+    category: 'UI',
+    icon: Mic,
+    exportName: 'RecordingTextarea',
+    path: '/design-system/component/recording-textarea'
+  },
+  {
+    id: 'media-recorder',
+    name: 'Media Recorder',
+    description: 'Standalone audio/video recorder with transcription, IndexedDB persistence, editing, and S3 storage - the core recording engine',
+    category: 'Media',
+    icon: Mic,
+    exportName: 'MediaRecorderComponent',
+    path: '/design-system/component/media-recorder'
   },
   {
     id: 'select',

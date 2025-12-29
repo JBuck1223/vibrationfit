@@ -1,7 +1,7 @@
 "use client"
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Spinner, Badge, Container, Stack, VersionBadge, StatusBadge, PageHero } from '@/lib/design-system/components'
+import { Button, Card, Spinner, Badge, Container, Stack, VersionBadge, StatusBadge, PageHero, Toggle } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
 import { Headphones, CheckCircle, Play, CalendarDays, Moon, Zap, Sparkles, Plus, Music, X, AlertCircle, Wand2, Mic, Clock, Eye, Music2, ListMusic } from 'lucide-react'
 import Link from 'next/link'
@@ -135,6 +135,10 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
   // Audio preview
   const [previewingTrack, setPreviewingTrack] = useState<string | null>(null)
   const audioRef = React.useRef<HTMLAudioElement | null>(null)
+  
+  // Recommended Combos
+  const [recommendedCombos, setRecommendedCombos] = useState<any[]>([])
+  const [mixMode, setMixMode] = useState<'recommended' | 'custom'>('recommended')
   
   // Old variant system (kept for backwards compatibility)
   const [selectedMixVariants, setSelectedMixVariants] = useState<string[]>([])
@@ -280,6 +284,22 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
       }
     }
 
+    // Load recommended combos (available to all users)
+    const { data: combos } = await supabase
+      .from('audio_recommended_combos')
+      .select(`
+        *,
+        background_track:audio_background_tracks!background_track_id(*),
+        mix_ratio:audio_mix_ratios!mix_ratio_id(*),
+        binaural_track:audio_background_tracks!binaural_track_id(*)
+      `)
+      .eq('is_active', true)
+      .order('sort_order')
+    
+    if (combos) {
+      setRecommendedCombos(combos)
+    }
+
     // Load old mix variants for backwards compatibility
     const { data: variants } = await supabase
       .from('audio_variants')
@@ -315,6 +335,25 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
     }
 
     setLoading(false)
+  }
+
+  function applyRecommendedCombo(combo: any) {
+    // Auto-fill all settings from the combo
+    setSelectedBackgroundTrack(combo.background_track_id)
+    setSelectedMixRatio(combo.mix_ratio_id)
+    
+    if (combo.binaural_track_id) {
+      setSelectedBinauralTrack(combo.binaural_track_id)
+      setBinauralVolume(combo.binaural_volume || 15)
+    } else {
+      setSelectedBinauralTrack('')
+      setBinauralVolume(0)
+    }
+    
+    // Scroll to the generate button
+    setTimeout(() => {
+      document.querySelector('#generate-custom-mix-button')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 100)
   }
 
   async function handleGenerateVoiceOnly() {
@@ -396,7 +435,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
       }).catch(err => {
         console.error('Generation API error:', err)
       })
-
+      
       // Redirect to queue page immediately
       console.log('Redirecting to queue page:', `/life-vision/${visionId}/audio/queue/${batch.id}`)
       router.push(`/life-vision/${visionId}/audio/queue/${batch.id}`)
@@ -1009,14 +1048,111 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
           {/* Divider */}
           <div className="my-12 border-t border-neutral-700/50"></div>
 
-          {/* SECTION 2: Select Background Track & Mix Ratio */}
-          <div className="flex flex-col items-center text-center mb-8">
-            <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mb-3">
-              <span className="text-3xl font-bold text-purple-400">2</span>
-            </div>
-            <h2 className="text-xl md:text-2xl font-semibold text-white">Create Custom Mix</h2>
-            <p className="text-sm text-neutral-400">Choose a background track and mix ratio for your voice recording.</p>
-          </div>
+          {/* SECTION 2: Mix Mode Toggle */}
+          {existingVoiceSets.length > 0 && (
+            <>
+              <div className="flex flex-col items-center text-center mb-8">
+                <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mb-3">
+                  <span className="text-3xl font-bold text-purple-400">2</span>
+                </div>
+                <h2 className="text-xl md:text-2xl font-semibold text-white">Create Custom Mix</h2>
+                <p className="text-sm text-neutral-400 mb-6">Choose how you want to create your mix.</p>
+                
+                <Toggle
+                  value={mixMode}
+                  onChange={setMixMode}
+                  options={[
+                    { value: 'recommended', label: 'Recommended Combos' },
+                    { value: 'custom', label: 'Build My Own' }
+                  ]}
+                />
+              </div>
+
+              {/* RECOMMENDED COMBOS MODE */}
+              {mixMode === 'recommended' && recommendedCombos.length > 0 && (
+                <>
+                  <div id="recommended-combos-section" className="flex flex-col items-center text-center mb-6">
+                    <h3 className="text-lg md:text-xl font-semibold text-white mb-2">✨ Quick Presets</h3>
+                    <p className="text-sm text-neutral-400 max-w-2xl">
+                      Curated mixes designed for optimal results. Click a combo to auto-fill settings and generate.
+                    </p>
+                  </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                {recommendedCombos.map((combo) => (
+                  <Card
+                    key={combo.id}
+                    variant="elevated"
+                    hover
+                    className="p-6 cursor-pointer transition-all"
+                    onClick={() => applyRecommendedCombo(combo)}
+                  >
+                    <div className="flex items-start gap-3 mb-3">
+                      <div className="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Music2 className="w-5 h-5 text-primary-500" />
+                      </div>
+                      <div className="flex-1 text-left">
+                        <h3 className="text-lg font-semibold text-white mb-1">{combo.name}</h3>
+                        {combo.description && (
+                          <p className="text-xs text-neutral-400">{combo.description}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-left">
+                      {/* Background Track */}
+                      <div className="flex items-center gap-2 text-sm">
+                        <Music className="w-4 h-4 text-neutral-500 flex-shrink-0" />
+                        <span className="text-neutral-400">Background:</span>
+                        <span className="text-white font-medium">
+                          {combo.background_track?.display_name || 'Unknown'}
+                        </span>
+                      </div>
+
+                      {/* Mix Ratio */}
+                      <div className="flex items-center gap-2 text-sm">
+                        <ListMusic className="w-4 h-4 text-neutral-500 flex-shrink-0" />
+                        <span className="text-neutral-400">Ratio:</span>
+                        <span className="text-primary-400 font-semibold">
+                          {combo.mix_ratio?.voice_volume}% / {combo.mix_ratio?.bg_volume}%
+                          {combo.binaural_volume > 0 && ` / ${combo.binaural_volume}%`}
+                        </span>
+                      </div>
+
+                      {/* Binaural (if present) */}
+                      {combo.binaural_track_id && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Sparkles className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                          <span className="text-neutral-400">Binaural:</span>
+                          <span className="text-purple-400 font-medium">
+                            {combo.binaural_track?.display_name || 'Unknown'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      className="w-full mt-4"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        applyRecommendedCombo(combo)
+                      }}
+                    >
+                      <Wand2 className="w-4 h-4 mr-2" />
+                      Use This Mix
+                    </Button>
+                  </Card>
+                ))}
+              </div>
+
+                </>
+              )}
+
+              {/* CUSTOM BUILD MODE */}
+              {mixMode === 'custom' && (
+                <>
 
           <div className={existingVoiceSets.length === 0 ? 'opacity-50 pointer-events-none' : ''}>
             {existingVoiceSets.length === 0 ? (
@@ -1398,6 +1534,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
               {/* Generate Button */}
               <div className="flex justify-center">
                 <Button 
+                  id="generate-custom-mix-button"
                   variant="primary" 
                   onClick={(e) => {
                     e.preventDefault()
@@ -1423,6 +1560,10 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
             </>
             )}
           </div>
+                </>
+              )}
+            </>
+          )}
         </Card>
 
       </Stack>

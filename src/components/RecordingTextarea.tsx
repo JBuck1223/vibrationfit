@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Mic, Video, Loader2, X } from 'lucide-react'
+import { Mic, Video, Loader2, X, Square } from 'lucide-react'
 import { Textarea, Button } from '@/lib/design-system/components'
 import { MediaRecorderComponent } from './MediaRecorder'
 import { uploadAndTranscribeRecording } from '@/lib/services/recordingService'
@@ -49,6 +49,18 @@ export function RecordingTextarea({
   const [isUploading, setIsUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  
+  // Quick mode inline recording state
+  const [isQuickRecording, setIsQuickRecording] = useState(false)
+  const [quickRecordingDuration, setQuickRecordingDuration] = useState(0)
+  const [quickAudioLevel, setQuickAudioLevel] = useState(0)
+  const quickMediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const quickStreamRef = useRef<MediaStream | null>(null)
+  const quickChunksRef = useRef<Blob[]>([])
+  const quickTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const quickAudioContextRef = useRef<AudioContext | null>(null)
+  const quickAnalyserRef = useRef<AnalyserNode | null>(null)
+  const quickAnimationFrameRef = useRef<number | null>(null)
 
   // Auto-resize textarea function
   const autoResizeTextarea = () => {
@@ -158,6 +170,167 @@ export function RecordingTextarea({
     onChange(newValue)
   }
 
+  // Quick mode: Start inline recording immediately
+  const startQuickRecording = async () => {
+    try {
+      setUploadError(null)
+      
+      // Request default microphone (no device selection)
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      quickStreamRef.current = stream
+      
+      // Set up audio level monitoring
+      const audioContext = new AudioContext()
+      quickAudioContextRef.current = audioContext
+      
+      const analyser = audioContext.createAnalyser()
+      analyser.fftSize = 256
+      quickAnalyserRef.current = analyser
+      
+      const source = audioContext.createMediaStreamSource(stream)
+      source.connect(analyser)
+      
+      const dataArray = new Uint8Array(analyser.frequencyBinCount)
+      
+      // Update audio level in animation frame
+      const updateLevel = () => {
+        if (!quickAnalyserRef.current) return
+        
+        analyser.getByteFrequencyData(dataArray)
+        const average = dataArray.reduce((a, b) => a + b) / dataArray.length
+        const normalizedLevel = Math.min(100, (average / 255) * 100)
+        setQuickAudioLevel(normalizedLevel)
+        
+        quickAnimationFrameRef.current = requestAnimationFrame(updateLevel)
+      }
+      updateLevel()
+      
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+          ? 'audio/webm;codecs=opus' 
+          : 'audio/webm'
+      })
+      
+      quickMediaRecorderRef.current = mediaRecorder
+      quickChunksRef.current = []
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          quickChunksRef.current.push(event.data)
+        }
+      }
+      
+      mediaRecorder.onstop = async () => {
+        // Stop audio level monitoring
+        if (quickAnimationFrameRef.current) {
+          cancelAnimationFrame(quickAnimationFrameRef.current)
+        }
+        if (quickAudioContextRef.current) {
+          quickAudioContextRef.current.close()
+        }
+        setQuickAudioLevel(0)
+        
+        // Stop stream
+        if (quickStreamRef.current) {
+          quickStreamRef.current.getTracks().forEach(track => track.stop())
+        }
+        
+        // Create blob
+        const blob = new Blob(quickChunksRef.current, { type: 'audio/webm' })
+        
+        if (blob.size === 0) {
+          setUploadError('Recording failed - no data captured')
+          setIsQuickRecording(false)
+          setQuickRecordingDuration(0)
+          return
+        }
+        
+        // Transcribe
+        setIsUploading(true)
+        try {
+          const formData = new FormData()
+          formData.append('audio', blob, 'recording.webm')
+          
+          const response = await fetch('/api/transcribe', {
+            method: 'POST',
+            body: formData
+          })
+          
+          if (!response.ok) {
+            throw new Error('Transcription failed')
+          }
+          
+          const data = await response.json()
+          const transcript = data.transcript || ''
+          
+          // Insert transcript into textarea
+          const newValue = value 
+            ? `${value}\n\n${transcript}`
+            : transcript
+          onChange(newValue)
+        } catch (err) {
+          console.error('Quick transcription error:', err)
+          setUploadError('Failed to transcribe audio. Please try again.')
+        } finally {
+          setIsUploading(false)
+          setIsQuickRecording(false)
+          setQuickRecordingDuration(0)
+        }
+      }
+      
+      mediaRecorder.start(1000)
+      setIsQuickRecording(true)
+      setQuickRecordingDuration(0)
+      
+      // Start timer
+      quickTimerRef.current = setInterval(() => {
+        setQuickRecordingDuration(prev => prev + 1)
+      }, 1000)
+      
+    } catch (err: any) {
+      console.error('Quick recording error:', err)
+      let errorMessage = 'Failed to access microphone.'
+      
+      if (err.name === 'NotAllowedError') {
+        errorMessage = 'Microphone permission denied. Please allow microphone access.'
+      } else if (err.name === 'NotFoundError') {
+        errorMessage = 'No microphone found. Please connect a microphone.'
+      }
+      
+      setUploadError(errorMessage)
+      setIsQuickRecording(false)
+    }
+  }
+
+  // Quick mode: Stop recording
+  const stopQuickRecording = () => {
+    if (quickTimerRef.current) {
+      clearInterval(quickTimerRef.current)
+    }
+    
+    if (quickMediaRecorderRef.current && isQuickRecording) {
+      quickMediaRecorderRef.current.stop()
+    }
+  }
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (quickTimerRef.current) {
+        clearInterval(quickTimerRef.current)
+      }
+      if (quickAnimationFrameRef.current) {
+        cancelAnimationFrame(quickAnimationFrameRef.current)
+      }
+      if (quickAudioContextRef.current) {
+        quickAudioContextRef.current.close()
+      }
+      if (quickStreamRef.current) {
+        quickStreamRef.current.getTracks().forEach(track => track.stop())
+      }
+    }
+  }, [])
+
   const resolvedPlaceholder = placeholder ?? 'Type or transcribe audio.'
 
   return (
@@ -184,13 +357,18 @@ export function RecordingTextarea({
         />
         
         {/* Recording Buttons */}
-        {!showRecorder && (
+        {!showRecorder && !isQuickRecording && (
           <div className="absolute bottom-3 right-3 flex gap-2">
             <button
               type="button"
               onClick={() => {
-                setRecordingMode('audio')
-                setShowRecorder(true)
+                // Quick mode: start inline recording immediately
+                if (recordingPurpose === 'quick') {
+                  startQuickRecording()
+                } else {
+                  setRecordingMode('audio')
+                  setShowRecorder(true)
+                }
               }}
               disabled={disabled || isUploading}
               className="p-2 bg-neutral-600 hover:bg-white text-white hover:text-neutral-700 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -214,13 +392,52 @@ export function RecordingTextarea({
             )}
           </div>
         )}
+        
+        {/* Quick Mode: Inline Recording Indicator */}
+        {isQuickRecording && (
+          <div className="absolute bottom-3 right-3 flex items-center gap-2">
+            <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/30 rounded-full">
+              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              
+              {/* Audio Level Bars */}
+              <div className="flex items-center gap-0.5 h-4">
+                {[0, 1, 2, 3].map((i) => {
+                  const barHeight = Math.min(100, quickAudioLevel + (i * 5))
+                  const isActive = barHeight > (i * 25)
+                  return (
+                    <div
+                      key={i}
+                      className="w-1 bg-primary-500 rounded-full transition-all duration-100"
+                      style={{
+                        height: isActive ? `${Math.max(20, barHeight)}%` : '20%',
+                        opacity: isActive ? 1 : 0.3
+                      }}
+                    />
+                  )
+                })}
+              </div>
+              
+              <span className="text-xs font-mono text-red-400">
+                {Math.floor(quickRecordingDuration / 60)}:{(quickRecordingDuration % 60).toString().padStart(2, '0')}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={stopQuickRecording}
+              className="p-2 bg-red-500 hover:bg-red-400 text-white rounded-full transition-colors"
+              title="Stop recording"
+            >
+              <Square className="w-4 h-4 fill-white" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Upload Status */}
       {isUploading && (
         <div className="flex items-center gap-2 text-primary-500 text-sm">
           <Loader2 className="w-4 h-4 animate-spin" />
-          <span>Saving recording and transcript...</span>
+          <span>{recordingPurpose === 'quick' ? 'Transcribing...' : 'Saving recording and transcript...'}</span>
         </div>
       )}
 
@@ -231,8 +448,8 @@ export function RecordingTextarea({
         </div>
       )}
 
-      {/* Recording Interface */}
-      {showRecorder && (
+      {/* Recording Interface - Only show for non-quick modes */}
+      {showRecorder && recordingPurpose !== 'quick' && (
         <div className="relative">
           <button
             type="button"
