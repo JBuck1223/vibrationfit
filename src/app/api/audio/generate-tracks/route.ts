@@ -27,7 +27,7 @@ const supabaseAdmin = createSupabaseClient(
   }
 )
 
-export const maxDuration = 900 // 15 minutes for generation
+export const maxDuration = 800 // 13.3 minutes for generation (Vercel Pro limit)
 
 export async function POST(request: NextRequest) {
   const { type, selectedSolfeggio, selectedBrainwaves } = await request.json()
