@@ -92,6 +92,181 @@ export async function generateImage({
 }
 
 /**
+ * Edit an existing image using fal.ai nano-banana/edit
+ */
+export async function editImage({
+  userId,
+  imageUrl,
+  prompt,
+  dimension = 'square',
+  quality = 'standard',
+  style = 'vivid',
+  context = 'custom',
+}: {
+  userId: string
+  imageUrl: string
+  prompt: string
+  dimension?: ImageDimension
+  quality?: 'standard' | 'hd'
+  style?: 'vivid' | 'natural'
+  context?: string
+}): Promise<GenerateImageResult> {
+  const falModel = 'fal-ai/nano-banana/edit'
+  
+  // Get cost from ai_model_pricing table
+  // Cost is calculated as: price_per_unit (in dollars) * 100 = cents
+  // Tokens calculated as: cents * 1000 (user's pricing: 1000 tokens per cent)
+  const supabase = await createClient()
+  const { data: pricingData } = await supabase
+    .from('ai_model_pricing')
+    .select('price_per_unit')
+    .eq('model_name', falModel)
+    .eq('is_active', true)
+    .single()
+  
+  const costInCents = pricingData?.price_per_unit ? pricingData.price_per_unit * 100 : 4.0
+  const tokensForImage = Math.round(costInCents * 1000)
+  const aspectRatio = dimensionToFalSize(dimension)
+
+  try {
+    if (!process.env.FAL_KEY) {
+      return {
+        success: false,
+        error: 'FAL_KEY not configured for image editing',
+        provider: 'fal',
+      }
+    }
+
+    console.log('✏️ fal.ai: Editing image...', {
+      userId,
+      model: falModel,
+      dimension: dimension,
+      aspectRatio: aspectRatio,
+      costInCents,
+      tokensCharged: tokensForImage,
+    })
+
+    // Ensure fal is configured with credentials
+    fal.config({ credentials: process.env.FAL_KEY })
+
+    const result = await fal.subscribe(falModel, {
+      input: {
+        prompt,
+        image_urls: [imageUrl],
+        aspect_ratio: aspectRatio,
+        num_images: 1,
+      },
+      logs: false,
+    })
+
+    // Handle response structure
+    const responseData = (result as any).data || result
+    const editedImageUrl = responseData?.images?.[0]?.url
+
+    if (!editedImageUrl) {
+      console.error('❌ fal.ai: No image URL in edit response:', result)
+      return {
+        success: false,
+        error: 'No image URL returned from fal.ai edit',
+        provider: 'fal',
+      }
+    }
+
+    // Track token usage
+    // Note: tokens_used = cost_in_cents * 1000 (pricing: 1000 tokens per cent)
+    // input_tokens = 1 (1 image unit), not prompt length
+    await trackTokenUsage({
+      user_id: userId,
+      action_type: 'image_generation', // Track as image_generation for consistency
+      model_used: falModel,
+      tokens_used: tokensForImage,
+      input_tokens: 1, // 1 image unit (used by calculate_ai_cost with price_per_unit)
+      output_tokens: 0,
+      success: true,
+      metadata: {
+        context: `edit_${context}`,
+        prompt: prompt.substring(0, 200),
+        aspect_ratio: aspectRatio,
+        quality,
+        style,
+        provider: 'fal',
+        cost_cents: costInCents,
+      },
+    })
+
+    console.log('✅ fal.ai: Image edited successfully', { 
+      model: falModel, 
+      costInCents,
+      tokensCharged: tokensForImage,
+    })
+
+    // Save edited image to gallery
+    const supabase = await createClient()
+    if (supabase) {
+      const galleryResult = await saveImageToGallery({
+        userId,
+        imageUrl: editedImageUrl,
+        prompt,
+        revisedPrompt: undefined,
+        size: aspectRatio,
+        quality,
+        style,
+        context: `edit_${context}`,
+        provider: 'fal',
+      })
+
+      if (galleryResult.galleryId) {
+        console.log('✅ Edited image saved to gallery:', galleryResult.galleryId)
+      }
+
+      return {
+        success: true,
+        imageUrl: editedImageUrl,
+        revisedPrompt: undefined,
+        tokensUsed: tokensForImage,
+        galleryId: galleryResult.galleryId,
+        provider: 'fal',
+      }
+    }
+
+    return {
+      success: true,
+      imageUrl: editedImageUrl,
+      tokensUsed: tokensForImage,
+      provider: 'fal',
+    }
+  } catch (error: any) {
+    console.error('❌ fal.ai edit error:', error)
+
+    // Track failed usage (don't charge tokens on failure)
+    await trackTokenUsage({
+      user_id: userId,
+      action_type: 'image_generation',
+      model_used: falModel,
+      tokens_used: 0,
+      input_tokens: 0,
+      output_tokens: 0,
+      success: false,
+      error_message: error.message || 'Failed to edit image',
+      metadata: {
+        context: `edit_${context}`,
+        prompt: prompt.substring(0, 200),
+        aspect_ratio: aspectRatio,
+        quality,
+        style,
+        provider: 'fal',
+      },
+    })
+
+    return {
+      success: false,
+      error: error.message || 'Failed to edit image with fal.ai',
+      provider: 'fal',
+    }
+  }
+}
+
+/**
  * Convert dimension to DALL-E size format
  */
 function dimensionToDalleSize(dimension: ImageDimension): '1024x1024' | '1792x1024' | '1024x1792' {
@@ -113,7 +288,7 @@ function dimensionToDalleSize(dimension: ImageDimension): '1024x1024' | '1792x10
 // ============================================================================
 
 /**
- * Generate an image using fal.ai Flux
+ * Generate an image using fal.ai (nano-banana model for hyper-realistic results)
  */
 async function generateImageWithFal({
   userId,
@@ -124,25 +299,22 @@ async function generateImageWithFal({
   context = 'custom',
   model: modelPreference,
 }: Omit<GenerateImageParams, 'provider' | 'size'>): Promise<GenerateImageResult> {
-  // Map model preference to fal.ai model ID (defined outside try for error tracking)
-  // schnell = fastest (~2s), dev = balanced (~4s), pro = highest quality (~8s)
-  const modelMap: Record<FalModel, string> = {
-    schnell: 'fal-ai/flux/schnell',
-    dev: 'fal-ai/flux/dev',
-    pro: 'fal-ai/flux-pro/v1.1-ultra',
-  }
+  // Use nano-banana for hyper-realistic image generation
+  const falModel = 'fal-ai/nano-banana'
   
-  // Use model preference if provided, otherwise fall back to quality-based selection
-  const selectedModel = modelPreference || (quality === 'hd' ? 'pro' : 'dev')
-  const falModel = modelMap[selectedModel as FalModel] || modelMap.dev
+  // Get cost from ai_model_pricing table
+  // Cost is calculated as: price_per_unit (in dollars) * 100 = cents
+  // Tokens calculated as: cents * 1000 (user's pricing: 1000 tokens per cent)
+  const supabase = await createClient()
+  const { data: pricingData } = await supabase
+    .from('ai_model_pricing')
+    .select('price_per_unit')
+    .eq('model_name', falModel)
+    .eq('is_active', true)
+    .single()
   
-  // Approximate cost in cents (fal.ai pricing)
-  const costMap: Record<FalModel, number> = {
-    schnell: 0.3,  // ~$0.003/image
-    dev: 2.5,      // ~$0.025/image
-    pro: 5,        // ~$0.05/image
-  }
-  const costInCents = costMap[selectedModel as FalModel] || 2.5
+  const costInCents = pricingData?.price_per_unit ? pricingData.price_per_unit * 100 : 4.0
+  const tokensForImage = Math.round(costInCents * 1000)
   
   // Map dimension to fal.ai image_size format (before try block for error handling)
   const falImageSize = dimensionToFalSize(dimension)
@@ -157,7 +329,8 @@ async function generateImageWithFal({
     console.log('🎨 fal.ai: Generating image...', {
       userId,
       model: falModel,
-      size: falImageSize,
+      dimension: dimension,
+      aspectRatio: falImageSize,
       costInCents,
     })
 
@@ -167,9 +340,8 @@ async function generateImageWithFal({
     const result = await fal.subscribe(falModel, {
       input: {
         prompt,
-        image_size: falImageSize,
+        aspect_ratio: falImageSize, // nano-banana uses aspect_ratio, not image_size
         num_images: 1,
-        enable_safety_checker: true,
       },
       logs: false,
     })
@@ -188,14 +360,15 @@ async function generateImageWithFal({
     }
 
     // Track token usage
+    // Note: tokens_used = cost_in_cents * 1000 (pricing: 1000 tokens per cent)
+    // input_tokens = 1 (1 image unit), not prompt length
     await trackTokenUsage({
       user_id: userId,
       action_type: 'image_generation',
       model_used: falModel,
-      tokens_used: 1,
-      input_tokens: prompt.length,
+      tokens_used: tokensForImage,
+      input_tokens: 1, // 1 image unit (used by calculate_ai_cost with price_per_unit)
       output_tokens: 0,
-      actual_cost_cents: costInCents,
       success: true,
       metadata: {
         context,
@@ -204,12 +377,14 @@ async function generateImageWithFal({
         quality,
         style,
         provider: 'fal',
+        cost_cents: costInCents,
       },
     })
 
     console.log('✅ fal.ai: Image generated successfully', {
       model: falModel,
       costInCents,
+      tokensCharged: tokensForImage,
     })
 
     // Save to gallery (S3 + database)
@@ -237,7 +412,7 @@ async function generateImageWithFal({
     return {
       success: true,
       imageUrl: permanentImageUrl,
-      tokensUsed: 1,
+      tokensUsed: tokensForImage,
       galleryId,
       provider: 'fal',
     }
@@ -245,12 +420,14 @@ async function generateImageWithFal({
   } catch (error: any) {
     console.error('❌ fal.ai ERROR:', error)
     
+    // Don't charge tokens on failure
     await trackTokenUsage({
       user_id: userId,
       action_type: 'image_generation',
       model_used: falModel,
       tokens_used: 0,
-      actual_cost_cents: 0,
+      input_tokens: 0,
+      output_tokens: 0,
       success: false,
       error_message: error.message || 'Failed to generate image',
       metadata: {
@@ -277,20 +454,21 @@ async function generateImageWithFal({
 /**
  * Convert dimension to fal.ai image_size format
  */
-function dimensionToFalSize(dimension: ImageDimension): string {
+function dimensionToFalSize(dimension: ImageDimension): '1:1' | '4:3' | '16:9' | '3:4' | '9:16' | '21:9' | '2:3' | '3:2' | '4:5' | '5:4' {
+  // nano-banana uses aspect_ratio format like "1:1", "4:3", "16:9", etc.
   switch (dimension) {
     case 'square':
-      return 'square_hd'
+      return '1:1'
     case 'landscape_4_3':
-      return 'landscape_4_3'
+      return '4:3'
     case 'landscape_16_9':
-      return 'landscape_16_9'
+      return '16:9'
     case 'portrait_4_3':
-      return 'portrait_4_3'
+      return '3:4'
     case 'portrait_16_9':
-      return 'portrait_16_9'
+      return '9:16'
     default:
-      return 'square_hd'
+      return '1:1'
   }
 }
 

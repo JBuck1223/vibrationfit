@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { generateImage, generateVisionBoardImage, generateJournalImage } from '@/lib/services/imageService'
+import { generateImage, generateVisionBoardImage, generateJournalImage, editImage } from '@/lib/services/imageService'
 import { validateTokenBalance, getDefaultTokenEstimate } from '@/lib/tokens/tracking'
 
 export async function POST(request: NextRequest) {
@@ -20,11 +20,15 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { type, prompt, visionText, category, journalText, mood, size, quality, style, model, dimension } = body
+    const { type, prompt, visionText, category, journalText, mood, size, quality, style, model, dimension, imageUrl, imageDataUri } = body
 
     console.log('🎨 IMAGE GENERATION REQUEST:', {
       userId: user.id,
       type,
+      dimension,
+      model,
+      quality,
+      style,
       prompt: prompt ? prompt.substring(0, 100) + '...' : 'No prompt',
     })
 
@@ -109,9 +113,38 @@ CRITICAL REQUIREMENTS:
         })
         break
 
+      case 'edit':
+        if (!prompt) {
+          return NextResponse.json(
+            { error: 'Missing edit prompt' },
+            { status: 400 }
+          )
+        }
+        
+        // Use imageDataUri (base64) or imageUrl - fal.ai accepts both
+        const finalImageUrl = imageDataUri || imageUrl
+        
+        if (!finalImageUrl) {
+          return NextResponse.json(
+            { error: 'Missing image for editing' },
+            { status: 400 }
+          )
+        }
+        
+        result = await editImage({
+          userId: user.id,
+          imageUrl: finalImageUrl,
+          prompt,
+          quality: quality || 'standard',
+          style: style || 'vivid',
+          context: 'edit',
+          dimension: dimension || 'square',
+        })
+        break
+
       default:
         return NextResponse.json(
-          { error: 'Invalid type. Must be: vision_board, journal, or custom' },
+          { error: 'Invalid type. Must be: vision_board, journal, custom, or edit' },
           { status: 400 }
         )
     }

@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Card, Input, Button, Badge, CategoryCard, PageHero, Container, Stack } from '@/lib/design-system'
+import { Card, Input, Button, Badge, CategoryCard, PageHero, Container, Stack, Modal } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
-import { Sparkles, Upload, CheckCircle, XCircle, Filter } from 'lucide-react'
+import { Sparkles, Upload, CheckCircle, XCircle, Filter, ImageIcon } from 'lucide-react'
 import { VISION_CATEGORIES, LIFE_CATEGORY_KEYS } from '@/lib/design-system/vision-categories'
 import { colors } from '@/lib/design-system/tokens'
 
@@ -33,6 +33,8 @@ export default function NewVisionBoardItemPage() {
   const [actualizedFile, setActualizedFile] = useState<File | null>(null)
   const [actualizedAiGeneratedImageUrl, setActualizedAiGeneratedImageUrl] = useState<string | null>(null)
   const [actualizedImageSource, setActualizedImageSource] = useState<'upload' | 'ai' | null>(null)
+  const [showImageReminderModal, setShowImageReminderModal] = useState(false)
+  const [imageReminderMessage, setImageReminderMessage] = useState('')
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -112,6 +114,18 @@ export default function NewVisionBoardItemPage() {
           alert('Upload failed. Please try again or contact support if the issue persists.')
           return
         }
+      } else if (!imageUrl) {
+        // No image provided - show modal
+        if (imageSource === 'ai') {
+          setImageReminderMessage('Please click the "Generate Image" button before saving.')
+        } else if (imageSource === 'upload') {
+          setImageReminderMessage('Please select an image file before saving.')
+        } else {
+          setImageReminderMessage('Please either upload an image or generate one before saving.')
+        }
+        setShowImageReminderModal(true)
+        setLoading(false)
+        return
       }
 
       // Get actualized image URL if status is actualized
@@ -562,6 +576,30 @@ export default function NewVisionBoardItemPage() {
             </form>
           </Card>
       </Stack>
+
+      {/* Image Reminder Modal */}
+      <Modal
+        isOpen={showImageReminderModal}
+        onClose={() => setShowImageReminderModal(false)}
+        title="No Image Attached"
+      >
+        <div className="space-y-4">
+          <div className="flex justify-center">
+            <ImageIcon className="w-16 h-16 text-primary-500" />
+          </div>
+          <p className="text-neutral-300 text-center">
+            {imageReminderMessage}
+          </p>
+          <div className="flex justify-center">
+            <Button
+              onClick={() => setShowImageReminderModal(false)}
+              variant="primary"
+            >
+              Got It
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </Container>
   )
 }

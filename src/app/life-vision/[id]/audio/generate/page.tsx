@@ -104,6 +104,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
   const [visionId, setVisionId] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
+  const [generatingComboId, setGeneratingComboId] = useState<string | null>(null)
   const [voices, setVoices] = useState<Voice[]>([])
   const [existingVoiceSets, setExistingVoiceSets] = useState<ExistingVoiceSet[]>([])
   const [mixVariants, setMixVariants] = useState<MixVariant[]>([])
@@ -337,23 +338,130 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
     setLoading(false)
   }
 
-  function applyRecommendedCombo(combo: any) {
-    // Auto-fill all settings from the combo
-    setSelectedBackgroundTrack(combo.background_track_id)
-    setSelectedMixRatio(combo.mix_ratio_id)
-    
-    if (combo.binaural_track_id) {
-      setSelectedBinauralTrack(combo.binaural_track_id)
-      setBinauralVolume(combo.binaural_volume || 15)
-    } else {
-      setSelectedBinauralTrack('')
-      setBinauralVolume(0)
+  async function applyRecommendedCombo(combo: any) {
+    if (!selectedBaseVoice) {
+      alert('Please select a base voice first (Step 1)')
+      return
     }
     
-    // Scroll to the generate button
-    setTimeout(() => {
-      document.querySelector('#generate-custom-mix-button')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    }, 100)
+    // Verify that voice-only tracks exist for this voice
+    const selectedVoiceSet = existingVoiceSets.find(set => set.voice_id === selectedBaseVoice)
+    if (!selectedVoiceSet || selectedVoiceSet.track_count === 0) {
+      alert('⚠️ No voice-only tracks found. Please generate voice-only tracks first (Step 1) before creating mixes.')
+      return
+    }
+
+    setGeneratingComboId(combo.id)
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        alert('You must be logged in to generate audio')
+        setGeneratingComboId(null)
+        return
+      }
+
+      // Get vision data for sections
+      const { data: vv } = await supabase
+        .from('vision_versions')
+        .select('*')
+        .eq('id', visionId)
+        .single()
+
+      if (!vv) {
+        alert('Vision not found')
+        setGeneratingComboId(null)
+        return
+      }
+
+      const categoryKeys = getVisionCategoryKeys().filter(k => k !== 'forward' && k !== 'conclusion')
+      const sections = [
+        { key: 'forward', text: vv.forward || '' },
+        ...categoryKeys.map(key => ({ key, text: vv[key] || '' })),
+        { key: 'conclusion', text: vv.conclusion || '' }
+      ].filter(s => s.text.trim().length > 0)
+
+      const sectionsPayload = sections.map(s => ({
+        sectionKey: s.key,
+        text: s.text
+      }))
+
+      // Use combo values directly
+      const selectedTrack = combo.background_track
+      const selectedRatio = combo.mix_ratio
+      const selectedBinaural = combo.binaural_track
+
+      // Create batch with custom mix metadata
+      const { data: batch, error: batchError } = await supabase
+        .from('audio_generation_batches')
+        .insert({
+          user_id: user.id,
+          vision_id: visionId,
+          variant_ids: ['custom'],
+          voice_id: selectedBaseVoice,
+          sections_requested: sectionsPayload,
+          total_tracks_expected: sectionsPayload.length,
+          status: 'pending',
+          metadata: {
+            custom_mix: true,
+            background_track_id: combo.background_track_id,
+            background_track_url: selectedTrack.file_url,
+            mix_ratio_id: combo.mix_ratio_id,
+            voice_volume: selectedRatio.voice_volume,
+            bg_volume: selectedRatio.bg_volume,
+            // Optional binaural enhancement
+            ...(combo.binaural_track_id && {
+              binaural_track_id: combo.binaural_track_id,
+              binaural_track_url: selectedBinaural.file_url,
+              binaural_volume: combo.binaural_volume || 15
+            })
+          }
+        })
+        .select()
+        .single()
+
+      if (batchError || !batch) {
+        console.error('Batch creation error:', batchError)
+        alert('Failed to create generation batch')
+        setGeneratingComboId(null)
+        return
+      }
+
+      console.log('✅ Batch created:', batch.id)
+
+      // Trigger custom mix generation API
+      fetch(`/api/audio/generate-custom-mix`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          visionId,
+          batchId: batch.id,
+          voice: selectedBaseVoice,
+          sections: sectionsPayload,
+          backgroundTrackUrl: selectedTrack.file_url,
+          voiceVolume: selectedRatio.voice_volume,
+          bgVolume: selectedRatio.bg_volume,
+          binauralTrackUrl: selectedBinaural?.file_url || null,
+          binauralVolume: combo.binaural_volume || 0
+        })
+      }).then(res => {
+        if (!res.ok) {
+          console.error('Generation API error:', res.status)
+        }
+      }).catch(err => {
+        console.error('Generation API error:', err)
+      })
+
+      // Redirect to queue page immediately
+      console.log('Redirecting to queue page:', `/life-vision/${visionId}/audio/queue/${batch.id}`)
+      router.push(`/life-vision/${visionId}/audio/queue/${batch.id}`)
+      
+    } catch (err) {
+      console.error('Error generating custom mix:', err)
+      alert('Failed to generate mix. Please try again.')
+      setGeneratingComboId(null)
+    }
   }
 
   async function handleGenerateVoiceOnly() {
@@ -1084,8 +1192,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                     key={combo.id}
                     variant="elevated"
                     hover
-                    className="p-6 cursor-pointer transition-all"
-                    onClick={() => applyRecommendedCombo(combo)}
+                    className="p-6 transition-all"
                   >
                     <div className="flex items-start gap-3 mb-3">
                       <div className="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -1135,13 +1242,23 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                       variant="primary"
                       size="sm"
                       className="w-full mt-4"
+                      disabled={generatingComboId !== null}
                       onClick={(e) => {
                         e.stopPropagation()
                         applyRecommendedCombo(combo)
                       }}
                     >
-                      <Wand2 className="w-4 h-4 mr-2" />
-                      Use This Mix
+                      {generatingComboId === combo.id ? (
+                        <>
+                          <Spinner size="sm" className="mr-2" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Wand2 className="w-4 h-4 mr-2" />
+                          Generate This Mix
+                        </>
+                      )}
                     </Button>
                   </Card>
                 ))}

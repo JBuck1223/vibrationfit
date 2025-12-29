@@ -59,11 +59,17 @@ export function OptimizedVideo({
   const [isVisible, setIsVisible] = useState(!lazy)
   const [quality, setQuality] = useState<'720p' | '1080p' | 'original'>('1080p')
   const [connectionQuality, setConnectionQuality] = useState<'high' | 'medium' | 'low'>('high')
+  const [mounted, setMounted] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  // Prevent hydration mismatch - only run client-side logic after mount
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Lazy loading with Intersection Observer
   useEffect(() => {
-    if (!lazy || !containerRef.current) return
+    if (!lazy || !containerRef.current || !mounted) return
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -76,10 +82,12 @@ export function OptimizedVideo({
 
     observer.observe(containerRef.current)
     return () => observer.disconnect()
-  }, [lazy])
+  }, [lazy, mounted])
 
-  // Adaptive quality based on screen size
+  // Adaptive quality based on screen size - only after mount
   useEffect(() => {
+    if (!mounted) return
+
     const updateQuality = () => {
       const width = window.innerWidth
       
@@ -95,10 +103,12 @@ export function OptimizedVideo({
     updateQuality()
     window.addEventListener('resize', updateQuality)
     return () => window.removeEventListener('resize', updateQuality)
-  }, [])
+  }, [mounted])
 
-  // Network-aware quality (if Network Information API available)
+  // Network-aware quality (if Network Information API available) - only after mount
   useEffect(() => {
+    if (!mounted) return
+
     // @ts-ignore - Network Information API
     const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection
     
@@ -126,7 +136,7 @@ export function OptimizedVideo({
         connection.removeEventListener('change', updateConnectionQuality)
       }
     }
-  }, [])
+  }, [mounted])
 
   // Get optimized video URL based on quality and format
   const getVideoUrl = () => {

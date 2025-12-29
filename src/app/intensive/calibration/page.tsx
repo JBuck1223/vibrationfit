@@ -63,7 +63,7 @@ export default function IntensiveCalibration() {
   const router = useRouter()
   const supabase = createClient()
 
-  // Generate available time slots (next 7 days)
+  // Generate available time slots (next 7 days) - client-side only to avoid hydration mismatch
   const generateTimeSlots = () => {
     const slots: TimeSlot[] = []
     const now = new Date()
@@ -80,12 +80,16 @@ export default function IntensiveCalibration() {
         '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'
       ]
       
-      daySlots.forEach(time => {
+      daySlots.forEach((time, index) => {
+        // Use deterministic availability based on index instead of Math.random()
+        // to avoid hydration mismatch. Pattern: 70% available
+        const isAvailable = (day + index) % 10 < 7
+        
         slots.push({
           id: `${date.toISOString().split('T')[0]}-${time}`,
           date: date.toISOString().split('T')[0],
           time: time,
-          available: Math.random() > 0.3, // 70% availability for demo
+          available: isAvailable,
           timezone: 'America/New_York'
         })
       })

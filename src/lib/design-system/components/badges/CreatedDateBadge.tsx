@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { cn } from '../shared-utils'
 
 interface CreatedDateBadgeProps {
@@ -14,13 +14,33 @@ export const CreatedDateBadge: React.FC<CreatedDateBadgeProps> = ({
   className = '',
   showTime = true 
 }) => {
+  const [mounted, setMounted] = useState(false)
+
+  // Prevent hydration mismatch by only formatting dates after mount
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   const date = new Date(createdAt)
-  const dateString = date.toLocaleDateString()
-  const timeString = date.toLocaleTimeString('en-US', { 
+  const dateString = mounted ? date.toLocaleDateString() : ''
+  const timeString = mounted ? date.toLocaleTimeString('en-US', { 
     hour: 'numeric', 
     minute: '2-digit', 
     hour12: true 
-  })
+  }) : ''
+
+  if (!mounted) {
+    // Return placeholder with same structure to prevent layout shift
+    return (
+      <div className={cn('flex items-center justify-center', className)}>
+        <div className="flex items-center px-3 py-2 md:px-5 bg-neutral-800/50 border border-neutral-700 rounded-lg">
+          <div className="text-xs md:text-sm">
+            <p className="text-white font-medium opacity-0">Loading...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={cn('flex items-center justify-center', className)}>

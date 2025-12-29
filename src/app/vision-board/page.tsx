@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
 import { Card, Button, Badge, CategoryCard, DeleteConfirmationDialog, ActionButtons, Icon, TrackingMilestoneCard, PageHero, Container, Stack, Spinner } from '@/lib/design-system'
@@ -10,6 +10,27 @@ import Link from 'next/link'
 import { Plus, Calendar, CheckCircle, Circle, XCircle, Filter, Grid3X3, X, ChevronLeft, ChevronRight, Eye, List, Grid, CheckSquare, Square, Lightbulb } from 'lucide-react'
 import { useDeleteItem } from '@/hooks/useDeleteItem'
 
+// Hook to get responsive column count
+function useColumnCount() {
+  const [columnCount, setColumnCount] = useState(1)
+  
+  useEffect(() => {
+    const updateColumnCount = () => {
+      const width = window.innerWidth
+      if (width >= 1280) setColumnCount(4) // xl
+      else if (width >= 1024) setColumnCount(3) // lg
+      else if (width >= 640) setColumnCount(2) // sm
+      else setColumnCount(1)
+    }
+    
+    updateColumnCount()
+    window.addEventListener('resize', updateColumnCount)
+    return () => window.removeEventListener('resize', updateColumnCount)
+  }, [])
+  
+  return columnCount
+}
+
 const STATUS_OPTIONS = [
   { value: 'active', label: 'Active', color: 'primary' },
   { value: 'actualized', label: 'Actualized', color: 'warning' },
@@ -18,6 +39,7 @@ const STATUS_OPTIONS = [
 
 export default function VisionBoardPage() {
   const router = useRouter()
+  const columnCount = useColumnCount()
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedCategories, setSelectedCategories] = useState<string[]>(['all'])
@@ -85,6 +107,18 @@ export default function VisionBoardPage() {
       return categoryMatch && statusMatch
     })
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
+  // Distribute items horizontally across columns (row-first, then down)
+  // This creates Pinterest-style masonry that fills across the top first
+  const columnizedItems = useMemo(() => {
+    const columns: any[][] = Array.from({ length: columnCount }, () => [])
+    filteredItems.forEach((item, index) => {
+      // Round-robin distribution: item 0 -> col 0, item 1 -> col 1, etc.
+      const columnIndex = index % columnCount
+      columns[columnIndex].push({ ...item, originalIndex: index })
+    })
+    return columns
+  }, [filteredItems, columnCount])
 
 
   const totalItems = items?.length || 0
@@ -532,57 +566,61 @@ export default function VisionBoardPage() {
         ) : filteredItems && filteredItems.length > 0 ? (
           <>
             {viewMode === 'grid' ? (
-              /* Grid View */
-              <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6 space-y-6">
-                {filteredItems.map((item, index) => (
-                  <div 
-                    key={item.id} 
-                    className="group cursor-pointer break-inside-avoid mb-6"
-                    onClick={() => router.push(`/vision-board/${item.id}`)}
-                  >
-                    <div className="relative overflow-hidden rounded-lg bg-neutral-800 shadow-lg hover:shadow-xl transition-all duration-300">
-                      {(item.status === 'actualized' && item.actualized_image_url) ? (
-                        <img
-                          src={item.actualized_image_url}
-                          alt={item.name}
-                          className="w-full h-auto object-cover transition-transform duration-300 md:group-hover:scale-105"
-                          loading="lazy"
-                        />
-                      ) : item.image_url ? (
-                        <img
-                          src={item.image_url}
-                          alt={item.name}
-                          className="w-full h-auto object-cover transition-transform duration-300 md:group-hover:scale-105"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="w-full h-64 bg-neutral-800 rounded-lg flex items-center justify-center">
-                          <Grid3X3 className="w-12 h-12 text-neutral-600" />
-                        </div>
-                      )}
-                      
-                      {/* Status Badge */}
-                      <div className="absolute top-3 right-3">
-                        {getStatusBadge(item.status)}
-                      </div>
+              /* Grid View - Masonry with horizontal-first distribution */
+              <div className="flex gap-6">
+                {columnizedItems.map((column, columnIndex) => (
+                  <div key={columnIndex} className="flex-1 flex flex-col gap-6">
+                    {column.map((item) => (
+                      <div 
+                        key={item.id} 
+                        className="group cursor-pointer"
+                        onClick={() => router.push(`/vision-board/${item.id}`)}
+                      >
+                        <div className="relative overflow-hidden rounded-lg bg-neutral-800 shadow-lg hover:shadow-xl transition-all duration-300">
+                          {(item.status === 'actualized' && item.actualized_image_url) ? (
+                            <img
+                              src={item.actualized_image_url}
+                              alt={item.name}
+                              className="w-full h-auto object-cover transition-transform duration-300 md:group-hover:scale-105"
+                              loading="lazy"
+                            />
+                          ) : item.image_url ? (
+                            <img
+                              src={item.image_url}
+                              alt={item.name}
+                              className="w-full h-auto object-cover transition-transform duration-300 md:group-hover:scale-105"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="w-full h-64 bg-neutral-800 rounded-lg flex items-center justify-center">
+                              <Grid3X3 className="w-12 h-12 text-neutral-600" />
+                            </div>
+                          )}
+                          
+                          {/* Status Badge */}
+                          <div className="absolute top-3 right-3">
+                            {getStatusBadge(item.status)}
+                          </div>
 
-                      {/* Actualized Indicator */}
-                      {item.status === 'actualized' && (
-                        <div className="absolute top-3 left-3">
-                          <div className="bg-purple-500 text-white p-1 rounded-full">
-                            <CheckCircle className="w-4 h-4" />
+                          {/* Actualized Indicator */}
+                          {item.status === 'actualized' && (
+                            <div className="absolute top-3 left-3">
+                              <div className="bg-purple-500 text-white p-1 rounded-full">
+                                <CheckCircle className="w-4 h-4" />
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Hover Overlay - Desktop Only, Just Button */}
+                          <div className="hidden md:flex absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 items-center justify-center">
+                            <Button size="sm" variant="secondary" className="text-xs px-4 py-2">
+                              <Eye className="w-4 h-4 mr-2" />
+                              View Details
+                            </Button>
                           </div>
                         </div>
-                      )}
-
-                      {/* Hover Overlay - Desktop Only, Just Button */}
-                      <div className="hidden md:flex absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 items-center justify-center">
-                        <Button size="sm" variant="secondary" className="text-xs px-4 py-2">
-                          <Eye className="w-4 h-4 mr-2" />
-                          View Details
-                        </Button>
                       </div>
-                    </div>
+                    ))}
                   </div>
                 ))}
               </div>

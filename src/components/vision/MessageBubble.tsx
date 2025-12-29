@@ -1,6 +1,6 @@
 "use client"
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Sparkles } from 'lucide-react'
 
 interface MessageBubbleProps {
@@ -12,6 +12,17 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ role, content, timestamp, emotionScore }: MessageBubbleProps) {
   const isUser = role === 'user'
+  const [mounted, setMounted] = useState(false)
+
+  // Prevent hydration mismatch by only rendering timestamp after mount
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Format timestamp only on client to avoid hydration mismatch
+  const formattedTime = mounted && timestamp 
+    ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : ''
 
   if (isUser) {
     // User message - right-aligned with bubble
@@ -21,9 +32,9 @@ export function MessageBubble({ role, content, timestamp, emotionScore }: Messag
           <div className="bg-neutral-800 text-white border border-neutral-700 px-5 py-3 rounded-2xl rounded-br-md">
             <p className="text-base leading-relaxed whitespace-pre-wrap">{content}</p>
           </div>
-          {timestamp && (
+          {mounted && timestamp && (
             <p className="text-xs text-neutral-500 mt-1 text-right">
-              {new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {formattedTime}
             </p>
           )}
         </div>
@@ -58,9 +69,9 @@ export function MessageBubble({ role, content, timestamp, emotionScore }: Messag
           {content}
         </div>
 
-        {timestamp && (
+        {mounted && timestamp && (
           <p className="text-xs text-neutral-600 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            {new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {formattedTime}
           </p>
         )}
       </div>

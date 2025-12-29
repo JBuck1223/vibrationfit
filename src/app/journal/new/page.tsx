@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Card, Input, Button, CategoryCard, DatePicker, PageHero, Container, Stack } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
@@ -35,11 +35,19 @@ export default function NewJournalEntryPage() {
   const [imageSource, setImageSource] = useState<'upload' | 'ai' | null>(null)
   const [audioRecordings, setAudioRecordings] = useState<any[]>([])
   const [formData, setFormData] = useState({
-    date: new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD format in local timezone
+    date: '', // Will be set after mount to avoid hydration mismatch
     title: '',
     content: '',
     categories: [] as string[]
   })
+
+  // Set initial date after mount to avoid hydration mismatch
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      date: new Date().toLocaleDateString('en-CA') // YYYY-MM-DD format in local timezone
+    }))
+  }, [])
 
   const handleCategoryToggle = (category: string) => {
     setFormData(prev => ({
@@ -54,7 +62,7 @@ export default function NewJournalEntryPage() {
     // Reset form to create another entry
     setShowSuccess(false)
     setFormData({
-      date: new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD format in local timezone
+      date: new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD format - safe here as it's triggered by user action
       title: '',
       content: '',
       categories: []
