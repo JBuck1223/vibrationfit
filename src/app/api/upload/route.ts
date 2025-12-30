@@ -109,8 +109,10 @@ export async function POST(request: NextRequest) {
     console.log(`Starting upload for ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
 
     // Check if this is a video file (by MIME type or extension for mobile compatibility)
+    // Note: webm is NOT in videoExtensions because it can be audio-only OR video
+    // We rely on MIME type (audio/webm vs video/webm) to distinguish
     const extension = file.name.split('.').pop()?.toLowerCase() || ''
-    const videoExtensions = ['mp4', 'mov', 'webm', 'avi', 'm4v', '3gp', '3g2']
+    const videoExtensions = ['mp4', 'mov', 'avi', 'm4v', '3gp', '3g2']
     const isVideoFile = file.type.startsWith('video/') || videoExtensions.includes(extension)
     
     console.log('🔍 Upload decision:', {

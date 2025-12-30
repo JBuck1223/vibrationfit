@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import WaveSurfer from 'wavesurfer.js'
 import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.esm.js'
-import { Button } from '@/lib/design-system/components'
+import { Button, IconList } from '@/lib/design-system/components'
 import { Scissors, Save, Play, Pause, Trash2, Info, Loader2, X, ZoomIn, ZoomOut, Maximize2, ChevronDown, ChevronUp } from 'lucide-react'
 
 interface AudioEditorProps {
@@ -24,6 +24,20 @@ export function AudioEditor({ audioBlob, onSave, onCancel }: AudioEditorProps) {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [zoomLevel, setZoomLevel] = useState(50) // Start at 50 pixels per second
   const [showInstructions, setShowInstructions] = useState(false)
+
+  // Keyboard shortcuts - Delete/Backspace to cut selected region
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Delete or Backspace key
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedRegion && !isProcessing) {
+        e.preventDefault() // Prevent browser back navigation on Backspace
+        deleteSelectedRegion()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedRegion, isProcessing])
 
   useEffect(() => {
     if (!waveformRef.current) return
@@ -493,36 +507,36 @@ export function AudioEditor({ audioBlob, onSave, onCancel }: AudioEditorProps) {
         </div>
         
         {/* Instructions - Collapsible */}
-        <div className="bg-[#199D67]/10 border border-[#199D67]/30 rounded-lg mb-4">
+        <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg mb-4 overflow-hidden">
           <button
             type="button"
             onClick={() => setShowInstructions(!showInstructions)}
-            className="w-full p-4 flex items-center justify-between hover:bg-[#199D67]/5 transition-colors"
+            className="w-full p-4 flex items-center justify-between hover:bg-neutral-800/70 transition-colors text-left"
           >
-            <div className="flex items-center gap-2">
-              <Info className="w-5 h-5 text-[#199D67]" />
-              <span className="text-sm font-semibold text-white">
-                How to edit
-              </span>
-            </div>
+            <span className="text-sm font-semibold text-white">How to edit</span>
             {showInstructions ? (
-              <ChevronUp className="w-5 h-5 text-[#199D67]" />
+              <ChevronUp className="w-5 h-5 text-neutral-400" />
             ) : (
-              <ChevronDown className="w-5 h-5 text-[#199D67]" />
+              <ChevronDown className="w-5 h-5 text-neutral-400" />
             )}
           </button>
           
           {showInstructions && (
-            <div className="px-4 pb-4 pt-0">
-              <ol className="text-sm text-neutral-300 space-y-1.5 list-decimal list-inside">
-                <li><span className="text-white font-medium">Mark sections:</span> Click "Mark Section to Cut" to add a red region</li>
-                <li><span className="text-white font-medium">Adjust markers:</span> Drag the edges of red regions to select what to remove</li>
-                <li><span className="text-white font-medium">Preview:</span> Click a region to select and preview that section</li>
-                <li><span className="text-white font-medium">Multiple cuts:</span> Add more regions to cut multiple sections</li>
-                <li><span className="text-white font-medium">Apply cuts:</span> Click "Cut Marked Sections" to remove the red areas</li>
-                <li><span className="text-white font-medium">Zoom:</span> Use zoom controls to see fine details or get an overview</li>
-              </ol>
-              <p className="text-[#FFB701] text-xs mt-3 font-medium">
+            <div className="px-4 pb-4">
+              <IconList
+                items={[
+                  'Mark sections: Click "Mark Section to Cut" to add a red region',
+                  'Adjust markers: Drag the edges of red regions to select what to remove',
+                  'Preview: Click a region to select and preview that section',
+                  'Delete: Click the red X button or press Delete/Backspace on your keyboard',
+                  'Multiple cuts: Add more regions to cut multiple sections',
+                  'Zoom: Use zoom controls to see fine details or get an overview'
+                ]}
+                bulletColor="text-primary-500"
+                textColor="text-neutral-300"
+                spacing="tight"
+              />
+              <p className="text-[#FFB701] text-sm mt-3 font-medium">
                 💡 Red regions show what will be REMOVED. Everything else is kept.
               </p>
             </div>

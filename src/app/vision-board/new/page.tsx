@@ -16,7 +16,7 @@ const STATUS_OPTIONS = [
   { value: 'active', label: 'Active' },
   { value: 'actualized', label: 'Actualized' },
   { value: 'inactive', label: 'Inactive' },
-]
+] as const
 
 export default function NewVisionBoardItemPage() {
   const router = useRouter()

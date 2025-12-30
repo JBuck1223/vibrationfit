@@ -15,6 +15,7 @@ import { uploadRecording } from '@/lib/services/recordingService'
 import { USER_FOLDERS } from '@/lib/storage/s3-storage-presigned'
 import SimpleLevelMeter from '@/components/SimpleLevelMeter'
 import { AudioEditor } from '@/components/AudioEditor'
+import { IconList } from '@/lib/design-system/components'
 
 type RecordingPurpose = 'quick' | 'transcriptOnly' | 'withFile' | 'audioOnly'
 
@@ -120,6 +121,15 @@ export function MediaRecorderComponent({
 
   // Load audio devices on mount (for microphone selection)
   useEffect(() => {
+    // Check if mediaDevices API is available (requires HTTPS on mobile)
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      console.warn('⚠️ Media devices API not available. This usually means:')
+      console.warn('  1. You are not on HTTPS (required for mobile)')
+      console.warn('  2. Browser does not support media capture')
+      console.warn('  3. Permissions are blocked by browser settings')
+      return
+    }
+
     const loadDevices = async () => {
       try {
         // Request permission first
@@ -149,9 +159,14 @@ export function MediaRecorderComponent({
     loadDevices()
     
     // Listen for device changes (plug/unplug)
-    navigator.mediaDevices.addEventListener('devicechange', loadDevices)
+    if (navigator.mediaDevices.addEventListener) {
+      navigator.mediaDevices.addEventListener('devicechange', loadDevices)
+    }
+    
     return () => {
-      navigator.mediaDevices.removeEventListener('devicechange', loadDevices)
+      if (navigator.mediaDevices && navigator.mediaDevices.removeEventListener) {
+        navigator.mediaDevices.removeEventListener('devicechange', loadDevices)
+      }
     }
   }, [])
 
@@ -162,10 +177,39 @@ export function MediaRecorderComponent({
         return
       }
 
+      // Reset state when section changes
+      console.log('🔄 Section changed, resetting state...', { category, instanceId })
+      
+      // Clear current recording state
+      if (recordedUrl) {
+        URL.revokeObjectURL(recordedUrl)
+      }
+      setRecordedBlob(null)
+      setRecordedUrl(null)
+      setS3Url(null)
+      setDuration(0)
+      setTranscript('')
+      setError(null)
+      setIsRecording(false)
+      setIsPaused(false)
+      setHasSavedRecording(false)
+      setPreviousChunks([])
+      setPreviousDuration(0)
+      setShowEditor(false)
+      setShowInstructions(false)
+      chunksRef.current = []
+      durationRef.current = 0
+      transcriptRef.current = ''
+      lastSaveSizeRef.current = 0
+      
+      // Generate new recording ID for this section
+      recordingIdRef.current = generateRecordingId(instanceId ? `${category}-${instanceId}` : category)
+
       try {
         console.log('🔍 Checking for saved recording:', {
           generatedId: recordingIdRef.current,
           category: category,
+          instanceId: instanceId,
           mode: mode
         })
         
@@ -262,11 +306,6 @@ export function MediaRecorderComponent({
           chunksRef.current = validChunks // Use only valid chunks for now
           
           if (saved.blob && saved.blob instanceof Blob && saved.blob.size > 0) {
-            // Revoke any existing URL to prevent memory leaks
-            if (recordedUrl) {
-              URL.revokeObjectURL(recordedUrl)
-            }
-            
             setRecordedBlob(saved.blob)
             const url = URL.createObjectURL(saved.blob)
             setRecordedUrl(url)
@@ -291,7 +330,8 @@ export function MediaRecorderComponent({
             hasChunks: !!saved?.chunks,
             isArray: Array.isArray(saved?.chunks),
             chunkCount: saved?.chunks?.length || 0,
-            category: category
+            category: category,
+            instanceId: instanceId
           })
         }
       } catch (error) {
@@ -310,7 +350,7 @@ export function MediaRecorderComponent({
     }
 
     checkForSavedRecording()
-  }, [category])
+  }, [category, instanceId])
 
   useEffect(() => {
     return () => {
@@ -418,7 +458,15 @@ export function MediaRecorderComponent({
       
       // Check if getUserMedia is supported
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Your browser does not support media recording. Please use Chrome, Firefox, or Safari.')
+        // Detect if on mobile to provide specific error
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        
+        if (isMobile && !isLocalhost && window.location.protocol !== 'https:') {
+          throw new Error('Camera/microphone access requires HTTPS on mobile devices. Please access this site via https:// or contact support.')
+        } else {
+          throw new Error('Your browser does not support media recording. Please use Chrome, Firefox, or Safari.')
+        }
       }
 
       const constraints = mode === 'video' 
@@ -919,15 +967,17 @@ export function MediaRecorderComponent({
     <div className={`space-y-4 ${className}`}>
       {/* Recording Controls */}
       {!recordedBlob && !(recordingPurpose === 'quick' && transcript) && (
-        <div className={`bg-neutral-900 border-2 rounded-2xl flex flex-col transition-colors ${
+        <div className={`bg-neutral-900 border-2 rounded-2xl transition-all ${
           isRecording 
             ? 'border-[#FF0040]' 
             : 'border-[#39FF14]'
         } ${
-          // Compact when idle, expand when engaged
-          isRecording || countdown !== null || isPreparing || hasSavedRecording || (mode === 'video' && isRecording)
-            ? 'p-6 min-h-[400px] justify-center'
-            : 'p-4 justify-start'
+          // Vertical centering when recording/countdown
+          isRecording || countdown !== null || isPreparing
+            ? 'p-4 min-h-[200px] flex items-center justify-center'
+            : hasSavedRecording
+              ? 'p-4 flex flex-col'
+              : 'p-4 flex flex-col'
         }`}>
           {/* Video Preview */}
           {mode === 'video' && (isRecording || isPreparing) && (
@@ -1033,62 +1083,66 @@ export function MediaRecorderComponent({
             </div>
           )}
 
-          {/* Countdown with Circular Level Meter (for audio mode) */}
+          {/* Countdown with Circular Level Meter (for audio mode) - Centered */}
           {countdown !== null && mode === 'audio' && streamRef.current && (
-            <div className="mb-4 flex justify-center items-center relative">
-              <SimpleLevelMeter stream={streamRef.current} circular />
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="text-6xl font-bold text-red-500 animate-pulse">
-                  {countdown}
+            <div className="w-full flex justify-center items-center">
+              <div className="relative flex justify-center items-center">
+                <SimpleLevelMeter stream={streamRef.current} circular />
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="text-6xl font-bold text-red-500 animate-pulse">
+                    {countdown}
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Timer with Circular Level Meter and Controls */}
+          {/* Timer with Circular Level Meter and Controls - Centered */}
           {isRecording && countdown === null && streamRef.current && (
-            <div className="mb-4 flex justify-center items-center gap-6">
-              {/* Pause/Resume Button */}
-              {!isPaused ? (
-                <button
-                  type="button"
-                  onClick={pauseRecording}
-                  className="w-12 h-12 rounded-full bg-primary-500 hover:bg-primary-400 flex items-center justify-center transition-all duration-300 hover:scale-110"
-                >
-                  <div className="flex gap-1">
-                    <div className="w-1 h-4 bg-black rounded-sm" />
-                    <div className="w-1 h-4 bg-black rounded-sm" />
-                  </div>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={resumeRecording}
-                  className="w-12 h-12 rounded-full bg-primary-500 hover:bg-primary-400 flex items-center justify-center transition-all duration-300 hover:scale-110"
-                >
-                  <Play className="w-5 h-5 text-black fill-black" />
-                </button>
-              )}
-              
-              {/* Circular Meter with Timer */}
-              <div className="relative flex items-center justify-center">
-                <SimpleLevelMeter stream={streamRef.current} circular />
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="text-center">
-                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse mx-auto mb-1" />
-                    <div className="text-white font-mono text-xs">{formatDuration(duration)}</div>
+            <div className="w-full flex justify-center items-center">
+              <div className="flex justify-center items-center gap-6">
+                {/* Pause/Resume Button */}
+                {!isPaused ? (
+                  <button
+                    type="button"
+                    onClick={pauseRecording}
+                    className="w-12 h-12 rounded-full bg-primary-500 hover:bg-primary-400 flex items-center justify-center transition-all duration-300 hover:scale-110"
+                  >
+                    <div className="flex gap-1">
+                      <div className="w-1 h-4 bg-black rounded-sm" />
+                      <div className="w-1 h-4 bg-black rounded-sm" />
+                    </div>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={resumeRecording}
+                    className="w-12 h-12 rounded-full bg-primary-500 hover:bg-primary-400 flex items-center justify-center transition-all duration-300 hover:scale-110"
+                  >
+                    <Play className="w-5 h-5 text-black fill-black" />
+                  </button>
+                )}
+                
+                {/* Circular Meter with Timer */}
+                <div className="relative flex items-center justify-center">
+                  <SimpleLevelMeter stream={streamRef.current} circular />
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="text-center">
+                      <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse mx-auto mb-1" />
+                      <div className="text-white font-mono text-xs">{formatDuration(duration)}</div>
+                    </div>
                   </div>
                 </div>
+                
+                {/* Stop Button */}
+                <button
+                  type="button"
+                  onClick={stopRecording}
+                  className="w-12 h-12 rounded-full bg-red-500 hover:bg-red-400 flex items-center justify-center transition-all duration-300 hover:scale-110"
+                >
+                  <div className="w-4 h-4 bg-white rounded-sm" />
+                </button>
               </div>
-              
-              {/* Stop Button */}
-              <button
-                type="button"
-                onClick={stopRecording}
-                className="w-12 h-12 rounded-full bg-red-500 hover:bg-red-400 flex items-center justify-center transition-all duration-300 hover:scale-110"
-              >
-                <div className="w-4 h-4 bg-white rounded-sm" />
-              </button>
             </div>
           )}
 
@@ -1351,49 +1405,52 @@ export function MediaRecorderComponent({
         <div className="bg-neutral-900 border-2 border-[#FFB701] rounded-2xl p-6 space-y-4">
           <h3 className="text-lg font-semibold text-white mb-2">Recording Complete</h3>
 
-          {/* Instructions - Collapsible toggle for transcriptOnly mode */}
-          {recordingPurpose === 'transcriptOnly' ? (
-            <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg overflow-hidden">
-              <button
-                type="button"
-                onClick={() => setShowInstructions(!showInstructions)}
-                className="w-full flex items-center justify-between p-4 text-left hover:bg-neutral-800/70 transition-colors"
-              >
-                <span className="text-sm font-semibold text-white">How to use</span>
-                {showInstructions ? (
-                  <ChevronUp className="w-5 h-5 text-neutral-400" />
-                ) : (
-                  <ChevronDown className="w-5 h-5 text-neutral-400" />
-                )}
-              </button>
-              {showInstructions && (
-                <div className="px-4 pb-4 space-y-2">
-                  <div className="flex items-start gap-2">
-                    <span className="text-primary-500 font-bold mt-0.5">1.</span>
-                    <p className="text-sm text-neutral-300">Click Transcribe to convert speech to text</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-primary-500 font-bold mt-0.5">2.</span>
-                    <p className="text-sm text-neutral-300">Your text will appear in the text field above</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-primary-500 font-bold mt-0.5">3.</span>
-                    <p className="text-sm text-neutral-300">Use the page's Save button to save your changes</p>
-                  </div>
-                </div>
+          {/* Instructions - Collapsible toggle for all modes */}
+          <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowInstructions(!showInstructions)}
+              className="w-full flex items-center justify-between p-4 text-left hover:bg-neutral-800/70 transition-colors"
+            >
+              <span className="text-sm font-semibold text-white">How to use</span>
+              {showInstructions ? (
+                <ChevronUp className="w-5 h-5 text-neutral-400" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-neutral-400" />
               )}
-            </div>
-          ) : (
-            <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-4">
-              <ol className="space-y-2 text-sm text-neutral-300 list-decimal list-inside">
-                <li>Listen to your recording using the player below</li>
-                {mode === 'audio' && enableEditor && <li>If needed, click "Edit" to trim or remove sections</li>}
-                {recordingPurpose !== 'audioOnly' && <li>Click "Transcribe" to convert speech to text (required for saving)</li>}
-                {recordingPurpose !== 'audioOnly' && <li>Review the transcript, then click "Save" to keep your recording</li>}
-                {recordingPurpose === 'audioOnly' && <li>Click "Save" when you're satisfied with your recording</li>}
-              </ol>
-            </div>
-          )}
+            </button>
+            {showInstructions && (
+              <div className="px-4 pb-4">
+                {recordingPurpose === 'transcriptOnly' ? (
+                  <IconList
+                    items={[
+                      'Click Transcribe to convert speech to text',
+                      'Your text will appear in the text field above',
+                      "Use the page's Save button to save your changes"
+                    ]}
+                    bulletColor="text-primary-500"
+                    textColor="text-neutral-300"
+                    spacing="tight"
+                  />
+                ) : (
+                  <IconList
+                    items={[
+                      'Listen to your recording using the player below',
+                      ...(mode === 'audio' && enableEditor ? ['If needed, click "Edit" to trim or remove sections'] : []),
+                      ...(recordingPurpose !== 'audioOnly' ? [
+                        'Click "Transcribe" to convert speech to text (required for saving)',
+                        'Review the transcript, then click "Save" to keep your recording'
+                      ] : []),
+                      ...(recordingPurpose === 'audioOnly' ? ['Click "Save" when you\'re satisfied with your recording'] : [])
+                    ]}
+                    bulletColor="text-primary-500"
+                    textColor="text-neutral-300"
+                    spacing="tight"
+                  />
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Media Player */}
           {mode === 'video' ? (

@@ -1,12 +1,17 @@
 "use client"
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Container, Stack, Badge, Spinner, VersionBadge, StatusBadge, TrackingMilestoneCard, DeleteConfirmationDialog, Input, PageHero } from '@/lib/design-system/components'
-import { PlaylistPlayer, type AudioTrack } from '@/lib/design-system'
+import { Button, Card, Container, Stack, Badge, Spinner, VersionBadge, StatusBadge, TrackingMilestoneCard, DeleteConfirmationDialog, Input, PageHero, Toggle } from '@/lib/design-system/components'
+import { PlaylistPlayer, type AudioTrack as BaseAudioTrack } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { assessmentToVisionKey } from '@/lib/design-system/vision-categories'
 import { Play, Clock, CalendarDays, Moon, Zap, Sparkles, Headphones, Plus, ArrowRight, Trash2, Eye, Music, Wand2, Mic, Edit2, Check, X } from 'lucide-react'
 import Link from 'next/link'
+
+// Extend AudioTrack with sectionKey for Life Vision audio
+interface AudioTrack extends BaseAudioTrack {
+  sectionKey: string
+}
 
 interface AudioSet {
   id: string
@@ -38,6 +43,7 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
   const [setToDelete, setSetToDelete] = useState<{ id: string, name: string } | null>(null)
   const [editingSetId, setEditingSetId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
+  const [playMode, setPlayMode] = useState<'sections' | 'full'>('sections')
 
   useEffect(() => {
     ;(async () => {
@@ -162,7 +168,9 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
         is_active: set.is_active,
         created_at: set.created_at,
         track_count: set.audio_tracks?.[0]?.count || 0,
-        isReady: !!(hasCompletedVoice && (set.variant === 'standard' || hasCompletedMixing)),
+        // Personal recordings and standard (voice-only) are ready if they have completed tracks
+        // Other variants need completed mixing
+        isReady: !!(hasCompletedVoice && (set.variant === 'standard' || set.variant === 'personal' || hasCompletedMixing)),
         isMixing: !!isMixing,
         mixRatio,
         backgroundTrack,
@@ -244,18 +252,24 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
     
     const formattedTracks: AudioTrack[] = tracks
       .map(track => {
-        // For "standard" (Voice Only) variant, ALWAYS use audio_url
-        // For other variants, use mixed_audio_url if available and completed
-        const isVoiceOnly = audioSet?.variant === 'standard'
-        const url = !isVoiceOnly && track.mixed_audio_url && track.mix_status === 'completed' 
+        // For "standard" (Voice Only) and "personal" (User Recording) variants, ALWAYS use audio_url
+        // For other variants (mixed versions), use mixed_audio_url if available and completed
+        const useDirectAudio = audioSet?.variant === 'standard' || audioSet?.variant === 'personal'
+        const url = !useDirectAudio && track.mixed_audio_url && track.mix_status === 'completed' 
           ? track.mixed_audio_url 
           : track.audio_url
+        
+        // Ensure duration is a valid number (handle null, undefined, NaN, Infinity)
+        const rawDuration = track.duration_seconds
+        const validDuration = typeof rawDuration === 'number' && isFinite(rawDuration) && rawDuration > 0 
+          ? rawDuration 
+          : 0
         
         return {
           id: track.id,
           title: sectionMap.get(track.section_key) || track.section_key,
           artist: '',
-          duration: track.duration_seconds || 0,
+          duration: validDuration,
           url: url || '',
           thumbnail: '',
           sectionKey: track.section_key
@@ -707,9 +721,42 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
                       <Spinner size="lg" />
                     </div>
                   ) : audioTracks.length > 0 ? (
-                    <div className="rounded-2xl p-4 md:p-6 bg-[#1F1F1F] border-2 border-[#333]">
-                      <PlaylistPlayer 
-                        tracks={audioTracks}
+                    <>
+                      {(() => {
+                        const sectionTracks = audioTracks.filter(t => t.sectionKey !== 'full')
+                        const fullTrack = audioTracks.find(t => t.sectionKey === 'full')
+                        const hasFullTrack = !!fullTrack
+                        const displayTracks = playMode === 'sections' ? sectionTracks : (fullTrack ? [fullTrack] : [])
+
+                        const formatDuration = (seconds: number) => {
+                          // Handle invalid values
+                          if (!seconds || !isFinite(seconds) || isNaN(seconds)) {
+                            return '0:00'
+                          }
+                          const mins = Math.floor(seconds / 60)
+                          const secs = Math.floor(seconds % 60)
+                          return `${mins}:${secs.toString().padStart(2, '0')}`
+                        }
+
+                        return (
+                          <>
+                            {/* Play Mode Toggle */}
+                            {hasFullTrack && (
+                              <div className="flex justify-center mb-6">
+                                <Toggle
+                                  value={playMode}
+                                  onChange={setPlayMode}
+                                  options={[
+                                    { value: 'sections', label: `${sectionTracks.length} Sections` },
+                                    { value: 'full', label: `Full Track (${fullTrack.duration ? formatDuration(fullTrack.duration) : '~15 min'})` }
+                                  ]}
+                                />
+                              </div>
+                            )}
+
+                            <div className="rounded-2xl p-4 md:p-6 bg-[#1F1F1F] border-2 border-[#333]">
+                              <PlaylistPlayer 
+                        tracks={displayTracks}
                         setIcon={
                           <div className={`p-2 rounded-lg ${getVariantColor(audioSets.find(s => s.id === selectedAudioSetId)?.variant || '')}`}>
                             {getVariantIcon(audioSets.find(s => s.id === selectedAudioSetId)?.variant || '')}
@@ -724,10 +771,14 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
                           // Otherwise fall back to variant display info
                           return getVariantDisplayInfo(selectedSet?.variant || 'standard').title
                         })()}
-                        trackCount={audioTracks.length}
+                        trackCount={displayTracks.length}
                         createdDate={new Date(audioSets.find(s => s.id === selectedAudioSetId)?.created_at || '').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       />
-                    </div>
+                            </div>
+                          </>
+                        )
+                      })()}
+                    </>
                   ) : (
                     <Card variant="glass" className="p-8 text-center">
                       <Music className="w-12 h-12 text-neutral-600 mx-auto mb-4" />

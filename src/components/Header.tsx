@@ -149,7 +149,7 @@ export function Header() {
                 </button>
 
                 {/* Account Dropdown */}
-                {openDropdown === 'account' && buttonRect && typeof window !== 'undefined' && createPortal(
+                {mounted && openDropdown === 'account' && buttonRect && createPortal(
                   <div
                     className="fixed bg-neutral-900 border border-neutral-800 rounded-2xl shadow-xl py-2 w-72"
                     style={{

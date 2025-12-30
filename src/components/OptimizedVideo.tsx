@@ -245,8 +245,16 @@ export function OptimizedVideo({
  */
 export function useVideoQuality() {
   const [quality, setQuality] = useState<'720p' | '1080p' | 'original'>('1080p')
+  const [mounted, setMounted] = useState(false)
+
+  // Prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
+    if (!mounted) return
+
     const updateQuality = () => {
       const width = window.innerWidth
       
@@ -262,7 +270,7 @@ export function useVideoQuality() {
     updateQuality()
     window.addEventListener('resize', updateQuality)
     return () => window.removeEventListener('resize', updateQuality)
-  }, [])
+  }, [mounted])
 
   return quality
 }

@@ -61,6 +61,12 @@ interface DashboardContentProps {
 
 export default function DashboardContent({ user, profileData, visionData, visionBoardData, journalData, assessmentData = [], profileCount, audioSetsCount, refinementsCount, storageQuotaGB }: DashboardContentProps) {
   const [storageUsed, setStorageUsed] = useState(0)
+  const [mounted, setMounted] = useState(false)
+
+  // Prevent hydration mismatch for date formatting
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     async function fetchStorageUsage() {
@@ -110,6 +116,16 @@ export default function DashboardContent({ user, profileData, visionData, vision
   }
 
   const completionPercentage = calculateCompletionManually(profileData)
+
+  // Safe date formatting that prevents hydration mismatch
+  const formatDate = (dateString: string) => {
+    if (!mounted) return '' // Return empty string during SSR
+    return new Date(dateString).toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric'
+    })
+  }
 
   // Create recent activity data
   const recentActivity = [
@@ -175,13 +191,9 @@ export default function DashboardContent({ user, profileData, visionData, vision
                 </div>
                 <div className="flex flex-col items-center md:items-start">
                   <h3 className="text-lg font-bold text-white">Profile</h3>
-                  {profileData?.updated_at && (
+                  {profileData?.updated_at && mounted && (
                     <p className="text-xs text-neutral-400">
-                      Last Updated: {new Date(profileData.updated_at).toLocaleDateString('en-US', { 
-                        month: 'short', 
-                        day: 'numeric', 
-                        year: 'numeric'
-                      })}
+                      Last Updated: {formatDate(profileData.updated_at)}
                     </p>
                   )}
                 </div>
@@ -233,11 +245,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
                 <div className="flex flex-col items-center md:items-start">
                   <h3 className="text-lg font-bold text-white">Life Vision</h3>
                   <p className="text-xs text-neutral-400">
-                    Last Updated: {visionData.find(v => v.is_active)?.updated_at ? new Date(visionData.find(v => v.is_active).updated_at).toLocaleDateString('en-US', { 
-                      month: 'short', 
-                      day: 'numeric', 
-                      year: 'numeric'
-                    }) : 'N/A'}
+                    Last Updated: {visionData.find(v => v.is_active)?.updated_at ? (mounted ? formatDate(visionData.find(v => v.is_active).updated_at) : '') : 'N/A'}
                   </p>
                 </div>
               </div>
@@ -306,13 +314,9 @@ export default function DashboardContent({ user, profileData, visionData, vision
                 </div>
                 <div className="flex flex-col items-center md:items-start">
                   <h3 className="text-lg font-bold text-white">Assessment</h3>
-                  {assessmentData.length > 0 && assessmentData[0]?.updated_at && (
+                  {assessmentData.length > 0 && assessmentData[0]?.updated_at && mounted && (
                     <p className="text-xs text-neutral-400">
-                      Last Updated: {new Date(assessmentData[0].updated_at).toLocaleDateString('en-US', { 
-                        month: 'short', 
-                        day: 'numeric', 
-                        year: 'numeric'
-                      })}
+                      Last Updated: {formatDate(assessmentData[0].updated_at)}
                     </p>
                   )}
                 </div>
@@ -374,13 +378,9 @@ export default function DashboardContent({ user, profileData, visionData, vision
                 </div>
                 <div className="flex flex-col items-center md:items-start">
                   <h3 className="text-lg font-bold text-white">Vision Board</h3>
-                  {visionBoardData.length > 0 && visionBoardData[0]?.updated_at && (
+                  {visionBoardData.length > 0 && visionBoardData[0]?.updated_at && mounted && (
                     <p className="text-xs text-neutral-400">
-                      Last Updated: {new Date(visionBoardData[0].updated_at).toLocaleDateString('en-US', { 
-                        month: 'short', 
-                        day: 'numeric', 
-                        year: 'numeric'
-                      })}
+                      Last Updated: {formatDate(visionBoardData[0].updated_at)}
                     </p>
                   )}
                 </div>
@@ -437,11 +437,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
                             {item.name || 'Untitled Item'}
                           </p>
                           <p className="text-xs text-neutral-400">
-                            {item.status === 'actualized' ? 'Actualized' : item.status === 'active' ? 'In Progress' : 'Paused'} • {new Date(item.created_at).toLocaleDateString('en-US', { 
-                              month: 'short', 
-                              day: 'numeric', 
-                              year: 'numeric'
-                            })}
+                            {item.status === 'actualized' ? 'Actualized' : item.status === 'active' ? 'In Progress' : 'Paused'}{mounted && ` • ${formatDate(item.created_at)}`}
                           </p>
                         </div>
                         <ArrowRight className="w-4 h-4 text-neutral-500 flex-shrink-0" />
@@ -477,13 +473,9 @@ export default function DashboardContent({ user, profileData, visionData, vision
                 </div>
                 <div className="flex flex-col items-center md:items-start">
                   <h3 className="text-lg font-bold text-white">Journal</h3>
-                  {journalData.length > 0 && journalData[0]?.updated_at && (
+                  {journalData.length > 0 && journalData[0]?.updated_at && mounted && (
                     <p className="text-xs text-neutral-400">
-                      Last Updated: {new Date(journalData[0].updated_at).toLocaleDateString('en-US', { 
-                        month: 'short', 
-                        day: 'numeric', 
-                        year: 'numeric'
-                      })}
+                      Last Updated: {formatDate(journalData[0].updated_at)}
                     </p>
                   )}
                 </div>
@@ -536,11 +528,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
                               {entry.title || 'Untitled Entry'}
                             </p>
                             <p className="text-xs text-neutral-400">
-                              {new Date(entry.created_at).toLocaleDateString('en-US', { 
-                                month: 'short', 
-                                day: 'numeric', 
-                                year: 'numeric'
-                              })}
+                              {mounted && formatDate(entry.created_at)}
                             </p>
                           </div>
                           <ArrowRight className="w-4 h-4 text-neutral-500 flex-shrink-0" />
@@ -598,7 +586,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
                         <p className="text-sm text-neutral-400">{activity.description}</p>
                       </div>
                       <span className="text-xs text-neutral-500">
-                        {new Date(activity.date).toLocaleDateString()}
+                        {mounted && formatDate(activity.date)}
                       </span>
                     </div>
                   )

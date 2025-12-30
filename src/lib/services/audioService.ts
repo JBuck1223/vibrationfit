@@ -711,6 +711,34 @@ export async function generateAudioTracks(params: {
       .catch(err => console.error('Failed to update final batch status:', err))
   }
 
+  // Trigger full voice generation for voice-only (standard) variant
+  if ((variant === 'standard' || !variant) && results.length === sections.length) {
+    const allSucceeded = results.every(r => r.status === 'generated' || r.status === 'skipped')
+    
+    if (allSucceeded && targetAudioSetId) {
+      console.log('🎵 [FULL VOICE] All voice-only tracks complete, triggering full voice generation...')
+      
+      // Trigger asynchronously (don't wait for it)
+      fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/audio/generate-full-voice`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          audioSetId: targetAudioSetId,
+          visionId,
+          userId
+        })
+      }).then(res => {
+        if (res.ok) {
+          console.log('✅ [FULL VOICE] Full voice generation triggered')
+        } else {
+          console.error('❌ [FULL VOICE] Full voice generation failed:', res.status)
+        }
+      }).catch(err => {
+        console.error('❌ [FULL VOICE] Full voice generation error:', err)
+      })
+    }
+  }
+
   return results
 }
 

@@ -54,6 +54,12 @@ export const ProfileVersionManager: React.FC<VersionManagerProps> = ({
   const [error, setError] = useState<string | null>(null)
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  // Prevent hydration mismatch for date formatting
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Fetch versions
   const fetchVersions = async () => {
@@ -165,6 +171,7 @@ export const ProfileVersionManager: React.FC<VersionManagerProps> = ({
   }
 
   const formatDate = (dateString: string) => {
+    if (!mounted) return '' // Return empty string during SSR
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',

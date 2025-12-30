@@ -25,6 +25,13 @@ interface Batch {
   started_at?: string
   completed_at?: string
   vision_id: string
+  metadata?: {
+    custom_mix?: boolean
+    background_track_id?: string
+    mix_ratio_id?: string
+    binaural_track_id?: string
+    binaural_volume?: number
+  }
 }
 
 interface TrackJob {
@@ -56,6 +63,12 @@ export default function AudioQueuePage({
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
   const [showCancelDialog, setShowCancelDialog] = useState(false)
   const [cancelling, setCancelling] = useState(false)
+  const [mixDetails, setMixDetails] = useState<{
+    backgroundTrack?: string
+    mixRatio?: string
+    binauralTrack?: string
+    binauralVolume?: number
+  }>({})
 
   useEffect(() => {
     ;(async () => {
@@ -70,17 +83,31 @@ export default function AudioQueuePage({
     loadBatchStatus()
   }, [visionId, batchId])
 
-  // Auto-refresh while processing
+  // Auto-refresh while processing OR mixing
   useEffect(() => {
     if (!batchId || !autoRefreshEnabled) return
-    if (!batch || !['pending', 'processing'].includes(batch.status)) return
+    
+    // Check if we should keep polling
+    const hasActiveTracks = tracks.some(t => 
+      t.status === 'pending' || 
+      t.status === 'processing' || 
+      t.mixStatus === 'pending' || 
+      t.mixStatus === 'mixing'
+    )
+    
+    const shouldPoll = batch && (
+      ['pending', 'processing'].includes(batch.status) || 
+      hasActiveTracks
+    )
+    
+    if (!shouldPoll) return
 
     const interval = setInterval(() => {
       loadBatchStatus()
     }, 3000) // Poll every 3 seconds
 
     return () => clearInterval(interval)
-  }, [batchId, batch?.status, autoRefreshEnabled])
+  }, [batchId, batch?.status, tracks, autoRefreshEnabled])
 
   const cancelBatch = async () => {
     if (!batch) return
@@ -150,6 +177,46 @@ export default function AudioQueuePage({
 
     setBatch(batchData)
 
+    // Load custom mix details if available
+    if (batchData.metadata?.custom_mix) {
+      const details: any = {}
+      
+      // Fetch background track name
+      if (batchData.metadata.background_track_id) {
+        const { data: bgTrack } = await supabase
+          .from('audio_background_tracks')
+          .select('display_name')
+          .eq('id', batchData.metadata.background_track_id)
+          .single()
+        if (bgTrack) details.backgroundTrack = bgTrack.display_name
+      }
+      
+      // Fetch mix ratio
+      if (batchData.metadata.mix_ratio_id) {
+        const { data: ratio } = await supabase
+          .from('audio_mix_ratios')
+          .select('voice_volume, bg_volume')
+          .eq('id', batchData.metadata.mix_ratio_id)
+          .single()
+        if (ratio) details.mixRatio = `${ratio.voice_volume}% / ${ratio.bg_volume}%`
+      }
+      
+      // Fetch binaural track name
+      if (batchData.metadata.binaural_track_id) {
+        const { data: binTrack } = await supabase
+          .from('audio_background_tracks')
+          .select('display_name')
+          .eq('id', batchData.metadata.binaural_track_id)
+          .single()
+        if (binTrack) {
+          details.binauralTrack = binTrack.display_name
+          details.binauralVolume = batchData.metadata.binaural_volume
+        }
+      }
+      
+      setMixDetails(details)
+    }
+
     // Load tracks if audio sets exist
     if (batchData.audio_set_ids && batchData.audio_set_ids.length > 0) {
       const { data: tracksData } = await supabase
@@ -198,6 +265,8 @@ export default function AudioQueuePage({
   }
 
   function prettySectionTitle(sectionKey: string): string {
+    if (sectionKey === 'full') return 'Full Track (All Sections)'
+    
     const map: Record<string, string> = {
       forward: 'Forward',
       fun: 'Fun / Recreation',
@@ -360,38 +429,55 @@ export default function AudioQueuePage({
                   style={{ width: `${Math.min(100, progressPercentage)}%` }}
                 />
               </div>
-              <div className="mt-3 flex justify-between text-xs md:text-sm text-neutral-400 flex-wrap gap-2">
-                <span className="text-green-400">{batch.tracks_completed} completed</span>
-                {batch.tracks_failed > 0 && (
-                  <span className="text-red-400">{batch.tracks_failed} failed</span>
-                )}
-                {batch.tracks_pending > 0 && (
-                  <span>{batch.tracks_pending} pending</span>
-                )}
-              </div>
             </div>
 
-            {/* Variants Info */}
+            {/* Mix Details */}
             <div className="pt-4 border-t border-neutral-700">
-              <h3 className="text-sm font-medium text-neutral-400 mb-3">Generating Variants:</h3>
-              <div className="flex flex-wrap gap-2">
-                {batch.variant_ids.map((variant) => {
-                  const variantName = variant === 'standard' ? 'Voice Only' :
-                                     variant === 'sleep' ? 'Sleep' :
-                                     variant === 'energy' ? 'Energy' :
-                                     variant === 'meditation' ? 'Meditation' :
-                                     variant
-                  return (
-                    <Badge key={variant} variant="info" className="text-xs">
-                      {variantName}
-                    </Badge>
-                  )
-                })}
-              </div>
+              {batch.metadata?.custom_mix ? (
+                <>
+                  <h3 className="text-sm font-medium text-neutral-400 mb-3">Custom Mix Details:</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {mixDetails.backgroundTrack && (
+                      <Badge variant="info" className="text-xs">
+                        Background: {mixDetails.backgroundTrack}
+                      </Badge>
+                    )}
+                    {mixDetails.mixRatio && (
+                      <Badge variant="info" className="text-xs">
+                        Ratio: {mixDetails.mixRatio}
+                      </Badge>
+                    )}
+                    {mixDetails.binauralTrack && (
+                      <Badge variant="accent" className="text-xs">
+                        Binaural: {mixDetails.binauralTrack}
+                        {mixDetails.binauralVolume ? ` (${mixDetails.binauralVolume}%)` : ''}
+                      </Badge>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-sm font-medium text-neutral-400 mb-3">Generating Variants:</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {batch.variant_ids.map((variant) => {
+                      const variantName = variant === 'standard' ? 'Voice Only' :
+                                         variant === 'sleep' ? 'Sleep' :
+                                         variant === 'energy' ? 'Energy' :
+                                         variant === 'meditation' ? 'Meditation' :
+                                         variant
+                      return (
+                        <Badge key={variant} variant="info" className="text-xs">
+                          {variantName}
+                        </Badge>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Success Message */}
-            {batch.status === 'completed' && (
+            {batch.status === 'completed' && actuallyCompleted === batch.total_tracks_expected && failedTracks.length === 0 && (
               <div className="pt-4 border-t border-neutral-700">
                 <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
                   <p className="text-green-400 font-medium text-center flex items-center justify-center gap-2">
@@ -487,14 +573,14 @@ export default function AudioQueuePage({
                         </div>
                         <div className="flex flex-col items-end gap-1 flex-shrink-0">
                           {isProcessing && (
-                            <Badge variant="info" className="text-xs flex items-center gap-1 whitespace-nowrap">
-                              <Spinner size="sm" className="w-3 h-3" />
+                            <Badge variant="info" className="text-xs flex items-center gap-1.5 whitespace-nowrap">
+                              <Spinner size="sm" />
                               {track.status === 'pending' ? 'Queued' : 'Generating'}
                             </Badge>
                           )}
                           {isMixing && !isProcessing && (
-                            <Badge variant="info" className="text-xs flex items-center gap-1 whitespace-nowrap">
-                              <Spinner size="sm" className="w-3 h-3" />
+                            <Badge variant="info" className="text-xs flex items-center gap-1.5 whitespace-nowrap">
+                              <Spinner size="sm" />
                               Mixing
                             </Badge>
                           )}

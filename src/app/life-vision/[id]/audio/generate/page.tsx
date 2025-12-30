@@ -882,12 +882,6 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                     <span>All Audios</span>
                   </Link>
                 </Button>
-                <Button variant="accent" size="sm" asChild className="w-full">
-                  <Link href={`/life-vision/${visionId}/audio/generate/single`} className="flex items-center justify-center gap-2">
-                    <Sparkles className="w-4 h-4" />
-                    <span>Test Single</span>
-                  </Link>
-                </Button>
                 <Button variant="outline" size="sm" asChild className="w-full">
                   <Link href={`/life-vision/${visionId}`} className="flex items-center justify-center gap-2">
                     <Eye className="w-4 h-4" />

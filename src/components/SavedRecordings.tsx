@@ -28,6 +28,12 @@ export function SavedRecordings({
 }: SavedRecordingsProps) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null)
   const [playingIndex, setPlayingIndex] = useState<number | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  // Prevent hydration mismatch for date formatting
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const filteredRecordings = categoryFilter
     ? recordings.filter(r => r.category === categoryFilter)
@@ -38,6 +44,7 @@ export function SavedRecordings({
   }
 
   const formatDate = (dateString: string) => {
+    if (!mounted) return '' // Return empty string during SSR
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',

@@ -31,6 +31,8 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
   const [saving, setSaving] = useState<string | null>(null)
   const [audioSetId, setAudioSetId] = useState<string | null>(null)
   const [activeSection, setActiveSection] = useState<string>('forward')
+  const [creatingFullTrack, setCreatingFullTrack] = useState(false)
+  const [hasFullTrack, setHasFullTrack] = useState(false)
 
   useEffect(() => {
     ;(async () => {
@@ -76,6 +78,8 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
       .eq('variant', 'personal')
       .maybeSingle()
 
+    let recordingMap = new Map()
+    
     if (existingSet) {
       setAudioSetId(existingSet.id)
       
@@ -87,15 +91,29 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
         .eq('status', 'completed')
 
       if (tracks) {
-        const recordingMap = new Map()
+        let fullTrackExists = false
+        
         tracks.forEach(track => {
-          recordingMap.set(track.section_key, {
-            url: track.audio_url,
-            duration: track.duration_seconds || 0
-          })
+          if (track.section_key === 'full') {
+            fullTrackExists = true
+          } else {
+            recordingMap.set(track.section_key, {
+              url: track.audio_url,
+              duration: track.duration_seconds || 0
+            })
+          }
         })
+        
         setRecordings(recordingMap)
+        setHasFullTrack(fullTrackExists)
       }
+    }
+    
+    // Auto-select first incomplete section (works for both first-time and returning users)
+    const firstIncompleteSection = VISION_SECTIONS.find(section => !recordingMap.has(section.key))
+    if (firstIncompleteSection) {
+      setActiveSection(firstIncompleteSection.key)
+      console.log('📍 Auto-selected first incomplete section:', firstIncompleteSection.key)
     }
 
     setLoading(false)
@@ -140,10 +158,57 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
       // Extract S3 key from URL
       const s3Key = s3Url.split('.com/')[1] || ''
 
-      // Save to audio_tracks
+      // Ensure duration is valid (not NaN, Infinity, or negative)
+      const validDuration = isFinite(duration) && duration > 0 ? Math.floor(duration) : 0
+      
+      console.log('💾 Saving audio track:', {
+        section_key: sectionKey,
+        duration: duration,
+        validDuration: validDuration,
+        s3Url: s3Url
+      })
+
+      // For personal recordings, delete any existing recording for this section first
+      // This ensures we always replace, even if the text content changed
+      
+      // First, get the old recording to delete its S3 file
+      const { data: oldTrack } = await supabase
+        .from('audio_tracks')
+        .select('audio_url')
+        .eq('vision_id', visionId)
+        .eq('audio_set_id', setId)
+        .eq('section_key', sectionKey)
+        .maybeSingle()
+
+      if (oldTrack?.audio_url) {
+        // Delete old S3 file
+        try {
+          const { deleteRecording } = await import('@/lib/services/recordingService')
+          await deleteRecording(oldTrack.audio_url)
+          console.log('🗑️ Deleted old recording from S3:', oldTrack.audio_url)
+        } catch (deleteErr) {
+          console.warn('⚠️ Could not delete old S3 file:', deleteErr)
+          // Continue anyway - not critical
+        }
+      }
+
+      // Delete the database record
+      const { error: deleteError } = await supabase
+        .from('audio_tracks')
+        .delete()
+        .eq('vision_id', visionId)
+        .eq('audio_set_id', setId)
+        .eq('section_key', sectionKey)
+
+      if (deleteError) {
+        console.warn('⚠️ Could not delete old recording record (may not exist):', deleteError)
+        // Continue anyway - this might be the first recording
+      }
+
+      // Insert the new recording
       const { error: trackError } = await supabase
         .from('audio_tracks')
-        .upsert({
+        .insert({
           user_id: user.id,
           vision_id: visionId,
           audio_set_id: setId,
@@ -154,11 +219,9 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
           s3_bucket: 'vibrationfit-media',
           s3_key: s3Key,
           audio_url: s3Url,
-          duration_seconds: Math.floor(duration),
+          duration_seconds: validDuration,
           status: 'completed',
           mix_status: 'not_required'
-        }, {
-          onConflict: 'vision_id,audio_set_id,section_key,content_hash'
         })
 
       if (trackError) throw trackError
@@ -200,6 +263,49 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
   const sectionText = getSectionText(activeSection)
   const hasText = sectionText.trim().length > 0
   const isRecorded = recordings.has(activeSection)
+  const allSectionsRecorded = completedCount === totalCount
+  const canCreateFullTrack = allSectionsRecorded && audioSetId && !hasFullTrack
+
+  async function handleCreateFullTrack() {
+    if (!audioSetId || !visionId || creatingFullTrack) return
+
+    setCreatingFullTrack(true)
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        alert('You must be logged in')
+        setCreatingFullTrack(false)
+        return
+      }
+
+      const response = await fetch('/api/audio/generate-full-voice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          audioSetId,
+          visionId,
+          userId: user.id
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create full track')
+      }
+
+      const result = await response.json()
+      console.log('✅ Full track created:', result)
+      
+      setHasFullTrack(true)
+      alert('Full track created successfully! You can find it in your Audio Sets.')
+      
+    } catch (error) {
+      console.error('Error creating full track:', error)
+      alert('Failed to create full track. Please try again.')
+    } finally {
+      setCreatingFullTrack(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -245,6 +351,28 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
               <ListMusic className="w-4 h-4" />
               <span>Audio Sets</span>
             </Button>
+            
+            {canCreateFullTrack && (
+              <Button
+                onClick={handleCreateFullTrack}
+                variant="primary"
+                size="sm"
+                disabled={creatingFullTrack}
+                className="w-full col-span-2 lg:col-span-1 flex items-center justify-center gap-2"
+              >
+                {creatingFullTrack ? (
+                  <>
+                    <Spinner size="sm" className="w-4 h-4" />
+                    <span>Creating...</span>
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="w-4 h-4" />
+                    <span>Create Full Track</span>
+                  </>
+                )}
+              </Button>
+            )}
             
             <Button
               onClick={() => router.push(`/life-vision/${visionId}/audio/generate`)}
@@ -348,54 +476,54 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
 
       {/* Recording Section */}
       {activeSessionSection && (
-        <Card className="p-6 md:p-8">
-          {/* Section Header */}
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex items-center gap-3 flex-1">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary-500">
-                <Icon 
-                  icon={activeSessionSection.icon} 
-                  size="sm" 
-                  color="#000000"
-                />
-              </div>
-              <div className="flex-1">
-                <h2 className="text-lg font-semibold text-white">
-                  {activeSessionSection.label}
-                </h2>
-                <p className="text-sm text-neutral-400">{activeSessionSection.description}</p>
-              </div>
-            </div>
-            {isRecorded && (
-              <div className="ml-4">
-                <div className="w-12 h-12 rounded-full bg-primary-500 flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-black" />
+        <div>
+          {/* Section Header Card */}
+          <Card className="p-6 md:p-8 mb-6">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3 flex-1">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary-500">
+                  <Icon 
+                    icon={activeSessionSection.icon} 
+                    size="sm" 
+                    color="#000000"
+                  />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-lg font-semibold text-white">
+                    {activeSessionSection.label}
+                  </h2>
+                  <p className="text-sm text-neutral-400">{activeSessionSection.description}</p>
                 </div>
               </div>
-            )}
-          </div>
-
-          {!hasText ? (
-            <div className="p-8 bg-neutral-800/30 border border-neutral-700 border-dashed rounded-lg text-center">
-              <p className="text-neutral-400 mb-4">
-                No vision text for this section yet.
-              </p>
-              <Button
-                asChild
-                variant="primary"
-                size="md"
-              >
-                <Link href={`/life-vision/${visionId}`}>
-                  Add your vision first →
-                </Link>
-              </Button>
+              {isRecorded && (
+                <div className="ml-4">
+                  <div className="w-12 h-12 rounded-full bg-primary-500 flex items-center justify-center">
+                    <CheckCircle className="w-6 h-6 text-black" />
+                  </div>
+                </div>
+              )}
             </div>
-          ) : (
-            <>
-              {/* Vision Text Display */}
-              <div className="mb-6">
-                <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-4 mb-2">
-                  <div className="flex items-center gap-2 mb-3">
+
+            {!hasText ? (
+              <div className="mt-6 p-8 bg-neutral-800/30 border border-neutral-700 border-dashed rounded-lg text-center">
+                <p className="text-neutral-400 mb-4">
+                  No vision text for this section yet.
+                </p>
+                <Button
+                  asChild
+                  variant="primary"
+                  size="md"
+                >
+                  <Link href={`/life-vision/${visionId}`}>
+                    Add your vision first →
+                  </Link>
+                </Button>
+              </div>
+            ) : (
+              /* Vision Text Display - Scrollable */
+              <div className="mt-6">
+                <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg overflow-hidden">
+                  <div className="flex items-center gap-2 p-4 pb-3 border-b border-neutral-700">
                     <span className="text-xs uppercase tracking-wider text-neutral-500 font-semibold">
                       Your Vision Text:
                     </span>
@@ -403,35 +531,57 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
                       ({sectionText.length} characters)
                     </span>
                   </div>
-                  <p className="text-neutral-300 text-sm leading-relaxed whitespace-pre-wrap">
-                    {sectionText}
-                  </p>
+                  <div className="p-4 max-h-[400px] overflow-y-auto">
+                    <p className="text-neutral-300 text-sm leading-relaxed whitespace-pre-wrap">
+                      {sectionText}
+                    </p>
+                  </div>
                 </div>
               </div>
+            )}
+          </Card>
 
-              {/* Recorder */}
-              <MediaRecorderComponent
+          {/* Recorder - Outside Card so sticky works */}
+          {hasText && (
+            <MediaRecorderComponent
                 mode="audio"
                 recordingPurpose="audioOnly"
                 category={activeSection}
                 storageFolder="lifeVisionAudioRecordings"
                 onRecordingComplete={async (blob, transcript, shouldSave, s3Url) => {
                   if (s3Url && shouldSave) {
-                    // Get duration from the blob
-                    const audio = new Audio(URL.createObjectURL(blob))
-                    audio.addEventListener('loadedmetadata', async () => {
+                    // Get duration from the blob using Promise to wait for metadata
+                    try {
+                      const blobUrl = URL.createObjectURL(blob)
+                      const audio = new Audio(blobUrl)
+                      
+                      // Wait for metadata to load
+                      await new Promise<void>((resolve, reject) => {
+                        audio.addEventListener('loadedmetadata', () => resolve())
+                        audio.addEventListener('error', () => reject(new Error('Failed to load audio metadata')))
+                        audio.load()
+                      })
+                      
                       const duration = audio.duration
+                      console.log('📊 Audio duration detected:', duration, 'seconds')
+                      
+                      // Clean up blob URL
+                      URL.revokeObjectURL(blobUrl)
+                      
                       await handleSaveRecording(activeSection, s3Url, duration)
-                    })
+                    } catch (error) {
+                      console.error('❌ Error getting audio duration:', error)
+                      // Fallback: save with 0 duration (better than not saving at all)
+                      await handleSaveRecording(activeSection, s3Url, 0)
+                    }
                   }
                 }}
                 enableEditor={true}
                 instanceId={activeSection}
                 className="w-full"
               />
-            </>
           )}
-        </Card>
+        </div>
       )}
 
       {/* Completion CTA */}
