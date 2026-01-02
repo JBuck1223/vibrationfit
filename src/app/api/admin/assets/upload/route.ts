@@ -11,7 +11,7 @@ import {
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
-export const maxRequestBodySize = '500mb'
+// export const maxRequestBodySize = '500mb' // Next.js 16+ only
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION || 'us-east-2',

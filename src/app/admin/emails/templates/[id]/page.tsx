@@ -1,525 +1,665 @@
-// /src/app/admin/emails/templates/[id]/page.tsx
-// Unified email template view/edit page
-
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import { Container, Card, Button, Badge, Input, Stack, PageHero, Textarea } from '@/lib/design-system/components'
+/**
+ * Email Template Detail/Edit Page
+ * 
+ * View and edit an email template (database-driven)
+ */
+
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter, useParams } from 'next/navigation'
+import {
+  Container,
+  Card,
+  Button,
+  Stack,
+  PageHero,
+  Input,
+  Textarea,
+  Spinner,
+  Badge,
+} from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
-import { ArrowLeft, Send, Save, Copy, FileCode, Code } from 'lucide-react'
-import { generateHouseholdInvitationEmail } from '@/lib/email/templates/household-invitation'
-import { generateSupportTicketCreatedEmail } from '@/lib/email/templates/support-ticket-created'
-import { generatePersonalMessageEmail } from '@/lib/email/templates/personal-message'
-import { EMAIL_TEMPLATES } from '@/lib/email/templates'
+import { Save, ArrowLeft, Plus, X, ChevronDown, Copy, Trash2, Send, Eye } from 'lucide-react'
 
-export default function EmailTemplatePage() {
-  const params = useParams()
+const CATEGORIES = [
+  { value: 'sessions', label: 'Sessions' },
+  { value: 'reminders', label: 'Reminders' },
+  { value: 'notifications', label: 'Notifications' },
+  { value: 'onboarding', label: 'Onboarding' },
+  { value: 'billing', label: 'Billing' },
+  { value: 'support', label: 'Support' },
+  { value: 'marketing', label: 'Marketing' },
+  { value: 'household', label: 'Household' },
+  { value: 'intensive', label: 'Intensive' },
+  { value: 'other', label: 'Other' },
+]
+
+interface EmailTemplate {
+  id: string
+  slug: string
+  name: string
+  description: string | null
+  category: string
+  status: string
+  subject: string
+  html_body: string
+  text_body: string | null
+  variables: string[]
+  triggers: string[]
+  total_sent: number
+  last_sent_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export default function EmailTemplateDetailPage() {
   const router = useRouter()
-  const templateId = params.id as string
+  const params = useParams()
+  const templateId = params?.id as string
 
-  const template = EMAIL_TEMPLATES.find(t => t.id === templateId)
-
-  // Editor state
-  const [subject, setSubject] = useState('')
-  const [htmlBody, setHtmlBody] = useState('')
-  const [textBody, setTextBody] = useState('')
+  const [template, setTemplate] = useState<EmailTemplate | null>(null)
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [saveResult, setSaveResult] = useState('')
-  const [showCodeModal, setShowCodeModal] = useState(false)
-  const [generatedCode, setGeneratedCode] = useState('')
-
-  // Clone modal state
-  const [showCloneModal, setShowCloneModal] = useState(false)
-  const [cloneName, setCloneName] = useState('')
-  const [cloning, setCloning] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [hasChanges, setHasChanges] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
 
   // Test email state
   const [testEmail, setTestEmail] = useState('')
   const [sending, setSending] = useState(false)
-  const [sendResult, setSendResult] = useState('')
+  const [sendResult, setSendResult] = useState<{ success: boolean; message: string } | null>(null)
 
-  // Load initial template content
-  useEffect(() => {
-    if (template?.status === 'active') {
-      let emailContent: { subject: string; htmlBody: string; textBody: string } | null = null
-      
-      if (templateId === 'household-invitation') {
-        emailContent = generateHouseholdInvitationEmail({
-          inviterName: 'Jordan Buckingham',
-          inviterEmail: 'jordan@vibrationfit.com',
-          householdName: 'The Buckingham Family',
-          invitationLink: 'https://vibrationfit.com/household/invite/sample-token',
-          expiresInDays: 7,
-        })
-      } else if (templateId === 'support-ticket-created') {
-        emailContent = generateSupportTicketCreatedEmail({
-          ticketNumber: 'SUPP-0001',
-          ticketSubject: 'Need help with my account',
-          ticketStatus: 'open',
-          ticketUrl: 'https://vibrationfit.com/dashboard/support/tickets/sample-id',
-          customerName: 'Jordan',
-        })
-      } else if (templateId === 'personal-message') {
-        emailContent = generatePersonalMessageEmail({
-          recipientName: 'Jordan',
-          senderName: 'The VibrationFit Team',
-          messageBody: 'I wanted to reach out personally to see how you\'re doing with your vision journey.\n\nI noticed you created your first life vision last week - that\'s amazing! How has the process been for you so far?\n\nIf you have any questions or just want to chat about your progress, feel free to reply to this email.',
-          closingLine: 'Talk soon,',
-        })
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    category: 'other',
+    status: 'draft',
+    subject: '',
+    html_body: '',
+    text_body: '',
+    variables: [] as string[],
+    triggers: [] as string[],
+  })
+
+  const [newVariable, setNewVariable] = useState('')
+  const [newTrigger, setNewTrigger] = useState('')
+
+  // Fetch template
+  const fetchTemplate = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/admin/templates/email/${templateId}`)
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch template')
       }
-      
-      if (emailContent) {
-        setSubject(emailContent.subject)
-        setHtmlBody(emailContent.htmlBody)
-        setTextBody(emailContent.textBody)
-      }
+
+      setTemplate(data.template)
+      setFormData({
+        name: data.template.name,
+        description: data.template.description || '',
+        category: data.template.category,
+        status: data.template.status,
+        subject: data.template.subject,
+        html_body: data.template.html_body,
+        text_body: data.template.text_body || '',
+        variables: data.template.variables || [],
+        triggers: data.template.triggers || [],
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load template')
+    } finally {
+      setLoading(false)
     }
-  }, [template, templateId])
+  }, [templateId])
 
-  if (!template) {
+  useEffect(() => {
+    if (templateId) {
+      fetchTemplate()
+    }
+  }, [templateId, fetchTemplate])
+
+  // Track changes
+  useEffect(() => {
+    if (template) {
+      const changed =
+        formData.name !== template.name ||
+        formData.description !== (template.description || '') ||
+        formData.category !== template.category ||
+        formData.status !== template.status ||
+        formData.subject !== template.subject ||
+        formData.html_body !== template.html_body ||
+        formData.text_body !== (template.text_body || '') ||
+        JSON.stringify(formData.variables) !== JSON.stringify(template.variables || []) ||
+        JSON.stringify(formData.triggers) !== JSON.stringify(template.triggers || [])
+      setHasChanges(changed)
+    }
+  }, [formData, template])
+
+  const addVariable = () => {
+    if (newVariable && !formData.variables.includes(newVariable)) {
+      setFormData(prev => ({
+        ...prev,
+        variables: [...prev.variables, newVariable],
+      }))
+      setNewVariable('')
+    }
+  }
+
+  const removeVariable = (variable: string) => {
+    setFormData(prev => ({
+      ...prev,
+      variables: prev.variables.filter(v => v !== variable),
+    }))
+  }
+
+  const addTrigger = () => {
+    if (newTrigger && !formData.triggers.includes(newTrigger)) {
+      setFormData(prev => ({
+        ...prev,
+        triggers: [...prev.triggers, newTrigger],
+      }))
+      setNewTrigger('')
+    }
+  }
+
+  const removeTrigger = (trigger: string) => {
+    setFormData(prev => ({
+      ...prev,
+      triggers: prev.triggers.filter(t => t !== trigger),
+    }))
+  }
+
+  const handleSave = async () => {
+    setSaving(true)
+    setError(null)
+
+    try {
+      const response = await fetch(`/api/admin/templates/email/${templateId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to save template')
+      }
+
+      setTemplate(data.template)
+      setHasChanges(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save template')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDuplicate = async () => {
+    try {
+      const response = await fetch(`/api/admin/templates/email/${templateId}/duplicate`, {
+        method: 'POST',
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        router.push(`/admin/emails/templates/${data.template.id}`)
+      }
+    } catch (err) {
+      console.error('Error duplicating template:', err)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!confirm('Are you sure you want to delete this template?')) return
+
+    try {
+      const response = await fetch(`/api/admin/templates/email/${templateId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        router.push('/admin/emails/list')
+      }
+    } catch (err) {
+      console.error('Error deleting template:', err)
+    }
+  }
+
+  const handleSendTest = async () => {
+    if (!testEmail) return
+    
+    setSending(true)
+    setSendResult(null)
+
+    try {
+      const response = await fetch('/api/admin/emails/send-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: testEmail,
+          subject: formData.subject,
+          htmlBody: formData.html_body,
+          textBody: formData.text_body,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send test email')
+      }
+
+      setSendResult({ success: true, message: `Test email sent to ${testEmail}` })
+    } catch (err) {
+      setSendResult({
+        success: false,
+        message: err instanceof Error ? err.message : 'Failed to send test email',
+      })
+    } finally {
+      setSending(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <AdminWrapper>
+        <Container size="xl">
+          <div className="flex justify-center py-24">
+            <Spinner size="lg" />
+          </div>
+        </Container>
+      </AdminWrapper>
+    )
+  }
+
+  if (error && !template) {
     return (
       <AdminWrapper>
         <Container size="xl">
           <Stack gap="lg">
-            <Card className="p-4 md:p-6 lg:p-8 text-center">
-              <p className="text-neutral-400 mb-4 text-sm md:text-base">Template not found</p>
-              <Button variant="secondary" size="sm" onClick={() => router.push('/admin/emails/list')}>
+            <PageHero
+              eyebrow="EMAIL TEMPLATES"
+              title="Template Not Found"
+              subtitle={error}
+            >
+              <Button onClick={() => router.push('/admin/emails/list')} variant="ghost" size="sm">
+                <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Templates
               </Button>
-            </Card>
+            </PageHero>
           </Stack>
         </Container>
       </AdminWrapper>
     )
   }
 
-  async function handleSave() {
-    setSaving(true)
-    setSaveResult('')
-    
-    try {
-      const response = await fetch(`/api/admin/emails/templates/${templateId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject, htmlBody, textBody }),
-      })
-      
-      const data = await response.json()
-      
-      if (data.code) {
-        // Show code modal for manual copying
-        setGeneratedCode(data.code)
-        setShowCodeModal(true)
-        setSaveResult('⚠️ Copy the code below and update your template file manually')
-      } else {
-        setSaveResult('❌ Failed to generate code')
-      }
-    } catch (error) {
-      setSaveResult('❌ Error generating code')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  function initiateClone() {
-    setShowCloneModal(true)
-    setCloneName('')
-  }
-
-  async function confirmClone() {
-    if (!cloneName.trim()) return
-
-    setCloning(true)
-
-    try {
-      const response = await fetch(`/api/admin/emails/templates/${templateId}/clone`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          name: cloneName,
-          subject,
-          htmlBody,
-          textBody 
-        }),
-      })
-      
-      const data = await response.json()
-      
-      if (data.code) {
-        setShowCloneModal(false)
-        setGeneratedCode(`File: ${data.filePath}\n\n${data.code}`)
-        setShowCodeModal(true)
-        setSaveResult(`📋 Copy the code and create file: ${data.fileName}`)
-      } else {
-        alert('❌ Failed to generate template')
-      }
-    } catch (error) {
-      alert('❌ Error generating template')
-    } finally {
-      setCloning(false)
-    }
-  }
-
-  function copyCodeToClipboard() {
-    navigator.clipboard.writeText(generatedCode)
-    alert('✅ Code copied to clipboard!')
-  }
-
-  async function handleSendTest() {
-    if (!testEmail || !subject || !htmlBody) return
-
-    setSending(true)
-    setSendResult('')
-
-    try {
-      const response = await fetch('/api/admin/emails/test-custom', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: testEmail,
-          subject,
-          htmlBody,
-          textBody,
-        }),
-      })
-
-      if (response.ok) {
-        setSendResult(`✅ Test email sent to ${testEmail}!`)
-        setTestEmail('')
-      } else {
-        const data = await response.json()
-        setSendResult(`❌ Failed: ${data.error}`)
-      }
-    } catch (error) {
-      setSendResult('❌ Failed to send test email')
-    } finally {
-      setSending(false)
-    }
-  }
-
   return (
     <AdminWrapper>
       <Container size="xl">
         <Stack gap="lg">
-          {/* Back Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push('/admin/emails/list')}
-            className="flex items-center gap-2 self-start"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Templates
-          </Button>
-
-          {/* Hero */}
           <PageHero
             eyebrow="EMAIL TEMPLATES"
-            title={template.name}
-            subtitle={template.description}
+            title={template?.name || 'Edit Template'}
+            subtitle={template?.slug}
           >
             <div className="flex flex-col sm:flex-row gap-3">
-              <Button variant="primary" size="sm" onClick={handleSave} disabled={saving}>
-                <Save className="w-4 h-4 mr-2" />
-                {saving ? 'Saving...' : 'Save Changes'}
-              </Button>
-              <Button variant="secondary" size="sm" onClick={initiateClone}>
-                <Copy className="w-4 h-4 mr-2" />
-                Clone Template
+              {hasChanges && (
+                <Badge className="bg-yellow-500 text-black">Unsaved Changes</Badge>
+              )}
+              <Button onClick={() => router.push('/admin/emails/list')} variant="ghost" size="sm">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
               </Button>
             </div>
           </PageHero>
 
-          {saveResult && (
-            <div className={`p-3 rounded-xl text-sm ${saveResult.includes('✅') ? 'bg-primary-500/10 text-primary-500' : 'bg-red-500/10 text-red-500'}`}>
-              {saveResult}
-            </div>
-          )}
-
-          {/* Two-Column Layout: Editor (Left) | Preview (Right) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            
-            {/* LEFT: Editor */}
-            <div className="space-y-6">
-              
-              {/* Subject Line Editor */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main Form */}
+            <div className="lg:col-span-2 space-y-6">
               <Card className="p-4 md:p-6">
-                <h3 className="text-base font-bold text-white mb-3">Subject Line</h3>
-                <Input
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  placeholder="Email subject line..."
-                  className="font-medium"
-                />
-              </Card>
-
-              {/* HTML Body Editor */}
-              <Card className="p-4 md:p-6">
-                <h3 className="text-base font-bold text-white mb-3">HTML Body</h3>
-                <Textarea
-                  value={htmlBody}
-                  onChange={(e) => setHtmlBody(e.target.value)}
-                  placeholder="HTML email body..."
-                  rows={20}
-                  className="font-mono text-xs"
-                />
-              </Card>
-
-              {/* Plain Text Body Editor */}
-              <Card className="p-4 md:p-6">
-                <h3 className="text-base font-bold text-white mb-3">Plain Text Body</h3>
-                <Textarea
-                  value={textBody}
-                  onChange={(e) => setTextBody(e.target.value)}
-                  placeholder="Plain text fallback..."
-                  rows={10}
-                  className="font-mono text-xs"
-                />
-              </Card>
-
-            </div>
-
-            {/* RIGHT: Live Preview */}
-            <div className="space-y-6 lg:sticky lg:top-6 lg:self-start">
-              
-              {/* Preview Card */}
-              <Card className="p-4 md:p-6">
-                <h3 className="text-base font-bold text-white mb-3">Live Preview</h3>
+                <h2 className="text-lg font-medium text-white mb-4">Basic Info</h2>
                 
-                {/* Subject Preview */}
-                <div className="mb-4 p-3 bg-neutral-900 rounded-lg">
-                  <p className="text-xs text-neutral-500 uppercase mb-1">Subject</p>
-                  <p className="text-white text-sm">{subject || 'No subject'}</p>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-300 mb-2">
+                      Template Name
+                    </label>
+                    <Input
+                      value={formData.name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      className="bg-neutral-800 border-neutral-700"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-300 mb-2">
+                      Slug
+                    </label>
+                    <Input
+                      value={template?.slug || ''}
+                      readOnly
+                      className="bg-neutral-900 border-neutral-700 font-mono text-neutral-500"
+                    />
+                    <p className="text-xs text-neutral-500 mt-1">
+                      Slug cannot be changed after creation
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-300 mb-2">
+                      Description
+                    </label>
+                    <Input
+                      value={formData.description}
+                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="What is this template for?"
+                      className="bg-neutral-800 border-neutral-700"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-300 mb-2">
+                        Category
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={formData.category}
+                          onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                          className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-sm text-white appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        >
+                          {CATEGORIES.map(cat => (
+                            <option key={cat.value} value={cat.value}>
+                              {cat.label}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-300 mb-2">
+                        Status
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={formData.status}
+                          onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
+                          className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-sm text-white appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        >
+                          <option value="draft">Draft</option>
+                          <option value="active">Active</option>
+                          <option value="archived">Archived</option>
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-4 md:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-medium text-white">Email Content</h2>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowPreview(!showPreview)}
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    {showPreview ? 'Edit' : 'Preview'}
+                  </Button>
                 </div>
 
-                {/* HTML Preview */}
-                <div className="border-2 border-neutral-800 rounded-xl overflow-hidden">
-                  <iframe
-                    srcDoc={htmlBody}
-                    className="w-full h-[500px] bg-white"
-                    title="Email Preview"
-                  />
-                </div>
+                {showPreview ? (
+                  <div className="space-y-4">
+                    <div className="p-3 bg-neutral-800 rounded-lg">
+                      <p className="text-xs text-neutral-500 mb-1">Subject</p>
+                      <p className="text-white">{formData.subject}</p>
+                    </div>
+                    <div className="border border-neutral-700 rounded-lg overflow-hidden">
+                      <iframe
+                        srcDoc={formData.html_body}
+                        className="w-full h-[500px] bg-white"
+                        title="Email Preview"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-300 mb-2">
+                        Subject Line
+                      </label>
+                      <Input
+                        value={formData.subject}
+                        onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
+                        placeholder="e.g., {{hostName}} has scheduled a session with you!"
+                        className="bg-neutral-800 border-neutral-700"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-300 mb-2">
+                        HTML Body
+                      </label>
+                      <Textarea
+                        value={formData.html_body}
+                        onChange={(e) => setFormData(prev => ({ ...prev, html_body: e.target.value }))}
+                        placeholder="<p>Your HTML email content...</p>"
+                        rows={12}
+                        className="bg-neutral-800 border-neutral-700 font-mono text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-300 mb-2">
+                        Plain Text Body
+                      </label>
+                      <Textarea
+                        value={formData.text_body}
+                        onChange={(e) => setFormData(prev => ({ ...prev, text_body: e.target.value }))}
+                        placeholder="Plain text fallback..."
+                        rows={4}
+                        className="bg-neutral-800 border-neutral-700 font-mono text-sm"
+                      />
+                    </div>
+                  </div>
+                )}
               </Card>
 
               {/* Test Email */}
               <Card className="p-4 md:p-6">
-                <h3 className="text-base font-bold text-white mb-3 flex items-center gap-2">
-                  <Send className="w-4 h-4 text-primary-500" />
-                  Send Test Email
-                </h3>
+                <h2 className="text-lg font-medium text-white mb-4">Send Test Email</h2>
                 
-                <div className="flex flex-col gap-3">
+                <div className="flex gap-2">
                   <Input
                     type="email"
                     value={testEmail}
                     onChange={(e) => setTestEmail(e.target.value)}
-                    placeholder="your@email.com"
+                    placeholder="test@example.com"
+                    className="bg-neutral-800 border-neutral-700 flex-1"
                   />
                   <Button
-                    variant="primary"
-                    size="sm"
                     onClick={handleSendTest}
+                    variant="secondary"
                     disabled={sending || !testEmail}
-                    className="w-full"
                   >
-                    {sending ? 'Sending...' : 'Send Test'}
+                    {sending ? <Spinner size="sm" /> : <Send className="w-4 h-4" />}
                   </Button>
                 </div>
 
                 {sendResult && (
-                  <p className={`mt-3 text-xs ${sendResult.includes('✅') ? 'text-primary-500' : 'text-red-500'}`}>
-                    {sendResult}
-                  </p>
+                  <div className={`mt-3 p-3 rounded-lg text-sm ${
+                    sendResult.success
+                      ? 'bg-green-500/10 border border-green-500/30 text-green-400'
+                      : 'bg-red-500/10 border border-red-500/30 text-red-400'
+                  }`}>
+                    {sendResult.message}
+                  </div>
                 )}
               </Card>
-
             </div>
 
-          </div>
-
-          {/* Template Info (Full Width Below) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            {/* Variables */}
-            <Card className="p-4 md:p-6">
-              <h3 className="text-base font-bold text-white mb-4">
-                Available Variables ({template.variables.length})
-              </h3>
-              <div className="space-y-2">
-                {template.variables.map((variable) => (
-                  <div
-                    key={variable}
-                    className="flex items-center gap-2 p-2 bg-neutral-900 rounded-lg"
-                  >
-                    <code className="px-2 py-1 bg-black rounded text-secondary-500 font-mono text-xs">
-                      {`{{${variable}}}`}
-                    </code>
-                    <span className="text-neutral-400 text-xs capitalize">
-                      {variable.replace(/([A-Z])/g, ' $1').trim()}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            {/* Triggers */}
-            <Card className="p-4 md:p-6">
-              <h3 className="text-base font-bold text-white mb-4">
-                When This Sends
-              </h3>
-              <div className="space-y-2">
-                {template.triggers.map((trigger, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-start gap-2 p-2 bg-neutral-900 rounded-lg"
-                  >
-                    <span className="text-primary-500 text-sm flex-shrink-0">→</span>
-                    <span className="text-neutral-300 text-xs">{trigger}</span>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-          </div>
-
-          {/* Template File Reference */}
-          {template.templateFile && (
-            <Card className="p-4 md:p-6 border border-neutral-800">
-              <div className="flex items-start gap-3">
-                <FileCode className="w-5 h-5 text-secondary-500 flex-shrink-0 mt-1" />
-                <div className="flex-1">
-                  <h3 className="text-sm font-bold text-white mb-2">Template Source File</h3>
-                  <div className="bg-neutral-900 p-3 rounded-lg mb-2">
-                    <code className="text-secondary-500 text-xs break-all">
-                      /src/lib/email/templates/{template.templateFile}
-                    </code>
-                  </div>
-                  <p className="text-xs text-neutral-500">
-                    Changes are saved to this file when you click "Save Changes"
-                  </p>
-                </div>
-              </div>
-            </Card>
-          )}
-
-          {template.status === 'planned' && (
-            <Card className="p-4 md:p-6 bg-[#FFB701]/10 border-[#FFB701]/30">
-              <p className="text-neutral-300 text-center text-xs md:text-sm">
-                ⚠️ This template is planned but not yet implemented. 
-                Create the TypeScript file at <code className="text-secondary-500 text-xs md:text-sm">/src/lib/email/templates/{templateId}.ts</code> to activate it.
-              </p>
-            </Card>
-          )}
-        </Stack>
-      </Container>
-
-      {/* Clone Modal */}
-      {showCloneModal && (
-        <div className="fixed inset-0 bg-black/50 z-[9999] overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4 pt-6 pb-20 md:pb-4">
-            <Card className="max-w-md w-full my-auto">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-secondary-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Copy className="w-8 h-8 text-secondary-500" />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-2">Clone Template</h3>
-                <p className="text-neutral-300 mb-6 text-sm">
-                  Enter a name for the new template. You'll receive code to create the file.
-                </p>
+            {/* Sidebar */}
+            <div className="space-y-6">
+              <Card className="p-4 md:p-6">
+                <h2 className="text-lg font-medium text-white mb-4">Variables</h2>
                 
-                <div className="mb-6">
+                <div className="flex gap-2 mb-4">
                   <Input
-                    type="text"
-                    value={cloneName}
-                    onChange={(e) => setCloneName(e.target.value)}
-                    placeholder="e.g., Welcome Email"
-                    className="w-full"
-                    disabled={cloning}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && cloneName.trim()) {
-                        confirmClone()
-                      }
-                    }}
-                    autoFocus
+                    value={newVariable}
+                    onChange={(e) => setNewVariable(e.target.value)}
+                    placeholder="variableName"
+                    className="bg-neutral-800 border-neutral-700 font-mono text-sm flex-1"
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addVariable())}
                   />
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowCloneModal(false)}
-                    className="flex-1 order-2 sm:order-1"
-                    disabled={cloning}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    variant="primary"
-                    onClick={confirmClone}
-                    disabled={!cloneName.trim() || cloning}
-                    loading={cloning}
-                    className="flex-1 order-1 sm:order-2"
-                  >
-                    {cloning ? 'Generating...' : 'Clone Template'}
+                  <Button type="button" variant="secondary" size="sm" onClick={addVariable}>
+                    <Plus className="w-4 h-4" />
                   </Button>
                 </div>
-              </div>
-            </Card>
-          </div>
-        </div>
-      )}
 
-      {/* Code Modal */}
-      {showCodeModal && (
-        <div className="fixed inset-0 bg-black/50 z-[9999] overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4 pt-6 pb-20 md:pb-4">
-            <Card className="max-w-4xl w-full my-auto">
-              <div className="p-4 md:p-6 border-b border-neutral-800">
-                <div className="flex items-center gap-4 mb-3">
-                  <div className="w-12 h-12 bg-secondary-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Code className="w-6 h-6 text-secondary-500" />
-                  </div>
-                  <div className="flex-1">
-                    <h2 className="text-xl font-bold text-white">Generated Template Code</h2>
-                    <p className="text-sm text-neutral-400 mt-1">
-                      Copy this code and update your template file
-                    </p>
-                  </div>
+                <div className="flex flex-wrap gap-2">
+                  {formData.variables.map((variable) => (
+                    <span
+                      key={variable}
+                      className="inline-flex items-center gap-1 px-2 py-1 bg-neutral-800 rounded text-xs text-secondary-500 font-mono"
+                    >
+                      {`{{${variable}}}`}
+                      <button
+                        type="button"
+                        onClick={() => removeVariable(variable)}
+                        className="text-neutral-500 hover:text-red-400"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                  {formData.variables.length === 0 && (
+                    <p className="text-xs text-neutral-500">No variables added</p>
+                  )}
                 </div>
-              </div>
-              
-              <div className="p-4 md:p-6 max-h-[60vh] overflow-auto">
-                <div className="bg-black p-4 rounded-xl border-2 border-neutral-800 overflow-auto">
-                  <pre className="text-xs font-mono text-secondary-500 whitespace-pre-wrap">
-                    {generatedCode}
-                  </pre>
-                </div>
-              </div>
+              </Card>
 
-              <div className="p-4 md:p-6 border-t border-neutral-800 flex flex-col sm:flex-row gap-3">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setShowCodeModal(false)} 
-                  className="flex-1 order-2 sm:order-1"
+              <Card className="p-4 md:p-6">
+                <h2 className="text-lg font-medium text-white mb-4">Triggers</h2>
+                
+                <div className="flex gap-2 mb-4">
+                  <Input
+                    value={newTrigger}
+                    onChange={(e) => setNewTrigger(e.target.value)}
+                    placeholder="When is this sent?"
+                    className="bg-neutral-800 border-neutral-700 text-sm flex-1"
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTrigger())}
+                  />
+                  <Button type="button" variant="secondary" size="sm" onClick={addTrigger}>
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                <div className="space-y-2">
+                  {formData.triggers.map((trigger) => (
+                    <div
+                      key={trigger}
+                      className="flex items-center justify-between p-2 bg-neutral-800 rounded text-sm"
+                    >
+                      <span className="text-neutral-300">{trigger}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeTrigger(trigger)}
+                        className="text-neutral-500 hover:text-red-400"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                  {formData.triggers.length === 0 && (
+                    <p className="text-xs text-neutral-500">No triggers added</p>
+                  )}
+                </div>
+              </Card>
+
+              {/* Stats */}
+              {template && (
+                <Card className="p-4 md:p-6">
+                  <h2 className="text-sm font-medium text-neutral-400 mb-3">Stats</h2>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-neutral-500">Total Sent</span>
+                      <span className="text-white">{template.total_sent || 0}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-neutral-500">Last Sent</span>
+                      <span className="text-white">
+                        {template.last_sent_at
+                          ? new Date(template.last_sent_at).toLocaleDateString()
+                          : 'Never'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-neutral-500">Created</span>
+                      <span className="text-white">
+                        {new Date(template.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                </Card>
+              )}
+
+              {/* Error */}
+              {error && (
+                <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
+                  {error}
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex flex-col gap-3">
+                <Button
+                  onClick={handleSave}
+                  variant="primary"
+                  disabled={saving || !hasChanges}
+                  className="w-full bg-gradient-to-r from-primary-500 to-secondary-500"
                 >
-                  Close
+                  {saving ? (
+                    <>
+                      <Spinner size="sm" className="mr-2" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 mr-2" />
+                      Save Changes
+                    </>
+                  )}
                 </Button>
-                <Button 
-                  variant="primary" 
-                  onClick={copyCodeToClipboard} 
-                  className="flex-1 order-1 sm:order-2"
+
+                <Button
+                  onClick={handleDuplicate}
+                  variant="secondary"
+                  className="w-full"
                 >
                   <Copy className="w-4 h-4 mr-2" />
-                  Copy to Clipboard
+                  Duplicate
+                </Button>
+
+                <Button
+                  onClick={handleDelete}
+                  variant="danger"
+                  className="w-full"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
                 </Button>
               </div>
-            </Card>
+            </div>
           </div>
-        </div>
-      )}
+        </Stack>
+      </Container>
     </AdminWrapper>
   )
 }
-

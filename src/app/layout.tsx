@@ -12,11 +12,7 @@ export const metadata: Metadata = {
     default: 'VibrationFit',
   },
   description: "The SaaS platform for conscious creation. Build your vision, align daily, and actualize your dreams.",
-  icons: {
-    icon: ASSETS.brand.icon,
-    shortcut: ASSETS.brand.icon,
-    apple: ASSETS.brand.icon,
-  },
+  // Let Next.js automatically use the favicon.ico from the app directory
   openGraph: {
     title: "VibrationFit - Above the Green Line",
     description: "The SaaS platform for conscious creation. Build your vision, align daily, and actualize your dreams.",
