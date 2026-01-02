@@ -53,6 +53,11 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
       return <>{children}</>
     }
     
+    // Video session pages: Fullscreen interface for video calls
+    if (pathname?.startsWith('/session/')) {
+      return <>{children}</>
+    }
+    
     // USER pages: Use IntensiveSidebar if in intensive mode, otherwise regular SidebarLayout
     if (pageType === 'USER') {
       // Show loading state briefly

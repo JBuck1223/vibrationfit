@@ -108,10 +108,24 @@ export const EMAIL_TEMPLATES: EmailTemplateMetadata[] = [
     status: 'planned',
     templateFile: null,
   },
+  {
+    id: 'session-invitation',
+    name: 'Session Invitation',
+    description: 'Invite a participant to a video coaching session',
+    category: 'Video Sessions',
+    triggers: [
+      'Admin creates session with participant at /admin/sessions/new',
+      'API: POST /api/video/sessions with participant_email',
+    ],
+    variables: ['participantName', 'hostName', 'sessionTitle', 'sessionDescription', 'scheduledDate', 'scheduledTime', 'durationMinutes', 'joinLink'],
+    status: 'active',
+    templateFile: 'session-invitation.ts',
+  },
 ]
 
 // Export individual template generators
 export { generateHouseholdInvitationEmail } from './household-invitation'
 export { generateSupportTicketCreatedEmail } from './support-ticket-created'
 export { generatePersonalMessageEmail } from './personal-message'
+export { generateSessionInvitationEmail } from './session-invitation'
 

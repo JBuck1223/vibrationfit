@@ -3,14 +3,13 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { ArrowLeft, Calendar, Clock, CheckCircle, Video } from 'lucide-react'
+import { Calendar, CheckCircle } from 'lucide-react'
 
 import { 
   Container, 
   Card, 
   Button, 
   Input,
-  Badge,
   Spinner,
   Stack,
   PageHero
@@ -266,20 +265,44 @@ export default function ScheduleCallPage() {
         }
       }
 
-      // Update checklist
+      // Create video session via API
+      const sessionResponse = await fetch('/api/video/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'Activation Intensive - Calibration Call',
+          description: 'Your personalized 1-on-1 vision calibration session',
+          session_type: 'one_on_one',
+          scheduled_at: scheduledDateTime.toISOString(),
+          scheduled_duration_minutes: 45,
+          participant_email: contactInfo.email,
+          enable_recording: true,
+          enable_waiting_room: true,
+        }),
+      })
+
+      if (!sessionResponse.ok) {
+        const sessionError = await sessionResponse.json()
+        throw new Error(sessionError.error || 'Failed to create video session')
+      }
+
+      const sessionData = await sessionResponse.json()
+
+      // Update checklist with session info
       const { error } = await supabase
         .from('intensive_checklist')
         .update({
           call_scheduled: true,
           call_scheduled_at: new Date().toISOString(),
-          call_scheduled_time: scheduledDateTime.toISOString()
+          call_scheduled_time: scheduledDateTime.toISOString(),
+          video_session_id: sessionData.session.id
         })
         .eq('intensive_id', intensiveId)
 
       if (error) throw error
 
       // TODO: Send calendar invite and confirmation email
-      // This would integrate with Calendly or similar service
+      // This would integrate with email service
 
       alert('Call scheduled successfully! You\'ll receive a calendar invite shortly.')
       router.push('/intensive/dashboard')
@@ -314,92 +337,53 @@ export default function ScheduleCallPage() {
         <PageHero
           title="Schedule Your Calibration Call"
           subtitle="Book your personalized 1-on-1 session to activate your transformation"
-        >
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push('/intensive/dashboard')}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            <span className="text-xs md:text-sm">Back to Dashboard</span>
-          </Button>
-          <Badge variant="premium" className="text-xs md:text-sm">
-            <Calendar className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
-            Step 3 of 10
-          </Badge>
-        </PageHero>
+        />
 
-        <div className="hidden md:block">
-          <p className="text-base md:text-lg lg:text-xl text-neutral-400">
-            Book your 1-on-1 vision calibration session with your coach
-          </p>
-        </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
-        
-        {/* Left: What to Expect */}
-        <div>
-          <Card>
-            <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-primary-500 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Video className="w-5 h-5 md:w-6 md:h-6 text-white" />
-              </div>
-              <h2 className="text-lg md:text-xl lg:text-2xl font-bold">What to Expect</h2>
-            </div>
-
-            <div className="space-y-3 md:space-y-4">
-              <div className="flex items-start gap-2 md:gap-3">
-                <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-primary-500 mt-1 flex-shrink-0" />
-                <div>
-                  <h3 className="text-sm md:text-base font-semibold mb-1">45-Minute Deep Dive</h3>
-                  <p className="text-xs md:text-sm text-neutral-400">
-                    We&apos;ll review your profile, assessment results, and discuss your vision in detail
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2 md:gap-3">
-                <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-primary-500 mt-1 flex-shrink-0" />
-                <div>
-                  <h3 className="text-sm md:text-base font-semibold mb-1">Personalized Guidance</h3>
-                  <p className="text-xs md:text-sm text-neutral-400">
-                    Get expert insights on how to refine and actualize your vision
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2 md:gap-3">
-                <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-primary-500 mt-1 flex-shrink-0" />
-                <div>
-                  <h3 className="text-sm md:text-base font-semibold mb-1">Custom Action Plan</h3>
-                  <p className="text-xs md:text-sm text-neutral-400">
-                    Leave with a clear roadmap for the next phase of your journey
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2 md:gap-3">
-                <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-primary-500 mt-1 flex-shrink-0" />
-                <div>
-                  <h3 className="text-sm md:text-base font-semibold mb-1">Zoom Video Call</h3>
-                  <p className="text-xs md:text-sm text-neutral-400">
-                    You&apos;ll receive a Zoom link in your confirmation email
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 md:mt-6 p-3 md:p-4 bg-secondary-500/10 border border-secondary-500/30 rounded-xl">
-              <p className="text-xs md:text-sm text-neutral-300">
-                <strong className="text-secondary-500">Pro Tip:</strong> Complete your profile and assessment before the call to get the most value!
+        {/* What to Expect - 2x2 Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+          <div className="flex items-start gap-3 p-4 bg-neutral-900/50 border border-neutral-800 rounded-xl">
+            <CheckCircle className="w-5 h-5 text-primary-500 mt-0.5 flex-shrink-0" />
+            <div>
+              <h3 className="text-sm md:text-base font-semibold mb-1">45-Minute Deep Dive</h3>
+              <p className="text-xs md:text-sm text-neutral-400">
+                Review your profile, assessment results, and vision in detail
               </p>
             </div>
-          </Card>
+          </div>
+
+          <div className="flex items-start gap-3 p-4 bg-neutral-900/50 border border-neutral-800 rounded-xl">
+            <CheckCircle className="w-5 h-5 text-primary-500 mt-0.5 flex-shrink-0" />
+            <div>
+              <h3 className="text-sm md:text-base font-semibold mb-1">Personalized Guidance</h3>
+              <p className="text-xs md:text-sm text-neutral-400">
+                Expert insights on how to refine and actualize your vision
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3 p-4 bg-neutral-900/50 border border-neutral-800 rounded-xl">
+            <CheckCircle className="w-5 h-5 text-primary-500 mt-0.5 flex-shrink-0" />
+            <div>
+              <h3 className="text-sm md:text-base font-semibold mb-1">Custom Action Plan</h3>
+              <p className="text-xs md:text-sm text-neutral-400">
+                Leave with a clear roadmap for the next phase of your journey
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3 p-4 bg-neutral-900/50 border border-neutral-800 rounded-xl">
+            <CheckCircle className="w-5 h-5 text-primary-500 mt-0.5 flex-shrink-0" />
+            <div>
+              <h3 className="text-sm md:text-base font-semibold mb-1">Private Video Call</h3>
+              <p className="text-xs md:text-sm text-neutral-400">
+                Join directly from your dashboard when it&apos;s time
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* Right: Scheduling */}
-        <div>
-          <Card>
+        {/* Scheduling Card - Full Width Below */}
+        <Card>
             <h2 className="text-lg md:text-xl lg:text-2xl font-bold mb-4 md:mb-6">Select Date & Time</h2>
 
               {/* Date Selection */}
@@ -523,11 +507,9 @@ export default function ScheduleCallPage() {
               </Button>
 
               <p className="text-xs text-neutral-500 text-center mt-4">
-                You'll receive a calendar invite and Zoom link via email
+                You&apos;ll receive a calendar invite via email
               </p>
-            </Card>
-          </div>
-        </div>
+        </Card>
       </Stack>
     </Container>
   )

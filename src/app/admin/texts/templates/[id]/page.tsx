@@ -1,9 +1,9 @@
 'use client'
 
 /**
- * Email Template Detail/Edit Page
+ * SMS Template Detail/Edit Page
  * 
- * View and edit an email template (database-driven)
+ * View and edit an SMS template
  */
 
 import { useState, useEffect, useCallback } from 'react'
@@ -20,7 +20,7 @@ import {
   Badge,
 } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
-import { Save, ArrowLeft, Plus, X, ChevronDown, Copy, Trash2, Send, Eye } from 'lucide-react'
+import { Save, ArrowLeft, Plus, X, ChevronDown, Copy, Trash2, MessageSquare } from 'lucide-react'
 
 const CATEGORIES = [
   { value: 'sessions', label: 'Sessions' },
@@ -35,16 +35,14 @@ const CATEGORIES = [
   { value: 'other', label: 'Other' },
 ]
 
-interface EmailTemplate {
+interface SMSTemplate {
   id: string
   slug: string
   name: string
   description: string | null
   category: string
   status: string
-  subject: string
-  html_body: string
-  text_body: string | null
+  body: string
   variables: string[]
   triggers: string[]
   total_sent: number
@@ -53,31 +51,23 @@ interface EmailTemplate {
   updated_at: string
 }
 
-export default function EmailTemplateDetailPage() {
+export default function SMSTemplateDetailPage() {
   const router = useRouter()
   const params = useParams()
   const templateId = params?.id as string
 
-  const [template, setTemplate] = useState<EmailTemplate | null>(null)
+  const [template, setTemplate] = useState<SMSTemplate | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasChanges, setHasChanges] = useState(false)
-  const [showPreview, setShowPreview] = useState(false)
-
-  // Test email state
-  const [testEmail, setTestEmail] = useState('')
-  const [sending, setSending] = useState(false)
-  const [sendResult, setSendResult] = useState<{ success: boolean; message: string } | null>(null)
 
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     category: 'other',
     status: 'draft',
-    subject: '',
-    html_body: '',
-    text_body: '',
+    body: '',
     variables: [] as string[],
     triggers: [] as string[],
   })
@@ -88,7 +78,7 @@ export default function EmailTemplateDetailPage() {
   // Fetch template
   const fetchTemplate = useCallback(async () => {
     try {
-      const response = await fetch(`/api/admin/templates/email/${templateId}`)
+      const response = await fetch(`/api/admin/templates/sms/${templateId}`)
       const data = await response.json()
 
       if (!response.ok) {
@@ -101,9 +91,7 @@ export default function EmailTemplateDetailPage() {
         description: data.template.description || '',
         category: data.template.category,
         status: data.template.status,
-        subject: data.template.subject,
-        html_body: data.template.html_body,
-        text_body: data.template.text_body || '',
+        body: data.template.body,
         variables: data.template.variables || [],
         triggers: data.template.triggers || [],
       })
@@ -128,9 +116,7 @@ export default function EmailTemplateDetailPage() {
         formData.description !== (template.description || '') ||
         formData.category !== template.category ||
         formData.status !== template.status ||
-        formData.subject !== template.subject ||
-        formData.html_body !== template.html_body ||
-        formData.text_body !== (template.text_body || '') ||
+        formData.body !== template.body ||
         JSON.stringify(formData.variables) !== JSON.stringify(template.variables || []) ||
         JSON.stringify(formData.triggers) !== JSON.stringify(template.triggers || [])
       setHasChanges(changed)
@@ -176,7 +162,7 @@ export default function EmailTemplateDetailPage() {
     setError(null)
 
     try {
-      const response = await fetch(`/api/admin/templates/email/${templateId}`, {
+      const response = await fetch(`/api/admin/templates/sms/${templateId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -199,13 +185,13 @@ export default function EmailTemplateDetailPage() {
 
   const handleDuplicate = async () => {
     try {
-      const response = await fetch(`/api/admin/templates/email/${templateId}/duplicate`, {
+      const response = await fetch(`/api/admin/templates/sms/${templateId}/duplicate`, {
         method: 'POST',
       })
 
       if (response.ok) {
         const data = await response.json()
-        router.push(`/admin/emails/templates/${data.template.id}`)
+        router.push(`/admin/texts/templates/${data.template.id}`)
       }
     } catch (err) {
       console.error('Error duplicating template:', err)
@@ -216,50 +202,15 @@ export default function EmailTemplateDetailPage() {
     if (!confirm('Are you sure you want to delete this template?')) return
 
     try {
-      const response = await fetch(`/api/admin/templates/email/${templateId}`, {
+      const response = await fetch(`/api/admin/templates/sms/${templateId}`, {
         method: 'DELETE',
       })
 
       if (response.ok) {
-        router.push('/admin/emails/list')
+        router.push('/admin/texts/list')
       }
     } catch (err) {
       console.error('Error deleting template:', err)
-    }
-  }
-
-  const handleSendTest = async () => {
-    if (!testEmail) return
-    
-    setSending(true)
-    setSendResult(null)
-
-    try {
-      const response = await fetch('/api/admin/emails/send-test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: testEmail,
-          subject: formData.subject,
-          htmlBody: formData.html_body,
-          textBody: formData.text_body,
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to send test email')
-      }
-
-      setSendResult({ success: true, message: `Test email sent to ${testEmail}` })
-    } catch (err) {
-      setSendResult({
-        success: false,
-        message: err instanceof Error ? err.message : 'Failed to send test email',
-      })
-    } finally {
-      setSending(false)
     }
   }
 
@@ -281,11 +232,11 @@ export default function EmailTemplateDetailPage() {
         <Container size="xl">
           <Stack gap="lg">
             <PageHero
-              eyebrow="EMAIL TEMPLATES"
+              eyebrow="SMS TEMPLATES"
               title="Template Not Found"
               subtitle={error}
             >
-              <Button onClick={() => router.push('/admin/emails/list')} variant="ghost" size="sm">
+              <Button onClick={() => router.push('/admin/texts/list')} variant="ghost" size="sm">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Templates
               </Button>
@@ -301,7 +252,7 @@ export default function EmailTemplateDetailPage() {
       <Container size="xl">
         <Stack gap="lg">
           <PageHero
-            eyebrow="EMAIL TEMPLATES"
+            eyebrow="SMS TEMPLATES"
             title={template?.name || 'Edit Template'}
             subtitle={template?.slug}
           >
@@ -309,7 +260,7 @@ export default function EmailTemplateDetailPage() {
               {hasChanges && (
                 <Badge className="bg-yellow-500 text-black">Unsaved Changes</Badge>
               )}
-              <Button onClick={() => router.push('/admin/emails/list')} variant="ghost" size="sm">
+              <Button onClick={() => router.push('/admin/texts/list')} variant="ghost" size="sm">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
               </Button>
@@ -403,105 +354,33 @@ export default function EmailTemplateDetailPage() {
               </Card>
 
               <Card className="p-4 md:p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-medium text-white">Email Content</h2>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowPreview(!showPreview)}
-                  >
-                    <Eye className="w-4 h-4 mr-2" />
-                    {showPreview ? 'Edit' : 'Preview'}
-                  </Button>
-                </div>
-
-                {showPreview ? (
-                  <div className="space-y-4">
-                    <div className="p-3 bg-neutral-800 rounded-lg">
-                      <p className="text-xs text-neutral-500 mb-1">Subject</p>
-                      <p className="text-white">{formData.subject}</p>
-                    </div>
-                    <div className="border border-neutral-700 rounded-lg overflow-hidden">
-                      <iframe
-                        srcDoc={formData.html_body}
-                        className="w-full h-[500px] bg-white"
-                        title="Email Preview"
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-neutral-300 mb-2">
-                        Subject Line
-                      </label>
-                      <Input
-                        value={formData.subject}
-                        onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
-                        placeholder="e.g., {{hostName}} has scheduled a session with you!"
-                        className="bg-neutral-800 border-neutral-700"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-neutral-300 mb-2">
-                        HTML Body
-                      </label>
-                      <Textarea
-                        value={formData.html_body}
-                        onChange={(e) => setFormData(prev => ({ ...prev, html_body: e.target.value }))}
-                        placeholder="<p>Your HTML email content...</p>"
-                        rows={12}
-                        className="bg-neutral-800 border-neutral-700 font-mono text-sm"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-neutral-300 mb-2">
-                        Plain Text Body
-                      </label>
-                      <Textarea
-                        value={formData.text_body}
-                        onChange={(e) => setFormData(prev => ({ ...prev, text_body: e.target.value }))}
-                        placeholder="Plain text fallback..."
-                        rows={4}
-                        className="bg-neutral-800 border-neutral-700 font-mono text-sm"
-                      />
-                    </div>
-                  </div>
-                )}
-              </Card>
-
-              {/* Test Email */}
-              <Card className="p-4 md:p-6">
-                <h2 className="text-lg font-medium text-white mb-4">Send Test Email</h2>
+                <h2 className="text-lg font-medium text-white mb-4">Message Content</h2>
                 
-                <div className="flex gap-2">
-                  <Input
-                    type="email"
-                    value={testEmail}
-                    onChange={(e) => setTestEmail(e.target.value)}
-                    placeholder="test@example.com"
-                    className="bg-neutral-800 border-neutral-700 flex-1"
+                <div>
+                  <label className="block text-sm font-medium text-neutral-300 mb-2">
+                    Message Body
+                  </label>
+                  <Textarea
+                    value={formData.body}
+                    onChange={(e) => setFormData(prev => ({ ...prev, body: e.target.value }))}
+                    placeholder="Your SMS message..."
+                    rows={5}
+                    className="bg-neutral-800 border-neutral-700 font-mono text-sm"
                   />
-                  <Button
-                    onClick={handleSendTest}
-                    variant="secondary"
-                    disabled={sending || !testEmail}
-                  >
-                    {sending ? <Spinner size="sm" /> : <Send className="w-4 h-4" />}
-                  </Button>
-                </div>
-
-                {sendResult && (
-                  <div className={`mt-3 p-3 rounded-lg text-sm ${
-                    sendResult.success
-                      ? 'bg-green-500/10 border border-green-500/30 text-green-400'
-                      : 'bg-red-500/10 border border-red-500/30 text-red-400'
-                  }`}>
-                    {sendResult.message}
+                  <div className="flex justify-between mt-2 text-xs">
+                    <p className="text-neutral-500">
+                      {formData.body.length} / 160 characters
+                      {formData.body.length > 160 && (
+                        <span className="text-yellow-500 ml-2">
+                          ({Math.ceil(formData.body.length / 160)} SMS segments)
+                        </span>
+                      )}
+                    </p>
+                    {formData.body.length > 0 && formData.body.length <= 160 && (
+                      <p className="text-primary-500">Single SMS</p>
+                    )}
                   </div>
-                )}
+                </div>
               </Card>
             </div>
 
@@ -637,7 +516,7 @@ export default function EmailTemplateDetailPage() {
                     </>
                   )}
                 </Button>
-
+                
                 <Button
                   onClick={handleDuplicate}
                   variant="secondary"
@@ -663,3 +542,4 @@ export default function EmailTemplateDetailPage() {
     </AdminWrapper>
   )
 }
+

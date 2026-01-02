@@ -113,6 +113,9 @@ export const PAGE_CLASSIFICATIONS = {
     
     // Support
     '/support',
+    
+    // Video Sessions (member list)
+    '/sessions',
   ],
   
   /**
@@ -204,6 +207,9 @@ export const PAGE_CLASSIFICATIONS = {
     '/experiment/design-system',
     '/experiment/design-system/component/[componentName]',
     '/experiment/old-home',
+    
+    // Video Session Join (accessible without auth, prompts login)
+    '/session/[id]',
   ],
 } as const
 

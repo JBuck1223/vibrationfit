@@ -857,8 +857,8 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
               </div>
 
               {/* Action Buttons */}
-              <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 md:gap-4 max-w-6xl mx-auto">
-                <Button variant="outline" size="sm" asChild className="w-full col-span-2 lg:col-span-1">
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 max-w-5xl mx-auto">
+                <Button variant="outline" size="sm" asChild className="w-full">
                   <Link href={`/life-vision/${visionId}/audio/sets`} className="flex items-center justify-center gap-2">
                     <ListMusic className="w-4 h-4" />
                     <span>Audio Sets</span>
@@ -885,8 +885,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                 <Button variant="outline" size="sm" asChild className="w-full">
                   <Link href={`/life-vision/${visionId}`} className="flex items-center justify-center gap-2">
                     <Eye className="w-4 h-4" />
-                    <span className="lg:hidden">Vision</span>
-                    <span className="hidden lg:inline">View Vision</span>
+                    <span>Vision</span>
                   </Link>
                 </Button>
               </div>

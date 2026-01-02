@@ -1,27 +1,25 @@
 'use client'
 
 /**
- * Email Templates List
+ * SMS Templates List
  * 
- * View and manage all email templates (database-driven) with create/duplicate functionality
+ * View and manage all SMS templates with create/duplicate functionality
  */
 
 import { useState, useEffect } from 'react'
 import { Container, Card, Badge, Button, Stack, PageHero, Spinner } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
-import { Mail, Plus, Copy, ArrowLeft, Code } from 'lucide-react'
+import { MessageSquare, Eye, Plus, Copy, Trash2, ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
-interface EmailTemplate {
+interface SMSTemplate {
   id: string
   slug: string
   name: string
   description: string | null
   category: string
   status: string
-  subject: string
-  html_body: string
-  text_body: string | null
+  body: string
   variables: string[]
   triggers: string[]
   total_sent: number
@@ -30,9 +28,9 @@ interface EmailTemplate {
   updated_at: string
 }
 
-export default function EmailTemplatesListPage() {
+export default function SMSTemplatesListPage() {
   const router = useRouter()
-  const [templates, setTemplates] = useState<EmailTemplate[]>([])
+  const [templates, setTemplates] = useState<SMSTemplate[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'active' | 'draft'>('all')
   const [duplicating, setDuplicating] = useState<string | null>(null)
@@ -43,7 +41,7 @@ export default function EmailTemplatesListPage() {
 
   const fetchTemplates = async () => {
     try {
-      const response = await fetch('/api/admin/templates/email')
+      const response = await fetch('/api/admin/templates/sms')
       const data = await response.json()
       setTemplates(data.templates || [])
     } catch (err) {
@@ -56,15 +54,16 @@ export default function EmailTemplatesListPage() {
   const handleDuplicate = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
     setDuplicating(id)
-
+    
     try {
-      const response = await fetch(`/api/admin/templates/email/${id}/duplicate`, {
+      const response = await fetch(`/api/admin/templates/sms/${id}/duplicate`, {
         method: 'POST',
       })
-
+      
       if (response.ok) {
         const data = await response.json()
-        router.push(`/admin/emails/templates/${data.template.id}`)
+        // Navigate to the new template
+        router.push(`/admin/texts/templates/${data.template.id}`)
       }
     } catch (err) {
       console.error('Error duplicating template:', err)
@@ -98,10 +97,6 @@ export default function EmailTemplatesListPage() {
         return 'text-blue-400 bg-blue-500/20'
       case 'notifications':
         return 'text-orange-400 bg-orange-500/20'
-      case 'onboarding':
-        return 'text-green-400 bg-green-500/20'
-      case 'billing':
-        return 'text-yellow-400 bg-yellow-500/20'
       default:
         return 'text-neutral-400 bg-neutral-500/20'
     }
@@ -126,12 +121,12 @@ export default function EmailTemplatesListPage() {
           {/* Hero */}
           <PageHero
             eyebrow="ADMIN CRM"
-            title="Email Templates"
+            title="SMS Templates"
             subtitle={`${templates.length} templates · ${templates.filter(t => t.status === 'active').length} active`}
           >
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
-                onClick={() => router.push('/admin/emails/new')}
+                onClick={() => router.push('/admin/texts/new')}
                 variant="primary"
                 size="sm"
                 className="bg-gradient-to-r from-primary-500 to-secondary-500"
@@ -139,11 +134,7 @@ export default function EmailTemplatesListPage() {
                 <Plus className="w-4 h-4 mr-2" />
                 New Template
               </Button>
-              <Button onClick={() => router.push('/admin/emails/sent')} variant="secondary" size="sm">
-                <Mail className="w-4 h-4 mr-2" />
-                Sent Emails
-              </Button>
-              <Button onClick={() => router.push('/admin/emails')} variant="ghost" size="sm">
+              <Button onClick={() => router.push('/admin/texts')} variant="ghost" size="sm">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Dashboard
               </Button>
@@ -156,7 +147,6 @@ export default function EmailTemplatesListPage() {
               variant={filter === 'all' ? 'primary' : 'ghost'}
               size="sm"
               onClick={() => setFilter('all')}
-              className="justify-start sm:justify-center"
             >
               All Templates ({templates.length})
             </Button>
@@ -164,7 +154,6 @@ export default function EmailTemplatesListPage() {
               variant={filter === 'active' ? 'primary' : 'ghost'}
               size="sm"
               onClick={() => setFilter('active')}
-              className="justify-start sm:justify-center"
             >
               Active ({templates.filter(t => t.status === 'active').length})
             </Button>
@@ -172,7 +161,6 @@ export default function EmailTemplatesListPage() {
               variant={filter === 'draft' ? 'primary' : 'ghost'}
               size="sm"
               onClick={() => setFilter('draft')}
-              className="justify-start sm:justify-center"
             >
               Draft ({templates.filter(t => t.status === 'draft').length})
             </Button>
@@ -181,15 +169,15 @@ export default function EmailTemplatesListPage() {
           {/* Template Cards */}
           {filteredTemplates.length === 0 ? (
             <Card className="p-8 text-center">
-              <Mail className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
+              <MessageSquare className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-white mb-2">No templates found</h3>
               <p className="text-neutral-400 mb-6">
                 {filter === 'all'
-                  ? 'Create your first email template to get started.'
+                  ? 'Create your first SMS template to get started.'
                   : `No ${filter} templates yet.`}
               </p>
               <Button
-                onClick={() => router.push('/admin/emails/new')}
+                onClick={() => router.push('/admin/texts/new')}
                 variant="primary"
                 size="sm"
               >
@@ -202,8 +190,8 @@ export default function EmailTemplatesListPage() {
               {filteredTemplates.map((template) => (
                 <Card
                   key={template.id}
-                  className="p-4 md:p-6 lg:p-8 hover:border-primary-500 transition-colors cursor-pointer"
-                  onClick={() => router.push(`/admin/emails/templates/${template.id}`)}
+                  className="p-4 md:p-6 hover:border-primary-500 transition-colors cursor-pointer"
+                  onClick={() => router.push(`/admin/texts/templates/${template.id}`)}
                 >
                   <div className="flex flex-col sm:flex-row items-start justify-between mb-4 gap-3">
                     <div className="flex-1">
@@ -211,10 +199,10 @@ export default function EmailTemplatesListPage() {
                         <h3 className="text-base md:text-lg font-semibold text-white">
                           {template.name}
                         </h3>
-                        <Badge className={`${getStatusColor(template.status)} text-white px-2 md:px-3 py-1 text-xs`}>
+                        <Badge className={`${getStatusColor(template.status)} text-white px-2 py-1 text-xs`}>
                           {template.status}
                         </Badge>
-                        <Badge className={`${getCategoryColor(template.category)} px-2 md:px-3 py-1 text-xs`}>
+                        <Badge className={`${getCategoryColor(template.category)} px-2 py-1 text-xs`}>
                           {template.category}
                         </Badge>
                       </div>
@@ -222,7 +210,7 @@ export default function EmailTemplatesListPage() {
                         <p className="text-neutral-400 text-xs md:text-sm">{template.description}</p>
                       )}
                     </div>
-
+                    
                     {/* Actions */}
                     <div className="flex gap-2">
                       <Button
@@ -230,7 +218,6 @@ export default function EmailTemplatesListPage() {
                         size="sm"
                         onClick={(e) => handleDuplicate(template.id, e)}
                         disabled={duplicating === template.id}
-                        title="Duplicate template"
                       >
                         {duplicating === template.id ? (
                           <Spinner size="sm" />
@@ -241,37 +228,24 @@ export default function EmailTemplatesListPage() {
                     </div>
                   </div>
 
-                  {/* Subject Preview */}
+                  {/* Message Preview */}
                   <div className="mb-4 p-3 bg-neutral-800/50 rounded-lg">
-                    <p className="text-xs text-neutral-500 mb-1">Subject</p>
-                    <p className="text-sm text-neutral-300">{template.subject}</p>
+                    <p className="text-sm text-neutral-300 line-clamp-2">{template.body}</p>
+                    <p className="text-xs text-neutral-500 mt-1">
+                      {template.body.length} characters
+                      {template.body.length > 160 && (
+                        <span className="text-yellow-500 ml-2">
+                          ({Math.ceil(template.body.length / 160)} SMS segments)
+                        </span>
+                      )}
+                    </p>
                   </div>
-
-                  {/* Triggers */}
-                  {template.triggers && template.triggers.length > 0 && (
-                    <div className="mb-4">
-                      <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-2">
-                        Triggered By
-                      </h4>
-                      <div className="space-y-1">
-                        {template.triggers.map((trigger, idx) => (
-                          <div
-                            key={idx}
-                            className="text-sm text-neutral-400 flex items-start gap-2"
-                          >
-                            <span className="text-primary-500 mt-1">→</span>
-                            <span>{trigger}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
 
                   {/* Variables */}
                   {template.variables && template.variables.length > 0 && (
                     <div className="mb-4">
                       <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-2">
-                        Available Variables ({template.variables.length})
+                        Variables ({template.variables.length})
                       </h4>
                       <div className="flex flex-wrap gap-2">
                         {template.variables.map((variable) => (
@@ -286,28 +260,25 @@ export default function EmailTemplatesListPage() {
                     </div>
                   )}
 
-                  {/* Stats & Slug */}
-                  <div className="flex items-center justify-between pt-4 border-t border-neutral-800">
-                    <div className="flex items-center gap-4 text-xs text-neutral-500">
-                      {template.status === 'active' && (
-                        <>
-                          <div>
-                            <span>Last Sent: </span>
-                            <span className="text-white">
-                              {template.last_sent_at
-                                ? new Date(template.last_sent_at).toLocaleDateString()
-                                : 'Never'}
-                            </span>
-                          </div>
-                          <div>
-                            <span>Total Sent: </span>
-                            <span className="text-white">{template.total_sent || 0}</span>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-neutral-500">
-                      <Code className="w-3 h-3" />
+                  {/* Stats */}
+                  <div className="flex items-center gap-4 pt-4 border-t border-neutral-800 text-xs text-neutral-500">
+                    {template.status === 'active' && (
+                      <>
+                        <div>
+                          <span>Last Sent: </span>
+                          <span className="text-white">
+                            {template.last_sent_at
+                              ? new Date(template.last_sent_at).toLocaleDateString()
+                              : 'Never'}
+                          </span>
+                        </div>
+                        <div>
+                          <span>Total Sent: </span>
+                          <span className="text-white">{template.total_sent || 0}</span>
+                        </div>
+                      </>
+                    )}
+                    <div className="ml-auto">
                       <code className="text-secondary-500">{template.slug}</code>
                     </div>
                   </div>
@@ -320,3 +291,4 @@ export default function EmailTemplatesListPage() {
     </AdminWrapper>
   )
 }
+

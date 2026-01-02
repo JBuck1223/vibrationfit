@@ -15,10 +15,11 @@ const ADMIN_ROUTES = [
   '/admin/settings'
 ]
 
-// Admin user emails (add your email here)
-const ADMIN_EMAILS = [
-  'buckinghambliss@gmail.com', // Your email
-  'admin@vibrationfit.com',    // Future admin email
+// Fallback admin emails (used during migration or if DB check fails)
+// Once database is migrated, this is just a fallback
+const FALLBACK_ADMIN_EMAILS = [
+  'buckinghambliss@gmail.com',
+  'admin@vibrationfit.com',
 ]
 
 export function isAdminRoute(pathname: string): boolean {
@@ -26,8 +27,66 @@ export function isAdminRoute(pathname: string): boolean {
   return ADMIN_ROUTES.some(route => pathname.startsWith(route) && !pathname.startsWith('/api/'))
 }
 
+/**
+ * Check if email is in fallback admin list
+ * Used when database check isn't available (middleware context)
+ */
 export function isAdminEmail(email: string): boolean {
-  return ADMIN_EMAILS.includes(email.toLowerCase())
+  return FALLBACK_ADMIN_EMAILS.includes(email.toLowerCase())
+}
+
+/**
+ * Check if user is admin via database
+ * Use this in API routes where you have access to Supabase client
+ */
+export async function isAdminUser(supabase: any, userId: string): Promise<boolean> {
+  try {
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single()
+
+    if (error || !profile) {
+      return false
+    }
+
+    return profile.role === 'admin' || profile.role === 'super_admin'
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Check if user is admin - tries database first, falls back to email list
+ * Use this in API routes
+ */
+export async function checkIsAdmin(supabase: any, user: { id: string; email?: string }): Promise<boolean> {
+  // Try database first
+  const isDbAdmin = await isAdminUser(supabase, user.id)
+  if (isDbAdmin) return true
+
+  // Fallback to email list (for during migration)
+  if (user.email && isAdminEmail(user.email)) return true
+
+  return false
+}
+
+/**
+ * Get user's role from database
+ */
+export async function getUserRole(supabase: any, userId: string): Promise<string> {
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single()
+
+    return profile?.role || 'member'
+  } catch {
+    return 'member'
+  }
 }
 
 export function createAdminResponse(request: NextRequest, message: string = 'Admin access required') {
