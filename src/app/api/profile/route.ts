@@ -41,12 +41,26 @@ export async function GET(request: NextRequest) {
     if (versionId) {
       console.log('🔍 PROFILE API: Fetching specific version:', versionId, 'for user:', user.id)
       try {
+        // Fetch version first
         const { data: version, error: versionError } = await supabase
           .from('user_profiles')
           .select('*')
           .eq('id', versionId)
           .eq('user_id', user.id)
           .single()
+        
+        // Try to get account data (gracefully handle if table doesn't exist)
+        let accountData = null
+        try {
+          const accountResult = await supabase
+            .from('user_accounts')
+            .select('first_name, last_name, profile_picture_url, email, phone')
+            .eq('id', user.id)
+            .maybeSingle()
+          accountData = accountResult.data
+        } catch {
+          // user_accounts table may not exist yet
+        }
 
         if (versionError) {
           console.error('❌ PROFILE API: Version fetch error:', versionError)
@@ -70,9 +84,19 @@ export async function GET(request: NextRequest) {
 
         // Always recalculate completion to ensure accuracy
         const calculatedCompletion = calculateProfileCompletion(version)
+
+        // Merge account data into profile for backward compatibility
+        const profileWithAccount = {
+          ...version,
+          first_name: accountData?.first_name || version?.first_name,
+          last_name: accountData?.last_name || version?.last_name,
+          profile_picture_url: accountData?.profile_picture_url || version?.profile_picture_url,
+          email: accountData?.email || version?.email,
+          phone: accountData?.phone || version?.phone,
+        }
         
         return NextResponse.json({
-          profile: version,
+          profile: profileWithAccount,
           completionPercentage: calculatedCompletion,
           version: {
             id: version.id,
@@ -83,7 +107,8 @@ export async function GET(request: NextRequest) {
             parent_version_id: version.parent_version_id,
             created_at: version.created_at,
             updated_at: version.updated_at
-          }
+          },
+          account: accountData
         })
       } catch (dbError) {
         console.error('Database error:', dbError)
@@ -96,6 +121,16 @@ export async function GET(request: NextRequest) {
       let profile = null
       let completionPercentage = 0
       let versions: any[] = []
+
+      // Get account data (name, picture) from user_accounts if it exists
+      // Falls back to user_profiles data if user_accounts doesn't exist or has no data
+      const accountResult = await supabase
+        .from('user_accounts')
+        .select('first_name, last_name, profile_picture_url, email, phone')
+        .eq('id', user.id)
+        .maybeSingle()
+      
+      const accountData = accountResult.error ? null : accountResult.data
 
       // Get the active profile (non-draft)
       const { data: activeProfile, error: activeError } = await supabase
@@ -218,10 +253,23 @@ export async function GET(request: NextRequest) {
       console.log('📋 PROFILE API: Versions being returned:', versions.length)
       console.log('✅ PROFILE API: Returning data to client')
 
+      // Merge account data into profile for backward compatibility
+      const profileWithAccount = {
+        ...profile,
+        // Account-level fields from user_accounts (take precedence)
+        first_name: accountData?.first_name || profile?.first_name,
+        last_name: accountData?.last_name || profile?.last_name,
+        profile_picture_url: accountData?.profile_picture_url || profile?.profile_picture_url,
+        email: accountData?.email || profile?.email,
+        phone: accountData?.phone || profile?.phone,
+      }
+
       return NextResponse.json({
-        profile,
+        profile: profileWithAccount,
         completionPercentage,
-        versions
+        versions,
+        // Also provide account separately for newer code
+        account: accountData
       })
     } catch (dbError) {
       console.error('Database error:', dbError)

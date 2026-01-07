@@ -243,40 +243,41 @@ CREATE TRIGGER update_scheduled_messages_timestamp
 -- ============================================================================
 -- RLS POLICIES
 -- ============================================================================
--- Note: Uses is_admin() function from admin_roles migration for proper role checking
+-- Note: RLS policies for admin access are created in the user_accounts migration
+-- which defines the is_admin() function. Here we just enable RLS and create
+-- basic authenticated access. The admin policies are added later.
 
 ALTER TABLE email_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sms_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE scheduled_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE message_send_log ENABLE ROW LEVEL SECURITY;
 
--- Email templates: All can read active, admins can manage all
-CREATE POLICY "Anyone can read active email templates"
+-- Temporary permissive policies (will be replaced by user_accounts migration)
+-- These allow authenticated users to access until admin system is in place
+
+CREATE POLICY "Authenticated can read email templates"
   ON email_templates FOR SELECT
-  USING (status = 'active' OR is_admin());
+  USING (auth.uid() IS NOT NULL);
 
-CREATE POLICY "Admins can manage email templates"
+CREATE POLICY "Authenticated can manage email templates"
   ON email_templates FOR ALL
-  USING (is_admin());
+  USING (auth.uid() IS NOT NULL);
 
--- SMS templates: Same pattern
-CREATE POLICY "Anyone can read active sms templates"
+CREATE POLICY "Authenticated can read sms templates"
   ON sms_templates FOR SELECT
-  USING (status = 'active' OR is_admin());
+  USING (auth.uid() IS NOT NULL);
 
-CREATE POLICY "Admins can manage sms templates"
+CREATE POLICY "Authenticated can manage sms templates"
   ON sms_templates FOR ALL
-  USING (is_admin());
+  USING (auth.uid() IS NOT NULL);
 
--- Scheduled messages: Admins only
-CREATE POLICY "Admins can manage scheduled messages"
+CREATE POLICY "Authenticated can manage scheduled messages"
   ON scheduled_messages FOR ALL
-  USING (is_admin());
+  USING (auth.uid() IS NOT NULL);
 
--- Message log: Admins can read, system can insert
-CREATE POLICY "Admins can view message log"
+CREATE POLICY "Authenticated can view message log"
   ON message_send_log FOR SELECT
-  USING (is_admin());
+  USING (auth.uid() IS NOT NULL);
 
 CREATE POLICY "Authenticated can insert message log"
   ON message_send_log FOR INSERT

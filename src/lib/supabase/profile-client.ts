@@ -63,7 +63,7 @@ export function clearAllProfileCache(): void {
 /**
  * Get the active profile for a user (client-side)
  * Single source of truth for fetching active profile on the client
- * Filters by is_active = true to ensure we get the correct profile
+ * Tries user_accounts first (new schema), falls back to user_profiles (legacy)
  * Uses in-memory cache to prevent repeated network requests
  */
 export async function getActiveProfileClient(userId: string): Promise<ActiveProfileFields | null> {
@@ -81,50 +81,46 @@ export async function getActiveProfileClient(userId: string): Promise<ActiveProf
       setTimeout(() => reject(new Error('Profile fetch timeout')), 10000)
     })
 
-    // Create the query promise
-    // First try to get active, non-draft profile
-    // If that fails, fallback to most recent profile
-    const queryPromise = supabase
-      .from('user_profiles')
-      .select('id, first_name, profile_picture_url')
-      .eq('user_id', userId)
-      .eq('is_active', true)
-      .eq('is_draft', false)
-      .maybeSingle()
-      .then(async (result) => {
-        // If no active profile found, fallback to most recent profile
-        if (result.error || !result.data) {
-          console.log(`No active profile for user ${userId}, trying fallback...`)
-          const fallbackResult = await supabase
-            .from('user_profiles')
-            .select('id, first_name, profile_picture_url, is_active, is_draft')
-            .eq('user_id', userId)
-            .order('updated_at', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-          
-          if (fallbackResult.error) {
-            // Only throw if it's not a "no rows" error
-            if (fallbackResult.error.code !== 'PGRST116') {
-              console.error('Profile fetch error:', fallbackResult.error)
-              throw fallbackResult.error
-            }
-            // No profile exists at all for this user
-            console.warn(`No profile found at all for user ${userId}`)
-            return null
-          }
-          
-          if (fallbackResult.data) {
-            console.log(`Fallback profile found:`, {
-              has_data: !!fallbackResult.data,
-              is_active: fallbackResult.data.is_active,
-              is_draft: fallbackResult.data.is_draft
-            })
-          }
-          return fallbackResult.data
-        }
-        return result.data
-      })
+    // Create the query promise - get account data from user_accounts, profile ID from user_profiles
+    const queryPromise = (async () => {
+      // Get account info from user_accounts (name, picture now live here)
+      const accountResult = await supabase
+        .from('user_accounts')
+        .select('first_name, profile_picture_url')
+        .eq('id', userId)
+        .maybeSingle()
+      
+      // Get active profile ID from user_profiles (only request 'id' - other fields may be dropped)
+      const profileResult = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .eq('is_draft', false)
+        .maybeSingle()
+      
+      // Fallback to most recent profile if no active one
+      let profileId = profileResult.data?.id
+      if (!profileId) {
+        const fallbackResult = await supabase
+          .from('user_profiles')
+          .select('id')
+          .eq('user_id', userId)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        
+        profileId = fallbackResult.data?.id
+      }
+      
+      const accountData = accountResult.data
+      
+      return {
+        id: profileId || undefined,
+        first_name: accountData?.first_name || null,
+        profile_picture_url: accountData?.profile_picture_url || null
+      }
+    })()
 
     // Race between query and timeout
     const data = await Promise.race([queryPromise, timeoutPromise])

@@ -41,10 +41,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Fetch user profile for personalization
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
+    // Fetch user account for personalization
+    const { data: account } = await supabase
+      .from('user_accounts')
+      .select('first_name, last_name, full_name')
       .eq('id', user.id)
       .single()
 
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     // Build the final assembly prompt
     const prompt = buildFinalAssemblyPrompt(
       assembledVision,
-      profile,
+      account,
       assessment
     )
 
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
     // Generate activation message
     const visionSummary = `Complete life vision across 12 categories`
     const activationPrompt = buildActivationReflectionPrompt(
-      profile?.first_name || 'friend',
+      account?.first_name || 'friend',
       visionSummary,
       scenesCount || 0,
       12 // All 12 categories

@@ -73,14 +73,14 @@ export async function POST(
       )
     }
 
-    // Get user profile for display name
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('full_name')
+    // Get user account for display name
+    const { data: account } = await supabase
+      .from('user_accounts')
+      .select('first_name, last_name, full_name')
       .eq('id', user.id)
       .single()
 
-    const userName = profile?.full_name || user.email || 'Participant'
+    const userName = account?.full_name || account?.first_name || user.email || 'Participant'
 
     // Create appropriate token
     let token
