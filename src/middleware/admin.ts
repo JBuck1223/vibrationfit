@@ -36,22 +36,22 @@ export function isAdminEmail(email: string): boolean {
 }
 
 /**
- * Check if user is admin via database
+ * Check if user is admin via database (user_accounts table)
  * Use this in API routes where you have access to Supabase client
  */
 export async function isAdminUser(supabase: any, userId: string): Promise<boolean> {
   try {
-    const { data: profile, error } = await supabase
-      .from('profiles')
+    const { data: account, error } = await supabase
+      .from('user_accounts')
       .select('role')
       .eq('id', userId)
       .single()
 
-    if (error || !profile) {
+    if (error || !account) {
       return false
     }
 
-    return profile.role === 'admin' || profile.role === 'super_admin'
+    return account.role === 'admin' || account.role === 'super_admin'
   } catch {
     return false
   }
@@ -66,7 +66,7 @@ export async function checkIsAdmin(supabase: any, user: { id: string; email?: st
   const isDbAdmin = await isAdminUser(supabase, user.id)
   if (isDbAdmin) return true
 
-  // Fallback to email list (for during migration)
+  // Fallback to email list (for during migration or if no user_accounts record)
   if (user.email && isAdminEmail(user.email)) return true
 
   return false
@@ -77,15 +77,32 @@ export async function checkIsAdmin(supabase: any, user: { id: string; email?: st
  */
 export async function getUserRole(supabase: any, userId: string): Promise<string> {
   try {
-    const { data: profile } = await supabase
-      .from('profiles')
+    const { data: account } = await supabase
+      .from('user_accounts')
       .select('role')
       .eq('id', userId)
       .single()
 
-    return profile?.role || 'member'
+    return account?.role || 'member'
   } catch {
     return 'member'
+  }
+}
+
+/**
+ * Get user account data
+ */
+export async function getUserAccount(supabase: any, userId: string) {
+  try {
+    const { data: account } = await supabase
+      .from('user_accounts')
+      .select('*')
+      .eq('id', userId)
+      .single()
+
+    return account
+  } catch {
+    return null
   }
 }
 

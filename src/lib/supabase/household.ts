@@ -264,12 +264,12 @@ export async function canUseSharedTokens(userId: string): Promise<boolean> {
   const supabase = await createClient()
   
   const { data, error } = await supabase
-    .from('user_profiles')
+    .from('user_accounts')
     .select(`
       allow_shared_tokens,
-      household:households!user_profiles_household_id_fkey(shared_tokens_enabled)
+      household:households!user_accounts_household_id_fkey(shared_tokens_enabled)
     `)
-    .eq('user_id', userId)
+    .eq('id', userId)
     .single()
 
   if (error || !data) {
@@ -593,25 +593,22 @@ export async function deductTokens(
 ): Promise<{ success: boolean; error?: string; usedSharedTokens?: boolean }> {
   const supabase = await createClient()
 
-  // 1. Get user profile with household info
-  const { data: profile, error: profileError } = await supabase
-    .from('user_profiles')
+  // 1. Get user account with household info
+  const { data: account, error: accountError } = await supabase
+    .from('user_accounts')
     .select(`
       *,
-      household:households!user_profiles_household_id_fkey(
+      household:households!user_accounts_household_id_fkey(
         id,
         admin_user_id,
         shared_tokens_enabled
-      ),
-      household_member:household_members!household_members_user_id_fkey(
-        allow_shared_tokens
       )
     `)
-    .eq('user_id', userId)
+    .eq('id', userId)
     .single()
 
-  if (profileError || !profile) {
-    return { success: false, error: 'User profile not found' }
+  if (accountError || !account) {
+    return { success: false, error: 'User account not found' }
   }
 
   // Get user's token balance (calculated from token_transactions and token_usage)
@@ -634,10 +631,9 @@ export async function deductTokens(
   }
 
   // 3. User doesn't have enough tokens - check household sharing
-  const household = profile.household as unknown as Household
-  const householdMember = profile.household_member?.[0] as unknown as HouseholdMember
+  const household = account.household as unknown as Household
 
-  if (!household || !household.shared_tokens_enabled || !householdMember?.allow_shared_tokens) {
+  if (!household || !household.shared_tokens_enabled || !account.allow_shared_tokens) {
     return { success: false, error: 'Insufficient tokens' }
   }
 

@@ -3,6 +3,10 @@
     {
       "path": "/api/backup",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/messaging/process-scheduled",
+      "schedule": "* * * * *"
     }
   ],
   "functions": {
