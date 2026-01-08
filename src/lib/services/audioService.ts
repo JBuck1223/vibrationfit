@@ -3,6 +3,9 @@ import { S3Client, PutObjectCommand, HeadObjectCommand, GetObjectCommand } from 
 import { MediaConvertClient, CreateJobCommand } from '@aws-sdk/client-mediaconvert'
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda'
 import crypto from 'crypto'
+import fs from 'fs'
+import path from 'path'
+import { execSync } from 'child_process'
 import { trackTokenUsage } from '@/lib/tokens/tracking'
 
 export type OpenAIVoice = 'alloy' | 'ash' | 'coral' | 'echo' | 'fable' | 'onyx' | 'nova' | 'sage' | 'shimmer'
@@ -711,34 +714,6 @@ export async function generateAudioTracks(params: {
       .catch(err => console.error('Failed to update final batch status:', err))
   }
 
-  // Trigger full voice generation for voice-only (standard) variant
-  if ((variant === 'standard' || !variant) && results.length === sections.length) {
-    const allSucceeded = results.every(r => r.status === 'generated' || r.status === 'skipped')
-    
-    if (allSucceeded && targetAudioSetId) {
-      console.log('🎵 [FULL VOICE] All voice-only tracks complete, triggering full voice generation...')
-      
-      // Trigger asynchronously (don't wait for it)
-      fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/audio/generate-full-voice`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          audioSetId: targetAudioSetId,
-          visionId,
-          userId
-        })
-      }).then(res => {
-        if (res.ok) {
-          console.log('✅ [FULL VOICE] Full voice generation triggered')
-        } else {
-          console.error('❌ [FULL VOICE] Full voice generation failed:', res.status)
-        }
-      }).catch(err => {
-        console.error('❌ [FULL VOICE] Full voice generation error:', err)
-      })
-    }
-  }
-
   return results
 }
 
@@ -754,6 +729,166 @@ export function getOpenAIVoices(): { id: OpenAIVoice; name: string; brandName: s
     { id: 'nova', name: 'Nova', brandName: 'Fresh & Modern', gender: 'female', provider: 'openai' },
     { id: 'sage', name: 'Sage', brandName: 'Excited & Firm', gender: 'female', provider: 'openai' },
   ]
+}
+
+/**
+ * Generate a full voice track by concatenating all individual section tracks
+ */
+export async function generateFullVoiceTrack(
+  userId: string,
+  visionId: string,
+  audioSetId: string,
+  voiceId: string
+): Promise<{ success: boolean; trackId?: string; audioUrl?: string; duration?: number; error?: string }> {
+  const supabase = await createClient()
+  const s3 = getS3Client()
+  
+  console.log('🎵 [FULL VOICE] Starting full voice generation:', { audioSetId, visionId, userId })
+
+  try {
+    // Fetch all section tracks (exclude any existing full track)
+    const { data: tracks, error: tracksError } = await supabase
+      .from('audio_tracks')
+      .select('*')
+      .eq('audio_set_id', audioSetId)
+      .neq('section_key', 'full')
+      .eq('status', 'completed')
+      .order('created_at', { ascending: true })
+
+    if (tracksError || !tracks || tracks.length === 0) {
+      console.error('❌ [FULL VOICE] Failed to fetch tracks:', tracksError)
+      return { success: false, error: 'No completed tracks found for this audio set' }
+    }
+
+    console.log(`✅ [FULL VOICE] Found ${tracks.length} tracks to concatenate`)
+
+    // Create temp directory
+    const tempDir = path.join('/tmp', `full-voice-${Date.now()}`)
+    fs.mkdirSync(tempDir, { recursive: true })
+
+    try {
+      // Download all tracks from S3
+      const downloadedFiles: string[] = []
+
+      for (let i = 0; i < tracks.length; i++) {
+        const track = tracks[i]
+        const localPath = path.join(tempDir, `section-${i.toString().padStart(2, '0')}.mp3`)
+        
+        console.log(`📥 [FULL VOICE] Downloading track ${i + 1}/${tracks.length}: ${track.section_key}`)
+        
+        // Parse S3 URL to get bucket and key
+        const url = new URL(track.audio_url)
+        const s3Key = track.s3_key || url.pathname.slice(1) // Remove leading slash
+        
+        const getCommand = new GetObjectCommand({
+          Bucket: track.s3_bucket || BUCKET_NAME,
+          Key: s3Key
+        })
+        const s3Object = await s3.send(getCommand)
+
+        const buffer = await s3Object.Body?.transformToByteArray()
+        if (!buffer) throw new Error(`Failed to download track: ${track.section_key}`)
+        
+        fs.writeFileSync(localPath, Buffer.from(buffer))
+        downloadedFiles.push(localPath)
+      }
+
+      console.log('✅ [FULL VOICE] All tracks downloaded')
+
+      // Create FFmpeg concat file
+      const concatListPath = path.join(tempDir, 'concat-list.txt')
+      const concatContent = downloadedFiles.map(f => `file '${f}'`).join('\n')
+      fs.writeFileSync(concatListPath, concatContent)
+
+      // Concatenate with FFmpeg
+      const outputPath = path.join(tempDir, 'full-voice.mp3')
+      console.log('🔧 [FULL VOICE] Concatenating tracks with FFmpeg...')
+      
+      execSync(
+        `ffmpeg -f concat -safe 0 -i "${concatListPath}" -c copy "${outputPath}"`,
+        { stdio: 'pipe' }
+      )
+
+      console.log('✅ [FULL VOICE] Concatenation complete')
+
+      // Get duration
+      const durationOutput = execSync(
+        `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${outputPath}"`,
+        { encoding: 'utf-8' }
+      )
+      const duration = Math.round(parseFloat(durationOutput.trim()))
+
+      // Upload to S3
+      const fileBuffer = fs.readFileSync(outputPath)
+      const s3Key = `user-uploads/${userId}/life-vision/audio/${visionId}/full-${audioSetId}.mp3`
+      
+      console.log('📤 [FULL VOICE] Uploading to S3...')
+      
+      const putCommand = new PutObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: s3Key,
+        Body: fileBuffer,
+        ContentType: 'audio/mpeg',
+      })
+      await s3.send(putCommand)
+
+      const audioUrl = `${CDN_PREFIX}/${s3Key}`
+      console.log('✅ [FULL VOICE] Uploaded to S3:', audioUrl)
+
+      // Insert full track record
+      const contentHash = hashContent('full-vision-audio').substring(0, 16)
+      
+      const { data: fullTrack, error: insertError } = await supabase
+        .from('audio_tracks')
+        .insert({
+          audio_set_id: audioSetId,
+          user_id: userId,
+          vision_id: visionId,
+          section_key: 'full',
+          content_hash: contentHash,
+          text_content: 'Full Vision Audio - All Sections Combined',
+          voice_id: voiceId,
+          s3_bucket: BUCKET_NAME,
+          s3_key: s3Key,
+          audio_url: audioUrl,
+          duration_seconds: duration,
+          status: 'completed'
+        })
+        .select()
+        .single()
+
+      if (insertError) {
+        console.error('❌ [FULL VOICE] Failed to insert track record:', insertError)
+        throw insertError
+      }
+
+      console.log('✅ [FULL VOICE] Full track record created:', fullTrack.id)
+
+      // Cleanup temp files
+      fs.rmSync(tempDir, { recursive: true, force: true })
+
+      return { 
+        success: true, 
+        trackId: fullTrack.id,
+        audioUrl,
+        duration
+      }
+
+    } catch (error) {
+      // Cleanup on error
+      if (fs.existsSync(tempDir)) {
+        fs.rmSync(tempDir, { recursive: true, force: true })
+      }
+      throw error
+    }
+
+  } catch (error) {
+    console.error('❌ [FULL VOICE] Error:', error)
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to generate full voice track' 
+    }
+  }
 }
 
 

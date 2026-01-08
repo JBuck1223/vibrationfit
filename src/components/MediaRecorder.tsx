@@ -617,7 +617,9 @@ export function MediaRecorderComponent({
         // audioOnly mode will upload on Save button click (user may want to edit/discard first)
         if (recordingPurpose === 'withFile') {
           const folder = storageFolder || (mode === 'video' ? 'journalVideoRecordings' : 'journalAudioRecordings')
-          const fileName = `recording-${Date.now()}.webm`
+          // Include recordingId in filename if provided for better S3 organization
+          const filePrefix = providedRecordingId ? `${providedRecordingId}-` : ''
+          const fileName = `${filePrefix}recording-${Date.now()}.webm`
           
           console.log(`📤 ${recordingPurpose} mode: Uploading to S3...`)
           
@@ -813,7 +815,9 @@ export function MediaRecorderComponent({
         // Transcript-only or with-file: Upload to S3 in parallel
         console.log(`📤 ${recordingPurpose === 'transcriptOnly' ? 'Transcript-only' : 'Full file'} mode: Uploading to S3 in parallel...`)
         const folder = storageFolder || (mode === 'video' ? 'journalVideoRecordings' : 'journalAudioRecordings')
-        const fileName = `recording-${Date.now()}.webm`
+        // Include recordingId in filename if provided for better S3 organization
+        const filePrefix = providedRecordingId ? `${providedRecordingId}-` : ''
+        const fileName = `${filePrefix}recording-${Date.now()}.webm`
         
         uploadPromise = uploadRecording(blob, folder, fileName)
           .then((uploadResult) => {
@@ -1669,7 +1673,9 @@ export function MediaRecorderComponent({
                       setIsUploading(true)
                       setError(null)
                       const folder = storageFolder || 'journalAudioRecordings'
-                      const fileName = `recording-${Date.now()}.webm`
+                      // Include recordingId in filename if provided for better S3 organization
+                      const filePrefix = providedRecordingId ? `${providedRecordingId}-` : ''
+                      const fileName = `${filePrefix}recording-${Date.now()}.webm`
                       
                       console.log('📤 audioOnly mode: Uploading to S3...')
                       

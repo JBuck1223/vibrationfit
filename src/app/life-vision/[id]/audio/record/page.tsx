@@ -279,13 +279,21 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
         return
       }
 
+      // Get voice ID from audio set
+      const { data: audioSet } = await supabase
+        .from('audio_sets')
+        .select('voice_id')
+        .eq('id', audioSetId)
+        .single()
+
       const response = await fetch('/api/audio/generate-full-voice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           audioSetId,
           visionId,
-          userId: user.id
+          userId: user.id,
+          voiceId: audioSet?.voice_id || 'personal-recording'
         })
       })
 

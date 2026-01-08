@@ -2,6 +2,53 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { calculateProfileCompletion } from '@/lib/utils/profile-completion'
 
+// Account-level fields that should be stored in user_accounts table
+const ACCOUNT_FIELDS = ['first_name', 'last_name', 'email', 'phone', 'profile_picture_url', 'date_of_birth']
+
+// Helper function to separate account-level fields from profile fields
+function separateAccountFields(data: any): { accountData: any, profileData: any } {
+  if (!data || typeof data !== 'object') return { accountData: {}, profileData: data }
+  
+  const accountData: any = {}
+  const profileData: any = { ...data }
+  
+  for (const field of ACCOUNT_FIELDS) {
+    if (field in data) {
+      accountData[field] = data[field]
+      // Keep in profileData for backward compatibility, but user_accounts is source of truth
+    }
+  }
+  
+  return { accountData, profileData }
+}
+
+// Helper function to update user_accounts table
+async function updateUserAccount(supabase: any, userId: string, accountData: any): Promise<void> {
+  if (!accountData || Object.keys(accountData).length === 0) return
+  
+  try {
+    const { error } = await supabase
+      .from('user_accounts')
+      .upsert({
+        id: userId,
+        ...accountData,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'id'
+      })
+    
+    if (error) {
+      console.error('Error updating user_accounts:', error)
+      // Don't throw - this is not critical for the profile save
+    } else {
+      console.log('✅ User account updated with fields:', Object.keys(accountData))
+    }
+  } catch (err) {
+    console.error('Failed to update user_accounts:', err)
+    // Continue - user_accounts update is not critical
+  }
+}
+
 // Helper function to clean profile data by removing invalid fields
 function cleanProfileData(profileData: any): any {
   if (!profileData || typeof profileData !== 'object') return profileData
@@ -54,7 +101,7 @@ export async function GET(request: NextRequest) {
         try {
           const accountResult = await supabase
             .from('user_accounts')
-            .select('first_name, last_name, profile_picture_url, email, phone')
+            .select('first_name, last_name, profile_picture_url, email, phone, date_of_birth')
             .eq('id', user.id)
             .maybeSingle()
           accountData = accountResult.data
@@ -93,6 +140,7 @@ export async function GET(request: NextRequest) {
           profile_picture_url: accountData?.profile_picture_url || version?.profile_picture_url,
           email: accountData?.email || version?.email,
           phone: accountData?.phone || version?.phone,
+          date_of_birth: accountData?.date_of_birth || version?.date_of_birth,
         }
         
         return NextResponse.json({
@@ -126,7 +174,7 @@ export async function GET(request: NextRequest) {
       // Falls back to user_profiles data if user_accounts doesn't exist or has no data
       const accountResult = await supabase
         .from('user_accounts')
-        .select('first_name, last_name, profile_picture_url, email, phone')
+        .select('first_name, last_name, profile_picture_url, email, phone, date_of_birth')
         .eq('id', user.id)
         .maybeSingle()
       
@@ -262,6 +310,7 @@ export async function GET(request: NextRequest) {
         profile_picture_url: accountData?.profile_picture_url || profile?.profile_picture_url,
         email: accountData?.email || profile?.email,
         phone: accountData?.phone || profile?.phone,
+        date_of_birth: accountData?.date_of_birth || profile?.date_of_birth,
       }
 
       return NextResponse.json({
@@ -367,6 +416,12 @@ export async function POST(request: NextRequest) {
 
     // Clean profile data to remove invalid fields (like education_level)
     const cleanedProfileData = cleanProfileData(profileData)
+    
+    // Separate account-level fields and save to user_accounts
+    const { accountData } = separateAccountFields(cleanedProfileData)
+    if (Object.keys(accountData).length > 0) {
+      await updateUserAccount(supabase, user.id, accountData)
+    }
 
     // Debug: Log what data is being received
     console.log('Profile API: Received profile data:', JSON.stringify(cleanedProfileData, null, 2))
@@ -843,6 +898,12 @@ export async function PUT(request: NextRequest) {
 
       // Remove versioning fields from fieldUpdates to prevent accidental changes
       const { id, version_number, is_draft, is_active, parent_version_id, created_at, updated_at, ...safeFieldUpdates } = fieldUpdates
+
+      // Separate and save account-level fields to user_accounts
+      const { accountData } = separateAccountFields(safeFieldUpdates)
+      if (Object.keys(accountData).length > 0) {
+        await updateUserAccount(supabase, user.id, accountData)
+      }
 
       // Update the user profile with the specific fields
       const { data: profile, error: profileError } = await supabase

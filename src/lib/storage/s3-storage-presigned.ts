@@ -22,6 +22,9 @@ export const USER_FOLDERS = {
   profileVideoRecordings: 'profile/video-recordings',
   customTracks: 'custom-tracks',
   voiceCloneSamples: 'voice-clone-samples',
+  // Intensive testimonials
+  intensiveTestimonials: 'intensive/testimonials',
+  intensiveCalibrationRecordings: 'intensive/calibration-recordings',
 } as const
 
 type UserFolder = keyof typeof USER_FOLDERS

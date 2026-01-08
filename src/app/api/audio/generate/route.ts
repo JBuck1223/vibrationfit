@@ -84,6 +84,35 @@ export async function POST(request: NextRequest) {
       batchId,
     })
 
+    // Trigger full voice generation for voice-only (standard) variant
+    if ((variant === 'standard' || !variant) && results.length === sections.length) {
+      const allSucceeded = results.every(r => r.status === 'generated' || r.status === 'skipped')
+      const targetAudioSetId = audioSetId || results[0]?.audioSetId
+      
+      if (allSucceeded && targetAudioSetId) {
+        console.log('🎵 [FULL VOICE] All voice-only tracks complete, triggering full voice generation...')
+        
+        // Import and call directly (this has access to the authenticated context)
+        const { generateFullVoiceTrack } = await import('@/lib/services/audioService')
+        
+        // Call asynchronously (don't wait for it, don't block the response)
+        generateFullVoiceTrack(
+          user.id,
+          visionId,
+          targetAudioSetId,
+          voice as string
+        ).then((result) => {
+          if (result.success) {
+            console.log('✅ [FULL VOICE] Full voice generation complete:', result.trackId)
+          } else {
+            console.error('❌ [FULL VOICE] Full voice generation failed:', result.error)
+          }
+        }).catch(err => {
+          console.error('❌ [FULL VOICE] Full voice generation error:', err)
+        })
+      }
+    }
+
     return NextResponse.json({ results, batchId })
   } catch (error) {
     console.error('Audio generation error:', error)

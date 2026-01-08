@@ -7,7 +7,7 @@ import { Card, Button, Badge, CategoryCard, DeleteConfirmationDialog, ActionButt
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Calendar, CheckCircle, Circle, XCircle, Filter, Grid3X3, X, ChevronLeft, ChevronRight, Eye, List, Grid, CheckSquare, Square, Lightbulb } from 'lucide-react'
+import { Plus, Calendar, CheckCircle, Circle, XCircle, Filter, Grid3X3, X, ChevronLeft, ChevronRight, Eye, List, Grid, CheckSquare, Square, Lightbulb, Download } from 'lucide-react'
 import { useDeleteItem } from '@/hooks/useDeleteItem'
 
 // Hook to get responsive column count
@@ -352,7 +352,7 @@ export default function VisionBoardPage() {
           title="Vision Board"
           subtitle="Visualize and track your conscious creations"
         >
-          <div className="flex justify-center gap-3">
+          <div className="flex justify-center gap-3 flex-wrap">
             <Button
               onClick={() => router.push('/vision-board/ideas')}
               variant="primary"
@@ -370,6 +370,25 @@ export default function VisionBoardPage() {
             >
               <Plus className="w-4 h-4 shrink-0" />
               <span>Add Creation</span>
+            </Button>
+            <Button
+              onClick={() => {
+                // Pass current filters to export page
+                const params = new URLSearchParams()
+                if (!selectedCategories.includes('all') && selectedCategories.length > 0) {
+                  params.set('categories', selectedCategories.join(','))
+                }
+                if (!selectedStatuses.includes('all') && selectedStatuses.length > 0) {
+                  params.set('statuses', selectedStatuses.join(','))
+                }
+                router.push(`/vision-board/export${params.toString() ? '?' + params.toString() : ''}`)
+              }}
+              variant="secondary"
+              size="sm"
+              className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+            >
+              <Download className="w-4 h-4 shrink-0" />
+              <span>Download PDF</span>
             </Button>
           </div>
         </PageHero>

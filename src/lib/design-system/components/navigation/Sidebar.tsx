@@ -21,7 +21,7 @@ export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
   ({ className, navigation, isAdmin = false, ...props }, ref) => {
     // Use admin navigation if isAdmin is true, otherwise use provided navigation or centralized userNavigation
     const navItems = isAdmin ? centralAdminNav : (navigation || userNavigation)
-    const [collapsed, setCollapsed] = useState(false)
+    const [collapsed, setCollapsed] = useState(true)
     const [expandedItems, setExpandedItems] = useState<string[]>([])
     const [user, setUser] = useState<any>(null)
     const [profile, setProfile] = useState<any>(null)

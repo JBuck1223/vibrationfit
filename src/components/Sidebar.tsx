@@ -23,7 +23,7 @@ interface SidebarProps {
 
 // Shared Sidebar Base Component
 function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & { navigation: NavItem[] }) {
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(true)
   const [expandedItems, setExpandedItems] = useState<string[]>([])
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [profile, setProfile] = useState<any>(null)
