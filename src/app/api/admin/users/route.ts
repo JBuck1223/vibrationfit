@@ -27,10 +27,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const role = searchParams.get('role')
 
-    // Build query - now includes role column
+    // Build query from user_accounts
     let query = supabase
-      .from('profiles')
-      .select('id, email, full_name, role')
+      .from('user_accounts')
+      .select('id, email, first_name, last_name, full_name, role')
       .order('full_name', { ascending: true })
 
     // Filter by role if specified

@@ -14,3 +14,5 @@ CREATE INDEX idx_video_participants_phone ON video_session_participants(phone);
 -- Add comment
 COMMENT ON COLUMN video_session_participants.phone IS 'Phone number for SMS reminders';
 
+
+

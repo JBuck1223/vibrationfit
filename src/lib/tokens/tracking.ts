@@ -148,21 +148,21 @@ export async function validateTokenBalance(
     }
 
     // ===== NEW: Check household token sharing =====
-    // Get user's household info
-    const { data: profile } = await supabase
-      .from('user_profiles')
+    // Get user's household info from user_accounts
+    const { data: account } = await supabase
+      .from('user_accounts')
       .select(`
         household_id,
         allow_shared_tokens,
-        household:households!user_profiles_household_id_fkey(
+        household:households!user_accounts_household_id_fkey(
           admin_user_id,
           shared_tokens_enabled
         )
       `)
-      .eq('user_id', userId)
+      .eq('id', userId)
       .single()
 
-    if (!profile?.household_id) {
+    if (!account?.household_id) {
       // User not in household, cannot use shared tokens
       return {
         error: 'Insufficient tokens remaining',
@@ -171,10 +171,10 @@ export async function validateTokenBalance(
       }
     }
 
-    const household = profile.household as any
+    const household = account.household as any
     
     // Check if household token sharing is enabled
-    if (!household?.shared_tokens_enabled || !profile.allow_shared_tokens) {
+    if (!household?.shared_tokens_enabled || !account.allow_shared_tokens) {
       return {
         error: 'Insufficient tokens remaining',
         tokensRemaining,
@@ -195,7 +195,7 @@ export async function validateTokenBalance(
     const { data: tokenSummary } = await supabase
       .from('household_token_summary')
       .select('household_tokens_remaining')
-      .eq('household_id', profile.household_id)
+      .eq('household_id', account.household_id)
       .single()
 
     const householdTokens = tokenSummary?.household_tokens_remaining || 0

@@ -490,6 +490,7 @@ export default function SessionPage() {
         roomUrl={roomUrl}
         token={token}
         userName={userName}
+        sessionId={sessionId}
         sessionTitle={session?.title}
         isHost={isHost}
         initialSettings={callSettings || undefined}

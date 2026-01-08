@@ -247,3 +247,5 @@ COMMENT ON COLUMN profiles.role IS 'User role: member, coach, admin, super_admin
 COMMENT ON FUNCTION is_admin IS 'Check if user has admin or super_admin role';
 COMMENT ON FUNCTION has_permission IS 'Check if user has a specific permission';
 
+
+

@@ -42,6 +42,7 @@ interface VideoCallProps {
   roomUrl: string
   token: string
   userName: string
+  sessionId?: string // For triggering host-joined notification
   sessionTitle?: string
   isHost?: boolean
   initialSettings?: CallSettings
@@ -110,6 +111,7 @@ function VideoCallUI({
   roomUrl,
   token,
   userName,
+  sessionId,
   sessionTitle,
   isHost = false,
   initialSettings,
@@ -132,6 +134,7 @@ function VideoCallUI({
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [callDuration, setCallDuration] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [hostJoinedNotified, setHostJoinedNotified] = useState(false)
 
   // Refs
   const containerRef = useRef<HTMLDivElement>(null)
@@ -155,6 +158,23 @@ function VideoCallUI({
         durationIntervalRef.current = setInterval(() => {
           setCallDuration(prev => prev + 1)
         }, 1000)
+
+        // If host joined and we have a sessionId, send notification to participants
+        if (isHost && sessionId && !hostJoinedNotified) {
+          setHostJoinedNotified(true)
+          try {
+            const response = await fetch(`/api/video/sessions/${sessionId}/host-joined`, {
+              method: 'POST',
+            })
+            if (response.ok) {
+              console.log('✅ Host-joined notification sent to participants')
+            } else {
+              console.warn('⚠️ Failed to send host-joined notification')
+            }
+          } catch (notifyErr) {
+            console.error('Error sending host-joined notification:', notifyErr)
+          }
+        }
       } catch (err) {
         console.error('Error joining call:', err)
         setError(err instanceof Error ? err.message : 'Failed to join call')
@@ -169,7 +189,7 @@ function VideoCallUI({
         clearInterval(durationIntervalRef.current)
       }
     }
-  }, [daily, meetingState, roomUrl, token, userName, cameraEnabled, micEnabled, onError])
+  }, [daily, meetingState, roomUrl, token, userName, cameraEnabled, micEnabled, onError, isHost, sessionId, hostJoinedNotified])
 
   // Handle recording events
   useEffect(() => {

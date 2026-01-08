@@ -40,22 +40,22 @@ export default function HouseholdTokenBalance() {
 
       const individualBalance = (balanceData as any)?.total_active || 0
 
-      // Get household info
-      const { data: profileData } = await supabase
-        .from('user_profiles')
+      // Get household info from user_accounts
+      const { data: accountData } = await supabase
+        .from('user_accounts')
         .select(`
           household_id,
-          households!user_profiles_household_id_fkey(
+          households!user_accounts_household_id_fkey(
             id,
-            household_name,
+            name,
             admin_user_id,
             shared_tokens_enabled
           )
         `)
-        .eq('user_id', user.id)
+        .eq('id', user.id)
         .single()
 
-      if (!profileData?.household_id) {
+      if (!accountData?.household_id) {
         // Not in a household - show individual balance only
         setData({
           individualBalance,
@@ -69,14 +69,14 @@ export default function HouseholdTokenBalance() {
         return
       }
 
-      const household = (profileData as any).households
+      const household = (accountData as any).households
       const isAdmin = household.admin_user_id === user.id
 
       // Get household token summary from view
       const { data: summaryData } = await supabase
         .from('household_token_summary')
         .select('household_tokens_remaining, member_count')
-        .eq('household_id', profileData.household_id)
+        .eq('household_id', accountData.household_id)
         .single()
 
       setData({
