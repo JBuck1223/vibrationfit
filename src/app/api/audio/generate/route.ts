@@ -85,11 +85,10 @@ export async function POST(request: NextRequest) {
     })
 
     // Trigger full voice generation for voice-only (standard) variant
-    if ((variant === 'standard' || !variant) && results.length === sections.length) {
+    if ((variant === 'standard' || !variant) && results.length === sections.length && audioSetId) {
       const allSucceeded = results.every(r => r.status === 'generated' || r.status === 'skipped')
-      const targetAudioSetId = audioSetId || results[0]?.audioSetId
       
-      if (allSucceeded && targetAudioSetId) {
+      if (allSucceeded) {
         console.log('🎵 [FULL VOICE] All voice-only tracks complete, triggering full voice generation...')
         
         // Import and call directly (this has access to the authenticated context)
@@ -99,7 +98,7 @@ export async function POST(request: NextRequest) {
         generateFullVoiceTrack(
           user.id,
           visionId,
-          targetAudioSetId,
+          audioSetId,
           voice as string
         ).then((result) => {
           if (result.success) {
