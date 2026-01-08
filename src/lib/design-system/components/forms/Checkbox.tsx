@@ -17,7 +17,7 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
     return (
       <div className="space-y-2">
         <div className="flex items-center gap-3">
-          <div className="relative flex items-center">
+          <label htmlFor={id} className="relative flex items-center cursor-pointer">
             <input
               ref={ref}
               id={id}
@@ -28,18 +28,16 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
             <div className={cn(
               'w-6 h-6 rounded-lg border-2 transition-all duration-200',
               'peer-checked:bg-[#39FF14] peer-checked:border-[#39FF14]',
-              error ? 'border-[#FF0040]' : 'border-[#666666]',
-              'cursor-pointer'
-            )}>
-              <Check 
-                className={cn(
-                  'w-4 h-4 text-black absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
-                  'opacity-0 peer-checked:opacity-100 transition-opacity'
-                )}
-                strokeWidth={3}
-              />
-            </div>
-          </div>
+              error ? 'border-[#FF0040]' : 'border-[#666666]'
+            )} />
+            <Check 
+              className={cn(
+                'w-4 h-4 text-black absolute left-1 top-1',
+                'opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none'
+              )}
+              strokeWidth={3}
+            />
+          </label>
           {label && (
             <label 
               htmlFor={id}
