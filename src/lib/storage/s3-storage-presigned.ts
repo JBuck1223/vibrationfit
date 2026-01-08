@@ -22,6 +22,9 @@ export const USER_FOLDERS = {
   profileVideoRecordings: 'profile/video-recordings',
   customTracks: 'custom-tracks',
   voiceCloneSamples: 'voice-clone-samples',
+  // Intensive testimonials
+  intensiveTestimonials: 'intensive/testimonials',
+  intensiveCalibrationRecordings: 'intensive/calibration-recordings',
 } as const
 
 type UserFolder = keyof typeof USER_FOLDERS
@@ -729,6 +732,24 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
     voiceCloneSamples: {
       maxSize: 500 * 1024 * 1024, // 500MB for voice clone audio samples
       types: ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg'],
+    },
+    intensiveTestimonials: {
+      maxSize: 5 * 1024 * 1024 * 1024, // 5GB for video testimonials (supports multipart upload)
+      types: [
+        'video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi',
+        // iPhone/mobile specific formats
+        'video/3gpp', 'video/3gpp2', 'video/x-m4v', 'video/hevc',
+      ],
+    },
+    intensiveCalibrationRecordings: {
+      maxSize: 5 * 1024 * 1024 * 1024, // 5GB for video recordings (supports multipart upload)
+      types: [
+        'video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi',
+        // iPhone/mobile specific formats
+        'video/3gpp', 'video/3gpp2', 'video/x-m4v', 'video/hevc',
+        // Audio formats
+        'audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg',
+      ],
     },
   }
 

@@ -23,14 +23,53 @@ Here’s the updated **baseline survey** with your two questions integrated and 
 12. Consent checkbox:  
     “I’m open to you using my feedback and results as anonymized or named testimonials once I approve them.”
 
-Then for the **post‑Intensive survey**, you mirror questions 1–5, 6, 7, 9, 10 as new 0–10 scores.
+Then for the **post‑Intensive survey**, you mirror questions 1–5, 6, 7, 9, 10 as new 0–10 scores. Most of these should be autopopulated based on the Objective data from their user id. I want each to have REAL statistics from their user id to back up the number. Example - Life-vision (X Visions Created, X in draft) Each should have as much supporting evidence as possible from their data.
+
+Vision clarity
+“Right now, after completing the Intensive, how clear is your vision for your life? (0–10)”
+
+Harmony
+“Right now, how often do you feel ‘in vibrational harmony’ with that vision? (0–10)”
+
+Roadmap / activation
+“How clear is your roadmap for how to activate your life vision in your day‑to‑day reality? (0–10)”
+
+Iterating the vision
+“How easy is it for you to create new iterations of your life vision when things change? (0–10)”
+
+Iterating the audios
+“How easy is it for you to create new iterations of your life vision audios? (0–10)”
+
+Tracking transformations
+“How well are you now set up to track major life transformations over time? (0–10)”
+
+Vibrational constraints
+“How clear are you now on your vibrational constraints and what throws off your signal? (0–10)”
+
+Vision audios status
+“After the Intensive, which best describes your life vision audios?”
+
+I don’t have any vision audios
+I have audios but rarely listen
+I have audios and listen sometimes
+I have audios and listen often
+Vision board
+“How easy is it for you now to view and manage the items on your vision board? (0–10)”
+
+Capturing the journey
+“How well are you capturing your conscious creation journey (thoughts, synchronicities, patterns) over time now? (0–10)”
+
+Biggest shift
+“In your own words, what feels most different for you after completing the 72‑Hour Activation Intensive?”
 
 That gives you homepage‑level proof like:
 
 - “Ease of updating life vision: 2.1 → 8.4 in 72 hours.”  
 - “Ease of updating vision audios: 1.3 → 8.0 in 72 hours.”
 
-Which directly sells the software, not just the vibe.
+I want this to have our media recorder component available so they can shoot a quick testimonial in their own words!
+
+All of this directly sells the software, not just the vibe.
 
 **Calibration Call:**
 

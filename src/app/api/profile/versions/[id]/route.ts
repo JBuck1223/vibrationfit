@@ -37,6 +37,13 @@ export async function GET(
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
+    // Get account data (name, picture, etc.) from user_accounts - source of truth for account-level data
+    const { data: accountData } = await supabase
+      .from('user_accounts')
+      .select('first_name, last_name, profile_picture_url, email, phone, date_of_birth')
+      .eq('id', user.id)
+      .maybeSingle()
+
     // Calculate version number based on chronological order (matches vision API pattern)
     let profileVersionNumber = profile.version_number || 1
     try {
@@ -49,13 +56,20 @@ export async function GET(
       console.warn('Could not calculate version number, using stored:', error)
     }
 
-    // Return profile with calculated version number
+    // Merge account data into profile (user_accounts is source of truth for these fields)
     const profileWithVersion = {
       ...profile,
-      version_number: profileVersionNumber
+      version_number: profileVersionNumber,
+      // Account-level fields from user_accounts (take precedence)
+      first_name: accountData?.first_name || profile?.first_name,
+      last_name: accountData?.last_name || profile?.last_name,
+      profile_picture_url: accountData?.profile_picture_url || profile?.profile_picture_url,
+      email: accountData?.email || profile?.email,
+      phone: accountData?.phone || profile?.phone,
+      date_of_birth: accountData?.date_of_birth || profile?.date_of_birth,
     }
 
-    return NextResponse.json({ profile: profileWithVersion })
+    return NextResponse.json({ profile: profileWithVersion, account: accountData })
   } catch (error) {
     console.error('Unexpected error in GET /api/profile/versions/[id]:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

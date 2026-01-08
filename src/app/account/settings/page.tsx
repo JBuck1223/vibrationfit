@@ -37,17 +37,17 @@ export default function AccountSettingsPage() {
       setUser(user)
       setEmail(user.email || '')
 
-      // Fetch user profile for phone/SMS settings
-      const { data: profileData } = await supabase
-        .from('user_profiles')
-        .select('phone, sms_opt_in')
-        .eq('user_id', user.id)
+      // Fetch user account for phone/SMS settings (source of truth for account-level data)
+      const { data: accountData } = await supabase
+        .from('user_accounts')
+        .select('phone, sms_opt_in, sms_opt_in_date, sms_opt_in_ip')
+        .eq('id', user.id)
         .single()
 
-      if (profileData) {
-        setProfile(profileData)
-        setPhone(profileData.phone || '')
-        setSmsOptIn(profileData.sms_opt_in || false)
+      if (accountData) {
+        setProfile(accountData)
+        setPhone(accountData.phone || '')
+        setSmsOptIn(accountData.sms_opt_in || false)
       }
     } catch (error) {
       console.error('Error fetching user:', error)
@@ -62,6 +62,12 @@ export default function AccountSettingsPage() {
       const { error } = await supabase.auth.updateUser({ email })
       
       if (error) throw error
+      
+      // Also update user_accounts (will be synced by trigger, but update immediately for UX)
+      await supabase
+        .from('user_accounts')
+        .update({ email })
+        .eq('id', user.id)
       
       toast.success('Email updated! Check your inbox to confirm.')
     } catch (error: any) {
@@ -90,15 +96,16 @@ export default function AccountSettingsPage() {
       const ipResponse = await fetch('https://api.ipify.org?format=json')
       const { ip } = await ipResponse.json()
 
+      // Update user_accounts (source of truth for account-level data)
       const { error } = await supabase
-        .from('user_profiles')
+        .from('user_accounts')
         .update({
           phone: phone || null,
           sms_opt_in: phone ? smsOptIn : false,
           sms_opt_in_date: smsOptIn ? new Date().toISOString() : null,
           sms_opt_in_ip: smsOptIn ? ip : null,
         })
-        .eq('user_id', user.id)
+        .eq('id', user.id)
 
       if (error) throw error
 

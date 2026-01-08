@@ -16,42 +16,44 @@ import {
   RadioGroup
 } from '@/lib/design-system/components'
 
-interface IntakeFormData {
-  vision_clarity: number | null
-  vibrational_harmony: number | null
-  roadmap_clarity: number | null
-  vision_iteration_ease: number | null
-  audio_iteration_ease: number | null
-  transformation_tracking: number | null
-  vibrational_constraints_clarity: number | null
-  has_audio_tracks: 'no' | 'yes_rarely' | 'yes_often' | null
-  vision_board_management: number | null
-  journey_capturing: number | null
-  previous_attempts: string
-  testimonial_consent: boolean
+import { 
+  getQuestionsForPhase, 
+  INTAKE_QUESTIONS,
+  type IntakeQuestion 
+} from '@/lib/constants/intensive-intake-questions'
+
+// Build form data type from questions
+type IntakeFormData = {
+  [key: string]: number | string | boolean | null
+}
+
+// Initialize form data from questions
+const initializeFormData = (): IntakeFormData => {
+  const data: IntakeFormData = {}
+  INTAKE_QUESTIONS.forEach(q => {
+    if (q.type === 'rating') {
+      data[q.id] = null
+    } else if (q.type === 'multiple_choice') {
+      data[q.id] = null
+    } else if (q.type === 'text') {
+      data[q.id] = ''
+    } else if (q.type === 'boolean') {
+      data[q.id] = true // Default consent to true
+    }
+  })
+  return data
 }
 
 export default function IntensiveIntake() {
-  const [formData, setFormData] = useState<IntakeFormData>({
-    vision_clarity: null,
-    vibrational_harmony: null,
-    roadmap_clarity: null,
-    vision_iteration_ease: null,
-    audio_iteration_ease: null,
-    transformation_tracking: null,
-    vibrational_constraints_clarity: null,
-    has_audio_tracks: null,
-    vision_board_management: null,
-    journey_capturing: null,
-    previous_attempts: '',
-    testimonial_consent: true
-  })
-
+  const [formData, setFormData] = useState<IntakeFormData>(initializeFormData)
   const [loading, setLoading] = useState(false)
   const [intensiveId, setIntensiveId] = useState<string | null>(null)
 
   const router = useRouter()
   const supabase = createClient()
+
+  // Get questions for pre_intensive phase
+  const questions = getQuestionsForPhase('pre_intensive')
 
   useEffect(() => {
     loadIntensiveData()
@@ -85,50 +87,50 @@ export default function IntensiveIntake() {
     }
   }
 
-  const updateFormData = <K extends keyof IntakeFormData>(field: K, value: IntakeFormData[K]) => {
+  const updateFormData = (field: string, value: number | string | boolean | null) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
   const submitForm = async () => {
     if (!intensiveId) return
 
-    // Validate all required fields
-    const hasAllRatings = formData.vision_clarity !== null &&
-      formData.vibrational_harmony !== null &&
-      formData.roadmap_clarity !== null &&
-      formData.vision_iteration_ease !== null &&
-      formData.audio_iteration_ease !== null &&
-      formData.transformation_tracking !== null &&
-      formData.vibrational_constraints_clarity !== null &&
-      formData.vision_board_management !== null &&
-      formData.journey_capturing !== null &&
-      formData.has_audio_tracks !== null
+    // Validate all required rating and multiple choice fields
+    const requiredQuestions = questions.filter(q => q.type === 'rating' || q.type === 'multiple_choice')
+    const missingFields = requiredQuestions.filter(q => formData[q.id] === null)
 
-    if (!hasAllRatings) {
-      alert('Please answer all rating questions')
+    if (missingFields.length > 0) {
+      alert(`Please answer all questions. Missing: ${missingFields.map(q => q.label).join(', ')}`)
       return
     }
 
     setLoading(true)
     try {
-      // Store intake data
+      // Get user for the insert
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        alert('Session expired. Please log in again.')
+        router.push('/auth/login')
+        return
+      }
+
+      // Build insert data from form
+      const insertData: Record<string, unknown> = {
+        intensive_id: intensiveId,
+        user_id: user.id,
+        phase: 'pre_intensive',
+      }
+
+      // Add all form fields
+      questions.forEach(q => {
+        if (formData[q.id] !== null && formData[q.id] !== '') {
+          insertData[q.id] = formData[q.id]
+        }
+      })
+
+      // Store pre_intensive intake data in unified table
       const { error: intakeError } = await supabase
-        .from('intensive_intake_responses')
-        .insert({
-          intensive_id: intensiveId,
-          vision_clarity: formData.vision_clarity,
-          vibrational_harmony: formData.vibrational_harmony,
-          roadmap_clarity: formData.roadmap_clarity,
-          vision_iteration_ease: formData.vision_iteration_ease,
-          audio_iteration_ease: formData.audio_iteration_ease,
-          transformation_tracking: formData.transformation_tracking,
-          vibrational_constraints_clarity: formData.vibrational_constraints_clarity,
-          has_audio_tracks: formData.has_audio_tracks,
-          vision_board_management: formData.vision_board_management,
-          journey_capturing: formData.journey_capturing,
-          previous_attempts: formData.previous_attempts,
-          testimonial_consent: formData.testimonial_consent
-        })
+        .from('intensive_responses')
+        .insert(insertData)
 
       if (intakeError) {
         console.error('Error storing intake:', intakeError)
@@ -161,30 +163,22 @@ export default function IntensiveIntake() {
   }
 
   const RatingSelector = ({ 
-    value, 
-    onChange, 
-    label,
-    questionNumber,
-    helperText
+    question
   }: { 
-    value: number | null
-    onChange: (value: number) => void
-    label: string
-    questionNumber: number
-    helperText?: string
+    question: IntakeQuestion
   }) => (
     <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
       <div className="flex items-start gap-3 mb-4">
         <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
-          {questionNumber}
+          {question.order}
         </div>
         <label className="block text-sm md:text-base font-medium text-white pt-0.5">
-          {label}
+          {question.questionPre}
         </label>
       </div>
-      {helperText && (
+      {question.hint && (
         <p className="text-xs md:text-sm text-neutral-500 mb-4 ml-10 italic">
-          {helperText}
+          {question.hint}
         </p>
       )}
       <div className="flex flex-wrap gap-2 ml-10">
@@ -192,10 +186,10 @@ export default function IntensiveIntake() {
           <button
             key={num}
             type="button"
-            onClick={() => onChange(num)}
+            onClick={() => updateFormData(question.id, num)}
             className={`
               w-10 h-10 rounded border-2 font-semibold transition-colors duration-150 text-sm
-              ${value === num 
+              ${formData[question.id] === num 
                 ? 'bg-primary-500 border-primary-500 text-black' 
                 : 'bg-neutral-900 border-neutral-700 text-neutral-400 hover:border-neutral-600'
               }
@@ -207,6 +201,99 @@ export default function IntensiveIntake() {
       </div>
     </div>
   )
+
+  const MultipleChoiceSelector = ({ 
+    question
+  }: { 
+    question: IntakeQuestion
+  }) => (
+    <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
+      <div className="flex items-start gap-3 mb-4">
+        <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
+          {question.order}
+        </div>
+        <label className="block text-sm md:text-base font-medium text-white pt-0.5">
+          {question.questionPre}
+        </label>
+      </div>
+      {question.hint && (
+        <p className="text-xs md:text-sm text-neutral-500 mb-4 ml-10 italic">
+          {question.hint}
+        </p>
+      )}
+      <div className="ml-10">
+        <RadioGroup
+          name={question.id}
+          value={(formData[question.id] as string) || ''}
+          onChange={(value) => updateFormData(question.id, value)}
+          options={question.options || []}
+          orientation="vertical"
+        />
+      </div>
+    </div>
+  )
+
+  const TextQuestion = ({ 
+    question
+  }: { 
+    question: IntakeQuestion
+  }) => (
+    <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
+      <div className="flex items-start gap-3 mb-4">
+        <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
+          {question.order}
+        </div>
+        <label className="block text-sm md:text-base font-medium text-white pt-0.5">
+          {question.questionPre}
+        </label>
+      </div>
+      <div className="ml-10">
+        <Textarea
+          value={(formData[question.id] as string) || ''}
+          onChange={(e) => updateFormData(question.id, e.target.value)}
+          placeholder="Share your experience..."
+          rows={4}
+          className="text-sm md:text-base"
+        />
+      </div>
+    </div>
+  )
+
+  const BooleanQuestion = ({ 
+    question
+  }: { 
+    question: IntakeQuestion
+  }) => (
+    <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
+      <div className="flex items-start gap-3">
+        <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
+          {question.order}
+        </div>
+        <div className="pt-0.5">
+          <Checkbox
+            checked={formData[question.id] as boolean}
+            onChange={(e) => updateFormData(question.id, e.target.checked)}
+            label={question.questionPre}
+          />
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderQuestion = (question: IntakeQuestion) => {
+    switch (question.type) {
+      case 'rating':
+        return <RatingSelector key={question.id} question={question} />
+      case 'multiple_choice':
+        return <MultipleChoiceSelector key={question.id} question={question} />
+      case 'text':
+        return <TextQuestion key={question.id} question={question} />
+      case 'boolean':
+        return <BooleanQuestion key={question.id} question={question} />
+      default:
+        return null
+    }
+  }
 
   if (!intensiveId) {
     return (
@@ -223,140 +310,13 @@ export default function IntensiveIntake() {
       <Stack gap="lg">
         <PageHero
           eyebrow="ACTIVATION INTENSIVE"
-          title="Baseline Intake"
+          title="Pre-Intensive Intake"
           subtitle="Help us understand where you are today so we can measure your transformation"
         />
 
         <div className="space-y-6">
           <form onSubmit={(e) => { e.preventDefault(); submitForm(); }} className="space-y-6">
-            {/* Rating Questions 1-7 */}
-            <RatingSelector
-              questionNumber={1}
-              label="How clear is your vision for your life right now?"
-              value={formData.vision_clarity}
-              onChange={(v) => updateFormData('vision_clarity', v)}
-            />
-
-            <RatingSelector
-              questionNumber={2}
-              label='How often do you feel "in vibrational harmony" with that vision?'
-              value={formData.vibrational_harmony}
-              onChange={(v) => updateFormData('vibrational_harmony', v)}
-            />
-
-            <RatingSelector
-              questionNumber={3}
-              label="How clear is your current roadmap for how to activate your life vision in your day‑to‑day reality?"
-              value={formData.roadmap_clarity}
-              onChange={(v) => updateFormData('roadmap_clarity', v)}
-            />
-
-            <RatingSelector
-              questionNumber={4}
-              label="How easy is it for you to create new iterations of your life vision?"
-              value={formData.vision_iteration_ease}
-              onChange={(v) => updateFormData('vision_iteration_ease', v)}
-            />
-
-            <RatingSelector
-              questionNumber={5}
-              label="How easy is it for you to create new iterations of your life vision audios?"
-              value={formData.audio_iteration_ease}
-              onChange={(v) => updateFormData('audio_iteration_ease', v)}
-            />
-
-            <RatingSelector
-              questionNumber={6}
-              label="How well are you set up to track major life transformations over time?"
-              value={formData.transformation_tracking}
-              onChange={(v) => updateFormData('transformation_tracking', v)}
-            />
-
-            <RatingSelector
-              questionNumber={7}
-              label="How clear are you on your vibrational constraints?"
-              value={formData.vibrational_constraints_clarity}
-              onChange={(v) => updateFormData('vibrational_constraints_clarity', v)}
-              helperText="(If you don't know what this means, put 1.)"
-            />
-
-            {/* Multiple Choice Question 8 */}
-            <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
-              <div className="flex items-start gap-3 mb-4">
-                <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
-                  8
-                </div>
-                <label className="block text-sm md:text-base font-medium text-white pt-0.5">
-                  Do you currently have audio tracks of your life vision?
-                </label>
-              </div>
-              <div className="ml-10">
-                <RadioGroup
-                  name="has_audio_tracks"
-                  value={formData.has_audio_tracks || ''}
-                  onChange={(value) => updateFormData('has_audio_tracks', value as 'no' | 'yes_rarely' | 'yes_often')}
-                  options={[
-                    { value: 'no', label: 'No' },
-                    { value: 'yes_rarely', label: 'Yes, but I rarely listen' },
-                    { value: 'yes_often', label: 'Yes, and I listen often' }
-                  ]}
-                  orientation="vertical"
-                />
-              </div>
-            </div>
-
-            {/* Rating Questions 9-10 */}
-            <RatingSelector
-              questionNumber={9}
-              label="How easy is it for you to manage the items on your vision board?"
-              value={formData.vision_board_management}
-              onChange={(v) => updateFormData('vision_board_management', v)}
-              helperText="(Put 1 if you don't have one.)"
-            />
-
-            <RatingSelector
-              questionNumber={10}
-              label="How well are you capturing your conscious creation journey (thoughts, synchronicities, patterns) over time?"
-              value={formData.journey_capturing}
-              onChange={(v) => updateFormData('journey_capturing', v)}
-            />
-
-            {/* Open Text Question 11 */}
-            <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
-              <div className="flex items-start gap-3 mb-4">
-                <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
-                  11
-                </div>
-                <label className="block text-sm md:text-base font-medium text-white pt-0.5">
-                  What have you already tried to consciously create your dream life?
-                </label>
-              </div>
-              <div className="ml-10">
-                <Textarea
-                  value={formData.previous_attempts}
-                  onChange={(e) => updateFormData('previous_attempts', e.target.value)}
-                  placeholder="Share your experience with manifestation, vision boards, goal-setting, coaches, programs, etc."
-                  rows={4}
-                  className="text-sm md:text-base"
-                />
-              </div>
-            </div>
-
-            {/* Consent Checkbox 12 */}
-            <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
-                  12
-                </div>
-                <div className="pt-0.5">
-                  <Checkbox
-                    checked={formData.testimonial_consent}
-                    onChange={(e) => updateFormData('testimonial_consent', e.target.checked)}
-                    label="I'm open to you using my feedback and results as anonymized data or named testimonials once I approve them."
-                  />
-                </div>
-              </div>
-            </div>
+            {questions.map(renderQuestion)}
 
             {/* Submit Button */}
             <div className="flex justify-center pt-6">
