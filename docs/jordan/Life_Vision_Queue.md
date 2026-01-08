@@ -1,25 +1,23 @@
 Rebuild life-vision/new/assembly to be a queue system that individually builds each life category.
 
-
 Structure the queue like: /life-vision/[id]/audio/queue
 
-Use this table to collect individual outputs for later assembly, but build and sql to add the necessary fields for the queue to function.
-
-In the sql, remove ai_summary and add fields to save the clarity_[key] and contrast flip from the profile that is run on /life-vision/new/category/[key]. Also remove ai_summary from the flow on that page.
-
+Use this table to collect individual outputs for later assembly:
 
 create table public.life_vision_category_state (
   id uuid not null default gen_random_uuid (),
   user_id uuid not null,
   category character varying(50) not null,
   transcript text null,
-  ai_summary text null,
   ideal_state text null,
   blueprint_data jsonb null,
   created_at timestamp with time zone null default now(),
   updated_at timestamp with time zone null default now(),
   ideal_state_prompts jsonb null default '[]'::jsonb,
   master_vision_raw text null,
+  clarity_keys jsonb null default '[]'::jsonb,
+  contrast_flips jsonb null default '[]'::jsonb,
+  category_vision_text text null,
   constraint life_vision_category_state_pkey primary key (id),
   constraint life_vision_category_state_user_id_category_key unique (user_id, category),
   constraint life_vision_category_state_user_id_fkey foreign KEY (user_id) references auth.users (id) on delete CASCADE,
@@ -56,10 +54,13 @@ create index IF not exists idx_lv_category_state_user_category on public.life_vi
 
 create index IF not exists idx_lv_category_state_prompts on public.life_vision_category_state using gin (ideal_state_prompts) TABLESPACE pg_default;
 
+create index IF not exists idx_lv_category_state_clarity_keys on public.life_vision_category_state using gin (clarity_keys) TABLESPACE pg_default;
+
+create index IF not exists idx_lv_category_state_contrast_flips on public.life_vision_category_state using gin (contrast_flips) TABLESPACE pg_default;
+
 create trigger update_lv_category_state_updated_at BEFORE
 update on life_vision_category_state for EACH row
 execute FUNCTION update_updated_at_column ();
-
 
 Edit Prompt Structure:
 
@@ -96,18 +97,6 @@ SCENES / SENSORY NOTES (expand into lived moments):
 BLUEPRINT (invisible completeness cues only; do not reference):
 {BLUEPRINT_TEXT}
 
-SECONDARY SUPPORT (use lightly)
-
-RAW TRANSCRIPT (voice support only):
-{TRANSCRIPT_TEXT}
-
-FACTS (names, places, routines only — never phrasing)
-PROFILE:
-{PROFILE_FACTS}
-
-OPTIONAL CONTINUITY (style reference only; do not copy)
-EXISTING ACTIVE VISION FOR THIS CATEGORY:
-{ACTIVE_VISION_CATEGORY_TEXT}
 
 FINAL SILENT CHECKS
 - Present tense, ideal state.
