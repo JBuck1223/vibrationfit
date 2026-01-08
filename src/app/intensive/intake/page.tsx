@@ -3,102 +3,59 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { ArrowLeft, ArrowRight, Clock, CheckCircle } from 'lucide-react'
 
 import { 
   Card, 
   Button, 
-  Input, 
   Textarea,
-  Badge,
   Spinner,
   Container,
   Stack,
-  PageHero
+  PageHero,
+  Checkbox,
+  RadioGroup
 } from '@/lib/design-system/components'
 
 interface IntakeFormData {
-  // Personal Info
-  full_name: string
-  email: string
-  age: string
-  location: string
-  
-  // Current State
-  current_situation: string
-  biggest_challenges: string
-  current_goals: string
-  
-  // Vision & Values
-  ideal_life_description: string
-  core_values: string
-  life_purpose: string
-  
-  // Specific Areas
-  career_professional: string
-  relationships_family: string
-  health_wellness: string
-  personal_growth: string
-  finances_wealth: string
-  spirituality_meaning: string
-  
-  // Obstacles & Resources
-  main_obstacles: string
-  available_resources: string
-  support_system: string
-  
-  // Timeline & Commitment
-  desired_timeline: string
-  commitment_level: string
+  vision_clarity: number | null
+  vibrational_harmony: number | null
+  roadmap_clarity: number | null
+  vision_iteration_ease: number | null
+  audio_iteration_ease: number | null
+  transformation_tracking: number | null
+  vibrational_constraints_clarity: number | null
+  has_audio_tracks: 'no' | 'yes_rarely' | 'yes_often' | null
+  vision_board_management: number | null
+  journey_capturing: number | null
   previous_attempts: string
+  testimonial_consent: boolean
 }
 
 export default function IntensiveIntake() {
   const [formData, setFormData] = useState<IntakeFormData>({
-    full_name: '',
-    email: '',
-    age: '',
-    location: '',
-    current_situation: '',
-    biggest_challenges: '',
-    current_goals: '',
-    ideal_life_description: '',
-    core_values: '',
-    life_purpose: '',
-    career_professional: '',
-    relationships_family: '',
-    health_wellness: '',
-    personal_growth: '',
-    finances_wealth: '',
-    spirituality_meaning: '',
-    main_obstacles: '',
-    available_resources: '',
-    support_system: '',
-    desired_timeline: '',
-    commitment_level: '',
-    previous_attempts: ''
+    vision_clarity: null,
+    vibrational_harmony: null,
+    roadmap_clarity: null,
+    vision_iteration_ease: null,
+    audio_iteration_ease: null,
+    transformation_tracking: null,
+    vibrational_constraints_clarity: null,
+    has_audio_tracks: null,
+    vision_board_management: null,
+    journey_capturing: null,
+    previous_attempts: '',
+    testimonial_consent: true
   })
 
-  const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [intensiveId, setIntensiveId] = useState<string | null>(null)
-  const [timeRemaining, setTimeRemaining] = useState<string>('')
 
   const router = useRouter()
   const supabase = createClient()
 
-  const totalSteps = 6
-
   useEffect(() => {
     loadIntensiveData()
   }, [])
-
-  useEffect(() => {
-    if (intensiveId) {
-      const interval = setInterval(updateTimeRemaining, 1000)
-      return () => clearInterval(interval)
-    }
-  }, [intensiveId])
 
   const loadIntensiveData = async () => {
     try {
@@ -122,65 +79,63 @@ export default function IntensiveIntake() {
       }
 
       setIntensiveId(intensiveData.id)
-      
-      // Pre-fill email from user
-      setFormData(prev => ({ ...prev, email: user.email || '' }))
 
     } catch (error) {
       console.error('Error loading intensive data:', error)
     }
   }
 
-  const updateTimeRemaining = async () => {
-    if (!intensiveId) return
-
-    try {
-      const { data: intensiveData } = await supabase
-        .from('intensive_purchases')
-        .select('activation_deadline')
-        .eq('id', intensiveId)
-        .single()
-
-      if (intensiveData?.activation_deadline) {
-        const deadline = new Date(intensiveData.activation_deadline)
-        const now = new Date()
-        const diff = deadline.getTime() - now.getTime()
-
-        if (diff <= 0) {
-          setTimeRemaining('Time\'s up!')
-          return
-        }
-
-        const hours = Math.floor(diff / (1000 * 60 * 60))
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
-        setTimeRemaining(`${hours}h ${minutes}m`)
-      }
-    } catch (error) {
-      console.error('Error updating time:', error)
-    }
-  }
-
-  const handleInputChange = (field: keyof IntakeFormData, value: string) => {
+  const updateFormData = <K extends keyof IntakeFormData>(field: K, value: IntakeFormData[K]) => {
     setFormData(prev => ({ ...prev, [field]: value }))
-  }
-
-  const nextStep = () => {
-    if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1)
-    }
-  }
-
-  const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1)
-    }
   }
 
   const submitForm = async () => {
     if (!intensiveId) return
 
+    // Validate all required fields
+    const hasAllRatings = formData.vision_clarity !== null &&
+      formData.vibrational_harmony !== null &&
+      formData.roadmap_clarity !== null &&
+      formData.vision_iteration_ease !== null &&
+      formData.audio_iteration_ease !== null &&
+      formData.transformation_tracking !== null &&
+      formData.vibrational_constraints_clarity !== null &&
+      formData.vision_board_management !== null &&
+      formData.journey_capturing !== null &&
+      formData.has_audio_tracks !== null
+
+    if (!hasAllRatings) {
+      alert('Please answer all rating questions')
+      return
+    }
+
     setLoading(true)
     try {
+      // Store intake data
+      const { error: intakeError } = await supabase
+        .from('intensive_intake_responses')
+        .insert({
+          intensive_id: intensiveId,
+          vision_clarity: formData.vision_clarity,
+          vibrational_harmony: formData.vibrational_harmony,
+          roadmap_clarity: formData.roadmap_clarity,
+          vision_iteration_ease: formData.vision_iteration_ease,
+          audio_iteration_ease: formData.audio_iteration_ease,
+          transformation_tracking: formData.transformation_tracking,
+          vibrational_constraints_clarity: formData.vibrational_constraints_clarity,
+          has_audio_tracks: formData.has_audio_tracks,
+          vision_board_management: formData.vision_board_management,
+          journey_capturing: formData.journey_capturing,
+          previous_attempts: formData.previous_attempts,
+          testimonial_consent: formData.testimonial_consent
+        })
+
+      if (intakeError) {
+        console.error('Error storing intake:', intakeError)
+        alert('Error submitting form. Please try again.')
+        return
+      }
+
       // Update intensive checklist
       const { error: checklistError } = await supabase
         .from('intensive_checklist')
@@ -192,510 +147,241 @@ export default function IntensiveIntake() {
 
       if (checklistError) {
         console.error('Error updating checklist:', checklistError)
-        return
       }
 
-      // Store intake data (you might want to create a separate table for this)
-      // For now, we'll store it in the user_profiles table or create a new intensive_intake table
-      
-      // Generate AI vision draft (this would call your AI service)
-      await generateVisionDraft()
-
-      // Redirect to builder
-      router.push('/intensive/builder')
+      // Redirect to next step
+      router.push('/intensive/dashboard')
 
     } catch (error) {
       console.error('Error submitting form:', error)
+      alert('Error submitting form. Please try again.')
     } finally {
       setLoading(false)
     }
   }
 
-  const generateVisionDraft = async () => {
-    // This would integrate with your AI service to generate a vision draft
-    // based on the intake form data
-    console.log('Generating vision draft based on:', formData)
-    
-    // For now, we'll just log it - you can integrate with OpenAI/Claude later
-    // const visionDraft = await callAIService(formData)
-  }
+  const RatingSelector = ({ 
+    value, 
+    onChange, 
+    label,
+    questionNumber,
+    helperText
+  }: { 
+    value: number | null
+    onChange: (value: number) => void
+    label: string
+    questionNumber: number
+    helperText?: string
+  }) => (
+    <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
+      <div className="flex items-start gap-3 mb-4">
+        <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
+          {questionNumber}
+        </div>
+        <label className="block text-sm md:text-base font-medium text-white pt-0.5">
+          {label}
+        </label>
+      </div>
+      {helperText && (
+        <p className="text-xs md:text-sm text-neutral-500 mb-4 ml-10 italic">
+          {helperText}
+        </p>
+      )}
+      <div className="flex flex-wrap gap-2 ml-10">
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+          <button
+            key={num}
+            type="button"
+            onClick={() => onChange(num)}
+            className={`
+              w-10 h-10 rounded border-2 font-semibold transition-colors duration-150 text-sm
+              ${value === num 
+                ? 'bg-primary-500 border-primary-500 text-black' 
+                : 'bg-neutral-900 border-neutral-700 text-neutral-400 hover:border-neutral-600'
+              }
+            `}
+          >
+            {num}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
 
-  const renderStep = () => {
-    switch (currentStep) {
-      case 1:
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-white mb-6">Personal Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Full Name *
-                  </label>
-                  <Input
-                    value={formData.full_name}
-                    onChange={(e) => handleInputChange('full_name', e.target.value)}
-                    placeholder="Enter your full name"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Email *
-                  </label>
-                  <Input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    placeholder="your@email.com"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Age
-                  </label>
-                  <Input
-                    value={formData.age}
-                    onChange={(e) => handleInputChange('age', e.target.value)}
-                    placeholder="e.g., 28"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Location
-                  </label>
-                  <Input
-                    value={formData.location}
-                    onChange={(e) => handleInputChange('location', e.target.value)}
-                    placeholder="City, State/Country"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        )
-
-      case 2:
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-white mb-6">Current Situation</h2>
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Describe your current life situation *
-                  </label>
-                  <Textarea
-                    value={formData.current_situation}
-                    onChange={(e) => handleInputChange('current_situation', e.target.value)}
-                    placeholder="What does your life look like right now? What's working? What isn't?"
-                    rows={4}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    What are your biggest challenges? *
-                  </label>
-                  <Textarea
-                    value={formData.biggest_challenges}
-                    onChange={(e) => handleInputChange('biggest_challenges', e.target.value)}
-                    placeholder="What's holding you back? What obstacles do you face?"
-                    rows={4}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    What are your current goals? *
-                  </label>
-                  <Textarea
-                    value={formData.current_goals}
-                    onChange={(e) => handleInputChange('current_goals', e.target.value)}
-                    placeholder="What are you trying to achieve? What do you want to change?"
-                    rows={4}
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        )
-
-      case 3:
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-white mb-6">Vision & Values</h2>
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Describe your ideal life (5-10 years from now) *
-                  </label>
-                  <Textarea
-                    value={formData.ideal_life_description}
-                    onChange={(e) => handleInputChange('ideal_life_description', e.target.value)}
-                    placeholder="If you could design your perfect life, what would it look like? Be specific about relationships, career, health, lifestyle, etc."
-                    rows={6}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    What are your core values? *
-                  </label>
-                  <Textarea
-                    value={formData.core_values}
-                    onChange={(e) => handleInputChange('core_values', e.target.value)}
-                    placeholder="What matters most to you? What principles guide your decisions?"
-                    rows={4}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    What do you believe your life purpose is? *
-                  </label>
-                  <Textarea
-                    value={formData.life_purpose}
-                    onChange={(e) => handleInputChange('life_purpose', e.target.value)}
-                    placeholder="Why are you here? What impact do you want to make?"
-                    rows={4}
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        )
-
-      case 4:
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-white mb-6">Life Areas</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Career & Professional
-                  </label>
-                  <Textarea
-                    value={formData.career_professional}
-                    onChange={(e) => handleInputChange('career_professional', e.target.value)}
-                    placeholder="Work, business, professional development..."
-                    rows={3}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Relationships & Family
-                  </label>
-                  <Textarea
-                    value={formData.relationships_family}
-                    onChange={(e) => handleInputChange('relationships_family', e.target.value)}
-                    placeholder="Romance, family, friendships..."
-                    rows={3}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Health & Wellness
-                  </label>
-                  <Textarea
-                    value={formData.health_wellness}
-                    onChange={(e) => handleInputChange('health_wellness', e.target.value)}
-                    placeholder="Physical health, mental health, fitness..."
-                    rows={3}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Personal Growth
-                  </label>
-                  <Textarea
-                    value={formData.personal_growth}
-                    onChange={(e) => handleInputChange('personal_growth', e.target.value)}
-                    placeholder="Learning, skills, self-development..."
-                    rows={3}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Finances & Wealth
-                  </label>
-                  <Textarea
-                    value={formData.finances_wealth}
-                    onChange={(e) => handleInputChange('finances_wealth', e.target.value)}
-                    placeholder="Money, investments, financial freedom..."
-                    rows={3}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Spirituality & Meaning
-                  </label>
-                  <Textarea
-                    value={formData.spirituality_meaning}
-                    onChange={(e) => handleInputChange('spirituality_meaning', e.target.value)}
-                    placeholder="Faith, meditation, life meaning..."
-                    rows={3}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        )
-
-      case 5:
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-white mb-6">Obstacles & Resources</h2>
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    What are your main obstacles to achieving your vision? *
-                  </label>
-                  <Textarea
-                    value={formData.main_obstacles}
-                    onChange={(e) => handleInputChange('main_obstacles', e.target.value)}
-                    placeholder="What's standing in your way? Internal and external obstacles..."
-                    rows={4}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    What resources do you have available? *
-                  </label>
-                  <Textarea
-                    value={formData.available_resources}
-                    onChange={(e) => handleInputChange('available_resources', e.target.value)}
-                    placeholder="Time, money, skills, connections, tools..."
-                    rows={4}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Who is in your support system? *
-                  </label>
-                  <Textarea
-                    value={formData.support_system}
-                    onChange={(e) => handleInputChange('support_system', e.target.value)}
-                    placeholder="Family, friends, mentors, coaches, community..."
-                    rows={4}
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        )
-
-      case 6:
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-white mb-6">Commitment & Timeline</h2>
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    What's your desired timeline for major changes? *
-                  </label>
-                  <Textarea
-                    value={formData.desired_timeline}
-                    onChange={(e) => handleInputChange('desired_timeline', e.target.value)}
-                    placeholder="When do you want to see significant progress? 6 months? 1 year? 2 years?"
-                    rows={3}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    How committed are you to making changes? *
-                  </label>
-                  <Textarea
-                    value={formData.commitment_level}
-                    onChange={(e) => handleInputChange('commitment_level', e.target.value)}
-                    placeholder="Rate 1-10 and explain why. What are you willing to do differently?"
-                    rows={3}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    What have you tried before? What worked/didn't work?
-                  </label>
-                  <Textarea
-                    value={formData.previous_attempts}
-                    onChange={(e) => handleInputChange('previous_attempts', e.target.value)}
-                    placeholder="Previous goal-setting, coaching, programs, self-help attempts..."
-                    rows={4}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        )
-
-      default:
-        return null
-    }
+  if (!intensiveId) {
+    return (
+      <Container size="xl">
+        <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+          <Spinner size="lg" />
+        </div>
+      </Container>
+    )
   }
 
   return (
     <Container size="xl">
       <Stack gap="lg">
         <PageHero
-          title="Intensive Intake Form"
-          subtitle="Share your story so we can personalize your transformation"
-        >
-          {timeRemaining && (
-            <Badge variant="warning">
-              <Clock className="w-4 h-4 mr-2" />
-              {timeRemaining} remaining
-            </Badge>
-          )}
-        </PageHero>
+          eyebrow="ACTIVATION INTENSIVE"
+          title="Baseline Intake"
+          subtitle="Help us understand where you are today so we can measure your transformation"
+        />
 
-        <div className="hidden md:block">
-            <p className="text-sm text-neutral-300 text-center px-4">
-              Help us understand your current situation and vision so we can create a personalized activation plan.
-            </p>
-          </div>
+        <div className="space-y-6">
+          <form onSubmit={(e) => { e.preventDefault(); submitForm(); }} className="space-y-6">
+            {/* Rating Questions 1-7 */}
+            <RatingSelector
+              questionNumber={1}
+              label="How clear is your vision for your life right now?"
+              value={formData.vision_clarity}
+              onChange={(v) => updateFormData('vision_clarity', v)}
+            />
 
-        {/* Desktop Header */}
-        <div className="hidden md:block text-center mb-4">
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 bg-gradient-to-r from-primary-500 via-secondary-500 to-accent-500 bg-clip-text text-transparent">
-            Intensive Intake Form
-          </h1>
-          <p className="text-lg md:text-xl text-neutral-300 max-w-3xl mx-auto">
-            Help us understand your current situation and vision so we can create a personalized activation plan.
-          </p>
+            <RatingSelector
+              questionNumber={2}
+              label='How often do you feel "in vibrational harmony" with that vision?'
+              value={formData.vibrational_harmony}
+              onChange={(v) => updateFormData('vibrational_harmony', v)}
+            />
+
+            <RatingSelector
+              questionNumber={3}
+              label="How clear is your current roadmap for how to activate your life vision in your day‑to‑day reality?"
+              value={formData.roadmap_clarity}
+              onChange={(v) => updateFormData('roadmap_clarity', v)}
+            />
+
+            <RatingSelector
+              questionNumber={4}
+              label="How easy is it for you to create new iterations of your life vision?"
+              value={formData.vision_iteration_ease}
+              onChange={(v) => updateFormData('vision_iteration_ease', v)}
+            />
+
+            <RatingSelector
+              questionNumber={5}
+              label="How easy is it for you to create new iterations of your life vision audios?"
+              value={formData.audio_iteration_ease}
+              onChange={(v) => updateFormData('audio_iteration_ease', v)}
+            />
+
+            <RatingSelector
+              questionNumber={6}
+              label="How well are you set up to track major life transformations over time?"
+              value={formData.transformation_tracking}
+              onChange={(v) => updateFormData('transformation_tracking', v)}
+            />
+
+            <RatingSelector
+              questionNumber={7}
+              label="How clear are you on your vibrational constraints?"
+              value={formData.vibrational_constraints_clarity}
+              onChange={(v) => updateFormData('vibrational_constraints_clarity', v)}
+              helperText="(If you don't know what this means, put 1.)"
+            />
+
+            {/* Multiple Choice Question 8 */}
+            <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
+                  8
+                </div>
+                <label className="block text-sm md:text-base font-medium text-white pt-0.5">
+                  Do you currently have audio tracks of your life vision?
+                </label>
+              </div>
+              <div className="ml-10">
+                <RadioGroup
+                  name="has_audio_tracks"
+                  value={formData.has_audio_tracks || ''}
+                  onChange={(value) => updateFormData('has_audio_tracks', value as 'no' | 'yes_rarely' | 'yes_often')}
+                  options={[
+                    { value: 'no', label: 'No' },
+                    { value: 'yes_rarely', label: 'Yes, but I rarely listen' },
+                    { value: 'yes_often', label: 'Yes, and I listen often' }
+                  ]}
+                  orientation="vertical"
+                />
+              </div>
+            </div>
+
+            {/* Rating Questions 9-10 */}
+            <RatingSelector
+              questionNumber={9}
+              label="How easy is it for you to manage the items on your vision board?"
+              value={formData.vision_board_management}
+              onChange={(v) => updateFormData('vision_board_management', v)}
+              helperText="(Put 1 if you don't have one.)"
+            />
+
+            <RatingSelector
+              questionNumber={10}
+              label="How well are you capturing your conscious creation journey (thoughts, synchronicities, patterns) over time?"
+              value={formData.journey_capturing}
+              onChange={(v) => updateFormData('journey_capturing', v)}
+            />
+
+            {/* Open Text Question 11 */}
+            <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
+                  11
+                </div>
+                <label className="block text-sm md:text-base font-medium text-white pt-0.5">
+                  What have you already tried to consciously create your dream life?
+                </label>
+              </div>
+              <div className="ml-10">
+                <Textarea
+                  value={formData.previous_attempts}
+                  onChange={(e) => updateFormData('previous_attempts', e.target.value)}
+                  placeholder="Share your experience with manifestation, vision boards, goal-setting, coaches, programs, etc."
+                  rows={4}
+                  className="text-sm md:text-base"
+                />
+              </div>
+            </div>
+
+            {/* Consent Checkbox 12 */}
+            <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
+                  12
+                </div>
+                <div className="pt-0.5">
+                  <Checkbox
+                    checked={formData.testimonial_consent}
+                    onChange={(e) => updateFormData('testimonial_consent', e.target.checked)}
+                    label="I'm open to you using my feedback and results as anonymized data or named testimonials once I approve them."
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <div className="flex justify-center pt-6">
+              <Button 
+                type="submit"
+                variant="primary"
+                size="md"
+                disabled={loading}
+                className="min-w-[200px]"
+              >
+                {loading ? (
+                  <>
+                    <Spinner size="sm" className="mr-2" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    Submit Intake
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
         </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 mb-4">
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => router.push('/intensive/dashboard')}
-            className="w-full sm:w-auto"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Dashboard
-          </Button>
-          {timeRemaining && (
-            <Badge variant="warning" className="w-full sm:w-auto justify-center sm:justify-start">
-              <Clock className="w-4 h-4 mr-2" />
-              {timeRemaining} remaining
-            </Badge>
-          )}
-        </div>
-
-      {/* Progress Bar */}
-      <div className="max-w-4xl mx-auto mb-6 md:mb-8">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs md:text-sm text-neutral-400">Step {currentStep} of {totalSteps}</span>
-          <span className="text-xs md:text-sm text-neutral-400">{Math.round((currentStep / totalSteps) * 100)}% Complete</span>
-        </div>
-        <div className="w-full bg-neutral-800 rounded-full h-2">
-          <div 
-            className="bg-gradient-to-r from-primary-500 to-secondary-500 h-2 rounded-full transition-all duration-300"
-            style={{ width: `${(currentStep / totalSteps) * 100}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Form */}
-      <Card className="max-w-4xl mx-auto p-4 md:p-6 lg:p-8 mb-6 md:mb-8">
-        {renderStep()}
-      </Card>
-
-      {/* Navigation */}
-      <div className="max-w-4xl mx-auto flex flex-col sm:flex-row justify-between gap-3">
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={prevStep}
-          disabled={currentStep === 1}
-          className="w-full sm:w-auto order-2 sm:order-1"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Previous
-        </Button>
-
-        <div className="flex gap-2 sm:gap-4 order-1 sm:order-2">
-          {currentStep < totalSteps ? (
-            <Button 
-              variant="primary" 
-              size="sm"
-              onClick={nextStep}
-              disabled={!canProceed()}
-              className="flex-1 sm:flex-none"
-            >
-              Next
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          ) : (
-            <Button 
-              variant="primary" 
-              size="sm"
-              onClick={submitForm}
-              disabled={loading || !canProceed()}
-              className="flex-1 sm:flex-none"
-            >
-              {loading ? (
-                <>
-                  <Spinner size="sm" className="mr-2" />
-                  Generating Vision...
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Complete Intake
-                </>
-              )}
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Completion Preview */}
-      {currentStep === totalSteps && (
-        <Card className="max-w-4xl mx-auto p-4 md:p-6 lg:p-8 mt-6 md:mt-8 border-2 border-primary-500 bg-gradient-to-br from-primary-500/10 to-secondary-500/10">
-          <div className="text-center">
-            <CheckCircle className="w-10 h-10 md:w-12 md:h-12 text-primary-500 mx-auto mb-3 md:mb-4" />
-            <h2 className="text-xl md:text-2xl font-bold text-white mb-3 md:mb-4">Ready to Generate Your Vision!</h2>
-            <p className="text-sm md:text-base text-neutral-300">
-              Once you submit, our AI will analyze your responses and generate a personalized vision draft. 
-              You'll then move to the builder to refine and finalize it.
-            </p>
-          </div>
-        </Card>
-      )}
       </Stack>
     </Container>
   )
-
-  function canProceed(): boolean {
-    switch (currentStep) {
-      case 1:
-        return !!(formData.full_name && formData.email)
-      case 2:
-        return !!(formData.current_situation && formData.biggest_challenges && formData.current_goals)
-      case 3:
-        return !!(formData.ideal_life_description && formData.core_values && formData.life_purpose)
-      case 4:
-        return true // Optional fields
-      case 5:
-        return !!(formData.main_obstacles && formData.available_resources && formData.support_system)
-      case 6:
-        return !!(formData.desired_timeline && formData.commitment_level)
-      default:
-        return false
-    }
-  }
 }
