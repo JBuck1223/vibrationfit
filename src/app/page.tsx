@@ -422,6 +422,9 @@ export default function HomePage() {
                         Conscious Creation System: Train → Tune → Track
                       </ListItem>
                       <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
+                        <strong>Plus Graduate Unlocks:</strong> Advanced audio suite, The Alignment Gym (weekly live coaching), and Vibe Tribe community when you complete your 72‑Hour Activation
+                      </ListItem>
+                      <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
                         VIVA AI turns contrast into clarity—even if you don't know what you want
                       </ListItem>
                       <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
@@ -531,7 +534,7 @@ export default function HomePage() {
                   items={[
                     {
                       label: 'Train (0–72h)',
-                      description: 'Complete your 72‑Hour Activation Intensive: profile + 84‑Q assessment + 12‑category Life Vision with VIVA, plus your first audios, board, journals, protocol, and call booked.',
+                      description: 'Complete your 72‑Hour Activation Intensive: profile + 84‑Q assessment + 12‑category Life Vision with VIVA, plus your first audios, board, journals, protocol, and Calibration Call booked.',
                       icon: Brain,
                       iconColor: '#39FF14'
                     },
@@ -543,7 +546,7 @@ export default function HomePage() {
                     },
                     {
                       label: 'Track',
-                      description: 'Build visible momentum: journal, log iterations and wins, update your Vision Board, and watch your streaks grow in the dashboard & Vibe Tribe.',
+                      description: 'Build visible momentum: journal, log iterations and wins, update your Vision Board, and watch your streaks grow in the dashboard, Vibe Tribe, and at The Alignment Gym (weekly live coaching).',
                       icon: TrendingUp,
                       iconColor: '#8B5CF6'
                     }
@@ -644,7 +647,7 @@ export default function HomePage() {
                         <div>
                           <div className="font-semibold text-white text-base">
                             <div>Phase 4</div>
-                            <div>Calibration & Launch (by/after 72h)</div>
+                            <div>Graduation & Integration (after 72h)</div>
                           </div>
                           <div className="space-y-1 mt-2">
                             <div className="flex items-start gap-2">
@@ -654,6 +657,10 @@ export default function HomePage() {
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
                               <Text size="sm" className="text-neutral-400">Activation Protocol — daily rituals scheduled & ready to run</Text>
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
+                              <Text size="sm" className="text-neutral-400">Graduate Unlocks go live: advanced audio suite, Vibe Tribe community, and access to The Alignment Gym (weekly live group coaching)</Text>
                             </div>
                           </div>
                         </div>
@@ -733,7 +740,7 @@ export default function HomePage() {
                         <div className="flex items-start gap-4">
                           <div className="w-5 h-5 border-2 border-[#FFFF00] rounded-full mt-0.5 flex-shrink-0 relative z-10 bg-black"></div>
                           <div>
-                            <Text size="base" className="font-semibold text-white">Phase 4 — Calibration & Launch (by/after 72h)</Text>
+                            <Text size="base" className="font-semibold text-white">Phase 4 — Graduation & Integration (after 72h)</Text>
                             <div className="space-y-1 mt-2">
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
@@ -742,6 +749,10 @@ export default function HomePage() {
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
                               <Text size="sm" className="text-neutral-400">Activation Protocol — daily rituals scheduled & ready to run</Text>
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
+                              <Text size="sm" className="text-neutral-400">Graduate Unlocks go live: advanced audio suite, Vibe Tribe community, and access to The Alignment Gym (weekly live group coaching)</Text>
                             </div>
                             </div>
                           </div>
@@ -1383,7 +1394,7 @@ export default function HomePage() {
                     {
                       id: 'calibration-call',
                       title: '30‑Minute Calibration Call',
-                      description: 'What it is: 1:1 alignment call with a coach.\nOutcome: Review your assets and finalize your Activation Protocol.\nDone when: Your call is booked within the 72‑Hour Intensive, and completed when you attend the 30‑minute session.',
+                      description: 'What it is: 1:1 alignment call with a coach.\nOutcome: Review your assets and finalize your Activation Protocol.\nDone when: Your call is booked within the 72‑Hour Intensive and completed within your first 7 days.',
                       icon: CalendarDays,
                       included: true,
                       locked: true
@@ -1391,15 +1402,23 @@ export default function HomePage() {
                     {
                       id: 'activation-protocol',
                       title: 'Activation Protocol',
-                      description: 'What it is: Your simple daily ritual plan.\nOutcome: Stay in harmony with your vision without guesswork.\nDone when: Your daily rituals are scheduled and your custom Activation Plan is ready to run.',
+                      description: 'What it is: Your simple daily ritual plan.\nOutcome: Stay in harmony with your vision without guesswork.\nDone when: You and your coach finalize a simple 30‑day Activation Protocol on your Calibration Call.',
                       icon: Zap,
+                      included: true,
+                      locked: true
+                    },
+                    {
+                      id: 'graduate-unlocks',
+                      title: 'Graduate Unlocks',
+                      description: 'What it is: Rewards that unlock the moment you complete your Activation Checklist.\nOutcome: Extra firepower and support to keep compounding after the Intensive.\nDone when: Your checklist is complete. You\'ll instantly unlock:\n  - Advanced Audio Suite: power tracks, meditation tracks, and solfeggio‑backed "Life I Choose" audios\n  - Vibe Tribe Community: private, tagged feed for wins, struggles, visions, and practices\n  - The Alignment Gym: weekly live group coaching & practice session (first month included)\n  - Graduate Coaching Pass: 1 private "Constraint Clearing" call or Ask‑a‑Coach access in your first 30 days',
+                      icon: Gift,
                       included: true,
                       locked: true
                     },
                     {
                       id: '8-weeks-included',
                       title: '8 Weeks of Vision Pro Included',
-                      description: 'What it is: Full access to VIVA, storage, and the Vibe Tribe community.\nOutcome: Keep compounding after activation before your plan starts.\nDone when: Your access is live now, and your selected plan is scheduled to begin automatically on Day 56 (Annual or Every 28 Days).',
+                      description: 'What it is: Full access to VIVA and your Graduate Unlocks. Vibe Tribe, The Alignment Gym, and advanced audios open as soon as you graduate.\nOutcome: Keep compounding after activation before your plan starts.\nDone when: Your access is live now, and your selected plan is scheduled to begin automatically on Day 56 (Annual or Every 28 Days).',
                       icon: Crown,
                       included: true
                     }
