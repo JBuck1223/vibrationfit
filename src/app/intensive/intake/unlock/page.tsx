@@ -335,11 +335,11 @@ export default function IntensiveUnlockPage() {
             </label>
             {baselineValue !== null && baselineValue !== undefined && (
               <div className="mt-2 flex items-center gap-2 flex-wrap">
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="neutral" className="text-xs">
                   Baseline: {baselineValue}/10
                 </Badge>
                 {improvement !== null && improvement > 0 && (
-                  <Badge variant="default" className="text-xs bg-green-500/20 text-green-400 border-green-500/30">
+                  <Badge variant="success" className="text-xs">
                     <TrendingUp className="w-3 h-3 mr-1" />
                     +{improvement} improvement
                   </Badge>
@@ -403,7 +403,7 @@ export default function IntensiveUnlockPage() {
               {question.questionPost}
             </label>
             {baselineValue && (
-              <Badge variant="outline" className="mt-2 text-xs">
+              <Badge variant="neutral" className="mt-2 text-xs">
                 Baseline: {baselineValue.replace(/_/g, ' ')}
               </Badge>
             )}
@@ -568,8 +568,8 @@ export default function IntensiveUnlockPage() {
                   storageFolder="intensiveTestimonials"
                   recordingPurpose="withFile"
                   recordingId={intensiveId ? `intensive-${intensiveId}-testimonial` : undefined}
-                  onRecordingComplete={(result) => {
-                    if (result.url) setTestimonialVideoUrl(result.url)
+                  onRecordingComplete={(blob, transcript, shouldSaveFile, s3Url) => {
+                    if (s3Url) setTestimonialVideoUrl(s3Url)
                   }}
                   onTranscriptComplete={(transcript) => {
                     setTestimonialTranscript(transcript)
