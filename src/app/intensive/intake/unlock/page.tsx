@@ -159,7 +159,7 @@ export default function IntensiveUnlockPage() {
         
         // Auto-populate form based on objective data
         const autoFilled = autoPopulateFromStats(userStats)
-        setFormData(prev => ({ ...prev, ...autoFilled }))
+        setFormData(prev => ({ ...prev, ...autoFilled } as UnlockFormData))
       }
 
     } catch (error) {
