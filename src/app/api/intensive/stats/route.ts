@@ -29,16 +29,21 @@ export interface IntensiveStats {
   
   // Journal Stats
   journal_entries_count: number
-  daily_paper_entries_count: number
   
   // Profile Stats
   profile_completion_percent: number
+  profile_versions_count: number
+  
+  // Assessment Stats
+  assessment_completed: boolean
+  assessment_completed_count: number
+  assessment_strengths_count: number
+  assessment_growth_areas_count: number
   
   // Timestamps
   first_vision_created_at: string | null
   last_vision_updated_at: string | null
   last_audio_generated_at: string | null
-  last_journal_entry_at: string | null
   
   // Computed metrics
   days_since_start: number
@@ -69,12 +74,15 @@ export async function GET(request: NextRequest) {
       vision_board_items_count: 0,
       vision_board_images_count: 0,
       journal_entries_count: 0,
-      daily_paper_entries_count: 0,
       profile_completion_percent: 0,
+      profile_versions_count: 0,
+      assessment_completed: false,
+      assessment_completed_count: 0,
+      assessment_strengths_count: 0,
+      assessment_growth_areas_count: 0,
       first_vision_created_at: null,
       last_vision_updated_at: null,
       last_audio_generated_at: null,
-      last_journal_entry_at: null,
       days_since_start: 0,
       engagement_score: 0,
     }
@@ -164,23 +172,45 @@ export async function GET(request: NextRequest) {
     
     stats.journal_entries_count = journalCount || 0
 
-    // Daily paper entries
-    const { data: dailyPaperEntries, count: dailyPaperCount } = await supabase
-      .from('daily_paper_entries')
-      .select('id, created_at', { count: 'exact' })
+    // ========================================================================
+    // ASSESSMENT STATS
+    // ========================================================================
+    const { data: assessments } = await supabase
+      .from('assessment_results')
+      .select('id, status, category_scores, overall_percentage')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
     
-    stats.daily_paper_entries_count = dailyPaperCount || 0
-    
-    if (dailyPaperEntries && dailyPaperEntries.length > 0) {
-      stats.last_journal_entry_at = dailyPaperEntries[0].created_at
+    if (assessments && assessments.length > 0) {
+      const completedAssessments = assessments.filter(a => a.status === 'completed')
+      stats.assessment_completed = completedAssessments.length > 0
+      stats.assessment_completed_count = completedAssessments.length
+      
+      // Count total categories assessed from latest assessment
+      if (completedAssessments.length > 0) {
+        const latestAssessment = completedAssessments[completedAssessments.length - 1]
+        const categoryScores = latestAssessment.category_scores as Record<string, unknown> | null
+        
+        if (categoryScores && typeof categoryScores === 'object') {
+          const totalCategories = Object.keys(categoryScores).length
+          // All categories assessed become awareness points
+          stats.assessment_strengths_count = totalCategories
+          stats.assessment_growth_areas_count = totalCategories
+        }
+      }
     }
 
     // ========================================================================
     // PROFILE STATS
     // ========================================================================
+    // Get all profile versions count
+    const { count: profileVersionsCount } = await supabase
+      .from('user_profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+    
+    stats.profile_versions_count = profileVersionsCount || 0
+
+    // Get active profile for completion calculation
     const { data: profile } = await supabase
       .from('user_profiles')
       .select('*')
@@ -240,8 +270,9 @@ export async function GET(request: NextRequest) {
       { value: Math.min(stats.total_refinements, 10) / 10, weight: 15 },     // Up to 10 refinements
       { value: Math.min(stats.audio_sets_count, 5) / 5, weight: 20 },        // Up to 5 audio sets
       { value: Math.min(stats.vision_board_items_count, 20) / 20, weight: 15 }, // Up to 20 board items
-      { value: Math.min(stats.daily_paper_entries_count, 10) / 10, weight: 15 }, // Up to 10 journal entries
-      { value: stats.profile_completion_percent / 100, weight: 15 },          // Profile completion
+      { value: Math.min(stats.journal_entries_count, 10) / 10, weight: 10 }, // Up to 10 journal entries
+      { value: stats.profile_completion_percent / 100, weight: 10 },          // Profile completion
+      { value: stats.assessment_completed ? 1 : 0, weight: 10 },              // Assessment completed
     ]
     
     stats.engagement_score = Math.round(
