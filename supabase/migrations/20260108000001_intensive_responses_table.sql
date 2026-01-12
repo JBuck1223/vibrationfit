@@ -73,7 +73,8 @@ CREATE TABLE IF NOT EXISTS intensive_responses (
   -- Q12 (pre only): What have you already tried to consciously create your dream life?
   previous_attempts TEXT,
   
-  -- Q13 (post only): What feels most different after completing the 72-Hour Activation Intensive?
+  -- Q12 (post only): What feels most different after completing the 72-Hour Activation Intensive?
+  -- (Same number as previous_attempts since they're mutually exclusive by phase)
   biggest_shift TEXT,
   
   -- ============================================================================
@@ -245,20 +246,20 @@ CREATE TABLE IF NOT EXISTS intensive_responses (
   
   -- ============================================================================
   -- METRICS COMPARISON
-  -- Auto-populated by comparing baseline and post_intensive phases
+  -- Auto-populated by comparing pre_intensive and post_intensive phases
   -- Used for video overlays and testimonial cards
   -- ============================================================================
   metrics_comparison JSONB,
   -- {
-  --   "vision_clarity": {"before": 2, "after": 9, "change": 7},
-  --   "vibrational_harmony": {"before": 3, "after": 8, "change": 5},
-  --   "roadmap_clarity": {"before": 2, "after": 9, "change": 7},
-  --   "vision_iteration_ease": {"before": 1, "after": 8, "change": 7},
-  --   "audio_iteration_ease": {"before": 1, "after": 9, "change": 8},
-  --   "transformation_tracking": {"before": 2, "after": 8, "change": 6},
-  --   "vibrational_constraints_clarity": {"before": 0, "after": 7, "change": 7},
-  --   "vision_board_management": {"before": 0, "after": 8, "change": 8},
-  --   "journey_capturing": {"before": 2, "after": 8, "change": 6}
+  --   "vision_clarity": {"before": 2, "after": 9, "change": 7},           // Q1
+  --   "vibrational_harmony": {"before": 3, "after": 8, "change": 5},      // Q2
+  --   "vibrational_constraints_clarity": {"before": 0, "after": 7, "change": 7}, // Q3
+  --   "vision_iteration_ease": {"before": 1, "after": 8, "change": 7},    // Q4
+  --   "audio_iteration_ease": {"before": 1, "after": 9, "change": 8},     // Q6
+  --   "vision_board_management": {"before": 0, "after": 8, "change": 8},  // Q8
+  --   "journey_capturing": {"before": 2, "after": 8, "change": 6},        // Q9
+  --   "roadmap_clarity": {"before": 2, "after": 9, "change": 7},          // Q10
+  --   "transformation_tracking": {"before": 2, "after": 8, "change": 6}   // Q11
   -- }
   
   -- ============================================================================
@@ -272,11 +273,13 @@ CREATE TABLE IF NOT EXISTS intensive_responses (
   -- ============================================================================
   -- CONSENT & METADATA
   -- ============================================================================
-  -- Q12: Consent for using feedback/results as testimonials
-  testimonial_consent BOOLEAN DEFAULT false,
-  
-  -- Separate consent for named (vs anonymous) testimonials
-  consent_for_named_testimonial BOOLEAN DEFAULT false,
+  -- Q13: Sharing preference for testimonials
+  -- Note: All data can be used as part of member success calculations regardless of choice
+  sharing_preference TEXT CHECK (sharing_preference IN (
+    'named',      -- Share my success with first name
+    'anonymous',  -- Share my success anonymously
+    'none'        -- Do not share my success
+  )),
   
   -- Timestamps
   created_at TIMESTAMPTZ DEFAULT now(),
@@ -389,8 +392,9 @@ SELECT
   ir.id as response_id,
   ir.user_id,
   ir.intensive_id,
-  p.full_name,
-  ua.title as user_title,
+  ua.full_name,
+  ua.first_name,
+  ua.profile_picture_url,
   s.value->>'id' as soundbite_id,
   s.value->>'text' as quote,
   s.value->>'type' as quote_type,
@@ -406,10 +410,9 @@ SELECT
   ir.created_at
 FROM intensive_responses ir
 CROSS JOIN LATERAL jsonb_array_elements(ir.calibration_soundbites) as s(value)
-JOIN profiles p ON ir.user_id = p.id
-LEFT JOIN user_accounts ua ON ir.user_id = ua.id
+JOIN user_accounts ua ON ir.user_id = ua.id
 WHERE ir.phase = 'calibration_session'
   AND (s.value->>'approved')::boolean = true
-  AND ir.consent_for_named_testimonial = true;
+  AND ir.sharing_preference = 'named';
 
 COMMENT ON VIEW approved_testimonials IS 'Pre-filtered view of approved soundbites for website testimonial sliders';

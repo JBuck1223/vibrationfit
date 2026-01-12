@@ -11,9 +11,9 @@ import {
   Container,
   Stack,
   PageHero,
-  Checkbox,
   RadioGroup,
-  Badge
+  Badge,
+  Checkbox
 } from '@/lib/design-system/components'
 import { MediaRecorderComponent } from '@/components/MediaRecorder'
 import { 
@@ -24,8 +24,8 @@ import {
   Target,
   Headphones,
   Layout,
-  BookOpen,
-  Sparkles
+  Sparkles,
+  Keyboard
 } from 'lucide-react'
 
 import { 
@@ -47,12 +47,15 @@ interface IntensiveStats {
   vision_board_items_count: number
   vision_board_images_count: number
   journal_entries_count: number
-  daily_paper_entries_count: number
   profile_completion_percent: number
+  profile_versions_count: number
+  assessment_completed: boolean
+  assessment_completed_count: number
+  assessment_strengths_count: number
+  assessment_growth_areas_count: number
   first_vision_created_at: string | null
   last_vision_updated_at: string | null
   last_audio_generated_at: string | null
-  last_journal_entry_at: string | null
   days_since_start: number
   engagement_score: number
 }
@@ -69,15 +72,14 @@ const initializeFormData = (): UnlockFormData => {
     if (q.type === 'rating') {
       data[q.id] = null
     } else if (q.type === 'multiple_choice') {
-      data[q.id] = null
+      // Default sharing_preference to 'named'
+      data[q.id] = q.id === 'sharing_preference' ? 'named' : null
     } else if (q.type === 'text') {
       data[q.id] = ''
     } else if (q.type === 'boolean') {
-      data[q.id] = q.id === 'testimonial_consent' ? true : false
+      data[q.id] = false
     }
   })
-  // Add consent_for_named_testimonial (not in questions but needed)
-  data['consent_for_named_testimonial'] = false
   return data
 }
 
@@ -85,8 +87,10 @@ export default function IntensiveUnlockPage() {
   const router = useRouter()
   const supabase = createClient()
 
-  // Get questions for post_intensive phase
-  const questions = getQuestionsForPhase('post_intensive')
+  // Get questions for post_intensive phase (excluding text, boolean, and sharing_preference - rendered separately)
+  const questions = getQuestionsForPhase('post_intensive').filter(q => 
+    q.type !== 'text' && q.type !== 'boolean' && q.id !== 'sharing_preference'
+  )
 
   // State
   const [loading, setLoading] = useState(true)
@@ -97,6 +101,7 @@ export default function IntensiveUnlockPage() {
   const [testimonialVideoUrl, setTestimonialVideoUrl] = useState<string | null>(null)
   const [testimonialTranscript, setTestimonialTranscript] = useState<string | null>(null)
   const [formData, setFormData] = useState<UnlockFormData>(initializeFormData)
+  const [showTextInput, setShowTextInput] = useState(false)
 
   // Load data on mount
   useEffect(() => {
@@ -151,6 +156,10 @@ export default function IntensiveUnlockPage() {
       if (statsResponse.ok) {
         const { stats: userStats } = await statsResponse.json()
         setStats(userStats)
+        
+        // Auto-populate form based on objective data
+        const autoFilled = autoPopulateFromStats(userStats)
+        setFormData(prev => ({ ...prev, ...autoFilled }))
       }
 
     } catch (error) {
@@ -160,17 +169,109 @@ export default function IntensiveUnlockPage() {
     }
   }
 
-  const updateFormData = (field: string, value: number | string | boolean | null) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+  // Auto-populate answers based on objective stats data
+  const autoPopulateFromStats = (stats: IntensiveStats): Partial<UnlockFormData> => {
+    const data: Partial<UnlockFormData> = {}
+
+    // Vision clarity - if they have visions
+    if (stats.visions_count > 0) {
+      data.vision_clarity = 10
+    }
+
+    // Vibrational harmony - if they have active visions
+    if (stats.visions_active > 0) {
+      data.vibrational_harmony = 10
+    }
+
+    // Vibrational constraints - based on assessment completion
+    if (stats.assessment_completed) {
+      data.vibrational_constraints_clarity = 10
+    }
+
+    // Vision iteration ease - if they have refinements
+    if (stats.total_refinements > 0) {
+      data.vision_iteration_ease = 10
+    }
+
+    // Audio tracks - yes/no based on audio sets
+    if (stats.audio_sets_count > 0) {
+      data.has_audio_tracks = 'yes'
+      data.audio_iteration_ease = 10
+    }
+
+    // Vision board - based on vision board items (both digital + physical via downloader)
+    if (stats.vision_board_items_count > 0) {
+      data.has_vision_board = 'yes_both'
+      data.vision_board_management = 10
+    }
+
+    // Journey capturing - based on journal entries
+    if (stats.journal_entries_count > 0) {
+      data.journey_capturing = 10
+    }
+
+    // Roadmap clarity - if they have active visions
+    if (stats.visions_active > 0) {
+      data.roadmap_clarity = 10
+    }
+
+    // Transformation tracking - based on complete profile, assessment, vision, and vision board
+    const hasProfile = stats.profile_completion_percent >= 80
+    const hasAssessment = stats.assessment_completed
+    const hasVision = stats.visions_count > 0
+    const hasVisionBoard = stats.vision_board_items_count > 0
+    if (hasProfile && hasAssessment && hasVision && hasVisionBoard) {
+      data.transformation_tracking = 10
+    }
+
+    return data
   }
 
-  const handleVideoComplete = (result: { url?: string, transcript?: string }) => {
-    if (result.url) {
-      setTestimonialVideoUrl(result.url)
+  // Get score explanation for a question
+  const getScoreExplanation = (questionId: string): string | null => {
+    if (!stats) return null
+    const value = formData[questionId]
+    
+    // For yes/no questions, check the value differently
+    if (questionId === 'has_vision_board' && formData[questionId] === 'yes_both') {
+      return `Our score for you is "Yes, both physical and digital", as you have ${stats.vision_board_items_count} item${stats.vision_board_items_count !== 1 ? 's' : ''} on your digital vision board with easy downloads to print for a physical board.`
     }
-    if (result.transcript) {
-      setTestimonialTranscript(result.transcript)
+    
+    if (questionId === 'has_audio_tracks' && formData[questionId] === 'yes') {
+      return `Our score for you is "Yes", as you have ${stats.audio_sets_count} audio set${stats.audio_sets_count !== 1 ? 's' : ''} with ${stats.audio_tracks_count} track${stats.audio_tracks_count !== 1 ? 's' : ''}.`
     }
+    
+    if (value !== 10) return null
+
+    switch (questionId) {
+      case 'vision_clarity':
+        return `Our score for you is 10/10, as you have created ${stats.visions_count} vision${stats.visions_count !== 1 ? 's' : ''} with ${stats.total_refinements} refinement${stats.total_refinements !== 1 ? 's' : ''}.`
+      case 'vibrational_harmony':
+        return `Our score for you is 10/10, as you have ${stats.visions_count} vision${stats.visions_count !== 1 ? 's' : ''}, ${stats.audio_sets_count} audio set${stats.audio_sets_count !== 1 ? 's' : ''}, and ${stats.vision_board_items_count} vision board item${stats.vision_board_items_count !== 1 ? 's' : ''}.`
+      case 'vibrational_constraints_clarity':
+        if (stats.assessment_completed) {
+          return `Our score for you is 10/10, as you have completed your assessment across ${stats.assessment_strengths_count} life categor${stats.assessment_strengths_count !== 1 ? 'ies' : 'y'} with clear visibility into what supports and what constrains your vibration.`
+        }
+        return null
+      case 'vision_iteration_ease':
+        return `Our score for you is 10/10, as you have an active vision that can easily be cloned and refined.`
+      case 'audio_iteration_ease':
+        return `Our score for you is 10/10, as you have created ${stats.audio_sets_count} audio set${stats.audio_sets_count !== 1 ? 's' : ''} with ${stats.audio_tracks_count} track${stats.audio_tracks_count !== 1 ? 's' : ''} with new generations ready at the click of a button.`
+      case 'vision_board_management':
+        return `Our score for you is 10/10, as you have ${stats.vision_board_items_count} item${stats.vision_board_items_count !== 1 ? 's' : ''} on your vision board with easy management and downloads.`
+      case 'journey_capturing':
+        return `Our score for you is 10/10, as you have ${stats.journal_entries_count} journal entr${stats.journal_entries_count !== 1 ? 'ies' : 'y'}.`
+      case 'roadmap_clarity':
+        return `Our score for you is 10/10, as you have an active activation protocol to activate your life vision.`
+      case 'transformation_tracking':
+        return `Our score for you is 10/10, as you have ${stats.profile_versions_count} profile version${stats.profile_versions_count !== 1 ? 's' : ''}, ${stats.assessment_completed_count} assessment${stats.assessment_completed_count !== 1 ? 's' : ''}, ${stats.visions_count} vision${stats.visions_count !== 1 ? 's' : ''}, and ${stats.journal_entries_count} journal entr${stats.journal_entries_count !== 1 ? 'ies' : 'y'} - each easy to create new versions or add new items.`
+      default:
+        return null
+    }
+  }
+
+  const updateFormData = (field: string, value: number | string | boolean | null) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
   }
 
   const submitForm = async () => {
@@ -182,6 +283,12 @@ export default function IntensiveUnlockPage() {
 
     if (missingFields.length > 0) {
       alert(`Please answer all questions. Missing: ${missingFields.map(q => q.label).join(', ')}`)
+      return
+    }
+
+    // Must have either video or text testimonial
+    if (!testimonialVideoUrl && !testimonialTranscript && !formData.biggest_shift) {
+      alert('Please record a video testimonial or type your response.')
       return
     }
 
@@ -198,7 +305,8 @@ export default function IntensiveUnlockPage() {
         stats_snapshot: stats,
         testimonial_video_url: testimonialVideoUrl,
         testimonial_transcript: testimonialTranscript,
-        consent_for_named_testimonial: formData.consent_for_named_testimonial,
+        biggest_shift: showTextInput ? formData.biggest_shift : testimonialTranscript,
+        sharing_preference: formData.sharing_preference,
       }
 
       // Add all form fields from questions
@@ -266,17 +374,25 @@ export default function IntensiveUnlockPage() {
         return (
           <>
             <StatBadge icon={Target} label="Visions Created" value={stats.visions_count} />
-            <StatBadge icon={CheckCircle} label="Active" value={stats.visions_active} />
+            <StatBadge icon={Sparkles} label="Refinements" value={stats.total_refinements} />
             {stats.visions_draft > 0 && (
               <StatBadge icon={FileText} label="In Draft" value={stats.visions_draft} />
             )}
           </>
         )
+      case 'vibrational_harmony':
+        return (
+          <>
+            <StatBadge icon={Target} label="Visions" value={stats.visions_count} />
+            <StatBadge icon={Headphones} label="Audio Sets" value={stats.audio_sets_count} />
+            <StatBadge icon={Layout} label="Board Items" value={stats.vision_board_items_count} />
+          </>
+        )
       case 'vision_iteration_ease':
         return (
           <>
-            <StatBadge icon={Sparkles} label="Total Refinements" value={stats.total_refinements} />
-            <StatBadge icon={Target} label="Versions Refined" value={stats.visions_with_refinements} />
+            <StatBadge icon={CheckCircle} label="Active Vision" value={stats.visions_active > 0 ? 'Yes' : 'No'} />
+            <StatBadge icon={Sparkles} label="Refinements" value={stats.total_refinements} />
           </>
         )
       case 'has_audio_tracks':
@@ -284,7 +400,7 @@ export default function IntensiveUnlockPage() {
         return (
           <>
             <StatBadge icon={Headphones} label="Audio Sets" value={stats.audio_sets_count} />
-            <StatBadge icon={CheckCircle} label="Completed" value={stats.audio_tracks_completed} />
+            <StatBadge icon={CheckCircle} label="Tracks" value={stats.audio_tracks_count} />
           </>
         )
       case 'has_vision_board':
@@ -295,18 +411,32 @@ export default function IntensiveUnlockPage() {
             <StatBadge icon={CheckCircle} label="With Images" value={stats.vision_board_images_count} />
           </>
         )
+      case 'vibrational_constraints_clarity':
+        return (
+          <>
+            <StatBadge icon={CheckCircle} label="Assessment" value={stats.assessment_completed ? 'Completed' : 'Pending'} />
+            <StatBadge icon={Target} label="Categories Assessed" value={stats.assessment_strengths_count} />
+          </>
+        )
       case 'journey_capturing':
         return (
           <>
-            <StatBadge icon={BookOpen} label="Daily Paper Entries" value={stats.daily_paper_entries_count} />
             <StatBadge icon={FileText} label="Journal Entries" value={stats.journal_entries_count} />
           </>
         )
       case 'transformation_tracking':
         return (
           <>
-            <StatBadge icon={BookOpen} label="Journal Entries" value={stats.daily_paper_entries_count} />
-            <StatBadge icon={Target} label="Profile Complete" value={stats.profile_completion_percent} suffix="%" />
+            <StatBadge icon={Target} label="Profile Versions" value={stats.profile_versions_count} />
+            <StatBadge icon={CheckCircle} label="Assessments" value={stats.assessment_completed_count} />
+            <StatBadge icon={Target} label="Visions" value={stats.visions_count} />
+            <StatBadge icon={FileText} label="Journal" value={stats.journal_entries_count} />
+          </>
+        )
+      case 'roadmap_clarity':
+        return (
+          <>
+            <StatBadge icon={Target} label="Active Visions" value={stats.visions_active} />
           </>
         )
       default:
@@ -315,19 +445,20 @@ export default function IntensiveUnlockPage() {
   }
 
   // Rating selector with baseline comparison
-  const RatingSelector = ({ question }: { question: IntakeQuestion }) => {
+  const RatingSelector = ({ question, displayNumber }: { question: IntakeQuestion, displayNumber: number }) => {
     const value = formData[question.id] as number | null
     const baselineValue = baseline[question.id] as number | null
     const improvement = value !== null && baselineValue !== null 
       ? value - baselineValue 
       : null
     const statsInfo = getStatsForQuestion(question.id)
+    const scoreExplanation = getScoreExplanation(question.id)
 
     return (
       <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
         <div className="flex items-start gap-3 mb-4">
           <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
-            {question.order}
+            {displayNumber}
           </div>
           <div className="flex-1">
             <label className="block text-sm md:text-base font-medium text-white">
@@ -355,13 +486,18 @@ export default function IntensiveUnlockPage() {
           </p>
         )}
 
-        {/* Stats info panel */}
+        {/* Stats info panel with score explanation */}
         {statsInfo && (
           <div className="mb-4 ml-10 p-3 bg-neutral-800/30 rounded-lg border border-neutral-700/50">
             <div className="text-xs text-neutral-400 mb-2 font-medium">Your Activity:</div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 mb-2">
               {statsInfo}
             </div>
+            {scoreExplanation && (
+              <p className="text-xs text-primary-400 mt-2 font-medium">
+                {scoreExplanation}
+              </p>
+            )}
           </div>
         )}
 
@@ -388,7 +524,7 @@ export default function IntensiveUnlockPage() {
   }
 
   // Multiple choice selector with baseline comparison
-  const MultipleChoiceSelector = ({ question }: { question: IntakeQuestion }) => {
+  const MultipleChoiceSelector = ({ question, displayNumber }: { question: IntakeQuestion, displayNumber: number }) => {
     const baselineValue = baseline[question.id] as string | null
     const statsInfo = getStatsForQuestion(question.id)
 
@@ -396,7 +532,7 @@ export default function IntensiveUnlockPage() {
       <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
         <div className="flex items-start gap-3 mb-4">
           <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
-            {question.order}
+            {displayNumber}
           </div>
           <div className="flex-1">
             <label className="block text-sm md:text-base font-medium text-white">
@@ -439,52 +575,14 @@ export default function IntensiveUnlockPage() {
     )
   }
 
-  // Text question
-  const TextQuestion = ({ question }: { question: IntakeQuestion }) => (
-    <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
-      <div className="flex items-start gap-3 mb-4">
-        <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
-          {question.order}
-        </div>
-        <label className="block text-sm md:text-base font-medium text-white pt-0.5">
-          {question.questionPost}
-        </label>
-      </div>
-      <div className="ml-10">
-        <Textarea
-          value={(formData[question.id] as string) || ''}
-          onChange={(e) => updateFormData(question.id, e.target.value)}
-          placeholder="Share your experience..."
-          rows={4}
-          className="text-sm md:text-base"
-        />
-      </div>
-    </div>
-  )
-
-  // Boolean question
-  const BooleanQuestion = ({ question }: { question: IntakeQuestion }) => (
-    <div className="flex items-start gap-3">
-      <Checkbox
-        checked={formData[question.id] as boolean}
-        onChange={(e) => updateFormData(question.id, e.target.checked)}
-        label={question.questionPost}
-      />
-    </div>
-  )
-
-  // Render question based on type
-  const renderQuestion = (question: IntakeQuestion) => {
+  // Render question based on type with display number
+  const renderQuestion = (question: IntakeQuestion, index: number) => {
+    const displayNumber = index + 1
     switch (question.type) {
       case 'rating':
-        return <RatingSelector key={question.id} question={question} />
+        return <RatingSelector key={question.id} question={question} displayNumber={displayNumber} />
       case 'multiple_choice':
-        return <MultipleChoiceSelector key={question.id} question={question} />
-      case 'text':
-        return <TextQuestion key={question.id} question={question} />
-      case 'boolean':
-        // Skip boolean here - we handle consent separately with named testimonial option
-        return null
+        return <MultipleChoiceSelector key={question.id} question={question} displayNumber={displayNumber} />
       default:
         return null
     }
@@ -521,7 +619,7 @@ export default function IntensiveUnlockPage() {
                 <StatBadge icon={Target} label="Visions" value={stats.visions_count} />
                 <StatBadge icon={Headphones} label="Audio Sets" value={stats.audio_sets_count} />
                 <StatBadge icon={Layout} label="Board Items" value={stats.vision_board_items_count} />
-                <StatBadge icon={BookOpen} label="Journal" value={stats.daily_paper_entries_count} />
+                <StatBadge icon={FileText} label="Journal" value={stats.journal_entries_count} />
               </div>
             </div>
           </Card>
@@ -529,17 +627,17 @@ export default function IntensiveUnlockPage() {
 
         <form onSubmit={(e) => { e.preventDefault(); submitForm(); }} className="space-y-6">
           {/* Render all questions from constants in order */}
-          {questions.map(renderQuestion)}
+          {questions.map((q, index) => renderQuestion(q, index))}
 
-          {/* Video Testimonial Section */}
+          {/* Combined Video Testimonial / Text Response Section - Q12 */}
           <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
             <div className="flex items-start gap-3 mb-4">
-              <div className="flex-shrink-0 w-7 h-7 rounded bg-accent-500 text-white flex items-center justify-center font-semibold text-sm">
-                <Video className="w-4 h-4" />
+              <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
+                {questions.length + 1}
               </div>
               <div>
                 <label className="block text-sm md:text-base font-medium text-white">
-                  Record a Quick Video Testimonial (Optional)
+                  What feels most different for you after completing the 72-Hour Activation Intensive?
                 </label>
                 <p className="text-xs md:text-sm text-neutral-500 mt-1">
                   Share your experience in your own words! This helps others see what's possible.
@@ -548,7 +646,25 @@ export default function IntensiveUnlockPage() {
             </div>
             
             <div className="ml-10">
-              {testimonialVideoUrl ? (
+              {showTextInput ? (
+                <>
+                  <Textarea
+                    value={(formData.biggest_shift as string) || ''}
+                    onChange={(e) => updateFormData('biggest_shift', e.target.value)}
+                    placeholder="Share the biggest shifts, breakthroughs, or 'aha' moments you experienced..."
+                    rows={4}
+                    className="text-sm md:text-base"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowTextInput(false)}
+                    className="mt-3 text-sm text-primary-400 hover:text-primary-300 flex items-center gap-2"
+                  >
+                    <Video className="w-4 h-4" />
+                    Record a video instead
+                  </button>
+                </>
+              ) : testimonialVideoUrl ? (
                 <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
                   <div className="flex items-center gap-2 text-green-400">
                     <CheckCircle className="w-5 h-5" />
@@ -556,49 +672,63 @@ export default function IntensiveUnlockPage() {
                   </div>
                   {testimonialTranscript && (
                     <p className="mt-2 text-sm text-neutral-400 italic">
-                      "{testimonialTranscript.slice(0, 150)}..."
+                      "{testimonialTranscript.slice(0, 200)}..."
                     </p>
                   )}
                 </div>
               ) : (
-                <MediaRecorderComponent
-                  mode="video"
-                  autoTranscribe={true}
-                  maxDuration={180}
-                  storageFolder="intensiveTestimonials"
-                  recordingPurpose="withFile"
-                  recordingId={intensiveId ? `intensive-${intensiveId}-testimonial` : undefined}
-                  onRecordingComplete={(blob, transcript, shouldSaveFile, s3Url) => {
-                    if (s3Url) setTestimonialVideoUrl(s3Url)
-                  }}
-                  onTranscriptComplete={(transcript) => {
-                    setTestimonialTranscript(transcript)
-                  }}
-                  enableEditor={false}
-                  fullscreenVideo={false}
-                />
+                <>
+                  <MediaRecorderComponent
+                    mode="video"
+                    autoTranscribe={true}
+                    maxDuration={180}
+                    storageFolder="intensiveTestimonials"
+                    recordingPurpose="withFile"
+                    recordingId={intensiveId ? `intensive-${intensiveId}-testimonial` : undefined}
+                    onRecordingComplete={(blob, transcript, shouldSaveFile, s3Url) => {
+                      if (s3Url) setTestimonialVideoUrl(s3Url)
+                    }}
+                    onTranscriptComplete={(transcript) => {
+                      setTestimonialTranscript(transcript)
+                    }}
+                    enableEditor={false}
+                    fullscreenVideo={false}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowTextInput(true)}
+                    className="mt-3 text-sm text-primary-400 hover:text-primary-300 flex items-center gap-2"
+                  >
+                    <Keyboard className="w-4 h-4" />
+                    Type my response instead
+                  </button>
+                </>
               )}
             </div>
           </div>
 
-          {/* Consent Checkboxes */}
+          {/* Sharing Preference - No number */}
           <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30 space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
-                {questions.length + 1}
-              </div>
-              <div className="space-y-4">
-                <Checkbox
-                  checked={formData.testimonial_consent as boolean}
-                  onChange={(e) => updateFormData('testimonial_consent', e.target.checked)}
-                  label="I'm open to you using my feedback and results as anonymized data once I approve them."
-                />
-                <Checkbox
-                  checked={formData.consent_for_named_testimonial as boolean}
-                  onChange={(e) => updateFormData('consent_for_named_testimonial', e.target.checked)}
-                  label="I'm open to being featured as a named testimonial with my video/story (with my approval before publishing)."
-                />
-              </div>
+            <div className="mb-4">
+              <h3 className="text-lg font-medium text-white">How would you like to share your success?</h3>
+              <p className="text-sm text-neutral-400 mt-1">All data can be used as part of member success calculations.</p>
+            </div>
+            <div className="space-y-3 ml-4">
+              <Checkbox
+                checked={formData.sharing_preference === 'named'}
+                onChange={() => updateFormData('sharing_preference', 'named')}
+                label="Share my success with first name"
+              />
+              <Checkbox
+                checked={formData.sharing_preference === 'anonymous'}
+                onChange={() => updateFormData('sharing_preference', 'anonymous')}
+                label="Share my success anonymously"
+              />
+              <Checkbox
+                checked={formData.sharing_preference === 'none'}
+                onChange={() => updateFormData('sharing_preference', 'none')}
+                label="Do not share my success"
+              />
             </div>
           </div>
 
