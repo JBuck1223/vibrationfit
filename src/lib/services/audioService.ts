@@ -24,7 +24,7 @@ export interface SectionInput {
 
 export interface GeneratedTrackResult {
   sectionKey: string
-  status: 'skipped' | 'generated' | 'failed'
+  status: 'skipped' | 'generated' | 'failed' | 'reused'
   audioUrl?: string
   s3Key?: string
   error?: string
@@ -340,7 +340,7 @@ export async function generateAudioTracks(params: {
   const updateBatchProgress = async () => {
     if (!batchId) return
     
-    const completed = results.filter(r => r.status === 'generated' || r.status === 'skipped').length
+    const completed = results.filter(r => r.status === 'generated' || r.status === 'skipped' || r.status === 'reused').length
     const failed = results.filter(r => r.status === 'failed').length
     const pending = sections.length - completed - failed
     
@@ -361,43 +361,69 @@ export async function generateAudioTracks(params: {
   // Get or create audio_set
   let targetAudioSetId: string
   
+  const getDescription = (v: string | undefined) => {
+    if (v === 'standard' || !v) return 'Voice only narration'
+    if (v === 'sleep') return '10% voice, 90% background'
+    if (v === 'energy') return '80% voice, 20% background'
+    if (v === 'meditation') return '50% voice, 50% background'
+    return '50% voice, 50% background'
+  }
+  
   if (audioSetId) {
     // Use specified audio set
     targetAudioSetId = audioSetId
     console.log(`[Audio Set] Using specified audio set: ${targetAudioSetId}`)
+  } else if (audioSetName) {
+    // Custom named set (focused/partial sections like "Work + Money Focus")
+    // ALWAYS create a new set for these - don't reuse existing ones
+    console.log(`[Audio Set] Creating new focused set: "${audioSetName}" for voice: ${voice}`)
+    
+    const { data: newSet, error: setError } = await supabase
+      .from('audio_sets')
+      .insert({
+        vision_id: visionId,
+        user_id: userId,
+        name: audioSetName,
+        description: audioSetDescription || getDescription(variant),
+        variant: variant || 'standard',
+        voice_id: voice,
+      })
+      .select()
+      .single()
+    
+    if (setError || !newSet) {
+      throw new Error(`Failed to create audio set: ${setError?.message}`)
+    }
+    targetAudioSetId = newSet.id
+    console.log(`[Audio Set] Created focused audio set: ${targetAudioSetId}`)
   } else {
-    // Create or get audio set - match by variant AND voice_id to allow multiple voice versions
+    // Full set (all 14 sections) - reuse existing if available
     console.log(`[Audio Set] Looking for existing set with variant="${variant || 'standard'}", voice_id="${voice}"`)
     
+    // Look for existing full set (one with the default name pattern, not a focused set)
+    const defaultSetName = `${variant || 'Standard'} Version`
     const { data: existingSet } = await supabase
       .from('audio_sets')
       .select('id, voice_id, variant')
       .eq('vision_id', visionId)
       .eq('variant', variant || 'standard')
       .eq('voice_id', voice)
+      .eq('name', defaultSetName) // Only match default-named sets, not focused sets
       .maybeSingle()
     
     if (existingSet) {
       targetAudioSetId = existingSet.id
       console.log(`[Audio Set] Reusing existing audio set: ${targetAudioSetId}`)
     } else {
-      // Create new audio set
+      // Create new audio set for full generation
       console.log(`[Audio Set] Creating new audio set for voice: ${voice}, variant: ${variant || 'standard'}`)
-      
-      const getDescription = (v: string | undefined) => {
-        if (v === 'standard' || !v) return 'Voice only narration'
-        if (v === 'sleep') return '10% voice, 90% background'
-        if (v === 'energy') return '80% voice, 20% background'
-        if (v === 'meditation') return '50% voice, 50% background'
-        return '50% voice, 50% background'
-      }
 
       const { data: newSet, error: setError } = await supabase
         .from('audio_sets')
         .insert({
           vision_id: visionId,
           user_id: userId,
-          name: audioSetName || `${variant || 'Standard'} Version`,
+          name: `${variant || 'Standard'} Version`,
           description: audioSetDescription || getDescription(variant),
           variant: variant || 'standard',
           voice_id: voice,
@@ -432,79 +458,99 @@ export async function generateAudioTracks(params: {
     
     const contentHash = hashContent(section.text)
 
-    // Check if an identical track already exists in this audio set
-    const { data: existing, error: existingError } = await supabase
+    // STEP 1: Check if track already exists in THIS audio set
+    const { data: existingInSet, error: existingInSetError } = await supabase
       .from('audio_tracks')
       .select('*')
       .eq('user_id', userId)
       .eq('vision_id', visionId)
       .eq('audio_set_id', targetAudioSetId)
       .eq('section_key', section.sectionKey)
-      .eq('content_hash', contentHash)
       .maybeSingle()
 
-    if (existingError) {
-      results.push({ sectionKey: section.sectionKey, status: 'failed', error: existingError.message })
+    if (existingInSetError) {
+      results.push({ sectionKey: section.sectionKey, status: 'failed', error: existingInSetError.message })
       await updateBatchProgress()
       continue
     }
 
-    // If existing record found
-    let recordId: string | null = null
-    if (existing) {
-      if (!force && existing.status === 'completed') {
-        // If track belongs to THIS audio set already, skip
-        if (existing.audio_set_id === targetAudioSetId) {
-          console.log(`[Track] Track already in this audio set for ${section.sectionKey}`)
-          results.push({ sectionKey: section.sectionKey, status: 'skipped', audioUrl: existing.audio_url, s3Key: existing.s3_key })
-          await updateBatchProgress()
-          continue
-        }
-        // Track exists but in different set - create new track record for THIS set
-        console.log(`[Track] Creating track reference in this audio set for ${section.sectionKey}`)
-        const { data: newTrack, error: insertError } = await supabase
-          .from('audio_tracks')
-          .insert({
-            user_id: userId,
-            vision_id: visionId,
-            audio_set_id: targetAudioSetId,
-            section_key: section.sectionKey,
-            content_hash: contentHash,
-            text_content: section.text,
-            voice_id: voice,
-            s3_bucket: existing.s3_bucket,
-            s3_key: existing.s3_key,
-            audio_url: existing.audio_url,
-            status: 'completed',
-            duration_seconds: existing.duration_seconds,
-            mix_status: 'pending'
-          })
-          .select()
-          .single()
-        
-        if (insertError || !newTrack) {
-          results.push({ sectionKey: section.sectionKey, status: 'failed', error: insertError?.message || 'Failed to create track reference' })
-          await updateBatchProgress()
-          continue
-        }
-        
-        recordId = newTrack.id
-        results.push({ sectionKey: section.sectionKey, status: 'skipped', audioUrl: existing.audio_url, s3Key: existing.s3_key })
+    // If track already exists in this set and is completed, skip
+    if (existingInSet && !force && existingInSet.status === 'completed') {
+      console.log(`[Track] Track already in this audio set for ${section.sectionKey}`)
+      results.push({ sectionKey: section.sectionKey, status: 'skipped', audioUrl: existingInSet.audio_url, s3Key: existingInSet.s3_key })
+      await updateBatchProgress()
+      continue
+    }
+
+    // STEP 2: Check if a matching track exists in ANY other set (same voice, same content)
+    // This allows reusing TTS audio across focused sets
+    const { data: existingElsewhere, error: existingElsewhereError } = await supabase
+      .from('audio_tracks')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('vision_id', visionId)
+      .eq('section_key', section.sectionKey)
+      .eq('voice_id', voice)
+      .eq('content_hash', contentHash)
+      .eq('status', 'completed')
+      .neq('audio_set_id', targetAudioSetId)
+      .limit(1)
+      .maybeSingle()
+
+    if (existingElsewhereError) {
+      console.error(`[Track] Error checking for existing track elsewhere: ${existingElsewhereError.message}`)
+      // Continue anyway - we'll generate fresh
+    }
+
+    // If a completed track exists elsewhere, copy it to this set (free, instant!)
+    if (existingElsewhere && !force) {
+      console.log(`[Track] ✨ Reusing existing track from another set for ${section.sectionKey} (same voice: ${voice})`)
+      const { data: copiedTrack, error: copyError } = await supabase
+        .from('audio_tracks')
+        .insert({
+          user_id: userId,
+          vision_id: visionId,
+          audio_set_id: targetAudioSetId,
+          section_key: section.sectionKey,
+          content_hash: contentHash,
+          text_content: section.text,
+          voice_id: voice,
+          s3_bucket: existingElsewhere.s3_bucket,
+          s3_key: existingElsewhere.s3_key,
+          audio_url: existingElsewhere.audio_url,
+          status: 'completed',
+          duration_seconds: existingElsewhere.duration_seconds,
+          mix_status: 'pending'
+        })
+        .select()
+        .single()
+      
+      if (copyError || !copiedTrack) {
+        console.error(`[Track] Failed to copy track: ${copyError?.message}`)
+        // Fall through to generate fresh
+      } else {
+        results.push({ sectionKey: section.sectionKey, status: 'reused', audioUrl: existingElsewhere.audio_url, s3Key: existingElsewhere.s3_key })
         await updateBatchProgress()
         continue
       }
-      // Reuse existing row and set to processing
+    }
+
+    // STEP 3: Need to generate fresh - either no existing track or force=true
+    let recordId: string | null = null
+    
+    if (existingInSet) {
+      // Track exists in this set but needs regeneration
       console.log(`[Track] Regenerating ${section.sectionKey}`)
       const { error: updErr } = await supabase
         .from('audio_tracks')
         .update({ status: 'processing', error_message: null, voice_id: voice })
-        .eq('id', existing.id)
+        .eq('id', existingInSet.id)
       if (updErr) {
         results.push({ sectionKey: section.sectionKey, status: 'failed', error: updErr.message })
         await updateBatchProgress()
         continue
       }
-      recordId = existing.id
+      recordId = existingInSet.id
     } else {
       console.log(`[Track] Creating new track record for ${section.sectionKey}`)
       // Insert new row
@@ -683,7 +729,7 @@ export async function generateAudioTracks(params: {
 
   // Update final batch status
   if (batchId) {
-    const completed = results.filter(r => r.status === 'generated' || r.status === 'skipped').length
+    const completed = results.filter(r => r.status === 'generated' || r.status === 'skipped' || r.status === 'reused').length
     const failed = results.filter(r => r.status === 'failed').length
     const total = sections.length
     

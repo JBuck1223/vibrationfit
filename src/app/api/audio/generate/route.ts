@@ -85,16 +85,57 @@ export async function POST(request: NextRequest) {
     })
 
     // Trigger full voice generation for voice-only (standard) variant
+    // Only if output_format is 'combined' or 'both' (or not specified for legacy)
     if ((variant === 'standard' || !variant) && results.length === sections.length && audioSetId) {
       const allSucceeded = results.every(r => r.status === 'generated' || r.status === 'skipped')
       
-      if (allSucceeded) {
-        console.log('🎵 [FULL VOICE] All voice-only tracks complete, triggering full voice generation...')
+      if (allSucceeded && batchId) {
+        // Check output_format from batch metadata
+        const { data: batchData } = await supabase
+          .from('audio_generation_batches')
+          .select('metadata')
+          .eq('id', batchId)
+          .single()
         
-        // Import and call directly (this has access to the authenticated context)
+        const outputFormat = batchData?.metadata?.output_format || 'both' // Default to 'both' for legacy
+        const shouldGenerateFull = outputFormat === 'combined' || outputFormat === 'both'
+        
+        // Only generate full track if more than 1 section (single section doesn't need combining)
+        const hasMultipleSections = sections.length > 1
+        
+        if (shouldGenerateFull && hasMultipleSections) {
+          console.log('🎵 [FULL VOICE] All voice-only tracks complete, triggering full voice generation...')
+          console.log('🎵 [FULL VOICE] Output format:', outputFormat, '| Sections:', sections.length)
+          
+          // Import and call directly (this has access to the authenticated context)
+          const { generateFullVoiceTrack } = await import('@/lib/services/audioService')
+          
+          // Call asynchronously (don't wait for it, don't block the response)
+          generateFullVoiceTrack(
+            user.id,
+            visionId,
+            audioSetId,
+            voice as string
+          ).then((result) => {
+            if (result.success) {
+              console.log('✅ [FULL VOICE] Full voice generation complete:', result.trackId)
+            } else {
+              console.error('❌ [FULL VOICE] Full voice generation failed:', result.error)
+            }
+          }).catch(err => {
+            console.error('❌ [FULL VOICE] Full voice generation error:', err)
+          })
+        } else if (!hasMultipleSections) {
+          console.log('🎵 [FULL VOICE] Skipping full track - only 1 section (individual = combined)')
+        } else {
+          console.log('🎵 [FULL VOICE] Skipping full track - output_format is "individual"')
+        }
+      } else if (allSucceeded && !batchId) {
+        // Legacy path without batchId - generate full track by default
+        console.log('🎵 [FULL VOICE] Legacy generation (no batchId), generating full track...')
+        
         const { generateFullVoiceTrack } = await import('@/lib/services/audioService')
         
-        // Call asynchronously (don't wait for it, don't block the response)
         generateFullVoiceTrack(
           user.id,
           visionId,
