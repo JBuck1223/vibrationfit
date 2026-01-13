@@ -1,33 +1,61 @@
 // /src/app/account/settings/page.tsx
-// Account settings and preferences
+// Account settings - manages user_accounts table fields
 
 'use client'
 
 import { useState, useEffect } from 'react'
-import {  Card, Button, Input, Checkbox } from '@/lib/design-system/components'
-import { User, Mail, Bell, Shield, Trash2, Phone } from 'lucide-react'
+import { Container, Stack, PageHero, Card, Button, Input, Spinner, DatePicker, Checkbox, Modal } from '@/lib/design-system/components'
+import { User, Check } from 'lucide-react'
+import { ProfilePictureUpload } from '@/app/profile/components/ProfilePictureUpload'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 
 export default function AccountSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [savingPhone, setSavingPhone] = useState(false)
+  const [hasChanges, setHasChanges] = useState(false)
   const [user, setUser] = useState<any>(null)
-  const [profile, setProfile] = useState<any>(null)
+  const [originalAccount, setOriginalAccount] = useState<any>(null)
+  
+  // Form states - all user_accounts fields
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
-  const [smsOptIn, setSmsOptIn] = useState(false)
-  const [notifications, setNotifications] = useState({
-    email_marketing: true,
-    email_product: true,
-    email_weekly: false,
-  })
+  const [dateOfBirth, setDateOfBirth] = useState('')
+  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null)
+  
+  // Notification preferences (stored in user_accounts)
+  const [smsOptIn, setSmsOptIn] = useState(true)
+  const [emailOptIn, setEmailOptIn] = useState(true)
+  
+  // Modal state for opt-out confirmation
+  const [showOptOutModal, setShowOptOutModal] = useState(false)
+  const [pendingOptOut, setPendingOptOut] = useState<'sms' | 'email' | null>(null)
+  
   const supabase = createClient()
+  const router = useRouter()
 
   useEffect(() => {
     fetchUserData()
   }, [])
+
+  // Track changes
+  useEffect(() => {
+    if (!originalAccount) return
+    
+    const changed = 
+      firstName !== (originalAccount.first_name || '') ||
+      lastName !== (originalAccount.last_name || '') ||
+      email !== (originalAccount.email || '') ||
+      phone !== (originalAccount.phone || '') ||
+      dateOfBirth !== (originalAccount.date_of_birth || '') ||
+      smsOptIn !== (originalAccount.sms_opt_in ?? true) ||
+      emailOptIn !== (originalAccount.email_opt_in ?? true)
+    
+    setHasChanges(changed)
+  }, [firstName, lastName, email, phone, dateOfBirth, smsOptIn, emailOptIn, originalAccount])
 
   const fetchUserData = async () => {
     try {
@@ -35,283 +63,385 @@ export default function AccountSettingsPage() {
       if (!user) return
 
       setUser(user)
-      setEmail(user.email || '')
 
-      // Fetch user account for phone/SMS settings (source of truth for account-level data)
-      const { data: accountData } = await supabase
+      // Fetch all user account data
+      // Note: email_opt_in may not exist until migration is run - query without it first
+      const { data: accountData, error } = await supabase
         .from('user_accounts')
-        .select('phone, sms_opt_in, sms_opt_in_date, sms_opt_in_ip')
+        .select('first_name, last_name, full_name, email, phone, profile_picture_url, date_of_birth, sms_opt_in, sms_opt_in_date')
         .eq('id', user.id)
         .single()
 
+      if (error) {
+        console.error('Error fetching user_accounts:', error)
+      }
+
       if (accountData) {
-        setProfile(accountData)
-        setPhone(accountData.phone || '')
-        setSmsOptIn(accountData.sms_opt_in || false)
+        // Try to fetch email_opt_in separately (column may not exist yet)
+        let emailOptInValue = true
+        try {
+          const { data: optInData } = await supabase
+            .from('user_accounts')
+            .select('email_opt_in')
+            .eq('id', user.id)
+            .single()
+          if (optInData && 'email_opt_in' in optInData) {
+            emailOptInValue = optInData.email_opt_in ?? true
+          }
+        } catch {
+          // Column doesn't exist yet, use default
+        }
+
+        setOriginalAccount({ ...accountData, email_opt_in: emailOptInValue })
+        setFirstName(accountData.first_name || '')
+        setLastName(accountData.last_name || '')
+        setEmail(accountData.email || user.email || '')
+        setPhone(formatPhoneNumber(accountData.phone || ''))
+        setDateOfBirth(accountData.date_of_birth || '')
+        setProfilePictureUrl(accountData.profile_picture_url)
+        setSmsOptIn(accountData.sms_opt_in ?? true)
+        setEmailOptIn(emailOptInValue)
+      } else {
+        setEmail(user.email || '')
       }
     } catch (error) {
       console.error('Error fetching user:', error)
+      toast.error('Failed to load account data')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleUpdateEmail = async () => {
+  const formatPhoneNumber = (value: string): string => {
+    if (!value) return ''
+    const cleaned = value.replace(/\D/g, '')
+    const limited = cleaned.slice(0, 10)
+    
+    if (limited.length <= 3) {
+      return limited
+    } else if (limited.length <= 6) {
+      return `(${limited.slice(0, 3)}) ${limited.slice(3)}`
+    } else {
+      return `(${limited.slice(0, 3)}) ${limited.slice(3, 6)}-${limited.slice(6)}`
+    }
+  }
+
+  const handlePhoneChange = (value: string) => {
+    setPhone(formatPhoneNumber(value))
+  }
+
+  const handleDateChange = (dateString: string) => {
+    const date = new Date(dateString)
+    if (!isNaN(date.getTime())) {
+      setDateOfBirth(date.toISOString().split('T')[0])
+    }
+  }
+
+  const handleOptOutAttempt = (type: 'sms' | 'email', checked: boolean) => {
+    if (checked) {
+      // Opting in - no confirmation needed
+      if (type === 'sms') {
+        setSmsOptIn(true)
+      } else {
+        setEmailOptIn(true)
+      }
+    } else {
+      // Opting out - show confirmation modal
+      setPendingOptOut(type)
+      setShowOptOutModal(true)
+    }
+  }
+
+  const confirmOptOut = () => {
+    if (pendingOptOut === 'sms') {
+      setSmsOptIn(false)
+    } else if (pendingOptOut === 'email') {
+      setEmailOptIn(false)
+    }
+    setShowOptOutModal(false)
+    setPendingOptOut(null)
+  }
+
+  const cancelOptOut = () => {
+    setShowOptOutModal(false)
+    setPendingOptOut(null)
+  }
+
+  const handleSaveAccount = async () => {
+    if (!user) return
+    
     setSaving(true)
     try {
-      const { error } = await supabase.auth.updateUser({ email })
-      
-      if (error) throw error
-      
-      // Also update user_accounts (will be synced by trigger, but update immediately for UX)
-      await supabase
+      // Get IP for SMS compliance if opting in
+      let ip = ''
+      if (smsOptIn && !originalAccount?.sms_opt_in) {
+        try {
+          const ipResponse = await fetch('https://api.ipify.org?format=json')
+          const ipData = await ipResponse.json()
+          ip = ipData.ip
+        } catch {
+          // Continue without IP
+        }
+      }
+
+      // Update user_accounts
+      const updateData: any = {
+        first_name: firstName || null,
+        last_name: lastName || null,
+        phone: phone || null,
+        date_of_birth: dateOfBirth || null,
+        sms_opt_in: phone ? smsOptIn : false,
+      }
+
+      // Try to include email_opt_in (column may not exist until migration runs)
+      try {
+        const { error: testError } = await supabase
+          .from('user_accounts')
+          .select('email_opt_in')
+          .eq('id', user.id)
+          .single()
+        
+        if (!testError) {
+          updateData.email_opt_in = emailOptIn
+        }
+      } catch {
+        // Column doesn't exist yet, skip
+      }
+
+      // Only update SMS consent tracking if changing opt-in status
+      if (smsOptIn && !originalAccount?.sms_opt_in) {
+        updateData.sms_opt_in_date = new Date().toISOString()
+        if (ip) updateData.sms_opt_in_ip = ip
+      } else if (!smsOptIn && originalAccount?.sms_opt_in) {
+        updateData.sms_opt_in_date = null
+        updateData.sms_opt_in_ip = null
+      }
+
+      const { error: accountError } = await supabase
         .from('user_accounts')
-        .update({ email })
+        .update(updateData)
         .eq('id', user.id)
+
+      if (accountError) throw accountError
+
+      // Update email separately if changed (requires auth update)
+      if (email !== originalAccount?.email) {
+        const { error: authError } = await supabase.auth.updateUser({ email })
+        if (authError) throw authError
+        
+        await supabase
+          .from('user_accounts')
+          .update({ email })
+          .eq('id', user.id)
+        
+        toast.success('Account updated! Check your email to confirm the address change.')
+      } else {
+        toast.success('Account updated successfully')
+      }
       
-      toast.success('Email updated! Check your inbox to confirm.')
+      // Refresh data
+      await fetchUserData()
     } catch (error: any) {
-      toast.error(error.message || 'Failed to update email')
+      console.error('Error saving account:', error)
+      toast.error(error.message || 'Failed to save changes')
     } finally {
       setSaving(false)
     }
   }
 
-  const handleUpdatePassword = async () => {
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email)
-      if (error) throw error
-      toast.success('Password reset link sent to your email')
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to send reset link')
+  const handleProfilePictureChange = (url: string) => {
+    setProfilePictureUrl(url)
+    // Also update user_accounts directly
+    if (user) {
+      supabase
+        .from('user_accounts')
+        .update({ profile_picture_url: url })
+        .eq('id', user.id)
+        .then(({ error }) => {
+          if (error) console.error('Error updating profile picture:', error)
+        })
     }
   }
 
-  const handleUpdatePhone = async () => {
-    if (!user) return
-    
-    setSavingPhone(true)
-    try {
-      // Get IP address for compliance
-      const ipResponse = await fetch('https://api.ipify.org?format=json')
-      const { ip } = await ipResponse.json()
-
-      // Update user_accounts (source of truth for account-level data)
-      const { error } = await supabase
-        .from('user_accounts')
-        .update({
-          phone: phone || null,
-          sms_opt_in: phone ? smsOptIn : false,
-          sms_opt_in_date: smsOptIn ? new Date().toISOString() : null,
-          sms_opt_in_ip: smsOptIn ? ip : null,
-        })
-        .eq('id', user.id)
-
-      if (error) throw error
-
-      toast.success(smsOptIn 
-        ? 'SMS notifications enabled! You\'ll receive updates via text.' 
-        : 'Phone settings updated'
-      )
-      
-      await fetchUserData() // Refresh data
-    } catch (error: any) {
-      console.error('Error updating phone:', error)
-      toast.error(error.message || 'Failed to update phone settings')
-    } finally {
-      setSavingPhone(false)
-    }
+  if (loading) {
+    return (
+      <Container size="xl">
+        <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+          <Spinner size="lg" />
+        </div>
+      </Container>
+    )
   }
 
   return (
-    <>
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Account Settings</h1>
-          <p className="text-neutral-400">
-            Manage your account preferences and security
-          </p>
-        </div>
-
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full mx-auto" />
+    <Container size="xl">
+      <Stack gap="lg">
+        {/* Page Hero */}
+        <PageHero
+          title="Account Settings"
+          subtitle="Manage your personal information and preferences"
+        >
+          <div className="flex justify-center w-full">
+            <Button variant="outline" onClick={() => router.push('/account')}>
+              Account Dashboard
+            </Button>
           </div>
-        ) : (
-          <div className="space-y-6">
-            {/* Email Settings */}
-            <Card className="p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <Mail className="w-5 h-5 text-primary-500" />
-                <h2 className="text-2xl font-bold text-white">Email Address</h2>
-              </div>
+        </PageHero>
 
-              <div className="max-w-md">
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your@email.com"
-                  className="mb-4"
+        {/* Personal Information */}
+        <Card className="p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <User className="w-6 h-6 text-white" />
+            <h3 className="text-xl font-bold text-white">Personal Information</h3>
+          </div>
+          
+          {/* Profile Picture */}
+          <div className="mb-6">
+            <ProfilePictureUpload
+              currentImageUrl={profilePictureUrl}
+              onImageChange={handleProfilePictureChange}
+              onError={(err) => toast.error(err)}
+            />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* First Name */}
+            <div>
+              <label className="block text-sm font-medium text-neutral-200 mb-2">
+                First Name
+              </label>
+              <Input
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="Enter your first name"
+                className="w-full"
+              />
+            </div>
+
+            {/* Last Name */}
+            <div>
+              <label className="block text-sm font-medium text-neutral-200 mb-2">
+                Last Name
+              </label>
+              <Input
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Enter your last name"
+                className="w-full"
+              />
+            </div>
+
+            {/* Email */}
+            <div>
+              <label className="block text-sm font-medium text-neutral-200 mb-2">
+                Email Address
+              </label>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                className="w-full"
+              />
+            </div>
+
+            {/* Phone */}
+            <div>
+              <label className="block text-sm font-medium text-neutral-200 mb-2">
+                Phone Number
+              </label>
+              <Input
+                type="tel"
+                value={phone}
+                onChange={(e) => handlePhoneChange(e.target.value)}
+                placeholder="(555) 123-4567"
+                className="w-full"
+              />
+            </div>
+
+            {/* Date of Birth */}
+            <div>
+              <DatePicker
+                label="Date of Birth"
+                value={dateOfBirth}
+                onChange={(dateString: string) => handleDateChange(dateString)}
+                maxDate={new Date().toISOString().split('T')[0]}
+                className="w-full"
+              />
+            </div>
+
+            {/* Communication Opt-In */}
+            <div>
+              <label className="block text-sm font-medium text-neutral-200 mb-2">
+                Communication Opt-In
+              </label>
+              <div className="flex gap-6 mt-3">
+                <Checkbox
+                  checked={emailOptIn}
+                  onChange={(e) => handleOptOutAttempt('email', e.target.checked)}
+                  label="Email"
                 />
-                <Button
-                  onClick={handleUpdateEmail}
-                  disabled={saving || email === user?.email}
-                  variant="primary"
-                >
-                  {saving ? 'Updating...' : 'Update Email'}
-                </Button>
-                <p className="text-xs text-neutral-500 mt-2">
-                  You'll receive a confirmation email to verify the change
-                </p>
+                <Checkbox
+                  checked={smsOptIn}
+                  onChange={(e) => handleOptOutAttempt('sms', e.target.checked)}
+                  label="SMS"
+                  disabled={!phone}
+                />
               </div>
-            </Card>
-
-            {/* Password */}
-            <Card className="p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <Shield className="w-5 h-5 text-primary-500" />
-                <h2 className="text-2xl font-bold text-white">Password</h2>
-              </div>
-
-              <div className="max-w-md">
-                <p className="text-neutral-400 mb-4">
-                  Reset your password via email
-                </p>
-                <Button onClick={handleUpdatePassword} variant="secondary">
-                  Send Reset Link
-                </Button>
-              </div>
-            </Card>
-
-            {/* SMS Notifications */}
-            <Card className="p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <Phone className="w-5 h-5 text-primary-500" />
-                <h2 className="text-2xl font-bold text-white">SMS Notifications</h2>
-              </div>
-
-              <div className="max-w-md space-y-4">
-                <p className="text-neutral-400 text-sm">
-                  Get appointment reminders, progress updates, and important account notifications via text message.
-                </p>
-
-                <div>
-                  <label className="block text-sm font-medium text-neutral-300 mb-2">
-                    Phone Number
-                  </label>
-                  <Input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+1 (555) 123-4567"
-                    className="mb-3"
-                  />
-                </div>
-
-                {phone && (
-                  <div className="bg-primary-500/10 border border-primary-500/30 rounded-xl p-4">
-                    <div className="flex items-start gap-3">
-                      <input
-                        type="checkbox"
-                        id="sms-consent"
-                        checked={smsOptIn}
-                        onChange={(e) => setSmsOptIn(e.target.checked)}
-                        className="mt-1 w-4 h-4 rounded border-primary-500 text-primary-500 focus:ring-primary-500"
-                      />
-                      <label htmlFor="sms-consent" className="text-sm text-neutral-300 flex-1">
-                        <strong className="text-white block mb-1">Yes, send me SMS notifications</strong>
-                        I agree to receive appointment reminders, progress updates, and account notifications from VibrationFit. 
-                        Message frequency varies. Message and data rates may apply. 
-                        Reply STOP to opt-out or HELP for assistance.
-                      </label>
-                    </div>
-                  </div>
-                )}
-
-                <Button
-                  onClick={handleUpdatePhone}
-                  disabled={savingPhone || (phone === profile?.phone && smsOptIn === profile?.sms_opt_in)}
-                  variant="primary"
-                  className="w-full"
-                >
-                  {savingPhone ? 'Saving...' : 'Save SMS Preferences'}
-                </Button>
-
-                {smsOptIn && profile?.sms_opt_in_date && (
-                  <p className="text-xs text-neutral-500 text-center">
-                    Opted in on {new Date(profile.sms_opt_in_date).toLocaleDateString()}
-                  </p>
-                )}
-              </div>
-            </Card>
-
-            {/* Email Notification Preferences */}
-            <Card className="p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <Bell className="w-5 h-5 text-primary-500" />
-                <h2 className="text-2xl font-bold text-white">Email Notifications</h2>
-              </div>
-
-              <div className="space-y-4 max-w-md">
-                <div className="flex items-center justify-between p-4 bg-neutral-900 rounded-xl hover:bg-neutral-800 transition-colors">
-                  <div>
-                    <div className="font-semibold text-white">Product Updates</div>
-                    <div className="text-sm text-neutral-400">New features and improvements</div>
-                  </div>
-                  <Checkbox
-                    checked={notifications.email_product}
-                    onChange={(e) => setNotifications({ ...notifications, email_product: e.target.checked })}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-neutral-900 rounded-xl hover:bg-neutral-800 transition-colors">
-                  <div>
-                    <div className="font-semibold text-white">Marketing Emails</div>
-                    <div className="text-sm text-neutral-400">Tips, guides, and offers</div>
-                  </div>
-                  <Checkbox
-                    checked={notifications.email_marketing}
-                    onChange={(e) => setNotifications({ ...notifications, email_marketing: e.target.checked })}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-neutral-900 rounded-xl hover:bg-neutral-800 transition-colors">
-                  <div>
-                    <div className="font-semibold text-white">Weekly Summary</div>
-                    <div className="text-sm text-neutral-400">Your progress and insights</div>
-                  </div>
-                  <Checkbox
-                    checked={notifications.email_weekly}
-                    onChange={(e) => setNotifications({ ...notifications, email_weekly: e.target.checked })}
-                  />
-                </div>
-
-                <Button variant="primary" className="w-full">
-                  Save Preferences
-                </Button>
-              </div>
-            </Card>
-
-            {/* Danger Zone */}
-            <Card className="p-6 border-2 border-red-500/20 bg-red-500/5">
-              <div className="flex items-center gap-3 mb-6">
-                <Trash2 className="w-5 h-5 text-red-500" />
-                <h2 className="text-2xl font-bold text-white">Danger Zone</h2>
-              </div>
-
-              <div className="max-w-md">
-                <p className="text-neutral-400 mb-4">
-                  Permanently delete your account and all associated data. This action cannot be undone.
-                </p>
-                <Button variant="danger">
-                  Delete Account
-                </Button>
-              </div>
-            </Card>
+              {!phone && (
+                <p className="text-xs text-neutral-500 mt-2">Add a phone number to enable SMS</p>
+              )}
+            </div>
           </div>
-        )}
-    </>
+
+          {/* Save Button */}
+          <div className="flex justify-end mt-6">
+            <Button
+              onClick={handleSaveAccount}
+              disabled={saving || !hasChanges}
+              variant="primary"
+              className={`min-w-[140px] ${hasChanges ? 'animate-pulse' : ''}`}
+            >
+              {saving ? (
+                <>
+                  <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Saving...
+                </>
+              ) : hasChanges ? (
+                'Save Changes'
+              ) : (
+                <>
+                  <Check className="w-4 h-4 mr-2" />
+                  Saved
+                </>
+              )}
+            </Button>
+          </div>
+        </Card>
+      </Stack>
+
+      {/* Opt-Out Confirmation Modal */}
+      <Modal
+        isOpen={showOptOutModal}
+        onClose={cancelOptOut}
+        title="Are you sure?"
+      >
+        <div className="space-y-4">
+          <p className="text-neutral-300">
+            Many of our features depend on these notifications. Opting out may affect your experience with appointment reminders, progress updates, and important account alerts.
+          </p>
+          <div className="flex flex-col gap-3">
+            <Button variant="primary" onClick={cancelOptOut} className="w-full">
+              Keep Enabled
+            </Button>
+            <Button variant="danger" onClick={confirmOptOut} className="w-full">
+              Turn Off {pendingOptOut === 'sms' ? 'SMS' : 'Email'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </Container>
   )
 }
-

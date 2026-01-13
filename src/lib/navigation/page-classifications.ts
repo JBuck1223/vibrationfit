@@ -70,7 +70,12 @@ export const PAGE_CLASSIFICATIONS = {
     '/profile/new',
     '/profile/[id]',
     '/profile/[id]/edit',
+    '/account',
     '/account/settings',
+    '/account/settings/password',
+    '/account/settings/delete',
+    '/account/billing',
+    '/account/privacy',
     
     // Household Management
     '/household/settings',
@@ -181,6 +186,8 @@ export const PAGE_CLASSIFICATIONS = {
   PUBLIC: [
     // Marketing Pages
     '/',
+    '/privacy-policy',
+    '/terms-of-service',
     
     // Authentication
     '/auth/login',

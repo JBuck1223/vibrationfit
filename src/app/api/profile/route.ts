@@ -96,17 +96,19 @@ export async function GET(request: NextRequest) {
           .eq('user_id', user.id)
           .single()
         
-        // Try to get account data (gracefully handle if table doesn't exist)
+        // Get account data (name, picture, etc.) from user_accounts - source of truth for account-level data
         let accountData = null
-        try {
-          const accountResult = await supabase
-            .from('user_accounts')
-            .select('first_name, last_name, profile_picture_url, email, phone, date_of_birth')
-            .eq('id', user.id)
-            .maybeSingle()
+        const accountResult = await supabase
+          .from('user_accounts')
+          .select('first_name, last_name, full_name, profile_picture_url, email, phone, date_of_birth')
+          .eq('id', user.id)
+          .maybeSingle()
+        
+        if (accountResult.error) {
+          console.error('❌ PROFILE API: Error fetching user_accounts:', accountResult.error.message, accountResult.error)
+        } else {
           accountData = accountResult.data
-        } catch {
-          // user_accounts table may not exist yet
+          console.log('✅ PROFILE API: Account data fetched:', JSON.stringify(accountData))
         }
 
         if (versionError) {
@@ -133,15 +135,19 @@ export async function GET(request: NextRequest) {
         const calculatedCompletion = calculateProfileCompletion(version)
 
         // Merge account data into profile for backward compatibility
+        // Note: user_accounts fields take precedence over user_profiles fields
         const profileWithAccount = {
           ...version,
-          first_name: accountData?.first_name || version?.first_name,
-          last_name: accountData?.last_name || version?.last_name,
-          profile_picture_url: accountData?.profile_picture_url || version?.profile_picture_url,
-          email: accountData?.email || version?.email,
-          phone: accountData?.phone || version?.phone,
-          date_of_birth: accountData?.date_of_birth || version?.date_of_birth,
+          first_name: accountData?.first_name ?? version?.first_name,
+          last_name: accountData?.last_name ?? version?.last_name,
+          full_name: accountData?.full_name ?? null,
+          profile_picture_url: accountData?.profile_picture_url ?? version?.profile_picture_url,
+          email: accountData?.email ?? version?.email,
+          phone: accountData?.phone ?? version?.phone,
+          date_of_birth: accountData?.date_of_birth ?? version?.date_of_birth,
         }
+        
+        console.log('✅ PROFILE API: Merged profile data - first_name:', profileWithAccount.first_name, 'email:', profileWithAccount.email)
         
         return NextResponse.json({
           profile: profileWithAccount,
@@ -174,10 +180,15 @@ export async function GET(request: NextRequest) {
       // Falls back to user_profiles data if user_accounts doesn't exist or has no data
       const accountResult = await supabase
         .from('user_accounts')
-        .select('first_name, last_name, profile_picture_url, email, phone, date_of_birth')
+        .select('first_name, last_name, full_name, profile_picture_url, email, phone, date_of_birth')
         .eq('id', user.id)
         .maybeSingle()
       
+      if (accountResult.error) {
+        console.error('❌ PROFILE API: Error fetching user_accounts:', accountResult.error.message)
+      } else {
+        console.log('✅ PROFILE API: Account data for active profile:', JSON.stringify(accountResult.data))
+      }
       const accountData = accountResult.error ? null : accountResult.data
 
       // Get the active profile (non-draft)
@@ -302,16 +313,20 @@ export async function GET(request: NextRequest) {
       console.log('✅ PROFILE API: Returning data to client')
 
       // Merge account data into profile for backward compatibility
+      // Note: user_accounts fields take precedence over user_profiles fields
       const profileWithAccount = {
         ...profile,
         // Account-level fields from user_accounts (take precedence)
-        first_name: accountData?.first_name || profile?.first_name,
-        last_name: accountData?.last_name || profile?.last_name,
-        profile_picture_url: accountData?.profile_picture_url || profile?.profile_picture_url,
-        email: accountData?.email || profile?.email,
-        phone: accountData?.phone || profile?.phone,
-        date_of_birth: accountData?.date_of_birth || profile?.date_of_birth,
+        first_name: accountData?.first_name ?? profile?.first_name,
+        last_name: accountData?.last_name ?? profile?.last_name,
+        full_name: accountData?.full_name ?? null,
+        profile_picture_url: accountData?.profile_picture_url ?? profile?.profile_picture_url,
+        email: accountData?.email ?? profile?.email,
+        phone: accountData?.phone ?? profile?.phone,
+        date_of_birth: accountData?.date_of_birth ?? profile?.date_of_birth,
       }
+      
+      console.log('✅ PROFILE API: Final merged profile - first_name:', profileWithAccount.first_name, 'email:', profileWithAccount.email, 'phone:', profileWithAccount.phone)
 
       return NextResponse.json({
         profile: profileWithAccount,

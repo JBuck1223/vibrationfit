@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict Esd8UBNylbIkYdv83vRDweV8CVRgpVlAO34wwvSDlIH1ckZAoZ3lQ3XdORdKBsk
+\restrict 7xaTMl2NTJevmPlTtR8djfiVPOObwPdk6aorL7N8VnpLMNZHMELDh0K59MTSNtE
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Homebrew)
@@ -343,6 +343,18 @@ CREATE TYPE public.membership_tier_type AS ENUM (
 
 
 --
+-- Name: scheduled_message_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.scheduled_message_status AS ENUM (
+    'pending',
+    'sent',
+    'failed',
+    'cancelled'
+);
+
+
+--
 -- Name: social_preference; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -365,6 +377,35 @@ CREATE TYPE public.subscription_status AS ENUM (
     'past_due',
     'trialing',
     'unpaid'
+);
+
+
+--
+-- Name: template_category; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.template_category AS ENUM (
+    'onboarding',
+    'sessions',
+    'billing',
+    'support',
+    'marketing',
+    'reminders',
+    'notifications',
+    'household',
+    'intensive',
+    'other'
+);
+
+
+--
+-- Name: template_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.template_status AS ENUM (
+    'active',
+    'draft',
+    'archived'
 );
 
 
@@ -400,6 +441,58 @@ CREATE TYPE public.travel_frequency AS ENUM (
     'yearly',
     'quarterly',
     'monthly'
+);
+
+
+--
+-- Name: user_role; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.user_role AS ENUM (
+    'member',
+    'coach',
+    'admin',
+    'super_admin'
+);
+
+
+--
+-- Name: video_recording_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.video_recording_status AS ENUM (
+    'none',
+    'recording',
+    'processing',
+    'ready',
+    'uploaded',
+    'failed'
+);
+
+
+--
+-- Name: video_session_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.video_session_status AS ENUM (
+    'scheduled',
+    'waiting',
+    'live',
+    'completed',
+    'cancelled',
+    'no_show'
+);
+
+
+--
+-- Name: video_session_type; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.video_session_type AS ENUM (
+    'one_on_one',
+    'group',
+    'workshop',
+    'webinar'
 );
 
 
@@ -1777,10 +1870,10 @@ $$;
 
 
 --
--- Name: create_solo_household_for_new_user(); Type: FUNCTION; Schema: public; Owner: -
+-- Name: create_solo_household_for_new_account(); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.create_solo_household_for_new_user() RETURNS trigger
+CREATE FUNCTION public.create_solo_household_for_new_account() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
 DECLARE
@@ -1793,12 +1886,12 @@ BEGIN
       admin_user_id,
       name,
       plan_type,
-      subscription_status,
-      max_members,
+      billing_status,
+      max_household_members,
       shared_tokens_enabled
     ) VALUES (
-      NEW.user_id,
-      COALESCE(NEW.first_name || '''s Account', NEW.email || '''s Account', 'My Account'),
+      NEW.id,
+      'My Household',
       'solo',
       'trialing', -- New users start in trial
       1,
@@ -1817,7 +1910,7 @@ BEGIN
       accepted_at
     ) VALUES (
       new_household_id,
-      NEW.user_id,
+      NEW.id,
       'admin',
       'active',
       TRUE,
@@ -1825,10 +1918,9 @@ BEGIN
       NOW()
     );
 
-    -- Update the new user_profile record
+    -- Update the user_accounts record with the household_id
     NEW.household_id := new_household_id;
     NEW.is_household_admin := TRUE;
-    NEW.allow_shared_tokens := TRUE;
   END IF;
 
   RETURN NEW;
@@ -2270,6 +2362,8 @@ CREATE TABLE public.intensive_checklist (
     status text DEFAULT 'pending'::text,
     started_at timestamp without time zone,
     completed_at timestamp without time zone,
+    unlock_completed boolean DEFAULT false,
+    unlock_completed_at timestamp without time zone,
     CONSTRAINT intensive_checklist_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'in_progress'::text, 'completed'::text])))
 );
 
@@ -2764,6 +2858,42 @@ $$;
 --
 
 COMMENT ON FUNCTION public.get_user_household_summary(p_user_id uuid) IS 'Get complete household info for a user (token balances calculated separately via get_user_token_balance)';
+
+
+--
+-- Name: get_user_role(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.get_user_role(user_id uuid DEFAULT auth.uid()) RETURNS public.user_role
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+DECLARE
+  result user_role;
+BEGIN
+  SELECT role INTO result FROM user_accounts WHERE id = user_id;
+  RETURN COALESCE(result, 'member');
+END;
+$$;
+
+
+--
+-- Name: FUNCTION get_user_role(user_id uuid); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION public.get_user_role(user_id uuid) IS 'Get the role of a user';
+
+
+--
+-- Name: get_user_session_ids(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.get_user_session_ids(user_uuid uuid) RETURNS SETOF uuid
+    LANGUAGE sql STABLE SECURITY DEFINER
+    AS $$
+  SELECT session_id 
+  FROM video_session_participants 
+  WHERE user_id = user_uuid
+$$;
 
 
 --
@@ -3326,9 +3456,14 @@ CREATE FUNCTION public.handle_new_user() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
 BEGIN
-  INSERT INTO public.profiles (id, email, full_name)
-  VALUES (new.id, new.email, new.raw_user_meta_data->>'full_name');
-  RETURN new;
+  INSERT INTO public.user_accounts (id, email, first_name, last_name)
+  VALUES (
+    NEW.id, 
+    NEW.email, 
+    NEW.raw_user_meta_data->>'first_name',
+    NEW.raw_user_meta_data->>'last_name'
+  );
+  RETURN NEW;
 END;
 $$;
 
@@ -3450,6 +3585,73 @@ COMMENT ON FUNCTION public.is_active_household_member(h uuid, u uuid) IS 'SECURI
 
 
 --
+-- Name: is_admin(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.is_admin(user_id uuid DEFAULT auth.uid()) RETURNS boolean
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM user_accounts
+    WHERE id = user_id AND role IN ('admin', 'super_admin')
+  );
+END;
+$$;
+
+
+--
+-- Name: FUNCTION is_admin(user_id uuid); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION public.is_admin(user_id uuid) IS 'Check if user has admin or super_admin role';
+
+
+--
+-- Name: is_admin_account(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.is_admin_account(check_user_id uuid DEFAULT auth.uid()) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM user_accounts
+    WHERE id = check_user_id AND role IN ('admin', 'super_admin')
+  );
+$$;
+
+
+--
+-- Name: is_super_admin(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.is_super_admin(user_id uuid DEFAULT auth.uid()) RETURNS boolean
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM user_accounts
+    WHERE id = user_id AND role = 'super_admin'
+  );
+END;
+$$;
+
+
+--
+-- Name: is_super_admin_account(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.is_super_admin_account(check_user_id uuid DEFAULT auth.uid()) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM user_accounts
+    WHERE id = check_user_id AND role = 'super_admin'
+  );
+$$;
+
+
+--
 -- Name: mark_category_refined(uuid, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3554,50 +3756,6 @@ $$;
 
 
 --
--- Name: set_initial_profile_email(); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.set_initial_profile_email() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-  -- On new profile creation, pull email from auth.users if not provided
-  IF NEW.email IS NULL THEN
-    NEW.email := (
-      SELECT email 
-      FROM auth.users 
-      WHERE id = NEW.user_id
-    );
-  END IF;
-  
-  RETURN NEW;
-END;
-$$;
-
-
---
--- Name: set_new_profile_email(); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.set_new_profile_email() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-  -- Set email from auth.users when a new profile is created
-  IF NEW.email IS NULL THEN
-    NEW.email := (
-      SELECT email 
-      FROM auth.users 
-      WHERE id = NEW.user_id
-    );
-  END IF;
-  
-  RETURN NEW;
-END;
-$$;
-
-
---
 -- Name: set_ticket_number(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3674,27 +3832,6 @@ $$;
 --
 
 COMMENT ON FUNCTION public.set_version_active(p_profile_id uuid, p_user_id uuid) IS 'Sets a version as active and deactivates others';
-
-
---
--- Name: sync_auth_users_email(); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.sync_auth_users_email() RETURNS trigger
-    LANGUAGE plpgsql SECURITY DEFINER
-    AS $$
-BEGIN
-  -- Update auth.users email when user_profiles email changes
-  -- Note: This updates Supabase Auth, which may trigger other auth flows
-  UPDATE auth.users
-  SET email = NEW.email,
-      updated_at = NOW()
-  WHERE id = NEW.user_id
-    AND email IS DISTINCT FROM NEW.email;
-  
-  RETURN NEW;
-END;
-$$;
 
 
 --
@@ -3788,6 +3925,20 @@ $$;
 --
 
 COMMENT ON FUNCTION public.sync_refined_categories_from_active(draft_vision_id uuid, active_vision_id uuid) IS 'Compares draft vision with active vision and populates refined_categories array. Useful for migration or fixing discrepancies.';
+
+
+--
+-- Name: sync_user_accounts_email(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.sync_user_accounts_email() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+BEGIN
+  UPDATE user_accounts SET email = NEW.email WHERE id = NEW.id;
+  RETURN NEW;
+END;
+$$;
 
 
 --
@@ -4191,6 +4342,34 @@ $$;
 
 
 --
+-- Name: update_intensive_responses_updated_at(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_intensive_responses_updated_at() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: update_messaging_timestamp(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_messaging_timestamp() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$;
+
+
+--
 -- Name: update_profile_stats(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4224,6 +4403,20 @@ $$;
 
 
 --
+-- Name: update_user_accounts_updated_at(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_user_accounts_updated_at() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$;
+
+
+--
 -- Name: update_user_profiles_updated_at(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4247,6 +4440,20 @@ CREATE FUNCTION public.update_vibrational_links_updated_at() RETURNS trigger
 BEGIN
     NEW.last_updated = NOW();
     RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: update_video_session_timestamp(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_video_session_timestamp() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
 END;
 $$;
 
@@ -6759,6 +6966,203 @@ COMMENT ON COLUMN public.ai_tools.system_prompt IS 'System prompt (NULL for non-
 
 
 --
+-- Name: intensive_responses; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.intensive_responses (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    intensive_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    phase text NOT NULL,
+    vision_clarity integer,
+    vibrational_harmony integer,
+    vibrational_constraints_clarity integer,
+    vision_iteration_ease integer,
+    has_audio_tracks text,
+    audio_iteration_ease integer,
+    has_vision_board text,
+    vision_board_management integer,
+    journey_capturing integer,
+    roadmap_clarity integer,
+    transformation_tracking integer,
+    previous_attempts text,
+    biggest_shift text,
+    stats_snapshot jsonb DEFAULT '{}'::jsonb,
+    testimonial_video_url text,
+    testimonial_transcript text,
+    testimonial_transcript_json jsonb,
+    testimonial_duration_seconds integer,
+    calibration_recording_url text,
+    calibration_transcript text,
+    calibration_transcript_json jsonb,
+    calibration_duration_seconds integer,
+    calibration_segments jsonb,
+    calibration_soundbites jsonb,
+    metrics_comparison jsonb,
+    produced_video_url text,
+    produced_video_thumbnail_url text,
+    produced_video_duration_seconds integer,
+    produced_at timestamp with time zone,
+    sharing_preference text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT intensive_responses_audio_iteration_ease_check CHECK (((audio_iteration_ease >= 0) AND (audio_iteration_ease <= 10))),
+    CONSTRAINT intensive_responses_has_audio_tracks_check CHECK ((has_audio_tracks = ANY (ARRAY['no'::text, 'yes'::text]))),
+    CONSTRAINT intensive_responses_has_vision_board_check CHECK ((has_vision_board = ANY (ARRAY['no'::text, 'yes_physical'::text, 'yes_digital'::text, 'yes_both'::text]))),
+    CONSTRAINT intensive_responses_journey_capturing_check CHECK (((journey_capturing >= 0) AND (journey_capturing <= 10))),
+    CONSTRAINT intensive_responses_phase_check CHECK ((phase = ANY (ARRAY['pre_intensive'::text, 'post_intensive'::text, 'calibration_session'::text]))),
+    CONSTRAINT intensive_responses_roadmap_clarity_check CHECK (((roadmap_clarity >= 0) AND (roadmap_clarity <= 10))),
+    CONSTRAINT intensive_responses_sharing_preference_check CHECK ((sharing_preference = ANY (ARRAY['named'::text, 'anonymous'::text, 'none'::text]))),
+    CONSTRAINT intensive_responses_transformation_tracking_check CHECK (((transformation_tracking >= 0) AND (transformation_tracking <= 10))),
+    CONSTRAINT intensive_responses_vibrational_constraints_clarity_check CHECK (((vibrational_constraints_clarity >= 0) AND (vibrational_constraints_clarity <= 10))),
+    CONSTRAINT intensive_responses_vibrational_harmony_check CHECK (((vibrational_harmony >= 0) AND (vibrational_harmony <= 10))),
+    CONSTRAINT intensive_responses_vision_board_management_check CHECK (((vision_board_management >= 0) AND (vision_board_management <= 10))),
+    CONSTRAINT intensive_responses_vision_clarity_check CHECK (((vision_clarity >= 0) AND (vision_clarity <= 10))),
+    CONSTRAINT intensive_responses_vision_iteration_ease_check CHECK (((vision_iteration_ease >= 0) AND (vision_iteration_ease <= 10)))
+);
+
+
+--
+-- Name: TABLE intensive_responses; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.intensive_responses IS 'Unified table for Activation Intensive data: baseline intake, post-intensive unlock survey, and calibration call recordings/transcripts/soundbites';
+
+
+--
+-- Name: COLUMN intensive_responses.phase; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.intensive_responses.phase IS 'pre_intensive = initial intake, post_intensive = unlock survey, calibration_session = call data';
+
+
+--
+-- Name: COLUMN intensive_responses.calibration_segments; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.intensive_responses.calibration_segments IS 'AI-extracted sections from calibration call mapped to testimonial script (hooks, struggles, victories, etc.) with timestamps';
+
+
+--
+-- Name: COLUMN intensive_responses.calibration_soundbites; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.intensive_responses.calibration_soundbites IS 'Best quotes with timestamps for video production and website testimonials. Filter by approved=true for public display.';
+
+
+--
+-- Name: COLUMN intensive_responses.metrics_comparison; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.intensive_responses.metrics_comparison IS 'Before/after metrics comparison for video overlays and testimonial cards';
+
+
+--
+-- Name: COLUMN intensive_responses.produced_video_url; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.intensive_responses.produced_video_url IS 'Final edited testimonial video from video production team';
+
+
+--
+-- Name: user_accounts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.user_accounts (
+    id uuid NOT NULL,
+    email text NOT NULL,
+    first_name text,
+    last_name text,
+    full_name text GENERATED ALWAYS AS (
+CASE
+    WHEN ((first_name IS NOT NULL) AND (last_name IS NOT NULL)) THEN ((first_name || ' '::text) || last_name)
+    WHEN (first_name IS NOT NULL) THEN first_name
+    WHEN (last_name IS NOT NULL) THEN last_name
+    ELSE NULL::text
+END) STORED,
+    profile_picture_url text,
+    phone text,
+    sms_opt_in boolean DEFAULT false,
+    sms_opt_in_date timestamp with time zone,
+    sms_opt_in_ip text,
+    role public.user_role DEFAULT 'member'::public.user_role NOT NULL,
+    household_id uuid,
+    is_household_admin boolean DEFAULT false,
+    allow_shared_tokens boolean DEFAULT true,
+    membership_tier_id uuid,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    last_login_at timestamp with time zone,
+    date_of_birth date
+);
+
+
+--
+-- Name: TABLE user_accounts; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.user_accounts IS 'Core user account data - identity, contact, role, membership';
+
+
+--
+-- Name: COLUMN user_accounts.sms_opt_in; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_accounts.sms_opt_in IS 'User has opted in to receive SMS messages';
+
+
+--
+-- Name: COLUMN user_accounts.role; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_accounts.role IS 'User role: member, coach, admin, super_admin';
+
+
+--
+-- Name: COLUMN user_accounts.date_of_birth; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_accounts.date_of_birth IS 'User date of birth - account-level demographic data';
+
+
+--
+-- Name: approved_testimonials; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.approved_testimonials AS
+ SELECT ir.id AS response_id,
+    ir.user_id,
+    ir.intensive_id,
+    ua.full_name,
+    ua.first_name,
+    ua.profile_picture_url,
+    (s.value ->> 'id'::text) AS soundbite_id,
+    (s.value ->> 'text'::text) AS quote,
+    (s.value ->> 'type'::text) AS quote_type,
+    (s.value -> 'metrics'::text) AS metrics,
+    ((s.value ->> 'start'::text))::integer AS video_start,
+    ((s.value ->> 'end'::text))::integer AS video_end,
+    ((s.value ->> 'featured'::text))::boolean AS featured,
+    ir.calibration_recording_url,
+    ir.produced_video_url,
+    ir.produced_video_thumbnail_url,
+    ir.produced_video_duration_seconds,
+    ir.metrics_comparison,
+    ir.created_at
+   FROM ((public.intensive_responses ir
+     CROSS JOIN LATERAL jsonb_array_elements(ir.calibration_soundbites) s(value))
+     JOIN public.user_accounts ua ON ((ir.user_id = ua.id)))
+  WHERE ((ir.phase = 'calibration_session'::text) AND (((s.value ->> 'approved'::text))::boolean = true) AND (ir.sharing_preference = 'named'::text));
+
+
+--
+-- Name: VIEW approved_testimonials; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON VIEW public.approved_testimonials IS 'Pre-filtered view of approved soundbites for website testimonial sliders';
+
+
+--
 -- Name: assessment_insights; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -6881,6 +7285,48 @@ COMMENT ON COLUMN public.assessment_results.assessment_version IS 'Version of as
 
 
 --
+-- Name: audio_background_tracks; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.audio_background_tracks (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    display_name text NOT NULL,
+    category text NOT NULL,
+    file_url text NOT NULL,
+    duration_seconds integer,
+    description text,
+    is_active boolean DEFAULT true,
+    sort_order integer DEFAULT 0,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    frequency_hz integer,
+    brainwave_hz numeric(5,2)
+);
+
+
+--
+-- Name: TABLE audio_background_tracks; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.audio_background_tracks IS 'Available background audio tracks for mixing with voice recordings';
+
+
+--
+-- Name: COLUMN audio_background_tracks.category; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.audio_background_tracks.category IS 'Category for organizing tracks: nature, ambient, music, etc.';
+
+
+--
+-- Name: COLUMN audio_background_tracks.file_url; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.audio_background_tracks.file_url IS 'Full URL to the audio file in S3';
+
+
+--
 -- Name: audio_generation_batches; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -6941,6 +7387,124 @@ COMMENT ON COLUMN public.audio_generation_batches.sections_requested IS 'Array o
 --
 
 COMMENT ON COLUMN public.audio_generation_batches.status IS 'pending: created, not started | processing: in progress | completed: all succeeded | partial_success: some failed | failed: all failed';
+
+
+--
+-- Name: audio_mix_ratios; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.audio_mix_ratios (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    voice_volume integer NOT NULL,
+    bg_volume integer NOT NULL,
+    description text,
+    is_active boolean DEFAULT true,
+    sort_order integer DEFAULT 0,
+    icon text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT audio_mix_ratios_bg_volume_check CHECK (((bg_volume >= 0) AND (bg_volume <= 100))),
+    CONSTRAINT audio_mix_ratios_voice_volume_check CHECK (((voice_volume >= 0) AND (voice_volume <= 100))),
+    CONSTRAINT mix_ratios_total_100 CHECK (((voice_volume + bg_volume) = 100))
+);
+
+
+--
+-- Name: TABLE audio_mix_ratios; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.audio_mix_ratios IS 'Preset mix ratios for voice/background volume levels';
+
+
+--
+-- Name: COLUMN audio_mix_ratios.voice_volume; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.audio_mix_ratios.voice_volume IS 'Voice volume percentage (0-100)';
+
+
+--
+-- Name: COLUMN audio_mix_ratios.bg_volume; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.audio_mix_ratios.bg_volume IS 'Background volume percentage (0-100)';
+
+
+--
+-- Name: COLUMN audio_mix_ratios.icon; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.audio_mix_ratios.icon IS 'Optional icon identifier for UI display';
+
+
+--
+-- Name: audio_recommended_combos; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.audio_recommended_combos (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    description text,
+    background_track_id uuid NOT NULL,
+    mix_ratio_id uuid NOT NULL,
+    binaural_track_id uuid,
+    binaural_volume integer DEFAULT 0,
+    sort_order integer DEFAULT 0,
+    is_active boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT audio_recommended_combos_binaural_volume_check CHECK (((binaural_volume >= 0) AND (binaural_volume <= 30)))
+);
+
+
+--
+-- Name: TABLE audio_recommended_combos; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.audio_recommended_combos IS 'Curated preset combinations of background tracks, mix ratios, and optional binaural enhancements';
+
+
+--
+-- Name: COLUMN audio_recommended_combos.name; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.audio_recommended_combos.name IS 'Display name for the combo (e.g., "Deep Sleep Journey", "Focus Session")';
+
+
+--
+-- Name: COLUMN audio_recommended_combos.description; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.audio_recommended_combos.description IS 'Optional description explaining why this combo works well';
+
+
+--
+-- Name: COLUMN audio_recommended_combos.background_track_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.audio_recommended_combos.background_track_id IS 'Reference to the background track';
+
+
+--
+-- Name: COLUMN audio_recommended_combos.mix_ratio_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.audio_recommended_combos.mix_ratio_id IS 'Reference to the mix ratio';
+
+
+--
+-- Name: COLUMN audio_recommended_combos.binaural_track_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.audio_recommended_combos.binaural_track_id IS 'Optional reference to a binaural/solfeggio track';
+
+
+--
+-- Name: COLUMN audio_recommended_combos.binaural_volume; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.audio_recommended_combos.binaural_volume IS 'Volume percentage for binaural track (0-30)';
 
 
 --
@@ -7255,6 +7819,51 @@ COMMENT ON COLUMN public.email_messages.is_reply IS 'Whether this email is a rep
 --
 
 COMMENT ON COLUMN public.email_messages.sent_at IS 'Original sent date from email headers';
+
+
+--
+-- Name: email_templates; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.email_templates (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    slug text NOT NULL,
+    name text NOT NULL,
+    description text,
+    category public.template_category DEFAULT 'other'::public.template_category NOT NULL,
+    status public.template_status DEFAULT 'draft'::public.template_status NOT NULL,
+    subject text NOT NULL,
+    html_body text NOT NULL,
+    text_body text,
+    variables jsonb DEFAULT '[]'::jsonb,
+    triggers jsonb DEFAULT '[]'::jsonb,
+    last_sent_at timestamp with time zone,
+    total_sent integer DEFAULT 0,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+
+--
+-- Name: TABLE email_templates; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.email_templates IS 'Database-driven email templates with variable support';
+
+
+--
+-- Name: COLUMN email_templates.slug; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.email_templates.slug IS 'Unique identifier used in code to reference template';
+
+
+--
+-- Name: COLUMN email_templates.variables; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.email_templates.variables IS 'JSON array of variable names like ["userName", "link"]';
 
 
 --
@@ -7717,43 +8326,35 @@ CREATE TABLE public.media_metadata (
 
 
 --
--- Name: member_profiles; Type: TABLE; Schema: public; Owner: -
+-- Name: message_send_log; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.member_profiles (
+CREATE TABLE public.message_send_log (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    user_id uuid NOT NULL,
-    date_of_birth date,
-    gender text,
-    ethnicity text,
-    profile_picture_url text,
-    relationship_status text,
-    relationship_length text,
-    has_children boolean,
-    children_count integer,
-    children_ages text[],
-    units text,
-    height numeric,
-    weight numeric,
-    exercise_frequency text,
-    living_situation text,
-    time_at_location text,
-    city text,
-    state text,
-    zip_code text,
-    country text,
-    employment_type text,
-    occupation text,
-    company_name text,
-    time_in_role text,
-    currency text,
-    household_income text,
-    savings_retirement text,
-    assets_equity text,
-    consumer_debt text,
+    message_type text NOT NULL,
+    template_slug text,
+    template_id uuid,
+    recipient_email text,
+    recipient_phone text,
+    recipient_name text,
+    recipient_user_id uuid,
+    related_entity_type text,
+    related_entity_id uuid,
+    subject text,
+    status text NOT NULL,
+    external_message_id text,
+    error_message text,
+    sent_at timestamp with time zone DEFAULT now(),
     created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now()
+    CONSTRAINT message_send_log_message_type_check CHECK ((message_type = ANY (ARRAY['email'::text, 'sms'::text])))
 );
+
+
+--
+-- Name: TABLE message_send_log; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.message_send_log IS 'Audit log of all sent messages';
 
 
 --
@@ -7781,70 +8382,6 @@ CREATE TABLE public.payment_history (
 --
 
 COMMENT ON TABLE public.payment_history IS 'Records all payment transactions';
-
-
---
--- Name: profile_versions; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.profile_versions (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    user_id uuid NOT NULL,
-    version_number integer NOT NULL,
-    profile_data jsonb NOT NULL,
-    completion_percentage integer DEFAULT 0,
-    is_draft boolean DEFAULT true,
-    created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now()
-);
-
-
---
--- Name: profiles; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.profiles (
-    id uuid NOT NULL,
-    email text NOT NULL,
-    full_name text,
-    membership_level text DEFAULT 'free'::text,
-    created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now(),
-    vibe_assistant_tokens_used integer DEFAULT 0,
-    vibe_assistant_tokens_remaining integer DEFAULT 0,
-    vibe_assistant_monthly_reset_date timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    vibe_assistant_total_cost numeric(10,4) DEFAULT 0.00,
-    membership_tier_id uuid,
-    vibe_assistant_allowance_reset_count integer DEFAULT 0
-);
-
-
---
--- Name: COLUMN profiles.vibe_assistant_tokens_used; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.profiles.vibe_assistant_tokens_used IS 'Total tokens consumed by user this month';
-
-
---
--- Name: COLUMN profiles.vibe_assistant_tokens_remaining; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.profiles.vibe_assistant_tokens_remaining IS 'Remaining tokens available this month';
-
-
---
--- Name: COLUMN profiles.vibe_assistant_monthly_reset_date; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.profiles.vibe_assistant_monthly_reset_date IS 'Date when monthly allowances reset';
-
-
---
--- Name: COLUMN profiles.vibe_assistant_total_cost; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.profiles.vibe_assistant_total_cost IS 'Total cost incurred this month in USD';
 
 
 --
@@ -7922,6 +8459,50 @@ CREATE TABLE public.scenes (
 
 
 --
+-- Name: scheduled_messages; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.scheduled_messages (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    message_type text NOT NULL,
+    email_template_id uuid,
+    sms_template_id uuid,
+    recipient_email text,
+    recipient_phone text,
+    recipient_name text,
+    recipient_user_id uuid,
+    related_entity_type text,
+    related_entity_id uuid,
+    subject text,
+    body text NOT NULL,
+    text_body text,
+    scheduled_for timestamp with time zone NOT NULL,
+    status public.scheduled_message_status DEFAULT 'pending'::public.scheduled_message_status NOT NULL,
+    sent_at timestamp with time zone,
+    error_message text,
+    retry_count integer DEFAULT 0,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT scheduled_messages_message_type_check CHECK ((message_type = ANY (ARRAY['email'::text, 'sms'::text])))
+);
+
+
+--
+-- Name: TABLE scheduled_messages; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.scheduled_messages IS 'Queue for scheduled email and SMS messages';
+
+
+--
+-- Name: COLUMN scheduled_messages.scheduled_for; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.scheduled_messages.scheduled_for IS 'When this message should be sent';
+
+
+--
 -- Name: sms_messages; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -7942,6 +8523,35 @@ CREATE TABLE public.sms_messages (
     CONSTRAINT sms_messages_direction_check CHECK ((direction = ANY (ARRAY['inbound'::text, 'outbound'::text]))),
     CONSTRAINT sms_messages_status_check CHECK ((status = ANY (ARRAY['queued'::text, 'sent'::text, 'delivered'::text, 'failed'::text, 'received'::text])))
 );
+
+
+--
+-- Name: sms_templates; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sms_templates (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    slug text NOT NULL,
+    name text NOT NULL,
+    description text,
+    category public.template_category DEFAULT 'other'::public.template_category NOT NULL,
+    status public.template_status DEFAULT 'draft'::public.template_status NOT NULL,
+    body text NOT NULL,
+    variables jsonb DEFAULT '[]'::jsonb,
+    triggers jsonb DEFAULT '[]'::jsonb,
+    last_sent_at timestamp with time zone,
+    total_sent integer DEFAULT 0,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+
+--
+-- Name: TABLE sms_templates; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.sms_templates IS 'Database-driven SMS templates with variable support';
 
 
 --
@@ -8239,8 +8849,6 @@ CREATE TABLE public.user_activity_metrics (
 CREATE TABLE public.user_profiles (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
-    profile_picture_url text,
-    date_of_birth date,
     gender text,
     ethnicity text,
     relationship_status text,
@@ -8269,10 +8877,6 @@ CREATE TABLE public.user_profiles (
     consumer_debt text,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
-    first_name text,
-    last_name text,
-    email text,
-    phone text,
     partner_name text,
     version_notes text,
     progress_photos text[],
@@ -8323,18 +8927,12 @@ CREATE TABLE public.user_profiles (
     contrast_stuff text,
     contrast_giving text,
     contrast_spirituality text,
-    household_id uuid,
-    is_household_admin boolean DEFAULT false,
-    allow_shared_tokens boolean DEFAULT true,
     vehicles jsonb DEFAULT '[]'::jsonb,
     toys jsonb DEFAULT '[]'::jsonb,
     has_vehicle boolean DEFAULT false,
     trips jsonb DEFAULT '[]'::jsonb,
     children jsonb DEFAULT '[]'::jsonb,
     parent_id uuid,
-    sms_opt_in boolean DEFAULT false,
-    sms_opt_in_date timestamp with time zone,
-    sms_opt_in_ip text,
     CONSTRAINT user_profiles_assets_equity_check CHECK ((assets_equity = ANY (ARRAY['<10,000'::text, '10,000-24,999'::text, '25,000-49,999'::text, '50,000-99,999'::text, '100,000-249,999'::text, '250,000-499,999'::text, '500,000-999,999'::text, '1,000,000+'::text, 'Prefer not to say'::text]))),
     CONSTRAINT user_profiles_consumer_debt_check CHECK ((consumer_debt = ANY (ARRAY['None'::text, 'Under 10,000'::text, '10,000-24,999'::text, '25,000-49,999'::text, '50,000-99,999'::text, '100,000-249,999'::text, '250,000-499,999'::text, '500,000-999,999'::text, '1,000,000+'::text, 'Prefer not to say'::text]))),
     CONSTRAINT user_profiles_countries_visited_check CHECK ((countries_visited >= 0)),
@@ -8693,27 +9291,6 @@ COMMENT ON COLUMN public.user_profiles.contrast_spirituality IS 'What''s not goi
 
 
 --
--- Name: COLUMN user_profiles.household_id; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.household_id IS 'Reference to the household this user belongs to (NULL for users not in a household)';
-
-
---
--- Name: COLUMN user_profiles.is_household_admin; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.is_household_admin IS 'True if this user is the admin of their household';
-
-
---
--- Name: COLUMN user_profiles.allow_shared_tokens; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.allow_shared_tokens IS 'User preference: allow using household shared tokens when personal tokens run out';
-
-
---
 -- Name: COLUMN user_profiles.vehicles; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -8863,6 +9440,165 @@ CREATE TABLE public.video_mapping (
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now()
 );
+
+
+--
+-- Name: video_session_messages; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.video_session_messages (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    session_id uuid NOT NULL,
+    user_id uuid,
+    sender_name text NOT NULL,
+    message text NOT NULL,
+    message_type text DEFAULT 'chat'::text,
+    sent_at timestamp with time zone DEFAULT now(),
+    created_at timestamp with time zone DEFAULT now()
+);
+
+
+--
+-- Name: TABLE video_session_messages; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.video_session_messages IS 'Chat messages during video sessions';
+
+
+--
+-- Name: video_session_participants; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.video_session_participants (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    session_id uuid NOT NULL,
+    user_id uuid,
+    email text,
+    name text,
+    invited_at timestamp with time zone DEFAULT now(),
+    joined_at timestamp with time zone,
+    left_at timestamp with time zone,
+    duration_seconds integer,
+    camera_on_percent numeric(5,2),
+    mic_on_percent numeric(5,2),
+    is_host boolean DEFAULT false,
+    attended boolean DEFAULT false,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    phone text,
+    CONSTRAINT email_or_user CHECK (((user_id IS NOT NULL) OR (email IS NOT NULL)))
+);
+
+
+--
+-- Name: TABLE video_session_participants; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.video_session_participants IS 'Participants in video sessions';
+
+
+--
+-- Name: COLUMN video_session_participants.phone; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.video_session_participants.phone IS 'Phone number for SMS reminders';
+
+
+--
+-- Name: video_session_recordings; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.video_session_recordings (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    session_id uuid NOT NULL,
+    daily_recording_id text,
+    daily_download_url text,
+    s3_bucket text,
+    s3_key text,
+    s3_url text,
+    file_size_bytes bigint,
+    duration_seconds integer,
+    format text DEFAULT 'mp4'::text,
+    transcript_text text,
+    transcript_s3_key text,
+    status public.video_recording_status DEFAULT 'processing'::public.video_recording_status NOT NULL,
+    error_message text,
+    is_public boolean DEFAULT false,
+    resource_library_id uuid,
+    recorded_at timestamp with time zone,
+    processed_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+
+--
+-- Name: TABLE video_session_recordings; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.video_session_recordings IS 'Recordings of video sessions';
+
+
+--
+-- Name: video_sessions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.video_sessions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    daily_room_name text NOT NULL,
+    daily_room_url text NOT NULL,
+    title text NOT NULL,
+    description text,
+    session_type public.video_session_type DEFAULT 'one_on_one'::public.video_session_type NOT NULL,
+    status public.video_session_status DEFAULT 'scheduled'::public.video_session_status NOT NULL,
+    scheduled_at timestamp with time zone NOT NULL,
+    scheduled_duration_minutes integer DEFAULT 60 NOT NULL,
+    started_at timestamp with time zone,
+    ended_at timestamp with time zone,
+    actual_duration_seconds integer,
+    host_user_id uuid NOT NULL,
+    recording_status public.video_recording_status DEFAULT 'none'::public.video_recording_status NOT NULL,
+    daily_recording_id text,
+    recording_s3_key text,
+    recording_url text,
+    recording_duration_seconds integer,
+    enable_recording boolean DEFAULT true,
+    enable_transcription boolean DEFAULT true,
+    enable_waiting_room boolean DEFAULT true,
+    max_participants integer DEFAULT 2,
+    host_notes text,
+    session_summary text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+
+--
+-- Name: TABLE video_sessions; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.video_sessions IS 'Video coaching sessions using Daily.co';
+
+
+--
+-- Name: COLUMN video_sessions.daily_room_name; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.video_sessions.daily_room_name IS 'Unique room name from Daily.co API';
+
+
+--
+-- Name: COLUMN video_sessions.daily_room_url; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.video_sessions.daily_room_url IS 'Full URL to join the Daily.co room';
+
+
+--
+-- Name: COLUMN video_sessions.session_summary; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.video_sessions.session_summary IS 'Can be VIVA-generated after the call';
 
 
 --
@@ -9937,11 +10673,43 @@ ALTER TABLE ONLY public.assessment_results
 
 
 --
+-- Name: audio_background_tracks audio_background_tracks_name_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audio_background_tracks
+    ADD CONSTRAINT audio_background_tracks_name_unique UNIQUE (name);
+
+
+--
+-- Name: audio_background_tracks audio_background_tracks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audio_background_tracks
+    ADD CONSTRAINT audio_background_tracks_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: audio_generation_batches audio_generation_batches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.audio_generation_batches
     ADD CONSTRAINT audio_generation_batches_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: audio_mix_ratios audio_mix_ratios_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audio_mix_ratios
+    ADD CONSTRAINT audio_mix_ratios_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: audio_recommended_combos audio_recommended_combos_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audio_recommended_combos
+    ADD CONSTRAINT audio_recommended_combos_pkey PRIMARY KEY (id);
 
 
 --
@@ -10030,6 +10798,22 @@ ALTER TABLE ONLY public.daily_papers
 
 ALTER TABLE ONLY public.email_messages
     ADD CONSTRAINT email_messages_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: email_templates email_templates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.email_templates
+    ADD CONSTRAINT email_templates_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: email_templates email_templates_slug_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.email_templates
+    ADD CONSTRAINT email_templates_slug_key UNIQUE (slug);
 
 
 --
@@ -10145,6 +10929,14 @@ ALTER TABLE ONLY public.intensive_purchases
 
 
 --
+-- Name: intensive_responses intensive_responses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.intensive_responses
+    ADD CONSTRAINT intensive_responses_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: journal_entries journal_entries_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -10201,14 +10993,6 @@ ALTER TABLE ONLY public.media_metadata
 
 
 --
--- Name: member_profiles member_profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.member_profiles
-    ADD CONSTRAINT member_profiles_pkey PRIMARY KEY (id);
-
-
---
 -- Name: membership_tiers membership_tiers_name_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -10241,6 +11025,14 @@ ALTER TABLE ONLY public.membership_tiers
 
 
 --
+-- Name: message_send_log message_send_log_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.message_send_log
+    ADD CONSTRAINT message_send_log_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: payment_history payment_history_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -10257,38 +11049,6 @@ ALTER TABLE ONLY public.payment_history
 
 
 --
--- Name: profile_versions profile_versions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profile_versions
-    ADD CONSTRAINT profile_versions_pkey PRIMARY KEY (id);
-
-
---
--- Name: profile_versions profile_versions_user_id_version_number_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profile_versions
-    ADD CONSTRAINT profile_versions_user_id_version_number_key UNIQUE (user_id, version_number);
-
-
---
--- Name: profiles profiles_email_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profiles
-    ADD CONSTRAINT profiles_email_key UNIQUE (email);
-
-
---
--- Name: profiles profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profiles
-    ADD CONSTRAINT profiles_pkey PRIMARY KEY (id);
-
-
---
 -- Name: scenes scenes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -10297,11 +11057,35 @@ ALTER TABLE ONLY public.scenes
 
 
 --
+-- Name: scheduled_messages scheduled_messages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.scheduled_messages
+    ADD CONSTRAINT scheduled_messages_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: sms_messages sms_messages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.sms_messages
     ADD CONSTRAINT sms_messages_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sms_templates sms_templates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sms_templates
+    ADD CONSTRAINT sms_templates_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sms_templates sms_templates_slug_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sms_templates
+    ADD CONSTRAINT sms_templates_slug_key UNIQUE (slug);
 
 
 --
@@ -10350,6 +11134,22 @@ ALTER TABLE ONLY public.token_usage
 
 ALTER TABLE ONLY public.assessment_responses
     ADD CONSTRAINT unique_assessment_question UNIQUE (assessment_id, question_id);
+
+
+--
+-- Name: intensive_responses unique_phase_per_intensive; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.intensive_responses
+    ADD CONSTRAINT unique_phase_per_intensive UNIQUE (intensive_id, phase);
+
+
+--
+-- Name: user_accounts user_accounts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_accounts
+    ADD CONSTRAINT user_accounts_pkey PRIMARY KEY (id);
 
 
 --
@@ -10438,6 +11238,62 @@ ALTER TABLE ONLY public.video_mapping
 
 ALTER TABLE ONLY public.video_mapping
     ADD CONSTRAINT video_mapping_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: video_session_messages video_session_messages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_session_messages
+    ADD CONSTRAINT video_session_messages_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: video_session_participants video_session_participants_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_session_participants
+    ADD CONSTRAINT video_session_participants_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: video_session_participants video_session_participants_session_id_user_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_session_participants
+    ADD CONSTRAINT video_session_participants_session_id_user_id_key UNIQUE (session_id, user_id);
+
+
+--
+-- Name: video_session_recordings video_session_recordings_daily_recording_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_session_recordings
+    ADD CONSTRAINT video_session_recordings_daily_recording_id_key UNIQUE (daily_recording_id);
+
+
+--
+-- Name: video_session_recordings video_session_recordings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_session_recordings
+    ADD CONSTRAINT video_session_recordings_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: video_sessions video_sessions_daily_room_name_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_sessions
+    ADD CONSTRAINT video_sessions_daily_room_name_key UNIQUE (daily_room_name);
+
+
+--
+-- Name: video_sessions video_sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_sessions
+    ADD CONSTRAINT video_sessions_pkey PRIMARY KEY (id);
 
 
 --
@@ -11146,6 +12002,41 @@ CREATE INDEX idx_assessment_results_user_status ON public.assessment_results USI
 
 
 --
+-- Name: idx_audio_background_tracks_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audio_background_tracks_active ON public.audio_background_tracks USING btree (is_active);
+
+
+--
+-- Name: idx_audio_background_tracks_brainwave; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audio_background_tracks_brainwave ON public.audio_background_tracks USING btree (brainwave_hz) WHERE (brainwave_hz IS NOT NULL);
+
+
+--
+-- Name: idx_audio_background_tracks_category; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audio_background_tracks_category ON public.audio_background_tracks USING btree (category);
+
+
+--
+-- Name: idx_audio_background_tracks_frequency; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audio_background_tracks_frequency ON public.audio_background_tracks USING btree (frequency_hz) WHERE (frequency_hz IS NOT NULL);
+
+
+--
+-- Name: idx_audio_background_tracks_sort; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audio_background_tracks_sort ON public.audio_background_tracks USING btree (sort_order);
+
+
+--
 -- Name: idx_audio_batches_created_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -11171,6 +12062,55 @@ CREATE INDEX idx_audio_batches_user_status ON public.audio_generation_batches US
 --
 
 CREATE INDEX idx_audio_batches_user_vision ON public.audio_generation_batches USING btree (user_id, vision_id);
+
+
+--
+-- Name: idx_audio_mix_ratios_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audio_mix_ratios_active ON public.audio_mix_ratios USING btree (is_active);
+
+
+--
+-- Name: idx_audio_mix_ratios_sort; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audio_mix_ratios_sort ON public.audio_mix_ratios USING btree (sort_order);
+
+
+--
+-- Name: idx_audio_recommended_combos_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audio_recommended_combos_active ON public.audio_recommended_combos USING btree (is_active);
+
+
+--
+-- Name: idx_audio_recommended_combos_binaural; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audio_recommended_combos_binaural ON public.audio_recommended_combos USING btree (binaural_track_id) WHERE (binaural_track_id IS NOT NULL);
+
+
+--
+-- Name: idx_audio_recommended_combos_ratio; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audio_recommended_combos_ratio ON public.audio_recommended_combos USING btree (mix_ratio_id);
+
+
+--
+-- Name: idx_audio_recommended_combos_sort; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audio_recommended_combos_sort ON public.audio_recommended_combos USING btree (sort_order);
+
+
+--
+-- Name: idx_audio_recommended_combos_track; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audio_recommended_combos_track ON public.audio_recommended_combos USING btree (background_track_id);
 
 
 --
@@ -11461,6 +12401,27 @@ CREATE INDEX idx_email_ses_id ON public.email_messages USING btree (ses_message_
 
 
 --
+-- Name: idx_email_templates_category; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_email_templates_category ON public.email_templates USING btree (category);
+
+
+--
+-- Name: idx_email_templates_slug; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_email_templates_slug ON public.email_templates USING btree (slug);
+
+
+--
+-- Name: idx_email_templates_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_email_templates_status ON public.email_templates USING btree (status);
+
+
+--
 -- Name: idx_email_thread_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -11629,6 +12590,41 @@ CREATE INDEX idx_intensive_purchases_referral_source ON public.intensive_purchas
 
 
 --
+-- Name: idx_intensive_responses_created_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_intensive_responses_created_at ON public.intensive_responses USING btree (created_at);
+
+
+--
+-- Name: idx_intensive_responses_intensive_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_intensive_responses_intensive_id ON public.intensive_responses USING btree (intensive_id);
+
+
+--
+-- Name: idx_intensive_responses_phase; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_intensive_responses_phase ON public.intensive_responses USING btree (phase);
+
+
+--
+-- Name: idx_intensive_responses_soundbites; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_intensive_responses_soundbites ON public.intensive_responses USING gin (calibration_soundbites jsonb_path_ops);
+
+
+--
+-- Name: idx_intensive_responses_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_intensive_responses_user_id ON public.intensive_responses USING btree (user_id);
+
+
+--
 -- Name: idx_intensive_started_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -11762,6 +12758,41 @@ CREATE INDEX idx_membership_tiers_type ON public.membership_tiers USING btree (t
 
 
 --
+-- Name: idx_message_send_log_entity; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_message_send_log_entity ON public.message_send_log USING btree (related_entity_type, related_entity_id);
+
+
+--
+-- Name: idx_message_send_log_recipient; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_message_send_log_recipient ON public.message_send_log USING btree (recipient_user_id);
+
+
+--
+-- Name: idx_message_send_log_sent; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_message_send_log_sent ON public.message_send_log USING btree (sent_at);
+
+
+--
+-- Name: idx_message_send_log_template; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_message_send_log_template ON public.message_send_log USING btree (template_slug);
+
+
+--
+-- Name: idx_message_send_log_type; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_message_send_log_type ON public.message_send_log USING btree (message_type);
+
+
+--
 -- Name: idx_payment_history_created_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -11780,48 +12811,6 @@ CREATE INDEX idx_payment_history_subscription_id ON public.payment_history USING
 --
 
 CREATE INDEX idx_payment_history_user_id ON public.payment_history USING btree (user_id);
-
-
---
--- Name: idx_profile_versions_created_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_profile_versions_created_at ON public.profile_versions USING btree (created_at DESC);
-
-
---
--- Name: idx_profile_versions_is_draft; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_profile_versions_is_draft ON public.profile_versions USING btree (is_draft);
-
-
---
--- Name: idx_profile_versions_user_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_profile_versions_user_id ON public.profile_versions USING btree (user_id);
-
-
---
--- Name: idx_profiles_membership_tier_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_profiles_membership_tier_id ON public.profiles USING btree (membership_tier_id);
-
-
---
--- Name: idx_profiles_vibe_assistant_reset_date; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_profiles_vibe_assistant_reset_date ON public.profiles USING btree (vibe_assistant_monthly_reset_date);
-
-
---
--- Name: idx_profiles_vibe_assistant_tokens_used; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_profiles_vibe_assistant_tokens_used ON public.profiles USING btree (vibe_assistant_tokens_used);
 
 
 --
@@ -11874,6 +12863,27 @@ CREATE INDEX idx_scenes_user_category ON public.scenes USING btree (user_id, cat
 
 
 --
+-- Name: idx_scheduled_messages_entity; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_scheduled_messages_entity ON public.scheduled_messages USING btree (related_entity_type, related_entity_id);
+
+
+--
+-- Name: idx_scheduled_messages_scheduled_for; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_scheduled_messages_scheduled_for ON public.scheduled_messages USING btree (scheduled_for);
+
+
+--
+-- Name: idx_scheduled_messages_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_scheduled_messages_status ON public.scheduled_messages USING btree (status);
+
+
+--
 -- Name: idx_sms_created_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -11892,6 +12902,27 @@ CREATE INDEX idx_sms_from_number ON public.sms_messages USING btree (from_number
 --
 
 CREATE INDEX idx_sms_lead_id ON public.sms_messages USING btree (lead_id);
+
+
+--
+-- Name: idx_sms_templates_category; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_sms_templates_category ON public.sms_templates USING btree (category);
+
+
+--
+-- Name: idx_sms_templates_slug; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_sms_templates_slug ON public.sms_templates USING btree (slug);
+
+
+--
+-- Name: idx_sms_templates_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_sms_templates_status ON public.sms_templates USING btree (status);
 
 
 --
@@ -12140,17 +13171,52 @@ CREATE INDEX idx_tracking_events_session_id ON public.lead_tracking_events USING
 
 
 --
+-- Name: idx_user_accounts_email; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_user_accounts_email ON public.user_accounts USING btree (email);
+
+
+--
+-- Name: idx_user_accounts_household; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_user_accounts_household ON public.user_accounts USING btree (household_id);
+
+
+--
+-- Name: idx_user_accounts_household_admin; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_user_accounts_household_admin ON public.user_accounts USING btree (is_household_admin) WHERE (is_household_admin = true);
+
+
+--
+-- Name: idx_user_accounts_phone; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_user_accounts_phone ON public.user_accounts USING btree (phone) WHERE (phone IS NOT NULL);
+
+
+--
+-- Name: idx_user_accounts_role; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_user_accounts_role ON public.user_accounts USING btree (role);
+
+
+--
+-- Name: idx_user_accounts_sms_opt_in; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_user_accounts_sms_opt_in ON public.user_accounts USING btree (sms_opt_in) WHERE (sms_opt_in = true);
+
+
+--
 -- Name: idx_user_profiles_created_at; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_user_profiles_created_at ON public.user_profiles USING btree (created_at);
-
-
---
--- Name: idx_user_profiles_household_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_user_profiles_household_id ON public.user_profiles USING btree (household_id);
 
 
 --
@@ -12165,13 +13231,6 @@ CREATE INDEX idx_user_profiles_is_active ON public.user_profiles USING btree (us
 --
 
 CREATE INDEX idx_user_profiles_is_draft ON public.user_profiles USING btree (user_id, is_draft);
-
-
---
--- Name: idx_user_profiles_is_household_admin; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_user_profiles_is_household_admin ON public.user_profiles USING btree (is_household_admin) WHERE (is_household_admin = true);
 
 
 --
@@ -12200,20 +13259,6 @@ CREATE INDEX idx_user_profiles_parent_id ON public.user_profiles USING btree (pa
 --
 
 CREATE INDEX idx_user_profiles_parent_version ON public.user_profiles USING btree (parent_version_id);
-
-
---
--- Name: idx_user_profiles_phone; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_user_profiles_phone ON public.user_profiles USING btree (phone) WHERE (phone IS NOT NULL);
-
-
---
--- Name: idx_user_profiles_sms_opt_in; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_user_profiles_sms_opt_in ON public.user_profiles USING btree (sms_opt_in) WHERE (sms_opt_in = true);
 
 
 --
@@ -12305,6 +13350,90 @@ CREATE INDEX idx_vibrational_links_themes ON public.vibrational_links USING gin 
 --
 
 CREATE INDEX idx_vibrational_links_user ON public.vibrational_links USING btree (user_id);
+
+
+--
+-- Name: idx_video_messages_sent; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_video_messages_sent ON public.video_session_messages USING btree (sent_at);
+
+
+--
+-- Name: idx_video_messages_session; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_video_messages_session ON public.video_session_messages USING btree (session_id);
+
+
+--
+-- Name: idx_video_participants_email; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_video_participants_email ON public.video_session_participants USING btree (email);
+
+
+--
+-- Name: idx_video_participants_phone; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_video_participants_phone ON public.video_session_participants USING btree (phone);
+
+
+--
+-- Name: idx_video_participants_session; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_video_participants_session ON public.video_session_participants USING btree (session_id);
+
+
+--
+-- Name: idx_video_participants_user; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_video_participants_user ON public.video_session_participants USING btree (user_id);
+
+
+--
+-- Name: idx_video_recordings_session; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_video_recordings_session ON public.video_session_recordings USING btree (session_id);
+
+
+--
+-- Name: idx_video_recordings_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_video_recordings_status ON public.video_session_recordings USING btree (status);
+
+
+--
+-- Name: idx_video_sessions_daily_room; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_video_sessions_daily_room ON public.video_sessions USING btree (daily_room_name);
+
+
+--
+-- Name: idx_video_sessions_host; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_video_sessions_host ON public.video_sessions USING btree (host_user_id);
+
+
+--
+-- Name: idx_video_sessions_scheduled; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_video_sessions_scheduled ON public.video_sessions USING btree (scheduled_at);
+
+
+--
+-- Name: idx_video_sessions_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_video_sessions_status ON public.video_sessions USING btree (status);
 
 
 --
@@ -12679,10 +13808,10 @@ CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXEC
 
 
 --
--- Name: users trigger_sync_profile_email; Type: TRIGGER; Schema: auth; Owner: -
+-- Name: users trigger_sync_account_email; Type: TRIGGER; Schema: auth; Owner: -
 --
 
-CREATE TRIGGER trigger_sync_profile_email AFTER UPDATE OF email ON auth.users FOR EACH ROW WHEN (((old.email)::text IS DISTINCT FROM (new.email)::text)) EXECUTE FUNCTION public.sync_user_profile_email();
+CREATE TRIGGER trigger_sync_account_email AFTER UPDATE OF email ON auth.users FOR EACH ROW WHEN (((old.email)::text IS DISTINCT FROM (new.email)::text)) EXECUTE FUNCTION public.sync_user_accounts_email();
 
 
 --
@@ -12700,10 +13829,10 @@ CREATE TRIGGER ai_model_pricing_updated_at BEFORE UPDATE ON public.ai_model_pric
 
 
 --
--- Name: user_profiles auto_create_solo_household; Type: TRIGGER; Schema: public; Owner: -
+-- Name: user_accounts auto_create_solo_household_for_account; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE TRIGGER auto_create_solo_household BEFORE INSERT ON public.user_profiles FOR EACH ROW EXECUTE FUNCTION public.create_solo_household_for_new_user();
+CREATE TRIGGER auto_create_solo_household_for_account BEFORE INSERT ON public.user_accounts FOR EACH ROW EXECUTE FUNCTION public.create_solo_household_for_new_account();
 
 
 --
@@ -12777,17 +13906,10 @@ CREATE TRIGGER trigger_audio_tracks_updated_at BEFORE UPDATE ON public.audio_tra
 
 
 --
--- Name: user_profiles trigger_set_initial_email; Type: TRIGGER; Schema: public; Owner: -
+-- Name: intensive_responses trigger_intensive_responses_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE TRIGGER trigger_set_initial_email BEFORE INSERT ON public.user_profiles FOR EACH ROW EXECUTE FUNCTION public.set_initial_profile_email();
-
-
---
--- Name: user_profiles trigger_set_new_profile_email; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trigger_set_new_profile_email BEFORE INSERT ON public.user_profiles FOR EACH ROW EXECUTE FUNCTION public.set_new_profile_email();
+CREATE TRIGGER trigger_intensive_responses_updated_at BEFORE UPDATE ON public.intensive_responses FOR EACH ROW EXECUTE FUNCTION public.update_intensive_responses_updated_at();
 
 
 --
@@ -12795,13 +13917,6 @@ CREATE TRIGGER trigger_set_new_profile_email BEFORE INSERT ON public.user_profil
 --
 
 CREATE TRIGGER trigger_set_ticket_number BEFORE INSERT ON public.support_tickets FOR EACH ROW EXECUTE FUNCTION public.set_ticket_number();
-
-
---
--- Name: user_profiles trigger_sync_auth_email; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trigger_sync_auth_email AFTER UPDATE OF email ON public.user_profiles FOR EACH ROW WHEN (((old.email IS DISTINCT FROM new.email) AND (new.email IS NOT NULL))) EXECUTE FUNCTION public.sync_auth_users_email();
 
 
 --
@@ -12840,17 +13955,17 @@ CREATE TRIGGER trigger_update_membership_tiers_updated_at BEFORE UPDATE ON publi
 
 
 --
--- Name: profiles trigger_update_profiles_updated_at; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trigger_update_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-
-
---
 -- Name: support_tickets trigger_update_tickets_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE TRIGGER trigger_update_tickets_updated_at BEFORE UPDATE ON public.support_tickets FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- Name: user_accounts trigger_update_user_accounts_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trigger_update_user_accounts_updated_at BEFORE UPDATE ON public.user_accounts FOR EACH ROW EXECUTE FUNCTION public.update_user_accounts_updated_at();
 
 
 --
@@ -12910,6 +14025,13 @@ CREATE TRIGGER update_customer_subscriptions_updated_at BEFORE UPDATE ON public.
 
 
 --
+-- Name: email_templates update_email_templates_timestamp; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_email_templates_timestamp BEFORE UPDATE ON public.email_templates FOR EACH ROW EXECUTE FUNCTION public.update_messaging_timestamp();
+
+
+--
 -- Name: generated_images update_generated_images_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -12931,10 +14053,10 @@ CREATE TRIGGER update_membership_tiers_updated_at BEFORE UPDATE ON public.member
 
 
 --
--- Name: profiles update_profiles_updated_at; Type: TRIGGER; Schema: public; Owner: -
+-- Name: scheduled_messages update_scheduled_messages_timestamp; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+CREATE TRIGGER update_scheduled_messages_timestamp BEFORE UPDATE ON public.scheduled_messages FOR EACH ROW EXECUTE FUNCTION public.update_messaging_timestamp();
 
 
 --
@@ -12945,10 +14067,38 @@ CREATE TRIGGER update_scores_on_response_change AFTER INSERT OR DELETE OR UPDATE
 
 
 --
+-- Name: sms_templates update_sms_templates_timestamp; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_sms_templates_timestamp BEFORE UPDATE ON public.sms_templates FOR EACH ROW EXECUTE FUNCTION public.update_messaging_timestamp();
+
+
+--
 -- Name: vibrational_links update_vibrational_links_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE TRIGGER update_vibrational_links_updated_at BEFORE UPDATE ON public.vibrational_links FOR EACH ROW EXECUTE FUNCTION public.update_vibrational_links_updated_at();
+
+
+--
+-- Name: video_session_participants update_video_participants_timestamp; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_video_participants_timestamp BEFORE UPDATE ON public.video_session_participants FOR EACH ROW EXECUTE FUNCTION public.update_video_session_timestamp();
+
+
+--
+-- Name: video_session_recordings update_video_recordings_timestamp; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_video_recordings_timestamp BEFORE UPDATE ON public.video_session_recordings FOR EACH ROW EXECUTE FUNCTION public.update_video_session_timestamp();
+
+
+--
+-- Name: video_sessions update_video_sessions_timestamp; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_video_sessions_timestamp BEFORE UPDATE ON public.video_sessions FOR EACH ROW EXECUTE FUNCTION public.update_video_session_timestamp();
 
 
 --
@@ -13179,14 +14329,6 @@ ALTER TABLE ONLY public.abundance_events
 
 
 --
--- Name: ai_conversations ai_conversations_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.ai_conversations
-    ADD CONSTRAINT ai_conversations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
-
-
---
 -- Name: ai_tools ai_tools_model_name_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -13240,6 +14382,30 @@ ALTER TABLE ONLY public.audio_generation_batches
 
 ALTER TABLE ONLY public.audio_generation_batches
     ADD CONSTRAINT audio_generation_batches_vision_id_fkey FOREIGN KEY (vision_id) REFERENCES public.vision_versions(id) ON DELETE CASCADE;
+
+
+--
+-- Name: audio_recommended_combos audio_recommended_combos_background_track_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audio_recommended_combos
+    ADD CONSTRAINT audio_recommended_combos_background_track_id_fkey FOREIGN KEY (background_track_id) REFERENCES public.audio_background_tracks(id) ON DELETE CASCADE;
+
+
+--
+-- Name: audio_recommended_combos audio_recommended_combos_binaural_track_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audio_recommended_combos
+    ADD CONSTRAINT audio_recommended_combos_binaural_track_id_fkey FOREIGN KEY (binaural_track_id) REFERENCES public.audio_background_tracks(id) ON DELETE SET NULL;
+
+
+--
+-- Name: audio_recommended_combos audio_recommended_combos_mix_ratio_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audio_recommended_combos
+    ADD CONSTRAINT audio_recommended_combos_mix_ratio_id_fkey FOREIGN KEY (mix_ratio_id) REFERENCES public.audio_mix_ratios(id) ON DELETE CASCADE;
 
 
 --
@@ -13344,6 +14510,14 @@ ALTER TABLE ONLY public.email_messages
 
 ALTER TABLE ONLY public.email_messages
     ADD CONSTRAINT email_messages_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: email_templates email_templates_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.email_templates
+    ADD CONSTRAINT email_templates_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id);
 
 
 --
@@ -13467,6 +14641,22 @@ ALTER TABLE ONLY public.intensive_purchases
 
 
 --
+-- Name: intensive_responses intensive_responses_intensive_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.intensive_responses
+    ADD CONSTRAINT intensive_responses_intensive_id_fkey FOREIGN KEY (intensive_id) REFERENCES public.intensive_purchases(id) ON DELETE CASCADE;
+
+
+--
+-- Name: intensive_responses intensive_responses_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.intensive_responses
+    ADD CONSTRAINT intensive_responses_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: journal_entries journal_entries_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -13531,14 +14721,6 @@ ALTER TABLE ONLY public.media_metadata
 
 
 --
--- Name: member_profiles member_profiles_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.member_profiles
-    ADD CONSTRAINT member_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
---
 -- Name: payment_history payment_history_subscription_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -13555,30 +14737,6 @@ ALTER TABLE ONLY public.payment_history
 
 
 --
--- Name: profile_versions profile_versions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profile_versions
-    ADD CONSTRAINT profile_versions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
---
--- Name: profiles profiles_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profiles
-    ADD CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
---
--- Name: profiles profiles_membership_tier_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profiles
-    ADD CONSTRAINT profiles_membership_tier_id_fkey FOREIGN KEY (membership_tier_id) REFERENCES public.membership_tiers(id);
-
-
---
 -- Name: scenes scenes_related_vision_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -13592,6 +14750,38 @@ ALTER TABLE ONLY public.scenes
 
 ALTER TABLE ONLY public.scenes
     ADD CONSTRAINT scenes_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: scheduled_messages scheduled_messages_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.scheduled_messages
+    ADD CONSTRAINT scheduled_messages_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id);
+
+
+--
+-- Name: scheduled_messages scheduled_messages_email_template_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.scheduled_messages
+    ADD CONSTRAINT scheduled_messages_email_template_id_fkey FOREIGN KEY (email_template_id) REFERENCES public.email_templates(id) ON DELETE SET NULL;
+
+
+--
+-- Name: scheduled_messages scheduled_messages_recipient_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.scheduled_messages
+    ADD CONSTRAINT scheduled_messages_recipient_user_id_fkey FOREIGN KEY (recipient_user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: scheduled_messages scheduled_messages_sms_template_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.scheduled_messages
+    ADD CONSTRAINT scheduled_messages_sms_template_id_fkey FOREIGN KEY (sms_template_id) REFERENCES public.sms_templates(id) ON DELETE SET NULL;
 
 
 --
@@ -13616,6 +14806,14 @@ ALTER TABLE ONLY public.sms_messages
 
 ALTER TABLE ONLY public.sms_messages
     ADD CONSTRAINT sms_messages_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: sms_templates sms_templates_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sms_templates
+    ADD CONSTRAINT sms_templates_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id);
 
 
 --
@@ -13683,19 +14881,35 @@ ALTER TABLE ONLY public.token_usage
 
 
 --
+-- Name: user_accounts user_accounts_household_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_accounts
+    ADD CONSTRAINT user_accounts_household_id_fkey FOREIGN KEY (household_id) REFERENCES public.households(id) ON DELETE SET NULL;
+
+
+--
+-- Name: user_accounts user_accounts_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_accounts
+    ADD CONSTRAINT user_accounts_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: user_accounts user_accounts_membership_tier_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_accounts
+    ADD CONSTRAINT user_accounts_membership_tier_id_fkey FOREIGN KEY (membership_tier_id) REFERENCES public.membership_tiers(id);
+
+
+--
 -- Name: user_activity_metrics user_activity_metrics_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.user_activity_metrics
     ADD CONSTRAINT user_activity_metrics_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
---
--- Name: user_profiles user_profiles_household_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.user_profiles
-    ADD CONSTRAINT user_profiles_household_id_fkey FOREIGN KEY (household_id) REFERENCES public.households(id) ON DELETE SET NULL;
 
 
 --
@@ -13768,6 +14982,54 @@ ALTER TABLE ONLY public.vibrational_events
 
 ALTER TABLE ONLY public.vibrational_links
     ADD CONSTRAINT vibrational_links_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: video_session_messages video_session_messages_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_session_messages
+    ADD CONSTRAINT video_session_messages_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.video_sessions(id) ON DELETE CASCADE;
+
+
+--
+-- Name: video_session_messages video_session_messages_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_session_messages
+    ADD CONSTRAINT video_session_messages_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: video_session_participants video_session_participants_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_session_participants
+    ADD CONSTRAINT video_session_participants_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.video_sessions(id) ON DELETE CASCADE;
+
+
+--
+-- Name: video_session_participants video_session_participants_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_session_participants
+    ADD CONSTRAINT video_session_participants_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: video_session_recordings video_session_recordings_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_session_recordings
+    ADD CONSTRAINT video_session_recordings_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.video_sessions(id) ON DELETE CASCADE;
+
+
+--
+-- Name: video_sessions video_sessions_host_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_sessions
+    ADD CONSTRAINT video_sessions_host_user_id_fkey FOREIGN KEY (host_user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
 
 --
@@ -14144,6 +15406,13 @@ CREATE POLICY "Admins can manage campaigns" ON public.marketing_campaigns USING 
 
 
 --
+-- Name: email_templates Admins can manage email templates; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can manage email templates" ON public.email_templates USING (public.is_admin());
+
+
+--
 -- Name: leads Admins can manage leads; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -14153,12 +15422,26 @@ CREATE POLICY "Admins can manage leads" ON public.leads USING ((EXISTS ( SELECT 
 
 
 --
+-- Name: scheduled_messages Admins can manage scheduled messages; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can manage scheduled messages" ON public.scheduled_messages USING (public.is_admin());
+
+
+--
 -- Name: sms_messages Admins can manage sms; Type: POLICY; Schema: public; Owner: -
 --
 
 CREATE POLICY "Admins can manage sms" ON public.sms_messages USING ((EXISTS ( SELECT 1
    FROM auth.users
   WHERE ((users.id = auth.uid()) AND (((users.email)::text = ANY ((ARRAY['buckinghambliss@gmail.com'::character varying, 'admin@vibrationfit.com'::character varying])::text[])) OR ((users.raw_user_meta_data ->> 'is_admin'::text) = 'true'::text))))));
+
+
+--
+-- Name: sms_templates Admins can manage sms templates; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can manage sms templates" ON public.sms_templates USING (public.is_admin());
 
 
 --
@@ -14191,6 +15474,22 @@ CREATE POLICY "Admins can remove members" ON public.household_members FOR DELETE
 
 
 --
+-- Name: user_accounts Admins can update accounts; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can update accounts" ON public.user_accounts FOR UPDATE USING (public.is_admin_account());
+
+
+--
+-- Name: intensive_responses Admins can update all intensive responses; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can update all intensive responses" ON public.intensive_responses FOR UPDATE USING ((EXISTS ( SELECT 1
+   FROM public.user_accounts
+  WHERE ((user_accounts.id = auth.uid()) AND (user_accounts.role = ANY (ARRAY['admin'::public.user_role, 'super_admin'::public.user_role]))))));
+
+
+--
 -- Name: household_members Admins can update members; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -14204,6 +15503,85 @@ CREATE POLICY "Admins can update members" ON public.household_members FOR UPDATE
 --
 
 CREATE POLICY "Admins can update site content metadata" ON public.media_metadata FOR UPDATE TO authenticated USING (((user_id IS NULL) AND (((auth.jwt() ->> 'role'::text) = 'admin'::text) OR ((auth.jwt() ->> 'email'::text) ~~ '%@vibrationfit.com'::text))));
+
+
+--
+-- Name: user_accounts Admins can view all accounts; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can view all accounts" ON public.user_accounts FOR SELECT USING (public.is_admin_account());
+
+
+--
+-- Name: intensive_responses Admins can view all intensive responses; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can view all intensive responses" ON public.intensive_responses FOR SELECT USING ((EXISTS ( SELECT 1
+   FROM public.user_accounts
+  WHERE ((user_accounts.id = auth.uid()) AND (user_accounts.role = ANY (ARRAY['admin'::public.user_role, 'super_admin'::public.user_role]))))));
+
+
+--
+-- Name: message_send_log Admins can view message log; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can view message log" ON public.message_send_log FOR SELECT USING (public.is_admin());
+
+
+--
+-- Name: audio_background_tracks Allow authenticated users to read active background tracks; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Allow authenticated users to read active background tracks" ON public.audio_background_tracks FOR SELECT TO authenticated USING ((is_active = true));
+
+
+--
+-- Name: audio_recommended_combos Allow authenticated users to read active combos; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Allow authenticated users to read active combos" ON public.audio_recommended_combos FOR SELECT TO authenticated USING ((is_active = true));
+
+
+--
+-- Name: audio_mix_ratios Allow authenticated users to read active mix ratios; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Allow authenticated users to read active mix ratios" ON public.audio_mix_ratios FOR SELECT TO authenticated USING ((is_active = true));
+
+
+--
+-- Name: audio_background_tracks Allow service role to manage background tracks; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Allow service role to manage background tracks" ON public.audio_background_tracks TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: audio_mix_ratios Allow service role to manage mix ratios; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Allow service role to manage mix ratios" ON public.audio_mix_ratios TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: audio_recommended_combos Allow service role to manage recommended combos; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Allow service role to manage recommended combos" ON public.audio_recommended_combos TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: email_templates Anyone can read active email templates; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Anyone can read active email templates" ON public.email_templates FOR SELECT USING (((status = 'active'::public.template_status) OR public.is_admin()));
+
+
+--
+-- Name: sms_templates Anyone can read active sms templates; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Anyone can read active sms templates" ON public.sms_templates FOR SELECT USING (((status = 'active'::public.template_status) OR public.is_admin()));
 
 
 --
@@ -14232,6 +15610,55 @@ CREATE POLICY "Anyone can view active membership tiers" ON public.membership_tie
 --
 
 CREATE POLICY "Anyone can view site content metadata" ON public.media_metadata FOR SELECT USING ((user_id IS NULL));
+
+
+--
+-- Name: message_send_log Authenticated can insert message log; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Authenticated can insert message log" ON public.message_send_log FOR INSERT WITH CHECK ((auth.uid() IS NOT NULL));
+
+
+--
+-- Name: email_templates Authenticated can manage email templates; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Authenticated can manage email templates" ON public.email_templates USING ((auth.uid() IS NOT NULL));
+
+
+--
+-- Name: scheduled_messages Authenticated can manage scheduled messages; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Authenticated can manage scheduled messages" ON public.scheduled_messages USING ((auth.uid() IS NOT NULL));
+
+
+--
+-- Name: sms_templates Authenticated can manage sms templates; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Authenticated can manage sms templates" ON public.sms_templates USING ((auth.uid() IS NOT NULL));
+
+
+--
+-- Name: email_templates Authenticated can read email templates; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Authenticated can read email templates" ON public.email_templates FOR SELECT USING ((auth.uid() IS NOT NULL));
+
+
+--
+-- Name: sms_templates Authenticated can read sms templates; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Authenticated can read sms templates" ON public.sms_templates FOR SELECT USING ((auth.uid() IS NOT NULL));
+
+
+--
+-- Name: message_send_log Authenticated can view message log; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Authenticated can view message log" ON public.message_send_log FOR SELECT USING ((auth.uid() IS NOT NULL));
 
 
 --
@@ -14316,6 +15743,13 @@ CREATE POLICY "Service role has full access to user_storage" ON public.user_stor
 
 
 --
+-- Name: user_accounts Super admins can manage all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Super admins can manage all" ON public.user_accounts USING (public.is_super_admin_account());
+
+
+--
 -- Name: assessment_insights System can create assessment insights; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -14369,13 +15803,6 @@ CREATE POLICY "Users can create own audio generation batches" ON public.audio_ge
 --
 
 CREATE POLICY "Users can create own journal entries" ON public.journal_entries FOR INSERT TO authenticated WITH CHECK ((auth.uid() = user_id));
-
-
---
--- Name: member_profiles Users can create own profile; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Users can create own profile" ON public.member_profiles FOR INSERT TO authenticated WITH CHECK ((auth.uid() = user_id));
 
 
 --
@@ -14537,13 +15964,6 @@ CREATE POLICY "Users can delete their own generated images" ON public.generated_
 
 
 --
--- Name: profile_versions Users can delete their own profile versions; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Users can delete their own profile versions" ON public.profile_versions FOR DELETE USING ((auth.uid() = user_id));
-
-
---
 -- Name: vision_progress Users can delete their own progress; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -14607,6 +16027,13 @@ CREATE POLICY "Users can insert own conversations" ON public.ai_conversations FO
 
 
 --
+-- Name: intensive_responses Users can insert own intensive responses; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can insert own intensive responses" ON public.intensive_responses FOR INSERT WITH CHECK ((user_id = auth.uid()));
+
+
+--
 -- Name: user_profiles Users can insert own profile; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -14667,13 +16094,6 @@ CREATE POLICY "Users can insert their own conversations" ON public.viva_conversa
 --
 
 CREATE POLICY "Users can insert their own frequency flip seeds" ON public.frequency_flip FOR INSERT WITH CHECK ((auth.uid() = user_id));
-
-
---
--- Name: profile_versions Users can insert their own profile versions; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Users can insert their own profile versions" ON public.profile_versions FOR INSERT WITH CHECK ((auth.uid() = user_id));
 
 
 --
@@ -14763,6 +16183,13 @@ CREATE POLICY "Users can select their own audio tracks" ON public.audio_tracks F
 
 
 --
+-- Name: user_accounts Users can update own account; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can update own account" ON public.user_accounts FOR UPDATE USING ((id = auth.uid())) WITH CHECK ((id = auth.uid()));
+
+
+--
 -- Name: audio_generation_batches Users can update own audio generation batches; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -14791,6 +16218,13 @@ COMMENT ON POLICY "Users can update own intensive checklist" ON public.intensive
 
 
 --
+-- Name: intensive_responses Users can update own intensive responses; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can update own intensive responses" ON public.intensive_responses FOR UPDATE USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
+
+
+--
 -- Name: journal_entries Users can update own journal entries; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -14802,20 +16236,6 @@ CREATE POLICY "Users can update own journal entries" ON public.journal_entries F
 --
 
 CREATE POLICY "Users can update own media metadata" ON public.media_metadata FOR UPDATE TO authenticated USING ((auth.uid() = user_id));
-
-
---
--- Name: member_profiles Users can update own profile; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Users can update own profile" ON public.member_profiles FOR UPDATE TO authenticated USING ((auth.uid() = user_id));
-
-
---
--- Name: profiles Users can update own profile; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING ((auth.uid() = id));
 
 
 --
@@ -14919,13 +16339,6 @@ CREATE POLICY "Users can update their own generated images" ON public.generated_
 
 
 --
--- Name: profile_versions Users can update their own profile versions; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Users can update their own profile versions" ON public.profile_versions FOR UPDATE USING ((auth.uid() = user_id));
-
-
---
 -- Name: vision_progress Users can update their own progress; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -15000,6 +16413,13 @@ CREATE POLICY "Users can view household members" ON public.household_members FOR
 
 
 --
+-- Name: user_accounts Users can view own account; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can view own account" ON public.user_accounts FOR SELECT USING ((id = auth.uid()));
+
+
+--
 -- Name: audio_generation_batches Users can view own audio generation batches; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -15044,6 +16464,13 @@ CREATE POLICY "Users can view own intensive purchases" ON public.intensive_purch
 
 
 --
+-- Name: intensive_responses Users can view own intensive responses; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can view own intensive responses" ON public.intensive_responses FOR SELECT USING ((user_id = auth.uid()));
+
+
+--
 -- Name: journal_entries Users can view own journal entries; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -15062,20 +16489,6 @@ CREATE POLICY "Users can view own media metadata" ON public.media_metadata FOR S
 --
 
 CREATE POLICY "Users can view own metrics" ON public.user_activity_metrics FOR SELECT USING ((auth.uid() = user_id));
-
-
---
--- Name: member_profiles Users can view own profile; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Users can view own profile" ON public.member_profiles FOR SELECT TO authenticated USING ((auth.uid() = user_id));
-
-
---
--- Name: profiles Users can view own profile; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Users can view own profile" ON public.profiles FOR SELECT USING ((auth.uid() = id));
 
 
 --
@@ -15222,13 +16635,6 @@ CREATE POLICY "Users can view their own payment history" ON public.payment_histo
 
 
 --
--- Name: profile_versions Users can view their own profile versions; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Users can view their own profile versions" ON public.profile_versions FOR SELECT USING ((auth.uid() = user_id));
-
-
---
 -- Name: vision_progress Users can view their own progress; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -15347,10 +16753,28 @@ ALTER TABLE public.assessment_responses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.assessment_results ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: audio_background_tracks; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.audio_background_tracks ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: audio_generation_batches; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.audio_generation_batches ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: audio_mix_ratios; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.audio_mix_ratios ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: audio_recommended_combos; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.audio_recommended_combos ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: audio_sets; Type: ROW SECURITY; Schema: public; Owner: -
@@ -15399,6 +16823,12 @@ ALTER TABLE public.daily_papers ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.email_messages ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: email_templates; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.email_templates ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: emotional_snapshots; Type: ROW SECURITY; Schema: public; Owner: -
@@ -15479,6 +16909,12 @@ ALTER TABLE public.intensive_checklist ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.intensive_purchases ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: intensive_responses; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.intensive_responses ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: journal_entries; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -15509,16 +16945,16 @@ ALTER TABLE public.marketing_campaigns ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.media_metadata ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: member_profiles; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.member_profiles ENABLE ROW LEVEL SECURITY;
-
---
 -- Name: membership_tiers; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.membership_tiers ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: message_send_log; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.message_send_log ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: ai_action_token_overrides overrides_modify; Type: POLICY; Schema: public; Owner: -
@@ -15541,18 +16977,6 @@ CREATE POLICY overrides_select ON public.ai_action_token_overrides FOR SELECT TO
 ALTER TABLE public.payment_history ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: profile_versions; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.profile_versions ENABLE ROW LEVEL SECURITY;
-
---
--- Name: profiles; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-
---
 -- Name: refinements; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -15565,10 +16989,22 @@ ALTER TABLE public.refinements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.scenes ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: scheduled_messages; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.scheduled_messages ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: sms_messages; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.sms_messages ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: sms_templates; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.sms_templates ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: support_ticket_replies; Type: ROW SECURITY; Schema: public; Owner: -
@@ -15593,6 +17029,12 @@ ALTER TABLE public.token_transactions ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.token_usage ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: user_accounts; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.user_accounts ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: user_activity_metrics; Type: ROW SECURITY; Schema: public; Owner: -
@@ -15635,6 +17077,80 @@ ALTER TABLE public.vibrational_links ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.video_mapping ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: video_session_messages video_messages_session_access; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY video_messages_session_access ON public.video_session_messages USING ((EXISTS ( SELECT 1
+   FROM public.video_sessions vs
+  WHERE ((vs.id = video_session_messages.session_id) AND (vs.host_user_id = auth.uid())))));
+
+
+--
+-- Name: video_session_participants video_participants_host_manage; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY video_participants_host_manage ON public.video_session_participants USING ((EXISTS ( SELECT 1
+   FROM public.video_sessions vs
+  WHERE ((vs.id = video_session_participants.session_id) AND (vs.host_user_id = auth.uid()))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM public.video_sessions vs
+  WHERE ((vs.id = video_session_participants.session_id) AND (vs.host_user_id = auth.uid())))));
+
+
+--
+-- Name: video_session_participants video_participants_view_own; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY video_participants_view_own ON public.video_session_participants FOR SELECT USING ((user_id = auth.uid()));
+
+
+--
+-- Name: video_session_recordings video_recordings_host_manage; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY video_recordings_host_manage ON public.video_session_recordings USING ((EXISTS ( SELECT 1
+   FROM public.video_sessions vs
+  WHERE ((vs.id = video_session_recordings.session_id) AND (vs.host_user_id = auth.uid())))));
+
+
+--
+-- Name: video_session_messages; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.video_session_messages ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: video_session_participants; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.video_session_participants ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: video_session_recordings; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.video_session_recordings ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: video_sessions; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.video_sessions ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: video_sessions video_sessions_host_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY video_sessions_host_all ON public.video_sessions USING ((host_user_id = auth.uid())) WITH CHECK ((host_user_id = auth.uid()));
+
+
+--
+-- Name: video_sessions video_sessions_participant_view; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY video_sessions_participant_view ON public.video_sessions FOR SELECT USING ((id IN ( SELECT public.get_user_session_ids(auth.uid()) AS get_user_session_ids)));
+
 
 --
 -- Name: vision_board_ideas; Type: ROW SECURITY; Schema: public; Owner: -
@@ -15996,5 +17512,5 @@ CREATE EVENT TRIGGER pgrst_drop_watch ON sql_drop
 -- PostgreSQL database dump complete
 --
 
-\unrestrict Esd8UBNylbIkYdv83vRDweV8CVRgpVlAO34wwvSDlIH1ckZAoZ3lQ3XdORdKBsk
+\unrestrict 7xaTMl2NTJevmPlTtR8djfiVPOObwPdk6aorL7N8VnpLMNZHMELDh0K59MTSNtE
 
