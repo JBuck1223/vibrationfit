@@ -475,6 +475,17 @@ export default function HomePage() {
           </Cover>
         </section>
 
+        {/* Quote Block Section */}
+        <section>
+          <Container size="xl">
+            <div className="border-l-2 border-[#39FF14] bg-[#39FF14]/5 rounded-r-2xl p-6 md:p-8">
+              <Text size="lg" className="text-neutral-200 italic">
+                Vibrational fitness is your system for conscious creation—so 'thoughts become things' stops being random and starts being repeatable.
+              </Text>
+            </div>
+          </Container>
+        </section>
+
         {/* Two Column Section with Item List Card */}
         <section>
           <Container size="xl">
@@ -1305,6 +1316,74 @@ export default function HomePage() {
                 cardVariant="elevated"
               />
             </Card>
+          </Container>
+        </section>
+
+        {/* Why This Works Section */}
+        <section>
+          <Container size="xl">
+            <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
+              <Stack gap="lg" className="md:gap-10">
+                <div className="text-center">
+                  <Heading level={2} className="text-white">
+                    Why This Works (Even If You've Tried Before)
+                  </Heading>
+                </div>
+                
+                <Grid responsiveCols={{ mobile: 1, tablet: 2, desktop: 4 }} gap="lg">
+                  <FeatureCard 
+                    icon={Target} 
+                    title={<span className="text-[#39FF14]">Total Clarity</span>}
+                    iconColor="#39FF14"
+                    variant="elevated"
+                    className="!bg-[#39FF14]/10 !border-[#39FF14]/30"
+                  >
+                    Activate your Life Vision in 72 hours. You leave the Intensive with a complete 12‑category Life Vision, AM/PM Vision Audios, a 12‑image Vision Board, 3 journal entries, your Calibration Call booked, and your Activation Protocol scheduled.
+                  </FeatureCard>
+
+                  <FeatureCard 
+                    icon={TrendingUp} 
+                    title={<span className="text-[#00FFFF]">Proven System</span>}
+                    iconColor="#00FFFF"
+                    variant="elevated"
+                    className="!bg-[#00FFFF]/10 !border-[#00FFFF]/30"
+                  >
+                    Vibrational fitness is your system for conscious creation. Instead of "trying to manifest," you follow a simple structure: Train → Tune → Track, powered by VIVA's 4‑Layer Writing Architecture and 5‑Phase Flow across all 12 life categories.
+                  </FeatureCard>
+
+                  <FeatureCard 
+                    icon={Clock} 
+                    title={<span className="text-[#BF00FF]">72‑Hour Activation</span>}
+                    iconColor="#BF00FF"
+                    variant="elevated"
+                    className="!bg-[#BF00FF]/10 !border-[#BF00FF]/30"
+                  >
+                    You don't wait months to feel it working. In the first 72 hours you see concrete outputs on your dashboard: profile + assessment done, vision drafted and refined, audio and board created, journals logged, protocol and call scheduled.
+                  </FeatureCard>
+
+                  <FeatureCard 
+                    icon={CheckCircle} 
+                    title={<span className="text-[#FFFF00]">No Guesswork, Just Reps</span>}
+                    iconColor="#FFFF00"
+                    variant="elevated"
+                    className="!bg-[#FFFF00]/10 !border-[#FFFF00]/30"
+                  >
+                    VIVA asks, you answer. Prompts, checklists, and the Activation Protocol tell you exactly what to do next—so staying aligned becomes a set of simple daily reps, not a mysterious practice you have to invent.
+                  </FeatureCard>
+                </Grid>
+
+                <div className="text-center">
+                  <Button variant="primary" size="xl" asChild>
+                    <a href="#pricing">
+                      Start the Activation Intensive
+                    </a>
+                  </Button>
+                  <Text size="xs" className="text-neutral-400 text-center mt-2">
+                    $499 today. Includes 8 weeks of Vision Pro. Day 56: auto‑continue at your selected plan.
+                  </Text>
+                </div>
+              </Stack>
+            </div>
           </Container>
         </section>
 
@@ -2304,8 +2383,8 @@ export default function HomePage() {
                   <Text size="lg" className="text-neutral-200 max-w-3xl mx-auto">
                     Structure beats "trying." Follow a simple path—Train → Tune → Track—to go from no idea to an activated Life Vision in 72 hours.
                   </Text>
-                  <Text size="sm" className="text-neutral-300 uppercase tracking-wide max-w-3xl mx-auto">
-                    Vibrational fitness = training your vibration to attract the life you choose through structure, not guesswork.
+                  <Text size="sm" className="text-neutral-300 tracking-wide max-w-3xl mx-auto">
+                    <strong>Vibrational fitness is your system for conscious creation.</strong> It's doing the reps that keep you aligned with your Life Vision—so your outer world naturally begins to reflect it, again and again and again.
                   </Text>
                 </div>
 
@@ -2594,7 +2673,7 @@ export default function HomePage() {
                 {
                   id: 'what-is-vibrational-fitness',
                   title: 'What is Vibrational Fitness?',
-                  description: 'The skill of training your vibration to attract the life you choose using a repeatable system—Train → Tune → Track—so progress is visible (checklists, artifacts, streaks), not hypothetical.'
+                  description: 'Vibrational fitness is your system for conscious creation. It’s the practice of using a repeatable structure—Train → Tune → Track—to stay aligned with your Life Vision so your outer world naturally starts to reflect it.'
                 },
                 {
                   id: 'switch-cancel',

@@ -104,7 +104,7 @@ export interface UserProfile {
     year_acquired?: string | null
     ownership_status: 'paid_in_full' | 'own_with_payment' | 'leased' | 'borrowed'
   }> | null
-  toys?: Array<{
+  items?: Array<{
     name: string
     year_acquired?: string | null
     ownership_status: 'paid_in_full' | 'own_with_payment' | 'leased' | 'borrowed'

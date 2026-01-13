@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { calculateProfileCompletion } from '@/lib/utils/profile-completion'
 
-// Account-level fields that should be stored in user_accounts table
-const ACCOUNT_FIELDS = ['first_name', 'last_name', 'email', 'phone', 'profile_picture_url', 'date_of_birth']
+// Account-level fields that should be stored in user_accounts table (or computed from it)
+const ACCOUNT_FIELDS = ['first_name', 'last_name', 'full_name', 'email', 'phone', 'profile_picture_url', 'date_of_birth']
 
 // Helper function to separate account-level fields from profile fields
 function separateAccountFields(data: any): { accountData: any, profileData: any } {
@@ -15,7 +15,8 @@ function separateAccountFields(data: any): { accountData: any, profileData: any 
   for (const field of ACCOUNT_FIELDS) {
     if (field in data) {
       accountData[field] = data[field]
-      // Keep in profileData for backward compatibility, but user_accounts is source of truth
+      // Remove from profileData since it goes to user_accounts table
+      delete profileData[field]
     }
   }
   
@@ -915,16 +916,23 @@ export async function PUT(request: NextRequest) {
       const { id, version_number, is_draft, is_active, parent_version_id, created_at, updated_at, ...safeFieldUpdates } = fieldUpdates
 
       // Separate and save account-level fields to user_accounts
-      const { accountData } = separateAccountFields(safeFieldUpdates)
+      const { accountData, profileData } = separateAccountFields(safeFieldUpdates)
+      console.log('Profile API PUT: Separated fields:', {
+        accountFields: Object.keys(accountData),
+        profileFields: Object.keys(profileData),
+        hasVehicles: !!profileData.vehicles,
+        hasItems: !!profileData.items
+      })
+      
       if (Object.keys(accountData).length > 0) {
         await updateUserAccount(supabase, user.id, accountData)
       }
 
-      // Update the user profile with the specific fields
+      // Update the user profile with only profile-level fields (account fields removed)
       const { data: profile, error: profileError } = await supabase
         .from('user_profiles')
         .update({
-          ...safeFieldUpdates,
+          ...profileData,
           updated_at: new Date().toISOString()
         })
         .eq('id', profileToUpdate.id)
