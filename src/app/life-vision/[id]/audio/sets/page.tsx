@@ -100,6 +100,7 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
 
     // Check mix status for each set
     const setsWithStatus = await Promise.all((sets || []).map(async (set: any) => {
+      // Check status
       const { data: tracks } = await supabase
         .from('audio_tracks')
         .select('mix_status, status')
@@ -181,11 +182,24 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
 
     setAudioSets(setsWithStatus)
     
-    // Auto-select first ready audio set
-    const firstReadySet = setsWithStatus.find(s => s.isReady)
-    if (firstReadySet) {
-      setSelectedAudioSetId(firstReadySet.id)
-      await loadAudioTracks(firstReadySet.id)
+    // Check for saved selection in localStorage
+    const savedSelectionKey = `audioSetSelection_${visionId}`
+    const savedSelection = localStorage.getItem(savedSelectionKey)
+    
+    // Try to use saved selection if it exists and is ready
+    let selectedSet = null
+    if (savedSelection) {
+      selectedSet = setsWithStatus.find(s => s.id === savedSelection && s.isReady)
+    }
+    
+    // Fall back to first ready set if no saved selection or saved set not available
+    if (!selectedSet) {
+      selectedSet = setsWithStatus.find(s => s.isReady)
+    }
+    
+    if (selectedSet) {
+      setSelectedAudioSetId(selectedSet.id)
+      await loadAudioTracks(selectedSet.id)
     }
     
     setLoading(false)
@@ -323,6 +337,15 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
           if (remainingSets.length > 0) {
             setSelectedAudioSetId(remainingSets[0].id)
             await loadAudioTracks(remainingSets[0].id)
+            // Update localStorage with new selection
+            if (visionId) {
+              localStorage.setItem(`audioSetSelection_${visionId}`, remainingSets[0].id)
+            }
+          } else {
+            // No more sets, clear localStorage
+            if (visionId) {
+              localStorage.removeItem(`audioSetSelection_${visionId}`)
+            }
           }
         }
       }
@@ -338,6 +361,11 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
   const handleSelectSet = async (setId: string) => {
     setSelectedAudioSetId(setId)
     await loadAudioTracks(setId)
+    
+    // Save selection to localStorage
+    if (visionId) {
+      localStorage.setItem(`audioSetSelection_${visionId}`, setId)
+    }
   }
 
   const handleStartEdit = (setId: string, currentName: string, e?: React.MouseEvent) => {
@@ -711,7 +739,13 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
                       onClick={() => setIsDropdownOpen(false)}
                     />
                     <div className="absolute z-20 w-full mt-2 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-[60vh] overflow-y-auto">
-                      {audioSets.map((set) => (
+                      {[...audioSets].sort((a, b) => {
+                        // Pin currently playing set to top
+                        if (a.id === selectedAudioSetId) return -1
+                        if (b.id === selectedAudioSetId) return 1
+                        // Otherwise maintain original order (by created_at desc)
+                        return 0
+                      }).map((set) => (
                         <div
                           key={set.id}
                           onClick={() => {
@@ -720,9 +754,9 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
                               setIsDropdownOpen(false)
                             }
                           }}
-                          className={`px-4 py-3 hover:bg-[#2A2A2A] cursor-pointer transition-colors border-b border-[#333] last:border-b-0 ${
+                          className={`px-4 py-3 transition-colors border-b border-[#333] last:border-b-0 ${
                             selectedAudioSetId === set.id ? 'bg-primary-500/10' : ''
-                          }`}
+                          } ${set.isReady ? 'hover:bg-[#2A2A2A] cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
                         >
                           <div className="flex items-start gap-4">
                             {/* Icon */}
@@ -733,14 +767,15 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
                             {/* Content */}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between mb-2">
-                                <h4 className="font-semibold text-white">
+                                <h4 className="font-semibold text-white pr-2">
                                   {set.name && !set.name.includes('Version') && !set.name.includes(':') 
                                     ? set.name 
                                     : getVariantDisplayInfo(set).title}
                                 </h4>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  {/* Playing Badge - Desktop Only (in header row) */}
                                   {selectedAudioSetId === set.id && (
-                                    <div className="flex items-center gap-1 px-2 py-0.5 bg-primary-500 text-black text-xs font-semibold rounded-full">
+                                    <div className="hidden md:flex items-center gap-1 px-2 py-0.5 bg-primary-500 text-black text-xs font-semibold rounded-full">
                                       <Play className="w-3 h-3" fill="currentColor" />
                                       <span>Playing</span>
                                     </div>
@@ -758,6 +793,14 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
                                 </div>
                               </div>
                               
+                              {/* Playing Badge - Mobile Only (below title) */}
+                              {selectedAudioSetId === set.id && (
+                                <div className="flex md:hidden items-center gap-1 px-2 py-0.5 bg-primary-500 text-black text-xs font-semibold rounded-full mb-2 w-fit">
+                                  <Play className="w-3 h-3" fill="currentColor" />
+                                  <span>Playing</span>
+                                </div>
+                              )}
+                              
                               <div className="space-y-1 text-xs text-neutral-400">
                                 <div>
                                   <span className="text-neutral-500">Voice:</span> {set.variant === 'personal' ? 'Personal Recording' : getVoiceDisplayName(set.voice_id)}
@@ -770,11 +813,11 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
                                 {set.mixRatio && (
                                   <div>
                                     <span className="text-neutral-500">Ratio:</span>{' '}
-                                    <span className="text-primary-400 font-semibold">
+                                    <span className="text-primary-400">
                                       {(() => {
                                         const ratioMatch = set.mixRatio.match(/(\d+)%\s*\/\s*(\d+)%/)
                                         if (ratioMatch) {
-                                          return `${ratioMatch[1]}% / ${ratioMatch[2]}%`
+                                          return `${ratioMatch[1]}% Voice / ${ratioMatch[2]}% Background`
                                         }
                                         return set.mixRatio
                                       })()}
@@ -795,57 +838,6 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
                   </>
                 )}
               </div>
-
-              {/* Edit Name Button */}
-              {selectedAudioSetId && (
-                <div className="flex justify-center mt-4">
-                  {editingSetId === selectedAudioSetId ? (
-                    <div className="flex items-center gap-2">
-                      <Input
-                        value={editingName}
-                        onChange={(e) => setEditingName(e.target.value)}
-                        className="max-w-xs"
-                        autoFocus
-                        placeholder="Enter custom name"
-                      />
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => handleSaveName(selectedAudioSetId)}
-                      >
-                        <Check className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleCancelEdit}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        const selectedSet = audioSets.find(s => s.id === selectedAudioSetId)
-                        if (selectedSet) {
-                          handleStartEdit(
-                            selectedSet.id,
-                            selectedSet.name && !selectedSet.name.includes('Version') && !selectedSet.name.includes(':')
-                              ? selectedSet.name
-                              : getVariantDisplayInfo(selectedSet).title
-                          )
-                        }
-                      }}
-                      className="text-neutral-400 hover:text-white"
-                    >
-                      <Edit2 className="w-4 h-4 mr-2" />
-                      Rename Audio Set
-                    </Button>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* Audio Player */}
@@ -914,8 +906,48 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
                                 // Otherwise fall back to variant display info
                                 return getVariantDisplayInfo(selectedSet).title
                               })()}
+                              voiceName={(() => {
+                                const selectedSet = audioSets.find(s => s.id === selectedAudioSetId)
+                                if (!selectedSet) return undefined
+                                return selectedSet.variant === 'personal' 
+                                  ? 'Personal Recording' 
+                                  : getVoiceDisplayName(selectedSet.voice_id)
+                              })()}
+                              backgroundTrack={(() => {
+                                const selectedSet = audioSets.find(s => s.id === selectedAudioSetId)
+                                return selectedSet?.backgroundTrack
+                              })()}
+                              mixRatio={(() => {
+                                const selectedSet = audioSets.find(s => s.id === selectedAudioSetId)
+                                if (!selectedSet?.mixRatio) return undefined
+                                const ratioMatch = selectedSet.mixRatio.match(/(\d+)%\s*\/\s*(\d+)%/)
+                                if (ratioMatch) {
+                                  return `${ratioMatch[1]}% Voice / ${ratioMatch[2]}% Background`
+                                }
+                                return selectedSet.mixRatio
+                              })()}
                               trackCount={displayTracks.length}
                               createdDate={new Date(audioSets.find(s => s.id === selectedAudioSetId)?.created_at || '').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              onRename={async (newName: string) => {
+                                const selectedSet = audioSets.find(s => s.id === selectedAudioSetId)
+                                if (!selectedSet) return
+                                
+                                const supabase = createClient()
+                                try {
+                                  const { error } = await supabase
+                                    .from('audio_sets')
+                                    .update({ name: newName })
+                                    .eq('id', selectedSet.id)
+                                  
+                                  if (error) throw error
+                                  
+                                  // Update local state
+                                  setAudioSets(audioSets.map(s => s.id === selectedSet.id ? { ...s, name: newName } : s))
+                                } catch (error) {
+                                  console.error('Error updating audio set name:', error)
+                                  alert('Failed to update name. Please try again.')
+                                }
+                              }}
                             />
                           </>
                         )
