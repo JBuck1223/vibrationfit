@@ -2304,8 +2304,8 @@ export default function HomePage() {
                   <Text size="lg" className="text-neutral-200 max-w-3xl mx-auto">
                     Structure beats "trying." Follow a simple path—Train → Tune → Track—to go from no idea to an activated Life Vision in 72 hours.
                   </Text>
-                  <Text size="sm" className="text-neutral-300 uppercase tracking-wide max-w-3xl mx-auto">
-                    Vibrational fitness = training your vibration to attract the life you choose through structure, not guesswork.
+                  <Text size="sm" className="text-neutral-300 tracking-wide max-w-3xl mx-auto">
+                    <strong>Vibrational fitness is your system for conscious creation.</strong> It's doing the reps that keep you aligned with your Life Vision—so your outer world naturally begins to reflect it, again and again and again.
                   </Text>
                 </div>
 
