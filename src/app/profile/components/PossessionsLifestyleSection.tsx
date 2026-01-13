@@ -28,10 +28,10 @@ type VehicleOrToy = {
 export function PossessionsLifestyleSection({ profile, onProfileChange, onProfileReload, profileId, onSave, isSaving, hasUnsavedChanges = false }: PossessionsLifestyleSectionProps) {
   const [isLifestyleCategoryDropdownOpen, setIsLifestyleCategoryDropdownOpen] = useState(false)
   const [openVehicleDropdowns, setOpenVehicleDropdowns] = useState<Map<number, boolean>>(new Map())
-  const [openToyDropdowns, setOpenToyDropdowns] = useState<Map<number, boolean>>(new Map())
+  const [openItemDropdowns, setOpenItemDropdowns] = useState<Map<number, boolean>>(new Map())
   const lifestyleCategoryDropdownRef = useRef<HTMLDivElement>(null)
   const vehicleDropdownRefs = useRef<Map<number, HTMLDivElement>>(new Map())
-  const toyDropdownRefs = useRef<Map<number, HTMLDivElement>>(new Map())
+  const itemDropdownRefs = useRef<Map<number, HTMLDivElement>>(new Map())
 
   const lifestyleCategoryOptions = [
     { value: '', label: 'Select category...' },
@@ -66,10 +66,10 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
         }
       })
       
-      // Check toy dropdowns
-      toyDropdownRefs.current.forEach((ref, index) => {
+      // Check item dropdowns
+      itemDropdownRefs.current.forEach((ref, index) => {
         if (ref && !ref.contains(event.target as Node)) {
-          setOpenToyDropdowns(prev => {
+          setOpenItemDropdowns(prev => {
             const next = new Map(prev)
             next.set(index, false)
             return next
@@ -78,22 +78,22 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
       })
     }
 
-    if (isLifestyleCategoryDropdownOpen || openVehicleDropdowns.size > 0 || openToyDropdowns.size > 0) {
+    if (isLifestyleCategoryDropdownOpen || openVehicleDropdowns.size > 0 || openItemDropdowns.size > 0) {
       document.addEventListener('mousedown', handleClickOutside)
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [isLifestyleCategoryDropdownOpen, openVehicleDropdowns, openToyDropdowns])
+  }, [isLifestyleCategoryDropdownOpen, openVehicleDropdowns, openItemDropdowns])
 
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
   }
 
-  // Initialize vehicles and toys arrays
+  // Initialize vehicles and items arrays
   const vehicles: VehicleOrToy[] = profile.vehicles || []
-  const toys: VehicleOrToy[] = profile.toys || []
+  const items: VehicleOrToy[] = profile.items || []
 
   const handleVehicleChange = (index: number, field: keyof VehicleOrToy, value: string) => {
     const updated = [...vehicles]
@@ -115,24 +115,24 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
     handleInputChange('vehicles', updated)
   }
 
-  const handleToyChange = (index: number, field: keyof VehicleOrToy, value: string) => {
-    const updated = [...toys]
+  const handleItemChange = (index: number, field: keyof VehicleOrToy, value: string) => {
+    const updated = [...items]
     updated[index] = { ...updated[index], [field]: value }
-    handleInputChange('toys', updated)
+    handleInputChange('items', updated)
   }
 
-  const handleToyAdd = () => {
-    const newToy: VehicleOrToy = {
+  const handleItemAdd = () => {
+    const newItem: VehicleOrToy = {
       name: '',
       year_acquired: null,
       ownership_status: 'paid_in_full'
     }
-    handleInputChange('toys', [...toys, newToy])
+    handleInputChange('items', [...items, newItem])
   }
 
-  const handleToyRemove = (index: number) => {
-    const updated = toys.filter((_, i) => i !== index)
-    handleInputChange('toys', updated)
+  const handleItemRemove = (index: number) => {
+    const updated = items.filter((_, i) => i !== index)
+    handleInputChange('items', updated)
   }
 
   const handleRecordingSaved = async (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => {
@@ -398,32 +398,32 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
             )}
           </div>
 
-        {/* Toys Table */}
+        {/* Items Table */}
         <div className="bg-neutral-800/50 rounded-lg border border-neutral-700 p-4">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h4 className="text-sm font-semibold text-white mb-1">Toys</h4>
+              <h4 className="text-sm font-semibold text-white mb-1">Items</h4>
               <p className="text-xs text-neutral-400">
                 RVs, Boats, Trampolines, or any recreational items you want to list
               </p>
             </div>
             <button
               type="button"
-              onClick={handleToyAdd}
+              onClick={handleItemAdd}
               className="flex items-center gap-2 px-3 py-1.5 bg-[rgba(57,255,20,0.1)] text-[#39FF14] border-2 border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.2)] active:opacity-80 rounded-lg transition-colors text-sm font-medium"
             >
               <Plus className="w-4 h-4" />
-              Add Toy
+              Add Item
             </button>
           </div>
 
-          {toys.length === 0 ? (
+          {items.length === 0 ? (
             <p className="text-sm text-neutral-400 text-center py-4">
-              Click "Add Toy" to add your first recreational item
+              Click "Add Item" to add your first recreational item
             </p>
           ) : (
             <div className="space-y-3">
-              {toys.map((toy, index) => (
+              {items.map((item, index) => (
                 <div
                   key={index}
                   className="rounded-lg border-2 p-4 space-y-3"
@@ -433,12 +433,12 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
                   }}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-neutral-300 uppercase">Toy {index + 1}</span>
+                    <span className="text-sm font-medium text-neutral-300 uppercase">Item {index + 1}</span>
                     <button
                       type="button"
-                      onClick={() => handleToyRemove(index)}
+                      onClick={() => handleItemRemove(index)}
                       className="text-neutral-400 hover:text-red-400 transition-colors"
-                      title="Remove toy"
+                      title="Remove item"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -451,8 +451,8 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
                       </label>
                       <Input
                         type="text"
-                        value={toy.name || ''}
-                        onChange={(e) => handleToyChange(index, 'name', e.target.value)}
+                        value={item.name || ''}
+                        onChange={(e) => handleItemChange(index, 'name', e.target.value)}
                         placeholder="e.g., RV, Boat, Trampoline"
                         className="w-full text-sm"
                       />
@@ -464,8 +464,8 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
                       </label>
                       <Input
                         type="text"
-                        value={toy.year_acquired || ''}
-                        onChange={(e) => handleToyChange(index, 'year_acquired', e.target.value)}
+                        value={item.year_acquired || ''}
+                        onChange={(e) => handleItemChange(index, 'year_acquired', e.target.value)}
                         placeholder="e.g., 2020"
                         className="w-full text-sm"
                       />
@@ -478,14 +478,14 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
                       <div 
                         className="relative" 
                         ref={(el) => {
-                          if (el) toyDropdownRefs.current.set(index, el)
-                          else toyDropdownRefs.current.delete(index)
+                          if (el) itemDropdownRefs.current.set(index, el)
+                          else itemDropdownRefs.current.delete(index)
                         }}
                       >
                         <button
                           type="button"
                           onClick={() => {
-                            setOpenToyDropdowns(prev => {
+                            setOpenItemDropdowns(prev => {
                               const next = new Map(prev)
                               next.set(index, !next.get(index))
                               return next
@@ -493,20 +493,20 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
                           }}
                           className="w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] text-white text-sm border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left"
                         >
-                          {ownershipStatusOptions.find(opt => opt.value === (toy.ownership_status || 'paid_in_full'))?.label || 'Paid In Full'}
+                          {ownershipStatusOptions.find(opt => opt.value === (item.ownership_status || 'paid_in_full'))?.label || 'Paid In Full'}
                         </button>
                         <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
-                          <svg className={`w-4 h-4 text-neutral-400 transition-transform ${openToyDropdowns.get(index) ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className={`w-4 h-4 text-neutral-400 transition-transform ${openItemDropdowns.get(index) ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                           </svg>
                         </div>
                         
-                        {openToyDropdowns.get(index) && (
+                        {openItemDropdowns.get(index) && (
                           <>
                             <div 
                               className="fixed inset-0 z-10" 
                               onClick={() => {
-                                setOpenToyDropdowns(prev => {
+                                setOpenItemDropdowns(prev => {
                                   const next = new Map(prev)
                                   next.set(index, false)
                                   return next
@@ -519,15 +519,15 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
                                   key={option.value}
                                   type="button"
                                   onClick={() => {
-                                    handleToyChange(index, 'ownership_status', option.value as VehicleOrToy['ownership_status'])
-                                    setOpenToyDropdowns(prev => {
+                                    handleItemChange(index, 'ownership_status', option.value as VehicleOrToy['ownership_status'])
+                                    setOpenItemDropdowns(prev => {
                                       const next = new Map(prev)
                                       next.set(index, false)
                                       return next
                                     })
                                   }}
                                   className={`w-full px-6 py-2 text-left transition-colors ${
-                                    (toy.ownership_status || 'paid_in_full') === option.value 
+                                    (item.ownership_status || 'paid_in_full') === option.value 
                                       ? 'bg-primary-500/20 text-primary-500 font-semibold' 
                                       : 'text-white hover:bg-[#333]'
                                   }`}

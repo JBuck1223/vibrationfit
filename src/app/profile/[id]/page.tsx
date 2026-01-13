@@ -1379,10 +1379,10 @@ export default function ProfileDetailPage() {
               </div>
             )}
 
-            {/* Toys Table */}
-            {profile.toys && profile.toys.length > 0 && (
+            {/* Items Table */}
+            {profile.items && profile.items.length > 0 && (
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-neutral-300">Toys</label>
+                <label className="block text-sm font-medium text-neutral-300">Items</label>
                 <div className="bg-neutral-800/50 rounded-lg border border-neutral-700 overflow-hidden">
                   <table className="w-full">
                     <thead className="bg-neutral-900/50 border-b border-neutral-700">
@@ -1393,16 +1393,16 @@ export default function ProfileDetailPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {profile.toys.map((toy: any, index: number) => (
+                      {profile.items.map((item: any, index: number) => (
                         <tr key={index} className="border-b border-neutral-700/50 last:border-0">
-                          <td className="px-4 py-2 text-sm text-white">{toy.name || 'Not specified'}</td>
-                          <td className="px-4 py-2 text-sm text-neutral-300">{toy.year_acquired || 'Not specified'}</td>
+                          <td className="px-4 py-2 text-sm text-white">{item.name || 'Not specified'}</td>
+                          <td className="px-4 py-2 text-sm text-neutral-300">{item.year_acquired || 'Not specified'}</td>
                           <td className="px-4 py-2 text-sm text-neutral-300">
-                            {toy.ownership_status === 'paid_in_full' && 'Paid In Full'}
-                            {toy.ownership_status === 'own_with_payment' && 'Own with a payment'}
-                            {toy.ownership_status === 'leased' && 'Leased'}
-                            {toy.ownership_status === 'borrowed' && 'Borrowed'}
-                            {!toy.ownership_status && 'Not specified'}
+                            {item.ownership_status === 'paid_in_full' && 'Paid In Full'}
+                            {item.ownership_status === 'own_with_payment' && 'Own with a payment'}
+                            {item.ownership_status === 'leased' && 'Leased'}
+                            {item.ownership_status === 'borrowed' && 'Borrowed'}
+                            {!item.ownership_status && 'Not specified'}
                           </td>
                         </tr>
                       ))}

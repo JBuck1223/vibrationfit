@@ -422,18 +422,31 @@ export default function ProfileEditPage() {
     }
   }
 
-  // Auto-save function
+  // Manual save function
   const saveProfile = useCallback(async (profileData: Partial<UserProfile>) => {
     setIsSaving(true)
     setSaveStatus('saving')
 
     try {
-      const response = await fetch('/api/profile', {
-        method: 'POST',
+      console.log('💾 Saving profile data:', { 
+        profileId, 
+        hasVehicles: !!profileData.vehicles?.length,
+        hasItems: !!profileData.items?.length,
+        vehiclesCount: profileData.vehicles?.length || 0,
+        itemsCount: profileData.items?.length || 0
+      })
+      
+      // Use PUT method to update the specific profile being edited
+      const apiUrl = profileId 
+        ? `/api/profile?profileId=${profileId}`
+        : '/api/profile'
+      
+      const response = await fetch(apiUrl, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ profileData }),
+        body: JSON.stringify(profileData),
       })
 
       if (!response.ok) {
@@ -443,23 +456,19 @@ export default function ProfileEditPage() {
       }
 
       const data = await response.json()
-      console.log('Profile save response:', data)
-      console.log('Setting profile to:', data.profile)
+      console.log('✅ Profile save response:', {
+        hasProfile: !!data.profile,
+        hasVehicles: !!data.profile?.vehicles?.length,
+        hasItems: !!data.profile?.items?.length,
+        vehiclesCount: data.profile?.vehicles?.length || 0,
+        itemsCount: data.profile?.items?.length || 0
+      })
       
       // Only update profile if the save was successful and returned valid data
       if (data.profile && Object.keys(data.profile).length > 0) {
-        // Preserve the current profile picture URL if the API doesn't return it
-        const currentProfilePicture = profile.profile_picture_url
-        const updatedProfile = {
-          ...data.profile,
-          profile_picture_url: data.profile.profile_picture_url || currentProfilePicture
-        }
-        
-        setProfile(updatedProfile)
-        // Completion percentage will be recalculated automatically via useEffect when profile updates
+        setProfile(data.profile)
       } else {
         console.log('Profile save failed or returned empty data, keeping current local state')
-        // Completion percentage will be recalculated automatically via useEffect
       }
       setSaveStatus('saved')
       setLastSaved(new Date())
@@ -477,7 +486,7 @@ export default function ProfileEditPage() {
     } finally {
       setIsSaving(false)
     }
-  }, [])
+  }, [profileId])
 
   // Manual save only - no auto-save
   const handleProfileChange = useCallback((updates: Partial<UserProfile>) => {
@@ -595,6 +604,12 @@ export default function ProfileEditPage() {
   }
 
   const handleManualSave = async () => {
+    console.log('🔵 handleManualSave called with profile:', {
+      hasVehicles: !!profile.vehicles?.length,
+      hasItems: !!profile.items?.length,
+      vehiclesCount: profile.vehicles?.length || 0,
+      itemsCount: profile.items?.length || 0
+    })
     await saveProfile(profile)
   }
 

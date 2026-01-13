@@ -200,7 +200,7 @@ export function getChangedFields(
     // Structured fields
     'hobbies', 'leisure_time_weekly', 'travel_frequency', 'passport', 'countries_visited',
     'trips', 'close_friends_count', 'social_preference', 'lifestyle_category', 'vehicles',
-    'toys', 'spiritual_practice', 'meditation_frequency', 'personal_growth_focus',
+    'items', 'spiritual_practice', 'meditation_frequency', 'personal_growth_focus',
     'volunteer_status', 'charitable_giving', 'legacy_mindset',
     
     // Media
@@ -344,7 +344,7 @@ export function getChangedSections(
     
     lifestyle_category: 'stuff',
     vehicles: 'stuff',
-    toys: 'stuff',
+    items: 'stuff',
     clarity_stuff: 'stuff',
     contrast_stuff: 'stuff',
     
@@ -493,9 +493,9 @@ export function getRefinedSections(draft: Partial<UserProfile>): string[] {
     // Stuff
     'lifestyle_category': 'stuff',
     'vehicles': 'stuff',
-    'toys': 'stuff',
-    'clarity_stuff': 'stuff', 
-    'contrast_stuff': 'stuff', 
+    'items': 'stuff',
+    'clarity_stuff': 'stuff',
+    'contrast_stuff': 'stuff',
     
     // Spirituality
     'spiritual_practice': 'spirituality', 
