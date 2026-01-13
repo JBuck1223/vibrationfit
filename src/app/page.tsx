@@ -478,7 +478,7 @@ export default function HomePage() {
         {/* Quote Block Section */}
         <section>
           <Container size="lg">
-            <div className="border-l-4 border-[#39FF14] bg-[#39FF14]/5 rounded-r-2xl p-6 md:p-8">
+            <div className="border-l-2 border-[#39FF14] bg-[#39FF14]/5 rounded-r-2xl p-6 md:p-8">
               <Text size="lg" className="text-neutral-200 italic">
                 Vibrational fitness is your system for conscious creation—so 'thoughts become things' stops being random and starts being repeatable.
               </Text>
