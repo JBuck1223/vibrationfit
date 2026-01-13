@@ -1807,6 +1807,17 @@ export default function ProfileDetailPage() {
                 )}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Full Name - from user_accounts (computed column) */}
+                <div className="flex items-center gap-3">
+                  <div>
+                    <p className="text-sm text-neutral-400">Full Name</p>
+                    <p className="text-white font-medium">
+                      {(profile.first_name || profile.last_name 
+                        ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() 
+                        : 'Not specified')}
+                    </p>
+                  </div>
+                </div>
                 <ProfileField
                   label="Email"
                   value={editedFields.email !== undefined ? editedFields.email : profile.email}
@@ -1816,21 +1827,21 @@ export default function ProfileDetailPage() {
                   type="text"
                 />
                 <ProfileField
-                  label="Date of Birth"
+                  label="Phone"
+                  value={editedFields.phone !== undefined ? formatPhoneNumber(editedFields.phone) : formatPhoneNumber(profile.phone)}
+                  editable={editingSection === 'personal'}
+                  fieldKey="phone"
+                  onSave={handleFieldChange}
+                  type="text"
+                />
+                <ProfileField
+                  label="Birthday"
                   value={editedFields.date_of_birth !== undefined ? formatDateOfBirth(editedFields.date_of_birth) : formatDateOfBirth(profile.date_of_birth)}
                   editable={editingSection === 'personal'}
                   fieldKey="date_of_birth"
                   onSave={handleFieldChange}
                   type="text"
                 />
-                <div className="flex items-center gap-3">
-                  <div>
-                    <p className="text-sm text-neutral-400">Age</p>
-                    <p className="text-white font-medium">
-                      {profile.date_of_birth ? formatAge(profile.date_of_birth) : 'Not specified'}
-                    </p>
-                  </div>
-                </div>
                 <ProfileField
                   label="Gender"
                   value={editedFields.gender !== undefined ? editedFields.gender : profile.gender}
@@ -1843,14 +1854,6 @@ export default function ProfileDetailPage() {
                     { value: 'Female', label: 'Female' },
                     { value: 'Prefer not to say', label: 'Prefer not to say' },
                   ]}
-                />
-                <ProfileField
-                  label="Phone"
-                  value={editedFields.phone !== undefined ? formatPhoneNumber(editedFields.phone) : formatPhoneNumber(profile.phone)}
-                  editable={editingSection === 'personal'}
-                  fieldKey="phone"
-                  onSave={handleFieldChange}
-                  type="text"
                 />
                 <ProfileField
                   label="Ethnicity"

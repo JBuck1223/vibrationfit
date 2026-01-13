@@ -2,12 +2,15 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { Button, Card } from '@/lib/design-system/components'
-import { Camera, Upload, X, Check, RotateCw } from 'lucide-react'
+import { Upload, X, Check, RotateCw } from 'lucide-react'
 import NextImage from 'next/image'
 import ReactCrop, { Crop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
 import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
+
+// Default profile image for users without a custom picture
+export const DEFAULT_PROFILE_IMAGE_URL = 'https://media.vibrationfit.com/site-assets/brand/default-profile-image/default-profile-image.jpg'
 
 interface ProfilePictureUploadProps {
   currentImageUrl?: string | null
@@ -310,17 +313,13 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError, 
         {!showCropper && (
           <div className="relative inline-block mb-4">
             <div className="w-32 h-32 rounded-full overflow-hidden bg-neutral-800 border-2 border-neutral-700 flex items-center justify-center">
-              {currentImageUrl || previewUrl ? (
-                <NextImage
-                  src={previewUrl || currentImageUrl || ''}
-                  alt="Profile picture"
-                  width={128}
-                  height={128}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <Camera className="w-12 h-12 text-neutral-500" />
-              )}
+              <NextImage
+                src={previewUrl || currentImageUrl || DEFAULT_PROFILE_IMAGE_URL}
+                alt="Profile picture"
+                width={128}
+                height={128}
+                className="w-full h-full object-cover"
+              />
             </div>
             
             {/* Upload overlay */}

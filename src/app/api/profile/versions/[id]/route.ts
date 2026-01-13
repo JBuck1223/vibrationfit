@@ -38,11 +38,16 @@ export async function GET(
     }
 
     // Get account data (name, picture, etc.) from user_accounts - source of truth for account-level data
-    const { data: accountData } = await supabase
+    const accountResult = await supabase
       .from('user_accounts')
-      .select('first_name, last_name, profile_picture_url, email, phone, date_of_birth')
+      .select('first_name, last_name, full_name, profile_picture_url, email, phone, date_of_birth')
       .eq('id', user.id)
       .maybeSingle()
+    
+    if (accountResult.error) {
+      console.error('Error fetching user_accounts:', accountResult.error.message)
+    }
+    const accountData = accountResult.data
 
     // Calculate version number based on chronological order (matches vision API pattern)
     let profileVersionNumber = profile.version_number || 1
@@ -61,13 +66,16 @@ export async function GET(
       ...profile,
       version_number: profileVersionNumber,
       // Account-level fields from user_accounts (take precedence)
-      first_name: accountData?.first_name || profile?.first_name,
-      last_name: accountData?.last_name || profile?.last_name,
-      profile_picture_url: accountData?.profile_picture_url || profile?.profile_picture_url,
-      email: accountData?.email || profile?.email,
-      phone: accountData?.phone || profile?.phone,
-      date_of_birth: accountData?.date_of_birth || profile?.date_of_birth,
+      first_name: accountData?.first_name ?? profile?.first_name,
+      last_name: accountData?.last_name ?? profile?.last_name,
+      full_name: accountData?.full_name ?? null,
+      profile_picture_url: accountData?.profile_picture_url ?? profile?.profile_picture_url,
+      email: accountData?.email ?? profile?.email,
+      phone: accountData?.phone ?? profile?.phone,
+      date_of_birth: accountData?.date_of_birth ?? profile?.date_of_birth,
     }
+    
+    console.log('Profile versions API: Merged account data - email:', profileWithVersion.email, 'phone:', profileWithVersion.phone)
 
     return NextResponse.json({ profile: profileWithVersion, account: accountData })
   } catch (error) {
