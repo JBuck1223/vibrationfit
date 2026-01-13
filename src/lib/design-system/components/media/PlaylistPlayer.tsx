@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Play, Pause, SkipBack, SkipForward, Repeat, Shuffle } from 'lucide-react'
+import { Play, Pause, SkipBack, SkipForward, Repeat, Shuffle, Edit2 } from 'lucide-react'
 import { cn } from '../shared-utils'
 import type { AudioTrack } from './types'
 
@@ -13,6 +13,11 @@ interface PlaylistPlayerProps {
   setName?: string
   trackCount?: number
   createdDate?: string
+  voiceName?: string
+  backgroundTrack?: string
+  mixRatio?: string
+  onRename?: (newName: string) => void
+  onDurationCalculated?: (duration: number) => void
 }
 
 export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({ 
@@ -22,7 +27,12 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
   setIcon,
   setName,
   trackCount,
-  createdDate
+  createdDate,
+  voiceName,
+  backgroundTrack,
+  mixRatio,
+  onRename,
+  onDurationCalculated
 }) => {
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -34,6 +44,8 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
   const [isShuffled, setIsShuffled] = useState(false)
   const [originalOrder, setOriginalOrder] = useState<number[]>([])
   const [trackDurations, setTrackDurations] = useState<Map<string, number>>(new Map())
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [editingName, setEditingName] = useState('')
   
   const audioRef = useRef<HTMLAudioElement>(null)
   const lastRepeatClickRef = useRef<number>(0)
@@ -264,33 +276,91 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
     return sum + dur
   }, 0)
 
+  const handleStartEdit = (e?: React.MouseEvent) => {
+    e?.stopPropagation()
+    setIsEditingName(true)
+    setEditingName(setName || '')
+  }
+
+  const handleSaveEdit = () => {
+    if (editingName.trim() && onRename) {
+      onRename(editingName.trim())
+    }
+    setIsEditingName(false)
+  }
+
+  const handleCancelEdit = () => {
+    setIsEditingName(false)
+    setEditingName('')
+  }
+
   return (
     <div className={cn('bg-[#1F1F1F] border-2 border-[#333] rounded-2xl p-4 md:p-6', className)}>
       <audio ref={audioRef} autoPlay={autoPlay} />
 
       {(setIcon || setName) && (
-        <div className="flex items-center gap-3 mb-4 pb-4 border-b border-[#333]">
-          {setIcon && <div className="flex-shrink-0">{setIcon}</div>}
-          <div className="flex-1 min-w-0">
-            {setName && <h3 className="text-white font-semibold text-lg truncate">{setName}</h3>}
-            <div className="flex gap-3 text-xs text-neutral-400">
+        <div className="-mx-4 md:-mx-6 -mt-4 md:-mt-6 mb-4 pb-4 px-4 md:px-6 pt-4 md:pt-6 bg-gradient-to-b from-[#2A2A2A] to-[#1F1F1F] rounded-t-2xl border-b border-[#333]">
+          {/* Icon - Centered */}
+          {setIcon && (
+            <div className="flex justify-center mb-3">
+              {setIcon}
+            </div>
+          )}
+          
+          {/* Title - Centered with edit functionality */}
+          {setName && (
+            <div className="flex justify-center items-center mb-2">
+              {isEditingName ? (
+                <input
+                  type="text"
+                  value={editingName}
+                  onChange={(e) => setEditingName(e.target.value)}
+                  onBlur={handleSaveEdit}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveEdit()
+                    if (e.key === 'Escape') handleCancelEdit()
+                  }}
+                  autoFocus
+                  className="bg-[#2A2A2A] text-white px-3 py-1 rounded-lg text-lg font-semibold text-center focus:outline-none focus:ring-2 focus:ring-primary-500 max-w-md"
+                />
+              ) : (
+                <div className="relative group/title">
+                  <h3 className="text-white font-semibold text-lg text-center">
+                    {setName}
+                  </h3>
+                  {onRename && (
+                    <Edit2
+                      className="w-4 h-4 text-neutral-400 hover:text-white cursor-pointer opacity-0 group-hover/title:opacity-100 transition-opacity absolute top-1/2 -translate-y-1/2 -right-6"
+                      onClick={handleStartEdit}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Tracks/Date/Duration - Under title */}
+          {(trackCount || createdDate || totalDuration > 0) && (
+            <div className="flex items-center justify-center gap-2 text-xs text-neutral-400">
               {trackCount && <span>{trackCount} tracks</span>}
+              {trackCount && (createdDate || totalDuration > 0) && <span>•</span>}
               {createdDate && <span>{createdDate}</span>}
+              {createdDate && totalDuration > 0 && <span>•</span>}
               {totalDuration > 0 && <span>{formatTime(totalDuration)}</span>}
             </div>
-          </div>
+          )}
         </div>
       )}
 
       {currentTrack && (
-        <div className="mb-4 text-center">
-          <h4 className="text-white font-semibold">{currentTrack.title}</h4>
+        <div className="mt-6 mb-3 text-center">
+          <h4 className="text-white font-semibold text-lg">{currentTrack.title}</h4>
           {currentTrack.artist && <p className="text-neutral-400 text-sm">{currentTrack.artist}</p>}
         </div>
       )}
 
       {/* Shuffle and Repeat - Below title */}
-      <div className="flex items-center justify-center gap-2 mb-4">
+      <div className="flex items-center justify-center gap-2 mb-3">
         <button onClick={toggleShuffle} className={cn('p-2 rounded-lg transition-colors', isShuffled ? 'text-[#39FF14] bg-[#39FF14]/20' : 'text-neutral-400 hover:text-white')}>
           <Shuffle className="w-4 h-4" />
         </button>
@@ -300,7 +370,7 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
         </button>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         <div>
           <input
             type="range"
@@ -329,7 +399,7 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
           </button>
         </div>
 
-        <div className="space-y-1 max-h-48 overflow-y-auto">
+        <div className="space-y-1 max-h-48 overflow-y-auto mt-4">
           {tracks.map((track, index) => (
             <button
               key={track.id}
