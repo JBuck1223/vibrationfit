@@ -1812,7 +1812,7 @@ export default function ProfileDetailPage() {
                   <div>
                     <p className="text-sm text-neutral-400">Full Name</p>
                     <p className="text-white font-medium">
-                      {profile.full_name || (profile.first_name || profile.last_name 
+                      {(profile.first_name || profile.last_name 
                         ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() 
                         : 'Not specified')}
                     </p>
