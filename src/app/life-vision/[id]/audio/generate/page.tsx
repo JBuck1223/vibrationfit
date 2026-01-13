@@ -1180,81 +1180,131 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                   </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-                {recommendedCombos.map((combo) => (
-                  <Card
-                    key={combo.id}
-                    variant="elevated"
-                    hover
-                    className="p-6 transition-all"
-                  >
-                    <div className="flex items-start gap-3 mb-3">
-                      <div className="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Music2 className="w-5 h-5 text-primary-500" />
+                {recommendedCombos.map((combo) => {
+                  // Determine preset type and icon based on mix ratio
+                  const voiceVolume = combo.mix_ratio?.voice_volume || 0
+                  const bgVolume = combo.mix_ratio?.bg_volume || 0
+                  
+                  let presetType = 'Voice Only'
+                  let presetIcon = <Headphones className="w-6 h-6" />
+                  let iconBgColor = 'bg-primary-500/20'
+                  let iconColor = 'text-primary-500'
+                  
+                  if (bgVolume === 0) {
+                    // Voice Only: No background
+                    presetType = 'Voice Only'
+                    presetIcon = <Headphones className="w-6 h-6" />
+                    iconBgColor = 'bg-primary-500/20'
+                    iconColor = 'text-primary-500'
+                  } else if (voiceVolume <= 30) {
+                    // Sleep: Low voice (10-30%)
+                    presetType = 'Sleep'
+                    presetIcon = <Moon className="w-6 h-6" />
+                    iconBgColor = 'bg-blue-500/20'
+                    iconColor = 'text-blue-400'
+                  } else if (voiceVolume >= 40 && voiceVolume <= 60) {
+                    // Meditation: Balanced (40-60%)
+                    presetType = 'Meditation'
+                    presetIcon = <Sparkles className="w-6 h-6" />
+                    iconBgColor = 'bg-purple-500/20'
+                    iconColor = 'text-purple-400'
+                  } else {
+                    // Power: High voice (70%+)
+                    presetType = 'Power'
+                    presetIcon = <Zap className="w-6 h-6" />
+                    iconBgColor = 'bg-yellow-500/20'
+                    iconColor = 'text-yellow-400'
+                  }
+                  
+                  return (
+                    <Card
+                      key={combo.id}
+                      variant="elevated"
+                      hover
+                      className="p-6 transition-all"
+                    >
+                      {/* Icon - Centered */}
+                      <div className="flex justify-center mb-3">
+                        <div className={`w-12 h-12 ${iconBgColor} rounded-lg flex items-center justify-center`}>
+                          <span className={iconColor}>{presetIcon}</span>
+                        </div>
                       </div>
-                      <div className="flex-1 text-left">
-                        <h3 className="text-lg font-semibold text-white mb-1">{combo.name}</h3>
-                        {combo.description && (
-                          <p className="text-xs text-neutral-400">{combo.description}</p>
-                        )}
-                      </div>
-                    </div>
 
-                    <div className="space-y-2 text-left">
-                      {/* Background Track */}
-                      <div className="flex items-center gap-2 text-sm">
-                        <Music className="w-4 h-4 text-neutral-500 flex-shrink-0" />
-                        <span className="text-neutral-400">Background:</span>
-                        <span className="text-white font-medium">
-                          {combo.background_track?.display_name || 'Unknown'}
-                        </span>
+                      {/* Preset Type - Centered */}
+                      <h3 className="text-lg font-bold text-white text-center mb-4">
+                        {presetType}
+                      </h3>
+
+                      {/* Background Track - Left Aligned */}
+                      <div className="text-left mb-2">
+                        <span className="text-xs text-neutral-500 uppercase tracking-wider">Background</span>
+                        <p className="text-sm text-white font-medium">
+                          {combo.background_track?.display_name || 'None'}
+                        </p>
                       </div>
 
-                      {/* Mix Ratio */}
-                      <div className="flex items-center gap-2 text-sm">
-                        <ListMusic className="w-4 h-4 text-neutral-500 flex-shrink-0" />
-                        <span className="text-neutral-400">Ratio:</span>
-                        <span className="text-primary-400 font-semibold">
-                          {combo.mix_ratio?.voice_volume}% / {combo.mix_ratio?.bg_volume}%
-                          {combo.binaural_volume > 0 && ` / ${combo.binaural_volume}%`}
-                        </span>
+                      {/* Description - Left Aligned */}
+                      {combo.description && (
+                        <p className="text-sm text-neutral-400 text-left mb-3">
+                          {combo.description}
+                        </p>
+                      )}
+
+                      {/* Mix Ratio - Left Aligned */}
+                      <div className="text-left mb-4">
+                        <span className="text-xs text-neutral-500 uppercase tracking-wider">Ratio</span>
+                        <p className="text-sm font-semibold">
+                          <span className="text-primary-400">{combo.mix_ratio?.voice_volume}% Voice</span>
+                          <span className="text-neutral-500"> / </span>
+                          <span className="text-secondary-400">{combo.mix_ratio?.bg_volume}% Background</span>
+                          {combo.binaural_volume > 0 && (
+                            <>
+                              <span className="text-neutral-500"> / </span>
+                              <span className="text-purple-400">{combo.binaural_volume}% Binaural</span>
+                            </>
+                          )}
+                        </p>
                       </div>
 
-                      {/* Binaural (if present) */}
+                      {/* Binaural info if present */}
                       {combo.binaural_track_id && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <Sparkles className="w-4 h-4 text-purple-400 flex-shrink-0" />
-                          <span className="text-neutral-400">Binaural:</span>
-                          <span className="text-purple-400 font-medium">
-                            {combo.binaural_track?.display_name || 'Unknown'}
-                          </span>
+                        <div className="text-left mb-4 pb-4 border-b border-neutral-700">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Sparkles className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                            <span className="text-neutral-400">Binaural:</span>
+                            <span className="text-purple-400 font-medium">
+                              {combo.binaural_track?.display_name || 'Unknown'}
+                            </span>
+                          </div>
                         </div>
                       )}
-                    </div>
 
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      className="w-full mt-4"
-                      disabled={generatingComboId !== null}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        applyRecommendedCombo(combo)
-                      }}
-                    >
-                      {generatingComboId === combo.id ? (
-                        <>
-                          <Spinner size="sm" className="mr-2" />
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <Wand2 className="w-4 h-4 mr-2" />
-                          Generate This Mix
-                        </>
-                      )}
-                    </Button>
-                  </Card>
-                ))}
+                      {/* Generate Button */}
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        className="w-full"
+                        disabled={generatingComboId !== null}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          applyRecommendedCombo(combo)
+                        }}
+                      >
+                        {generatingComboId === combo.id ? (
+                          <>
+                            <Spinner size="sm" className="mr-2" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Wand2 className="w-4 h-4 mr-2" />
+                            Generate This Mix
+                          </>
+                        )}
+                      </Button>
+                    </Card>
+                  )
+                })}
               </div>
 
                 </>

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Repeat, Shuffle } from 'lucide-react'
+import { Play, Pause, SkipBack, SkipForward, Repeat, Shuffle } from 'lucide-react'
 import { cn } from '../shared-utils'
 import type { AudioTrack } from './types'
 
@@ -283,11 +283,22 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
       )}
 
       {currentTrack && (
-        <div className="mb-4">
+        <div className="mb-4 text-center">
           <h4 className="text-white font-semibold">{currentTrack.title}</h4>
           {currentTrack.artist && <p className="text-neutral-400 text-sm">{currentTrack.artist}</p>}
         </div>
       )}
+
+      {/* Shuffle and Repeat - Below title */}
+      <div className="flex items-center justify-center gap-2 mb-4">
+        <button onClick={toggleShuffle} className={cn('p-2 rounded-lg transition-colors', isShuffled ? 'text-[#39FF14] bg-[#39FF14]/20' : 'text-neutral-400 hover:text-white')}>
+          <Shuffle className="w-4 h-4" />
+        </button>
+        <button onClick={toggleRepeat} className={cn('p-2 rounded-lg transition-colors', repeatMode !== 'off' ? 'text-[#39FF14] bg-[#39FF14]/20' : 'text-neutral-400 hover:text-white')}>
+          <Repeat className="w-4 h-4" />
+          {repeatMode === 'one' && <span className="text-[10px] absolute">1</span>}
+        </button>
+      </div>
 
       <div className="space-y-4">
         <div>
@@ -305,43 +316,17 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <button onClick={toggleShuffle} className={cn('p-2 rounded-lg transition-colors', isShuffled ? 'text-[#39FF14] bg-[#39FF14]/20' : 'text-neutral-400 hover:text-white')}>
-              <Shuffle className="w-4 h-4" />
-            </button>
-            <button onClick={toggleRepeat} className={cn('p-2 rounded-lg transition-colors', repeatMode !== 'off' ? 'text-[#39FF14] bg-[#39FF14]/20' : 'text-neutral-400 hover:text-white')}>
-              <Repeat className="w-4 h-4" />
-              {repeatMode === 'one' && <span className="text-[10px] absolute">1</span>}
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button onClick={handlePrevious} className="p-2 text-neutral-400 hover:text-white transition-colors">
-              <SkipBack className="w-5 h-5" />
-            </button>
-            <button onClick={togglePlayPause} className="w-12 h-12 rounded-full bg-[#39FF14] hover:bg-[#00CC44] transition-colors flex items-center justify-center">
-              {isPlaying ? <Pause className="w-6 h-6 text-black" fill="black" /> : <Play className="w-6 h-6 text-black" fill="black" />}
-            </button>
-            <button onClick={handleNext} className="p-2 text-neutral-400 hover:text-white transition-colors">
-              <SkipForward className="w-5 h-5" />
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button onClick={toggleMute} className="text-neutral-400 hover:text-white transition-colors">
-              {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-            </button>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              value={isMuted ? 0 : volume}
-              onChange={handleVolumeChange}
-              className="w-20 h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer"
-            />
-          </div>
+        {/* Playback controls */}
+        <div className="flex items-center justify-center gap-2">
+          <button onClick={handlePrevious} className="p-2 text-neutral-400 hover:text-white transition-colors">
+            <SkipBack className="w-5 h-5" />
+          </button>
+          <button onClick={togglePlayPause} className="w-12 h-12 rounded-full bg-[#39FF14] hover:bg-[#00CC44] transition-colors flex items-center justify-center">
+            {isPlaying ? <Pause className="w-6 h-6 text-black" fill="black" /> : <Play className="w-6 h-6 text-black" fill="black" />}
+          </button>
+          <button onClick={handleNext} className="p-2 text-neutral-400 hover:text-white transition-colors">
+            <SkipForward className="w-5 h-5" />
+          </button>
         </div>
 
         <div className="space-y-1 max-h-48 overflow-y-auto">

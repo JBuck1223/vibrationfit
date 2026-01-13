@@ -44,6 +44,7 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
   const [editingSetId, setEditingSetId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
   const [playMode, setPlayMode] = useState<'sections' | 'full'>('sections')
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
 
   useEffect(() => {
     ;(async () => {
@@ -339,8 +340,8 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
     await loadAudioTracks(setId)
   }
 
-  const handleStartEdit = (setId: string, currentName: string, e: React.MouseEvent) => {
-    e.stopPropagation()
+  const handleStartEdit = (setId: string, currentName: string, e?: React.MouseEvent) => {
+    e?.stopPropagation()
     setEditingSetId(setId)
     setEditingName(currentName)
   }
@@ -371,56 +372,134 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
     }
   }
 
-  const getVariantIcon = (variant: string) => {
+  const getVariantIcon = (set: AudioSet) => {
     const iconClass = "w-6 h-6"
-    switch (variant) {
-      case 'sleep':
-        return <Moon className={iconClass} />
-      case 'energy':
-        return <Zap className={iconClass} />
-      case 'meditation':
-        return <Sparkles className={iconClass} />
-      default:
-        return <Headphones className={iconClass} />
+    
+    // Personal recordings use Mic icon
+    if (set.variant === 'personal') {
+      return <Mic className={iconClass} />
+    }
+    
+    // Extract voice/background volumes from mix ratio
+    let voiceVolume = 100
+    let bgVolume = 0
+    
+    if (set.mixRatio) {
+      const ratioMatch = set.mixRatio.match(/(\d+)%\s*\/\s*(\d+)%/)
+      if (ratioMatch) {
+        voiceVolume = parseInt(ratioMatch[1])
+        bgVolume = parseInt(ratioMatch[2])
+      }
+    }
+    
+    // Determine icon based on mix ratio (same logic as generate page)
+    if (bgVolume === 0 || set.variant === 'standard') {
+      // Voice Only
+      return <Headphones className={iconClass} />
+    } else if (voiceVolume <= 30) {
+      // Sleep: Low voice (10-30%)
+      return <Moon className={iconClass} />
+    } else if (voiceVolume >= 40 && voiceVolume <= 60) {
+      // Meditation: Balanced (40-60%)
+      return <Sparkles className={iconClass} />
+    } else {
+      // Power: High voice (70%+)
+      return <Zap className={iconClass} />
     }
   }
 
-  const getVariantColor = (variant: string) => {
-    switch (variant) {
-      case 'sleep':
-        return 'bg-blue-500/20 text-blue-400'
-      case 'energy':
-        return 'bg-yellow-500/20 text-yellow-400'
-      case 'meditation':
-        return 'bg-purple-500/20 text-purple-400'
-      default:
-        return 'bg-[#39FF14]/20 text-[#39FF14]'
+  const getVariantColor = (set: AudioSet) => {
+    // Personal recordings use secondary teal color to distinguish from generated voice
+    if (set.variant === 'personal') {
+      return 'bg-secondary-500/20 text-secondary-500'
+    }
+    
+    // Extract voice/background volumes from mix ratio
+    let voiceVolume = 100
+    let bgVolume = 0
+    
+    if (set.mixRatio) {
+      const ratioMatch = set.mixRatio.match(/(\d+)%\s*\/\s*(\d+)%/)
+      if (ratioMatch) {
+        voiceVolume = parseInt(ratioMatch[1])
+        bgVolume = parseInt(ratioMatch[2])
+      }
+    }
+    
+    // Determine color based on mix ratio (same logic as generate page)
+    if (bgVolume === 0 || set.variant === 'standard') {
+      // Voice Only - Primary Green
+      return 'bg-primary-500/20 text-primary-500'
+    } else if (voiceVolume <= 30) {
+      // Sleep - Blue
+      return 'bg-blue-500/20 text-blue-400'
+    } else if (voiceVolume >= 40 && voiceVolume <= 60) {
+      // Meditation - Purple
+      return 'bg-purple-500/20 text-purple-400'
+    } else {
+      // Power - Yellow
+      return 'bg-yellow-500/20 text-yellow-400'
     }
   }
 
-  const getVariantDisplayInfo = (variant: string) => {
-    switch (variant) {
-      case 'sleep':
-        return {
-          title: 'Sleep (Ocean Waves)',
-          description: '30% voice, 70% background'
-        }
-      case 'energy':
-        return {
-          title: 'Energy',
-          description: '80% voice, 20% background'
-        }
-      case 'meditation':
-        return {
-          title: 'Meditation',
-          description: '50% voice, 50% background'
-        }
-      default:
-        return {
-          title: 'Voice Only',
-          description: 'Pure voice narration'
-        }
+  const getVariantDisplayInfo = (set: AudioSet) => {
+    // Personal recordings have their own display
+    if (set.variant === 'personal') {
+      return {
+        title: 'Personal Recording',
+        description: 'Your own voice'
+      }
     }
+    
+    // Extract voice/background volumes from mix ratio
+    let voiceVolume = 100
+    let bgVolume = 0
+    
+    if (set.mixRatio) {
+      const ratioMatch = set.mixRatio.match(/(\d+)%\s*\/\s*(\d+)%/)
+      if (ratioMatch) {
+        voiceVolume = parseInt(ratioMatch[1])
+        bgVolume = parseInt(ratioMatch[2])
+      }
+    }
+    
+    // Determine display info based on mix ratio (same logic as generate page)
+    if (bgVolume === 0 || set.variant === 'standard') {
+      return {
+        title: 'Voice Only',
+        description: 'Pure voice narration'
+      }
+    } else if (voiceVolume <= 30) {
+      return {
+        title: 'Sleep',
+        description: `${voiceVolume}% voice, ${bgVolume}% background`
+      }
+    } else if (voiceVolume >= 40 && voiceVolume <= 60) {
+      return {
+        title: 'Meditation',
+        description: `${voiceVolume}% voice, ${bgVolume}% background`
+      }
+    } else {
+      return {
+        title: 'Power',
+        description: `${voiceVolume}% voice, ${bgVolume}% background`
+      }
+    }
+  }
+
+  const getVoiceDisplayName = (voiceId: string) => {
+    const voiceMap: { [key: string]: string } = {
+      'alloy': 'Clear & Professional',
+      'shimmer': 'Gentle & Soothing (Female)',
+      'ash': 'Warm & Friendly (Male)',
+      'coral': 'Bright & Energetic (Female)',
+      'echo': 'Deep & Authoritative (Male)',
+      'fable': 'Storytelling & Expressive (Male)',
+      'onyx': 'Strong & Confident (Male)',
+      'nova': 'Fresh & Modern (Female)',
+      'sage': 'Excited & Firm (Female)',
+    }
+    return voiceMap[voiceId] || voiceId
   }
 
   const totalSets = audioSets.length
@@ -581,134 +660,192 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
           </Card>
         ) : (
           <Card variant="elevated" className="bg-[#0A0A0A]">
-            {/* Audio Sets Selection */}
+            {/* Audio Set Selector */}
             <div className="mb-8">
               <h2 className="text-xl md:text-2xl font-semibold text-white mb-6 text-center">Select Audio Set</h2>
-              <Card variant="elevated" className="bg-[#1A1A1A]">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {audioSets.map((set) => (
-                  <div key={set.id} className="relative">
-                    {/* Now Playing Badge - positioned at top center of card border */}
-                    {selectedAudioSetId === set.id && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
-                        <div className="flex items-center gap-2 px-3 py-1 bg-primary-500 text-[#1A1A1A] text-xs font-semibold rounded-full">
-                          <div className="w-5 h-5 rounded-full bg-[#1A1A1A] flex items-center justify-center">
-                            <Play className="w-3 h-3 text-primary-500" fill="currentColor" />
-                          </div>
-                          <span>Now Playing</span>
-                        </div>
-                      </div>
+              
+              <div className="relative max-w-2xl mx-auto">
+                <button
+                  type="button"
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="w-full px-4 md:px-6 py-3 md:py-3.5 rounded-full bg-[#1F1F1F] text-white border-2 border-[#333] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    {selectedAudioSetId ? (
+                      <>
+                        {(() => {
+                          const selectedSet = audioSets.find(s => s.id === selectedAudioSetId)
+                          if (!selectedSet) return null
+                          return (
+                            <>
+                              <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${getVariantColor(selectedSet)}`}>
+                                {getVariantIcon(selectedSet)}
+                              </div>
+                              <div className="text-left flex-1 min-w-0">
+                                <div className="font-semibold truncate">
+                                  {selectedSet.name && !selectedSet.name.includes('Version') && !selectedSet.name.includes(':') 
+                                    ? selectedSet.name 
+                                    : getVariantDisplayInfo(selectedSet).title}
+                                </div>
+                              </div>
+                            </>
+                          )
+                        })()}
+                      </>
+                    ) : (
+                      <span className="text-neutral-400">Select an audio set...</span>
                     )}
-                    
-                    <Card
-                      variant="elevated"
-                      hover
-                      className={`group cursor-pointer transition-all p-5 ${
-                        selectedAudioSetId === set.id 
-                          ? 'border-primary-500 bg-primary-500/10' 
-                          : ''
-                      }`}
+                  </div>
+                  <div className="flex-shrink-0 ml-2">
+                    <svg className={`w-5 h-5 text-neutral-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </button>
+
+                {/* Dropdown Menu */}
+                {isDropdownOpen && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-10" 
+                      onClick={() => setIsDropdownOpen(false)}
+                    />
+                    <div className="absolute z-20 w-full mt-2 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-[60vh] overflow-y-auto">
+                      {audioSets.map((set) => (
+                        <div
+                          key={set.id}
+                          onClick={() => {
+                            if (set.isReady) {
+                              handleSelectSet(set.id)
+                              setIsDropdownOpen(false)
+                            }
+                          }}
+                          className={`px-4 py-3 hover:bg-[#2A2A2A] cursor-pointer transition-colors border-b border-[#333] last:border-b-0 ${
+                            selectedAudioSetId === set.id ? 'bg-primary-500/10' : ''
+                          }`}
+                        >
+                          <div className="flex items-start gap-4">
+                            {/* Icon */}
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${getVariantColor(set)}`}>
+                              {getVariantIcon(set)}
+                            </div>
+
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="font-semibold text-white">
+                                  {set.name && !set.name.includes('Version') && !set.name.includes(':') 
+                                    ? set.name 
+                                    : getVariantDisplayInfo(set).title}
+                                </h4>
+                                <div className="flex items-center gap-2">
+                                  {selectedAudioSetId === set.id && (
+                                    <div className="flex items-center gap-1 px-2 py-0.5 bg-primary-500 text-black text-xs font-semibold rounded-full">
+                                      <Play className="w-3 h-3" fill="currentColor" />
+                                      <span>Playing</span>
+                                    </div>
+                                  )}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleDelete(set.id, set.name)
+                                      setIsDropdownOpen(false)
+                                    }}
+                                    className="p-1 hover:bg-[#FF0040]/20 rounded transition-colors"
+                                  >
+                                    <Trash2 className="w-4 h-4 text-[#FF0040]" />
+                                  </button>
+                                </div>
+                              </div>
+                              
+                              <div className="space-y-1 text-xs text-neutral-400">
+                                <div>
+                                  <span className="text-neutral-500">Voice:</span> {set.variant === 'personal' ? 'Personal Recording' : getVoiceDisplayName(set.voice_id)}
+                                </div>
+                                {set.backgroundTrack && (
+                                  <div>
+                                    <span className="text-neutral-500">Background:</span> {set.backgroundTrack}
+                                  </div>
+                                )}
+                                {set.mixRatio && (
+                                  <div>
+                                    <span className="text-neutral-500">Ratio:</span>{' '}
+                                    <span className="text-primary-400 font-semibold">
+                                      {(() => {
+                                        const ratioMatch = set.mixRatio.match(/(\d+)%\s*\/\s*(\d+)%/)
+                                        if (ratioMatch) {
+                                          return `${ratioMatch[1]}% / ${ratioMatch[2]}%`
+                                        }
+                                        return set.mixRatio
+                                      })()}
+                                    </span>
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-2 pt-1">
+                                  <span>{set.track_count} tracks</span>
+                                  <span>•</span>
+                                  <span>{new Date(set.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Edit Name Button */}
+              {selectedAudioSetId && (
+                <div className="flex justify-center mt-4">
+                  {editingSetId === selectedAudioSetId ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={editingName}
+                        onChange={(e) => setEditingName(e.target.value)}
+                        className="max-w-xs"
+                        autoFocus
+                        placeholder="Enter custom name"
+                      />
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => handleSaveName(selectedAudioSetId)}
+                      >
+                        <Check className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleCancelEdit}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => {
-                        if (set.isReady) {
-                          handleSelectSet(set.id)
+                        const selectedSet = audioSets.find(s => s.id === selectedAudioSetId)
+                        if (selectedSet) {
+                          handleStartEdit(
+                            selectedSet.id,
+                            selectedSet.name && !selectedSet.name.includes('Version') && !selectedSet.name.includes(':')
+                              ? selectedSet.name
+                              : getVariantDisplayInfo(selectedSet).title
+                          )
                         }
                       }}
+                      className="text-neutral-400 hover:text-white"
                     >
-                      <Stack gap="sm" className="items-center text-center">
-                        {/* Delete button - top right corner */}
-                        <div className="absolute top-3 right-3">
-                          {deleting === set.id ? (
-                            <Spinner size="sm" className="flex-shrink-0" />
-                          ) : (
-                            <Trash2 
-                              className="w-4 h-4 text-[#FF0040] cursor-pointer hover:text-[#FF0040]/80 flex-shrink-0" 
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleDelete(set.id, set.name)
-                              }}
-                            />
-                          )}
-                        </div>
-
-                        {/* Icon - centered */}
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center mx-auto ${getVariantColor(set.variant)}`}>
-                          {getVariantIcon(set.variant)}
-                        </div>
-
-                        {/* Title - centered */}
-                        <div className="w-full text-center">
-                          {editingSetId === set.id ? (
-                            <div className="flex items-center gap-2 justify-center" onClick={(e) => e.stopPropagation()}>
-                              <Input
-                                value={editingName}
-                                onChange={(e) => setEditingName(e.target.value)}
-                                className="text-base md:text-lg text-center"
-                                autoFocus
-                              />
-                              <Check 
-                                className="w-4 h-4 text-primary-500 cursor-pointer hover:text-primary-400 flex-shrink-0" 
-                                onClick={() => handleSaveName(set.id)}
-                              />
-                              <X 
-                                className="w-4 h-4 text-neutral-400 cursor-pointer hover:text-white flex-shrink-0" 
-                                onClick={handleCancelEdit}
-                              />
-                            </div>
-                          ) : (
-                            <div className="relative inline-block">
-                              <h3 className="text-base md:text-lg font-semibold text-white">
-                                {set.name && !set.name.includes('Version') && !set.name.includes(':') ? set.name : getVariantDisplayInfo(set.variant).title}
-                              </h3>
-                              <Edit2 
-                                className="w-4 h-4 text-neutral-400 hover:text-white cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity absolute top-1/2 -translate-y-1/2 left-full ml-1" 
-                                onClick={(e) => handleStartEdit(set.id, set.name && !set.name.includes('Version') && !set.name.includes(':') ? set.name : getVariantDisplayInfo(set.variant).title, e)}
-                              />
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Mix Details */}
-                        {set.mixRatio && (
-                          <div className="w-full text-center">
-                            <div className="text-xs font-semibold text-primary-400 mb-1">
-                              {set.mixRatio}
-                            </div>
-                            <div className="text-[10px] text-neutral-500 uppercase tracking-wider">
-                              {set.binauralTrack ? 'Voice / Background / Binaural' : 'Voice / Background'}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Background Track Info */}
-                        {set.backgroundTrack && (
-                          <div className="w-full px-2">
-                            <div className="text-xs text-neutral-400 text-center">
-                              <span className="text-neutral-500">Background:</span> {set.backgroundTrack}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Binaural Track Info */}
-                        {set.binauralTrack && (
-                          <div className="w-full px-2">
-                            <div className="text-xs text-neutral-400 text-center">
-                              <span className="text-neutral-500">Binaural:</span> {set.binauralTrack}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Status and Info - centered */}
-                        <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-neutral-400">
-                          <span>{set.track_count} tracks</span>
-                          <span>•</span>
-                          <span>{new Date(set.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                        </div>
-                      </Stack>
-                    </Card>
-                  </div>
-                ))}
-              </div>
-              </Card>
+                      <Edit2 className="w-4 h-4 mr-2" />
+                      Rename Audio Set
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Audio Player */}
@@ -754,27 +891,32 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
                               </div>
                             )}
 
-                            <div className="rounded-2xl p-4 md:p-6 bg-[#1F1F1F] border-2 border-[#333]">
-                              <PlaylistPlayer 
-                        tracks={displayTracks}
-                        setIcon={
-                          <div className={`p-2 rounded-lg ${getVariantColor(audioSets.find(s => s.id === selectedAudioSetId)?.variant || '')}`}>
-                            {getVariantIcon(audioSets.find(s => s.id === selectedAudioSetId)?.variant || '')}
-                          </div>
-                        }
-                        setName={(() => {
-                          const selectedSet = audioSets.find(s => s.id === selectedAudioSetId)
-                          // Use the actual audio set name if it exists and is not a generic version name
-                          if (selectedSet?.name && !selectedSet.name.includes('Version') && !selectedSet.name.includes(':')) {
-                            return selectedSet.name
-                          }
-                          // Otherwise fall back to variant display info
-                          return getVariantDisplayInfo(selectedSet?.variant || 'standard').title
-                        })()}
-                        trackCount={displayTracks.length}
-                        createdDate={new Date(audioSets.find(s => s.id === selectedAudioSetId)?.created_at || '').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      />
-                            </div>
+                            <PlaylistPlayer 
+                              tracks={displayTracks}
+                              setIcon={
+                                (() => {
+                                  const selectedSet = audioSets.find(s => s.id === selectedAudioSetId)
+                                  if (!selectedSet) return null
+                                  return (
+                                    <div className={`p-2 rounded-lg ${getVariantColor(selectedSet)}`}>
+                                      {getVariantIcon(selectedSet)}
+                                    </div>
+                                  )
+                                })()
+                              }
+                              setName={(() => {
+                                const selectedSet = audioSets.find(s => s.id === selectedAudioSetId)
+                                if (!selectedSet) return 'Audio Set'
+                                // Use the actual audio set name if it exists and is not a generic version name
+                                if (selectedSet.name && !selectedSet.name.includes('Version') && !selectedSet.name.includes(':')) {
+                                  return selectedSet.name
+                                }
+                                // Otherwise fall back to variant display info
+                                return getVariantDisplayInfo(selectedSet).title
+                              })()}
+                              trackCount={displayTracks.length}
+                              createdDate={new Date(audioSets.find(s => s.id === selectedAudioSetId)?.created_at || '').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            />
                           </>
                         )
                       })()}
