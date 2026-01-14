@@ -5,7 +5,7 @@ import { Button, Card, Container, Stack, Badge, Spinner, VersionBadge, StatusBad
 import { PlaylistPlayer, type AudioTrack as BaseAudioTrack } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { assessmentToVisionKey } from '@/lib/design-system/vision-categories'
-import { Play, Clock, CalendarDays, Moon, Zap, Sparkles, Headphones, Plus, ArrowRight, Trash2, Eye, Music, Wand2, Mic, Edit2, Check, X } from 'lucide-react'
+import { Play, Clock, CalendarDays, Moon, Zap, Sparkles, Headphones, Plus, ArrowRight, Trash2, Eye, Music, Wand2, Mic, Edit2, Check, X, AudioLines } from 'lucide-react'
 import Link from 'next/link'
 
 // Extend AudioTrack with sectionKey for Life Vision audio
@@ -560,7 +560,7 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
               size="sm"
               className="w-full col-span-2 lg:col-span-1 flex items-center justify-center gap-2"
             >
-              <Wand2 className="w-4 h-4" />
+              <AudioLines className="w-4 h-4" />
               <span>Generate</span>
             </Button>
             

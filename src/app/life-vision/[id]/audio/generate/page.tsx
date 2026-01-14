@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { Button, Card, Spinner, Badge, Container, Stack, VersionBadge, StatusBadge, PageHero, TrackingMilestoneCard } from '@/lib/design-system/components'
 import { PlaylistPlayer } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
-import { Headphones, CheckCircle, Play, CalendarDays, Plus, Mic, Clock, Eye, ListMusic, Music, AudioLines, Disc3, Layers } from 'lucide-react'
+import { Headphones, CheckCircle, Play, CalendarDays, Mic, Clock, Eye, ListMusic, Music, AudioLines, Disc3, Layers } from 'lucide-react'
 import Link from 'next/link'
 import { getVisionCategoryKeys, VISION_CATEGORIES } from '@/lib/design-system'
 import { ChevronDown } from 'lucide-react'
@@ -52,7 +52,6 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
   const [totalAudioSetsCount, setTotalAudioSetsCount] = useState(0)
   
   // Voice Only Generation Form
-  const [showNewVoiceForm, setShowNewVoiceForm] = useState(false)
   const [selectedVoiceForNew, setSelectedVoiceForNew] = useState<string>('alloy')
   const [isVoiceDropdownOpen, setIsVoiceDropdownOpen] = useState(false)
   const [isPreviewing, setIsPreviewing] = useState(false)
@@ -476,29 +475,15 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
 
         {/* Generate New Voice Set */}
         <Card variant="glass" className="p-4 md:p-6">
-          <div className="flex flex-col items-center text-center mb-6">
-            <div className="w-12 h-12 bg-[#39FF14]/20 rounded-full flex items-center justify-center mb-3">
-              <AudioLines className="w-6 h-6 text-[#39FF14]" />
-            </div>
-            <h2 className="text-lg md:text-xl font-semibold text-white">Generate Voice-Only Tracks</h2>
-            <p className="text-sm text-neutral-400">Choose a voice and sections to generate</p>
-          </div>
-
-          {!showNewVoiceForm ? (
-            <div className="flex justify-center">
-              <Button 
-                variant="primary" 
-                onClick={() => setShowNewVoiceForm(true)}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Generate New Voice Set
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-6">
+          <div className="space-y-6">
               {/* Voice Selection */}
-              <div>
-                <h3 className="text-sm font-medium text-white mb-3">1. Select Voice</h3>
+              <div className="py-4">
+                <div className="flex flex-col items-center mb-4">
+                  <div className="w-8 h-8 rounded-full bg-primary-500/20 flex items-center justify-center mb-2">
+                    <span className="text-primary-500 font-semibold text-sm">1</span>
+                  </div>
+                  <h3 className="text-lg md:text-xl font-semibold text-white">Select Voice</h3>
+                </div>
                 <div className="flex flex-col md:flex-row gap-4">
                   <div className="relative flex-1">
                     <button
@@ -611,8 +596,13 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
               <div className="border-t border-[#333]" />
 
               {/* Section Selection */}
-              <div>
-                <h3 className="text-sm font-medium text-white mb-3">2. Select Sections</h3>
+              <div className="py-4">
+                <div className="flex flex-col items-center mb-4">
+                  <div className="w-8 h-8 rounded-full bg-primary-500/20 flex items-center justify-center mb-2">
+                    <span className="text-primary-500 font-semibold text-sm">2</span>
+                  </div>
+                  <h3 className="text-lg md:text-xl font-semibold text-white">Select Sections</h3>
+                </div>
                 <SectionSelector
                   allSelected={generateAllSections}
                   onAllSelectedChange={setGenerateAllSections}
@@ -625,38 +615,25 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
               <div className="border-t border-[#333]" />
 
               {/* Output Format Selection */}
-              <div>
-                <h3 className="text-sm font-medium text-white mb-3">3. Output Format</h3>
+              <div className="py-4">
+                <div className="flex flex-col items-center mb-4">
+                  <div className="w-8 h-8 rounded-full bg-primary-500/20 flex items-center justify-center mb-2">
+                    <span className="text-primary-500 font-semibold text-sm">3</span>
+                  </div>
+                  <h3 className="text-lg md:text-xl font-semibold text-white">Output Format</h3>
+                </div>
                 <FormatSelector
                   value={outputFormat}
                   onChange={setOutputFormat}
                 />
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-4">
+              {/* Action Button */}
+              <div className="flex justify-center pb-2">
                 <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    if (previewAudioRef.current) {
-                      previewAudioRef.current.pause()
-                      previewAudioRef.current.currentTime = 0
-                    }
-                    setIsPreviewing(false)
-                    setPreviewProgress(0)
-                    setShowNewVoiceForm(false)
-                    setGenerating(false)
-                  }}
-                  disabled={generating}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  variant="primary" 
+                  variant="accent" 
                   onClick={handleGenerateVoiceOnly}
                   disabled={generating || !selectedVoiceForNew || (!generateAllSections && selectedVoiceSections.length === 0)}
-                  className="flex-1"
                 >
                   {generating ? (
                     <>
@@ -671,7 +648,6 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                 </Button>
               </div>
             </div>
-          )}
         </Card>
 
         {/* Existing Voice Sets */}
@@ -837,8 +813,8 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
               <div className="w-12 h-12 bg-[#14B8A6]/20 rounded-full flex items-center justify-center mb-3">
                 <Music className="w-6 h-6 text-[#14B8A6]" />
               </div>
-              <h2 className="text-lg md:text-xl font-semibold text-white">Add Background Sounds</h2>
-              <p className="text-sm text-neutral-400">Choose how you want to create your mix</p>
+              <h2 className="text-xl md:text-2xl font-semibold text-white">Add Background Sounds</h2>
+              <p className="text-sm text-neutral-400 mt-2">Choose how you want to create your mix</p>
             </div>
             <div className="flex justify-center">
               <Button variant="primary" asChild>

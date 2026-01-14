@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { Container, Stack, Card, Button, Badge, Spinner, TrackingMilestoneCard, StatusBadge, VersionBadge, PageHero } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
-import { Mic, Headphones, Clock, ArrowRight, CheckCircle, Wand2, CalendarDays, Eye, ListMusic } from 'lucide-react'
+import { Mic, Headphones, Clock, ArrowRight, CheckCircle, Wand2, CalendarDays, Eye, ListMusic, AudioLines } from 'lucide-react'
 import Link from 'next/link'
 
 interface VisionData {
@@ -148,7 +148,7 @@ export default function AudioHubPage({ params }: { params: Promise<{ id: string 
             </Button>
             <Button variant="outline" size="sm" asChild className="w-full">
               <Link href={`/life-vision/${visionId}/audio/generate`} className="flex items-center justify-center gap-2">
-                <Wand2 className="w-4 h-4" />
+                <AudioLines className="w-4 h-4" />
                 <span>Generate</span>
               </Link>
             </Button>
