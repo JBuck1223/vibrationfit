@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { startIntensive, completeIntensive } from '@/lib/intensive/utils-client'
+import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
 import { IntensiveWelcomeScreen } from '@/components/IntensiveWelcomeScreen'
 import { IntensiveCompletionScreen } from '@/components/IntensiveCompletionScreen'
 import { 
@@ -126,6 +127,9 @@ export default function IntensiveDashboard() {
 
       console.log('👤 User ID:', user.id)
 
+      // Check for super_admin access
+      const { isSuperAdmin } = await checkSuperAdminAccess(supabase)
+
       // Get active intensive checklist (source of truth)
       const { data: checklistData, error: checklistError } = await supabase
         .from('intensive_checklist')
@@ -139,6 +143,40 @@ export default function IntensiveDashboard() {
       console.log('📋 Checklist data:', checklistData, 'Error:', checklistError)
 
       if (checklistError || !checklistData) {
+        // Allow super_admin to access without enrollment
+        if (isSuperAdmin) {
+          // Set mock data for super_admin testing
+          setChecklist({
+            id: 'super-admin-test',
+            intensive_id: 'super-admin-test',
+            user_id: user.id,
+            status: 'in_progress',
+            profile_completed: true,
+            profile_completed_at: null,
+            assessment_completed: true,
+            assessment_completed_at: null,
+            call_scheduled: false,
+            call_scheduled_at: null,
+            vision_built: false,
+            vision_built_at: null,
+            vision_refined: false,
+            vision_refined_at: null,
+            audio_generated: false,
+            audio_generated_at: null,
+            vision_board_completed: false,
+            vision_board_completed_at: null,
+            first_journal_entry: false,
+            first_journal_entry_at: null,
+            calibration_call_completed: false,
+            calibration_call_completed_at: null,
+            activation_protocol_completed: false,
+            activation_protocol_completed_at: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          } as IntensiveChecklist)
+          setLoading(false)
+          return
+        }
         console.error('No active intensive found:', checklistError)
         router.push('/#pricing')
         return

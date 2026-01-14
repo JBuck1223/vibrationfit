@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Calendar, CheckCircle } from 'lucide-react'
+import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
 
 import { 
   Container, 
@@ -54,6 +55,9 @@ export default function ScheduleCallPage() {
         return
       }
 
+      // Check for super_admin access
+      const { isSuperAdmin } = await checkSuperAdminAccess(supabase)
+
       // Get active intensive
       const { data: intensiveData, error: intensiveError } = await supabase
         .from('intensive_purchases')
@@ -63,11 +67,16 @@ export default function ScheduleCallPage() {
         .single()
 
       if (intensiveError || !intensiveData) {
-        router.push('/#pricing')
-        return
+        // Allow super_admin to access without enrollment
+        if (isSuperAdmin) {
+          setIntensiveId('super-admin-test-mode')
+        } else {
+          router.push('/#pricing')
+          return
+        }
+      } else {
+        setIntensiveId(intensiveData.id)
       }
-
-      setIntensiveId(intensiveData.id)
 
       // Get user profile for contact info
       const { data: profileData, error: profileError } = await supabase

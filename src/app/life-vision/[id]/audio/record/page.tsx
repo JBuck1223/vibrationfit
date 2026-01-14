@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button, Card, Container, StatusBadge, Icon, Spinner, Stack, PageHero } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
 import { MediaRecorderComponent } from '@/components/MediaRecorder'
-import { CheckCircle, Eye, Headphones, Mic, Check, Wand2, Clock, ListMusic } from 'lucide-react'
+import { CheckCircle, Eye, Headphones, Mic, Check, Wand2, Clock, ListMusic, AudioLines } from 'lucide-react'
 import Link from 'next/link'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
@@ -388,7 +388,7 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
               size="sm"
               className="w-full flex items-center justify-center gap-2"
             >
-              <Wand2 className="w-4 h-4" />
+              <AudioLines className="w-4 h-4" />
               <span>Generate</span>
             </Button>
             

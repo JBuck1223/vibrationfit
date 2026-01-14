@@ -6,6 +6,7 @@ import { Container, Card, Button, Badge, Spinner, Stack } from '@/lib/design-sys
 import { createClient } from '@/lib/supabase/client'
 import { CheckCircle, Clock, AlertCircle, ArrowLeft, Play, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
+import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
 
 type BatchStatus = 'pending' | 'processing' | 'completed' | 'partial_success' | 'failed'
 
@@ -59,7 +60,7 @@ export default function AudioQueuePage({
   const [loading, setLoading] = useState(true)
   const [batch, setBatch] = useState<Batch | null>(null)
   const [tracks, setTracks] = useState<TrackJob[]>([])
-  const [showTrackDetails, setShowTrackDetails] = useState(false)
+  const [showTrackDetails, setShowTrackDetails] = useState(true)
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
   const [showCancelDialog, setShowCancelDialog] = useState(false)
   const [cancelling, setCancelling] = useState(false)
@@ -69,6 +70,7 @@ export default function AudioQueuePage({
     binauralTrack?: string
     binauralVolume?: number
   }>({})
+  const [voiceName, setVoiceName] = useState<string>('')
 
   useEffect(() => {
     ;(async () => {
@@ -177,6 +179,20 @@ export default function AudioQueuePage({
 
     setBatch(batchData)
 
+    // Load voice name
+    if (batchData.voice_id) {
+      try {
+        const voiceResp = await fetch('/api/audio/voices', { cache: 'no-store' })
+        const voiceData = await voiceResp.json()
+        const voice = (voiceData.voices || []).find((v: any) => v.id === batchData.voice_id)
+        if (voice) {
+          setVoiceName(`${voice.brandName || voice.name} (${voice.gender})`)
+        }
+      } catch (error) {
+        console.error('Failed to load voice name:', error)
+      }
+    }
+
     // Load custom mix details if available
     if (batchData.metadata?.custom_mix) {
       const details: any = {}
@@ -217,7 +233,33 @@ export default function AudioQueuePage({
       setMixDetails(details)
     }
 
-    // Load tracks if audio sets exist
+    // Generate list of all expected tracks
+    const requestedSections = batchData.sections_requested?.map((s: any) => s.sectionKey) || []
+    const variants = batchData.variant_ids || ['standard']
+    
+    // Create map of all expected tracks (section × variant combinations)
+    const expectedTracks: TrackJob[] = []
+    for (const sectionKey of requestedSections) {
+      for (const variant of variants) {
+        const variantName = variant === 'standard' ? 'Voice Only' :
+                           variant === 'sleep' ? 'Sleep' :
+                           variant === 'energy' ? 'Energy' :
+                           variant === 'meditation' ? 'Meditation' :
+                           variant
+        expectedTracks.push({
+          id: `${sectionKey}-${variant}-pending`,
+          sectionKey,
+          title: prettySectionTitle(sectionKey),
+          variant,
+          status: 'pending',
+          mixStatus: undefined,
+          setName: variantName,
+          createdAt: batchData.created_at,
+        })
+      }
+    }
+    
+    // Load actual tracks if audio sets exist
     if (batchData.audio_set_ids && batchData.audio_set_ids.length > 0) {
       const { data: tracksData } = await supabase
         .from('audio_tracks')
@@ -234,56 +276,48 @@ export default function AudioQueuePage({
 
         const setMap = new Map(setsData?.map(s => [s.id, { name: s.name, variant: s.variant }]) || [])
 
-        // Filter tracks based on sections requested in this batch
-        const requestedSections = batchData.sections_requested?.map((s: any) => s.sectionKey) || []
-        const relevantTracks = requestedSections.length > 0
-          ? tracksData.filter((track: any) => requestedSections.includes(track.section_key))
-          : tracksData
-
-        const formattedTracks = relevantTracks.map((track: any) => {
+        // Update expected tracks with actual data
+        for (const track of tracksData) {
           const setInfo = setMap.get(track.audio_set_id)
-          return {
-            id: track.id,
-            sectionKey: track.section_key,
-            title: prettySectionTitle(track.section_key),
-            variant: setInfo?.variant || 'unknown',
-            status: track.status,
-            mixStatus: track.mix_status,
-            setName: setInfo?.name || 'Unknown Set',
-            createdAt: track.created_at,
-            audioUrl: track.audio_url,
-            voiceId: track.voice_id,
-            s3Key: track.s3_key
+          const variant = setInfo?.variant || 'standard'
+          
+          // Only include if section was requested
+          if (requestedSections.length > 0 && !requestedSections.includes(track.section_key)) {
+            continue
           }
-        })
-
-        setTracks(formattedTracks)
+          
+          // Find and replace the placeholder entry
+          const index = expectedTracks.findIndex(
+            et => et.sectionKey === track.section_key && et.variant === variant
+          )
+          
+          if (index >= 0) {
+            expectedTracks[index] = {
+              id: track.id,
+              sectionKey: track.section_key,
+              title: prettySectionTitle(track.section_key),
+              variant: variant,
+              status: track.status,
+              mixStatus: track.mix_status,
+              setName: setInfo?.name || 'Unknown Set',
+              createdAt: track.created_at,
+              audioUrl: track.audio_url,
+              voiceId: track.voice_id,
+              s3Key: track.s3_key
+            }
+          }
+        }
       }
     }
+    
+    setTracks(expectedTracks)
 
     setLoading(false)
   }
 
   function prettySectionTitle(sectionKey: string): string {
     if (sectionKey === 'full') return 'Full Track (All Sections)'
-    
-    const map: Record<string, string> = {
-      forward: 'Forward',
-      fun: 'Fun / Recreation',
-      travel: 'Travel / Adventure',
-      home: 'Home / Environment',
-      family: 'Family / Parenting',
-      love: 'Love / Romance',
-      health: 'Health / Vitality',
-      money: 'Money / Wealth',
-      work: 'Work / Career',
-      social: 'Social / Friends',
-      stuff: 'Possessions / Stuff',
-      giving: 'Giving / Legacy',
-      spirituality: 'Spirituality',
-      conclusion: 'Conclusion',
-    }
-    return map[sectionKey] || sectionKey.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase())
+    return getVisionCategoryLabel(sectionKey as any)
   }
 
   const getStatusBadge = (status: BatchStatus) => {
@@ -333,6 +367,7 @@ export default function AudioQueuePage({
   const actuallyCompleted = completedTracks.length
   const stillProcessing = processingTracks.length
   const hasFailed = failedTracks.length
+  const tracksLeftToComplete = totalTracks - actuallyCompleted
   
   // If we have some tracks but not all expected, still show processing
   const effectiveCompleted = tracks.length < totalTracks && stillProcessing === 0 && hasFailed === 0 
@@ -377,14 +412,21 @@ export default function AudioQueuePage({
               <div className="mb-4 flex justify-center">
                 {getStatusIcon(batch.status)}
               </div>
-              <h1 className="text-3xl md:text-5xl font-bold text-white mb-4">
+              <h1 className="text-3xl md:text-5xl font-bold text-white mb-2">
                 Audio Generation Queue
               </h1>
-              <div className="flex items-center justify-center gap-3 flex-wrap">
+              <div className="text-sm text-neutral-400 mb-3">
+                {new Date(batch.created_at).toLocaleString('en-US', { 
+                  month: 'long', 
+                  day: 'numeric', 
+                  year: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true
+                })}
+              </div>
+              <div className="flex justify-center">
                 {getStatusBadge(batch.status)}
-                <span className="text-sm text-neutral-400">
-                  Started {new Date(batch.created_at).toLocaleString()}
-                </span>
               </div>
             </div>
           </div>
@@ -425,7 +467,7 @@ export default function AudioQueuePage({
             <div className="relative">
               <div className="w-full h-4 bg-neutral-800 rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-gradient-to-r from-primary-500 to-secondary-500 transition-all duration-500 ease-out"
+                  className="h-full bg-primary-500 transition-all duration-500 ease-out"
                   style={{ width: `${Math.min(100, progressPercentage)}%` }}
                 />
               </div>
@@ -457,20 +499,35 @@ export default function AudioQueuePage({
                 </>
               ) : (
                 <>
-                  <h3 className="text-sm font-medium text-neutral-400 mb-3">Generating Variants:</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {batch.variant_ids.map((variant) => {
-                      const variantName = variant === 'standard' ? 'Voice Only' :
-                                         variant === 'sleep' ? 'Sleep' :
-                                         variant === 'energy' ? 'Energy' :
-                                         variant === 'meditation' ? 'Meditation' :
-                                         variant
-                      return (
-                        <Badge key={variant} variant="info" className="text-xs">
-                          {variantName}
-                        </Badge>
-                      )
-                    })}
+                  <h3 className="text-sm font-medium text-neutral-400 mb-3">Generation Details:</h3>
+                  <div className="space-y-3">
+                    {voiceName && (
+                      <div>
+                        <span className="text-xs text-neutral-500">Voice:</span>
+                        <div className="text-sm text-white mt-1">{voiceName}</div>
+                      </div>
+                    )}
+                    <div>
+                      <span className="text-xs text-neutral-500">Tracks:</span>
+                      <div className="text-sm text-white mt-1">{batch.total_tracks_expected} tracks</div>
+                    </div>
+                    <div>
+                      <span className="text-xs text-neutral-500">Variants:</span>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {batch.variant_ids.map((variant) => {
+                          const variantName = variant === 'standard' ? 'Voice Only' :
+                                             variant === 'sleep' ? 'Sleep' :
+                                             variant === 'energy' ? 'Energy' :
+                                             variant === 'meditation' ? 'Meditation' :
+                                             variant
+                          return (
+                            <Badge key={variant} variant="info" className="text-xs">
+                              {variantName}
+                            </Badge>
+                          )
+                        })}
+                      </div>
+                    </div>
                   </div>
                 </>
               )}
@@ -480,7 +537,7 @@ export default function AudioQueuePage({
             {batch.status === 'completed' && actuallyCompleted === batch.total_tracks_expected && failedTracks.length === 0 && (
               <div className="pt-4 border-t border-neutral-700">
                 <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
-                  <p className="text-green-400 font-medium text-center flex items-center justify-center gap-2">
+                  <p className="text-green-400 font-medium text-center flex flex-col sm:flex-row items-center justify-center gap-2">
                     <CheckCircle className="w-5 h-5" />
                     All tracks generated successfully!
                   </p>
@@ -492,7 +549,7 @@ export default function AudioQueuePage({
             {batch.status === 'partial_success' && (
               <div className="pt-4 border-t border-neutral-700">
                 <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-                  <p className="text-yellow-400 font-medium text-center flex items-center justify-center gap-2">
+                  <p className="text-yellow-400 font-medium text-center flex flex-col sm:flex-row items-center justify-center gap-2">
                     <AlertCircle className="w-5 h-5" />
                     {actuallyCompleted} of {batch.total_tracks_expected} tracks completed successfully
                   </p>
@@ -532,9 +589,9 @@ export default function AudioQueuePage({
                       {completedTracks.length} <CheckCircle className="w-3 h-3" />
                     </Badge>
                   )}
-                  {processingTracks.length > 0 && (
+                  {tracksLeftToComplete > 0 && (
                     <Badge variant="info" className="text-xs flex items-center gap-1">
-                      {processingTracks.length} <Clock className="w-3 h-3" />
+                      {tracksLeftToComplete} <Clock className="w-3 h-3" />
                     </Badge>
                   )}
                   {failedTracks.length > 0 && (
@@ -552,7 +609,7 @@ export default function AudioQueuePage({
                 {tracks.map((track) => {
                   const isProcessing = track.status === 'processing' || track.status === 'pending'
                   const isMixing = track.mixStatus === 'pending' || track.mixStatus === 'mixing'
-                  const isComplete = track.status === 'completed' && (track.mixStatus === 'completed' || track.mixStatus === 'not_required')
+                  const isComplete = track.status === 'completed' && (track.mixStatus === 'completed' || track.mixStatus === 'not_required' || !track.mixStatus)
                   const isFailed = track.status === 'failed' || track.mixStatus === 'failed'
                   
                   return (
@@ -569,13 +626,18 @@ export default function AudioQueuePage({
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="text-sm md:text-base font-medium text-white truncate">{track.title}</div>
-                          <div className="text-xs text-neutral-400 mt-0.5">{track.setName}</div>
                         </div>
                         <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                          {isProcessing && (
+                          {track.status === 'pending' && (
+                            <Badge variant="info" className="text-xs flex items-center gap-1.5 whitespace-nowrap">
+                              <Clock className="w-3 h-3" />
+                              Queued
+                            </Badge>
+                          )}
+                          {track.status === 'processing' && (
                             <Badge variant="info" className="text-xs flex items-center gap-1.5 whitespace-nowrap">
                               <Spinner size="sm" />
-                              {track.status === 'pending' ? 'Queued' : 'Generating'}
+                              Generating
                             </Badge>
                           )}
                           {isMixing && !isProcessing && (
@@ -601,14 +663,7 @@ export default function AudioQueuePage({
         )}
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <Button variant="outline" asChild className="flex-1">
-            <Link href={`/life-vision/${visionId}/audio/generate?refresh=1`}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Audio Studio
-            </Link>
-          </Button>
-          
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
           {/* Cancel button for active batches */}
           {['pending', 'processing'].includes(batch.status) && (
             <Button 
@@ -632,7 +687,7 @@ export default function AudioQueuePage({
           )}
           
           {batch.audio_set_ids.length > 0 && ['completed', 'partial_success'].includes(batch.status) && (
-            <Button variant="primary" asChild className="flex-1">
+            <Button variant="primary" asChild>
               <Link href={`/life-vision/${visionId}/audio/sets`}>
                 <Play className="w-4 h-4 mr-2" />
                 Play Generated Audio

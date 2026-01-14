@@ -5,7 +5,7 @@ import { Button, Card, Container, Stack, Badge, Spinner, VersionBadge, StatusBad
 import { PlaylistPlayer, type AudioTrack as BaseAudioTrack } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { assessmentToVisionKey } from '@/lib/design-system/vision-categories'
-import { Play, Clock, CalendarDays, Moon, Zap, Sparkles, Headphones, Plus, ArrowRight, Trash2, Eye, Music, Wand2, Mic, Edit2, Check, X } from 'lucide-react'
+import { Play, Clock, CalendarDays, Moon, Zap, Sparkles, Headphones, Plus, ArrowRight, Trash2, Eye, Music, Wand2, Mic, Edit2, Check, X, AudioLines } from 'lucide-react'
 import Link from 'next/link'
 
 // Extend AudioTrack with sectionKey for Life Vision audio
@@ -26,7 +26,8 @@ interface AudioSet {
   isMixing: boolean
   mixRatio?: string
   backgroundTrack?: string
-  binauralTrack?: string
+  frequencyTrack?: string  // Can be pure solfeggio or binaural beats
+  frequencyType?: 'pure' | 'solfeggio_binaural' | 'binaural'  // pure=solfeggio tone, solfeggio_binaural=solfeggio+brainwave, binaural=non-solfeggio
 }
 
 export default function AudioSetsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -114,25 +115,28 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
       // Read mix metadata directly from the audio set (no batch lookup needed)
       let mixRatio = undefined
       let backgroundTrack = undefined
-      let binauralTrack = undefined
+      let frequencyTrack = undefined
+      let frequencyType = undefined
 
       if (set.metadata) {
         const metadata = set.metadata as any
         const voiceVol = metadata.voice_volume
         const bgVol = metadata.bg_volume
-        const binauralVol = metadata.binaural_volume
+        // Support both old (binaural_volume) and new (frequency_volume) naming
+        const freqVol = metadata.frequency_volume ?? metadata.binaural_volume
         
         if (voiceVol !== undefined && bgVol !== undefined) {
-          if (binauralVol && binauralVol > 0) {
-            mixRatio = `${voiceVol}% / ${bgVol}% / ${binauralVol}%`
+          if (freqVol && freqVol > 0) {
+            mixRatio = `${voiceVol}% / ${bgVol}% / ${freqVol}%`
           } else {
             mixRatio = `${voiceVol}% / ${bgVol}%`
           }
         }
 
-        // Get track names directly from metadata (already stored there)
+        // Get track names directly from metadata (support old and new naming)
         backgroundTrack = metadata.background_track_name
-        binauralTrack = metadata.binaural_track_name
+        frequencyTrack = metadata.frequency_track_name ?? metadata.binaural_track_name
+        frequencyType = metadata.frequency_type // 'pure' or 'binaural', null for legacy
       }
 
       return {
@@ -150,7 +154,8 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
         isMixing: !!isMixing,
         mixRatio,
         backgroundTrack,
-        binauralTrack,
+        frequencyTrack, // Can be pure solfeggio or binaural beats
+        frequencyType,  // 'pure' or 'binaural' (null for legacy data)
       }
     }))
 
@@ -555,7 +560,7 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
               size="sm"
               className="w-full col-span-2 lg:col-span-1 flex items-center justify-center gap-2"
             >
-              <Wand2 className="w-4 h-4" />
+              <AudioLines className="w-4 h-4" />
               <span>Generate</span>
             </Button>
             

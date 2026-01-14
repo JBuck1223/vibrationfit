@@ -189,7 +189,7 @@ async function generateSolfeggioBinaural(
       await insertIntoDatabase({
         name: `${solfeggio.hz}hz-${brainwave.name.toLowerCase()}`,
         display_name: `${solfeggio.hz}Hz ${brainwave.displayName}`,
-        category: 'solfeggio',
+        category: 'solfeggio_binaural', // Solfeggio carrier + brainwave entrainment
         file_url: s3Url,
         description: `${solfeggio.description} with ${brainwave.description}`,
         sort_order: 200 + completedFiles,

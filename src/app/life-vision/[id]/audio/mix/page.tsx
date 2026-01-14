@@ -201,12 +201,12 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
       setSelectedBaseVoice(voiceSets[0].voice_id)
     }
 
-    // Load background tracks (excluding binaural/solfeggio)
+    // Load background tracks (excluding frequency enhancement tracks)
     const { data: tracks } = await supabase
       .from('audio_background_tracks')
       .select('*')
       .eq('is_active', true)
-      .not('category', 'in', '(binaural,solfeggio)')
+      .not('category', 'in', '(solfeggio,solfeggio_binaural,binaural)')
       .order('sort_order')
     
     if (tracks) {
@@ -216,12 +216,12 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
       }
     }
     
-    // Load binaural tracks
+    // Load frequency enhancement tracks (pure solfeggio + solfeggio binaural + future non-solfeggio binaural)
     const { data: binauralData } = await supabase
       .from('audio_background_tracks')
       .select('*')
       .eq('is_active', true)
-      .in('category', ['binaural', 'solfeggio'])
+      .in('category', ['solfeggio', 'solfeggio_binaural', 'binaural'])
       .order('sort_order')
     
     if (binauralData) {

@@ -153,7 +153,7 @@ export default function AudioMixerAdminPage() {
         .from('audio_background_tracks')
         .select('*')
         .eq('is_active', true)
-        .in('category', ['binaural', 'solfeggio'])
+        .in('category', ['solfeggio', 'solfeggio_binaural', 'binaural'])
         .order('display_name')
       if (binauralData) setBinauralTracks(binauralData)
       

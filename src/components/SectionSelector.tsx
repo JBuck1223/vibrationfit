@@ -78,8 +78,20 @@ export function SectionSelector({
       )}
 
       {/* Toggle Row */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex justify-center">
+        {/* Mobile Toggle (wider, shorter labels) */}
+        <div className="sm:hidden">
+          <Toggle
+            value={allSelected ? 'all' : 'specific'}
+            onChange={(val) => onAllSelectedChange(val === 'all')}
+            options={[
+              { value: 'all', label: 'All Sections' },
+              { value: 'specific', label: 'Select' }
+            ]}
+          />
+        </div>
+        {/* Desktop Toggle (full labels) */}
+        <div className="hidden sm:block">
           <Toggle
             value={allSelected ? 'all' : 'specific'}
             onChange={(val) => onAllSelectedChange(val === 'all')}
@@ -89,11 +101,6 @@ export function SectionSelector({
             ]}
           />
         </div>
-        {!allSelected && (
-          <span className="text-sm text-neutral-400">
-            {selectedSections.length} of {availableCount} selected
-          </span>
-        )}
       </div>
 
       {description && (
@@ -103,24 +110,29 @@ export function SectionSelector({
       {/* Section Checkboxes */}
       {!allSelected && (
         <div className="space-y-3">
-          {/* Quick Actions */}
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={selectAll}
-              disabled={availableCount === 0}
-              className="text-xs text-primary-400 hover:text-primary-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Select All{hasRestrictions ? ' Available' : ''}
-            </button>
-            <span className="text-neutral-600">|</span>
-            <button
-              type="button"
-              onClick={selectNone}
-              className="text-xs text-neutral-400 hover:text-neutral-300 transition-colors"
-            >
-              Clear All
-            </button>
+          {/* Quick Actions with Selection Count */}
+          <div className="flex items-center justify-between">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={selectAll}
+                disabled={availableCount === 0}
+                className="text-xs text-primary-400 hover:text-primary-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Select All{hasRestrictions ? ' Available' : ''}
+              </button>
+              <span className="text-neutral-600">|</span>
+              <button
+                type="button"
+                onClick={selectNone}
+                className="text-xs text-neutral-400 hover:text-neutral-300 transition-colors"
+              >
+                Clear All
+              </button>
+            </div>
+            <span className="text-xs text-neutral-400">
+              {selectedSections.length} of {availableCount} selected
+            </span>
           </div>
 
           {/* Checkbox Grid */}

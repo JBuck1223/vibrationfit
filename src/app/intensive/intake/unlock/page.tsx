@@ -33,6 +33,7 @@ import {
   INTAKE_QUESTIONS,
   type IntakeQuestion 
 } from '@/lib/constants/intensive-intake-questions'
+import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
 
 // Types
 interface IntensiveStats {
@@ -116,6 +117,9 @@ export default function IntensiveUnlockPage() {
         return
       }
 
+      // Check for super_admin access
+      const { isSuperAdmin } = await checkSuperAdminAccess(supabase)
+
       // Get intensive purchase
       const { data: intensiveData, error: intensiveError } = await supabase
         .from('intensive_purchases')
@@ -126,29 +130,38 @@ export default function IntensiveUnlockPage() {
         .single()
 
       if (intensiveError || !intensiveData) {
-        router.push('/intensive/dashboard')
-        return
+        // Allow super_admin to access without enrollment
+        if (isSuperAdmin) {
+          setIntensiveId('super-admin-test-mode')
+        } else {
+          router.push('/intensive/dashboard')
+          return
+        }
+      } else {
+        setIntensiveId(intensiveData.id)
       }
+      
+      const activeIntensiveId = intensiveData?.id || 'super-admin-test-mode'
 
-      setIntensiveId(intensiveData.id)
+      // Get baseline responses (pre_intensive phase) - skip for test mode
+      if (activeIntensiveId !== 'super-admin-test-mode') {
+        const { data: baselineData } = await supabase
+          .from('intensive_responses')
+          .select('*')
+          .eq('intensive_id', activeIntensiveId)
+          .eq('phase', 'pre_intensive')
+          .single()
 
-      // Get baseline responses (pre_intensive phase)
-      const { data: baselineData } = await supabase
-        .from('intensive_responses')
-        .select('*')
-        .eq('intensive_id', intensiveData.id)
-        .eq('phase', 'pre_intensive')
-        .single()
-
-      if (baselineData) {
-        // Extract all baseline values dynamically
-        const baselineValues: Record<string, number | string | null> = {}
-        INTAKE_QUESTIONS.forEach(q => {
-          if (baselineData[q.id] !== undefined) {
-            baselineValues[q.id] = baselineData[q.id]
-          }
-        })
-        setBaseline(baselineValues)
+        if (baselineData) {
+          // Extract all baseline values dynamically
+          const baselineValues: Record<string, number | string | null> = {}
+          INTAKE_QUESTIONS.forEach(q => {
+            if (baselineData[q.id] !== undefined) {
+              baselineValues[q.id] = baselineData[q.id]
+            }
+          })
+          setBaseline(baselineValues)
+        }
       }
 
       // Fetch user stats

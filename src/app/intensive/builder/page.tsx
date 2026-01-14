@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, ArrowRight, Sparkles, Wand2, Save, Eye, Clock } from 'lucide-react'
+import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
 
 import { 
   Card, 
@@ -87,6 +88,9 @@ export default function IntensiveBuilder() {
         return
       }
 
+      // Check for super_admin access
+      const { isSuperAdmin } = await checkSuperAdminAccess(supabase)
+
       // Get intensive purchase
       const { data: intensiveData, error } = await supabase
         .from('intensive_purchases')
@@ -96,6 +100,11 @@ export default function IntensiveBuilder() {
         .single()
 
       if (error || !intensiveData) {
+        // Allow super_admin to access without enrollment
+        if (isSuperAdmin) {
+          setIntensiveId('super-admin-test-mode')
+          return
+        }
         router.push('/#pricing')
         return
       }

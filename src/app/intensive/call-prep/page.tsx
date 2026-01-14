@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, Video, CheckCircle, ArrowRight } from 'lucide-react'
+import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
 
 import { 
   Container, 

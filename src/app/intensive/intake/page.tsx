@@ -21,6 +21,7 @@ import {
   INTAKE_QUESTIONS,
   type IntakeQuestion 
 } from '@/lib/constants/intensive-intake-questions'
+import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
 
 // Build form data type from questions
 type IntakeFormData = {
@@ -67,6 +68,9 @@ export default function IntensiveIntake() {
         return
       }
 
+      // Check for super_admin access
+      const { isSuperAdmin } = await checkSuperAdminAccess(supabase)
+
       // Get intensive purchase
       const { data: intensiveData, error } = await supabase
         .from('intensive_purchases')
@@ -76,6 +80,11 @@ export default function IntensiveIntake() {
         .single()
 
       if (error || !intensiveData) {
+        // Allow super_admin to access without enrollment
+        if (isSuperAdmin) {
+          setIntensiveId('super-admin-test-mode')
+          return
+        }
         router.push('/#pricing')
         return
       }
