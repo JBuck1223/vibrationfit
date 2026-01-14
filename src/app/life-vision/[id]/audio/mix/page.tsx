@@ -21,6 +21,7 @@ interface ExistingVoiceSet {
   created_at: string
   track_count: number
   available_sections: string[] // Track which sections have voice-only tracks
+  sample_audio_url?: string // Sample track for preview
 }
 
 interface BackgroundTrack {
@@ -184,13 +185,17 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
       )
       const availableSections = completedTracks.map((t: any) => t.section_key)
       
+      // Get first track's URL for preview
+      const sampleUrl = completedTracks.length > 0 ? completedTracks[0].audio_url : undefined
+      
       return {
         id: set.id,
         voice_id: set.voice_id,
         voice_name: voiceList.find((v: Voice) => v.id === set.voice_id)?.name || set.voice_id,
         created_at: set.created_at,
         track_count: completedTracks.length,
-        available_sections: availableSections
+        available_sections: availableSections,
+        sample_audio_url: sampleUrl
       }
     })
 
@@ -687,32 +692,49 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {existingVoiceSets.map((set) => (
-              <Card 
-                key={set.id} 
-                variant="default" 
-                hover
-                className={`p-4 cursor-pointer transition-all ${
-                  selectedBaseVoice === set.voice_id
-                    ? 'border-primary-500 bg-primary-500/10'
-                    : ''
-                }`}
-                onClick={() => setSelectedBaseVoice(set.voice_id)}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-white font-medium">{voices.find(v => v.id === set.voice_id)?.name || set.voice_id}</p>
-                    <p className="text-xs text-neutral-400">
-                      {set.track_count} section{set.track_count !== 1 ? 's' : ''} available
-                      {set.track_count < 14 && <span className="text-yellow-400 ml-1">(partial)</span>}
-                    </p>
+            {existingVoiceSets.map((set) => {
+              const isPreviewing = previewingTrack === set.voice_id
+              return (
+                <Card 
+                  key={set.id} 
+                  variant="default" 
+                  hover
+                  className={`p-4 cursor-pointer transition-all ${
+                    selectedBaseVoice === set.voice_id
+                      ? 'border-primary-500 bg-primary-500/10'
+                      : ''
+                  }`}
+                  onClick={() => setSelectedBaseVoice(set.voice_id)}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white font-medium">{voices.find(v => v.id === set.voice_id)?.name || set.voice_id}</p>
+                      <p className="text-xs text-neutral-400">
+                        {set.track_count} section{set.track_count !== 1 ? 's' : ''} available
+                        {set.track_count < 14 && <span className="text-yellow-400 ml-1">(partial)</span>}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {set.sample_audio_url && (
+                        <button
+                          onClick={(e) => handlePreview(e, set.sample_audio_url!, set.voice_id, previewingTrack, setPreviewingTrack, audioRef)}
+                          className={`p-1.5 rounded-lg transition-colors ${
+                            isPreviewing 
+                              ? 'bg-primary-500 text-white' 
+                              : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
+                          }`}
+                        >
+                          {isPreviewing ? <X className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                        </button>
+                      )}
+                      {selectedBaseVoice === set.voice_id && (
+                        <CheckCircle className="w-5 h-5 text-primary-500" />
+                      )}
+                    </div>
                   </div>
-                  {selectedBaseVoice === set.voice_id && (
-                    <CheckCircle className="w-5 h-5 text-primary-500" />
-                  )}
-                </div>
-              </Card>
-            ))}
+                </Card>
+              )
+            })}
           </div>
         </Card>
 
