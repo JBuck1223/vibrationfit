@@ -323,11 +323,12 @@ export async function generateAudioTracks(params: {
   audioSetMetadata?: { // Optional: mix metadata to store on the audio set
     voice_volume?: number
     bg_volume?: number
-    binaural_volume?: number
+    frequency_volume?: number // Volume for solfeggio/binaural enhancement track
     background_track_id?: string
     background_track_name?: string
-    binaural_track_id?: string
-    binaural_track_name?: string
+    frequency_track_id?: string // Can be pure solfeggio OR binaural
+    frequency_track_name?: string
+    frequency_type?: 'pure' | 'solfeggio_binaural' | 'binaural' // pure=solfeggio tone, solfeggio_binaural=solfeggio+brainwave, binaural=non-solfeggio
     mix_ratio_id?: string
     output_format?: string
   }

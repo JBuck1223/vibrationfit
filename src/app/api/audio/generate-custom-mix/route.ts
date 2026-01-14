@@ -71,15 +71,27 @@ export async function POST(request: NextRequest) {
       .eq('file_url', backgroundTrackUrl)
       .single()
     
-    // Fetch binaural track name if provided
-    let binauralTrackName = null
+    // Fetch frequency track name and type if provided (can be pure solfeggio OR binaural)
+    let frequencyTrackName = null
+    let frequencyType: 'pure' | 'solfeggio_binaural' | 'binaural' | null = null
     if (binauralTrackUrl && binauralTrackUrl !== 'none') {
-      const { data: binTrack } = await supabase
+      const { data: freqTrack } = await supabase
         .from('audio_background_tracks')
-        .select('display_name')
+        .select('display_name, category, brainwave_hz')
         .eq('file_url', binauralTrackUrl)
         .single()
-      binauralTrackName = binTrack?.display_name
+      frequencyTrackName = freqTrack?.display_name
+      // Determine type based on category:
+      // - 'solfeggio' = pure solfeggio tone (no brainwave)
+      // - 'solfeggio_binaural' = solfeggio carrier + brainwave entrainment
+      // - 'binaural' = non-solfeggio binaural beats (future)
+      if (freqTrack?.category === 'solfeggio_binaural') {
+        frequencyType = 'solfeggio_binaural'
+      } else if (freqTrack?.category === 'binaural') {
+        frequencyType = 'binaural'
+      } else {
+        frequencyType = 'pure' // solfeggio or legacy
+      }
     }
     
     // Calculate adjusted volumes (accounting for binaural if present)
@@ -107,8 +119,8 @@ export async function POST(request: NextRequest) {
     if (bgTrack?.display_name) {
       audioSetName += ` + ${bgTrack.display_name}`
     }
-    if (binauralTrackName && binauralVolume > 0) {
-      audioSetName += ` + ${binauralTrackName}`
+    if (frequencyTrackName && binauralVolume > 0) {
+      audioSetName += ` + ${frequencyTrackName}`
     }
     
     // Add the actual mix ratio to the name
@@ -154,9 +166,10 @@ export async function POST(request: NextRequest) {
       audioSetMetadata: {
         voice_volume: adjustedVoiceVol,
         bg_volume: adjustedBgVol,
-        binaural_volume: binauralVolume || 0,
+        frequency_volume: binauralVolume || 0,
         background_track_name: bgTrack?.display_name,
-        binaural_track_name: binauralTrackName || undefined,
+        frequency_track_name: frequencyTrackName || undefined,
+        frequency_type: frequencyType || undefined, // 'pure' for solfeggio, 'binaural' for binaural beats
       }
     })
 

@@ -14,6 +14,7 @@ import {
   Phone,
   Mail
 } from 'lucide-react'
+import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
 
 import { 
   Card, 
@@ -118,6 +119,9 @@ export default function IntensiveCalibration() {
         return
       }
 
+      // Check for super_admin access
+      const { isSuperAdmin } = await checkSuperAdminAccess(supabase)
+
       // Get intensive purchase
       const { data: intensiveData, error } = await supabase
         .from('intensive_purchases')
@@ -127,6 +131,12 @@ export default function IntensiveCalibration() {
         .single()
 
       if (error || !intensiveData) {
+        // Allow super_admin to access without enrollment
+        if (isSuperAdmin) {
+          setIntensiveId('super-admin-test-mode')
+          setLoading(false)
+          return
+        }
         router.push('/#pricing')
         return
       }

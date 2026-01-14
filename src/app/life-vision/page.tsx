@@ -192,7 +192,8 @@ export default function VisionListPage() {
       }
       
       // Set active vision
-      if (data.vision) {
+      // Check if vision exists and has an ID (handle both null and empty object cases)
+      if (data.vision && data.vision.id) {
         // Calculate version number for active vision
         const activeWithVersion = versionsWithCalculatedNumbers.find((v: VisionData) => v.id === data.vision.id)
         const visionWithVersion = activeWithVersion || data.vision
@@ -338,13 +339,36 @@ export default function VisionListPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      // Delete existing draft if any
-      await supabase
+      // Delete ALL existing drafts to ensure only one draft exists
+      // First, find all existing drafts
+      const { data: existingDrafts, error: findError } = await supabase
         .from('vision_versions')
-        .delete()
+        .select('id')
         .eq('user_id', user.id)
         .eq('is_draft', true)
         .eq('is_active', false)
+
+      if (findError) {
+        console.error('Error finding existing drafts:', findError)
+      }
+
+      // Delete each draft individually to ensure they're all removed
+      if (existingDrafts && existingDrafts.length > 0) {
+        console.log(`Found ${existingDrafts.length} existing draft(s) to delete`)
+        for (const draft of existingDrafts) {
+          const { error: deleteError } = await supabase
+            .from('vision_versions')
+            .delete()
+            .eq('id', draft.id)
+            .eq('user_id', user.id)
+
+          if (deleteError) {
+            console.error(`Failed to delete draft ${draft.id}:`, deleteError)
+          } else {
+            console.log(`Deleted draft ${draft.id}`)
+          }
+        }
+      }
 
       // Fetch the version to clone
       const { data: sourceVersion, error: fetchError } = await supabase
@@ -468,20 +492,6 @@ export default function VisionListPage() {
           subtitle="View all of your Life Vision versions below."
         />
 
-        {/* Create Button (only when no active vision) */}
-        {!activeVision && (
-          <div className="flex justify-end">
-            <Button
-              onClick={() => router.push('/life-vision/new')}
-              variant="primary"
-              className="flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Create Life Vision
-            </Button>
-          </div>
-        )}
-
         {/* Stats Cards */}
         {activeVision && (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
@@ -593,7 +603,6 @@ export default function VisionListPage() {
         {!activeVision && (
           <div className="text-center py-16">
             <Card className="max-w-md mx-auto">
-              <div className="text-6xl mb-4">✨</div>
               <h3 className="text-2xl font-bold text-white mb-4">No vision yet</h3>
               <p className="text-neutral-400 mb-8">
                 Start your conscious creation journey by creating your first Life Vision. 

@@ -65,7 +65,9 @@ export default function ProfileDashboardPage() {
       
       // Find active profile (not draft)
       const activeProf = data.versions?.find((v: ProfileData) => v.is_active === true && v.is_draft === false) || data.profile
-      setActiveProfile(activeProf)
+      // Check if profile exists and has an ID (empty object {} would be truthy but invalid)
+      const validProfile = activeProf && activeProf.id ? activeProf : null
+      setActiveProfile(validProfile)
       setCompletionPercentage(data.completionPercentage || 0)
       setVersions(data.versions || [])
       
@@ -408,22 +410,6 @@ export default function ProfileDashboardPage() {
           )}
         </PageHero>
 
-        {/* Create Button (only when no active profile) */}
-        {!activeProfile && (
-          <div className="flex justify-end">
-            <Button
-              onClick={() => router.push('/profile/new')}
-              variant="primary"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Create Profile
-            </Button>
-          </div>
-        )}
-
-
         {/* Stats Cards */}
         {activeProfile && (
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
@@ -531,21 +517,18 @@ export default function ProfileDashboardPage() {
 
         {/* No Profile State */}
         {!activeProfile && (
-          <div className="text-center py-12 md:py-16">
-            <Card className="max-w-md mx-auto p-6 md:p-8">
-              <Stack gap="md" align="center">
-                <div className="text-5xl md:text-6xl">👤</div>
-                <Heading level={3} className="text-white text-xl md:text-2xl">No profile yet</Heading>
-                <Text size="sm" className="text-neutral-400 text-center">
-                  Start by creating your first profile. Define your personal information and preferences.
-                </Text>
-                <Button asChild size="sm">
-                  <Link href="/profile/new">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create Your First Profile
-                  </Link>
-                </Button>
-              </Stack>
+          <div className="text-center py-16">
+            <Card className="max-w-md mx-auto">
+              <h3 className="text-2xl font-bold text-white mb-4">No profile yet</h3>
+              <p className="text-neutral-400 mb-8">
+                Start by creating your first profile. Define your personal information and preferences.
+              </p>
+              <Button asChild size="lg">
+                <Link href="/profile/new">
+                  <Plus className="w-5 h-5 mr-2" />
+                  Create Your First Profile
+                </Link>
+              </Button>
             </Card>
           </div>
         )}

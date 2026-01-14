@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, Rocket, CheckCircle, Music, ImageIcon, BookOpen, Calendar } from 'lucide-react'
+import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
 
 import { 
   Container, 

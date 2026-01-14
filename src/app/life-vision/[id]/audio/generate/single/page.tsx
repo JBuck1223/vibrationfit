@@ -244,7 +244,7 @@ export default function SingleTrackGeneratorPage() {
       const { data: binTracks } = await supabase
         .from('audio_background_tracks')
         .select('*')
-        .in('category', ['binaural', 'solfeggio'])
+        .in('category', ['solfeggio', 'solfeggio_binaural', 'binaural'])
         .eq('is_active', true)
         .order('sort_order')
       

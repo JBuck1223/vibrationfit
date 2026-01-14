@@ -130,17 +130,21 @@ export async function GET(request: NextRequest) {
             )
           }
 
-          // Check if draft vision exists (is_draft=true, is_active=false)
-          const { data: draftVision } = await supabase
-            .from('vision_versions')
-            .select('*')
-            .eq('user_id', user.id)
-            .is('household_id', null)  // Only personal visions
-            .eq('is_draft', true)
-            .eq('is_active', false)
-            .maybeSingle()
+        // Check if draft vision exists (is_draft=true, is_active=false)
+        // Use limit(1) instead of maybeSingle() to handle case where multiple drafts exist
+        const { data: draftVisions } = await supabase
+          .from('vision_versions')
+          .select('*')
+          .eq('user_id', user.id)
+          .is('household_id', null)  // Only personal visions
+          .eq('is_draft', true)
+          .eq('is_active', false)
+          .order('created_at', { ascending: false })
+          .limit(1)
 
-          if (draftVision) {
+        const draftVision = draftVisions?.[0] || null
+
+        if (draftVision) {
             // Add draft vision to beginning of versions array
             versions = [{
               ...draftVision,
@@ -266,14 +270,18 @@ export async function GET(request: NextRequest) {
         }
 
         // Check if draft vision exists for user
-        const { data: draftVision } = await supabase
+        // Use limit(1) instead of maybeSingle() to handle case where multiple drafts exist
+        const { data: draftVisions } = await supabase
           .from('vision_versions')
           .select('*')
           .eq('user_id', user.id)
           .is('household_id', null)  // Only personal visions
           .eq('is_draft', true)
           .eq('is_active', false)
-          .maybeSingle()
+          .order('created_at', { ascending: false })
+          .limit(1)
+
+        const draftVision = draftVisions?.[0] || null
 
         if (draftVision) {
           // Add draft vision to beginning of versions array
