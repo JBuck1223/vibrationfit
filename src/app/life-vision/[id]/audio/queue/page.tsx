@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { Container, Stack, Card, Button, Badge, Spinner, DeleteConfirmationDialog, PageHero } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
-import { CheckCircle, ArrowLeft, Clock, Mic, Moon, Zap, Sparkles, Music, Trash2, Headphones, Wand2, Eye, ListMusic, Plus } from 'lucide-react'
+import { CheckCircle, ArrowLeft, Clock, Mic, Moon, Zap, Sparkles, Music, Trash2, Headphones, Wand2, Eye, ListMusic, Plus, AudioLines } from 'lucide-react'
 import Link from 'next/link'
 
 interface Voice {
@@ -136,7 +136,7 @@ export default function AudioQueuePage({ params }: { params: Promise<{ id: strin
             </Button>
             <Button variant="outline" size="sm" asChild className="w-full">
               <Link href={`/life-vision/${visionId}/audio/generate`} className="flex items-center justify-center gap-2">
-                <Wand2 className="w-4 h-4" />
+                <AudioLines className="w-4 h-4" />
                 <span>Generate</span>
               </Link>
             </Button>
