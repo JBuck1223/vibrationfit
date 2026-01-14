@@ -1,11 +1,13 @@
 "use client"
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Spinner, Badge, Container, Stack, VersionBadge, StatusBadge, PageHero } from '@/lib/design-system/components'
+import { Button, Card, Spinner, Badge, Container, Stack, VersionBadge, StatusBadge, PageHero, TrackingMilestoneCard } from '@/lib/design-system/components'
+import { PlaylistPlayer } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
-import { Headphones, CheckCircle, Play, CalendarDays, Plus, Mic, Clock, Eye, ListMusic, Music } from 'lucide-react'
+import { Headphones, CheckCircle, Play, CalendarDays, Plus, Mic, Clock, Eye, ListMusic, Music, AudioLines, Disc3, Layers } from 'lucide-react'
 import Link from 'next/link'
 import { getVisionCategoryKeys, VISION_CATEGORIES } from '@/lib/design-system'
+import { ChevronDown } from 'lucide-react'
 import { SectionSelector } from '@/components/SectionSelector'
 import { FormatSelector, OutputFormat } from '@/components/FormatSelector'
 
@@ -22,6 +24,7 @@ interface ExistingVoiceSet {
   created_at: string
   track_count: number
   name?: string
+  section_keys?: string[]
 }
 
 interface Batch {
@@ -44,6 +47,9 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
   const [existingVoiceSets, setExistingVoiceSets] = useState<ExistingVoiceSet[]>([])
   const [vision, setVision] = useState<any>(null)
   const [activeBatches, setActiveBatches] = useState<Batch[]>([])
+  const [voiceTracksCount, setVoiceTracksCount] = useState(0)
+  const [audioMixesCount, setAudioMixesCount] = useState(0)
+  const [totalAudioSetsCount, setTotalAudioSetsCount] = useState(0)
   
   // Voice Only Generation Form
   const [showNewVoiceForm, setShowNewVoiceForm] = useState(false)
@@ -57,6 +63,10 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
   const [generateAllSections, setGenerateAllSections] = useState(true)
   const [selectedVoiceSections, setSelectedVoiceSections] = useState<string[]>([])
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('both')
+  const [isVoiceSetDropdownOpen, setIsVoiceSetDropdownOpen] = useState(false)
+  const [selectedVoiceSetId, setSelectedVoiceSetId] = useState<string | null>(null)
+  const [selectedSetTracks, setSelectedSetTracks] = useState<any[]>([])
+  const [loadingTracks, setLoadingTracks] = useState(false)
   
   useEffect(() => {
     ;(async () => {
@@ -94,6 +104,40 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
     return () => clearInterval(interval)
   }, [visionId, activeBatches])
 
+  async function loadSetTracks(setId: string) {
+    setLoadingTracks(true)
+    const supabase = createClient()
+    
+    const { data: tracks } = await supabase
+      .from('audio_tracks')
+      .select('*')
+      .eq('audio_set_id', setId)
+      .eq('status', 'completed')
+      .not('audio_url', 'is', null)
+      .order('section_key')
+    
+    if (tracks) {
+      // Map database fields to PlaylistPlayer expected format
+      const tracksWithKey = tracks.map(t => {
+        // Get human-readable title from VISION_CATEGORIES
+        const category = VISION_CATEGORIES.find(c => c.key === t.section_key)
+        const title = category?.label || t.section_key
+        
+        return {
+          id: t.id,
+          title,
+          artist: '', // No subtitle - matches audio/sets page
+          duration: t.duration_seconds || 0,
+          url: t.audio_url, // Map audio_url to url for PlaylistPlayer
+          sectionKey: t.section_key,
+        }
+      })
+      setSelectedSetTracks(tracksWithKey)
+    }
+    
+    setLoadingTracks(false)
+  }
+
   async function loadData() {
     const supabase = createClient()
 
@@ -116,10 +160,11 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
     setVision(v)
 
     // Load OpenAI voices
+    let voiceList: Voice[] = []
     try {
       const resp = await fetch('/api/audio/voices', { cache: 'no-store' })
       const data = await resp.json()
-      const voiceList = (data.voices || []).map((v: any) => ({ 
+      voiceList = (data.voices || []).map((v: any) => ({ 
         id: v.id, 
         name: `${v.brandName || v.name} (${v.gender})`,
         previewUrl: v.previewUrl
@@ -128,27 +173,31 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
     } catch {}
 
     // Load existing voice-only (standard) sets
-    const { data: sets } = await supabase
+    const { data: sets, error: setsError } = await supabase
       .from('audio_sets')
       .select(`
         id,
         voice_id,
         name,
         created_at,
-        audio_tracks(count)
+        audio_tracks(section_key)
       `)
       .eq('vision_id', visionId)
       .eq('variant', 'standard')
       .order('created_at', { ascending: false })
 
-    const voiceSets: ExistingVoiceSet[] = (sets || []).map((set: any) => ({
-      id: set.id,
-      voice_id: set.voice_id,
-      voice_name: voices.find(v => v.id === set.voice_id)?.name || set.voice_id,
-      created_at: set.created_at,
-      track_count: set.audio_tracks?.[0]?.count || 0,
-      name: set.name
-    }))
+    const voiceSets: ExistingVoiceSet[] = (sets || []).map((set: any) => {
+      const sectionKeys = set.audio_tracks?.map((t: any) => t.section_key).filter(Boolean) || []
+      return {
+        id: set.id,
+        voice_id: set.voice_id,
+        voice_name: voiceList.find(v => v.id === set.voice_id)?.name || set.voice_id,
+        created_at: set.created_at,
+        track_count: set.audio_tracks?.length || 0,
+        name: set.name,
+        section_keys: sectionKeys
+      }
+    })
 
     setExistingVoiceSets(voiceSets)
 
@@ -163,6 +212,29 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
     if (batches) {
       setActiveBatches(batches)
     }
+
+    // Count voice-only tracks (standard variant)
+    const { count: voiceCount } = await supabase
+      .from('audio_sets')
+      .select('*', { count: 'exact', head: true })
+      .eq('vision_id', visionId)
+      .eq('variant', 'standard')
+    setVoiceTracksCount(voiceCount || 0)
+
+    // Count audio mixes (mixed variant)
+    const { count: mixCount } = await supabase
+      .from('audio_sets')
+      .select('*', { count: 'exact', head: true })
+      .eq('vision_id', visionId)
+      .eq('variant', 'mixed')
+    setAudioMixesCount(mixCount || 0)
+
+    // Count all audio sets
+    const { count: totalCount } = await supabase
+      .from('audio_sets')
+      .select('*', { count: 'exact', head: true })
+      .eq('vision_id', visionId)
+    setTotalAudioSetsCount(totalCount || 0)
 
     setLoading(false)
   }
@@ -315,7 +387,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
 
   return (
     <Container size="xl">
-      <Stack gap="lg">
+      <Stack gap="lg" className="overflow-visible">
         {/* Hero Header */}
         <PageHero
           eyebrow={vision?.household_id ? "THE LIFE WE CHOOSE" : "THE LIFE I CHOOSE"}
@@ -381,57 +453,32 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
           )}
         </PageHero>
 
-        {/* Existing Voice Sets */}
-        {existingVoiceSets.length > 0 && (
-          <Card variant="glass" className="p-4 md:p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-white">Your Voice Sets</h2>
-              <Badge variant="neutral">{existingVoiceSets.length} set{existingVoiceSets.length !== 1 ? 's' : ''}</Badge>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {existingVoiceSets.map((set) => (
-                <Card 
-                  key={set.id} 
-                  variant="default" 
-                  hover
-                  className="p-4"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-white font-medium">
-                        {set.name || voices.find(v => v.id === set.voice_id)?.name || set.voice_id}
-                      </p>
-                      <p className="text-xs text-neutral-400 mt-1">
-                        {set.track_count} tracks • {new Date(set.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </p>
-                    </div>
-                    <CheckCircle className="w-5 h-5 text-primary-500 flex-shrink-0" />
-                  </div>
-                </Card>
-              ))}
-            </div>
-            
-            {/* CTA to Mix */}
-            {existingVoiceSets.length > 0 && (
-              <div className="mt-6 pt-4 border-t border-neutral-700/50 text-center">
-                <p className="text-sm text-neutral-400 mb-3">Ready to add background music?</p>
-                <Button variant="secondary" asChild>
-                  <Link href={`/life-vision/${visionId}/audio/mix`}>
-                    <Music className="w-4 h-4 mr-2" />
-                    Create Audio Mix
-                  </Link>
-                </Button>
-              </div>
-            )}
-          </Card>
-        )}
+        {/* Milestone Tracking Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+          <TrackingMilestoneCard
+            label="Voice Tracks Generated"
+            value={voiceTracksCount}
+            theme="primary"
+          />
+
+          <TrackingMilestoneCard
+            label="Audio Mixes Generated"
+            value={audioMixesCount}
+            theme="secondary"
+          />
+
+          <TrackingMilestoneCard
+            label="Audio Sets"
+            value={totalAudioSetsCount}
+            theme="accent"
+          />
+        </div>
 
         {/* Generate New Voice Set */}
         <Card variant="glass" className="p-4 md:p-6">
           <div className="flex flex-col items-center text-center mb-6">
             <div className="w-12 h-12 bg-[#39FF14]/20 rounded-full flex items-center justify-center mb-3">
-              <Headphones className="w-6 h-6 text-[#39FF14]" />
+              <AudioLines className="w-6 h-6 text-[#39FF14]" />
             </div>
             <h2 className="text-lg md:text-xl font-semibold text-white">Generate Voice-Only Tracks</h2>
             <p className="text-sm text-neutral-400">Choose a voice and sections to generate</p>
@@ -451,7 +498,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
             <div className="space-y-6">
               {/* Voice Selection */}
               <div>
-                <h3 className="text-sm font-medium text-white mb-3">Select Voice</h3>
+                <h3 className="text-sm font-medium text-white mb-3">1. Select Voice</h3>
                 <div className="flex flex-col md:flex-row gap-4">
                   <div className="relative flex-1">
                     <button
@@ -459,112 +506,100 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                       onClick={() => setIsVoiceDropdownOpen(!isVoiceDropdownOpen)}
                       className="w-full pl-6 pr-12 py-3 rounded-full bg-[#1F1F1F] text-white text-sm border-2 border-[#333] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left"
                     >
-                      {voices.find(v => v.id === selectedVoiceForNew)?.name || 'Select a voice'}
+                      {voices.find(v => v.id === selectedVoiceForNew)?.name || selectedVoiceForNew}
                     </button>
-                    <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
                       <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isVoiceDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </div>
-                    
                     {isVoiceDropdownOpen && (
                       <>
-                        <div className="fixed inset-0 z-10" onClick={() => setIsVoiceDropdownOpen(false)} />
-                        <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-96 overflow-y-auto">
-                          <div className="px-3 py-1 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Available Voices</div>
-                          {voices.map((v: any) => (
+                        <div 
+                          className="fixed inset-0 z-10" 
+                          onClick={() => setIsVoiceDropdownOpen(false)}
+                        />
+                        <div className="absolute z-20 w-full mt-2 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-60 overflow-y-auto">
+                          {voices.map((voice) => (
                             <button
-                              key={v.id}
-                              type="button"
+                              key={voice.id}
                               onClick={() => {
-                                setSelectedVoiceForNew(v.id)
+                                setSelectedVoiceForNew(voice.id)
                                 setIsVoiceDropdownOpen(false)
+                                if (previewAudioRef.current) {
+                                  previewAudioRef.current.pause()
+                                  previewAudioRef.current.currentTime = 0
+                                }
+                                setIsPreviewing(false)
+                                setPreviewProgress(0)
                               }}
-                              className={`w-full px-6 py-2 text-left text-sm transition-colors ${
-                                selectedVoiceForNew === v.id 
-                                  ? 'bg-primary-500/20 text-primary-500 font-semibold' 
-                                  : 'text-white hover:bg-[#333]'
+                              className={`w-full px-4 py-3 text-left hover:bg-[#2A2A2A] transition-colors border-b border-[#333] last:border-b-0 ${
+                                selectedVoiceForNew === voice.id ? 'bg-primary-500/10' : ''
                               }`}
                             >
-                              {v.name}
+                              <div className="flex items-center justify-between">
+                                <span className="text-white font-medium">{voice.name}</span>
+                                {selectedVoiceForNew === voice.id && (
+                                  <CheckCircle className="w-5 h-5 text-primary-500" />
+                                )}
+                              </div>
                             </button>
                           ))}
                         </div>
                       </>
                     )}
                   </div>
+                  
                   <Button 
-                    variant={isPreviewing ? "primary" : "ghost"}
+                    variant="secondary"
                     onClick={async () => {
-                      if (isPreviewing && previewAudioRef.current) {
-                        previewAudioRef.current.pause()
-                        previewAudioRef.current.currentTime = 0
-                        setIsPreviewing(false)
-                        setPreviewProgress(0)
-                        return
-                      }
+                      if (!selectedVoiceForNew) return
+                      
+                      const selectedVoice = voices.find(v => v.id === selectedVoiceForNew)
+                      if (!selectedVoice?.previewUrl) return
 
-                      try {
+                      if (isPreviewing) {
                         if (previewAudioRef.current) {
                           previewAudioRef.current.pause()
+                          previewAudioRef.current.currentTime = 0
                         }
-                        
-                        let audioUrl: string
-                        const selectedVoice = voices.find(v => v.id === selectedVoiceForNew)
-                        if (selectedVoice?.previewUrl) {
-                          audioUrl = selectedVoice.previewUrl
-                        } else {
-                          const res = await fetch(`/api/audio/voices?preview=${selectedVoiceForNew}`, { cache: 'no-store' })
-                          const data = await res.json()
-                          audioUrl = data.url
-                        }
-                        
-                        const audio = new Audio(audioUrl)
-                        previewAudioRef.current = audio
-                        setIsPreviewing(true)
-                        setPreviewProgress(0)
-                        
-                        const interval = setInterval(() => {
-                          if (audio.paused || audio.ended) {
-                            clearInterval(interval)
-                            setPreviewProgress(0)
-                            setIsPreviewing(false)
-                          } else {
-                            setPreviewProgress((audio.currentTime / audio.duration) * 100)
-                          }
-                        }, 100)
-
-                        audio.play()
-                      } catch (err) {
-                        console.error('Preview failed:', err)
                         setIsPreviewing(false)
+                        setPreviewProgress(0)
+                      } else {
+                        setIsPreviewing(true)
+                        if (!previewAudioRef.current) {
+                          previewAudioRef.current = new Audio(selectedVoice.previewUrl)
+                        } else {
+                          previewAudioRef.current.src = selectedVoice.previewUrl
+                        }
+                        
+                        previewAudioRef.current.addEventListener('timeupdate', () => {
+                          if (previewAudioRef.current) {
+                            const progress = (previewAudioRef.current.currentTime / previewAudioRef.current.duration) * 100
+                            setPreviewProgress(progress)
+                          }
+                        })
+                        
+                        previewAudioRef.current.addEventListener('ended', () => {
+                          setIsPreviewing(false)
+                          setPreviewProgress(0)
+                        })
+                        
+                        await previewAudioRef.current.play()
                       }
                     }}
-                    className="flex items-center gap-2"
+                    disabled={!selectedVoiceForNew || !voices.find(v => v.id === selectedVoiceForNew)?.previewUrl}
                   >
-                    {isPreviewing ? (
-                      <>
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                          <rect x="6" y="4" width="4" height="16" rx="1" />
-                          <rect x="14" y="4" width="4" height="16" rx="1" />
-                        </svg>
-                        <span>Stop Preview</span>
-                      </>
-                    ) : (
-                      <>
-                        <Play className="w-4 h-4" />
-                        <span>Preview Voice</span>
-                      </>
-                    )}
+                    <Play className="w-4 h-4 mr-2" />
+                    {isPreviewing ? 'Stop Preview' : 'Preview Voice'}
                   </Button>
                 </div>
-
-                {/* Preview Progress Bar */}
-                {isPreviewing && previewProgress > 0 && (
-                  <div className="mt-3">
-                    <div className="w-full bg-neutral-800 rounded-full h-1.5">
+                
+                {isPreviewing && (
+                  <div className="mt-2">
+                    <div className="w-full bg-neutral-700 rounded-full h-1.5">
                       <div 
-                        className="bg-primary-500 h-1.5 rounded-full transition-all duration-200"
+                        className="bg-primary-500 h-1.5 rounded-full transition-all"
                         style={{ width: `${previewProgress}%` }}
                       />
                     </div>
@@ -572,30 +607,31 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                 )}
               </div>
 
+              {/* Divider */}
+              <div className="border-t border-[#333]" />
+
               {/* Section Selection */}
-              <div className="pt-4 border-t border-neutral-800">
-                <h3 className="text-sm font-medium text-white mb-3">Which sections to generate?</h3>
+              <div>
+                <h3 className="text-sm font-medium text-white mb-3">2. Select Sections</h3>
                 <SectionSelector
                   allSelected={generateAllSections}
                   onAllSelectedChange={setGenerateAllSections}
                   selectedSections={selectedVoiceSections}
                   onSelectedSectionsChange={setSelectedVoiceSections}
-                  label="All 14 Sections"
-                  description="Select specific sections to create focused audio sets (e.g., just Money or Relationships)"
                 />
               </div>
 
-              {/* Output Format Selection - only show if more than 1 section */}
-              {(generateAllSections || selectedVoiceSections.length > 1) && (
-                <div className="pt-4 border-t border-neutral-800">
-                  <h3 className="text-sm font-medium text-white mb-3">Output format</h3>
-                  <FormatSelector
-                    value={outputFormat}
-                    onChange={setOutputFormat}
-                    disabled={generating}
-                  />
-                </div>
-              )}
+              {/* Divider */}
+              <div className="border-t border-[#333]" />
+
+              {/* Output Format Selection */}
+              <div>
+                <h3 className="text-sm font-medium text-white mb-3">3. Output Format</h3>
+                <FormatSelector
+                  value={outputFormat}
+                  onChange={setOutputFormat}
+                />
+              </div>
 
               {/* Action Buttons */}
               <div className="flex gap-3 pt-4">
@@ -638,53 +674,180 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
           )}
         </Card>
 
-        {/* Recent Activity */}
-        {activeBatches.length > 0 && (
-          <Card variant="glass" className="p-4 md:p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">Recent Activity</h2>
-            <div className="space-y-3">
-              {activeBatches.slice(0, 3).map((batch) => (
-                <div 
-                  key={batch.id}
-                  className="flex items-center justify-between p-3 bg-neutral-900/50 rounded-xl border border-neutral-800"
+        {/* Existing Voice Sets */}
+        {existingVoiceSets.length > 0 && (
+          <Card variant="elevated" className="bg-[#0A0A0A] relative z-50 overflow-visible">
+            {/* Audio Set Selector */}
+            <div className="mb-8">
+              <h2 className="text-xl md:text-2xl font-semibold text-white mb-6 text-center">Your Voice-Only Sets</h2>
+              
+              <div className="relative max-w-2xl mx-auto">
+                <button
+                  type="button"
+                  onClick={() => setIsVoiceSetDropdownOpen(!isVoiceSetDropdownOpen)}
+                  className="w-full px-4 md:px-6 py-3 md:py-3.5 rounded-full bg-[#1F1F1F] text-white border-2 border-[#333] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer flex items-center justify-between"
                 >
-                  <div className="flex items-center gap-3">
-                    {batch.status === 'completed' ? (
-                      <CheckCircle className="w-5 h-5 text-primary-500" />
-                    ) : batch.status === 'processing' || batch.status === 'pending' ? (
-                      <Spinner size="sm" />
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    {selectedVoiceSetId ? (
+                      <>
+                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary-500/20 text-primary-500">
+                          <AudioLines className="w-5 h-5 md:w-6 md:h-6" />
+                        </div>
+                        <div className="text-left flex-1 min-w-0">
+                          <div className="font-semibold truncate">
+                            {existingVoiceSets.find(s => s.id === selectedVoiceSetId)?.name || 
+                             existingVoiceSets.find(s => s.id === selectedVoiceSetId)?.voice_name || 
+                             'Voice Set'}
+                          </div>
+                        </div>
+                      </>
                     ) : (
-                      <div className="w-5 h-5 rounded-full bg-red-500/20 flex items-center justify-center">
-                        <span className="text-red-400 text-xs">!</span>
-                      </div>
+                      <span className="text-neutral-400">Select a voice set...</span>
                     )}
-                    <div>
-                      <p className="text-white text-sm font-medium">
-                        {voices.find(v => v.id === batch.voice_id)?.name || batch.voice_id}
-                      </p>
-                      <p className="text-xs text-neutral-400">
-                        {batch.tracks_completed}/{batch.total_tracks_expected} tracks
-                      </p>
-                    </div>
                   </div>
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/life-vision/${visionId}/audio/queue/${batch.id}`}>
-                      View
-                    </Link>
-                  </Button>
-                </div>
-              ))}
+                  <div className="flex-shrink-0 ml-2">
+                    <ChevronDown className={`w-5 h-5 text-neutral-400 transition-transform ${isVoiceSetDropdownOpen ? 'rotate-180' : ''}`} />
+                  </div>
+                </button>
+
+                {isVoiceSetDropdownOpen && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-[100]" 
+                      onClick={() => setIsVoiceSetDropdownOpen(false)}
+                    />
+                    <div className="absolute z-[110] w-full mt-2 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-[60vh] overflow-y-auto">
+                      {existingVoiceSets.map((set) => (
+                        <div
+                          key={set.id}
+                          onClick={() => {
+                            setSelectedVoiceSetId(set.id)
+                            setIsVoiceSetDropdownOpen(false)
+                            loadSetTracks(set.id)
+                          }}
+                          className={`px-4 py-3 transition-colors border-b border-[#333] last:border-b-0 ${
+                            selectedVoiceSetId === set.id ? 'bg-primary-500/10' : ''
+                          } hover:bg-[#2A2A2A] cursor-pointer`}
+                        >
+                          <div className="flex items-start gap-4">
+                            {/* Icon with background */}
+                            <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary-500/20 text-primary-500">
+                              <AudioLines className="w-6 h-6" />
+                            </div>
+                            
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-1">
+                                <h4 className="font-semibold text-white pr-2">
+                                  {set.name || set.voice_name}
+                                </h4>
+                                {selectedVoiceSetId === set.id && (
+                                  <CheckCircle className="w-5 h-5 text-primary-500 flex-shrink-0" />
+                                )}
+                              </div>
+                              <div className="space-y-1 text-xs text-neutral-400">
+                                <div>
+                                  <span className="text-neutral-500">Voice:</span> {set.voice_name}
+                                </div>
+                                <div className="flex items-center gap-2 pt-1">
+                                  <span>{set.track_count} tracks</span>
+                                  <span>•</span>
+                                  <span>{new Date(set.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                </div>
+                              </div>
+                              {set.track_count < 14 && set.section_keys && set.section_keys.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-2">
+                                  {set.section_keys.map((key) => {
+                                    const category = VISION_CATEGORIES.find(c => c.key === key)
+                                    return category ? (
+                                      <span 
+                                        key={key}
+                                        className="px-2 py-0.5 bg-primary-500/20 text-primary-400 text-xs rounded-full"
+                                      >
+                                        {category.label}
+                                      </span>
+                                    ) : null
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
-            
-            {activeBatches.length > 3 && (
-              <div className="mt-4 text-center">
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href={`/life-vision/${visionId}/audio/queue`}>
-                    View All Activity
-                  </Link>
-                </Button>
+
+            {/* Player for Selected Set */}
+            {selectedVoiceSetId && selectedSetTracks.length > 0 && (
+              <div className="max-w-2xl mx-auto">
+                <PlaylistPlayer
+                  tracks={selectedSetTracks}
+                  setIcon={
+                    <div className="p-2 rounded-lg bg-primary-500/20 text-primary-500">
+                      <AudioLines className="w-6 h-6" />
+                    </div>
+                  }
+                  setName={existingVoiceSets.find(s => s.id === selectedVoiceSetId)?.name || 
+                           existingVoiceSets.find(s => s.id === selectedVoiceSetId)?.voice_name || 
+                           'Voice Set'}
+                  trackCount={selectedSetTracks.length}
+                  createdDate={new Date(existingVoiceSets.find(s => s.id === selectedVoiceSetId)?.created_at || '').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  onRename={async (newName: string) => {
+                    const selectedSet = existingVoiceSets.find(s => s.id === selectedVoiceSetId)
+                    if (!selectedSet) return
+                    
+                    const supabase = createClient()
+                    try {
+                      const { error } = await supabase
+                        .from('audio_sets')
+                        .update({ name: newName })
+                        .eq('id', selectedSet.id)
+                      
+                      if (error) throw error
+                      
+                      // Update local state
+                      setExistingVoiceSets(existingVoiceSets.map(s => 
+                        s.id === selectedSet.id ? { ...s, name: newName } : s
+                      ))
+                    } catch (error) {
+                      console.error('Error updating audio set name:', error)
+                      alert('Failed to update name. Please try again.')
+                    }
+                  }}
+                />
               </div>
             )}
+
+            {loadingTracks && (
+              <div className="max-w-2xl mx-auto mt-8 text-center">
+                <Spinner size="md" />
+                <p className="text-sm text-neutral-400 mt-2">Loading tracks...</p>
+              </div>
+            )}
+          </Card>
+        )}
+
+        {/* CTA to Mix */}
+        {existingVoiceSets.length > 0 && (
+          <Card variant="glass">
+            <div className="flex flex-col items-center text-center mb-6">
+              <div className="w-12 h-12 bg-[#14B8A6]/20 rounded-full flex items-center justify-center mb-3">
+                <Music className="w-6 h-6 text-[#14B8A6]" />
+              </div>
+              <h2 className="text-lg md:text-xl font-semibold text-white">Add Background Sounds</h2>
+              <p className="text-sm text-neutral-400">Choose how you want to create your mix</p>
+            </div>
+            <div className="flex justify-center">
+              <Button variant="primary" asChild>
+                <Link href={`/life-vision/${visionId}/audio/mix`}>
+                  <Music className="w-4 h-4 mr-2" />
+                  Create Audio Mix
+                </Link>
+              </Button>
+            </div>
           </Card>
         )}
       </Stack>

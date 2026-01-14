@@ -82,7 +82,18 @@ export async function POST(request: NextRequest) {
       binauralTrackName = binTrack?.display_name
     }
     
-    // Build descriptive audio set name
+    // Calculate adjusted volumes (accounting for binaural if present)
+    let adjustedVoiceVol = voiceVolume
+    let adjustedBgVol = bgVolume
+    
+    if (binauralVolume && binauralVolume > 0 && voiceVolume !== undefined && bgVolume !== undefined) {
+      const total = voiceVolume + bgVolume
+      const remaining = 100 - binauralVolume
+      adjustedVoiceVol = Math.round((voiceVolume / total) * remaining)
+      adjustedBgVol = Math.round((bgVolume / total) * remaining)
+    }
+    
+    // Build descriptive audio set name with actual mix percentages
     const voiceNames: Record<string, string> = {
       'alloy': 'Fresh and Modern (Male)',
       'echo': 'Warm and Inviting (Male)',
@@ -97,19 +108,24 @@ export async function POST(request: NextRequest) {
       audioSetName += ` + ${bgTrack.display_name}`
     }
     if (binauralTrackName && binauralVolume > 0) {
-      audioSetName += ` + ${binauralTrackName} (${binauralVolume}%)`
+      audioSetName += ` + ${binauralTrackName}`
+    }
+    
+    // Add the actual mix ratio to the name
+    if (adjustedVoiceVol !== undefined && adjustedBgVol !== undefined) {
+      if (binauralVolume && binauralVolume > 0) {
+        audioSetName += ` (${adjustedVoiceVol}/${adjustedBgVol}/${binauralVolume})`
+      } else {
+        audioSetName += ` (${adjustedVoiceVol}/${adjustedBgVol})`
+      }
     }
     
     // Build descriptive description with mix ratios
     let audioSetDescription = 'Custom mix: '
-    if (voiceVolume !== undefined && bgVolume !== undefined && binauralVolume > 0) {
-      // 3-track mix: adjust ratios
-      const voicePercent = Math.round(voiceVolume * (100 - binauralVolume) / 100)
-      const bgPercent = Math.round(bgVolume * (100 - binauralVolume) / 100)
-      audioSetDescription += `${voicePercent}% voice, ${bgPercent}% background, ${binauralVolume}% binaural`
-    } else if (voiceVolume !== undefined && bgVolume !== undefined) {
-      // 2-track mix: use ratios as-is
-      audioSetDescription += `${Math.round(voiceVolume)}% voice, ${Math.round(bgVolume)}% background`
+    if (adjustedVoiceVol !== undefined && adjustedBgVol !== undefined && binauralVolume && binauralVolume > 0) {
+      audioSetDescription += `${adjustedVoiceVol}% voice, ${adjustedBgVol}% background, ${binauralVolume}% binaural`
+    } else if (adjustedVoiceVol !== undefined && adjustedBgVol !== undefined) {
+      audioSetDescription += `${Math.round(adjustedVoiceVol)}% voice, ${Math.round(adjustedBgVol)}% background`
     } else {
       audioSetDescription += 'custom ratios'
     }
@@ -134,7 +150,14 @@ export async function POST(request: NextRequest) {
       batchId,
       audioSetName,  // Pass the descriptive name
       audioSetDescription,  // Pass the descriptive description
-      force: false // Don't regenerate if voice tracks already exist
+      force: false, // Don't regenerate if voice tracks already exist
+      audioSetMetadata: {
+        voice_volume: adjustedVoiceVol,
+        bg_volume: adjustedBgVol,
+        binaural_volume: binauralVolume || 0,
+        background_track_name: bgTrack?.display_name,
+        binaural_track_name: binauralTrackName || undefined,
+      }
     })
 
     console.log('🎵 [CUSTOM MIX] Voice generation results:', results)
@@ -164,7 +187,7 @@ export async function POST(request: NextRequest) {
     for (const result of results) {
       console.log(`🔄 [CUSTOM MIX] Processing ${result.sectionKey} (status: ${result.status})`)
       
-      if (result.status === 'generated' || result.status === 'skipped') {
+      if (result.status === 'generated' || result.status === 'skipped' || result.status === 'reused') {
         try {
           // Get the audio track record for THIS audio set only
           console.log(`🔍 [CUSTOM MIX] Looking for track: audioSet=${audioSetId}, section=${result.sectionKey}`)
@@ -309,7 +332,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update batch with final status
-    const completedCount = results.filter(r => r.status === 'generated' || r.status === 'skipped').length
+    const completedCount = results.filter(r => r.status === 'generated' || r.status === 'skipped' || r.status === 'reused').length
     const failedCount = results.filter(r => r.status === 'failed').length
 
     await supabase

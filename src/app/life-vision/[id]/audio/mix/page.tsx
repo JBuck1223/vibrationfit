@@ -20,6 +20,7 @@ interface ExistingVoiceSet {
   voice_name: string
   created_at: string
   track_count: number
+  available_sections: string[] // Track which sections have voice-only tracks
 }
 
 interface BackgroundTrack {
@@ -152,36 +153,46 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
     setVision(v)
 
     // Load OpenAI voices for display names
+    let voiceList: Voice[] = []
     try {
       const resp = await fetch('/api/audio/voices', { cache: 'no-store' })
       const data = await resp.json()
-      const voiceList = (data.voices || []).map((v: any) => ({ 
+      voiceList = (data.voices || []).map((v: any) => ({ 
         id: v.id, 
         name: `${v.brandName || v.name} (${v.gender})`
       }))
       setVoices(voiceList)
     } catch {}
 
-    // Load existing voice-only (standard) sets
+    // Load existing voice-only (standard) sets with their actual tracks
     const { data: sets } = await supabase
       .from('audio_sets')
       .select(`
         id,
         voice_id,
         created_at,
-        audio_tracks(count)
+        audio_tracks(section_key, status, audio_url)
       `)
       .eq('vision_id', visionId)
       .eq('variant', 'standard')
       .order('created_at', { ascending: false })
 
-    const voiceSets: ExistingVoiceSet[] = (sets || []).map((set: any) => ({
-      id: set.id,
-      voice_id: set.voice_id,
-      voice_name: voices.find(v => v.id === set.voice_id)?.name || set.voice_id,
-      created_at: set.created_at,
-      track_count: set.audio_tracks?.[0]?.count || 0
-    }))
+    const voiceSets: ExistingVoiceSet[] = (sets || []).map((set: any) => {
+      // Get only completed tracks with audio URLs (exclude 'full' section)
+      const completedTracks = (set.audio_tracks || []).filter(
+        (t: any) => t.status === 'completed' && t.audio_url && t.section_key !== 'full'
+      )
+      const availableSections = completedTracks.map((t: any) => t.section_key)
+      
+      return {
+        id: set.id,
+        voice_id: set.voice_id,
+        voice_name: voiceList.find((v: Voice) => v.id === set.voice_id)?.name || set.voice_id,
+        created_at: set.created_at,
+        track_count: completedTracks.length,
+        available_sections: availableSections
+      }
+    })
 
     setExistingVoiceSets(voiceSets)
     
@@ -286,12 +297,20 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
         return
       }
 
-      const categoryKeys = getVisionCategoryKeys().filter(k => k !== 'forward' && k !== 'conclusion')
-      const sections = [
-        { key: 'forward', text: vv.forward || '' },
-        ...categoryKeys.map(key => ({ key, text: vv[key] || '' })),
-        { key: 'conclusion', text: vv.conclusion || '' }
-      ].filter(s => s.text.trim().length > 0)
+      // Get only sections that have voice-only tracks available for the selected voice
+      const selectedVoiceSetData = existingVoiceSets.find(set => set.voice_id === selectedBaseVoice)
+      const availableSections = selectedVoiceSetData?.available_sections || []
+      
+      if (availableSections.length === 0) {
+        alert('No voice-only tracks available for mixing. Please generate voice-only tracks first.')
+        setGeneratingComboId(null)
+        return
+      }
+      
+      // Build sections only for tracks that actually exist
+      const sections = availableSections
+        .map(key => ({ key, text: vv[key] || '' }))
+        .filter(s => s.text.trim().length > 0)
 
       const sectionsPayload = sections.map(s => ({
         sectionKey: s.key,
@@ -412,19 +431,30 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
         return
       }
 
-      // Build sections based on user selection
+      // Get only sections that have voice-only tracks available for the selected voice
+      const selectedVoiceSetData = existingVoiceSets.find(set => set.voice_id === selectedBaseVoice)
+      const availableSections = selectedVoiceSetData?.available_sections || []
+      
+      if (availableSections.length === 0) {
+        alert('No voice-only tracks available for mixing. Please generate voice-only tracks first.')
+        setGenerating(false)
+        return
+      }
+      
+      // Build sections based on user selection, but only include sections that exist
       let sectionsToMix: { key: string; text: string }[] = []
       
       if (mixAllSections) {
-        const categoryKeys = getVisionCategoryKeys().filter(k => k !== 'forward' && k !== 'conclusion')
-        sectionsToMix = [
-          { key: 'forward', text: vv.forward || '' },
-          ...categoryKeys.map(key => ({ key, text: vv[key] || '' })),
-          { key: 'conclusion', text: vv.conclusion || '' }
-        ]
+        // Use all available sections (instead of all possible sections)
+        sectionsToMix = availableSections.map(key => ({
+          key,
+          text: vv[key] || ''
+        }))
       } else {
+        // Filter selected sections to only include those that are actually available
         const orderedKeys = VISION_CATEGORIES.map(c => c.key) as string[]
-        const sortedSelectedSections = [...selectedMixSections].sort(
+        const validSelections = selectedMixSections.filter(key => availableSections.includes(key))
+        const sortedSelectedSections = [...validSelections].sort(
           (a, b) => orderedKeys.indexOf(a) - orderedKeys.indexOf(b)
         )
         sectionsToMix = sortedSelectedSections.map(key => ({
@@ -474,6 +504,9 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
           mixSetName = `Custom ${sections.length} Sections`
         }
       }
+      
+      // Force 'individual' format when only 1 section (no point in combined)
+      const effectiveOutputFormat = sections.length === 1 ? 'individual' : mixOutputFormat
 
       const { data: batch, error: batchError } = await supabase
         .from('audio_generation_batches')
@@ -487,15 +520,23 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
           status: 'pending',
           metadata: {
             custom_mix: true,
-            output_format: mixOutputFormat,
+            output_format: effectiveOutputFormat,
             mix_all_sections: mixAllSections,
             selected_sections: mixAllSections ? null : selectedMixSections,
             audio_set_name: mixSetName || null,
             background_track_id: selectedBackgroundTrack,
             background_track_url: selectedTrack.file_url,
             mix_ratio_id: selectedMixRatio,
-            voice_volume: selectedRatio.voice_volume,
-            bg_volume: selectedRatio.bg_volume,
+            // Store ADJUSTED volumes (accounting for binaural if present)
+            voice_volume: selectedBinaural && binauralVolume > 0
+              ? Math.round((selectedRatio.voice_volume / (selectedRatio.voice_volume + selectedRatio.bg_volume)) * (100 - binauralVolume))
+              : selectedRatio.voice_volume,
+            bg_volume: selectedBinaural && binauralVolume > 0
+              ? Math.round((selectedRatio.bg_volume / (selectedRatio.voice_volume + selectedRatio.bg_volume)) * (100 - binauralVolume))
+              : selectedRatio.bg_volume,
+            // Also store original ratio for reference
+            original_voice_volume: selectedRatio.voice_volume,
+            original_bg_volume: selectedRatio.bg_volume,
             ...(selectedBinaural && {
               binaural_track_id: selectedBinauralTrack,
               binaural_track_url: selectedBinaural.file_url,
@@ -522,7 +563,7 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
         voiceVolume: selectedRatio.voice_volume,
         bgVolume: selectedRatio.bg_volume,
         audioSetName: mixSetName || undefined,
-        outputFormat: mixOutputFormat
+        outputFormat: effectiveOutputFormat
       }
       
       if (selectedBinaural) {
@@ -661,7 +702,10 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-white font-medium">{voices.find(v => v.id === set.voice_id)?.name || set.voice_id}</p>
-                    <p className="text-xs text-neutral-400">{set.track_count} tracks</p>
+                    <p className="text-xs text-neutral-400">
+                      {set.track_count} section{set.track_count !== 1 ? 's' : ''} available
+                      {set.track_count < 14 && <span className="text-yellow-400 ml-1">(partial)</span>}
+                    </p>
                   </div>
                   {selectedBaseVoice === set.voice_id && (
                     <CheckCircle className="w-5 h-5 text-primary-500" />
@@ -1067,20 +1111,31 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
                   selectedSections={selectedMixSections}
                   onSelectedSectionsChange={setSelectedMixSections}
                   label="Mix All Sections"
+                  availableSections={existingVoiceSets.find(s => s.voice_id === selectedBaseVoice)?.available_sections}
                 />
               </div>
 
-              {/* Output Format - only show if more than 1 section */}
-              {(mixAllSections || selectedMixSections.length > 1) && (
-                <div className="mb-8">
-                  <h3 className="text-base font-semibold text-white mb-3">Output Format</h3>
-                  <FormatSelector
-                    value={mixOutputFormat}
-                    onChange={setMixOutputFormat}
-                    disabled={generating}
-                  />
-                </div>
-              )}
+              {/* Output Format - only show if more than 1 section available */}
+              {(() => {
+                const availableSectionsForVoice = existingVoiceSets.find(s => s.voice_id === selectedBaseVoice)?.available_sections || []
+                const effectiveSectionCount = mixAllSections 
+                  ? availableSectionsForVoice.length 
+                  : selectedMixSections.filter(s => availableSectionsForVoice.includes(s)).length
+                
+                // Only show format options if more than 1 section
+                if (effectiveSectionCount <= 1) return null
+                
+                return (
+                  <div className="mb-8">
+                    <h3 className="text-base font-semibold text-white mb-3">Output Format</h3>
+                    <FormatSelector
+                      value={mixOutputFormat}
+                      onChange={setMixOutputFormat}
+                      disabled={generating}
+                    />
+                  </div>
+                )
+              })()}
 
               {/* Mix Summary */}
               {selectedBackgroundTrack && selectedMixRatio && (
