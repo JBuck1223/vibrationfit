@@ -1,9 +1,9 @@
 "use client"
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Spinner, Badge, Container, Stack, PageHero, Toggle } from '@/lib/design-system/components'
+import { Button, Card, Spinner, Badge, Container, Stack, PageHero, Toggle, Select } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
-import { Headphones, CheckCircle, Play, Moon, Zap, Sparkles, Music, X, Wand2, Mic, Clock, Eye, Music2, ListMusic, Plus } from 'lucide-react'
+import { Headphones, CheckCircle, Play, Moon, Zap, Sparkles, Music, X, Wand2, Mic, Clock, Eye, Music2, ListMusic, Plus, ChevronDown, ChevronUp } from 'lucide-react'
 import Link from 'next/link'
 import { getVisionCategoryKeys, VISION_CATEGORIES } from '@/lib/design-system'
 import { SectionSelector } from '@/components/SectionSelector'
@@ -59,35 +59,6 @@ function calculateAdjustedVolumes(voiceVol: number, bgVol: number, binauralVol: 
   }
 }
 
-// Helper function to handle audio preview
-function handlePreview(
-  e: React.MouseEvent, 
-  trackUrl: string, 
-  trackId: string, 
-  currentPreviewingTrack: string | null, 
-  setPreviewingTrack: (id: string | null) => void, 
-  audioRef: React.RefObject<HTMLAudioElement | null>
-) {
-  e.preventDefault()
-  e.stopPropagation()
-  
-  if (currentPreviewingTrack === trackId) {
-    // Stop preview
-    if (audioRef.current) {
-      audioRef.current.pause()
-      audioRef.current.currentTime = 0
-    }
-    setPreviewingTrack(null)
-  } else {
-    // Start preview
-    if (audioRef.current) {
-      audioRef.current.src = trackUrl
-      audioRef.current.play().catch(err => console.error('Audio play error:', err))
-    }
-    setPreviewingTrack(trackId)
-  }
-}
-
 export default function AudioMixPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
   const [visionId, setVisionId] = useState<string>('')
@@ -116,9 +87,91 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
   const [binauralVolume, setBinauralVolume] = useState<number>(0)
   const [binauralFilter, setBinauralFilter] = useState<string>('all')
   
+  // Section visibility toggles (all expanded by default)
+  const [showBackgroundSection, setShowBackgroundSection] = useState(true)
+  const [showMixRatioSection, setShowMixRatioSection] = useState(true)
+  const [showBinauralSection, setShowBinauralSection] = useState(true)
+  const [showSectionsSection, setShowSectionsSection] = useState(true)
+  const [showOutputFormatSection, setShowOutputFormatSection] = useState(true)
+  
   // Audio preview
   const [previewingTrack, setPreviewingTrack] = useState<string | null>(null)
+  const [previewProgress, setPreviewProgress] = useState<number>(0)
   const audioRef = React.useRef<HTMLAudioElement | null>(null)
+  
+  // Initialize audio element on mount
+  useEffect(() => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio()
+      audioRef.current.addEventListener('ended', () => {
+        setPreviewingTrack(null)
+        setPreviewProgress(0)
+      })
+    }
+    
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current.src = ''
+      }
+    }
+  }, [])
+  
+  // Handle audio preview with 30 second limit
+  const handlePreview = (e: React.MouseEvent, trackUrl: string, trackId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (!audioRef.current) {
+      console.error('Audio ref not available')
+      return
+    }
+    
+    if (previewingTrack === trackId) {
+      // Stop preview
+      audioRef.current.pause()
+      audioRef.current.currentTime = 0
+      setPreviewingTrack(null)
+      setPreviewProgress(0)
+    } else {
+      // Stop any currently playing preview
+      if (previewingTrack) {
+        audioRef.current.pause()
+        audioRef.current.currentTime = 0
+      }
+      
+      // Start preview
+      audioRef.current.src = trackUrl
+      audioRef.current.currentTime = 0
+      
+      // Set up time update listener for progress
+      const updateProgress = () => {
+        if (!audioRef.current) return
+        
+        const progress = (audioRef.current.currentTime / 30) * 100
+        setPreviewProgress(Math.min(progress, 100))
+        
+        // Stop at 30 seconds
+        if (audioRef.current.currentTime >= 30) {
+          audioRef.current.pause()
+          audioRef.current.currentTime = 0
+          setPreviewingTrack(null)
+          setPreviewProgress(0)
+          audioRef.current.removeEventListener('timeupdate', updateProgress)
+        }
+      }
+      
+      audioRef.current.addEventListener('timeupdate', updateProgress)
+      
+      audioRef.current.play().catch(err => {
+        console.error('Audio play error:', err)
+        setPreviewingTrack(null)
+        setPreviewProgress(0)
+      })
+      
+      setPreviewingTrack(trackId)
+    }
+  }
   
   // Recommended Combos
   const [recommendedCombos, setRecommendedCombos] = useState<any[]>([])
@@ -681,8 +734,6 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
           </div>
         </PageHero>
 
-        {/* Hidden audio element for previews */}
-        <audio ref={audioRef} onEnded={() => setPreviewingTrack(null)} style={{ display: 'none' }} />
 
         {/* Step 1: Select Base Voice */}
         <Card variant="glass" className="p-4 md:p-6">
@@ -702,14 +753,17 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
                   key={set.id} 
                   variant="default" 
                   hover
-                  className={`p-4 cursor-pointer transition-all ${
+                  className={`cursor-pointer ${
                     selectedBaseVoice === set.voice_id
                       ? 'border-primary-500 bg-primary-500/10'
                       : ''
                   }`}
                   onClick={() => setSelectedBaseVoice(set.voice_id)}
                 >
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    {selectedBaseVoice === set.voice_id && (
+                      <CheckCircle className="w-5 h-5 text-primary-500 flex-shrink-0" />
+                    )}
                     <div className="flex-1 min-w-0">
                       <p className="text-white font-medium">{voices.find(v => v.id === set.voice_id)?.name || set.voice_id}</p>
                       <p className="text-xs text-neutral-400">
@@ -717,23 +771,46 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
                         {set.track_count < 14 && <span className="text-yellow-400 ml-1">(partial)</span>}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {set.sample_audio_url && (
+                    {set.sample_audio_url && (
+                      <div className="relative flex-shrink-0 w-9 h-9">
+                        {/* Circular progress indicator */}
+                        {isPreviewing && (
+                          <svg className="absolute inset-0 w-9 h-9 -rotate-90 pointer-events-none" viewBox="0 0 36 36" style={{ zIndex: 10 }}>
+                            {/* Background track */}
+                            <circle
+                              cx="18"
+                              cy="18"
+                              r="16"
+                              fill="none"
+                              stroke="rgba(31,31,31,0.3)"
+                              strokeWidth="2"
+                            />
+                            {/* Progress */}
+                            <circle
+                              cx="18"
+                              cy="18"
+                              r="16"
+                              fill="none"
+                              stroke="#1F1F1F"
+                              strokeWidth="2"
+                              strokeDasharray="100.53"
+                              strokeDashoffset={100.53 - (100.53 * previewProgress / 100)}
+                              className="transition-all duration-100"
+                            />
+                          </svg>
+                        )}
                         <button
-                          onClick={(e) => handlePreview(e, set.sample_audio_url!, set.voice_id, previewingTrack, setPreviewingTrack, audioRef)}
-                          className={`p-1.5 rounded-lg transition-colors ${
+                          onClick={(e) => handlePreview(e, set.sample_audio_url!, set.voice_id)}
+                          className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
                             isPreviewing 
-                              ? 'bg-primary-500 text-white' 
-                              : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
+                              ? 'bg-primary-500' 
+                              : 'bg-neutral-800 hover:bg-neutral-700'
                           }`}
                         >
-                          {isPreviewing ? <X className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                          {isPreviewing ? <X className="w-4 h-4 text-[#1F1F1F]" /> : <Play className="w-4 h-4 text-neutral-400" />}
                         </button>
-                      )}
-                      {selectedBaseVoice === set.voice_id && (
-                        <CheckCircle className="w-5 h-5 text-primary-500" />
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 </Card>
               )
@@ -892,10 +969,31 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
           {mixMode === 'custom' && (
             <>
               {/* Background Track Selection */}
-              <div className="mb-8">
-                <h3 className="text-base font-semibold text-white mb-3">Choose Background Track</h3>
+              <Card variant="glass" className="p-4 md:p-6 mb-6">
+                <button 
+                  onClick={() => setShowBackgroundSection(!showBackgroundSection)}
+                  className={`w-full relative flex flex-col items-center justify-center ${showBackgroundSection ? 'mb-3' : ''}`}
+                >
+                  <h3 className="text-base font-semibold text-white">Choose Background Track</h3>
+                  {!showBackgroundSection && (
+                    <p className="text-xs text-neutral-400 mt-1">
+                      {selectedBackgroundTrack 
+                        ? backgroundTracks.find(t => t.id === selectedBackgroundTrack)?.display_name || 'Selected'
+                        : 'None selected'}
+                    </p>
+                  )}
+                  <div className="absolute right-0 top-1/2 -translate-y-1/2">
+                    {showBackgroundSection ? (
+                      <ChevronUp className="w-5 h-5 text-neutral-400" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-neutral-400" />
+                    )}
+                  </div>
+                </button>
                 
-                <div className="flex gap-2 mb-4 flex-wrap">
+                {showBackgroundSection && (
+                <>
+                <div className="flex gap-2 mb-4 flex-wrap justify-center">
                   <Button
                     variant={selectedCategory === 'all' ? 'primary' : 'outline'}
                     size="sm"
@@ -926,127 +1024,182 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
                           key={track.id}
                           variant="default"
                           hover
-                          className={`cursor-pointer transition-all p-4 ${
+                          className={`cursor-pointer ${
                             isSelected ? 'border-primary-500 bg-primary-500/10' : ''
                           }`}
                           onClick={() => setSelectedBackgroundTrack(isSelected ? '' : track.id)}
                         >
-                          <div className="flex items-start gap-3">
-                            <div className={`p-2 rounded-lg ${
-                              track.category === 'nature' ? 'bg-green-500/20 text-green-400' :
-                              track.category === 'ambient' ? 'bg-purple-500/20 text-purple-400' :
-                              'bg-blue-500/20 text-blue-400'
-                            }`}>
-                              <Music2 className="w-4 h-4" />
-                            </div>
+                          <div className="flex items-center gap-3">
+                            {isSelected && (
+                              <CheckCircle className="w-5 h-5 text-primary-500 flex-shrink-0" />
+                            )}
                             <div className="flex-1 min-w-0">
-                              <p className="text-white font-medium text-sm">{track.display_name}</p>
+                              <p className="text-white font-medium text-sm md:text-base">{track.display_name}</p>
                               {track.description && (
-                                <p className="text-xs text-neutral-400 mt-1 line-clamp-1">{track.description}</p>
+                                <p className="text-xs md:text-sm text-neutral-400 mt-1">{track.description}</p>
                               )}
                               <Badge variant="neutral" className="mt-2 text-xs">
                                 {track.category}
                               </Badge>
                             </div>
-                            <div className="flex flex-col gap-2">
+                            <div className="relative flex-shrink-0 w-9 h-9">
+                              {/* Circular progress indicator */}
+                              {isPreviewing && (
+                                <svg className="absolute inset-0 w-9 h-9 -rotate-90 pointer-events-none" viewBox="0 0 36 36" style={{ zIndex: 10 }}>
+                                  {/* Background track */}
+                                  <circle
+                                    cx="18"
+                                    cy="18"
+                                    r="16"
+                                    fill="none"
+                                    stroke="rgba(31,31,31,0.3)"
+                                    strokeWidth="2"
+                                  />
+                                  {/* Progress */}
+                                  <circle
+                                    cx="18"
+                                    cy="18"
+                                    r="16"
+                                    fill="none"
+                                    stroke="#1F1F1F"
+                                    strokeWidth="2"
+                                    strokeDasharray="100.53"
+                                    strokeDashoffset={100.53 - (100.53 * previewProgress / 100)}
+                                    className="transition-all duration-100"
+                                  />
+                                </svg>
+                              )}
                               <button
-                                onClick={(e) => handlePreview(e, track.file_url, track.id, previewingTrack, setPreviewingTrack, audioRef)}
-                                className={`p-1.5 rounded-lg transition-colors ${
+                                onClick={(e) => handlePreview(e, track.file_url, track.id)}
+                                className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
                                   isPreviewing 
-                                    ? 'bg-primary-500 text-white' 
-                                    : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
+                                    ? 'bg-primary-500' 
+                                    : 'bg-neutral-800 hover:bg-neutral-700'
                                 }`}
                               >
-                                {isPreviewing ? <X className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                                {isPreviewing ? <X className="w-4 h-4 text-[#1F1F1F]" /> : <Play className="w-4 h-4 text-neutral-400" />}
                               </button>
-                              {isSelected && <CheckCircle className="w-4 h-4 text-primary-500 mx-auto" />}
                             </div>
                           </div>
                         </Card>
                       )
                     })}
                 </div>
-              </div>
+                </>
+                )}
+              </Card>
 
               {/* Mix Ratio Selection */}
-              <div className="mb-8">
-                <h3 className="text-base font-semibold text-white mb-3">Choose Mix Ratio</h3>
-                <p className="text-sm text-neutral-400 mb-3">
+              <Card variant="glass" className="p-4 md:p-6 mb-6 overflow-visible relative z-30">
+                <button 
+                  onClick={() => setShowMixRatioSection(!showMixRatioSection)}
+                  className={`w-full relative flex flex-col items-center justify-center ${showMixRatioSection ? 'mb-3' : ''}`}
+                >
+                  <h3 className="text-base font-semibold text-white">Choose Mix Ratio</h3>
+                  {!showMixRatioSection && (
+                    <p className="text-xs text-neutral-400 mt-1">
+                      {selectedMixRatio 
+                        ? (() => {
+                            const ratio = mixRatios.find(r => r.id === selectedMixRatio)
+                            if (!ratio) return 'None selected'
+                            return `${ratio.voice_volume}% Voice / ${ratio.bg_volume}% BG`
+                          })()
+                        : 'None selected'}
+                    </p>
+                  )}
+                  <div className="absolute right-0 top-1/2 -translate-y-1/2">
+                    {showMixRatioSection ? (
+                      <ChevronUp className="w-5 h-5 text-neutral-400" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-neutral-400" />
+                    )}
+                  </div>
+                </button>
+                
+                {showMixRatioSection && (
+                <>
+                <p className="text-sm text-neutral-400 mb-3 text-center">
                   {selectedBinauralTrack && binauralVolume > 0
                     ? `Voice + Background ratio (Binaural at ${binauralVolume}%)`
                     : 'Voice + Background balance'}
                 </p>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                  {mixRatios.map((ratio) => {
-                    const isSelected = selectedMixRatio === ratio.id
+                <Select
+                  value={selectedMixRatio}
+                  onChange={(value) => setSelectedMixRatio(value)}
+                  placeholder="Select a mix ratio..."
+                  options={mixRatios.map((ratio) => {
+                    const cleanName = ratio.name.replace(/\s*\(\d+\/\d+\)\s*$/, '')
                     const adjusted = (selectedBinauralTrack && binauralVolume > 0)
                       ? calculateAdjustedVolumes(ratio.voice_volume, ratio.bg_volume, binauralVolume)
                       : { voice: ratio.voice_volume, bg: ratio.bg_volume, binaural: 0 }
                     
-                    return (
-                      <Card
-                        key={ratio.id}
-                        variant="default"
-                        hover
-                        className={`cursor-pointer transition-all p-4 ${
-                          isSelected ? 'border-primary-500 bg-primary-500/10' : ''
-                        }`}
-                        onClick={() => setSelectedMixRatio(isSelected ? '' : ratio.id)}
-                      >
-                        <div className="text-center">
-                          <p className="text-white font-medium text-sm">{ratio.name}</p>
-                          {(selectedBinauralTrack && binauralVolume > 0) ? (
-                            <div className="text-xs text-neutral-400 mt-1">
-                              <div>Voice: {adjusted.voice}%</div>
-                              <div>BG: {adjusted.bg}%</div>
-                              <div className="text-purple-400">Binaural: {adjusted.binaural}%</div>
-                            </div>
-                          ) : (
-                            <p className="text-xs text-neutral-400 mt-1">
-                              {ratio.voice_volume}/{ratio.bg_volume}
-                            </p>
-                          )}
-                          {isSelected && <CheckCircle className="w-4 h-4 text-primary-500 mx-auto mt-2" />}
-                        </div>
-                      </Card>
-                    )
+                    return {
+                      value: ratio.id,
+                      label: `${cleanName} - ${adjusted.voice}% Voice / ${adjusted.bg}% BG${adjusted.binaural > 0 ? ` / ${adjusted.binaural}% Binaural` : ''}`
+                    }
                   })}
-                </div>
-              </div>
+                />
+                </>
+                )}
+              </Card>
 
               {/* Optional Binaural Enhancement */}
               {binauralTracks.length > 0 && (
-                <div className="mb-8">
-                  <div className="flex items-center gap-3 mb-3">
+                <Card variant="glass" className="p-4 md:p-6 mb-6 relative z-10">
+                  <button 
+                    onClick={() => setShowBinauralSection(!showBinauralSection)}
+                    className={`w-full relative flex flex-col items-center justify-center ${showBinauralSection ? 'mb-3' : ''}`}
+                  >
                     <h3 className="text-base font-semibold text-white">Binaural Enhancement (Optional)</h3>
-                    <Badge variant="info">Brainwave</Badge>
-                  </div>
-                  <p className="text-sm text-neutral-400 mb-4">
+                    {!showBinauralSection && (
+                      <p className="text-xs text-neutral-400 mt-1">
+                        {selectedBinauralTrack 
+                          ? binauralTracks.find(t => t.id === selectedBinauralTrack)?.display_name || 'Selected'
+                          : 'None selected'}
+                      </p>
+                    )}
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2">
+                      {showBinauralSection ? (
+                        <ChevronUp className="w-5 h-5 text-neutral-400" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5 text-neutral-400" />
+                      )}
+                    </div>
+                  </button>
+                  
+                  {showBinauralSection && (
+                  <>
+                  <p className="text-sm text-neutral-400 mb-4 text-center">
                     Add healing frequencies or brainwave entrainment to your mix.
                   </p>
                   
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    <Button size="sm" variant={binauralFilter === 'all' ? 'primary' : 'secondary'} onClick={() => setBinauralFilter('all')}>All</Button>
-                    <Button size="sm" variant={binauralFilter === 'pure' ? 'primary' : 'secondary'} onClick={() => setBinauralFilter('pure')}>Pure Solfeggio</Button>
-                    <Button size="sm" variant={binauralFilter === 'delta' ? 'primary' : 'secondary'} onClick={() => setBinauralFilter('delta')}>Delta (Sleep)</Button>
-                    <Button size="sm" variant={binauralFilter === 'theta' ? 'primary' : 'secondary'} onClick={() => setBinauralFilter('theta')}>Theta (Meditation)</Button>
-                    <Button size="sm" variant={binauralFilter === 'alpha' ? 'primary' : 'secondary'} onClick={() => setBinauralFilter('alpha')}>Alpha (Focus)</Button>
-                    <Button size="sm" variant={binauralFilter === 'beta' ? 'primary' : 'secondary'} onClick={() => setBinauralFilter('beta')}>Beta (Alert)</Button>
+                  <div className="flex flex-wrap gap-2 mb-4 justify-center">
+                    <Button size="sm" variant={binauralFilter === 'all' ? 'primary' : 'outline'} onClick={() => setBinauralFilter('all')}>All</Button>
+                    <Button size="sm" variant={binauralFilter === 'pure' ? 'primary' : 'outline'} onClick={() => setBinauralFilter('pure')}>Pure Solfeggio</Button>
+                    <Button size="sm" variant={binauralFilter === 'delta' ? 'primary' : 'outline'} onClick={() => setBinauralFilter('delta')}>Delta (Sleep)</Button>
+                    <Button size="sm" variant={binauralFilter === 'theta' ? 'primary' : 'outline'} onClick={() => setBinauralFilter('theta')}>Theta (Meditation)</Button>
+                    <Button size="sm" variant={binauralFilter === 'alpha' ? 'primary' : 'outline'} onClick={() => setBinauralFilter('alpha')}>Alpha (Focus)</Button>
+                    <Button size="sm" variant={binauralFilter === 'beta' ? 'primary' : 'outline'} onClick={() => setBinauralFilter('beta')}>Beta (Alert)</Button>
                   </div>
                   
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-4">
-                    <Card
-                      variant="default"
-                      hover
-                      className={`cursor-pointer transition-all p-4 ${!selectedBinauralTrack ? 'border-primary-500 bg-primary-500/10' : ''}`}
+                  <div className="space-y-2 mb-4 max-h-80 overflow-y-auto">
+                    {/* None option */}
+                    <div
+                      className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${
+                        !selectedBinauralTrack 
+                          ? 'bg-primary-500/10 border border-primary-500' 
+                          : 'bg-neutral-800/50 border border-transparent hover:bg-neutral-800'
+                      }`}
                       onClick={() => { setSelectedBinauralTrack(''); setBinauralVolume(0) }}
                     >
-                      <div className="text-center">
-                        <p className="text-white font-medium text-sm">None</p>
-                        <p className="text-xs text-neutral-400 mt-1">No binaural</p>
-                        {!selectedBinauralTrack && <CheckCircle className="w-4 h-4 text-primary-500 mx-auto mt-2" />}
+                      {!selectedBinauralTrack && (
+                        <CheckCircle className="w-5 h-5 text-primary-500 flex-shrink-0" />
+                      )}
+                      <div className="flex-1">
+                        <p className="text-white font-medium text-sm md:text-base">None</p>
+                        <p className="text-xs md:text-sm text-neutral-400">No binaural</p>
                       </div>
-                    </Card>
+                    </div>
                     
                     {binauralTracks
                       .filter(track => {
@@ -1059,11 +1212,13 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
                         const isSelected = selectedBinauralTrack === track.id
                         const isPreviewing = previewingTrack === track.id
                         return (
-                          <Card
+                          <div
                             key={track.id}
-                            variant="default"
-                            hover
-                            className={`cursor-pointer transition-all p-4 ${isSelected ? 'border-purple-500 bg-purple-500/10' : ''}`}
+                            className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${
+                              isSelected 
+                                ? 'bg-purple-500/10 border border-purple-500' 
+                                : 'bg-neutral-800/50 border border-transparent hover:bg-neutral-800'
+                            }`}
                             onClick={() => {
                               if (isSelected) {
                                 setSelectedBinauralTrack('')
@@ -1074,26 +1229,54 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
                               }
                             }}
                           >
-                            <div className="flex flex-col gap-2">
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-white font-medium text-sm">{track.display_name}</p>
-                                  {track.description && (
-                                    <p className="text-xs text-neutral-400 mt-1 line-clamp-2">{track.description}</p>
-                                  )}
-                                </div>
-                                <button
-                                  onClick={(e) => handlePreview(e, track.file_url, track.id, previewingTrack, setPreviewingTrack, audioRef)}
-                                  className={`p-1.5 rounded-lg transition-colors flex-shrink-0 ${
-                                    isPreviewing ? 'bg-purple-500 text-white' : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
-                                  }`}
-                                >
-                                  {isPreviewing ? <X className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-                                </button>
-                              </div>
-                              {isSelected && <CheckCircle className="w-4 h-4 text-purple-500 mx-auto" />}
+                            {isSelected && (
+                              <CheckCircle className="w-5 h-5 text-purple-500 flex-shrink-0" />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-white font-medium text-sm md:text-base">{track.display_name}</p>
+                              {track.description && (
+                                <p className="text-xs md:text-sm text-neutral-400">{track.description}</p>
+                              )}
                             </div>
-                          </Card>
+                            <div className="relative flex-shrink-0 w-9 h-9">
+                              {/* Circular progress indicator */}
+                              {isPreviewing && (
+                                <svg className="absolute inset-0 w-9 h-9 -rotate-90 pointer-events-none" viewBox="0 0 36 36" style={{ zIndex: 10 }}>
+                                  {/* Background track */}
+                                  <circle
+                                    cx="18"
+                                    cy="18"
+                                    r="16"
+                                    fill="none"
+                                    stroke="rgba(31,31,31,0.3)"
+                                    strokeWidth="2"
+                                  />
+                                  {/* Progress */}
+                                  <circle
+                                    cx="18"
+                                    cy="18"
+                                    r="16"
+                                    fill="none"
+                                    stroke="#1F1F1F"
+                                    strokeWidth="2"
+                                    strokeDasharray="100.53"
+                                    strokeDashoffset={100.53 - (100.53 * previewProgress / 100)}
+                                    className="transition-all duration-100"
+                                  />
+                                </svg>
+                              )}
+                              <button
+                                onClick={(e) => handlePreview(e, track.file_url, track.id)}
+                                className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
+                                  isPreviewing 
+                                    ? 'bg-purple-500' 
+                                    : 'bg-neutral-800 hover:bg-neutral-700'
+                                }`}
+                              >
+                                {isPreviewing ? <X className="w-4 h-4 text-[#1F1F1F]" /> : <Play className="w-4 h-4 text-neutral-400" />}
+                              </button>
+                            </div>
+                          </div>
                         )
                       })}
                   </div>
@@ -1119,13 +1302,39 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
                       </div>
                     </div>
                   )}
-                </div>
+                  </>
+                  )}
+                </Card>
               )}
 
               {/* Section Selection */}
-              <div className="mb-8">
-                <h3 className="text-base font-semibold text-white mb-3">Which Sections to Mix?</h3>
-                <p className="text-sm text-neutral-400 mb-4">
+              <Card variant="glass" className="p-4 md:p-6 mb-6 relative z-10">
+                <button 
+                  onClick={() => setShowSectionsSection(!showSectionsSection)}
+                  className={`w-full relative flex flex-col items-center justify-center ${showSectionsSection ? 'mb-3' : ''}`}
+                >
+                  <h3 className="text-base font-semibold text-white">Which Sections to Mix?</h3>
+                  {!showSectionsSection && (
+                    <p className="text-xs text-neutral-400 mt-1">
+                      {mixAllSections 
+                        ? 'All sections' 
+                        : selectedMixSections.length > 0 
+                          ? `${selectedMixSections.length} section${selectedMixSections.length > 1 ? 's' : ''} selected`
+                          : 'None selected'}
+                    </p>
+                  )}
+                  <div className="absolute right-0 top-1/2 -translate-y-1/2">
+                    {showSectionsSection ? (
+                      <ChevronUp className="w-5 h-5 text-neutral-400" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-neutral-400" />
+                    )}
+                  </div>
+                </button>
+                
+                {showSectionsSection && (
+                <>
+                <p className="text-sm text-neutral-400 mb-4 text-center">
                   Mix all sections or select specific ones for a focused audio set.
                 </p>
                 <SectionSelector
@@ -1136,7 +1345,9 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
                   label="Mix All Sections"
                   availableSections={existingVoiceSets.find(s => s.voice_id === selectedBaseVoice)?.available_sections}
                 />
-              </div>
+                </>
+                )}
+              </Card>
 
               {/* Output Format - only show if more than 1 section available */}
               {(() => {
@@ -1149,14 +1360,36 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
                 if (effectiveSectionCount <= 1) return null
                 
                 return (
-                  <div className="mb-8">
-                    <h3 className="text-base font-semibold text-white mb-3">Output Format</h3>
+                  <Card variant="glass" className="p-4 md:p-6 mb-6 relative z-10">
+                    <button 
+                      onClick={() => setShowOutputFormatSection(!showOutputFormatSection)}
+                      className={`w-full relative flex flex-col items-center justify-center ${showOutputFormatSection ? 'mb-3' : ''}`}
+                    >
+                      <h3 className="text-base font-semibold text-white">Output Format</h3>
+                      {!showOutputFormatSection && (
+                        <p className="text-xs text-neutral-400 mt-1">
+                          {mixOutputFormat === 'individual' ? 'Individual Sections' 
+                            : mixOutputFormat === 'combined' ? 'Combined Full Track'
+                            : 'Both'}
+                        </p>
+                      )}
+                      <div className="absolute right-0 top-1/2 -translate-y-1/2">
+                        {showOutputFormatSection ? (
+                          <ChevronUp className="w-5 h-5 text-neutral-400" />
+                        ) : (
+                          <ChevronDown className="w-5 h-5 text-neutral-400" />
+                        )}
+                      </div>
+                    </button>
+                    
+                    {showOutputFormatSection && (
                     <FormatSelector
                       value={mixOutputFormat}
                       onChange={setMixOutputFormat}
                       disabled={generating}
                     />
-                  </div>
+                    )}
+                  </Card>
                 )
               })()}
 
@@ -1164,7 +1397,7 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
               {selectedBackgroundTrack && selectedMixRatio && (
                 <div className="mb-6">
                   <Card variant="glass" className="p-4">
-                    <h4 className="text-base font-semibold text-white mb-4">Final Mix Preview</h4>
+                    <h4 className="text-base font-semibold text-white mb-4 text-center">Final Mix Preview</h4>
                     <div className="space-y-2">
                       {(() => {
                         const selectedRatio = mixRatios.find(r => r.id === selectedMixRatio)
