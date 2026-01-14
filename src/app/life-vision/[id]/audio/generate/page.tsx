@@ -121,7 +121,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
       const tracksWithKey = tracks.map(t => {
         // Get human-readable title from VISION_CATEGORIES
         const category = VISION_CATEGORIES.find(c => c.key === t.section_key)
-        const title = category?.label || category?.name || t.section_key
+        const title = category?.label || t.section_key
         
         return {
           id: t.id,
@@ -764,7 +764,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                                         key={key}
                                         className="px-2 py-0.5 bg-primary-500/20 text-primary-400 text-xs rounded-full"
                                       >
-                                        {category.name}
+                                        {category.label}
                                       </span>
                                     ) : null
                                   })}
