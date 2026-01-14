@@ -320,8 +320,19 @@ export async function generateAudioTracks(params: {
   audioSetDescription?: string // Optional: description for new audio set
   variant?: string // Optional: variant type (standard, sleep, energy, etc.)
   batchId?: string // Optional: batch tracking ID for progress updates
+  audioSetMetadata?: { // Optional: mix metadata to store on the audio set
+    voice_volume?: number
+    bg_volume?: number
+    binaural_volume?: number
+    background_track_id?: string
+    background_track_name?: string
+    binaural_track_id?: string
+    binaural_track_name?: string
+    mix_ratio_id?: string
+    output_format?: string
+  }
 }): Promise<GeneratedTrackResult[]> {
-  const { userId, visionId, sections, voice = 'alloy', format = 'mp3', force = false, audioSetId, audioSetName, audioSetDescription, variant, batchId } = params
+  const { userId, visionId, sections, voice = 'alloy', format = 'mp3', force = false, audioSetId, audioSetName, audioSetDescription, variant, batchId, audioSetMetadata } = params
   const supabase = await createClient()
   const s3 = getS3Client()
 
@@ -387,6 +398,7 @@ export async function generateAudioTracks(params: {
         description: audioSetDescription || getDescription(variant),
         variant: variant || 'standard',
         voice_id: voice,
+        metadata: audioSetMetadata || null,
       })
       .select()
       .single()
@@ -427,6 +439,7 @@ export async function generateAudioTracks(params: {
           description: audioSetDescription || getDescription(variant),
           variant: variant || 'standard',
           voice_id: voice,
+          metadata: audioSetMetadata || null,
         })
         .select()
         .single()

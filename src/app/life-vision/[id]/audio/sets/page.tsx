@@ -111,21 +111,13 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
       const hasCompletedMixing = tracks?.some((t: any) => t.mix_status === 'completed')
       const isMixing = tracks?.some((t: any) => t.mix_status === 'mixing' || t.mix_status === 'pending')
 
-      // Fetch generation batch metadata to get mix ratios
-      const { data: batchData } = await supabase
-        .from('audio_generation_batches')
-        .select('metadata')
-        .contains('audio_set_ids', [set.id])
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
-
+      // Read mix metadata directly from the audio set (no batch lookup needed)
       let mixRatio = undefined
       let backgroundTrack = undefined
       let binauralTrack = undefined
 
-      if (batchData?.metadata) {
-        const metadata = batchData.metadata as any
+      if (set.metadata) {
+        const metadata = set.metadata as any
         const voiceVol = metadata.voice_volume
         const bgVol = metadata.bg_volume
         const binauralVol = metadata.binaural_volume
@@ -138,27 +130,9 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
           }
         }
 
-        // Get background track name
-        if (metadata.background_track_id) {
-          const { data: bgTrack } = await supabase
-            .from('audio_background_tracks')
-            .select('display_name')
-            .eq('id', metadata.background_track_id)
-            .single()
-          
-          backgroundTrack = bgTrack?.display_name
-        }
-
-        // Get binaural track name
-        if (metadata.binaural_track_id) {
-          const { data: binTrack } = await supabase
-            .from('audio_background_tracks')
-            .select('display_name')
-            .eq('id', metadata.binaural_track_id)
-            .single()
-          
-          binauralTrack = binTrack?.display_name
-        }
+        // Get track names directly from metadata (already stored there)
+        backgroundTrack = metadata.background_track_name
+        binauralTrack = metadata.binaural_track_name
       }
 
       return {
