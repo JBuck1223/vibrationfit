@@ -681,6 +681,9 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
           </div>
         </PageHero>
 
+        {/* Hidden audio element for previews */}
+        <audio ref={audioRef} onEnded={() => setPreviewingTrack(null)} style={{ display: 'none' }} />
+
         {/* Step 1: Select Base Voice */}
         <Card variant="glass" className="p-4 md:p-6">
           <div className="flex flex-col items-center text-center mb-6">
@@ -1118,8 +1121,6 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
                   )}
                 </div>
               )}
-              
-              <audio ref={audioRef} onEnded={() => setPreviewingTrack(null)} style={{ display: 'none' }} />
 
               {/* Section Selection */}
               <div className="mb-8">
