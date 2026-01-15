@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Card, Spinner, Badge, Container, Stack, PageHero, Toggle, Select } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
-import { Headphones, CheckCircle, Play, Moon, Zap, Sparkles, Music, X, Wand2, Mic, Clock, Eye, Music2, ListMusic, Plus, ChevronDown, ChevronUp } from 'lucide-react'
+import { Headphones, CheckCircle, Play, Moon, Zap, Sparkles, Music, X, Wand2, Mic, Clock, Eye, Music2, ListMusic, Plus, ChevronDown, ChevronUp, AudioLines } from 'lucide-react'
 import Link from 'next/link'
 import { getVisionCategoryKeys, VISION_CATEGORIES } from '@/lib/design-system'
 import { SectionSelector } from '@/components/SectionSelector'
@@ -703,7 +703,7 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 max-w-5xl mx-auto">
             <Button variant="outline" size="sm" asChild className="w-full">
               <Link href={`/life-vision/${visionId}/audio/generate`} className="flex items-center justify-center gap-2">
-                <Mic className="w-4 h-4" />
+                <AudioLines className="w-4 h-4" />
                 <span>Voice Only</span>
               </Link>
             </Button>
@@ -725,7 +725,7 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
                 <span>All Audios</span>
               </Link>
             </Button>
-            <Button variant="outline" size="sm" asChild className="w-full">
+            <Button variant="outline" size="sm" asChild className="w-full col-span-2 lg:col-span-1">
               <Link href={`/life-vision/${visionId}`} className="flex items-center justify-center gap-2">
                 <Eye className="w-4 h-4" />
                 <span>Vision</span>
@@ -815,6 +815,16 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
                 </Card>
               )
             })}
+          </div>
+
+          {/* Generate New Base Voice Button */}
+          <div className="flex justify-center mt-6">
+            <Button variant="outline" asChild>
+              <Link href={`/life-vision/${visionId}/audio/generate`} className="flex items-center gap-2">
+                Generate New Base Voice
+                <AudioLines className="w-4 h-4" />
+              </Link>
+            </Button>
           </div>
         </Card>
 
