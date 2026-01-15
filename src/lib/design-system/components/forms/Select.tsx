@@ -86,10 +86,10 @@ export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
         {isOpen && !disabled && (
           <>
             <div 
-              className="fixed inset-0 z-10" 
+              className="fixed inset-0 z-40" 
               onClick={() => setIsOpen(false)}
             />
-            <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+            <div className="absolute z-50 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
               {options.map((option) => {
                 const isSelected = option.value === value
                 return (
