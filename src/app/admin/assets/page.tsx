@@ -765,6 +765,18 @@ function AssetsAdminContent() {
     }
   }
 
+  // Helper to encode URL path segments (handles spaces and special characters)
+  const encodeAudioUrl = (url: string): string => {
+    try {
+      const urlObj = new URL(url)
+      const encodedPath = urlObj.pathname.split('/').map(segment => encodeURIComponent(segment)).join('/')
+      return `${urlObj.origin}${encodedPath}${urlObj.search}${urlObj.hash}`
+    } catch {
+      // If URL parsing fails, return original
+      return url
+    }
+  }
+
   // Play/pause audio
   const toggleAudio = (fileKey: string, url: string) => {
     if (playingAudio === fileKey) {
@@ -802,20 +814,23 @@ function AssetsAdminContent() {
         })
         
         // Only show error alerts for actual playback errors, not pause/cleanup errors
+        const encodedUrl = encodeAudioUrl(url)
         audio.addEventListener('error', () => {
           // Get actual error details from the audio element
           const mediaError = audio.error
           const errorMessages: Record<number, string> = {
             1: 'MEDIA_ERR_ABORTED - Playback was aborted',
-            2: 'MEDIA_ERR_NETWORK - Network error while loading',
-            3: 'MEDIA_ERR_DECODE - Audio decoding failed',
+            2: 'MEDIA_ERR_NETWORK - Network error while loading (check internet connection)',
+            3: 'MEDIA_ERR_DECODE - Audio decoding failed (file may be corrupted)',
             4: 'MEDIA_ERR_SRC_NOT_SUPPORTED - Audio format not supported or file not found',
           }
           const errorCode = mediaError?.code || 0
           const errorDetail = errorMessages[errorCode] || `Unknown error (code: ${errorCode})`
           
           console.error('Audio error:', errorDetail)
-          console.error('Failed file:', fileKey, url)
+          console.error('Failed file:', fileKey)
+          console.error('Original URL:', url)
+          console.error('Encoded URL:', encodedUrl)
           
           // Only show alert if we were trying to play this audio
           if (playingAudio === fileKey) {
@@ -824,8 +839,8 @@ function AssetsAdminContent() {
           }
         })
         
-        // Set source and load
-        audio.src = url
+        // Set source with properly encoded URL and load
+        audio.src = encodeAudioUrl(url)
         audio.load()
         
         setAudioElements(prev => ({ ...prev, [fileKey]: audio }))

@@ -908,9 +908,36 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
 
                       <div className="text-left mb-2">
                         <span className="text-xs text-neutral-500 uppercase tracking-wider">Background</span>
-                        <p className="text-sm text-white font-medium">
-                          {combo.background_track?.display_name || 'None'}
-                        </p>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm text-white font-medium">
+                            {combo.background_track?.display_name || 'None'}
+                          </p>
+                          {combo.background_track?.file_url && (
+                            <button
+                              onClick={(e) => handlePreview(e, combo.background_track.file_url, `combo-bg-${combo.id}`)}
+                              className={`p-1.5 rounded-full transition-all flex-shrink-0 ${
+                                previewingTrack === `combo-bg-${combo.id}`
+                                  ? 'bg-primary-500 text-black'
+                                  : 'bg-neutral-700 hover:bg-neutral-600 text-white'
+                              }`}
+                              title={previewingTrack === `combo-bg-${combo.id}` ? 'Stop preview' : 'Preview track'}
+                            >
+                              {previewingTrack === `combo-bg-${combo.id}` ? (
+                                <X className="w-3.5 h-3.5" />
+                              ) : (
+                                <Play className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                          )}
+                        </div>
+                        {previewingTrack === `combo-bg-${combo.id}` && (
+                          <div className="mt-1.5 h-1 bg-neutral-700 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-primary-500 transition-all duration-200"
+                              style={{ width: `${previewProgress}%` }}
+                            />
+                          </div>
+                        )}
                       </div>
 
                       {combo.description && (
@@ -936,13 +963,40 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
 
                       {combo.binaural_track_id && (
                         <div className="text-left mb-4 pb-4 border-b border-neutral-700">
-                          <div className="flex items-center gap-2 text-sm">
-                            <Sparkles className="w-4 h-4 text-purple-400 flex-shrink-0" />
-                            <span className="text-neutral-400">Binaural:</span>
-                            <span className="text-purple-400 font-medium">
-                              {combo.binaural_track?.display_name || 'Unknown'}
-                            </span>
+                          <div className="flex items-center justify-between gap-2 text-sm">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Sparkles className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                              <span className="text-neutral-400">Binaural:</span>
+                              <span className="text-purple-400 font-medium truncate">
+                                {combo.binaural_track?.display_name || 'Unknown'}
+                              </span>
+                            </div>
+                            {combo.binaural_track?.file_url && (
+                              <button
+                                onClick={(e) => handlePreview(e, combo.binaural_track.file_url, `combo-bin-${combo.id}`)}
+                                className={`p-1.5 rounded-full transition-all flex-shrink-0 ${
+                                  previewingTrack === `combo-bin-${combo.id}`
+                                    ? 'bg-purple-500 text-white'
+                                    : 'bg-neutral-700 hover:bg-neutral-600 text-white'
+                                }`}
+                                title={previewingTrack === `combo-bin-${combo.id}` ? 'Stop preview' : 'Preview binaural'}
+                              >
+                                {previewingTrack === `combo-bin-${combo.id}` ? (
+                                  <X className="w-3.5 h-3.5" />
+                                ) : (
+                                  <Play className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                            )}
                           </div>
+                          {previewingTrack === `combo-bin-${combo.id}` && (
+                            <div className="mt-1.5 h-1 bg-neutral-700 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-purple-500 transition-all duration-200"
+                                style={{ width: `${previewProgress}%` }}
+                              />
+                            </div>
+                          )}
                         </div>
                       )}
 
