@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { Button, Card, Spinner, Badge, Container, Stack, VersionBadge, StatusBadge, PageHero, TrackingMilestoneCard } from '@/lib/design-system/components'
 import { PlaylistPlayer } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
-import { Headphones, CheckCircle, Play, CalendarDays, Mic, Clock, Eye, ListMusic, Music, AudioLines, Disc3, Layers } from 'lucide-react'
+import { Headphones, CheckCircle, Play, CalendarDays, Mic, Clock, Eye, ListMusic, Music, AudioLines, Disc3, Layers, X } from 'lucide-react'
 import Link from 'next/link'
 import { getVisionCategoryKeys, VISION_CATEGORIES } from '@/lib/design-system'
 import { ChevronDown } from 'lucide-react'
@@ -441,7 +441,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                     <span>Queue</span>
                   </Link>
                 </Button>
-                <Button variant="outline" size="sm" asChild className="w-full">
+                <Button variant="outline" size="sm" asChild className="w-full col-span-2 lg:col-span-1">
                   <Link href={`/life-vision/${visionId}`} className="flex items-center justify-center gap-2">
                     <Eye className="w-4 h-4" />
                     <span>Vision</span>
@@ -479,8 +479,8 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
               {/* Voice Selection */}
               <div className="py-4">
                 <div className="flex flex-col items-center mb-4">
-                  <div className="w-8 h-8 rounded-full bg-primary-500/20 flex items-center justify-center mb-2">
-                    <span className="text-primary-500 font-semibold text-sm">1</span>
+                  <div className="w-12 h-12 rounded-full bg-primary-500/20 flex items-center justify-center mb-2">
+                    <span className="text-primary-500 font-bold text-2xl">1</span>
                   </div>
                   <h3 className="text-lg md:text-xl font-semibold text-white">Select Voice</h3>
                 </div>
@@ -536,7 +536,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                   </div>
                   
                   <Button 
-                    variant="secondary"
+                    variant="primary"
                     onClick={async () => {
                       if (!selectedVoiceForNew) return
                       
@@ -574,22 +574,47 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                       }
                     }}
                     disabled={!selectedVoiceForNew || !voices.find(v => v.id === selectedVoiceForNew)?.previewUrl}
+                    className="relative group"
                   >
-                    <Play className="w-4 h-4 mr-2" />
-                    {isPreviewing ? 'Stop Preview' : 'Preview Voice'}
+                    <div className="relative flex items-center">
+                      <div className="relative w-5 h-5 mr-2">
+                        {/* Circular progress indicator */}
+                        {isPreviewing && (
+                          <svg className="absolute inset-0 w-5 h-5 -rotate-90 pointer-events-none" viewBox="0 0 20 20">
+                            {/* Background track */}
+                            <circle
+                              cx="10"
+                              cy="10"
+                              r="8"
+                              fill="none"
+                              stroke="rgba(0,0,0,0.2)"
+                              strokeWidth="2"
+                              className="group-hover:stroke-[rgba(57,255,20,0.3)] transition-all duration-200"
+                            />
+                            {/* Progress */}
+                            <circle
+                              cx="10"
+                              cy="10"
+                              r="8"
+                              fill="none"
+                              stroke="black"
+                              strokeWidth="2"
+                              strokeDasharray="50.27"
+                              strokeDashoffset={50.27 - (50.27 * (isNaN(previewProgress) ? 0 : previewProgress) / 100)}
+                              className="transition-all duration-200 group-hover:stroke-[#39FF14]"
+                            />
+                          </svg>
+                        )}
+                        {isPreviewing ? (
+                          <X className="w-3 h-3 absolute inset-0 m-auto z-10" />
+                        ) : (
+                          <Play className="w-5 h-5" />
+                        )}
+                      </div>
+                      {isPreviewing ? 'Stop Preview' : 'Preview Voice'}
+                    </div>
                   </Button>
                 </div>
-                
-                {isPreviewing && (
-                  <div className="mt-2">
-                    <div className="w-full bg-neutral-700 rounded-full h-1.5">
-                      <div 
-                        className="bg-primary-500 h-1.5 rounded-full transition-all"
-                        style={{ width: `${previewProgress}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Divider */}
@@ -598,8 +623,8 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
               {/* Section Selection */}
               <div className="py-4">
                 <div className="flex flex-col items-center mb-4">
-                  <div className="w-8 h-8 rounded-full bg-primary-500/20 flex items-center justify-center mb-2">
-                    <span className="text-primary-500 font-semibold text-sm">2</span>
+                  <div className="w-12 h-12 rounded-full bg-primary-500/20 flex items-center justify-center mb-2">
+                    <span className="text-primary-500 font-bold text-2xl">2</span>
                   </div>
                   <h3 className="text-lg md:text-xl font-semibold text-white">Select Sections</h3>
                 </div>
@@ -617,8 +642,8 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
               {/* Output Format Selection */}
               <div className="py-4">
                 <div className="flex flex-col items-center mb-4">
-                  <div className="w-8 h-8 rounded-full bg-primary-500/20 flex items-center justify-center mb-2">
-                    <span className="text-primary-500 font-semibold text-sm">3</span>
+                  <div className="w-12 h-12 rounded-full bg-primary-500/20 flex items-center justify-center mb-2">
+                    <span className="text-primary-500 font-bold text-2xl">3</span>
                   </div>
                   <h3 className="text-lg md:text-xl font-semibold text-white">Output Format</h3>
                 </div>
@@ -631,7 +656,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
               {/* Action Button */}
               <div className="flex justify-center pb-2">
                 <Button 
-                  variant="accent" 
+                  variant="primary" 
                   onClick={handleGenerateVoiceOnly}
                   disabled={generating || !selectedVoiceForNew || (!generateAllSections && selectedVoiceSections.length === 0)}
                 >
@@ -642,6 +667,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                     </>
                   ) : (
                     <>
+                      <AudioLines className="w-4 h-4 mr-2" />
                       Generate {generateAllSections ? 'All 14 Sections' : `${selectedVoiceSections.length} Section${selectedVoiceSections.length !== 1 ? 's' : ''}`}
                     </>
                   )}
@@ -654,7 +680,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
         {existingVoiceSets.length > 0 && (
           <Card variant="elevated" className="bg-[#0A0A0A] relative z-50 overflow-visible">
             {/* Audio Set Selector */}
-            <div className="mb-8">
+            <div className={selectedVoiceSetId && selectedSetTracks.length > 0 ? 'mb-8' : ''}>
               <h2 className="text-xl md:text-2xl font-semibold text-white mb-6 text-center">Your Voice-Only Sets</h2>
               
               <div className="relative max-w-2xl mx-auto">
@@ -678,7 +704,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                         </div>
                       </>
                     ) : (
-                      <span className="text-neutral-400">Select a voice set...</span>
+                      <span className="text-neutral-400">Select a voice set to listen...</span>
                     )}
                   </div>
                   <div className="flex-shrink-0 ml-2">

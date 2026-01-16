@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Card, Spinner, Badge, Container, Stack, PageHero, Toggle, Select } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
-import { Headphones, CheckCircle, Play, Moon, Zap, Sparkles, Music, X, Wand2, Mic, Clock, Eye, Music2, ListMusic, Plus, ChevronDown, ChevronUp } from 'lucide-react'
+import { Headphones, CheckCircle, Play, Moon, Zap, Sparkles, Music, X, Wand2, Mic, Clock, Eye, Music2, ListMusic, Plus, ChevronDown, ChevronUp, AudioLines } from 'lucide-react'
 import Link from 'next/link'
 import { getVisionCategoryKeys, VISION_CATEGORIES } from '@/lib/design-system'
 import { SectionSelector } from '@/components/SectionSelector'
@@ -703,7 +703,7 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 max-w-5xl mx-auto">
             <Button variant="outline" size="sm" asChild className="w-full">
               <Link href={`/life-vision/${visionId}/audio/generate`} className="flex items-center justify-center gap-2">
-                <Mic className="w-4 h-4" />
+                <AudioLines className="w-4 h-4" />
                 <span>Voice Only</span>
               </Link>
             </Button>
@@ -725,7 +725,7 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
                 <span>All Audios</span>
               </Link>
             </Button>
-            <Button variant="outline" size="sm" asChild className="w-full">
+            <Button variant="outline" size="sm" asChild className="w-full col-span-2 lg:col-span-1">
               <Link href={`/life-vision/${visionId}`} className="flex items-center justify-center gap-2">
                 <Eye className="w-4 h-4" />
                 <span>Vision</span>
@@ -816,6 +816,16 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
               )
             })}
           </div>
+
+          {/* Generate New Base Voice Button */}
+          <div className="flex justify-center mt-6">
+            <Button variant="outline" asChild>
+              <Link href={`/life-vision/${visionId}/audio/generate`} className="flex items-center gap-2">
+                Generate New Base Voice
+                <AudioLines className="w-4 h-4" />
+              </Link>
+            </Button>
+          </div>
         </Card>
 
         {/* Step 2: Mix Mode Toggle */}
@@ -898,9 +908,36 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
 
                       <div className="text-left mb-2">
                         <span className="text-xs text-neutral-500 uppercase tracking-wider">Background</span>
-                        <p className="text-sm text-white font-medium">
-                          {combo.background_track?.display_name || 'None'}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm text-white font-medium">
+                            {combo.background_track?.display_name || 'None'}
+                          </p>
+                          {combo.background_track?.file_url && (
+                            <button
+                              onClick={(e) => handlePreview(e, combo.background_track.file_url, `combo-bg-${combo.id}`)}
+                              className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-colors flex-shrink-0 ${
+                                previewingTrack === `combo-bg-${combo.id}`
+                                  ? 'bg-primary-500 text-black'
+                                  : 'bg-neutral-800 hover:bg-neutral-700 text-white'
+                              }`}
+                              title={previewingTrack === `combo-bg-${combo.id}` ? 'Stop preview' : 'Preview track'}
+                            >
+                              {previewingTrack === `combo-bg-${combo.id}` ? (
+                                <X className="w-4 h-4" />
+                              ) : (
+                                <Play className="w-4 h-4" />
+                              )}
+                            </button>
+                          )}
+                        </div>
+                        {previewingTrack === `combo-bg-${combo.id}` && (
+                          <div className="mt-1.5 h-1 bg-neutral-700 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-primary-500 transition-all duration-200"
+                              style={{ width: `${previewProgress}%` }}
+                            />
+                          </div>
+                        )}
                       </div>
 
                       {combo.description && (
@@ -932,7 +969,32 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
                             <span className="text-purple-400 font-medium">
                               {combo.binaural_track?.display_name || 'Unknown'}
                             </span>
+                            {combo.binaural_track?.file_url && (
+                              <button
+                                onClick={(e) => handlePreview(e, combo.binaural_track.file_url, `combo-bin-${combo.id}`)}
+                                className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-colors flex-shrink-0 ${
+                                  previewingTrack === `combo-bin-${combo.id}`
+                                    ? 'bg-purple-500 text-white'
+                                    : 'bg-neutral-800 hover:bg-neutral-700 text-white'
+                                }`}
+                                title={previewingTrack === `combo-bin-${combo.id}` ? 'Stop preview' : 'Preview binaural'}
+                              >
+                                {previewingTrack === `combo-bin-${combo.id}` ? (
+                                  <X className="w-4 h-4" />
+                                ) : (
+                                  <Play className="w-4 h-4" />
+                                )}
+                              </button>
+                            )}
                           </div>
+                          {previewingTrack === `combo-bin-${combo.id}` && (
+                            <div className="mt-1.5 h-1 bg-neutral-700 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-purple-500 transition-all duration-200"
+                                style={{ width: `${previewProgress}%` }}
+                              />
+                            </div>
+                          )}
                         </div>
                       )}
 
