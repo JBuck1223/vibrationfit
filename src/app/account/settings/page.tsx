@@ -523,7 +523,6 @@ export default function AccountSettingsPage() {
             </Button>
           </div>
         </Card>
-      </Stack>
 
         {/* Intensive Mode - Continue Button */}
         {isIntensiveMode && (

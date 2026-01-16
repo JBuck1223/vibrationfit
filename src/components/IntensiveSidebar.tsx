@@ -70,11 +70,11 @@ export function IntensiveSidebar() {
         .eq('id', user.id)
         .single()
 
-      const hasSettings = accountData && 
-        !!accountData.first_name?.trim() && 
-        !!accountData.last_name?.trim() && 
-        !!accountData.email?.trim() && 
-        !!accountData.phone?.trim()
+      const hasSettings = !!(accountData && 
+        accountData.first_name?.trim() && 
+        accountData.last_name?.trim() && 
+        accountData.email?.trim() && 
+        accountData.phone?.trim())
       
       setSettingsComplete(hasSettings)
 
