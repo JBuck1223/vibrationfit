@@ -1,15 +1,19 @@
 // /src/app/account/settings/page.tsx
 // Account settings - manages user_accounts table fields
+// Step 1 of Activation Intensive - completes when First Name, Last Name, Phone, Email, profile_picture_url are filled
 
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Container, Stack, PageHero, Card, Button, Input, Spinner, DatePicker, Checkbox, Modal } from '@/lib/design-system/components'
-import { User, Check } from 'lucide-react'
+import { Container, Stack, PageHero, Card, Button, Input, Spinner, DatePicker, Checkbox, Modal, Badge } from '@/lib/design-system/components'
+import { User, Check, Rocket } from 'lucide-react'
 import { ProfilePictureUpload } from '@/app/profile/components/ProfilePictureUpload'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+
+// Default profile picture URL to check against
+const DEFAULT_PROFILE_PICTURE = 'https://media.vibrationfit.com/site-assets/default-avatar.png'
 
 export default function AccountSettingsPage() {
   const [loading, setLoading] = useState(true)
@@ -34,12 +38,104 @@ export default function AccountSettingsPage() {
   const [showOptOutModal, setShowOptOutModal] = useState(false)
   const [pendingOptOut, setPendingOptOut] = useState<'sms' | 'email' | null>(null)
   
+  // Intensive mode state
+  const [isIntensiveMode, setIsIntensiveMode] = useState(false)
+  const [intensiveId, setIntensiveId] = useState<string | null>(null)
+  const [showDefaultPictureModal, setShowDefaultPictureModal] = useState(false)
+  
   const supabase = createClient()
   const router = useRouter()
 
   useEffect(() => {
     fetchUserData()
+    checkIntensiveMode()
   }, [])
+
+  const checkIntensiveMode = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: checklist } = await supabase
+        .from('intensive_checklist')
+        .select('id, intensive_id, status')
+        .eq('user_id', user.id)
+        .in('status', ['pending', 'in_progress'])
+        .maybeSingle()
+
+      if (checklist) {
+        setIsIntensiveMode(true)
+        setIntensiveId(checklist.intensive_id)
+      }
+    } catch (error) {
+      console.error('Error checking intensive mode:', error)
+    }
+  }
+
+  // Check if all required fields for intensive Step 1 are complete
+  const isIntensiveStep1Complete = () => {
+    const hasFirstName = firstName.trim().length > 0
+    const hasLastName = lastName.trim().length > 0
+    const hasEmail = email.trim().length > 0
+    const hasPhone = phone.replace(/\D/g, '').length >= 10
+    const hasProfilePicture = profilePictureUrl && profilePictureUrl !== DEFAULT_PROFILE_PICTURE
+    
+    return hasFirstName && hasLastName && hasEmail && hasPhone && hasProfilePicture
+  }
+
+  // Check if fields are complete but using default picture
+  const canProceedWithDefaultPicture = () => {
+    const hasFirstName = firstName.trim().length > 0
+    const hasLastName = lastName.trim().length > 0
+    const hasEmail = email.trim().length > 0
+    const hasPhone = phone.replace(/\D/g, '').length >= 10
+    const isDefaultPicture = !profilePictureUrl || profilePictureUrl === DEFAULT_PROFILE_PICTURE
+    
+    return hasFirstName && hasLastName && hasEmail && hasPhone && isDefaultPicture
+  }
+
+  const markIntensiveSettingsComplete = async () => {
+    if (!intensiveId) return
+
+    try {
+      // Update the intensive_checklist - using a generic "settings_completed" approach
+      // Note: The actual field name may need to be adjusted based on final schema
+      const { error } = await supabase
+        .from('intensive_checklist')
+        .update({
+          // Settings step doesn't have its own field, it's tracked implicitly
+          // The dashboard will check user_accounts directly
+          updated_at: new Date().toISOString()
+        })
+        .eq('intensive_id', intensiveId)
+
+      if (error) {
+        console.error('Error marking intensive settings complete:', error)
+      } else {
+        toast.success('Settings complete! Redirecting to your Intensive Dashboard...')
+        setTimeout(() => {
+          router.push('/intensive/dashboard')
+        }, 1500)
+      }
+    } catch (error) {
+      console.error('Error in markIntensiveSettingsComplete:', error)
+    }
+  }
+
+  const handleContinueToIntensive = async () => {
+    if (canProceedWithDefaultPicture()) {
+      // Show modal asking about default picture
+      setShowDefaultPictureModal(true)
+    } else if (isIntensiveStep1Complete()) {
+      // All complete including custom picture, proceed
+      await markIntensiveSettingsComplete()
+    }
+  }
+
+  const handleProceedWithDefaultPicture = async () => {
+    setShowDefaultPictureModal(false)
+    await markIntensiveSettingsComplete()
+  }
 
   // Track changes
   useEffect(() => {
@@ -278,10 +374,17 @@ export default function AccountSettingsPage() {
       <Stack gap="lg">
         {/* Page Hero */}
         <PageHero
+          eyebrow={isIntensiveMode ? "ACTIVATION INTENSIVE - STEP 1" : undefined}
           title="Account Settings"
           subtitle="Manage your personal information and preferences"
         >
-          <div className="flex justify-center w-full">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center w-full">
+            {isIntensiveMode && (
+              <Badge variant="premium">
+                <Rocket className="w-4 h-4 mr-2" />
+                Step 1 of 14
+              </Badge>
+            )}
             <Button variant="outline" onClick={() => router.push('/account')}>
               Account Dashboard
             </Button>
@@ -420,6 +523,33 @@ export default function AccountSettingsPage() {
             </Button>
           </div>
         </Card>
+
+        {/* Intensive Mode - Continue Button */}
+        {isIntensiveMode && (
+          <Card className="p-6 bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-primary-500/30">
+            <div className="text-center">
+              <h3 className="text-xl font-bold text-white mb-3">Ready to Continue?</h3>
+              <p className="text-sm md:text-base text-neutral-300 mb-6">
+                Complete your settings to move to the next step in your Activation Intensive.
+              </p>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleContinueToIntensive}
+                disabled={!firstName.trim() || !lastName.trim() || !email.trim() || phone.replace(/\D/g, '').length < 10}
+                className="w-full sm:w-auto"
+              >
+                <Rocket className="w-4 h-4 mr-2" />
+                Continue to Intensive Dashboard
+              </Button>
+              {(!firstName.trim() || !lastName.trim() || !email.trim() || phone.replace(/\D/g, '').length < 10) && (
+                <p className="text-xs text-neutral-500 mt-3">
+                  Please fill in First Name, Last Name, Email, and Phone to continue.
+                </p>
+              )}
+            </div>
+          </Card>
+        )}
       </Stack>
 
       {/* Opt-Out Confirmation Modal */}
@@ -438,6 +568,27 @@ export default function AccountSettingsPage() {
             </Button>
             <Button variant="danger" onClick={confirmOptOut} className="w-full">
               Turn Off {pendingOptOut === 'sms' ? 'SMS' : 'Email'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Default Profile Picture Modal */}
+      <Modal
+        isOpen={showDefaultPictureModal}
+        onClose={() => setShowDefaultPictureModal(false)}
+        title="Profile Picture"
+      >
+        <div className="space-y-4">
+          <p className="text-neutral-300">
+            Your Profile Picture is used across VibrationFit to help you become a vibrational match to your vision. Are you sure you want to proceed with the default icon?
+          </p>
+          <div className="flex flex-col gap-3">
+            <Button variant="primary" onClick={() => setShowDefaultPictureModal(false)} className="w-full">
+              Add My Photo
+            </Button>
+            <Button variant="ghost" onClick={handleProceedWithDefaultPicture} className="w-full">
+              Continue with Default
             </Button>
           </div>
         </div>

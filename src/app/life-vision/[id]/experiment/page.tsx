@@ -247,7 +247,7 @@ export default function VisionExperimentPage({ params }: { params: Promise<{ id:
           .from('vision_versions')
           .select('*')
           .eq('user_id', user.id)
-          .order('version_number', { ascending: false })
+          .order('created_at', { ascending: false })
 
         const actualCompletion = calculateCompletion(vision)
         const completed = getCompletedSections(vision)

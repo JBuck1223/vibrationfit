@@ -281,7 +281,7 @@ export async function POST(req: Request) {
                 .select('*')
                 .eq('user_id', user.id)
                 .eq('is_active', true)
-                .order('version_number', { ascending: false })
+                .order('created_at', { ascending: false })
                 .limit(1)
                 .maybeSingle()
               
@@ -293,18 +293,18 @@ export async function POST(req: Request) {
                 .select('*')
                 .eq('user_id', user.id)
                 .eq('status', 'complete')
-                .order('version_number', { ascending: false })
+                .order('created_at', { ascending: false })
                 .limit(1)
                 .maybeSingle()
               
               if (completeVision) return { data: completeVision, error: null }
               
-              // Finally get latest vision by version number (might have substantial content)
+              // Finally get latest vision by created_at (might have substantial content)
               const { data: latestVision } = await supabase
                 .from('vision_versions')
                 .select('*')
                 .eq('user_id', user.id)
-                .order('version_number', { ascending: false })
+                .order('created_at', { ascending: false })
                 .limit(1)
                 .maybeSingle()
               
@@ -318,7 +318,7 @@ export async function POST(req: Request) {
                   .select('*')
                   .eq('user_id', user.id)
                   .eq('is_active', true)
-                  .order('version_number', { ascending: false })
+                  .order('created_at', { ascending: false })
                   .limit(1)
                   .maybeSingle()
                 
@@ -329,7 +329,7 @@ export async function POST(req: Request) {
                   .select('*')
                   .eq('user_id', user.id)
                   .eq('status', 'complete')
-                  .order('version_number', { ascending: false })
+                  .order('created_at', { ascending: false })
                   .limit(1)
                   .maybeSingle()
                 
@@ -339,7 +339,7 @@ export async function POST(req: Request) {
                   .from('vision_versions')
                   .select('*')
                   .eq('user_id', user.id)
-                  .order('version_number', { ascending: false })
+                  .order('created_at', { ascending: false })
                   .limit(1)
                   .maybeSingle()
                 
@@ -349,7 +349,6 @@ export async function POST(req: Request) {
                 .from('vision_versions')
                 .select('*')
                 .eq('user_id', user.id)
-                .order('version_number', { ascending: false })
                 .order('created_at', { ascending: false })
                 .limit(1)
                 .maybeSingle(),

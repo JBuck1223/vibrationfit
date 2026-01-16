@@ -11,6 +11,8 @@ import {
   Sparkles,
   Wand2,
   Music,
+  Mic,
+  Sliders,
   ImageIcon,
   BookOpen,
   Calendar,
@@ -20,16 +22,27 @@ import {
   ChevronRight,
   CheckCircle2,
   Circle,
-  Lock
+  Lock,
+  Settings,
+  FileText,
+  Unlock
 } from 'lucide-react'
 
 type Step = {
   id: string
+  stepNumber: number
   title: string
   href: string
   icon: any
+  phase: string
   completed: boolean
   locked: boolean
+  optional?: boolean
+}
+
+type Phase = {
+  name: string
+  steps: Step[]
 }
 
 export function IntensiveSidebar() {
@@ -38,6 +51,7 @@ export function IntensiveSidebar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [steps, setSteps] = useState<Step[]>([])
   const [loading, setLoading] = useState(true)
+  const [settingsComplete, setSettingsComplete] = useState(false)
 
   useEffect(() => {
     loadSteps()
@@ -49,6 +63,22 @@ export function IntensiveSidebar() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
+      // Check settings completion from user_accounts (Step 1)
+      const { data: accountData } = await supabase
+        .from('user_accounts')
+        .select('first_name, last_name, email, phone')
+        .eq('id', user.id)
+        .single()
+
+      const hasSettings = !!(accountData && 
+        accountData.first_name?.trim() && 
+        accountData.last_name?.trim() && 
+        accountData.email?.trim() && 
+        accountData.phone?.trim())
+      
+      setSettingsComplete(hasSettings)
+
+      // Get intensive checklist
       const { data: checklist } = await supabase
         .from('intensive_checklist')
         .select('*')
@@ -61,85 +91,157 @@ export function IntensiveSidebar() {
       if (!checklist) return
 
       const stepsList: Step[] = [
+        // Phase 1: Setup
         { 
-          id: 'dashboard', 
-          title: 'Dashboard', 
-          href: '/intensive/dashboard', 
-          icon: LayoutDashboard,
-          completed: false,
+          id: 'settings', 
+          stepNumber: 1,
+          title: 'Settings', 
+          href: '/account/settings', 
+          icon: Settings,
+          phase: 'Setup',
+          completed: hasSettings,
           locked: false 
         },
         { 
+          id: 'intake', 
+          stepNumber: 2,
+          title: 'Baseline Intake', 
+          href: '/intensive/intake', 
+          icon: FileText,
+          phase: 'Setup',
+          completed: !!checklist.intake_completed,
+          locked: !hasSettings 
+        },
+
+        // Phase 2: Foundation
+        { 
           id: 'profile', 
-          title: 'Profile (70%+)', 
-          href: '/profile/active/edit', 
+          stepNumber: 3,
+          title: 'Profile', 
+          href: '/profile/new', 
           icon: User,
+          phase: 'Foundation',
           completed: !!checklist.profile_completed,
-          locked: false 
+          locked: !checklist.intake_completed 
         },
         { 
           id: 'assessment', 
+          stepNumber: 4,
           title: 'Assessment', 
-          href: '/assessment', 
+          href: '/assessment/new', 
           icon: ClipboardCheck,
+          phase: 'Foundation',
           completed: !!checklist.assessment_completed,
           locked: !checklist.profile_completed 
         },
+
+        // Phase 3: Vision Creation
         { 
           id: 'vision', 
+          stepNumber: 5,
           title: 'Life Vision', 
-          href: '/vision/build', 
+          href: '/life-vision/new', 
           icon: Sparkles,
+          phase: 'Vision',
           completed: !!checklist.vision_built,
           locked: !checklist.assessment_completed 
         },
         { 
           id: 'refine', 
-          title: 'Refinement', 
-          href: '/life-vision', 
+          stepNumber: 6,
+          title: 'Refine Vision', 
+          href: '/life-vision/refine/new', 
           icon: Wand2,
+          phase: 'Vision',
           completed: !!checklist.vision_refined,
           locked: !checklist.vision_built 
         },
+
+        // Phase 4: Audio
         { 
-          id: 'audio', 
-          title: 'Vision Audios', 
-          href: '/life-vision', 
+          id: 'generate_audio', 
+          stepNumber: 7,
+          title: 'Generate Audio', 
+          href: '/life-vision/audio/generate/new', 
           icon: Music,
+          phase: 'Audio',
           completed: !!checklist.audio_generated,
           locked: !checklist.vision_refined 
         },
         { 
-          id: 'vision_board', 
-          title: 'Vision Board', 
-          href: '/vision-board', 
-          icon: ImageIcon,
-          completed: !!checklist.vision_board_completed,
+          id: 'record_audio', 
+          stepNumber: 8,
+          title: 'Record Voice', 
+          href: '/life-vision/audio/record/new', 
+          icon: Mic,
+          phase: 'Audio',
+          completed: !!checklist.audio_generated, // shares completion with step 7
+          locked: !checklist.audio_generated,
+          optional: true
+        },
+        { 
+          id: 'mix_audio', 
+          stepNumber: 9,
+          title: 'Audio Mix', 
+          href: '/life-vision/audio/mix/new', 
+          icon: Sliders,
+          phase: 'Audio',
+          completed: !!checklist.audios_generated,
           locked: !checklist.audio_generated 
+        },
+
+        // Phase 5: Activation
+        { 
+          id: 'vision_board', 
+          stepNumber: 10,
+          title: 'Vision Board', 
+          href: '/vision-board/resources', 
+          icon: ImageIcon,
+          phase: 'Activation',
+          completed: !!checklist.vision_board_completed,
+          locked: !(checklist.audios_generated || checklist.audio_generated)
         },
         { 
           id: 'journal', 
-          title: 'Journal Entries', 
-          href: '/journal', 
+          stepNumber: 11,
+          title: 'Journal', 
+          href: '/journal/resources', 
           icon: BookOpen,
+          phase: 'Activation',
           completed: !!checklist.first_journal_entry,
           locked: !checklist.vision_board_completed 
         },
         { 
           id: 'call', 
-          title: 'Calibration Call', 
+          stepNumber: 12,
+          title: 'Book Call', 
           href: '/intensive/schedule-call', 
           icon: Calendar,
+          phase: 'Activation',
           completed: !!checklist.call_scheduled,
           locked: !checklist.first_journal_entry 
         },
+
+        // Phase 6: Completion
         { 
           id: 'activation', 
+          stepNumber: 13,
           title: 'Activation Protocol', 
           href: '/intensive/activation-protocol', 
           icon: Rocket,
+          phase: 'Completion',
           completed: !!checklist.activation_protocol_completed,
-          locked: !checklist.calibration_call_completed 
+          locked: !checklist.call_scheduled 
+        },
+        { 
+          id: 'unlock', 
+          stepNumber: 14,
+          title: 'Unlock Platform', 
+          href: '/intensive/intake/unlock', 
+          icon: Unlock,
+          phase: 'Completion',
+          completed: !!checklist.unlock_completed,
+          locked: !checklist.activation_protocol_completed 
         },
       ]
 
@@ -155,6 +257,21 @@ export function IntensiveSidebar() {
     }
     return pathname.startsWith(href)
   }
+
+  // Group steps by phase
+  const phases: Phase[] = [
+    { name: 'Setup', steps: steps.filter(s => s.phase === 'Setup') },
+    { name: 'Foundation', steps: steps.filter(s => s.phase === 'Foundation') },
+    { name: 'Vision', steps: steps.filter(s => s.phase === 'Vision') },
+    { name: 'Audio', steps: steps.filter(s => s.phase === 'Audio') },
+    { name: 'Activation', steps: steps.filter(s => s.phase === 'Activation') },
+    { name: 'Completion', steps: steps.filter(s => s.phase === 'Completion') },
+  ]
+
+  // Calculate progress
+  const completedCount = steps.filter(s => s.completed).length
+  const totalCount = steps.length
+  const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -172,63 +289,110 @@ export function IntensiveSidebar() {
             <X className="w-5 h-5" />
           </button>
         </div>
-        <p className="text-xs md:text-sm text-neutral-400 mt-1">
-          Complete all steps to unlock full platform
-        </p>
+        <div className="flex items-center gap-2 mt-2">
+          <div className="flex-1 h-2 bg-neutral-700 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-primary-500 transition-all duration-500"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+          <span className="text-xs text-neutral-400 font-medium">
+            {completedCount}/{totalCount}
+          </span>
+        </div>
       </div>
 
-      {/* Steps */}
-      <nav className="flex-1 p-3 md:p-4 space-y-1 overflow-y-auto">
+      {/* Dashboard Link */}
+      <div className="px-3 md:px-4 pt-3">
+        <button
+          onClick={() => {
+            router.push('/intensive/dashboard')
+            setMobileOpen(false)
+          }}
+          className={`
+            w-full flex items-center gap-3 px-3 md:px-4 py-2.5 md:py-3 rounded-xl
+            transition-all duration-200 text-left
+            ${pathname === '/intensive/dashboard'
+              ? 'bg-primary-500/10 border-2 border-primary-500 text-white'
+              : 'bg-neutral-800 border-2 border-neutral-700 text-neutral-300 hover:border-neutral-600 hover:bg-neutral-700'
+            }
+          `}
+        >
+          <LayoutDashboard className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
+          <span className="text-xs md:text-sm font-medium">Dashboard</span>
+        </button>
+      </div>
+
+      {/* Steps grouped by phase */}
+      <nav className="flex-1 p-3 md:p-4 space-y-4 overflow-y-auto">
         {loading ? (
           <div className="text-center py-8 text-neutral-500 text-sm">
             Loading...
           </div>
         ) : (
-          steps.map((step) => (
-            <button
-              key={step.id}
-              onClick={() => {
-                if (!step.locked) {
-                  router.push(step.href)
-                  setMobileOpen(false)
-                }
-              }}
-              disabled={step.locked}
-              className={`
-                w-full flex items-center gap-3 px-3 md:px-4 py-2.5 md:py-3 rounded-xl
-                transition-all duration-200 text-left
-                ${isActive(step.href)
-                  ? 'bg-primary-500/10 border-2 border-primary-500 text-white'
-                  : step.locked
-                    ? 'bg-neutral-800/50 border-2 border-neutral-700 text-neutral-500 cursor-not-allowed'
-                    : 'bg-neutral-800 border-2 border-neutral-700 text-neutral-300 hover:border-neutral-600 hover:bg-neutral-700'
-                }
-              `}
-            >
-              {/* Status Icon */}
-              <div className="flex-shrink-0">
-                {step.completed ? (
-                  <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-primary-500" />
-                ) : step.locked ? (
-                  <Lock className="w-4 h-4 md:w-5 md:h-5" />
-                ) : (
-                  <Circle className="w-4 h-4 md:w-5 md:h-5" />
-                )}
+          phases.map((phase) => (
+            <div key={phase.name}>
+              <div className="text-[10px] uppercase tracking-wider text-neutral-500 mb-2 px-1">
+                {phase.name}
               </div>
+              <div className="space-y-1">
+                {phase.steps.map((step) => (
+                  <button
+                    key={step.id}
+                    onClick={() => {
+                      if (!step.locked) {
+                        router.push(step.href)
+                        setMobileOpen(false)
+                      }
+                    }}
+                    disabled={step.locked}
+                    className={`
+                      w-full flex items-center gap-2 px-3 py-2 rounded-lg
+                      transition-all duration-200 text-left group
+                      ${isActive(step.href)
+                        ? 'bg-primary-500/10 border border-primary-500/50 text-white'
+                        : step.locked
+                          ? 'bg-neutral-800/30 border border-neutral-800 text-neutral-600 cursor-not-allowed'
+                          : 'bg-neutral-800/50 border border-neutral-700/50 text-neutral-400 hover:border-neutral-600 hover:bg-neutral-700/50 hover:text-neutral-200'
+                      }
+                    `}
+                  >
+                    {/* Step number */}
+                    <span className={`
+                      text-[10px] font-mono w-4 flex-shrink-0
+                      ${step.completed ? 'text-primary-500' : step.locked ? 'text-neutral-700' : 'text-neutral-600'}
+                    `}>
+                      {step.stepNumber}
+                    </span>
 
-              {/* Icon */}
-              <step.icon className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
+                    {/* Status Icon */}
+                    <div className="flex-shrink-0">
+                      {step.completed ? (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-primary-500" />
+                      ) : step.locked ? (
+                        <Lock className="w-3.5 h-3.5 text-neutral-700" />
+                      ) : (
+                        <Circle className="w-3.5 h-3.5 text-neutral-600" />
+                      )}
+                    </div>
 
-              {/* Title */}
-              <span className="text-xs md:text-sm font-medium flex-1 truncate">
-                {step.title}
-              </span>
+                    {/* Icon */}
+                    <step.icon className={`w-3.5 h-3.5 flex-shrink-0 ${step.optional ? 'opacity-60' : ''}`} />
 
-              {/* Arrow */}
-              {!step.locked && (
-                <ChevronRight className="w-4 h-4 flex-shrink-0 opacity-0 group-hover:opacity-100" />
-              )}
-            </button>
+                    {/* Title */}
+                    <span className={`text-xs font-medium flex-1 truncate ${step.optional ? 'italic' : ''}`}>
+                      {step.title}
+                      {step.optional && <span className="text-[10px] ml-1 text-neutral-500">(opt)</span>}
+                    </span>
+
+                    {/* Arrow on hover */}
+                    {!step.locked && (
+                      <ChevronRight className="w-3 h-3 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
           ))
         )}
       </nav>
@@ -242,7 +406,7 @@ export function IntensiveSidebar() {
             router.push('/profile')
             setMobileOpen(false)
           }}
-          className="w-full text-xs md:text-sm"
+          className="w-full text-xs"
         >
           <User className="w-4 h-4 mr-2" />
           My Profile
@@ -288,4 +452,3 @@ export function IntensiveSidebar() {
     </>
   )
 }
-

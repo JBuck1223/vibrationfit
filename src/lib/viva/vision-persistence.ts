@@ -31,7 +31,7 @@ export async function saveVisionParagraph(
     .from('vision_versions')
     .select('*')
     .eq('user_id', userId)
-    .order('version_number', { ascending: false })
+    .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
 

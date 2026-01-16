@@ -883,6 +883,332 @@ export async function uploadMultipleUserFiles(
   return results
 }
 
+// ============================================================================
+// SITE ASSETS UPLOAD (for admin assets page)
+// ============================================================================
+
+const SITE_ASSETS_PREFIX = 'site-assets/'
+
+// Get presigned URL for site assets upload (admin only)
+export async function getSiteAssetPresignedUrl(
+  category: string,
+  fileName: string,
+  fileType: string
+): Promise<{ uploadUrl: string; key: string; finalUrl: string }> {
+  try {
+    // Sanitize category path (preserve forward slashes for nested folders)
+    const sanitizedCategory = category
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9\/-]/g, '-')
+      .replace(/\/+/g, '/')
+      .replace(/^\/|\/$/g, '')
+    
+    // Sanitize filename
+    const sanitizedName = fileName.replace(/[^a-zA-Z0-9.-]/g, '-').toLowerCase()
+    const key = sanitizedCategory
+      ? `${SITE_ASSETS_PREFIX}${sanitizedCategory}/${sanitizedName}`
+      : `${SITE_ASSETS_PREFIX}${sanitizedName}`
+
+    const response = await fetch('/api/upload/presigned', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, fileType })
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || 'Failed to get presigned URL')
+    }
+
+    const { uploadUrl } = await response.json()
+    const finalUrl = getFileUrl(key)
+
+    return { uploadUrl, key, finalUrl }
+  } catch (error) {
+    console.error('Site asset presigned URL error:', error)
+    throw error
+  }
+}
+
+// Upload a single site asset file using presigned URL
+export async function uploadSiteAsset(
+  category: string,
+  file: File,
+  onProgress?: (progress: number) => void
+): Promise<{ url: string; key: string; fileName: string; category: string }> {
+  const fileSizeMB = file.size / 1024 / 1024
+  console.log(`📤 Uploading site asset: ${file.name} (${fileSizeMB.toFixed(2)}MB) to ${category}`)
+
+  // Use multipart upload for very large files (>100MB)
+  if (file.size > MULTIPART_THRESHOLD) {
+    console.log(`🚀 Using multipart upload for ${file.name}`)
+    return uploadSiteAssetMultipart(category, file, onProgress)
+  }
+
+  // Use presigned URL for all other files (bypasses Vercel's 4.5MB limit)
+  try {
+    const { uploadUrl, key, finalUrl } = await getSiteAssetPresignedUrl(
+      category,
+      file.name,
+      file.type || 'application/octet-stream'
+    )
+
+    // Use XHR for real progress tracking
+    await uploadWithXHRProgress(uploadUrl, file, onProgress)
+    
+    if (onProgress) onProgress(100)
+    
+    console.log(`✅ Site asset uploaded: ${key}`)
+    
+    // Extract sanitized filename from key
+    const sanitizedFileName = key.split('/').pop() || file.name
+    const sanitizedCategory = category
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9\/-]/g, '-')
+      .replace(/\/+/g, '/')
+      .replace(/^\/|\/$/g, '')
+
+    return { 
+      url: finalUrl, 
+      key, 
+      fileName: sanitizedFileName,
+      category: sanitizedCategory 
+    }
+  } catch (error) {
+    console.error(`❌ Site asset upload failed for ${file.name}:`, error)
+    throw error
+  }
+}
+
+// Multipart upload for very large site assets (>100MB)
+async function uploadSiteAssetMultipart(
+  category: string,
+  file: File,
+  onProgress?: (progress: number) => void
+): Promise<{ url: string; key: string; fileName: string; category: string }> {
+  // Sanitize category and filename
+  const sanitizedCategory = category
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\/-]/g, '-')
+    .replace(/\/+/g, '/')
+    .replace(/^\/|\/$/g, '')
+  
+  const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '-').toLowerCase()
+  const key = sanitizedCategory
+    ? `${SITE_ASSETS_PREFIX}${sanitizedCategory}/${sanitizedName}`
+    : `${SITE_ASSETS_PREFIX}${sanitizedName}`
+
+  console.log(`🚀 Starting multipart upload for site asset: ${key}`)
+
+  // Step 1: Create multipart upload
+  const createResponse = await fetch('/api/upload/multipart', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action: 'create',
+      key,
+      fileType: file.type || 'application/octet-stream',
+      fileName: file.name,
+    }),
+  })
+
+  if (!createResponse.ok) {
+    throw new Error('Failed to create multipart upload')
+  }
+
+  const { uploadId } = await createResponse.json()
+  console.log('✅ Multipart upload created:', uploadId)
+
+  // Step 2: Calculate chunks
+  const totalChunks = Math.ceil(file.size / CHUNK_SIZE)
+  console.log(`📦 Splitting into ${totalChunks} chunks`)
+
+  // Step 3: Upload chunks
+  const uploadedParts: Array<{ ETag: string; PartNumber: number }> = []
+  const CONCURRENT_UPLOADS = 3
+  let uploadedCount = 0
+
+  try {
+    for (let i = 0; i < totalChunks; i += CONCURRENT_UPLOADS) {
+      const chunkPromises = []
+
+      for (let j = 0; j < CONCURRENT_UPLOADS && (i + j) < totalChunks; j++) {
+        const partNumber = i + j + 1
+        const start = (i + j) * CHUNK_SIZE
+        const end = Math.min(start + CHUNK_SIZE, file.size)
+        const chunk = file.slice(start, end)
+
+        chunkPromises.push(
+          (async () => {
+            const partUrlResponse = await fetch('/api/upload/multipart', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'getPartUrl',
+                key,
+                uploadId,
+                partNumber,
+              }),
+            })
+
+            if (!partUrlResponse.ok) {
+              throw new Error(`Failed to get presigned URL for part ${partNumber}`)
+            }
+
+            const { presignedUrl } = await partUrlResponse.json()
+
+            const controller = new AbortController()
+            const timeout = setTimeout(() => controller.abort(), 60000)
+
+            try {
+              const uploadResponse = await fetch(presignedUrl, {
+                method: 'PUT',
+                body: chunk,
+                headers: { 'Content-Type': file.type || 'application/octet-stream' },
+                signal: controller.signal,
+              })
+
+              clearTimeout(timeout)
+
+              if (!uploadResponse.ok) {
+                throw new Error(`Failed to upload part ${partNumber}: ${uploadResponse.status}`)
+              }
+
+              const etag = uploadResponse.headers.get('ETag')
+              if (!etag) {
+                throw new Error(`No ETag returned for part ${partNumber}`)
+              }
+
+              uploadedCount++
+              if (onProgress) {
+                onProgress(Math.round((uploadedCount / totalChunks) * 100))
+              }
+
+              return { ETag: etag.replace(/"/g, ''), PartNumber: partNumber }
+            } catch (error) {
+              clearTimeout(timeout)
+              throw error
+            }
+          })()
+        )
+      }
+
+      const batchParts = await Promise.all(chunkPromises)
+      uploadedParts.push(...batchParts)
+    }
+  } catch (error) {
+    // Abort the multipart upload if any chunk fails
+    console.error('❌ Chunk upload failed, aborting...', error)
+    await fetch('/api/upload/multipart', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'abort', key, uploadId }),
+    }).catch(e => console.error('Failed to abort upload:', e))
+    throw error
+  }
+
+  // Sort parts by part number
+  uploadedParts.sort((a, b) => a.PartNumber - b.PartNumber)
+
+  // Step 4: Complete multipart upload
+  const completeResponse = await fetch('/api/upload/multipart', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action: 'complete',
+      key,
+      uploadId,
+      parts: uploadedParts,
+    }),
+  })
+
+  if (!completeResponse.ok) {
+    await fetch('/api/upload/multipart', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'abort', key, uploadId }),
+    })
+    throw new Error('Failed to complete multipart upload')
+  }
+
+  const { url: finalUrl } = await completeResponse.json()
+  console.log('🎉 Multipart upload complete!', finalUrl)
+
+  if (onProgress) onProgress(100)
+
+  return { 
+    url: finalUrl, 
+    key, 
+    fileName: sanitizedName,
+    category: sanitizedCategory 
+  }
+}
+
+// Upload multiple site assets sequentially
+export async function uploadMultipleSiteAssets(
+  category: string,
+  files: File[],
+  onProgress?: (progress: number) => void,
+  onFileProgress?: (fileName: string, status: 'uploading' | 'success' | 'error', progress?: number) => void
+): Promise<{ url: string; key: string; fileName: string; category: string; error?: string }[]> {
+  const results: { url: string; key: string; fileName: string; category: string; error?: string }[] = []
+  
+  console.log(`📤 Starting sequential upload of ${files.length} site assets to ${category}...`)
+  
+  for (let index = 0; index < files.length; index++) {
+    const file = files[index]
+    console.log(`📤 Uploading file ${index + 1}/${files.length}: ${file.name}`)
+    
+    if (onFileProgress) {
+      onFileProgress(file.name, 'uploading', 0)
+    }
+    
+    try {
+      const result = await uploadSiteAsset(category, file, (progress) => {
+        // Update individual file progress
+        if (onFileProgress) {
+          onFileProgress(file.name, 'uploading', progress)
+        }
+        // Update total progress
+        if (onProgress) {
+          const completedProgress = (index / files.length) * 100
+          const currentProgress = (progress / 100 / files.length) * 100
+          onProgress(Math.round(completedProgress + currentProgress))
+        }
+      })
+      
+      console.log(`✅ File ${index + 1}/${files.length} uploaded successfully`)
+      if (onFileProgress) {
+        onFileProgress(file.name, 'success', 100)
+      }
+      results.push({ ...result, error: undefined })
+      
+      // Small delay between uploads to prevent rate limiting
+      if (index < files.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 300))
+      }
+    } catch (error) {
+      console.error(`❌ Upload failed for ${file.name}:`, error)
+      if (onFileProgress) {
+        onFileProgress(file.name, 'error')
+      }
+      results.push({ 
+        url: '', 
+        key: '', 
+        fileName: file.name,
+        category,
+        error: error instanceof Error ? error.message : 'Upload failed' 
+      })
+    }
+  }
+  
+  console.log(`📤 Sequential upload complete: ${results.filter(r => !r.error).length}/${files.length} successful`)
+  return results
+}
+
 export const ASSETS = {
   brand: {
     logo: getFileUrl('site-assets/brand/logo/logo.svg'),

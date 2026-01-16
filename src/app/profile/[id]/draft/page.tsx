@@ -27,6 +27,7 @@ import {
   PageHero
 } from '@/lib/design-system/components'
 import { ProfileField } from '../../components/ProfileField'
+import { PersonalInfoSection } from '../../components/PersonalInfoSection'
 import { colors } from '@/lib/design-system/tokens'
 import { 
   User, Heart, Users, Activity, MapPin, Briefcase, DollarSign,
@@ -105,8 +106,27 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
         throw new Error('Draft profile not found')
       }
 
-      console.log('Draft profile loaded:', draftData)
-      setDraftProfile(draftData)
+      // Fetch account data (first_name, last_name, email, phone, etc.)
+      const { data: accountData } = await supabase
+        .from('user_accounts')
+        .select('first_name, last_name, full_name, profile_picture_url, email, phone, date_of_birth')
+        .eq('id', userId)
+        .maybeSingle()
+
+      // Merge account data into draft profile (account data takes precedence)
+      const mergedDraftData = {
+        ...draftData,
+        first_name: accountData?.first_name ?? draftData?.first_name,
+        last_name: accountData?.last_name ?? draftData?.last_name,
+        full_name: accountData?.full_name ?? null,
+        profile_picture_url: accountData?.profile_picture_url ?? draftData?.profile_picture_url,
+        email: accountData?.email ?? draftData?.email,
+        phone: accountData?.phone ?? draftData?.phone,
+        date_of_birth: accountData?.date_of_birth ?? draftData?.date_of_birth,
+      }
+
+      console.log('Draft profile loaded with account data:', mergedDraftData)
+      setDraftProfile(mergedDraftData)
 
       // Fetch parent profile if it exists
       if (draftData.parent_id) {
@@ -115,8 +135,8 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
           setParentProfile(parent)
           
           // Calculate changed fields
-          const changed = getChangedFields(draftData, parent)
-          const sections = getChangedSections(draftData, parent)
+          const changed = getChangedFields(mergedDraftData, parent)
+          const sections = getChangedSections(mergedDraftData, parent)
           
           console.log('Changed fields:', changed)
           console.log('Changed sections:', sections)
@@ -240,16 +260,35 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
 
       const { profile } = await response.json()
       
-      // Update draft profile with server response
-      setDraftProfile(profile)
+      // Re-fetch account data to merge with profile (account fields are stored separately)
+      const { data: accountData } = await supabase
+        .from('user_accounts')
+        .select('first_name, last_name, full_name, profile_picture_url, email, phone, date_of_birth')
+        .eq('id', user?.id)
+        .maybeSingle()
+
+      // Merge account data into profile
+      const mergedProfile = {
+        ...profile,
+        first_name: accountData?.first_name ?? profile?.first_name,
+        last_name: accountData?.last_name ?? profile?.last_name,
+        full_name: accountData?.full_name ?? null,
+        profile_picture_url: accountData?.profile_picture_url ?? profile?.profile_picture_url,
+        email: accountData?.email ?? profile?.email,
+        phone: accountData?.phone ?? profile?.phone,
+        date_of_birth: accountData?.date_of_birth ?? profile?.date_of_birth,
+      }
+      
+      // Update draft profile with merged data
+      setDraftProfile(mergedProfile)
 
       // Clear edited fields
       setEditedFields({})
 
       // Recalculate changed fields
       if (parentProfile) {
-        const changed = getChangedFields(profile, parentProfile)
-        const sections = getChangedSections(profile, parentProfile)
+        const changed = getChangedFields(mergedProfile, parentProfile)
+        const sections = getChangedSections(mergedProfile, parentProfile)
         setChangedFields(changed)
         setChangedSections(sections)
       }
@@ -412,7 +451,7 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
     <>
       {/* Header */}
       <PageHero
-        title="Refine Your Profile"
+        title="Draft Profile"
         subtitle="Changed fields will show in yellow. Once you are happy with your changes, click 'Commit as Active Profile'."
         className="mb-8"
       >
@@ -536,23 +575,19 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
 
               <div className="space-y-4">
                 {selectedCategory === 'personal' && (
-                    <>
-                      {renderField({ label: 'Email', value: draftProfile.email, fieldKey: 'email', type: 'text' })}
-                      {renderField({ label: 'Phone', value: draftProfile.phone, fieldKey: 'phone', type: 'text' })}
-                      {renderField({ label: 'Date of Birth', value: draftProfile.date_of_birth, fieldKey: 'date_of_birth', type: 'text' })}
-                      {renderField({ label: 'Gender', value: draftProfile.gender, fieldKey: 'gender', type: 'select', selectOptions: [
-                        { value: 'Male', label: 'Male' },
-                        { value: 'Female', label: 'Female' },
-                        { value: 'Prefer not to say', label: 'Prefer not to say' }
-                      ]})}
-                      {renderField({ label: 'Ethnicity', value: draftProfile.ethnicity, fieldKey: 'ethnicity', type: 'select', selectOptions: [
-                        { value: 'Asian', label: 'Asian' },
-                        { value: 'Black', label: 'Black' },
-                        { value: 'Hispanic', label: 'Hispanic' },
-                        { value: 'White', label: 'White' },
-                        { value: 'Other', label: 'Other' }
-                      ]})}
-                    </>
+                    <PersonalInfoSection
+                      profile={draftProfile}
+                      onProfileChange={(updates) => {
+                        // Track changes for highlighting
+                        Object.keys(updates).forEach(key => {
+                          handleFieldChange(key, updates[key as keyof typeof updates])
+                        })
+                      }}
+                      onError={(error) => setError(error)}
+                      onSave={handleSaveChanges}
+                      isSaving={saving}
+                      hasUnsavedChanges={hasUnsavedChanges}
+                    />
                   )}
                   
                   {selectedCategory === 'love' && (

@@ -5,6 +5,7 @@ import { Container, Card, Button, Badge, Input, Stack, PageHero } from '@/lib/de
 import { AdminWrapper } from '@/components/AdminWrapper'
 import { Upload, Copy, Check, Image as ImageIcon, Video, Music, File, Folder, Plus, ChevronRight, ArrowLeft, CheckCircle2, X, Search, Trash2, Play, Pause, ChevronLeft, FileText, ExternalLink, Grid, List } from 'lucide-react'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
+import { uploadMultipleSiteAssets } from '@/lib/storage/s3-storage-presigned'
 
 interface AssetFile {
   key: string
@@ -282,64 +283,6 @@ function AssetsAdminContent() {
     })
   }
 
-  const uploadFileWithProgress = (file: File, category: string) => {
-    return new Promise<{ url: string }>((resolve, reject) => {
-      const xhr = new XMLHttpRequest()
-      xhr.open('POST', '/api/admin/assets/upload')
-
-      xhr.upload.onloadstart = () => {
-        setUploadProgress(prev => ({ ...prev, [file.name]: 0 }))
-      }
-
-      xhr.upload.onprogress = event => {
-        const totalBytes = event.lengthComputable && event.total ? event.total : file.size
-        const loaded = event.loaded
-        const percentComplete = totalBytes
-          ? Math.min(99, Math.max(0, Math.round((loaded / totalBytes) * 100)))
-          : 0
-
-        setUploadProgress(prev => ({
-          ...prev,
-          [file.name]: Number.isFinite(percentComplete) ? percentComplete : 0,
-        }))
-      }
-
-      xhr.onerror = () => {
-        reject(new Error('Network error during upload'))
-      }
-
-      xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const response = JSON.parse(xhr.responseText)
-            resolve(response)
-          } catch (error) {
-            reject(new Error('Invalid response from server'))
-          }
-        } else {
-          let errorMessage = 'Upload failed'
-          try {
-            const parsed = JSON.parse(xhr.responseText)
-            errorMessage = parsed.error || parsed.message || errorMessage
-          } catch {
-            errorMessage = xhr.statusText || errorMessage
-          }
-          reject(new Error(errorMessage))
-        }
-      }
-
-      xhr.onloadend = () => {
-        setUploadProgress(prev => ({ ...prev, [file.name]: 100 }))
-      }
-
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('category', category)
-
-      xhr.send(formData)
-    })
-  }
-
   const handleUpload = async () => {
     if (selectedFiles.length === 0 || !uploadCategory) {
       setErrorMessage({
@@ -352,24 +295,32 @@ function AssetsAdminContent() {
 
     try {
       setUploading(true)
-      const uploadedFiles: string[] = []
-      const errors: string[] = []
-
-      // Upload files one by one
-      for (const file of selectedFiles) {
-        try {
-          setUploadStatus(prev => ({ ...prev, [file.name]: 'uploading' }))
-          setUploadProgress(prev => ({ ...prev, [file.name]: 0 }))
-
-          const result = await uploadFileWithProgress(file, uploadCategory)
-          uploadedFiles.push(result.url)
-          setUploadStatus(prev => ({ ...prev, [file.name]: 'success' }))
-        } catch (error) {
-          console.error(`Upload error for ${file.name}:`, error)
-          setUploadStatus(prev => ({ ...prev, [file.name]: 'error' }))
-          errors.push(`${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      
+      // Use presigned URL uploads (bypasses Vercel's 4.5MB limit)
+      const results = await uploadMultipleSiteAssets(
+        uploadCategory,
+        selectedFiles,
+        // Total progress callback
+        (progress) => {
+          // Could use this for overall progress bar if needed
+        },
+        // Individual file progress callback
+        (fileName, status, progress) => {
+          if (status === 'uploading') {
+            setUploadStatus(prev => ({ ...prev, [fileName]: 'uploading' }))
+            setUploadProgress(prev => ({ ...prev, [fileName]: progress || 0 }))
+          } else if (status === 'success') {
+            setUploadStatus(prev => ({ ...prev, [fileName]: 'success' }))
+            setUploadProgress(prev => ({ ...prev, [fileName]: 100 }))
+          } else if (status === 'error') {
+            setUploadStatus(prev => ({ ...prev, [fileName]: 'error' }))
+          }
         }
-      }
+      )
+      
+      // Separate successful uploads from failures
+      const uploadedFiles = results.filter(r => !r.error)
+      const errors = results.filter(r => r.error).map(r => `${r.fileName}: ${r.error}`)
       
       // Refresh current view
       await fetchCurrentPathAssets()
@@ -814,6 +765,18 @@ function AssetsAdminContent() {
     }
   }
 
+  // Helper to encode URL path segments (handles spaces and special characters)
+  const encodeAudioUrl = (url: string): string => {
+    try {
+      const urlObj = new URL(url)
+      const encodedPath = urlObj.pathname.split('/').map(segment => encodeURIComponent(segment)).join('/')
+      return `${urlObj.origin}${encodedPath}${urlObj.search}${urlObj.hash}`
+    } catch {
+      // If URL parsing fails, return original
+      return url
+    }
+  }
+
   // Play/pause audio
   const toggleAudio = (fileKey: string, url: string) => {
     if (playingAudio === fileKey) {
@@ -851,18 +814,33 @@ function AssetsAdminContent() {
         })
         
         // Only show error alerts for actual playback errors, not pause/cleanup errors
-        audio.addEventListener('error', (e) => {
-          console.error('Audio error:', e)
-          console.error('Failed file:', fileKey, url)
+        const encodedUrl = encodeAudioUrl(url)
+        audio.addEventListener('error', () => {
+          // Get actual error details from the audio element
+          const mediaError = audio.error
+          const errorMessages: Record<number, string> = {
+            1: 'MEDIA_ERR_ABORTED - Playback was aborted',
+            2: 'MEDIA_ERR_NETWORK - Network error while loading (check internet connection)',
+            3: 'MEDIA_ERR_DECODE - Audio decoding failed (file may be corrupted)',
+            4: 'MEDIA_ERR_SRC_NOT_SUPPORTED - Audio format not supported or file not found',
+          }
+          const errorCode = mediaError?.code || 0
+          const errorDetail = errorMessages[errorCode] || `Unknown error (code: ${errorCode})`
+          
+          console.error('Audio error:', errorDetail)
+          console.error('Failed file:', fileKey)
+          console.error('Original URL:', url)
+          console.error('Encoded URL:', encodedUrl)
+          
           // Only show alert if we were trying to play this audio
           if (playingAudio === fileKey) {
             setPlayingAudio(null)
-            alert(`Failed to play audio. The file may not exist or is not accessible.`)
+            alert(`Failed to play audio: ${errorDetail}`)
           }
         })
         
-        // Set source and load
-        audio.src = url
+        // Set source with properly encoded URL and load
+        audio.src = encodeAudioUrl(url)
         audio.load()
         
         setAudioElements(prev => ({ ...prev, [fileKey]: audio }))
