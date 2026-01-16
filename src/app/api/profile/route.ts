@@ -201,13 +201,18 @@ export async function GET(request: NextRequest) {
         .eq('is_draft', false)
         .single()
 
+      if (activeError) {
+        console.log('🔍 PROFILE API: Active profile query result - error:', activeError.code, activeError.message)
+      }
+
       if (activeProfile) {
         profile = activeProfile
         // Always recalculate completion to ensure accuracy
         completionPercentage = calculateProfileCompletion(activeProfile)
-        console.log('Profile API: Using active profile, completion:', completionPercentage)
+        console.log('Profile API: Using active profile:', activeProfile.id, 'completion:', completionPercentage)
       } else {
         // Fallback to any profile if no active one exists
+        console.log('🔍 PROFILE API: No active profile, trying fallback query for user:', user.id)
         const { data: fallbackProfile, error: fallbackError } = await supabase
           .from('user_profiles')
           .select('*')
@@ -216,15 +221,19 @@ export async function GET(request: NextRequest) {
           .limit(1)
           .single()
 
+        if (fallbackError) {
+          console.log('🔍 PROFILE API: Fallback profile query result - error:', fallbackError.code, fallbackError.message)
+        }
+
         if (fallbackProfile) {
           profile = fallbackProfile
           // Always recalculate completion to ensure accuracy
           completionPercentage = calculateProfileCompletion(fallbackProfile)
-          console.log('Profile API: Using fallback profile, completion:', completionPercentage)
+          console.log('Profile API: Using fallback profile:', fallbackProfile.id, 'completion:', completionPercentage)
         } else {
           profile = {}
           completionPercentage = 0
-          console.log('Profile API: No profile data exists')
+          console.log('Profile API: No profile data exists for user:', user.id)
         }
       }
 
@@ -233,7 +242,7 @@ export async function GET(request: NextRequest) {
         console.log('🔍 PROFILE API: Fetching versions for user:', user.id)
         const { data: allVersions, error: versionsError } = await supabase
           .from('user_profiles')
-          .select('id, version_number, is_draft, is_active, version_notes, created_at, updated_at')
+          .select('id, is_draft, is_active, version_notes, created_at, updated_at')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
         
@@ -266,7 +275,7 @@ export async function GET(request: NextRequest) {
               // Re-fetch versions after setting active
               const { data: refreshedVersions } = await supabase
                 .from('user_profiles')
-                .select('id, version_number, is_draft, is_active, version_notes, created_at, updated_at')
+                .select('id, is_draft, is_active, version_notes, created_at, updated_at')
                 .eq('user_id', user.id)
                 .order('created_at', { ascending: false })
               if (refreshedVersions) {

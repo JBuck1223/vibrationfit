@@ -63,10 +63,9 @@ export default function ProfileDashboardPage() {
       }
       const data = await response.json()
       
-      // Find active profile (not draft)
-      const activeProf = data.versions?.find((v: ProfileData) => v.is_active === true && v.is_draft === false) || data.profile
       // Check if profile exists and has an ID (empty object {} would be truthy but invalid)
-      const validProfile = activeProf && activeProf.id ? activeProf : null
+      // data.profile contains the full active profile data from the API
+      const validProfile = data.profile && data.profile.id ? data.profile : null
       setActiveProfile(validProfile)
       setCompletionPercentage(data.completionPercentage || 0)
       setVersions(data.versions || [])

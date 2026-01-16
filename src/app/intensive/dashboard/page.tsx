@@ -16,13 +16,19 @@ import {
   Sparkles,
   Wand2,
   Music,
+  Mic,
+  Sliders,
   ImageIcon,
   BookOpen,
   Video,
   Rocket,
   ArrowRight,
   AlertCircle,
-  Lock
+  Lock,
+  Eye,
+  Settings,
+  FileText,
+  Unlock
 } from 'lucide-react'
 
 import { 
@@ -51,38 +57,50 @@ interface IntensiveChecklist {
   id: string
   intensive_id: string
   user_id: string
+  status: string
   
-  // Phase 1: Foundation
+  // Phase 1: Setup (Steps 1-2)
+  // Step 1 (Settings) is checked via user_accounts table directly
+  intake_completed: boolean
+  intake_completed_at: string | null
+  
+  // Phase 2: Foundation (Steps 3-4)
   profile_completed: boolean
   profile_completed_at: string | null
   assessment_completed: boolean
   assessment_completed_at: string | null
-  call_scheduled: boolean
-  call_scheduled_at: string | null
   
-  // Phase 2: Vision Creation
+  // Phase 3: Vision Creation (Steps 5-6)
   vision_built: boolean
   vision_built_at: string | null
   vision_refined: boolean
   vision_refined_at: string | null
   
-  // Phase 3: Activation Tools
+  // Phase 4: Audio (Steps 7-9)
   audio_generated: boolean
   audio_generated_at: string | null
+  // audio_recorded tracked separately or via skip
+  audios_generated: boolean
+  audios_generated_at: string | null
+  
+  // Phase 5: Activation (Steps 10-12)
   vision_board_completed: boolean
   vision_board_completed_at: string | null
   first_journal_entry: boolean
   first_journal_entry_at: string | null
+  call_scheduled: boolean
+  call_scheduled_at: string | null
   
-  // Phase 4: Calibration & Launch
-  calibration_call_completed: boolean
-  calibration_call_completed_at: string | null
+  // Phase 6: Completion (Steps 13-14)
   activation_protocol_completed: boolean
   activation_protocol_completed_at: string | null
+  unlock_completed: boolean
+  unlock_completed_at: string | null
 }
 
 interface IntensiveStep {
   id: string
+  stepNumber: number
   title: string
   description: string
   icon: any
@@ -90,7 +108,9 @@ interface IntensiveStep {
   completed: boolean
   completedAt: string | null
   href: string
+  viewHref: string // URL to view completed step
   locked: boolean
+  canSkip?: boolean // Some steps can be skipped
 }
 
 export default function IntensiveDashboard() {
@@ -100,6 +120,7 @@ export default function IntensiveDashboard() {
   const [checklist, setChecklist] = useState<IntensiveChecklist | null>(null)
   const [timeRemaining, setTimeRemaining] = useState<string>('')
   const [hoursRemaining, setHoursRemaining] = useState<number>(72)
+  const [settingsComplete, setSettingsComplete] = useState(false) // Step 1 from user_accounts
 
   useEffect(() => {
     loadIntensiveData()
@@ -130,6 +151,22 @@ export default function IntensiveDashboard() {
       // Check for super_admin access
       const { isSuperAdmin } = await checkSuperAdminAccess(supabase)
 
+      // Check Step 1 (Settings) completion from user_accounts
+      const { data: accountData } = await supabase
+        .from('user_accounts')
+        .select('first_name, last_name, email, phone, profile_picture_url')
+        .eq('id', user.id)
+        .single()
+
+      if (accountData) {
+        const hasFirstName = !!accountData.first_name?.trim()
+        const hasLastName = !!accountData.last_name?.trim()
+        const hasEmail = !!accountData.email?.trim()
+        const hasPhone = !!accountData.phone?.trim()
+        // Profile picture is optional but tracked
+        setSettingsComplete(hasFirstName && hasLastName && hasEmail && hasPhone)
+      }
+
       // Get active intensive checklist (source of truth)
       const { data: checklistData, error: checklistError } = await supabase
         .from('intensive_checklist')
@@ -146,33 +183,36 @@ export default function IntensiveDashboard() {
         // Allow super_admin to access without enrollment
         if (isSuperAdmin) {
           // Set mock data for super_admin testing
+          setSettingsComplete(true)
           setChecklist({
             id: 'super-admin-test',
             intensive_id: 'super-admin-test',
             user_id: user.id,
             status: 'in_progress',
+            intake_completed: true,
+            intake_completed_at: null,
             profile_completed: true,
             profile_completed_at: null,
             assessment_completed: true,
             assessment_completed_at: null,
-            call_scheduled: false,
-            call_scheduled_at: null,
             vision_built: false,
             vision_built_at: null,
             vision_refined: false,
             vision_refined_at: null,
             audio_generated: false,
             audio_generated_at: null,
+            audios_generated: false,
+            audios_generated_at: null,
             vision_board_completed: false,
             vision_board_completed_at: null,
             first_journal_entry: false,
             first_journal_entry_at: null,
-            calibration_call_completed: false,
-            calibration_call_completed_at: null,
+            call_scheduled: false,
+            call_scheduled_at: null,
             activation_protocol_completed: false,
             activation_protocol_completed_at: null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            unlock_completed: false,
+            unlock_completed_at: null,
           } as IntensiveChecklist)
           setLoading(false)
           return
@@ -268,122 +308,199 @@ export default function IntensiveDashboard() {
     if (!checklist) return []
 
     return [
-      // Phase 1: Foundation
+      // Phase 1: Setup (Steps 1-2)
+      {
+        id: 'settings',
+        stepNumber: 1,
+        title: 'Account Settings',
+        description: 'Set up your name, email, phone, and profile picture',
+        icon: Settings,
+        phase: 'Setup',
+        completed: settingsComplete,
+        completedAt: null,
+        href: '/account/settings',
+        viewHref: '/account/settings',
+        locked: false
+      },
+      {
+        id: 'intake',
+        stepNumber: 2,
+        title: 'Baseline Intake',
+        description: 'Complete your activation intake questionnaire',
+        icon: FileText,
+        phase: 'Setup',
+        completed: checklist.intake_completed || false,
+        completedAt: checklist.intake_completed_at,
+        href: '/intensive/intake',
+        viewHref: '/intensive/intake',
+        locked: !settingsComplete
+      },
+      
+      // Phase 2: Foundation (Steps 3-4)
       {
         id: 'profile',
-        title: 'Complete Your Profile',
-        description: 'Set up your personal info, goals, and values',
+        stepNumber: 3,
+        title: 'Create Your Profile',
+        description: 'Build your comprehensive life profile across all categories',
         icon: User,
         phase: 'Foundation',
         completed: checklist.profile_completed,
         completedAt: checklist.profile_completed_at,
-        href: '/profile/active/edit',
-        locked: false
+        href: '/profile/new',
+        viewHref: '/profile',
+        locked: !(checklist.intake_completed || false)
       },
       {
         id: 'assessment',
-        title: 'Take Vibration Assessment',
+        stepNumber: 4,
+        title: 'Vibration Assessment',
         description: 'Discover your current vibration score and insights',
         icon: ClipboardCheck,
         phase: 'Foundation',
         completed: checklist.assessment_completed,
         completedAt: checklist.assessment_completed_at,
-        href: '/assessment',
+        href: '/assessment/new',
+        viewHref: '/assessment',
         locked: !checklist.profile_completed
       },
-      {
-        id: 'schedule_call',
-        title: 'Book Your Calibration Call',
-        description: 'Schedule your 1-on-1 vision calibration session',
-        icon: Calendar,
-        phase: 'Foundation',
-        completed: checklist.call_scheduled,
-        completedAt: checklist.call_scheduled_at,
-        href: '/intensive/schedule-call',
-        locked: !checklist.assessment_completed
-      },
       
-      // Phase 2: Vision Creation
+      // Phase 3: Vision Creation (Steps 5-6)
       {
         id: 'build_vision',
+        stepNumber: 5,
         title: 'Build Your Life Vision',
-        description: 'Work with VIVA to create your comprehensive life vision',
+        description: 'Create your comprehensive vision across all 12 life categories',
         icon: Sparkles,
         phase: 'Vision Creation',
         completed: checklist.vision_built,
         completedAt: checklist.vision_built_at,
-        href: '/vision/build',
-        locked: !checklist.call_scheduled
+        href: '/life-vision/new',
+        viewHref: '/life-vision',
+        locked: !checklist.assessment_completed
       },
       {
         id: 'refine_vision',
+        stepNumber: 6,
         title: 'Refine Your Vision',
-        description: 'Enhance your vision with specific details and clarity',
+        description: 'Enhance your vision with VIVA for deeper clarity',
         icon: Wand2,
         phase: 'Vision Creation',
         completed: checklist.vision_refined,
         completedAt: checklist.vision_refined_at,
-        href: '/intensive/refine-vision',
+        href: '/life-vision/refine/new',
+        viewHref: '/life-vision',
         locked: !checklist.vision_built
       },
       
-      // Phase 3: Activation Tools
+      // Phase 4: Audio (Steps 7-9)
       {
         id: 'generate_audio',
+        stepNumber: 7,
         title: 'Generate Vision Audio',
-        description: 'Create your personalized manifestation audio',
+        description: 'Create voice-only audio of your vision',
         icon: Music,
-        phase: 'Activation Tools',
+        phase: 'Audio',
         completed: checklist.audio_generated,
         completedAt: checklist.audio_generated_at,
-        href: '/life-vision?action=audio',
+        href: '/life-vision/audio/generate/new',
+        viewHref: '/life-vision',
         locked: !checklist.vision_refined
       },
       {
+        id: 'record_audio',
+        stepNumber: 8,
+        title: 'Record Your Voice',
+        description: 'Optionally record sections in your own voice',
+        icon: Mic,
+        phase: 'Audio',
+        completed: checklist.audio_generated, // Use same flag or can skip
+        completedAt: checklist.audio_generated_at,
+        href: '/life-vision/audio/record/new',
+        viewHref: '/life-vision',
+        locked: !checklist.audio_generated,
+        canSkip: true
+      },
+      {
+        id: 'mix_audio',
+        stepNumber: 9,
+        title: 'Create Audio Mix',
+        description: 'Mix your vision audio with music and frequencies',
+        icon: Sliders,
+        phase: 'Audio',
+        completed: checklist.audios_generated || false,
+        completedAt: checklist.audios_generated_at,
+        href: '/life-vision/audio/mix/new',
+        viewHref: '/life-vision',
+        locked: !checklist.audio_generated
+      },
+      
+      // Phase 5: Activation (Steps 10-12)
+      {
         id: 'vision_board',
+        stepNumber: 10,
         title: 'Create Vision Board',
-        description: 'Build your visual representation (one image per life area)',
+        description: 'Build your visual board with one image per life category',
         icon: ImageIcon,
-        phase: 'Activation Tools',
+        phase: 'Activation',
         completed: checklist.vision_board_completed,
         completedAt: checklist.vision_board_completed_at,
-        href: '/vision-board',
-        locked: !checklist.vision_refined
+        href: '/vision-board/resources',
+        viewHref: '/vision-board',
+        locked: !(checklist.audios_generated || checklist.audio_generated)
       },
       {
         id: 'journal',
+        stepNumber: 11,
         title: 'First Journal Entry',
-        description: 'Reflect on your vision activation experience',
+        description: 'Start your conscious creation journal practice',
         icon: BookOpen,
-        phase: 'Activation Tools',
+        phase: 'Activation',
         completed: checklist.first_journal_entry,
         completedAt: checklist.first_journal_entry_at,
-        href: '/journal',
+        href: '/journal/resources',
+        viewHref: '/journal',
         locked: !checklist.vision_board_completed
       },
-      
-      // Phase 4: Calibration & Launch
       {
-        id: 'calibration_call',
-        title: 'Attend Calibration Call',
-        description: 'Meet with your coach to review and activate',
-        icon: Video,
-        phase: 'Calibration & Launch',
-        completed: checklist.calibration_call_completed,
-        completedAt: checklist.calibration_call_completed_at,
-        href: '/intensive/call-prep',
+        id: 'schedule_call',
+        stepNumber: 12,
+        title: 'Book Calibration Call',
+        description: 'Schedule your 1-on-1 vision calibration session',
+        icon: Calendar,
+        phase: 'Activation',
+        completed: checklist.call_scheduled,
+        completedAt: checklist.call_scheduled_at,
+        href: '/intensive/schedule-call',
+        viewHref: '/intensive/call-prep',
         locked: !checklist.first_journal_entry
       },
+      
+      // Phase 6: Completion (Steps 13-14)
       {
-        id: 'activation',
-        title: 'Complete Activation Protocol',
-        description: 'Set up your daily practice and next steps',
+        id: 'activation_protocol',
+        stepNumber: 13,
+        title: 'Activation Protocol',
+        description: 'Complete your custom activation protocol',
         icon: Rocket,
-        phase: 'Calibration & Launch',
+        phase: 'Completion',
         completed: checklist.activation_protocol_completed,
         completedAt: checklist.activation_protocol_completed_at,
         href: '/intensive/activation-protocol',
-        locked: !checklist.calibration_call_completed
+        viewHref: '/intensive/activation-protocol',
+        locked: !checklist.call_scheduled
+      },
+      {
+        id: 'unlock',
+        stepNumber: 14,
+        title: 'Full Platform Unlock',
+        description: 'Unlock the complete VibrationFit platform',
+        icon: Unlock,
+        phase: 'Completion',
+        completed: checklist.unlock_completed || false,
+        completedAt: checklist.unlock_completed_at,
+        href: '/intensive/intake/unlock',
+        viewHref: '/dashboard',
+        locked: !checklist.activation_protocol_completed
       }
     ]
   }
@@ -550,7 +667,7 @@ export default function IntensiveDashboard() {
 
         {/* Step Checklist by Phase */}
         <div className="space-y-8">
-          {['Foundation', 'Vision Creation', 'Activation Tools', 'Calibration & Launch'].map(phase => {
+          {['Setup', 'Foundation', 'Vision Creation', 'Audio', 'Activation', 'Completion'].map(phase => {
             const phaseSteps = steps.filter(s => s.phase === phase)
             const phaseCompleted = phaseSteps.filter(s => s.completed).length
             const phaseProgress = Math.round((phaseCompleted / phaseSteps.length) * 100)
@@ -565,7 +682,7 @@ export default function IntensiveDashboard() {
                 </div>
 
                 <div className="grid gap-4">
-                  {phaseSteps.map((step, index) => (
+                  {phaseSteps.map((step) => (
                     <Card 
                       key={step.id}
                       variant={step.completed ? 'default' : 'outlined'}
@@ -589,8 +706,10 @@ export default function IntensiveDashboard() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <h3 className="text-base md:text-lg font-semibold mb-1 flex items-center gap-2">
+                              <span className="text-neutral-500 text-sm">#{step.stepNumber}</span>
                               {step.title}
                               {step.locked && <Lock className="w-3 h-3 md:w-4 md:h-4 text-neutral-500" />}
+                              {step.canSkip && !step.completed && <Badge variant="neutral" className="text-xs">Optional</Badge>}
                             </h3>
                             <p className="text-xs md:text-sm text-neutral-400">{step.description}</p>
                             {step.completedAt && (
@@ -622,7 +741,18 @@ export default function IntensiveDashboard() {
                           )}
                           
                           {step.completed && (
-                            <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-primary-500 flex-shrink-0" />
+                            <div className="flex items-center gap-2">
+                              <Button 
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => router.push(step.viewHref)}
+                                className="w-full sm:w-auto"
+                              >
+                                <Eye className="w-4 h-4 mr-1" />
+                                View
+                              </Button>
+                              <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-primary-500 flex-shrink-0" />
+                            </div>
                           )}
                         </div>
                       </div>

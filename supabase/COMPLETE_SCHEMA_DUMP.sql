@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 7xaTMl2NTJevmPlTtR8djfiVPOObwPdk6aorL7N8VnpLMNZHMELDh0K59MTSNtE
+\restrict mv19Q48rVTcB4bb3zgpGV2LQqIdaw1FmcgaNYDODojIuyymZcCrfbVbvxv38CVF
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Homebrew)
@@ -8854,8 +8854,6 @@ CREATE TABLE public.user_profiles (
     relationship_status text,
     relationship_length text,
     has_children boolean DEFAULT false,
-    number_of_children integer,
-    children_ages text[],
     units text DEFAULT 'US'::text,
     height numeric(5,2),
     weight numeric(6,2),
@@ -8892,7 +8890,6 @@ CREATE TABLE public.user_profiles (
     clarity_stuff text,
     clarity_giving text,
     clarity_spirituality text,
-    ai_tags jsonb,
     hobbies text[] DEFAULT '{}'::text[],
     leisure_time_weekly text,
     travel_frequency public.travel_frequency,
@@ -8909,7 +8906,6 @@ CREATE TABLE public.user_profiles (
     charitable_giving text,
     legacy_mindset boolean DEFAULT false NOT NULL,
     story_recordings jsonb DEFAULT '[]'::jsonb NOT NULL,
-    version_number integer DEFAULT 1,
     is_draft boolean DEFAULT false,
     is_active boolean DEFAULT false,
     parent_version_id uuid,
@@ -8928,7 +8924,7 @@ CREATE TABLE public.user_profiles (
     contrast_giving text,
     contrast_spirituality text,
     vehicles jsonb DEFAULT '[]'::jsonb,
-    toys jsonb DEFAULT '[]'::jsonb,
+    items jsonb DEFAULT '[]'::jsonb,
     has_vehicle boolean DEFAULT false,
     trips jsonb DEFAULT '[]'::jsonb,
     children jsonb DEFAULT '[]'::jsonb,
@@ -8944,7 +8940,6 @@ CREATE TABLE public.user_profiles (
     CONSTRAINT user_profiles_gender_check CHECK ((gender = ANY (ARRAY['Male'::text, 'Female'::text, 'Prefer not to say'::text]))),
     CONSTRAINT user_profiles_household_income_check CHECK ((household_income = ANY (ARRAY['<10,000'::text, '10,000-24,999'::text, '25,000-49,999'::text, '50,000-99,999'::text, '100,000-249,999'::text, '250,000-499,999'::text, '500,000-999,999'::text, '1,000,000+'::text, 'Prefer not to say'::text]))),
     CONSTRAINT user_profiles_living_situation_check CHECK ((living_situation = ANY (ARRAY['Own'::text, 'Rent'::text, 'With family/friends'::text, 'Other'::text, 'Prefer not to say'::text]))),
-    CONSTRAINT user_profiles_number_of_children_check CHECK (((number_of_children >= 0) AND (number_of_children <= 20))),
     CONSTRAINT user_profiles_relationship_length_check CHECK ((relationship_length = ANY (ARRAY['1-6 months'::text, '6-12 months'::text, '12-18 months'::text, '18-24 months'::text, '2-3 years'::text, '3-5 years'::text, '5-10 years'::text, '10+ years'::text]))),
     CONSTRAINT user_profiles_relationship_status_check CHECK ((relationship_status = ANY (ARRAY['Single'::text, 'In a Relationship'::text, 'Married'::text]))),
     CONSTRAINT user_profiles_savings_retirement_check CHECK ((savings_retirement = ANY (ARRAY['<10,000'::text, '10,000-24,999'::text, '25,000-49,999'::text, '50,000-99,999'::text, '100,000-249,999'::text, '250,000-499,999'::text, '500,000-999,999'::text, '1,000,000+'::text, 'Prefer not to say'::text]))),
@@ -9060,13 +9055,6 @@ COMMENT ON COLUMN public.user_profiles.clarity_spirituality IS 'What''s going we
 
 
 --
--- Name: COLUMN user_profiles.ai_tags; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.ai_tags IS 'AI-generated tags from story fields for Viva context';
-
-
---
 -- Name: COLUMN user_profiles.hobbies; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -9176,13 +9164,6 @@ COMMENT ON COLUMN public.user_profiles.legacy_mindset IS 'Thinks about legacy in
 --
 
 COMMENT ON COLUMN public.user_profiles.story_recordings IS 'Array of story recordings with metadata: [{ url, transcript, type, category, created_at }]';
-
-
---
--- Name: COLUMN user_profiles.version_number; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.version_number IS 'Sequential version number for this user';
 
 
 --
@@ -9298,10 +9279,10 @@ COMMENT ON COLUMN public.user_profiles.vehicles IS 'Array of vehicle objects: [{
 
 
 --
--- Name: COLUMN user_profiles.toys; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN user_profiles.items; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.user_profiles.toys IS 'Array of toy/recreational item objects: [{name, year_acquired, ownership_status}]';
+COMMENT ON COLUMN public.user_profiles.items IS 'Array of toy/recreational item objects: [{name, year_acquired, ownership_status}]';
 
 
 --
@@ -13266,13 +13247,6 @@ CREATE INDEX idx_user_profiles_parent_version ON public.user_profiles USING btre
 --
 
 CREATE INDEX idx_user_profiles_user_id ON public.user_profiles USING btree (user_id);
-
-
---
--- Name: idx_user_profiles_version_number; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_user_profiles_version_number ON public.user_profiles USING btree (user_id, version_number DESC);
 
 
 --
@@ -17512,5 +17486,5 @@ CREATE EVENT TRIGGER pgrst_drop_watch ON sql_drop
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 7xaTMl2NTJevmPlTtR8djfiVPOObwPdk6aorL7N8VnpLMNZHMELDh0K59MTSNtE
+\unrestrict mv19Q48rVTcB4bb3zgpGV2LQqIdaw1FmcgaNYDODojIuyymZcCrfbVbvxv38CVF
 

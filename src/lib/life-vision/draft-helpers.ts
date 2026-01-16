@@ -293,9 +293,9 @@ export async function getUserRefinementStats(userId: string): Promise<{
   // Get all versions with their refined categories
   const { data: versions, error } = await supabase
     .from('vision_versions')
-    .select('id, version_number, refined_categories, created_at')
+    .select('id, refined_categories, created_at')
     .eq('user_id', userId)
-    .order('version_number', { ascending: true })
+    .order('created_at', { ascending: true })
   
   if (error) {
     console.error('Error getting refinement stats:', error)
@@ -310,13 +310,14 @@ export async function getUserRefinementStats(userId: string): Promise<{
   const allCategories = new Set<string>()
   const versionsWithRefinements = []
   
-  for (const version of versions || []) {
+  for (let i = 0; i < (versions || []).length; i++) {
+    const version = versions![i]
     const refinedCats = version.refined_categories || []
     if (refinedCats.length > 0) {
       refinedCats.forEach((cat: string) => allCategories.add(cat))
       versionsWithRefinements.push({
         versionId: version.id,
-        versionNumber: version.version_number,
+        versionNumber: i + 1, // Calculate version number from chronological order
         refinedCategories: refinedCats,
         refinementCount: refinedCats.length,
         createdAt: version.created_at
