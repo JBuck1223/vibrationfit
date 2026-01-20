@@ -28,19 +28,20 @@ export function IntensiveLockedOverlay() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const { data: intensive } = await supabase
-        .from('intensive_purchases')
-        .select('id, started_at')
+      // Get intensive checklist (source of truth for all tracking)
+      const { data: checklist } = await supabase
+        .from('intensive_checklist')
+        .select('*')
         .eq('user_id', user.id)
-        .in('completion_status', ['pending', 'in_progress'])
+        .in('status', ['pending', 'in_progress'])
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
 
-      if (!intensive) return
+      if (!checklist) return
 
       // If intensive hasn't been started yet, direct to start page
-      if (!intensive.started_at) {
+      if (!checklist.started_at) {
         setNextStep({
           stepNumber: 0,
           title: 'Start Your Intensive',
@@ -49,14 +50,6 @@ export function IntensiveLockedOverlay() {
         })
         return
       }
-
-      const { data: checklist } = await supabase
-        .from('intensive_checklist')
-        .select('*')
-        .eq('intensive_id', intensive.id)
-        .maybeSingle()
-
-      if (!checklist) return
 
       // Check settings completion from user_accounts (Step 1)
       const { data: accountData } = await supabase

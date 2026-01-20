@@ -59,32 +59,27 @@ export async function getActiveIntensiveClient(): Promise<IntensiveData | null> 
 /**
  * Start the intensive timer
  * Called when user clicks "Start My Intensive" button
- * Updates intensive_checklist (source of truth)
+ * Updates intensive_checklist (source of truth for all intensive tracking)
  */
 export async function startIntensive(checklistId: string): Promise<{ success: boolean; error?: string }> {
   const supabase = createClient()
   
-  console.log('🚀 Starting intensive with ID:', checklistId)
+  const startedAt = new Date().toISOString()
   
-  const startedAt = new Date()
-  
-  const { data, error } = await supabase
+  // Update intensive_checklist (source of truth)
+  const { error } = await supabase
     .from('intensive_checklist')
     .update({
       status: 'in_progress',
-      started_at: startedAt.toISOString()
+      started_at: startedAt
     })
     .eq('id', checklistId)
-    .select()
-  
-  console.log('Update result:', { data, error })
   
   if (error) {
-    console.error('❌ Error starting intensive:', error)
+    console.error('Error starting intensive:', error)
     return { success: false, error: error.message }
   }
   
-  console.log('✅ Intensive started successfully')
   return { success: true }
 }
 

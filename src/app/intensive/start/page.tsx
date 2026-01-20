@@ -74,18 +74,16 @@ export default function IntensiveStartPage() {
         return
       }
 
-      // Check if intensive has already started
-      const { data: purchase } = await supabase
-        .from('intensive_purchases')
-        .select('started_at')
-        .eq('id', checklist.intensive_id)
+      // Check if intensive has already started (checklist is source of truth)
+      const { data: fullChecklist } = await supabase
+        .from('intensive_checklist')
+        .select('id, started_at')
+        .eq('id', checklist.id)
         .single()
 
-      if (purchase?.started_at) {
-        // Already started, redirect to dashboard
+      if (fullChecklist?.started_at) {
+        // Already started - show completed state
         setAlreadyStarted(true)
-        router.push('/intensive/dashboard')
-        return
       }
 
       setChecklistId(checklist.id)
@@ -104,7 +102,8 @@ export default function IntensiveStartPage() {
       const result = await startIntensive(checklistId)
       
       if (result.success) {
-        router.push('/intensive/dashboard')
+        // Refresh the page to show completed state
+        window.location.reload()
       } else {
         alert('Failed to start intensive: ' + result.error)
       }
@@ -116,7 +115,7 @@ export default function IntensiveStartPage() {
     }
   }
 
-  if (loading || alreadyStarted) {
+  if (loading) {
     return (
       <Container size="xl">
         <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
@@ -125,6 +124,7 @@ export default function IntensiveStartPage() {
       </Container>
     )
   }
+
 
   // 14-step journey phases
   const phases = [
@@ -192,8 +192,11 @@ export default function IntensiveStartPage() {
         {/* Hero */}
         <PageHero
           eyebrow="72-HOUR ACTIVATION INTENSIVE"
-          title="Welcome to Your Transformation"
-          subtitle="Your 14-step journey to creating and activating the life you truly desire begins now."
+          title={alreadyStarted ? "Your Intensive Has Begun" : "Welcome to Your Transformation"}
+          subtitle={alreadyStarted 
+            ? "You've started your transformation journey. Continue to your dashboard to track your progress."
+            : "Your 14-step journey to creating and activating the life you truly desire begins now."
+          }
         >
           <div className="mx-auto w-full max-w-3xl">
             <OptimizedVideo
@@ -204,25 +207,37 @@ export default function IntensiveStartPage() {
           </div>
 
           <div className="flex flex-col gap-2 items-center">
-            <Button 
-              variant="primary"
-              size="lg"
-              onClick={handleStart}
-              disabled={starting}
-              className="w-full sm:w-auto px-8"
-            >
-              {starting ? (
-                <>
-                  <Spinner size="sm" className="mr-2" />
-                  Starting...
-                </>
-              ) : (
-                <>
-                  <Rocket className="w-5 h-5 mr-2" />
-                  Start My Activation Intensive
-                </>
-              )}
-            </Button>
+            {alreadyStarted ? (
+              <Button 
+                variant="primary"
+                size="lg"
+                onClick={() => router.push('/intensive/dashboard')}
+                className="w-full sm:w-auto px-8"
+              >
+                <ArrowRight className="w-5 h-5 mr-2" />
+                Go to Dashboard
+              </Button>
+            ) : (
+              <Button 
+                variant="primary"
+                size="lg"
+                onClick={handleStart}
+                disabled={starting}
+                className="w-full sm:w-auto px-8"
+              >
+                {starting ? (
+                  <>
+                    <Spinner size="sm" className="mr-2" />
+                    Starting...
+                  </>
+                ) : (
+                  <>
+                    <Rocket className="w-5 h-5 mr-2" />
+                    Start My Activation Intensive
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         </PageHero>
 
@@ -335,35 +350,51 @@ export default function IntensiveStartPage() {
         <Card variant="outlined" className="bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-primary-500/30">
           <Stack gap="md" className="text-center py-4">
             <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em]">
-              Ready to Begin?
+              {alreadyStarted ? "Journey In Progress" : "Ready to Begin?"}
             </Text>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed max-w-2xl mx-auto">
-              Your transformation starts with a single click. When you're ready to commit to your 
-              72-hour journey, press the button below to begin.
+              {alreadyStarted 
+                ? "Your transformation is underway. Head to your dashboard to continue your 14-step journey."
+                : "Your transformation starts with a single click. When you're ready to commit to your 72-hour journey, press the button below to begin."
+              }
             </p>
             <div className="flex flex-col gap-3 items-center">
-              <Button 
-                variant="primary"
-                size="lg"
-                onClick={handleStart}
-                disabled={starting}
-                className="w-full sm:w-auto px-8"
-              >
-                {starting ? (
-                  <>
-                    <Spinner size="sm" className="mr-2" />
-                    Starting...
-                  </>
-                ) : (
-                  <>
-                    <Rocket className="w-5 h-5 mr-2" />
-                    Start My Activation Intensive
-                  </>
-                )}
-              </Button>
-              <p className="text-xs text-neutral-500 max-w-md">
-                Your 72-hour timer begins when you click above.
-              </p>
+              {alreadyStarted ? (
+                <Button 
+                  variant="primary"
+                  size="lg"
+                  onClick={() => router.push('/intensive/dashboard')}
+                  className="w-full sm:w-auto px-8"
+                >
+                  <ArrowRight className="w-5 h-5 mr-2" />
+                  Go to Dashboard
+                </Button>
+              ) : (
+                <>
+                  <Button 
+                    variant="primary"
+                    size="lg"
+                    onClick={handleStart}
+                    disabled={starting}
+                    className="w-full sm:w-auto px-8"
+                  >
+                    {starting ? (
+                      <>
+                        <Spinner size="sm" className="mr-2" />
+                        Starting...
+                      </>
+                    ) : (
+                      <>
+                        <Rocket className="w-5 h-5 mr-2" />
+                        Start My Activation Intensive
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-xs text-neutral-500 max-w-md">
+                    Your 72-hour timer begins when you click above.
+                  </p>
+                </>
+              )}
             </div>
           </Stack>
         </Card>

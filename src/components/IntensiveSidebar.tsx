@@ -79,10 +79,10 @@ export function IntensiveSidebar() {
       
       setSettingsComplete(hasSettings)
 
-      // Get intensive checklist with started_at from intensive_purchases
+      // Get intensive checklist (source of truth for all tracking)
       const { data: checklist } = await supabase
         .from('intensive_checklist')
-        .select('*, intensive_purchases!inner(started_at)')
+        .select('*')
         .eq('user_id', user.id)
         .in('status', ['pending', 'in_progress'])
         .order('created_at', { ascending: false })
@@ -91,11 +91,21 @@ export function IntensiveSidebar() {
 
       if (!checklist) return
 
-      // Check if intensive has been started
-      const startedAt = (checklist as any).intensive_purchases?.started_at
-      setIntensiveStarted(!!startedAt)
+      // Check if intensive has been started (checklist is source of truth)
+      setIntensiveStarted(!!checklist.started_at)
 
       const stepsList: Step[] = [
+        // Phase 0: Start
+        { 
+          id: 'start', 
+          stepNumber: 0,
+          title: 'Start Intensive', 
+          href: '/intensive/start', 
+          icon: Rocket,
+          phase: 'Start',
+          completed: !!checklist.started_at,
+          locked: false // Always accessible
+        },
         // Phase 1: Setup
         { 
           id: 'settings', 
@@ -105,7 +115,7 @@ export function IntensiveSidebar() {
           icon: Settings,
           phase: 'Setup',
           completed: hasSettings,
-          locked: !startedAt // Locked until intensive is started
+          locked: !checklist.started_at // Locked until intensive is started
         },
         { 
           id: 'intake', 
@@ -265,6 +275,7 @@ export function IntensiveSidebar() {
 
   // Group steps by phase
   const phases: Phase[] = [
+    { name: 'Start', steps: steps.filter(s => s.phase === 'Start') },
     { name: 'Setup', steps: steps.filter(s => s.phase === 'Setup') },
     { name: 'Foundation', steps: steps.filter(s => s.phase === 'Foundation') },
     { name: 'Vision', steps: steps.filter(s => s.phase === 'Vision') },
