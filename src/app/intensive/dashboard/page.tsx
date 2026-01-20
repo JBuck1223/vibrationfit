@@ -3,9 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { startIntensive, completeIntensive } from '@/lib/intensive/utils-client'
+import { completeIntensive } from '@/lib/intensive/utils-client'
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
-import { IntensiveWelcomeScreen } from '@/components/IntensiveWelcomeScreen'
 import { IntensiveCompletionScreen } from '@/components/IntensiveCompletionScreen'
 import { 
   Clock, 
@@ -121,10 +120,19 @@ export default function IntensiveDashboard() {
   const [timeRemaining, setTimeRemaining] = useState<string>('')
   const [hoursRemaining, setHoursRemaining] = useState<number>(72)
   const [settingsComplete, setSettingsComplete] = useState(false) // Step 1 from user_accounts
+  const [shouldRedirectToStart, setShouldRedirectToStart] = useState(false)
 
   useEffect(() => {
     loadIntensiveData()
   }, [])
+
+  // Handle redirect to start page in useEffect (not during render)
+  useEffect(() => {
+    if (!loading && intensive && !intensive.started_at) {
+      setShouldRedirectToStart(true)
+      router.push('/intensive/start')
+    }
+  }, [loading, intensive, router])
 
   useEffect(() => {
     if (intensive?.activation_deadline) {
@@ -269,27 +277,6 @@ export default function IntensiveDashboard() {
 
     setHoursRemaining(hours)
     setTimeRemaining(`${hours}h ${minutes}m ${seconds}s`)
-  }
-
-  const handleStart = async () => {
-    console.log('🎯 handleStart called')
-    if (!checklist) {
-      console.error('❌ No checklist found')
-      return
-    }
-    
-    console.log('📋 Checklist ID:', checklist.id)
-    const result = await startIntensive(checklist.id)
-    console.log('📊 Start result:', result)
-    
-    if (result.success) {
-      console.log('✅ Success! Reloading data...')
-      // Reload data to get updated intensive with started_at and deadline
-      await loadIntensiveData()
-    } else {
-      console.error('❌ Failed:', result.error)
-      alert('Failed to start intensive: ' + result.error)
-    }
   }
 
   const handleComplete = async () => {
@@ -557,9 +544,13 @@ export default function IntensiveDashboard() {
     )
   }
 
-  // STATE 1: Not Started Yet
-  if (!intensive.started_at) {
-    return <IntensiveWelcomeScreen onStart={handleStart} />
+  // STATE 1: Not Started Yet - Show loading while redirecting (handled in useEffect)
+  if (!intensive.started_at || shouldRedirectToStart) {
+    return (
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
+      </Container>
+    )
   }
 
   const progress = getProgress()

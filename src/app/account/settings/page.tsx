@@ -188,15 +188,16 @@ export default function AccountSettingsPage() {
           // Column doesn't exist yet, use default
         }
 
-        setOriginalAccount({ ...accountData, email_opt_in: emailOptInValue })
+        // Default both opt-ins to true (user must explicitly opt out)
+        setOriginalAccount({ ...accountData, email_opt_in: true, sms_opt_in: true })
         setFirstName(accountData.first_name || '')
         setLastName(accountData.last_name || '')
         setEmail(accountData.email || user.email || '')
         setPhone(formatPhoneNumber(accountData.phone || ''))
         setDateOfBirth(accountData.date_of_birth || '')
         setProfilePictureUrl(accountData.profile_picture_url)
-        setSmsOptIn(accountData.sms_opt_in ?? true)
-        setEmailOptIn(emailOptInValue)
+        setSmsOptIn(true)
+        setEmailOptIn(true)
       } else {
         setEmail(user.email || '')
       }

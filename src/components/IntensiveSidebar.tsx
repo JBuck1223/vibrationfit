@@ -52,6 +52,7 @@ export function IntensiveSidebar() {
   const [steps, setSteps] = useState<Step[]>([])
   const [loading, setLoading] = useState(true)
   const [settingsComplete, setSettingsComplete] = useState(false)
+  const [intensiveStarted, setIntensiveStarted] = useState(false)
 
   useEffect(() => {
     loadSteps()
@@ -78,10 +79,10 @@ export function IntensiveSidebar() {
       
       setSettingsComplete(hasSettings)
 
-      // Get intensive checklist
+      // Get intensive checklist with started_at from intensive_purchases
       const { data: checklist } = await supabase
         .from('intensive_checklist')
-        .select('*')
+        .select('*, intensive_purchases!inner(started_at)')
         .eq('user_id', user.id)
         .in('status', ['pending', 'in_progress'])
         .order('created_at', { ascending: false })
@@ -89,6 +90,10 @@ export function IntensiveSidebar() {
         .maybeSingle()
 
       if (!checklist) return
+
+      // Check if intensive has been started
+      const startedAt = (checklist as any).intensive_purchases?.started_at
+      setIntensiveStarted(!!startedAt)
 
       const stepsList: Step[] = [
         // Phase 1: Setup
@@ -100,7 +105,7 @@ export function IntensiveSidebar() {
           icon: Settings,
           phase: 'Setup',
           completed: hasSettings,
-          locked: false 
+          locked: !startedAt // Locked until intensive is started
         },
         { 
           id: 'intake', 
@@ -352,7 +357,7 @@ export function IntensiveSidebar() {
                       ${isActive(step.href)
                         ? 'bg-primary-500/10 border border-primary-500/50 text-white'
                         : step.locked
-                          ? 'bg-neutral-800/30 border border-neutral-800 text-neutral-600 cursor-not-allowed'
+                          ? 'bg-neutral-800/30 border border-neutral-800 text-neutral-600 cursor-not-allowed pointer-events-none'
                           : 'bg-neutral-800/50 border border-neutral-700/50 text-neutral-400 hover:border-neutral-600 hover:bg-neutral-700/50 hover:text-neutral-200'
                       }
                     `}

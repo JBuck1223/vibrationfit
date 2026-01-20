@@ -11,15 +11,96 @@ import { IntensiveSidebar } from '@/components/IntensiveSidebar'
 import { IntensiveMobileNav } from '@/components/IntensiveMobileNav'
 import { IntensiveLockedOverlay } from '@/components/IntensiveLockedOverlay'
 import { getPageType } from '@/lib/navigation'
-import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
+import { getActiveIntensiveClient, IntensiveData } from '@/lib/intensive/utils-client'
+import { createClient } from '@/lib/supabase/client'
 
 interface GlobalLayoutProps {
   children: React.ReactNode
 }
 
+// Check if a path is accessible based on intensive progress
+function isPathAccessibleForIntensive(
+  pathname: string,
+  intensive: IntensiveData | null, 
+  settingsComplete: boolean
+): boolean {
+  // Always accessible during intensive
+  const alwaysAllowed = [
+    '/intensive/dashboard',
+    '/intensive/start',
+    '/viva',
+  ]
+  
+  if (alwaysAllowed.some(path => pathname.startsWith(path))) {
+    return true
+  }
+  
+  if (!intensive) return false
+
+  // Step 1: Settings - accessible only after intensive is started
+  if (pathname.startsWith('/account')) {
+    return !!intensive.started_at
+  }
+  
+  // Step 2: Intake - accessible after settings
+  if (pathname === '/intensive/intake' || pathname.startsWith('/intensive/intake/')) {
+    // But NOT /intensive/intake/unlock until step 14
+    if (pathname.startsWith('/intensive/intake/unlock')) {
+      return intensive.activation_protocol_completed
+    }
+    return settingsComplete
+  }
+  
+  // Step 3: Profile - accessible after intake
+  if (pathname.startsWith('/profile')) {
+    return intensive.intake_completed
+  }
+  
+  // Step 4: Assessment - accessible after profile
+  if (pathname.startsWith('/assessment')) {
+    return intensive.profile_completed
+  }
+  
+  // Steps 7-9: Audio - must check BEFORE general life-vision
+  // Audio requires vision to be refined (step 6 complete)
+  if (pathname.includes('/audio') && pathname.startsWith('/life-vision')) {
+    return intensive.vision_refined
+  }
+  
+  // Steps 5-6: Vision building & refining - accessible after assessment
+  if (pathname.startsWith('/life-vision')) {
+    return intensive.assessment_completed
+  }
+  
+  // Step 10: Vision Board - accessible after audio generated
+  if (pathname.startsWith('/vision-board')) {
+    return intensive.audio_generated || intensive.audios_generated
+  }
+  
+  // Step 11: Journal - accessible after vision board
+  if (pathname.startsWith('/journal')) {
+    return intensive.vision_board_completed
+  }
+  
+  // Step 12: Schedule Call & Call Prep - accessible after journal
+  if (pathname.startsWith('/intensive/schedule-call') || pathname.startsWith('/intensive/call-prep')) {
+    return intensive.first_journal_entry
+  }
+  
+  // Step 13: Activation Protocol & Calibration - accessible after call scheduled
+  if (pathname.startsWith('/intensive/activation-protocol') || pathname.startsWith('/intensive/calibration')) {
+    return intensive.call_scheduled
+  }
+  
+  // Default: not accessible
+  return false
+}
+
 export function GlobalLayout({ children }: GlobalLayoutProps) {
   const pathname = usePathname()
   const [intensiveMode, setIntensiveMode] = useState(false)
+  const [intensiveData, setIntensiveData] = useState<IntensiveData | null>(null)
+  const [settingsComplete, setSettingsComplete] = useState(false)
   const [loadingIntensive, setLoadingIntensive] = useState(true)
   
   // Check for active intensive on mount and route changes
@@ -28,6 +109,27 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
       try {
         const intensive = await getActiveIntensiveClient()
         setIntensiveMode(!!intensive)
+        setIntensiveData(intensive)
+        
+        // Check settings completion if in intensive mode
+        if (intensive) {
+          const supabase = createClient()
+          const { data: { user } } = await supabase.auth.getUser()
+          if (user) {
+            const { data: accountData } = await supabase
+              .from('user_accounts')
+              .select('first_name, last_name, email, phone')
+              .eq('id', user.id)
+              .single()
+            
+            const hasSettings = !!(accountData && 
+              accountData.first_name?.trim() && 
+              accountData.last_name?.trim() && 
+              accountData.email?.trim() && 
+              accountData.phone?.trim())
+            setSettingsComplete(hasSettings)
+          }
+        }
       } catch (error) {
         console.error('Error checking intensive mode:', error)
         setIntensiveMode(false)
@@ -69,23 +171,10 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
         )
       }
       
-      // Intensive mode: Simplified sidebar + mobile nav + locked overlay on non-intensive pages
+      // Intensive mode: Simplified sidebar + mobile nav + locked overlay on non-accessible pages
       if (intensiveMode) {
-        // Intensive-allowed pages (no overlay)
-        const intensiveAllowedPaths = [
-          '/intensive',
-          '/profile',
-          '/assessment',
-          '/vision/build',
-          '/vision',
-          '/life-vision',
-          '/vision-board',
-          '/journal',
-          '/viva',
-          '/dashboard', // Allow dashboard
-        ]
-        
-        const isIntensiveAllowed = intensiveAllowedPaths.some(path => pathname.startsWith(path))
+        // Check if current path is accessible based on user's progress
+        const isAccessible = isPathAccessibleForIntensive(pathname, intensiveData, settingsComplete)
         
         return (
           <div className="min-h-screen bg-black text-white pb-16 md:pb-0">
@@ -94,8 +183,8 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
               <PageLayout>
                 {children}
               </PageLayout>
-              {/* Show overlay on USER pages that aren't intensive-related */}
-              {!isIntensiveAllowed && <IntensiveLockedOverlay />}
+              {/* Show overlay on pages that aren't accessible based on progress */}
+              {!isAccessible && <IntensiveLockedOverlay />}
             </div>
             <IntensiveMobileNav />
           </div>

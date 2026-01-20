@@ -13,17 +13,20 @@ export interface IntensiveData {
   started_at: string | null
   completed_at: string | null
   created_at: string
-  // Step completion booleans
+  // Step completion booleans (14-step flow)
+  intake_completed: boolean
   profile_completed: boolean
   assessment_completed: boolean
-  call_scheduled: boolean
   vision_built: boolean
   vision_refined: boolean
   audio_generated: boolean
+  audios_generated: boolean
   vision_board_completed: boolean
   first_journal_entry: boolean
+  call_scheduled: boolean
   calibration_call_completed: boolean
   activation_protocol_completed: boolean
+  unlock_completed: boolean
 }
 
 /**
