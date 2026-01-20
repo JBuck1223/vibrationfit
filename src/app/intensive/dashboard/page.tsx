@@ -57,6 +57,7 @@ interface IntensiveChecklist {
   intensive_id: string
   user_id: string
   status: string
+  started_at: string | null
   
   // Phase 1: Setup (Steps 1-2)
   // Step 1 (Settings) is checked via user_accounts table directly
@@ -120,19 +121,10 @@ export default function IntensiveDashboard() {
   const [timeRemaining, setTimeRemaining] = useState<string>('')
   const [hoursRemaining, setHoursRemaining] = useState<number>(72)
   const [settingsComplete, setSettingsComplete] = useState(false) // Step 1 from user_accounts
-  const [shouldRedirectToStart, setShouldRedirectToStart] = useState(false)
 
   useEffect(() => {
     loadIntensiveData()
   }, [])
-
-  // Handle redirect to start page in useEffect (not during render)
-  useEffect(() => {
-    if (!loading && intensive && !intensive.started_at) {
-      setShouldRedirectToStart(true)
-      router.push('/intensive/start')
-    }
-  }, [loading, intensive, router])
 
   useEffect(() => {
     if (intensive?.activation_deadline) {
@@ -197,6 +189,7 @@ export default function IntensiveDashboard() {
             intensive_id: 'super-admin-test',
             user_id: user.id,
             status: 'in_progress',
+            started_at: new Date().toISOString(),
             intake_completed: true,
             intake_completed_at: null,
             profile_completed: true,
@@ -511,9 +504,9 @@ export default function IntensiveDashboard() {
 
   // Calculate completion time if applicable
   const getCompletionTimeHours = () => {
-    if (!intensive?.started_at || !checklist) return undefined
+    if (!checklist?.started_at) return undefined
     
-    const started = new Date(intensive.started_at)
+    const started = new Date(checklist.started_at)
     const now = new Date()
     const hours = (now.getTime() - started.getTime()) / (1000 * 60 * 60)
     return hours
@@ -544,15 +537,6 @@ export default function IntensiveDashboard() {
     )
   }
 
-  // STATE 1: Not Started Yet - Show loading while redirecting (handled in useEffect)
-  if (!intensive.started_at || shouldRedirectToStart) {
-    return (
-      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-        <Spinner size="lg" />
-      </Container>
-    )
-  }
-
   const progress = getProgress()
   
   // STATE 2: 100% Complete - Show Celebration
@@ -561,7 +545,7 @@ export default function IntensiveDashboard() {
       <IntensiveCompletionScreen 
         onComplete={handleComplete}
         completionTimeHours={getCompletionTimeHours()}
-        startedAt={intensive.started_at}
+        startedAt={checklist.started_at}
       />
     )
   }

@@ -24,9 +24,8 @@ function isPathAccessibleForIntensive(
   intensive: IntensiveData | null, 
   settingsComplete: boolean
 ): boolean {
-  // Always accessible during intensive
+  // Always accessible during intensive (no progress check needed)
   const alwaysAllowed = [
-    '/intensive/dashboard',
     '/intensive/start',
     '/viva',
   ]
@@ -36,6 +35,11 @@ function isPathAccessibleForIntensive(
   }
   
   if (!intensive) return false
+
+  // Dashboard - accessible after intensive is started
+  if (pathname === '/intensive/dashboard' || pathname.startsWith('/intensive/dashboard/')) {
+    return !!intensive.started_at
+  }
 
   // Step 1: Settings - accessible only after intensive is started
   if (pathname.startsWith('/account')) {

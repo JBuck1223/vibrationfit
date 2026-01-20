@@ -3,11 +3,10 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Card, Button, DeleteConfirmationDialog, Spinner, Container, Stack, Grid, Heading, Text, VersionBadge, StatusBadge, TrackingMilestoneCard, PageHero } from '@/lib/design-system/components'
+import { Card, Button, DeleteConfirmationDialog, Spinner, Container, Stack, Grid, Heading, Text, TrackingMilestoneCard, PageHero } from '@/lib/design-system/components'
 import { VersionCard } from './components/VersionCard'
 import { colors } from '@/lib/design-system/tokens'
 import { 
-  Edit3,
   FileText,
   Plus,
   Eye,
@@ -16,7 +15,6 @@ import {
   CheckCircle,
   Activity,
   GitCompare,
-  CalendarDays,
   Copy
 } from 'lucide-react'
 
@@ -354,60 +352,10 @@ export default function ProfileDashboardPage() {
       <Stack gap="lg">
         {/* Page Hero */}
         <PageHero
-          title={activeProfile && activeProfile.first_name && activeProfile.last_name
-            ? `${activeProfile.first_name} ${activeProfile.last_name}`
-            : 'My Profile'}
-          subtitle={activeProfile 
-            ? 'View and manage your profile versions below.'
-            : 'Create and manage your profile versions below.'}
-        >
-          {/* Centered Version Info with Enhanced Styling */}
-          {activeProfile && (
-            <div className="text-center">
-              {/* Version, Status & Date Badges */}
-              <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-                <VersionBadge 
-                  versionNumber={activeProfile.version_number} 
-                  status={activeProfile.is_active && !activeProfile.is_draft ? 'active' : activeProfile.is_draft ? 'draft' : 'complete'} 
-                />
-                <StatusBadge 
-                  status={activeProfile.is_active && !activeProfile.is_draft ? 'active' : activeProfile.is_draft ? 'draft' : 'complete'} 
-                  subtle={!(activeProfile.is_active && !activeProfile.is_draft)} 
-                  className="uppercase tracking-[0.25em]"
-                />
-                <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
-                  <CalendarDays className="w-4 h-4 text-neutral-500" />
-                  <span className="font-medium">Created:</span>
-                  <span>{new Date(activeProfile.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons - Enhanced with Hover Effects */}
-          {activeProfile && (
-            <div className="flex flex-row flex-wrap md:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
-              <Button
-                onClick={() => router.push(`/profile/${activeProfile.id}`)}
-                variant="outline"
-                size="sm"
-                className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-              >
-                <Eye className="w-4 h-4 shrink-0" />
-                <span>View Profile</span>
-              </Button>
-              <Button
-                onClick={() => router.push(`/profile/${activeProfile.id}/edit`)}
-                variant="outline"
-                size="sm"
-                className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-              >
-                <Edit3 className="w-4 h-4 shrink-0" />
-                <span>Edit Profile</span>
-              </Button>
-            </div>
-          )}
-        </PageHero>
+          eyebrow="PROFILE"
+          title="All Profiles"
+          subtitle="View all of your Profile versions below."
+        />
 
         {/* Stats Cards */}
         {activeProfile && (
