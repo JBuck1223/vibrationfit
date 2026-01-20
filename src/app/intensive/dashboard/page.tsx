@@ -545,7 +545,7 @@ export default function IntensiveDashboard() {
       <IntensiveCompletionScreen 
         onComplete={handleComplete}
         completionTimeHours={getCompletionTimeHours()}
-        startedAt={checklist.started_at}
+        startedAt={checklist.started_at ?? undefined}
       />
     )
   }
