@@ -315,6 +315,54 @@ export default function ProfileDashboardPage() {
     }
   }
 
+  const handleCreateFirstProfile = async () => {
+    try {
+      const { createClient } = await import('@/lib/supabase/client')
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        alert('Please log in to create a profile')
+        return
+      }
+      
+      // Get user account data to pre-fill profile
+      const { data: accountData } = await supabase
+        .from('user_accounts')
+        .select('first_name, last_name, profile_picture_url')
+        .eq('id', user.id)
+        .single()
+      
+      // Create new profile
+      const { data: newProfile, error } = await supabase
+        .from('user_profiles')
+        .insert({
+          user_id: user.id,
+          first_name: accountData?.first_name || '',
+          last_name: accountData?.last_name || '',
+          profile_picture_url: accountData?.profile_picture_url || null,
+          is_draft: false,
+          is_active: true,
+          version_number: 1
+        })
+        .select()
+        .single()
+      
+      if (error) {
+        console.error('Error creating profile:', error)
+        alert('Failed to create profile: ' + error.message)
+        return
+      }
+      
+      if (newProfile) {
+        router.push(`/profile/${newProfile.id}/edit`)
+      }
+    } catch (error) {
+      console.error('Error creating first profile:', error)
+      alert('Failed to create profile')
+    }
+  }
+
   const profileCount = versions.length
   const completedProfiles = versions.filter(v => !v.is_draft && v.is_active).length
 
@@ -470,11 +518,9 @@ export default function ProfileDashboardPage() {
               <p className="text-neutral-400 mb-8">
                 Start by creating your first profile. Define your personal information and preferences.
               </p>
-              <Button asChild size="lg">
-                <Link href="/profile/new">
-                  <Plus className="w-5 h-5 mr-2" />
-                  Create Your First Profile
-                </Link>
+              <Button size="lg" onClick={handleCreateFirstProfile}>
+                <Plus className="w-5 h-5 mr-2" />
+                Create Your First Profile
               </Button>
             </Card>
           </div>
