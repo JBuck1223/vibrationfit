@@ -25,7 +25,8 @@ import {
   Lock,
   Settings,
   FileText,
-  Unlock
+  Unlock,
+  Timer
 } from 'lucide-react'
 
 type Step = {
@@ -45,6 +46,9 @@ type Phase = {
   steps: Step[]
 }
 
+// 72 hours in milliseconds
+const INTENSIVE_DURATION_MS = 72 * 60 * 60 * 1000
+
 export function IntensiveSidebar() {
   const router = useRouter()
   const pathname = usePathname()
@@ -53,10 +57,46 @@ export function IntensiveSidebar() {
   const [loading, setLoading] = useState(true)
   const [settingsComplete, setSettingsComplete] = useState(false)
   const [intensiveStarted, setIntensiveStarted] = useState(false)
+  const [startedAt, setStartedAt] = useState<string | null>(null)
+  const [countdown, setCountdown] = useState<{ hours: number; minutes: number; seconds: number } | null>(null)
 
   useEffect(() => {
     loadSteps()
   }, [pathname])
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (!startedAt) {
+      setCountdown(null)
+      return
+    }
+
+    const calculateCountdown = () => {
+      const startTime = new Date(startedAt).getTime()
+      const endTime = startTime + INTENSIVE_DURATION_MS
+      const now = Date.now()
+      const remaining = endTime - now
+
+      if (remaining <= 0) {
+        setCountdown({ hours: 0, minutes: 0, seconds: 0 })
+        return
+      }
+
+      const hours = Math.floor(remaining / (1000 * 60 * 60))
+      const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60))
+      const seconds = Math.floor((remaining % (1000 * 60)) / 1000)
+
+      setCountdown({ hours, minutes, seconds })
+    }
+
+    // Calculate immediately
+    calculateCountdown()
+
+    // Update every second
+    const interval = setInterval(calculateCountdown, 1000)
+
+    return () => clearInterval(interval)
+  }, [startedAt])
 
   const loadSteps = async () => {
     try {
@@ -93,6 +133,7 @@ export function IntensiveSidebar() {
 
       // Check if intensive has been started (checklist is source of truth)
       setIntensiveStarted(!!checklist.started_at)
+      setStartedAt(checklist.started_at || null)
 
       const stepsList: Step[] = [
         // Phase 0: Start
@@ -316,6 +357,77 @@ export function IntensiveSidebar() {
             {completedCount}/{totalCount}
           </span>
         </div>
+
+        {/* Countdown Timer */}
+        {countdown && intensiveStarted && (
+          <div className={`mt-4 p-3 rounded-xl text-center ${
+            countdown.hours < 12 
+              ? 'bg-gradient-to-r from-red-500/30 to-red-600/20 border-2 border-red-500/50 animate-pulse' 
+              : countdown.hours < 24 
+                ? 'bg-gradient-to-r from-yellow-500/30 to-orange-500/20 border-2 border-yellow-500/50'
+                : 'bg-gradient-to-r from-primary-500/30 to-secondary-500/20 border-2 border-primary-500/50'
+          }`}>
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <Timer className={`w-4 h-4 ${
+                countdown.hours < 12 
+                  ? 'text-red-400' 
+                  : countdown.hours < 24 
+                    ? 'text-yellow-400'
+                    : 'text-primary-400'
+              }`} />
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-300">
+                Time Remaining
+              </span>
+            </div>
+            <div className="flex items-center justify-center gap-1">
+              {/* Hours */}
+              <div className="flex flex-col items-center">
+                <span className={`text-2xl font-bold font-mono ${
+                  countdown.hours < 12 
+                    ? 'text-red-400' 
+                    : countdown.hours < 24 
+                      ? 'text-yellow-400'
+                      : 'text-white'
+                }`}>
+                  {String(countdown.hours).padStart(2, '0')}
+                </span>
+                <span className="text-[9px] text-neutral-200 uppercase font-medium">hrs</span>
+              </div>
+              <span className={`text-xl font-bold ${
+                countdown.hours < 12 ? 'text-red-400' : countdown.hours < 24 ? 'text-yellow-400' : 'text-neutral-400'
+              }`}>:</span>
+              {/* Minutes */}
+              <div className="flex flex-col items-center">
+                <span className={`text-2xl font-bold font-mono ${
+                  countdown.hours < 12 
+                    ? 'text-red-400' 
+                    : countdown.hours < 24 
+                      ? 'text-yellow-400'
+                      : 'text-white'
+                }`}>
+                  {String(countdown.minutes).padStart(2, '0')}
+                </span>
+                <span className="text-[9px] text-neutral-200 uppercase font-medium">min</span>
+              </div>
+              <span className={`text-xl font-bold ${
+                countdown.hours < 12 ? 'text-red-400' : countdown.hours < 24 ? 'text-yellow-400' : 'text-neutral-400'
+              }`}>:</span>
+              {/* Seconds */}
+              <div className="flex flex-col items-center">
+                <span className={`text-2xl font-bold font-mono ${
+                  countdown.hours < 12 
+                    ? 'text-red-400' 
+                    : countdown.hours < 24 
+                      ? 'text-yellow-400'
+                      : 'text-white'
+                }`}>
+                  {String(countdown.seconds).padStart(2, '0')}
+                </span>
+                <span className="text-[9px] text-neutral-200 uppercase font-medium">sec</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Dashboard Link */}

@@ -9,7 +9,7 @@ import { VISION_CATEGORIES, getVisionCategory, getVisionCategoryLabel, getVision
 import { UserProfile } from '@/lib/supabase/profile'
 import { ProfileField } from '../components/ProfileField'
 import { SavedRecordings } from '@/components/SavedRecordings'
-import { ProfilePictureUpload } from '../components/ProfilePictureUpload'
+import { ProfilePictureUpload, DEFAULT_PROFILE_IMAGE_URL } from '../components/ProfilePictureUpload'
 import { 
   User, 
   Heart, 
@@ -1633,26 +1633,20 @@ export default function ProfileDetailPage() {
               disabled={isViewingVersion}
               className="inline-block relative group"
             >
-              {profile.profile_picture_url ? (
-                <div className="inline-block w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-neutral-800 border-2 border-white relative">
-                  <NextImage
-                    src={profile.profile_picture_url}
-                    alt="Profile picture"
-                    width={128}
-                    height={128}
-                    className="w-full h-full object-cover"
-                  />
-                  {!isViewingVersion && (
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
-                      <Camera className="w-6 h-6 md:w-8 md:h-8 text-white" />
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="inline-block w-24 h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 border-2 border-white flex items-center justify-center">
-                  <Camera className="w-8 h-8 md:w-12 md:h-12 text-white" />
-                </div>
-              )}
+              <div className="inline-block w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-neutral-800 border-2 border-neutral-700 relative">
+                <NextImage
+                  src={profile.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
+                  alt="Profile picture"
+                  width={128}
+                  height={128}
+                  className="w-full h-full object-cover"
+                />
+                {!isViewingVersion && (
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
+                    <Camera className="w-6 h-6 md:w-8 md:h-8 text-white" />
+                  </div>
+                )}
+              </div>
             </button>
             {/* Hidden file input */}
             <input

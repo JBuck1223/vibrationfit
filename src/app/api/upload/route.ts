@@ -33,6 +33,26 @@ const BUCKET_NAME = 'vibration-fit-client-storage'
 const MULTIPART_THRESHOLD = 50 * 1024 * 1024 // 50MB
 const CHUNK_SIZE = 10 * 1024 * 1024 // 10MB chunks
 
+/**
+ * Sanitize a filename for use in HTTP headers (S3 metadata)
+ * HTTP headers can only contain printable ASCII characters (32-126)
+ * This removes or replaces any non-ASCII characters
+ */
+function sanitizeFilenameForHeader(filename: string): string {
+  // First, normalize unicode characters
+  const normalized = filename.normalize('NFKD')
+  // Remove all non-ASCII characters, replace with dash
+  // Keep only printable ASCII: a-z, A-Z, 0-9, and common file characters like .-_
+  return normalized
+    .replace(/[^\x20-\x7E]/g, '') // Remove non-printable ASCII
+    .replace(/[<>:"/\\|?*]/g, '-') // Replace invalid filename chars
+    .replace(/\s+/g, '-') // Replace spaces with dashes
+    .replace(/-+/g, '-') // Collapse multiple dashes
+    .trim()
+    .slice(0, 200) // Limit length for headers
+    || 'unnamed-file' // Fallback if all chars were removed
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Check AWS credentials first
@@ -197,7 +217,7 @@ export async function POST(request: NextRequest) {
         ContentType: contentType,
         CacheControl: 'public, max-age=3600', // Short cache for original
         Metadata: {
-          'original-filename': file.name,
+          'original-filename': sanitizeFilenameForHeader(file.name),
           'upload-timestamp': timestamp.toString(),
           'processed': 'false',
           'original-size': file.size.toString(),
@@ -223,7 +243,7 @@ export async function POST(request: NextRequest) {
             ContentType: 'image/jpeg',
             CacheControl: 'public, max-age=31536000, immutable',
             Metadata: {
-              'original-filename': file.name,
+              'original-filename': sanitizeFilenameForHeader(file.name),
               'upload-timestamp': timestamp.toString(),
               'is-thumbnail': 'true',
               'original-s3-key': s3Key
@@ -268,7 +288,7 @@ export async function POST(request: NextRequest) {
          ContentType: contentType,
          CacheControl: 'public, max-age=31536000', // 1 year cache for audio
          Metadata: {
-           'original-filename': file.name,
+           'original-filename': sanitizeFilenameForHeader(file.name),
            'upload-timestamp': timestamp.toString(),
            'processed': 'false',
            'original-size': file.size.toString(),
@@ -308,7 +328,7 @@ export async function POST(request: NextRequest) {
       CacheControl: 'public, max-age=31536000, immutable', // 1 year cache
       ContentEncoding: undefined, // Don't add gzip compression - images are already compressed
          Metadata: {
-           'original-filename': file.name,
+           'original-filename': sanitizeFilenameForHeader(file.name),
            'upload-timestamp': timestamp.toString(),
            'optimized': needsImageOptimization ? 'true' : 'false',
            'compressed': 'false',

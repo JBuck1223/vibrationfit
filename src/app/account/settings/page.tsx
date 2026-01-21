@@ -6,7 +6,8 @@
 
 import { useState, useEffect } from 'react'
 import { Container, Stack, PageHero, Card, Button, Input, Spinner, DatePicker, Checkbox, Modal, Badge } from '@/lib/design-system/components'
-import { User, Check, Rocket } from 'lucide-react'
+import { User, Check, Rocket, FlaskConical } from 'lucide-react'
+import { generateFakePersonalInfo } from '@/lib/testing/fake-profile-data'
 import { ProfilePictureUpload } from '@/app/profile/components/ProfilePictureUpload'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
@@ -43,8 +44,25 @@ export default function AccountSettingsPage() {
   const [intensiveId, setIntensiveId] = useState<string | null>(null)
   const [showDefaultPictureModal, setShowDefaultPictureModal] = useState(false)
   
+  // Dev mode for test data
+  const showTestDataButton = process.env.NODE_ENV === 'development'
+  
   const supabase = createClient()
   const router = useRouter()
+
+  // Fill with fake test data (dev mode only)
+  const handleFillTestData = () => {
+    const fakeData = generateFakePersonalInfo()
+    setFirstName(fakeData.first_name || '')
+    setLastName(fakeData.last_name || '')
+    setEmail(fakeData.email || '')
+    setPhone(formatPhoneNumber(fakeData.phone || ''))
+    if (fakeData.date_of_birth) {
+      setDateOfBirth(fakeData.date_of_birth)
+    }
+    setHasChanges(true)
+    console.log('🧪 Filled account settings with test data:', fakeData.first_name, fakeData.last_name)
+  }
 
   useEffect(() => {
     fetchUserData()
@@ -391,6 +409,30 @@ export default function AccountSettingsPage() {
             </Button>
           </div>
         </PageHero>
+
+        {/* Test Data Button (Dev Mode Only) */}
+        {showTestDataButton && (
+          <Card className="bg-purple-500/10 border-purple-500/30">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <FlaskConical className="w-6 h-6 text-purple-400" />
+                <div>
+                  <p className="text-sm font-medium text-purple-300">Development Mode</p>
+                  <p className="text-xs text-neutral-400">Fill account settings with realistic fake data for testing</p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleFillTestData}
+                className="border-purple-500 text-purple-400 hover:bg-purple-500/20"
+              >
+                <FlaskConical className="w-4 h-4 mr-2" />
+                Fill with Test Data
+              </Button>
+            </div>
+          </Card>
+        )}
 
         {/* Personal Information */}
         <Card className="p-6">

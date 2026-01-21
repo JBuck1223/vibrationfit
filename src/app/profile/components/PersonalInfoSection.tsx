@@ -5,6 +5,7 @@ import { Card, Input, SaveButton, DatePicker } from '@/lib/design-system/compone
 import { ProfilePictureUpload } from './ProfilePictureUpload'
 import { UserProfile } from '@/lib/supabase/profile'
 import { User } from 'lucide-react'
+import { getHighlightClass } from './highlight-utils'
 
 interface PersonalInfoSectionProps {
   profile: Partial<UserProfile>
@@ -14,6 +15,7 @@ interface PersonalInfoSectionProps {
   onSave?: () => void
   isSaving?: boolean
   hasUnsavedChanges?: boolean
+  highlightedField?: string | null
 }
 
 const genderOptions = [
@@ -35,7 +37,7 @@ const ethnicityOptions = [
   { value: 'Prefer not to say', label: 'Prefer not to say' }
 ]
 
-export function PersonalInfoSection({ profile, onProfileChange, onError, onSave, isSaving, hasUnsavedChanges = false }: PersonalInfoSectionProps) {
+export function PersonalInfoSection({ profile, onProfileChange, onError, onSave, isSaving, hasUnsavedChanges = false, highlightedField }: PersonalInfoSectionProps) {
   const [isGenderDropdownOpen, setIsGenderDropdownOpen] = useState(false)
   const [isEthnicityDropdownOpen, setIsEthnicityDropdownOpen] = useState(false)
   const genderDropdownRef = useRef<HTMLDivElement>(null)
@@ -136,7 +138,7 @@ export function PersonalInfoSection({ profile, onProfileChange, onError, onSave,
               value={profile.first_name || ''}
               onChange={(e) => handleInputChange('first_name', e.target.value)}
               placeholder="Enter your first name"
-              className="w-full"
+              className={`w-full ${getHighlightClass('first_name', highlightedField)}`}
             />
           </div>
 
@@ -150,7 +152,7 @@ export function PersonalInfoSection({ profile, onProfileChange, onError, onSave,
               value={profile.last_name || ''}
               onChange={(e) => handleInputChange('last_name', e.target.value)}
               placeholder="Enter your last name"
-              className="w-full"
+              className={`w-full ${getHighlightClass('last_name', highlightedField)}`}
             />
           </div>
 
@@ -164,7 +166,7 @@ export function PersonalInfoSection({ profile, onProfileChange, onError, onSave,
               value={profile.email || ''}
               onChange={(e) => handleInputChange('email', e.target.value)}
               placeholder="Enter your email"
-              className="w-full"
+              className={`w-full ${getHighlightClass('email', highlightedField)}`}
             />
           </div>
 
@@ -178,19 +180,23 @@ export function PersonalInfoSection({ profile, onProfileChange, onError, onSave,
               value={profile.phone || ''}
               onChange={(e) => handlePhoneChange(e.target.value)}
               placeholder="(555) 123-4567"
-              className="w-full"
+              className={`w-full ${getHighlightClass('phone', highlightedField)}`}
             />
           </div>
 
           {/* Date of Birth */}
           <div>
-            <DatePicker
-              label="Date of Birth *"
-              value={profile.date_of_birth || ''}
-              onChange={(dateString: string) => handleDateChange(dateString)}
-              maxDate={new Date().toISOString().split('T')[0]}
-              className="w-full"
-            />
+            <label className="block text-sm font-medium text-neutral-200 mb-2">
+              Date of Birth *
+            </label>
+            <div className={getHighlightClass('date_of_birth', highlightedField)}>
+              <DatePicker
+                value={profile.date_of_birth || ''}
+                onChange={(dateString: string) => handleDateChange(dateString)}
+                maxDate={new Date().toISOString().split('T')[0]}
+                className="w-full"
+              />
+            </div>
           </div>
 
           {/* Gender */}
@@ -206,7 +212,7 @@ export function PersonalInfoSection({ profile, onProfileChange, onError, onSave,
                 profile.gender 
                   ? 'text-white' 
                   : 'text-[#9CA3AF]'
-              }`}
+              } ${getHighlightClass('gender', highlightedField)}`}
             >
                 {genderOptions.find(opt => opt.value === (profile.gender || ''))?.label || 'Select gender'}
               </button>
@@ -259,7 +265,7 @@ export function PersonalInfoSection({ profile, onProfileChange, onError, onSave,
                 profile.ethnicity 
                   ? 'text-white' 
                   : 'text-[#9CA3AF]'
-              }`}
+              } ${getHighlightClass('ethnicity', highlightedField)}`}
             >
                 {ethnicityOptions.find(opt => opt.value === (profile.ethnicity || ''))?.label || 'Select ethnicity'}
               </button>

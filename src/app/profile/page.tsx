@@ -15,7 +15,8 @@ import {
   CheckCircle,
   Activity,
   GitCompare,
-  Copy
+  Copy,
+  User
 } from 'lucide-react'
 
 interface ProfileData {
@@ -333,30 +334,27 @@ export default function ProfileDashboardPage() {
         .eq('id', user.id)
         .single()
       
-      // Create new profile
+      // Create new profile with just user_id (other fields come from user_accounts)
       const { data: newProfile, error } = await supabase
         .from('user_profiles')
         .insert({
-          user_id: user.id,
-          first_name: accountData?.first_name || '',
-          last_name: accountData?.last_name || '',
-          profile_picture_url: accountData?.profile_picture_url || null,
-          is_draft: false,
-          is_active: true,
-          version_number: 1
+          user_id: user.id
         })
         .select()
         .single()
       
       if (error) {
         console.error('Error creating profile:', error)
-        alert('Failed to create profile: ' + error.message)
+        alert('Failed to create profile: ' + (error.message || 'Unknown error'))
         return
       }
       
-      if (newProfile) {
-        router.push(`/profile/${newProfile.id}/edit`)
+      if (!newProfile) {
+        alert('Failed to create profile - no data returned.')
+        return
       }
+      
+      router.push(`/profile/${newProfile.id}/edit`)
     } catch (error) {
       console.error('Error creating first profile:', error)
       alert('Failed to create profile')
@@ -513,9 +511,14 @@ export default function ProfileDashboardPage() {
         {/* No Profile State */}
         {!activeProfile && (
           <div className="text-center py-16">
-            <Card className="max-w-md mx-auto">
+            <Card className="max-w-md mx-auto text-center">
+              <div className="flex justify-center mb-4">
+                <div className="w-16 h-16 bg-primary-500/20 rounded-full flex items-center justify-center">
+                  <User className="w-8 h-8 text-primary-500" />
+                </div>
+              </div>
               <h3 className="text-2xl font-bold text-white mb-4">No profile yet</h3>
-              <p className="text-neutral-400 mb-8">
+              <p className="text-neutral-400 mb-6 md:mb-8">
                 Start by creating your first profile. Define your personal information and preferences.
               </p>
               <Button size="lg" onClick={handleCreateFirstProfile}>
