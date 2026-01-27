@@ -13,6 +13,13 @@ interface ResultsSummaryProps {
 export default function ResultsSummary({ assessment, responses = [] }: ResultsSummaryProps) {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
   
+  console.log('📊 ResultsSummary received:', {
+    assessmentId: assessment?.id,
+    responsesCount: responses?.length,
+    hasResponses: !!responses,
+    sampleResponse: responses?.[0]
+  })
+  
   const toggleCategory = (category: string) => {
     setExpandedCategories(prev => {
       const newSet = new Set(prev)

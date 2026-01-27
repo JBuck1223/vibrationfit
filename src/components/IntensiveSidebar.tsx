@@ -204,7 +204,7 @@ export function IntensiveSidebar() {
           id: 'assessment', 
           stepNumber: 4,
           title: 'Assessment', 
-          href: '/assessment/new', 
+          href: '/assessment',  // Changed from /assessment/new to /assessment to show existing assessments
           icon: ClipboardCheck,
           phase: 'Foundation',
           completed: !!checklist.assessment_completed,
