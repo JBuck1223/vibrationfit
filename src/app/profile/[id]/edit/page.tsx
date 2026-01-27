@@ -919,6 +919,51 @@ export default function ProfileEditPage() {
           const localCompletion = calculateProfileCompletion(profile)
           const incompleteFields = getIncompleteFields(profile)
           
+          // Debug: Log completion details to console
+          console.log('🔍 Profile Completion Debug:')
+          console.log('  Completion:', localCompletion + '%')
+          console.log('  leisure_time_weekly value:', (profile as any).leisure_time_weekly, '| type:', typeof (profile as any).leisure_time_weekly)
+          console.log('  Incomplete fields from getIncompleteFields():', incompleteFields)
+          
+          if (localCompletion < 100) {
+            console.log('  Profile data keys:', Object.keys(profile))
+            
+            // Check specific fields that might be missing
+            const fieldsToCheck = [
+              'first_name', 'last_name', 'email', 'phone', 'date_of_birth', 'gender', 'ethnicity',
+              'relationship_status', 'has_children',
+              'units', 'height', 'weight', 'exercise_frequency',
+              'living_situation', 'time_at_location', 'city', 'state', 'postal_code', 'country',
+              'employment_type', 'occupation', 'company', 'time_in_role', 'education',
+              'currency', 'household_income', 'savings_retirement', 'assets_equity', 'consumer_debt',
+              'hobbies', 'leisure_time_weekly',
+              'travel_frequency', 'passport', 'countries_visited',
+              'close_friends_count', 'social_preference',
+              'lifestyle_category',
+              'spiritual_practice', 'meditation_frequency', 'personal_growth_focus',
+              'volunteer_status', 'charitable_giving', 'legacy_mindset',
+              'clarity_fun', 'clarity_health', 'clarity_travel', 'clarity_love', 'clarity_family',
+              'clarity_social', 'clarity_home', 'clarity_work', 'clarity_money', 'clarity_stuff',
+              'clarity_giving', 'clarity_spirituality'
+            ]
+            
+            const missingOrEmpty = fieldsToCheck.filter(field => {
+              const value = (profile as any)[field]
+              if (value === undefined || value === null || value === '') return true
+              if (Array.isArray(value) && value.length === 0) return true
+              return false
+            })
+            console.log('  Fields with no value:', missingOrEmpty)
+            
+            // Check conditionals
+            if ((profile as any).relationship_status !== 'Single') {
+              console.log('  Relationship conditionals - partner_name:', (profile as any).partner_name, 'relationship_length:', (profile as any).relationship_length)
+            }
+            if ((profile as any).has_children === true) {
+              console.log('  Children conditionals - children array:', (profile as any).children)
+            }
+          }
+          
           return (
             <Card className="relative">
               <button 
