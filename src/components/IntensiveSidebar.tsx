@@ -204,7 +204,7 @@ export function IntensiveSidebar() {
           id: 'assessment', 
           stepNumber: 4,
           title: 'Assessment', 
-          href: '/assessment',  // Changed from /assessment/new to /assessment to show existing assessments
+          href: '/assessment?intensive=true',  // Pass intensive param for conditional UI
           icon: ClipboardCheck,
           phase: 'Foundation',
           completed: !!checklist.assessment_completed,

@@ -554,19 +554,25 @@ export default function IntensiveDashboard() {
   const steps = getSteps()
   const nextStep = getNextStep()
   const currentPhase = getCurrentPhase()
+  
+  // Calculate current step number (first incomplete step or 14 if all complete)
+  const currentStepNumber = nextStep ? nextStep.stepNumber : 14
 
   return (
     <Container size="xl">
       <Stack gap="lg">
         {/* Header */}
         <PageHero
-          title="Your Activation Journey"
-          subtitle={`Current Phase: ${currentPhase}`}
+          eyebrow="72-Hour Activation Intensive"
+          title="Your 14-Step Activation Path"
+          subtitle="Follow each step in order. Complete all 14 to graduate and unlock your Advanced Audio Suite, Alignment Gym, and Vibe Tribe access."
         >
-          <Badge variant="premium">
-            <Clock className="w-4 h-4 inline mr-2" />
-            Activation Intensive
-          </Badge>
+          {/* Phase pill */}
+          <div className="flex justify-center">
+            <Badge variant="premium" className="text-xs md:text-sm">
+              Current Phase: {currentPhase} · Step {currentStepNumber} of 14
+            </Badge>
+          </div>
         </PageHero>
 
         {/* Countdown Timer */}
@@ -617,14 +623,20 @@ export default function IntensiveDashboard() {
         {nextStep && (
           <Card variant="elevated" className="p-4 md:p-6 lg:p-8 bg-gradient-to-br from-accent-500/10 to-purple-500/10 border-accent-500/30">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3 md:gap-4">
-                <div className="w-12 h-12 md:w-16 md:h-16 bg-accent-500 rounded-2xl flex items-center justify-center flex-shrink-0">
-                  <nextStep.icon className="w-6 h-6 md:w-8 md:h-8 text-white" />
-                </div>
-                <div>
-                  <Badge variant="premium" className="mb-2">Next Step</Badge>
-                  <h3 className="text-xl md:text-2xl font-bold mb-1">{nextStep.title}</h3>
-                  <p className="text-sm md:text-base text-neutral-400">{nextStep.description}</p>
+              <div className="flex gap-3 md:gap-4">
+                <div className="flex flex-col">
+                  <Badge variant="premium" className="mb-2 w-fit">Next Step</Badge>
+                  <div className="flex items-center gap-3 md:gap-4">
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-accent-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <span className="text-base md:text-lg font-bold text-black">
+                        {nextStep.stepNumber}
+                      </span>
+                    </div>
+                    <div>
+                      <h3 className="text-xl md:text-2xl font-bold mb-1">{nextStep.title}</h3>
+                      <p className="text-sm md:text-base text-neutral-400">{nextStep.description}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
               <Button 
@@ -665,69 +677,75 @@ export default function IntensiveDashboard() {
                         p-4 md:p-6 transition-all duration-300
                         ${step.locked ? 'opacity-50' : 'hover:-translate-y-1'}
                         ${step.completed ? 'border-primary-500/50 bg-primary-500/5' : ''}
+                        ${!step.completed && !step.locked ? 'bg-gradient-to-br from-accent-500/10 to-purple-500/10 border-accent-500/30' : ''}
                       `}
                     >
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                        <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
-                          <div className={`
-                            w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center flex-shrink-0
-                            ${step.completed ? 'bg-primary-500' : step.locked ? 'bg-neutral-700' : 'bg-secondary-500'}
-                          `}>
-                            {step.completed ? (
-                              <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-white" />
-                            ) : (
-                              <step.icon className="w-5 h-5 md:w-6 md:h-6 text-white" />
-                            )}
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-4">
+                        <div className="flex items-center justify-between md:justify-start gap-4 md:flex-1 md:min-w-0">
+                          <div className="flex items-center gap-3 md:gap-4 flex-1 md:flex-1 min-w-0">
+                            <div className={`
+                              w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center flex-shrink-0
+                              ${step.completed ? 'bg-primary-500' : step.locked ? 'bg-neutral-700' : 'bg-accent-500'}
+                            `}>
+                              <span className={`text-base md:text-lg font-bold ${step.locked ? 'text-white' : 'text-black'}`}>
+                                {step.stepNumber}
+                              </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-base md:text-lg font-semibold md:mb-1 flex items-center gap-2">
+                                {step.title}
+                                {step.canSkip && !step.completed && <Badge variant="neutral" className="text-xs">Optional</Badge>}
+                              </h3>
+                              <p className="hidden md:block text-xs md:text-sm text-neutral-400">{step.description}</p>
+                              {step.completedAt && (
+                                <p className="hidden md:block text-xs text-primary-500 mt-1">
+                                  Completed {new Date(step.completedAt).toLocaleString()}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-base md:text-lg font-semibold mb-1 flex items-center gap-2">
-                              <span className="text-neutral-500 text-sm">#{step.stepNumber}</span>
-                              {step.title}
-                              {step.locked && <Lock className="w-3 h-3 md:w-4 md:h-4 text-neutral-500" />}
-                              {step.canSkip && !step.completed && <Badge variant="neutral" className="text-xs">Optional</Badge>}
-                            </h3>
-                            <p className="text-xs md:text-sm text-neutral-400">{step.description}</p>
-                            {step.completedAt && (
-                              <p className="text-xs text-primary-500 mt-1">
-                                Completed {new Date(step.completedAt).toLocaleString()}
-                              </p>
+                        
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {step.locked && (
+                              <div className="flex items-center gap-2 text-neutral-500">
+                                <Lock className="w-4 h-4 md:w-5 md:h-5" />
+                                <span className="text-xs md:text-sm">Locked</span>
+                              </div>
+                            )}
+                            
+                            {!step.locked && !step.completed && (
+                              <Button 
+                                variant="primary"
+                                size="sm"
+                                onClick={() => router.push(step.href)}
+                              >
+                                Start
+                                <ArrowRight className="w-4 h-4 ml-2" />
+                              </Button>
+                            )}
+                            
+                            {step.completed && (
+                              <div className="flex items-center gap-2">
+                                <Button 
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => router.push(step.viewHref)}
+                                >
+                                  <Eye className="w-4 h-4 mr-1" />
+                                  View
+                                </Button>
+                                <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-primary-500 flex-shrink-0" />
+                              </div>
                             )}
                           </div>
                         </div>
                         
-                        <div className="flex items-center gap-2 self-end sm:self-auto">
-                          {step.locked && (
-                            <div className="flex items-center gap-2 text-neutral-500">
-                              <Lock className="w-4 h-4 md:w-5 md:h-5" />
-                              <span className="text-xs md:text-sm">Locked</span>
-                            </div>
-                          )}
-                          
-                          {!step.locked && !step.completed && (
-                            <Button 
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => router.push(step.href)}
-                              className="w-full sm:w-auto"
-                            >
-                              Start
-                              <ArrowRight className="w-4 h-4 ml-2" />
-                            </Button>
-                          )}
-                          
-                          {step.completed && (
-                            <div className="flex items-center gap-2">
-                              <Button 
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => router.push(step.viewHref)}
-                                className="w-full sm:w-auto"
-                              >
-                                <Eye className="w-4 h-4 mr-1" />
-                                View
-                              </Button>
-                              <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-primary-500 flex-shrink-0" />
-                            </div>
+                        <div className="pl-[52px] md:hidden">
+                          <p className="text-xs text-neutral-400">{step.description}</p>
+                          {step.completedAt && (
+                            <p className="text-xs text-primary-500 mt-1">
+                              Completed {new Date(step.completedAt).toLocaleString()}
+                            </p>
                           )}
                         </div>
                       </div>

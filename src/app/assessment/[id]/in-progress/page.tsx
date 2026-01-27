@@ -19,6 +19,8 @@ import {
 } from '@/lib/services/assessmentService'
 import ResultsSummary from '../../components/ResultsSummary'
 import { generateFakeAssessmentResponses } from '@/lib/testing/fake-assessment-data'
+import { IntensiveStepCompleteBanner } from '@/components/IntensiveStepCompleteBanner'
+import { getStepInfo, getNextStep } from '@/lib/intensive/step-mapping'
 
 export default function AssessmentPage() {
   const router = useRouter()
@@ -652,13 +654,41 @@ export default function AssessmentPage() {
   }
 
   if (isComplete && assessmentId && assessmentData) {
+    // Get step info for intensive mode
+    const currentStep = getStepInfo('assessment')
+    const nextStep = getNextStep('assessment')
+    
     // Show results summary with real assessment data and responses
     return (
       <div className="min-h-screen bg-black">
-        <ResultsSummary
-          assessment={assessmentData}
-          responses={assessmentResponses || undefined}
-        />
+        <Container size="xl">
+          <Stack gap="lg">
+            {/* Intensive mode: Show completion banner at top */}
+            {isIntensiveMode && nextStep && (
+              <IntensiveStepCompleteBanner
+                currentStepName={currentStep?.title || 'Vibration Assessment'}
+                nextStepName={nextStep.title}
+                nextStepHref={nextStep.href}
+                position="top"
+              />
+            )}
+            
+            <ResultsSummary
+              assessment={assessmentData}
+              responses={assessmentResponses || undefined}
+            />
+            
+            {/* Intensive mode: Show completion banner at bottom */}
+            {isIntensiveMode && nextStep && (
+              <IntensiveStepCompleteBanner
+                currentStepName={currentStep?.title || 'Vibration Assessment'}
+                nextStepName={nextStep.title}
+                nextStepHref={nextStep.href}
+                position="bottom"
+              />
+            )}
+          </Stack>
+        </Container>
       </div>
     )
   }

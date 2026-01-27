@@ -3,8 +3,13 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Calendar, CheckCircle } from 'lucide-react'
+import { Calendar, CheckCircle, ArrowLeft } from 'lucide-react'
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
+import { IntensiveStepCompleteBanner } from '@/components/IntensiveStepCompleteBanner'
+import { ReadOnlySection } from '@/components/IntensiveStepCompletedBanner'
+import { IntensiveStepHeader } from '@/components/IntensiveStepHeader'
+import { IntensiveStepCompletionContent } from '@/components/IntensiveStepCompletionContent'
+import { getStepInfo, getNextStep } from '@/lib/intensive/step-mapping'
 
 import { 
   Container, 
@@ -39,6 +44,16 @@ export default function ScheduleCallPage() {
     timezone: 'America/New_York'
   })
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([])
+  
+  // Completion states
+  const [isAlreadyScheduled, setIsAlreadyScheduled] = useState(false)
+  const [justScheduled, setJustScheduled] = useState(false)
+  const [scheduledTime, setScheduledTime] = useState<string | null>(null)
+  const [scheduledAt, setScheduledAt] = useState<string | null>(null)
+  
+  // Step info for banners
+  const currentStep = getStepInfo('schedule_call')
+  const nextStep = getNextStep('schedule_call')
 
   useEffect(() => {
     loadIntensiveData()
@@ -76,6 +91,19 @@ export default function ScheduleCallPage() {
         }
       } else {
         setIntensiveId(intensiveData.id)
+      }
+
+      // Check if call is already scheduled
+      const { data: checklistData } = await supabase
+        .from('intensive_checklist')
+        .select('call_scheduled, call_scheduled_at, call_scheduled_time')
+        .eq('intensive_id', intensiveData?.id || 'super-admin-test-mode')
+        .single()
+      
+      if (checklistData?.call_scheduled) {
+        setIsAlreadyScheduled(true)
+        setScheduledAt(checklistData.call_scheduled_at)
+        setScheduledTime(checklistData.call_scheduled_time)
       }
 
       // Get user profile for contact info
@@ -313,8 +341,10 @@ export default function ScheduleCallPage() {
       // TODO: Send calendar invite and confirmation email
       // This would integrate with email service
 
-      alert('Call scheduled successfully! You\'ll receive a calendar invite shortly.')
-      router.push('/intensive/dashboard')
+      // Show completion banner instead of redirecting
+      setJustScheduled(true)
+      setScheduledTime(scheduledDateTime.toISOString())
+      setScheduledAt(new Date().toISOString())
     } catch (error) {
       console.error('Error scheduling call:', error)
       alert('Failed to schedule call. Please try again.')
@@ -339,6 +369,106 @@ export default function ScheduleCallPage() {
   }, {} as Record<string, TimeSlot[]>)
 
   const dates = Object.keys(slotsByDate).slice(0, 7) // Show next 7 available days
+
+  // Format scheduled time for display
+  const formatScheduledTime = (dateStr: string) => {
+    const date = new Date(dateStr)
+    return date.toLocaleString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    })
+  }
+
+  // SCENARIO B: User is revisiting - call already scheduled
+  if (isAlreadyScheduled && !justScheduled && scheduledAt) {
+    return (
+      <Container size="lg">
+        <Stack gap="lg">
+          <IntensiveStepHeader stepNumber={12} stepTitle="Book Calibration Call">
+            <IntensiveStepCompletionContent 
+              stepTitle="Book Calibration Call"
+              completedAt={scheduledAt}
+            />
+          </IntensiveStepHeader>
+          
+          <ReadOnlySection
+            title="Your Scheduled Call"
+            helperText="This booking is confirmed. Check your email for the calendar invite."
+          >
+            <Card className="p-6 bg-neutral-800/50">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 bg-primary-500/20 border-2 border-primary-500/40 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Calendar className="w-6 h-6 text-primary-500" />
+                </div>
+                <div>
+                  <p className="text-lg font-semibold text-white">
+                    {scheduledTime ? formatScheduledTime(scheduledTime) : 'Scheduled'}
+                  </p>
+                  <p className="text-sm text-neutral-400">45-minute video call</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 text-sm">
+                <div className="p-3 bg-neutral-900/50 rounded-lg">
+                  <p className="text-neutral-500 mb-1">Email</p>
+                  <p className="text-neutral-300">{contactInfo.email}</p>
+                </div>
+                <div className="p-3 bg-neutral-900/50 rounded-lg">
+                  <p className="text-neutral-500 mb-1">Phone</p>
+                  <p className="text-neutral-300">{contactInfo.phone || 'Not provided'}</p>
+                </div>
+              </div>
+            </Card>
+          </ReadOnlySection>
+        </Stack>
+      </Container>
+    )
+  }
+
+  // SCENARIO A: User just scheduled - show completion banner
+  if (justScheduled && scheduledTime && nextStep) {
+    return (
+      <Container size="lg">
+        <Stack gap="lg">
+          <IntensiveStepCompleteBanner
+            currentStepName={currentStep?.title || 'Book Calibration Call'}
+            nextStepName={nextStep.title}
+            nextStepHref={nextStep.href}
+            position="top"
+          />
+          
+          <PageHero
+            title="Call Scheduled!"
+            subtitle="Your calibration call is confirmed"
+          />
+          
+          <Card className="p-6">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 bg-primary-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                <CheckCircle className="w-6 h-6 text-black" />
+              </div>
+              <div>
+                <p className="text-lg font-semibold text-white">
+                  {formatScheduledTime(scheduledTime)}
+                </p>
+                <p className="text-sm text-neutral-400">You&apos;ll receive a calendar invite shortly</p>
+              </div>
+            </div>
+          </Card>
+          
+          <IntensiveStepCompleteBanner
+            currentStepName={currentStep?.title || 'Book Calibration Call'}
+            nextStepName={nextStep.title}
+            nextStepHref={nextStep.href}
+            position="bottom"
+          />
+        </Stack>
+      </Container>
+    )
+  }
 
   return (
     <Container size="lg">
