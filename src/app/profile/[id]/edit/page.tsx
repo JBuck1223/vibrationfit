@@ -22,8 +22,7 @@ import { PossessionsLifestyleSection } from '../../components/PossessionsLifesty
 import { SpiritualityGrowthSection } from '../../components/SpiritualityGrowthSection'
 import { GivingLegacySection } from '../../components/GivingLegacySection'
 import { UserProfile } from '@/lib/supabase/profile'
-import { Save, AlertCircle, CheckCircle, Loader2, History, Eye, Plus, ArrowLeft, Edit3, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckCircle2, FileText, User, Camera, Check, CalendarDays, FlaskConical, Info, X } from 'lucide-react'
-import { generateFakeProfile } from '@/lib/testing/fake-profile-data'
+import { Save, AlertCircle, CheckCircle, Loader2, History, Eye, Plus, ArrowLeft, Edit3, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckCircle2, FileText, User, Camera, Check, CalendarDays, Info, X } from 'lucide-react'
 import { getIncompleteFields, calculateProfileCompletion } from '@/lib/utils/profile-completion'
 import { markIntensiveStep, isInIntensiveMode } from '@/lib/intensive/checklist'
 
@@ -58,12 +57,6 @@ export default function ProfileEditPage() {
   const [showCommitWarning, setShowCommitWarning] = useState(false)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
-  const [showTestDataButton, setShowTestDataButton] = useState(false)
-
-  // Check if we should show test data button (dev mode only)
-  useEffect(() => {
-    setShowTestDataButton(process.env.NODE_ENV === 'development')
-  }, [])
 
   // Clear highlighted field when the field gets a value
   useEffect(() => {
@@ -583,27 +576,6 @@ export default function ProfileEditPage() {
     await saveProfile(profile)
   }
 
-  // Fill profile with fake test data
-  const handleFillTestData = () => {
-    const fakeData = generateFakeProfile()
-    // Merge with existing profile, keeping any existing IDs
-    const newProfile = {
-      ...profile,
-      ...fakeData,
-      // Preserve system fields
-      id: profile.id,
-      user_id: (profile as any).user_id,
-      version_number: (profile as any).version_number,
-      is_draft: (profile as any).is_draft,
-      is_active: (profile as any).is_active,
-      created_at: profile.created_at,
-      updated_at: profile.updated_at
-    }
-    setProfile(newProfile)
-    setHasUnsavedChanges(true)
-    console.log('🧪 Filled profile with test data:', fakeData.first_name, fakeData.last_name)
-  }
-
   // Calculate completed sections
   const getCompletedSections = useCallback(() => {
     // Use the same section IDs as profileSections array
@@ -888,30 +860,6 @@ export default function ProfileEditPage() {
             </div>
           )}
         </PageHero>
-
-        {/* Test Data Button (Dev Mode Only) */}
-        {showTestDataButton && (
-          <Card className="bg-purple-500/10 border-purple-500/30">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <FlaskConical className="w-6 h-6 text-purple-400" />
-                <div>
-                  <p className="text-sm font-medium text-purple-300">Development Mode</p>
-                  <p className="text-xs text-neutral-400">Fill all fields with realistic fake data for testing</p>
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleFillTestData}
-                className="border-purple-500 text-purple-400 hover:bg-purple-500/20"
-              >
-                <FlaskConical className="w-4 h-4 mr-2" />
-                Fill with Test Data
-              </Button>
-            </div>
-          </Card>
-        )}
 
         {/* Profile Completion Progress - Clickable */}
         {(() => {

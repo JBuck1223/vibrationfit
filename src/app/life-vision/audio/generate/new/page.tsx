@@ -13,6 +13,7 @@ import {
   PageHero,
   Spinner,
   Badge,
+  IntensiveCompletionBanner,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowRight, Music, Mic, Sparkles, Volume2, Rocket } from 'lucide-react'
@@ -28,6 +29,8 @@ export default function AudioGenerateNewPage() {
   const [activeVisionId, setActiveVisionId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [isIntensiveMode, setIsIntensiveMode] = useState(false)
+  const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
+  const [completedAt, setCompletedAt] = useState<string | null>(null)
 
   useEffect(() => {
     checkActiveVision()
@@ -43,15 +46,21 @@ export default function AudioGenerateNewPage() {
         return
       }
 
-      // Check if in intensive mode
+      // Check if in intensive mode and step completion
       const { data: checklist } = await supabase
         .from('intensive_checklist')
-        .select('id')
+        .select('id, audio_generated, audio_generated_at')
         .eq('user_id', user.id)
         .in('status', ['pending', 'in_progress'])
         .maybeSingle()
 
-      setIsIntensiveMode(!!checklist)
+      if (checklist) {
+        setIsIntensiveMode(true)
+        if (checklist.audio_generated) {
+          setIsAlreadyCompleted(true)
+          setCompletedAt(checklist.audio_generated_at)
+        }
+      }
 
       // Find active vision
       const { data: activeVision } = await supabase
@@ -98,17 +107,19 @@ export default function AudioGenerateNewPage() {
   return (
     <Container size="xl">
       <Stack gap="xl">
+        {/* Completion Banner - Shows when step is already complete in intensive mode */}
+        {isIntensiveMode && isAlreadyCompleted && completedAt && (
+          <IntensiveCompletionBanner 
+            stepTitle="Generate Vision Audio"
+            completedAt={completedAt}
+          />
+        )}
+
         <PageHero
-          eyebrow={isIntensiveMode ? "ACTIVATION INTENSIVE - STEP 7" : "THE LIFE I CHOOSE"}
+          eyebrow={isIntensiveMode ? "ACTIVATION INTENSIVE • STEP 7 OF 14" : "THE LIFE I CHOOSE"}
           title="Generate Vision Audio"
           subtitle="Transform your Life Vision into powerful voice audio that speaks directly to your subconscious."
         >
-          {isIntensiveMode && (
-            <Badge variant="premium">
-              <Rocket className="w-4 h-4 mr-2" />
-              Step 7 of 14
-            </Badge>
-          )}
 
           <div>
             <OptimizedVideo

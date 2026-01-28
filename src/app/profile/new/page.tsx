@@ -14,7 +14,7 @@ import {
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowRight, User, Heart, Activity, Sparkles } from 'lucide-react'
-import { IntensiveStepCompletionContent } from '@/components/IntensiveStepCompletionContent'
+import { IntensiveCompletionBanner } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
 
 // Placeholder video URL - user will replace this later
@@ -122,12 +122,10 @@ export default function ProfileNewPage() {
       <Stack gap="xl">
         {/* Completion Banner - Shows above PageHero when step is already complete */}
         {isIntensiveMode && isAlreadyCompleted && completedAt && (
-          <Card className="bg-neutral-800/80 border-neutral-600/50">
-            <IntensiveStepCompletionContent 
-              stepTitle="Create Profile"
-              completedAt={completedAt}
-            />
-          </Card>
+          <IntensiveCompletionBanner 
+            stepTitle="Create Profile"
+            completedAt={completedAt}
+          />
         )}
 
         {/* Page Hero - Always shows, with intensive eyebrow when in intensive mode */}

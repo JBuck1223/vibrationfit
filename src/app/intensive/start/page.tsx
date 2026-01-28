@@ -15,6 +15,7 @@ import {
   Text
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
+import { IntensiveCompletionBanner } from '@/lib/design-system/components'
 import { 
   Settings, 
   FileText,
@@ -45,6 +46,7 @@ export default function IntensiveStartPage() {
   const [starting, setStarting] = useState(false)
   const [checklistId, setChecklistId] = useState<string | null>(null)
   const [alreadyStarted, setAlreadyStarted] = useState(false)
+  const [startedAt, setStartedAt] = useState<string | null>(null)
 
   useEffect(() => {
     checkIntensiveStatus()
@@ -84,6 +86,7 @@ export default function IntensiveStartPage() {
       if (fullChecklist?.started_at) {
         // Already started - show completed state
         setAlreadyStarted(true)
+        setStartedAt(fullChecklist.started_at)
       }
 
       setChecklistId(checklist.id)
@@ -189,14 +192,20 @@ export default function IntensiveStartPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {/* Hero */}
+        {/* Completion Banner - Shows when intensive has already been started */}
+        {alreadyStarted && startedAt && (
+          <IntensiveCompletionBanner
+            stepTitle="Start Intensive"
+            completedAt={startedAt}
+            showReviewText={false}
+          />
+        )}
+
+        {/* Hero - Always shows original welcome content */}
         <PageHero
           eyebrow="72-HOUR ACTIVATION INTENSIVE"
-          title={alreadyStarted ? "Your Intensive Has Begun" : "Welcome to Your Transformation"}
-          subtitle={alreadyStarted 
-            ? "You've started your transformation journey. Continue to your dashboard to track your progress."
-            : "Your 14-step journey to creating and activating the life you truly desire begins now."
-          }
+          title="Welcome to Your Transformation"
+          subtitle="Your 14-step journey to creating and activating the life you truly desire begins now."
         >
           <div className="mx-auto w-full max-w-3xl">
             <OptimizedVideo
@@ -350,13 +359,10 @@ export default function IntensiveStartPage() {
         <Card variant="outlined" className="bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-primary-500/30">
           <Stack gap="md" className="text-center py-4">
             <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em]">
-              {alreadyStarted ? "Journey In Progress" : "Ready to Begin?"}
+              Ready to Begin?
             </Text>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed max-w-2xl mx-auto">
-              {alreadyStarted 
-                ? "Your transformation is underway. Head to your dashboard to continue your 14-step journey."
-                : "Your transformation starts with a single click. When you're ready to commit to your 72-hour journey, press the button below to begin."
-              }
+              Your transformation starts with a single click. When you're ready to commit to your 72-hour journey, press the button below to begin.
             </p>
             <div className="flex flex-col gap-3 items-center">
               {alreadyStarted ? (

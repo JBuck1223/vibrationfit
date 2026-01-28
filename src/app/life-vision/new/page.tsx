@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, Button, Container, Stack, PageHero, Spinner } from '@/lib/design-system/components'
+import { Card, Button, Container, Stack, PageHero, Spinner, IntensiveCompletionBanner } from '@/lib/design-system/components'
 import { Sparkles, CheckCircle, Circle, Clock } from 'lucide-react'
 import { VISION_CATEGORIES, getCategoryClarityField, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
 import { createClient } from '@/lib/supabase/client'
@@ -19,6 +19,9 @@ export default function VIVALifeVisionLandingPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [progress, setProgress] = useState<CategoryProgress>({})
+  const [isIntensiveMode, setIsIntensiveMode] = useState(false)
+  const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
+  const [completedAt, setCompletedAt] = useState<string | null>(null)
 
   useEffect(() => {
     loadProgress()
@@ -32,6 +35,22 @@ export default function VIVALifeVisionLandingPage() {
       if (!user) {
         setLoading(false)
         return
+      }
+
+      // Check if in intensive mode and step completion
+      const { data: checklist } = await supabase
+        .from('intensive_checklist')
+        .select('id, vision_built, vision_built_at')
+        .eq('user_id', user.id)
+        .in('status', ['pending', 'in_progress'])
+        .maybeSingle()
+
+      if (checklist) {
+        setIsIntensiveMode(true)
+        if (checklist.vision_built) {
+          setIsAlreadyCompleted(true)
+          setCompletedAt(checklist.vision_built_at)
+        }
       }
 
       // Get all category states
@@ -125,9 +144,17 @@ export default function VIVALifeVisionLandingPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
+        {/* Completion Banner - Shows when step is already complete in intensive mode */}
+        {isIntensiveMode && isAlreadyCompleted && completedAt && (
+          <IntensiveCompletionBanner 
+            stepTitle="Build Your Life Vision"
+            completedAt={completedAt}
+          />
+        )}
+
         {/* Hero Section */}
         <PageHero
-          eyebrow="THE LIFE I CHOOSE"
+          eyebrow={isIntensiveMode ? "ACTIVATION INTENSIVE • STEP 5 OF 14" : "THE LIFE I CHOOSE"}
           title="Create Your Life Vision with VIVA"
           subtitle="Your Vibrational Intelligence Virtual Assistant is here to help you articulate and activate the life you choose. We'll guide you through 12 key life areas, capturing your voice and energy to create a unified vision."
         />

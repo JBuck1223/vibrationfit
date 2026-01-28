@@ -24,8 +24,7 @@ import {
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
 import { IntensiveStepCompleteBanner } from '@/components/IntensiveStepCompleteBanner'
 import { ReadOnlySection } from '@/components/IntensiveStepCompletedBanner'
-import { IntensiveStepHeader } from '@/components/IntensiveStepHeader'
-import { IntensiveStepCompletionContent } from '@/components/IntensiveStepCompletionContent'
+import { IntensiveCompletionBanner } from '@/lib/design-system/components'
 import { getStepInfo, getNextStep } from '@/lib/intensive/step-mapping'
 
 // Build form data type from questions
@@ -525,14 +524,19 @@ export default function IntensiveIntake() {
   if (isAlreadyCompleted && !justSubmitted && savedResponses && completedAt) {
     return (
       <Container size="xl">
-        <Stack gap="lg">
-          {/* Page Header with completion info integrated */}
-          <IntensiveStepHeader stepNumber={2} stepTitle="Baseline Intake">
-            <IntensiveStepCompletionContent 
-              stepTitle="Baseline Intake"
-              completedAt={completedAt}
-            />
-          </IntensiveStepHeader>
+        <Stack gap="xl">
+          {/* Completion Banner - Shows above PageHero when step is already complete */}
+          <IntensiveCompletionBanner 
+            stepTitle="Baseline Intake"
+            completedAt={completedAt}
+          />
+
+          {/* Page Hero - Same as normal view, with intensive eyebrow */}
+          <PageHero
+            eyebrow="ACTIVATION INTENSIVE • STEP 2 OF 14"
+            title="Baseline Intake"
+            subtitle="Help us understand where you are today so we can measure your transformation"
+          />
 
           {/* Read-Only Responses */}
           <ReadOnlySection
@@ -552,7 +556,7 @@ export default function IntensiveIntake() {
   if (justSubmitted && savedResponses && nextStep) {
     return (
       <Container size="xl">
-        <Stack gap="lg">
+        <Stack gap="xl">
           {/* Top Banner */}
           <IntensiveStepCompleteBanner
             currentStepName={currentStep?.title || 'Baseline Intake'}
@@ -561,11 +565,11 @@ export default function IntensiveIntake() {
             position="top"
           />
 
-          {/* Page Header */}
+          {/* Page Hero - Same as normal view, with intensive eyebrow */}
           <PageHero
-            eyebrow="ACTIVATION INTENSIVE"
-            title="Baseline Intake Complete"
-            subtitle="Your responses have been saved"
+            eyebrow="ACTIVATION INTENSIVE • STEP 2 OF 14"
+            title="Baseline Intake"
+            subtitle="Help us understand where you are today so we can measure your transformation"
           />
 
           {/* Confirmation of submitted responses */}
@@ -604,10 +608,10 @@ export default function IntensiveIntake() {
 
   return (
     <Container size="xl">
-      <Stack gap="lg">
+      <Stack gap="xl">
         <PageHero
-          eyebrow="ACTIVATION INTENSIVE"
-          title="Pre-Intensive Intake"
+          eyebrow="ACTIVATION INTENSIVE • STEP 2 OF 14"
+          title="Baseline Intake"
           subtitle="Help us understand where you are today so we can measure your transformation"
         />
 

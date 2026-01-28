@@ -18,8 +18,7 @@ import {
   Copy,
   User
 } from 'lucide-react'
-import { IntensiveStepHeader } from '@/components/IntensiveStepHeader'
-import { IntensiveStepCompletionContent } from '@/components/IntensiveStepCompletionContent'
+import { IntensiveCompletionBanner } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
 
 interface ProfileData {
@@ -439,27 +438,20 @@ export default function ProfileDashboardPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {/* Page Hero - Use IntensiveStepHeader when in intensive mode */}
-        {isIntensiveMode ? (
-          <IntensiveStepHeader stepNumber={3} stepTitle="Create Profile">
-            {isAlreadyCompleted && completedAt ? (
-              <IntensiveStepCompletionContent 
-                stepTitle="Create Profile"
-                completedAt={completedAt}
-              />
-            ) : (
-              <p className="text-sm md:text-base text-neutral-300 text-center max-w-2xl mx-auto">
-                View and manage your profile versions below.
-              </p>
-            )}
-          </IntensiveStepHeader>
-        ) : (
-          <PageHero
-            eyebrow="PROFILE"
-            title="All Profiles"
-            subtitle="View all of your Profile versions below."
+        {/* Completion Banner - Shows above PageHero when step is already complete in intensive mode */}
+        {isIntensiveMode && isAlreadyCompleted && completedAt && (
+          <IntensiveCompletionBanner 
+            stepTitle="Create Profile"
+            completedAt={completedAt}
           />
         )}
+
+        {/* Page Hero - Always shows, with intensive eyebrow when in intensive mode */}
+        <PageHero
+          eyebrow={isIntensiveMode ? "ACTIVATION INTENSIVE • STEP 3 OF 14" : "PROFILE"}
+          title="All Profiles"
+          subtitle="View all of your Profile versions below."
+        />
 
         {/* Stats Cards */}
         {activeProfile && (

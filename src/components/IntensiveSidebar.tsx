@@ -379,81 +379,85 @@ export function IntensiveSidebar() {
           </span>
         </div>
 
-        {/* DEV MODE: Show BOTH cards for testing/editing - REMOVE AFTER TESTING */}
+        {/* Timer Card - Show active countdown OR completed state */}
         {intensiveStarted && (
           <>
-            {/* ACTIVE STATE - Timer running */}
-            <div className="mt-4 p-3 rounded-xl bg-gradient-to-r from-primary-500/30 to-secondary-500/20 border-2 border-primary-500/50">
-              {/* Label */}
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <Timer className="w-4 h-4 text-primary-400" />
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-300">
-                  72-Hour Focus Window
-                </span>
-              </div>
-              
-              {/* Time remaining label */}
-              <div className="text-center mb-1">
-                <span className="text-[9px] text-white uppercase tracking-wide">
-                  Time remaining
-                </span>
-              </div>
-              
-              {/* Timer display */}
-              <div className="flex items-center justify-center gap-1">
-                {/* Hours */}
-                <div className="flex flex-col items-center">
-                  <span className="text-2xl font-bold font-mono text-white">
-                    {countdown ? String(countdown.hours).padStart(2, '0') : '71'}
+            {/* ACTIVE STATE - Timer still running */}
+            {countdown && (countdown.hours > 0 || countdown.minutes > 0 || countdown.seconds > 0) && (
+              <div className="mt-4 p-3 rounded-xl bg-gradient-to-r from-primary-500/30 to-secondary-500/20 border-2 border-primary-500/50">
+                {/* Label */}
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <Timer className="w-4 h-4 text-primary-400" />
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-300">
+                    72-Hour Focus Window
                   </span>
-                  <span className="text-[9px] text-neutral-200 uppercase font-medium">hrs</span>
                 </div>
-                <span className="text-xl font-bold text-neutral-400">:</span>
-                {/* Minutes */}
-                <div className="flex flex-col items-center">
-                  <span className="text-2xl font-bold font-mono text-white">
-                    {countdown ? String(countdown.minutes).padStart(2, '0') : '42'}
+                
+                {/* Time remaining label */}
+                <div className="text-center mb-1">
+                  <span className="text-[9px] text-white uppercase tracking-wide">
+                    Time remaining
                   </span>
-                  <span className="text-[9px] text-neutral-200 uppercase font-medium">min</span>
                 </div>
-                <span className="text-xl font-bold text-neutral-400">:</span>
-                {/* Seconds */}
-                <div className="flex flex-col items-center">
-                  <span className="text-2xl font-bold font-mono text-white">
-                    {countdown ? String(countdown.seconds).padStart(2, '0') : '18'}
-                  </span>
-                  <span className="text-[9px] text-neutral-200 uppercase font-medium">sec</span>
+                
+                {/* Timer display */}
+                <div className="flex items-center justify-center gap-1">
+                  {/* Hours */}
+                  <div className="flex flex-col items-center">
+                    <span className="text-2xl font-bold font-mono text-white">
+                      {String(countdown.hours).padStart(2, '0')}
+                    </span>
+                    <span className="text-[9px] text-neutral-200 uppercase font-medium">hrs</span>
+                  </div>
+                  <span className="text-xl font-bold text-neutral-400">:</span>
+                  {/* Minutes */}
+                  <div className="flex flex-col items-center">
+                    <span className="text-2xl font-bold font-mono text-white">
+                      {String(countdown.minutes).padStart(2, '0')}
+                    </span>
+                    <span className="text-[9px] text-neutral-200 uppercase font-medium">min</span>
+                  </div>
+                  <span className="text-xl font-bold text-neutral-400">:</span>
+                  {/* Seconds */}
+                  <div className="flex flex-col items-center">
+                    <span className="text-2xl font-bold font-mono text-white">
+                      {String(countdown.seconds).padStart(2, '0')}
+                    </span>
+                    <span className="text-[9px] text-neutral-200 uppercase font-medium">sec</span>
+                  </div>
                 </div>
+                
+                {/* Subtext */}
+                <p className="text-[10px] text-white text-center mt-2">
+                  This is a focus window, not a deadline.
+                </p>
               </div>
-              
-              {/* Subtext */}
-              <p className="text-[10px] text-white text-center mt-2">
-                This is a focus window, not a deadline.
-              </p>
-            </div>
+            )}
 
-            {/* COMPLETED STATE - Static, calm design */}
-            <div className="mt-3 p-3 rounded-xl bg-gradient-to-r from-blue-500/20 to-cyan-500/10 border-2 border-blue-400/30">
-              {/* Label */}
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <Clock className="w-4 h-4 text-blue-400" />
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-300">
-                  72-Hour Focus Window
-                </span>
+            {/* COMPLETED STATE - Show when timer has expired */}
+            {countdown && countdown.hours === 0 && countdown.minutes === 0 && countdown.seconds === 0 && (
+              <div className="mt-4 p-3 rounded-xl bg-gradient-to-r from-blue-500/20 to-cyan-500/10 border-2 border-blue-400/30">
+                {/* Label */}
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Clock className="w-4 h-4 text-blue-400" />
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-300">
+                    72-Hour Focus Window
+                  </span>
+                </div>
+                
+                {/* Main text */}
+                <div className="text-center mb-2">
+                  <span className="text-lg font-semibold text-blue-300">
+                    Focus window complete
+                  </span>
+                </div>
+                
+                {/* Subtext */}
+                <p className="text-[10px] text-white text-center leading-relaxed">
+                  You're still in the Intensive. Keep going until you complete all 14 steps.
+                </p>
               </div>
-              
-              {/* Main text */}
-              <div className="text-center mb-2">
-                <span className="text-lg font-semibold text-blue-300">
-                  Focus window complete
-                </span>
-              </div>
-              
-              {/* Subtext */}
-              <p className="text-[10px] text-white text-center leading-relaxed">
-                You're still in the Intensive. Keep going until you complete all 14 steps.
-              </p>
-            </div>
+            )}
           </>
         )}
       </div>

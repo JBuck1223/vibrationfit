@@ -19,8 +19,7 @@ import { BarChart3, Eye, ArrowLeft, RefreshCw, Trash2, CalendarDays } from 'luci
 import { fetchAssessments, fetchAssessment } from '@/lib/services/assessmentService'
 import { AssessmentResult, AssessmentResponse } from '@/types/assessment'
 import ResultsSummary from '../../components/ResultsSummary'
-import { IntensiveStepHeader } from '@/components/IntensiveStepHeader'
-import { IntensiveStepCompletionContent } from '@/components/IntensiveStepCompletionContent'
+import { IntensiveCompletionBanner } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
 
 export default function AssessmentResultsPage() {
@@ -208,20 +207,21 @@ export default function AssessmentResultsPage() {
   return (
     <Container size="xl" className="">
       <Stack gap="lg">
-        {/* Intensive Mode: Show completed header */}
-        {isIntensiveMode && selectedAssessment?.status === 'completed' && assessmentCompletedAt ? (
-          <IntensiveStepHeader stepNumber={4} stepTitle="Vibration Assessment">
-            <IntensiveStepCompletionContent 
-              stepTitle="Vibration Assessment"
-              completedAt={assessmentCompletedAt}
-            />
-          </IntensiveStepHeader>
-        ) : (
-          <PageHero
-            title="Assessment Results"
-            subtitle="Review your vibrational alignment scores and insights."
-            className="mb-6 md:mb-8"
-          >
+        {/* Completion Banner - Shows above PageHero when step is already complete in intensive mode */}
+        {isIntensiveMode && selectedAssessment?.status === 'completed' && assessmentCompletedAt && (
+          <IntensiveCompletionBanner 
+            stepTitle="Vibration Assessment"
+            completedAt={assessmentCompletedAt}
+          />
+        )}
+
+        {/* Page Hero - Always shows */}
+        <PageHero
+          eyebrow={isIntensiveMode ? "ACTIVATION INTENSIVE • STEP 4 OF 14" : undefined}
+          title="Assessment Results"
+          subtitle="Review your vibrational alignment scores and insights."
+          className="mb-6 md:mb-8"
+        >
             {/* Badge Row */}
             <div className="text-center mb-4">
               <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
@@ -260,9 +260,8 @@ export default function AssessmentResultsPage() {
               </Button>
             </div>
           </PageHero>
-        )}
 
-      {selectedAssessment.status === 'completed' ? (
+        {selectedAssessment.status === 'completed' ? (
             <ResultsSummary 
               assessment={selectedAssessment} 
               responses={responses}

@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import {
   Container,
@@ -9,18 +10,62 @@ import {
   Inline,
   Text,
   PageHero,
+  IntensiveCompletionBanner,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
+import { createClient } from '@/lib/supabase/client'
 import { BookOpen, Heart, Sparkles, Plus } from 'lucide-react'
 
 const JOURNAL_VIDEO =
   'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
 
 export default function JournalResourcesPage() {
+  const [isIntensiveMode, setIsIntensiveMode] = useState(false)
+  const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
+  const [completedAt, setCompletedAt] = useState<string | null>(null)
+
+  useEffect(() => {
+    checkIntensiveMode()
+  }, [])
+
+  const checkIntensiveMode = async () => {
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: checklist } = await supabase
+        .from('intensive_checklist')
+        .select('id, first_journal_entry, first_journal_entry_at')
+        .eq('user_id', user.id)
+        .in('status', ['pending', 'in_progress'])
+        .maybeSingle()
+
+      if (checklist) {
+        setIsIntensiveMode(true)
+        if (checklist.first_journal_entry) {
+          setIsAlreadyCompleted(true)
+          setCompletedAt(checklist.first_journal_entry_at)
+        }
+      }
+    } catch (err) {
+      console.error('Error checking intensive mode:', err)
+    }
+  }
+
   return (
     <Container size="xl">
       <Stack gap="xl">
+        {/* Completion Banner - Shows when step is already complete in intensive mode */}
+        {isIntensiveMode && isAlreadyCompleted && completedAt && (
+          <IntensiveCompletionBanner 
+            stepTitle="First Journal Entry"
+            completedAt={completedAt}
+          />
+        )}
+
         <PageHero
+          eyebrow={isIntensiveMode ? "ACTIVATION INTENSIVE • STEP 11 OF 14" : undefined}
           title="Journal Resources"
           subtitle="Learn how journaling amplifies your vibrational alignment and manifestation practice"
         >

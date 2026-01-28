@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { completeIntensive } from '@/lib/intensive/utils-client'
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
@@ -113,8 +113,10 @@ interface IntensiveStep {
   canSkip?: boolean // Some steps can be skipped
 }
 
-export default function IntensiveDashboard() {
+function IntensiveDashboardContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const previewMode = searchParams.get('preview')
   const [loading, setLoading] = useState(true)
   const [intensive, setIntensive] = useState<IntensivePurchase | null>(null)
   const [checklist, setChecklist] = useState<IntensiveChecklist | null>(null)
@@ -182,6 +184,10 @@ export default function IntensiveDashboard() {
       if (checklistError || !checklistData) {
         // Allow super_admin to access without enrollment
         if (isSuperAdmin) {
+          // Check for preview mode: ?preview=complete shows completion screen
+          const showComplete = previewMode === 'complete'
+          const mockTimestamp = new Date().toISOString()
+          
           // Set mock data for super_admin testing
           setSettingsComplete(true)
           setChecklist({
@@ -189,31 +195,31 @@ export default function IntensiveDashboard() {
             intensive_id: 'super-admin-test',
             user_id: user.id,
             status: 'in_progress',
-            started_at: new Date().toISOString(),
-            intake_completed: true,
-            intake_completed_at: null,
-            profile_completed: true,
-            profile_completed_at: null,
-            assessment_completed: true,
-            assessment_completed_at: null,
-            vision_built: false,
-            vision_built_at: null,
-            vision_refined: false,
-            vision_refined_at: null,
-            audio_generated: false,
-            audio_generated_at: null,
-            audios_generated: false,
-            audios_generated_at: null,
-            vision_board_completed: false,
-            vision_board_completed_at: null,
-            first_journal_entry: false,
-            first_journal_entry_at: null,
-            call_scheduled: false,
-            call_scheduled_at: null,
-            activation_protocol_completed: false,
-            activation_protocol_completed_at: null,
-            unlock_completed: false,
-            unlock_completed_at: null,
+            started_at: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(), // 48 hours ago
+            intake_completed: showComplete ? true : true,
+            intake_completed_at: showComplete ? mockTimestamp : null,
+            profile_completed: showComplete ? true : true,
+            profile_completed_at: showComplete ? mockTimestamp : null,
+            assessment_completed: showComplete ? true : true,
+            assessment_completed_at: showComplete ? mockTimestamp : null,
+            vision_built: showComplete ? true : false,
+            vision_built_at: showComplete ? mockTimestamp : null,
+            vision_refined: showComplete ? true : false,
+            vision_refined_at: showComplete ? mockTimestamp : null,
+            audio_generated: showComplete ? true : false,
+            audio_generated_at: showComplete ? mockTimestamp : null,
+            audios_generated: showComplete ? true : false,
+            audios_generated_at: showComplete ? mockTimestamp : null,
+            vision_board_completed: showComplete ? true : false,
+            vision_board_completed_at: showComplete ? mockTimestamp : null,
+            first_journal_entry: showComplete ? true : false,
+            first_journal_entry_at: showComplete ? mockTimestamp : null,
+            call_scheduled: showComplete ? true : false,
+            call_scheduled_at: showComplete ? mockTimestamp : null,
+            activation_protocol_completed: showComplete ? true : false,
+            activation_protocol_completed_at: showComplete ? mockTimestamp : null,
+            unlock_completed: showComplete ? true : false,
+            unlock_completed_at: showComplete ? mockTimestamp : null,
           } as IntensiveChecklist)
           setLoading(false)
           return
@@ -758,5 +764,18 @@ export default function IntensiveDashboard() {
         </div>
       </Stack>
     </Container>
+  )
+}
+
+// Wrap with Suspense for useSearchParams
+export default function IntensiveDashboard() {
+  return (
+    <Suspense fallback={
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
+      </Container>
+    }>
+      <IntensiveDashboardContent />
+    </Suspense>
   )
 }

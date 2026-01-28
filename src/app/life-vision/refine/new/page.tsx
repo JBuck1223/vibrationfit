@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -12,6 +12,7 @@ import {
   Text,
   PageHero,
   Spinner,
+  IntensiveCompletionBanner,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowRight, Sparkles, Target, Heart, Zap } from 'lucide-react'
@@ -24,6 +25,45 @@ export default function LifeVisionRefineNewPage() {
   const router = useRouter()
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isIntensiveMode, setIsIntensiveMode] = useState(false)
+  const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
+  const [completedAt, setCompletedAt] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  // Check intensive mode on mount
+  useEffect(() => {
+    checkIntensiveMode()
+  }, [])
+
+  const checkIntensiveMode = async () => {
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setLoading(false)
+        return
+      }
+
+      const { data: checklist } = await supabase
+        .from('intensive_checklist')
+        .select('id, vision_refined, vision_refined_at')
+        .eq('user_id', user.id)
+        .in('status', ['pending', 'in_progress'])
+        .maybeSingle()
+
+      if (checklist) {
+        setIsIntensiveMode(true)
+        if (checklist.vision_refined) {
+          setIsAlreadyCompleted(true)
+          setCompletedAt(checklist.vision_refined_at)
+        }
+      }
+    } catch (err) {
+      console.error('Error checking intensive mode:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleCreateVision = async () => {
     setIsCreating(true)
@@ -116,8 +156,17 @@ export default function LifeVisionRefineNewPage() {
   return (
     <Container size="xl">
       <Stack gap="xl">
+        {/* Completion Banner - Shows when step is already complete in intensive mode */}
+        {isIntensiveMode && isAlreadyCompleted && completedAt && (
+          <IntensiveCompletionBanner 
+            stepTitle="Refine Your Vision"
+            completedAt={completedAt}
+          />
+        )}
+
         {/* Centered Hero Title */}
         <PageHero
+          eyebrow={isIntensiveMode ? "ACTIVATION INTENSIVE • STEP 6 OF 14" : undefined}
           title="Refine Your Life Vision"
           subtitle="Create a new draft based on your active vision, then refine and commit when ready."
         >

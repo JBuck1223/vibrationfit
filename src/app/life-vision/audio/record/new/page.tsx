@@ -13,6 +13,7 @@ import {
   PageHero,
   Spinner,
   Badge,
+  IntensiveCompletionBanner,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowRight, Mic, Heart, Brain, Sparkles, SkipForward, Rocket } from 'lucide-react'
@@ -29,6 +30,8 @@ export default function AudioRecordNewPage() {
   const [loading, setLoading] = useState(true)
   const [isIntensiveMode, setIsIntensiveMode] = useState(false)
   const [intensiveId, setIntensiveId] = useState<string | null>(null)
+  const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
+  const [completedAt, setCompletedAt] = useState<string | null>(null)
 
   useEffect(() => {
     checkActiveVision()
@@ -44,10 +47,11 @@ export default function AudioRecordNewPage() {
         return
       }
 
-      // Check if in intensive mode
+      // Check if in intensive mode and step completion
+      // Note: Step 8 (Record Voice) shares completion with Step 7 (audio_generated)
       const { data: checklist } = await supabase
         .from('intensive_checklist')
-        .select('id, intensive_id')
+        .select('id, intensive_id, audio_generated, audio_generated_at')
         .eq('user_id', user.id)
         .in('status', ['pending', 'in_progress'])
         .maybeSingle()
@@ -55,6 +59,11 @@ export default function AudioRecordNewPage() {
       if (checklist) {
         setIsIntensiveMode(true)
         setIntensiveId(checklist.intensive_id)
+        // Step 8 is optional and shares completion status with Step 7
+        if (checklist.audio_generated) {
+          setIsAlreadyCompleted(true)
+          setCompletedAt(checklist.audio_generated_at)
+        }
       }
 
       // Find active vision
@@ -111,17 +120,19 @@ export default function AudioRecordNewPage() {
   return (
     <Container size="xl">
       <Stack gap="xl">
+        {/* Completion Banner - Shows when step is already complete in intensive mode */}
+        {isIntensiveMode && isAlreadyCompleted && completedAt && (
+          <IntensiveCompletionBanner 
+            stepTitle="Record Your Voice"
+            completedAt={completedAt}
+          />
+        )}
+
         <PageHero
-          eyebrow={isIntensiveMode ? "ACTIVATION INTENSIVE - STEP 8" : "THE LIFE I CHOOSE"}
+          eyebrow={isIntensiveMode ? "ACTIVATION INTENSIVE • STEP 8 OF 14 (OPTIONAL)" : "THE LIFE I CHOOSE"}
           title="Record Your Voice"
           subtitle="Add the power of your own voice to your vision audio - the most personal and impactful way to program your subconscious."
         >
-          {isIntensiveMode && (
-            <Badge variant="premium">
-              <Rocket className="w-4 h-4 mr-2" />
-              Step 8 of 14 (Optional)
-            </Badge>
-          )}
 
           <div>
             <OptimizedVideo

@@ -7,8 +7,7 @@ import { Calendar, CheckCircle, ArrowLeft } from 'lucide-react'
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
 import { IntensiveStepCompleteBanner } from '@/components/IntensiveStepCompleteBanner'
 import { ReadOnlySection } from '@/components/IntensiveStepCompletedBanner'
-import { IntensiveStepHeader } from '@/components/IntensiveStepHeader'
-import { IntensiveStepCompletionContent } from '@/components/IntensiveStepCompletionContent'
+import { IntensiveCompletionBanner } from '@/lib/design-system/components'
 import { getStepInfo, getNextStep } from '@/lib/intensive/step-mapping'
 
 import { 
@@ -388,12 +387,18 @@ export default function ScheduleCallPage() {
     return (
       <Container size="lg">
         <Stack gap="lg">
-          <IntensiveStepHeader stepNumber={12} stepTitle="Book Calibration Call">
-            <IntensiveStepCompletionContent 
-              stepTitle="Book Calibration Call"
-              completedAt={scheduledAt}
-            />
-          </IntensiveStepHeader>
+          {/* Completion Banner */}
+          <IntensiveCompletionBanner 
+            stepTitle="Book Calibration Call"
+            completedAt={scheduledAt}
+          />
+
+          {/* Page Hero - Normal page title */}
+          <PageHero
+            eyebrow="ACTIVATION INTENSIVE • STEP 12 OF 14"
+            title="Book Calibration Call"
+            subtitle="Schedule your 1-on-1 vision calibration session"
+          />
           
           <ReadOnlySection
             title="Your Scheduled Call"

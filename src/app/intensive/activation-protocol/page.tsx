@@ -7,8 +7,7 @@ import { ArrowLeft, Rocket, CheckCircle, Music, ImageIcon, BookOpen, Calendar } 
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
 import { IntensiveStepCompleteBanner } from '@/components/IntensiveStepCompleteBanner'
 import { ReadOnlySection } from '@/components/IntensiveStepCompletedBanner'
-import { IntensiveStepHeader } from '@/components/IntensiveStepHeader'
-import { IntensiveStepCompletionContent } from '@/components/IntensiveStepCompletionContent'
+import { IntensiveCompletionBanner } from '@/lib/design-system/components'
 
 import { 
   Container, 
@@ -129,12 +128,18 @@ export default function ActivationProtocolPage() {
     return (
       <Container size="lg">
         <Stack gap="lg">
-          <IntensiveStepHeader stepNumber={13} stepTitle="Activation Protocol">
-            <IntensiveStepCompletionContent 
-              stepTitle="Activation Protocol"
-              completedAt={completedAt}
-            />
-          </IntensiveStepHeader>
+          {/* Completion Banner */}
+          <IntensiveCompletionBanner 
+            stepTitle="Activation Protocol"
+            completedAt={completedAt}
+          />
+
+          {/* Page Hero - Normal page title */}
+          <PageHero
+            eyebrow="ACTIVATION INTENSIVE • STEP 13 OF 14"
+            title="Activation Protocol"
+            subtitle="Complete your custom activation protocol"
+          />
           
           <ReadOnlySection
             title="Your Activation Protocol"
