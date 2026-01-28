@@ -16,7 +16,7 @@ import {
   IntensiveCompletionBanner,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
-import { ArrowRight, Music, Mic, Sparkles, Volume2, Rocket } from 'lucide-react'
+import { ArrowRight, Music, Mic, Sparkles, Volume2, Rocket, Headphones } from 'lucide-react'
 
 // Placeholder video URL - replace with actual intro video
 const AUDIO_GENERATE_VIDEO =
@@ -130,27 +130,39 @@ export default function AudioGenerateNewPage() {
           </div>
 
           <div className="flex flex-col gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
-            <Button 
-              variant="primary" 
-              size="sm" 
-              onClick={handleGetStarted}
-              disabled={isNavigating || !activeVisionId}
-              className="w-full md:w-auto"
-            >
-              {isNavigating ? (
-                <>
-                  <Spinner variant="primary" size="sm" className="mr-2" />
-                  Loading...
-                </>
-              ) : (
-                <>
-                  <ArrowRight className="mr-2 h-4 w-4" />
-                  Generate My Vision Audio
-                </>
-              )}
-            </Button>
+            {isAlreadyCompleted ? (
+              <Button 
+                variant="primary" 
+                size="sm" 
+                onClick={() => router.push('/life-vision')}
+                className="w-full md:w-auto"
+              >
+                <Headphones className="mr-2 h-4 w-4" />
+                Listen to Audio
+              </Button>
+            ) : (
+              <Button 
+                variant="primary" 
+                size="sm" 
+                onClick={handleGetStarted}
+                disabled={isNavigating || !activeVisionId}
+                className="w-full md:w-auto"
+              >
+                {isNavigating ? (
+                  <>
+                    <Spinner variant="primary" size="sm" className="mr-2" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight className="mr-2 h-4 w-4" />
+                    Generate My Vision Audio
+                  </>
+                )}
+              </Button>
+            )}
             {error && <p className="text-sm text-red-400">{error}</p>}
-            {!activeVisionId && !error && (
+            {!activeVisionId && !error && !isAlreadyCompleted && (
               <p className="text-sm text-neutral-400">
                 You need an active Life Vision to generate audio.{' '}
                 <button 
@@ -235,24 +247,37 @@ export default function AudioGenerateNewPage() {
               enhance it with your own voice, music, and frequencies in the next steps.
             </p>
             <div className="flex flex-col gap-2 md:gap-4 justify-center items-center">
-              <Button 
-                variant="primary" 
-                size="sm" 
-                onClick={handleGetStarted}
-                disabled={isNavigating || !activeVisionId}
-                className="w-full md:w-auto"
-              >
-                {isNavigating ? (
-                  <>
-                    <Spinner variant="primary" size="sm" className="mr-2" />
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    <ArrowRight className="mr-2 h-4 w-4" />
-                    Start Generating
-                  </>
-                )}
+              {isAlreadyCompleted ? (
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={() => router.push('/life-vision')}
+                  className="w-full md:w-auto"
+                >
+                  <Headphones className="mr-2 h-4 w-4" />
+                  Listen to Audio
+                </Button>
+              ) : (
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={handleGetStarted}
+                  disabled={isNavigating || !activeVisionId}
+                  className="w-full md:w-auto"
+                >
+                  {isNavigating ? (
+                    <>
+                      <Spinner variant="primary" size="sm" className="mr-2" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowRight className="mr-2 h-4 w-4" />
+                      Start Generating
+                    </>
+                  )}
+                </Button>
+              )}
               </Button>
             </div>
           </Stack>

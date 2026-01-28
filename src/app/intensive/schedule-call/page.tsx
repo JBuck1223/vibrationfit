@@ -3,9 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Calendar, CheckCircle, ArrowLeft } from 'lucide-react'
+import { Calendar, CheckCircle, ArrowLeft, Video } from 'lucide-react'
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
-import { IntensiveStepCompleteBanner } from '@/components/IntensiveStepCompleteBanner'
 import { ReadOnlySection } from '@/components/IntensiveStepCompletedBanner'
 import { IntensiveCompletionBanner } from '@/lib/design-system/components'
 import { getStepInfo, getNextStep } from '@/lib/intensive/step-mapping'
@@ -340,10 +339,8 @@ export default function ScheduleCallPage() {
       // TODO: Send calendar invite and confirmation email
       // This would integrate with email service
 
-      // Show completion banner instead of redirecting
-      setJustScheduled(true)
-      setScheduledTime(scheduledDateTime.toISOString())
-      setScheduledAt(new Date().toISOString())
+      // Redirect to completion page
+      router.push('/intensive/schedule-call/complete')
     } catch (error) {
       console.error('Error scheduling call:', error)
       alert('Failed to schedule call. Please try again.')
@@ -426,50 +423,18 @@ export default function ScheduleCallPage() {
                   <p className="text-neutral-300">{contactInfo.phone || 'Not provided'}</p>
                 </div>
               </div>
+              <div className="mt-6 flex justify-center">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => router.push('/sessions')}
+                >
+                  <Video className="w-4 h-4 mr-2" />
+                  View My Meetings
+                </Button>
+              </div>
             </Card>
           </ReadOnlySection>
-        </Stack>
-      </Container>
-    )
-  }
-
-  // SCENARIO A: User just scheduled - show completion banner
-  if (justScheduled && scheduledTime && nextStep) {
-    return (
-      <Container size="lg">
-        <Stack gap="lg">
-          <IntensiveStepCompleteBanner
-            currentStepName={currentStep?.title || 'Book Calibration Call'}
-            nextStepName={nextStep.title}
-            nextStepHref={nextStep.href}
-            position="top"
-          />
-          
-          <PageHero
-            title="Call Scheduled!"
-            subtitle="Your calibration call is confirmed"
-          />
-          
-          <Card className="p-6">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 bg-primary-500 rounded-xl flex items-center justify-center flex-shrink-0">
-                <CheckCircle className="w-6 h-6 text-black" />
-              </div>
-              <div>
-                <p className="text-lg font-semibold text-white">
-                  {formatScheduledTime(scheduledTime)}
-                </p>
-                <p className="text-sm text-neutral-400">You&apos;ll receive a calendar invite shortly</p>
-              </div>
-            </div>
-          </Card>
-          
-          <IntensiveStepCompleteBanner
-            currentStepName={currentStep?.title || 'Book Calibration Call'}
-            nextStepName={nextStep.title}
-            nextStepHref={nextStep.href}
-            position="bottom"
-          />
         </Stack>
       </Container>
     )

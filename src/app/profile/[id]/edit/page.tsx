@@ -304,11 +304,13 @@ export default function ProfileEditPage() {
         if (success) {
           setProfileMarkedComplete(true)
           console.log('✅ Profile step marked complete in intensive')
+          // Redirect to completion page
+          router.push('/intensive/profile/complete')
         }
       }
     }
     markProfileComplete()
-  }, [intensiveMode, completionPercentage, profileMarkedComplete])
+  }, [intensiveMode, completionPercentage, profileMarkedComplete, router])
 
   // Fetch versions
   const fetchVersions = async () => {

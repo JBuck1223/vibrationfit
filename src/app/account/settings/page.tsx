@@ -11,7 +11,6 @@ import { ProfilePictureUpload } from '@/app/profile/components/ProfilePictureUpl
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
-import { IntensiveStepCompleteBanner } from '@/components/IntensiveStepCompleteBanner'
 import { IntensiveCompletionBanner } from '@/lib/design-system/components'
 import { getStepInfo, getNextStep } from '@/lib/intensive/step-mapping'
 
@@ -140,9 +139,9 @@ export default function AccountSettingsPage() {
       if (error) {
         console.error('Error marking intensive settings complete:', error)
       } else {
-        // Show completion banner instead of redirecting
-        setJustCompletedStep(true)
+        // Redirect to completion page
         toast.success('Account settings saved!')
+        router.push('/intensive/settings/complete')
       }
     } catch (error) {
       console.error('Error in markIntensiveSettingsComplete:', error)
@@ -404,16 +403,6 @@ export default function AccountSettingsPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {/* Intensive Mode: Show completion banner at top when just completed */}
-        {justCompletedStep && isIntensiveMode && nextStep && (
-          <IntensiveStepCompleteBanner
-            currentStepName={currentStep?.title || 'Account Settings'}
-            nextStepName={nextStep.title}
-            nextStepHref={nextStep.href}
-            position="top"
-          />
-        )}
-
         {/* Completion Banner - Shows above PageHero when step is already complete in intensive mode */}
         {isIntensiveMode && isAlreadyCompleted && completedAt && !justCompletedStep && (
           <IntensiveCompletionBanner 
@@ -593,16 +582,6 @@ export default function AccountSettingsPage() {
               )}
             </div>
           </Card>
-        )}
-
-        {/* Intensive Mode: Show completion banner at bottom when just completed */}
-        {justCompletedStep && isIntensiveMode && nextStep && (
-          <IntensiveStepCompleteBanner
-            currentStepName={currentStep?.title || 'Account Settings'}
-            nextStepName={nextStep.title}
-            nextStepHref={nextStep.href}
-            position="bottom"
-          />
         )}
       </Stack>
 

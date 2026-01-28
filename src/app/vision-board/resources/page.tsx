@@ -78,17 +78,28 @@ export default function VisionBoardResourcesPage() {
           </div>
           
           <div className="grid grid-cols-2 md:flex md:flex-row gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
-            <Button variant="ghost" size="sm" asChild className="w-full md:w-auto md:flex-none">
-              <Link href="/vision-board">
-                See All
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" asChild className="w-full md:w-auto md:flex-none flex items-center gap-2">
-              <Link href="/vision-board/new">
-                <Plus className="w-4 h-4" />
-                Add Item
-              </Link>
-            </Button>
+            {isAlreadyCompleted ? (
+              <Button variant="primary" size="sm" asChild className="w-full md:w-auto md:flex-none flex items-center gap-2">
+                <Link href="/vision-board">
+                  <Eye className="w-4 h-4" />
+                  View Vision Board
+                </Link>
+              </Button>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" asChild className="w-full md:w-auto md:flex-none">
+                  <Link href="/vision-board">
+                    See All
+                  </Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild className="w-full md:w-auto md:flex-none flex items-center gap-2">
+                  <Link href="/vision-board/new">
+                    <Plus className="w-4 h-4" />
+                    Add Item
+                  </Link>
+                </Button>
+              </>
+            )}
           </div>
         </PageHero>
 

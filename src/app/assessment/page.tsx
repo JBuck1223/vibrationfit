@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Button, Card, Badge, PageHero, StatusBadge, DeleteConfirmationDialog, Container, Stack, Spinner, Text, Inline } from '@/lib/design-system/components'
+import { Button, Card, Badge, PageHero, StatusBadge, DeleteConfirmationDialog, Container, Stack, Spinner, Text, Inline, IntensiveCompletionBanner } from '@/lib/design-system/components'
 import { fetchAssessments, deleteAssessment, createAssessment, fetchAssessmentProgress, AssessmentProgress } from '@/lib/services/assessmentService'
 import { AssessmentResult } from '@/types/assessment'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
+import { createClient } from '@/lib/supabase/client'
 import { 
   PlayCircle, 
   Trash2, 
@@ -19,7 +20,8 @@ import {
   Target,
   BarChart,
   TrendingUp,
-  Sparkles
+  Sparkles,
+  Eye
 } from 'lucide-react'
 
 // Placeholder video URL - user will replace this later
@@ -39,6 +41,8 @@ export default function AssessmentHub() {
   const [progress, setProgress] = useState<AssessmentProgress | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [assessmentToDelete, setAssessmentToDelete] = useState<string | null>(null)
+  const [isIntensiveCompleted, setIsIntensiveCompleted] = useState(false)
+  const [intensiveCompletedAt, setIntensiveCompletedAt] = useState<string | null>(null)
 
   const toTimestamp = (value?: Date | string | null) => {
     if (!value) return 0
@@ -58,7 +62,40 @@ export default function AssessmentHub() {
 
   useEffect(() => {
     loadAssessments()
+    checkIntensiveCompletion()
   }, [])
+
+  const checkIntensiveCompletion = async () => {
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // Check for active intensive purchase
+      const { data: intensiveData } = await supabase
+        .from('intensive_purchases')
+        .select('id')
+        .eq('user_id', user.id)
+        .in('completion_status', ['pending', 'in_progress', 'completed'])
+        .maybeSingle()
+
+      if (intensiveData) {
+        // Check if assessment step is completed
+        const { data: checklistData } = await supabase
+          .from('intensive_checklist')
+          .select('assessment_completed, assessment_completed_at')
+          .eq('intensive_id', intensiveData.id)
+          .maybeSingle()
+
+        if (checklistData?.assessment_completed) {
+          setIsIntensiveCompleted(true)
+          setIntensiveCompletedAt(checklistData.assessment_completed_at)
+        }
+      }
+    } catch (error) {
+      console.error('Error checking intensive completion:', error)
+    }
+  }
 
   useEffect(() => {
     if (!incompleteAssessment && errorMessage) {
@@ -200,8 +237,17 @@ export default function AssessmentHub() {
   return (
     <Container size="xl">
       <Stack gap="lg">
+        {/* Intensive Completion Banner */}
+        {(isIntensiveMode || isIntensiveCompleted) && isIntensiveCompleted && intensiveCompletedAt && (
+          <IntensiveCompletionBanner
+            stepTitle="Vibration Assessment"
+            completedAt={intensiveCompletedAt}
+          />
+        )}
+
         {/* Hero with Video */}
         <PageHero
+          eyebrow={isIntensiveMode || isIntensiveCompleted ? "ACTIVATION INTENSIVE • STEP 4 OF 14" : undefined}
           title="Vibrational Assessment"
           subtitle="Discover where you stand in each area of your life and unlock personalized insights."
         >
@@ -217,25 +263,37 @@ export default function AssessmentHub() {
           {/* Action Button - Only show if NO in-progress assessment */}
           {!incompleteAssessment && (
             <div className="flex flex-col gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
-              <Button 
-                variant="primary" 
-                size="sm" 
-                onClick={handleCreateAssessment}
-                disabled={isCreating}
-                className="w-full md:w-auto"
-              >
-                {isCreating ? (
-                  <>
-                    <Spinner variant="primary" size="sm" className="mr-2" />
-                    Starting Assessment...
-                  </>
-                ) : (
-                  <>
-                    <ArrowRight className="mr-2 h-4 w-4" />
-                    Take the Assessment
-                  </>
-                )}
-              </Button>
+              {isIntensiveCompleted && sortedCompletedAssessments.length > 0 ? (
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={() => router.push(`/assessment/${sortedCompletedAssessments[0].id}/results`)}
+                  className="w-full md:w-auto"
+                >
+                  <Eye className="mr-2 h-4 w-4" />
+                  View Results
+                </Button>
+              ) : (
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={handleCreateAssessment}
+                  disabled={isCreating}
+                  className="w-full md:w-auto"
+                >
+                  {isCreating ? (
+                    <>
+                      <Spinner variant="primary" size="sm" className="mr-2" />
+                      Starting Assessment...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowRight className="mr-2 h-4 w-4" />
+                      Take the Assessment
+                    </>
+                  )}
+                </Button>
+              )}
               {errorMessage && (
                 <p className="text-sm text-red-400">{errorMessage}</p>
               )}

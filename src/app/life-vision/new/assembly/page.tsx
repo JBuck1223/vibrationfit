@@ -23,6 +23,7 @@ export default function AssemblyPage() {
   const isProcessingRef = useRef(false)
   
   const [isLoading, setIsLoading] = useState(true)
+  const [isIntensiveMode, setIsIntensiveMode] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [vivaProgress, setVivaProgress] = useState(0)
   const [waitingStartTime, setWaitingStartTime] = useState<number | null>(null)
@@ -142,6 +143,18 @@ export default function AssemblyPage() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
+
+      // Check if in intensive mode
+      const { data: checklist } = await supabase
+        .from('intensive_checklist')
+        .select('id')
+        .eq('user_id', user.id)
+        .in('status', ['pending', 'in_progress'])
+        .maybeSingle()
+
+      if (checklist) {
+        setIsIntensiveMode(true)
+      }
 
       // Perspective defaults to 'singular' - user will select on page before assembly
 
@@ -611,6 +624,17 @@ export default function AssemblyPage() {
               completed_at: new Date().toISOString()
             })
             .eq('id', currentBatchId)
+
+          // Mark intensive step if in intensive mode
+          if (isIntensiveMode) {
+            const { markIntensiveStep } = await import('@/lib/intensive/checklist')
+            const success = await markIntensiveStep('vision_built')
+            if (success) {
+              // Redirect to completion page
+              router.push('/intensive/build-vision/complete')
+              return
+            }
+          }
         }
       }
 

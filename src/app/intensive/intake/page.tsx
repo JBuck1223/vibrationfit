@@ -22,7 +22,6 @@ import {
   type IntakeQuestion 
 } from '@/lib/constants/intensive-intake-questions'
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
-import { IntensiveStepCompleteBanner } from '@/components/IntensiveStepCompleteBanner'
 import { ReadOnlySection } from '@/components/IntensiveStepCompletedBanner'
 import { IntensiveCompletionBanner } from '@/lib/design-system/components'
 import { getStepInfo, getNextStep } from '@/lib/intensive/step-mapping'
@@ -211,10 +210,8 @@ export default function IntensiveIntake() {
         console.error('Error updating checklist:', checklistError)
       }
 
-      // Show the completion banner instead of redirecting
-      setJustSubmitted(true)
-      setCompletedAt(completedTime)
-      setSavedResponses(formData)
+      // Redirect to completion page
+      router.push('/intensive/intake/complete')
 
     } catch (error) {
       console.error('Error submitting form:', error)
@@ -547,49 +544,6 @@ export default function IntensiveIntake() {
               {questions.map(q => renderReadOnlyQuestion(q, savedResponses))}
             </div>
           </ReadOnlySection>
-        </Stack>
-      </Container>
-    )
-  }
-
-  // SCENARIO A: User just submitted - show completion banner
-  if (justSubmitted && savedResponses && nextStep) {
-    return (
-      <Container size="xl">
-        <Stack gap="xl">
-          {/* Top Banner */}
-          <IntensiveStepCompleteBanner
-            currentStepName={currentStep?.title || 'Baseline Intake'}
-            nextStepName={nextStep.title}
-            nextStepHref={nextStep.href}
-            position="top"
-          />
-
-          {/* Page Hero - Same as normal view, with intensive eyebrow */}
-          <PageHero
-            eyebrow="ACTIVATION INTENSIVE • STEP 2 OF 14"
-            title="Baseline Intake"
-            subtitle="Help us understand where you are today so we can measure your transformation"
-          />
-
-          {/* Confirmation of submitted responses */}
-          <Card variant="elevated" className="p-6 md:p-8">
-            <h3 className="text-lg font-semibold text-white mb-2">Your Baseline Responses</h3>
-            <p className="text-sm text-neutral-400 mb-6">
-              These answers are your official &quot;before&quot; snapshot and are locked in for this Activation.
-            </p>
-            <div className="space-y-4">
-              {questions.map(q => renderReadOnlyQuestion(q, savedResponses))}
-            </div>
-          </Card>
-
-          {/* Bottom Banner */}
-          <IntensiveStepCompleteBanner
-            currentStepName={currentStep?.title || 'Baseline Intake'}
-            nextStepName={nextStep.title}
-            nextStepHref={nextStep.href}
-            position="bottom"
-          />
         </Stack>
       </Container>
     )

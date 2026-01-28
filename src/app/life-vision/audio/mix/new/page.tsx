@@ -130,27 +130,39 @@ export default function AudioMixNewPage() {
           </div>
 
           <div className="flex flex-col gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
-            <Button 
-              variant="primary" 
-              size="sm" 
-              onClick={handleGetStarted}
-              disabled={isNavigating || !activeVisionId}
-              className="w-full md:w-auto"
-            >
-              {isNavigating ? (
-                <>
-                  <Spinner variant="primary" size="sm" className="mr-2" />
-                  Loading...
-                </>
-              ) : (
-                <>
-                  <Sliders className="mr-2 h-4 w-4" />
-                  Create My Audio Mix
-                </>
-              )}
-            </Button>
+            {isAlreadyCompleted ? (
+              <Button 
+                variant="primary" 
+                size="sm" 
+                onClick={() => router.push('/life-vision')}
+                className="w-full md:w-auto"
+              >
+                <Headphones className="mr-2 h-4 w-4" />
+                Listen to Audio
+              </Button>
+            ) : (
+              <Button 
+                variant="primary" 
+                size="sm" 
+                onClick={handleGetStarted}
+                disabled={isNavigating || !activeVisionId}
+                className="w-full md:w-auto"
+              >
+                {isNavigating ? (
+                  <>
+                    <Spinner variant="primary" size="sm" className="mr-2" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <Sliders className="mr-2 h-4 w-4" />
+                    Create My Audio Mix
+                  </>
+                )}
+              </Button>
+            )}
             {error && <p className="text-sm text-red-400">{error}</p>}
-            {!activeVisionId && !error && (
+            {!activeVisionId && !error && !isAlreadyCompleted && (
               <p className="text-sm text-neutral-400">
                 You need an active Life Vision with generated audio to create a mix.
               </p>
@@ -269,25 +281,37 @@ export default function AudioMixNewPage() {
               is unlimited - experiment to find what resonates most deeply with you.
             </p>
             <div className="flex flex-col gap-2 md:gap-4 justify-center items-center">
-              <Button 
-                variant="primary" 
-                size="sm" 
-                onClick={handleGetStarted}
-                disabled={isNavigating || !activeVisionId}
-                className="w-full md:w-auto"
-              >
-                {isNavigating ? (
-                  <>
-                    <Spinner variant="primary" size="sm" className="mr-2" />
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    <Sliders className="mr-2 h-4 w-4" />
-                    Start Mixing
-                  </>
-                )}
-              </Button>
+              {isAlreadyCompleted ? (
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={() => router.push('/life-vision')}
+                  className="w-full md:w-auto"
+                >
+                  <Headphones className="mr-2 h-4 w-4" />
+                  Listen to Audio
+                </Button>
+              ) : (
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={handleGetStarted}
+                  disabled={isNavigating || !activeVisionId}
+                  className="w-full md:w-auto"
+                >
+                  {isNavigating ? (
+                    <>
+                      <Spinner variant="primary" size="sm" className="mr-2" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <Sliders className="mr-2 h-4 w-4" />
+                      Start Mixing
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </Stack>
         </Card>

@@ -14,7 +14,7 @@ import {
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { createClient } from '@/lib/supabase/client'
-import { BookOpen, Heart, Sparkles, Plus } from 'lucide-react'
+import { BookOpen, Heart, Sparkles, Plus, Eye } from 'lucide-react'
 
 const JOURNAL_VIDEO =
   'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
@@ -78,17 +78,28 @@ export default function JournalResourcesPage() {
           </div>
           
           <div className="grid grid-cols-2 md:flex md:flex-row gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
-            <Button variant="ghost" size="sm" asChild className="w-full md:w-auto md:flex-none">
-              <Link href="/journal">
-                See All Entries
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" asChild className="w-full md:w-auto md:flex-none flex items-center gap-2">
-              <Link href="/journal/new">
-                <Plus className="w-4 h-4" />
-                Add Entry
-              </Link>
-            </Button>
+            {isAlreadyCompleted ? (
+              <Button variant="primary" size="sm" asChild className="w-full md:w-auto md:flex-none flex items-center gap-2">
+                <Link href="/journal">
+                  <Eye className="w-4 h-4" />
+                  View Journal
+                </Link>
+              </Button>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" asChild className="w-full md:w-auto md:flex-none">
+                  <Link href="/journal">
+                    See All Entries
+                  </Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild className="w-full md:w-auto md:flex-none flex items-center gap-2">
+                  <Link href="/journal/new">
+                    <Plus className="w-4 h-4" />
+                    Add Entry
+                  </Link>
+                </Button>
+              </>
+            )}
           </div>
         </PageHero>
 

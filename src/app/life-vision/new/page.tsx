@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, Button, Container, Stack, PageHero, Spinner, IntensiveCompletionBanner } from '@/lib/design-system/components'
-import { Sparkles, CheckCircle, Circle, Clock } from 'lucide-react'
+import { Sparkles, CheckCircle, Circle, Clock, Eye } from 'lucide-react'
 import { VISION_CATEGORIES, getCategoryClarityField, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
 import { createClient } from '@/lib/supabase/client'
 
@@ -315,17 +315,29 @@ export default function VIVALifeVisionLandingPage() {
 
         {/* CTA */}
         <div className="text-center">
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={handleGetStarted}
-            loading={loading}
-            disabled={loading}
-            className="w-full sm:w-auto"
-          >
-            <Sparkles className="w-4 h-4 mr-2" />
-            {Object.keys(progress).length > 0 ? 'Continue Your Vision' : 'Get Started'}
-          </Button>
+          {isAlreadyCompleted ? (
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={() => router.push('/life-vision')}
+              className="w-full sm:w-auto"
+            >
+              <Eye className="w-4 h-4 mr-2" />
+              View Life Vision
+            </Button>
+          ) : (
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={handleGetStarted}
+              loading={loading}
+              disabled={loading}
+              className="w-full sm:w-auto"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              {Object.keys(progress).length > 0 ? 'Continue Your Vision' : 'Get Started'}
+            </Button>
+          )}
           <p className="text-xs md:text-sm text-neutral-400 mt-4">
             You can pause and resume anytime. Your progress is automatically saved.
           </p>

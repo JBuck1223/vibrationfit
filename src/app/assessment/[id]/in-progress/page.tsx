@@ -18,7 +18,6 @@ import {
   AssessmentProgress
 } from '@/lib/services/assessmentService'
 import ResultsSummary from '../../components/ResultsSummary'
-import { IntensiveStepCompleteBanner } from '@/components/IntensiveStepCompleteBanner'
 import { getStepInfo, getNextStep } from '@/lib/intensive/step-mapping'
 
 export default function AssessmentPage() {
@@ -530,14 +529,15 @@ export default function AssessmentPage() {
       setAssessmentResponses(completedData.responses)
       setIsComplete(true)
       
-      // If in intensive mode, mark assessment as complete
+      // If in intensive mode, mark assessment as complete and redirect
       if (isIntensiveMode) {
         const { markIntensiveStep } = await import('@/lib/intensive/checklist')
         const success = await markIntensiveStep('assessment_completed')
         
         if (success) {
-          // Don't auto-redirect - let user see results and navigate manually
-          console.log('Assessment completed in intensive mode')
+          // Redirect to completion page
+          router.push('/intensive/assessment/complete')
+          return
         }
       }
     } catch (error) {
@@ -591,30 +591,10 @@ export default function AssessmentPage() {
       <div className="min-h-screen bg-black">
         <Container size="xl">
           <Stack gap="lg">
-            {/* Intensive mode: Show completion banner at top */}
-            {isIntensiveMode && nextStep && (
-              <IntensiveStepCompleteBanner
-                currentStepName={currentStep?.title || 'Vibration Assessment'}
-                nextStepName={nextStep.title}
-                nextStepHref={nextStep.href}
-                position="top"
-              />
-            )}
-            
             <ResultsSummary
               assessment={assessmentData}
               responses={assessmentResponses || undefined}
             />
-            
-            {/* Intensive mode: Show completion banner at bottom */}
-            {isIntensiveMode && nextStep && (
-              <IntensiveStepCompleteBanner
-                currentStepName={currentStep?.title || 'Vibration Assessment'}
-                nextStepName={nextStep.title}
-                nextStepHref={nextStep.href}
-                position="bottom"
-              />
-            )}
           </Stack>
         </Container>
       </div>

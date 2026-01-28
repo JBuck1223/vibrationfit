@@ -145,25 +145,37 @@ export default function ProfileNewPage() {
 
           {/* Action Button */}
           <div className="flex flex-col gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
-            <Button 
-              variant="primary" 
-              size="sm" 
-              onClick={handleCreateProfile}
-              disabled={isCreating}
-              className="w-full md:w-auto"
-            >
-              {isCreating ? (
-                <>
-                  <Spinner variant="primary" size="sm" className="mr-2" />
-                  Creating Profile...
-                </>
-              ) : (
-                <>
-                  <ArrowRight className="mr-2 h-4 w-4" />
-                  Create Your Profile
-                </>
-              )}
-            </Button>
+            {isAlreadyCompleted ? (
+              <Button 
+                variant="primary" 
+                size="sm" 
+                onClick={() => router.push('/profile')}
+                className="w-full md:w-auto"
+              >
+                <User className="mr-2 h-4 w-4" />
+                View Profile
+              </Button>
+            ) : (
+              <Button 
+                variant="primary" 
+                size="sm" 
+                onClick={handleCreateProfile}
+                disabled={isCreating}
+                className="w-full md:w-auto"
+              >
+                {isCreating ? (
+                  <>
+                    <Spinner variant="primary" size="sm" className="mr-2" />
+                    Creating Profile...
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight className="mr-2 h-4 w-4" />
+                    Create Your Profile
+                  </>
+                )}
+              </Button>
+            )}
             {error && (
               <p className="text-sm text-red-400">{error}</p>
             )}

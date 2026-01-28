@@ -15,7 +15,7 @@ import {
   IntensiveCompletionBanner,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
-import { ArrowRight, Sparkles, Target, Heart, Zap } from 'lucide-react'
+import { ArrowRight, Sparkles, Target, Heart, Zap, Eye } from 'lucide-react'
 
 // Placeholder video URL - user will replace this later
 const VISION_INTRO_VIDEO =
@@ -181,25 +181,37 @@ export default function LifeVisionRefineNewPage() {
 
           {/* Action Button */}
           <div className="flex flex-col gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
-            <Button 
-              variant="primary" 
-              size="sm" 
-              onClick={handleCreateVision}
-              disabled={isCreating}
-              className="w-full md:w-auto"
-            >
-              {isCreating ? (
-                <>
-                  <Spinner variant="primary" size="sm" className="mr-2" />
-                  Creating Draft...
-                </>
-              ) : (
-                <>
-                  <ArrowRight className="mr-2 h-4 w-4" />
-                  Start Refining
-                </>
-              )}
-            </Button>
+            {isAlreadyCompleted ? (
+              <Button 
+                variant="primary" 
+                size="sm" 
+                onClick={() => router.push('/life-vision')}
+                className="w-full md:w-auto"
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                View Life Vision
+              </Button>
+            ) : (
+              <Button 
+                variant="primary" 
+                size="sm" 
+                onClick={handleCreateVision}
+                disabled={isCreating}
+                className="w-full md:w-auto"
+              >
+                {isCreating ? (
+                  <>
+                    <Spinner variant="primary" size="sm" className="mr-2" />
+                    Creating Draft...
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight className="mr-2 h-4 w-4" />
+                    Start Refining
+                  </>
+                )}
+              </Button>
+            )}
             {error && (
               <p className="text-sm text-red-400">{error}</p>
             )}
@@ -318,25 +330,37 @@ export default function LifeVisionRefineNewPage() {
               Your vision is alive, just like you. Click below to create a refinement draft and give your vision the evolution it deserves. Take your time, play, experiment - and commit only when it feels aligned.
             </p>
             <div className="flex flex-col gap-2 md:gap-4 justify-center items-center">
-              <Button 
-                variant="primary" 
-                size="sm" 
-                onClick={handleCreateVision}
-                disabled={isCreating}
-                className="w-full md:w-auto"
-              >
-                {isCreating ? (
-                  <>
-                    <Spinner variant="primary" size="sm" className="mr-2" />
-                    Creating Draft...
-                  </>
-                ) : (
-                  <>
-                    <ArrowRight className="mr-2 h-4 w-4" />
-                    Start Refining Your Vision
-                  </>
-                )}
-              </Button>
+              {isAlreadyCompleted ? (
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={() => router.push('/life-vision')}
+                  className="w-full md:w-auto"
+                >
+                  <Eye className="mr-2 h-4 w-4" />
+                  View Life Vision
+                </Button>
+              ) : (
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={handleCreateVision}
+                  disabled={isCreating}
+                  className="w-full md:w-auto"
+                >
+                  {isCreating ? (
+                    <>
+                      <Spinner variant="primary" size="sm" className="mr-2" />
+                      Creating Draft...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowRight className="mr-2 h-4 w-4" />
+                      Start Refining Your Vision
+                    </>
+                  )}
+                </Button>
+              )}
               {error && (
                 <p className="text-sm text-red-400">{error}</p>
               )}

@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, Rocket, CheckCircle, Music, ImageIcon, BookOpen, Calendar } from 'lucide-react'
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
-import { IntensiveStepCompleteBanner } from '@/components/IntensiveStepCompleteBanner'
 import { ReadOnlySection } from '@/components/IntensiveStepCompletedBanner'
 import { IntensiveCompletionBanner } from '@/lib/design-system/components'
 
@@ -81,32 +80,17 @@ export default function ActivationProtocolPage() {
       
       const completedTime = new Date().toISOString()
       
-      // Mark activation protocol complete
+      // Mark activation protocol complete (step 13 only - unlock is step 14)
       await supabase
         .from('intensive_checklist')
         .update({
           activation_protocol_completed: true,
-          activation_protocol_completed_at: completedTime,
-          unlock_completed: true,
-          unlock_completed_at: completedTime
+          activation_protocol_completed_at: completedTime
         })
         .eq('intensive_id', intensiveId)
 
-      // Mark intensive as complete
-      await supabase
-        .from('intensive_purchases')
-        .update({
-          completion_status: 'completed',
-          completed_at: completedTime
-        })
-        .eq('id', intensiveId)
-
-      // TODO: Activate their membership tier here
-      // This would trigger the continuity billing to start
-
-      // Show completion banner instead of redirecting
-      setJustCompleted(true)
-      setCompletedAt(completedTime)
+      // Redirect to completion page
+      router.push('/intensive/activation-protocol/complete')
     } catch (error) {
       console.error('Error completing intensive:', error)
       alert('Failed to complete intensive. Please try again.')
@@ -169,42 +153,6 @@ export default function ActivationProtocolPage() {
               </div>
             </Card>
           </ReadOnlySection>
-        </Stack>
-      </Container>
-    )
-  }
-
-  // SCENARIO A: User just completed - show celebration and forward momentum
-  if (justCompleted) {
-    return (
-      <Container size="lg">
-        <Stack gap="lg">
-          <IntensiveStepCompleteBanner
-            currentStepName="Activation Protocol"
-            nextStepName="Your Dashboard"
-            nextStepHref="/dashboard"
-            position="top"
-          />
-          
-          <Card variant="elevated" className="bg-gradient-to-br from-primary-500/20 to-secondary-500/20 border-primary-500/50">
-            <div className="text-center py-8">
-              <Rocket className="w-16 h-16 text-primary-500 mx-auto mb-4" />
-              <h2 className="text-2xl md:text-3xl font-bold mb-4">Activation Complete!</h2>
-              <p className="text-lg text-neutral-300 mb-6">
-                Congratulations! You&apos;ve completed your 72-Hour Activation Intensive.
-                <br />
-                Your full VibrationFit membership is now active.
-              </p>
-              <CheckCircle className="w-8 h-8 text-primary-500 mx-auto" />
-            </div>
-          </Card>
-          
-          <IntensiveStepCompleteBanner
-            currentStepName="Activation Protocol"
-            nextStepName="Your Dashboard"
-            nextStepHref="/dashboard"
-            position="bottom"
-          />
         </Stack>
       </Container>
     )

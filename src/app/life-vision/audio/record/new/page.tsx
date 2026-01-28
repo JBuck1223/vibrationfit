@@ -16,7 +16,7 @@ import {
   IntensiveCompletionBanner,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
-import { ArrowRight, Mic, Heart, Brain, Sparkles, SkipForward, Rocket } from 'lucide-react'
+import { ArrowRight, Mic, Heart, Brain, Sparkles, SkipForward, Rocket, Headphones } from 'lucide-react'
 
 // Placeholder video URL - replace with actual intro video
 const AUDIO_RECORD_VIDEO =
@@ -143,34 +143,45 @@ export default function AudioRecordNewPage() {
           </div>
 
           <div className="flex flex-col gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
-            <div className="flex flex-col sm:flex-row gap-3">
+            {isAlreadyCompleted ? (
               <Button 
                 variant="primary" 
                 size="sm" 
-                onClick={handleGetStarted}
-                disabled={isNavigating || !activeVisionId}
+                onClick={() => router.push('/life-vision')}
               >
-                {isNavigating ? (
-                  <>
-                    <Spinner variant="primary" size="sm" className="mr-2" />
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    <Mic className="mr-2 h-4 w-4" />
-                    Record My Voice
-                  </>
-                )}
+                <Headphones className="mr-2 h-4 w-4" />
+                Listen to Audio
               </Button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleSkip}
-              >
-                <SkipForward className="mr-2 h-4 w-4" />
-                Skip for Now
-              </Button>
-            </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={handleGetStarted}
+                  disabled={isNavigating || !activeVisionId}
+                >
+                  {isNavigating ? (
+                    <>
+                      <Spinner variant="primary" size="sm" className="mr-2" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="mr-2 h-4 w-4" />
+                      Record My Voice
+                    </>
+                  )}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleSkip}
+                >
+                  <SkipForward className="mr-2 h-4 w-4" />
+                  Skip for Now
+                </Button>
+              </div>
+            )}
             {error && <p className="text-sm text-red-400">{error}</p>}
           </div>
         </PageHero>
@@ -274,32 +285,45 @@ export default function AudioRecordNewPage() {
               significant difference in your transformation.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
-              <Button 
-                variant="primary" 
-                size="sm" 
-                onClick={handleGetStarted}
-                disabled={isNavigating || !activeVisionId}
-              >
-                {isNavigating ? (
-                  <>
-                    <Spinner variant="primary" size="sm" className="mr-2" />
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    <Mic className="mr-2 h-4 w-4" />
-                    Start Recording
-                  </>
-                )}
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleSkip}
-              >
-                <SkipForward className="mr-2 h-4 w-4" />
-                Skip for Now
-              </Button>
+              {isAlreadyCompleted ? (
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={() => router.push('/life-vision')}
+                >
+                  <Headphones className="mr-2 h-4 w-4" />
+                  Listen to Audio
+                </Button>
+              ) : (
+                <>
+                  <Button 
+                    variant="primary" 
+                    size="sm" 
+                    onClick={handleGetStarted}
+                    disabled={isNavigating || !activeVisionId}
+                  >
+                    {isNavigating ? (
+                      <>
+                        <Spinner variant="primary" size="sm" className="mr-2" />
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        <Mic className="mr-2 h-4 w-4" />
+                        Start Recording
+                      </>
+                    )}
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleSkip}
+                  >
+                    <SkipForward className="mr-2 h-4 w-4" />
+                    Skip for Now
+                  </Button>
+                </>
+              )}
             </div>
           </Stack>
         </Card>
