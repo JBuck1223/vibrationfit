@@ -22,7 +22,10 @@ import { PossessionsLifestyleSection } from '../../components/PossessionsLifesty
 import { SpiritualityGrowthSection } from '../../components/SpiritualityGrowthSection'
 import { GivingLegacySection } from '../../components/GivingLegacySection'
 import { UserProfile } from '@/lib/supabase/profile'
-import { Save, AlertCircle, CheckCircle, Loader2, History, Eye, Plus, ArrowLeft, Edit3, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckCircle2, FileText, User, Camera, Check, CalendarDays } from 'lucide-react'
+import { Save, AlertCircle, CheckCircle, Loader2, History, Eye, Plus, ArrowLeft, Edit3, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckCircle2, FileText, User, Camera, Check, CalendarDays, FlaskConical, Info, X } from 'lucide-react'
+import { generateFakeProfile } from '@/lib/testing/fake-profile-data'
+import { getIncompleteFields, calculateProfileCompletion } from '@/lib/utils/profile-completion'
+import { markIntensiveStep, isInIntensiveMode } from '@/lib/intensive/checklist'
 
 export default function ProfileEditPage() {
   const router = useRouter()
@@ -40,6 +43,10 @@ export default function ProfileEditPage() {
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [versions, setVersions] = useState<any[]>([])
   const [showVersions, setShowVersions] = useState(false)
+  const [showIncompleteFields, setShowIncompleteFields] = useState(false)
+  const [highlightedField, setHighlightedField] = useState<string | null>(null)
+  const [intensiveMode, setIntensiveMode] = useState(false)
+  const [profileMarkedComplete, setProfileMarkedComplete] = useState(false)
   const [versionStatus, setVersionStatus] = useState({
     isDraft: false,
     isActive: false,
@@ -51,6 +58,27 @@ export default function ProfileEditPage() {
   const [showCommitWarning, setShowCommitWarning] = useState(false)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [showTestDataButton, setShowTestDataButton] = useState(false)
+
+  // Check if we should show test data button (dev mode only)
+  useEffect(() => {
+    setShowTestDataButton(process.env.NODE_ENV === 'development')
+  }, [])
+
+  // Clear highlighted field when the field gets a value
+  useEffect(() => {
+    if (highlightedField && profile) {
+      const fieldValue = (profile as any)[highlightedField]
+      // Check if field now has a value
+      const hasValue = fieldValue !== null && 
+                       fieldValue !== undefined && 
+                       fieldValue !== '' &&
+                       (Array.isArray(fieldValue) ? fieldValue.length > 0 : true)
+      if (hasValue) {
+        setHighlightedField(null)
+      }
+    }
+  }, [highlightedField, profile])
 
   // Handle URL hash navigation to set active section
   useEffect(() => {
@@ -157,90 +185,8 @@ export default function ProfileEditPage() {
   // Manual save only - no auto-save timeout needed
 
   // Manual completion calculation with intelligent conditionals (matches API logic)
-  const calculateCompletionManually = (profileData: Partial<UserProfile>): number => {
-    if (!profileData) return 0
-
-    let totalFields = 0
-    let completedFields = 0
-
-    // Helper to check if a field has value
-    const hasValue = (field: keyof UserProfile) => {
-      const value = profileData[field]
-      if (Array.isArray(value)) return value.length > 0
-      if (typeof value === 'boolean') return true
-      return value !== null && value !== undefined && value !== ''
-    }
-
-    // Core Fields (always required)
-    const coreFields: (keyof UserProfile)[] = ['first_name', 'last_name', 'email', 'phone', 'date_of_birth', 'gender', 'profile_picture_url']
-    coreFields.forEach(field => {
-      totalFields++
-      if (hasValue(field)) completedFields++
-    })
-
-    // Relationship Fields (conditional)
-    totalFields++
-    if (hasValue('relationship_status')) {
-      completedFields++
-      if (profileData.relationship_status !== 'Single') {
-        totalFields += 2
-        if (hasValue('partner_name')) completedFields++
-        if (hasValue('relationship_length')) completedFields++
-      }
-    }
-
-    // Family Fields (conditional)
-    totalFields++
-    if (profileData.has_children !== undefined && profileData.has_children !== null) {
-      completedFields++
-      if (profileData.has_children === true) {
-        totalFields++
-        if (profileData.children && Array.isArray(profileData.children) && profileData.children.length > 0) {
-          const childrenWithNames = profileData.children.filter((c: any) => c && c.first_name && c.first_name.trim().length > 0)
-          if (childrenWithNames.length > 0) {
-            completedFields++
-          }
-        }
-      }
-    }
-
-    // Health, Location, Career, Financial Fields
-    const healthFields: (keyof UserProfile)[] = ['units', 'height', 'weight', 'exercise_frequency']
-    const locationFields: (keyof UserProfile)[] = ['living_situation', 'time_at_location', 'city', 'state', 'postal_code', 'country']
-    const careerFields: (keyof UserProfile)[] = ['employment_type', 'occupation', 'company', 'time_in_role', 'education']
-    const financialFields: (keyof UserProfile)[] = ['currency', 'household_income', 'savings_retirement', 'assets_equity', 'consumer_debt']
-
-    ;[...healthFields, ...locationFields, ...careerFields, ...financialFields].forEach(field => {
-      totalFields++
-      if (hasValue(field)) completedFields++
-    })
-
-    // Life Category Clarity Fields (12 categories)
-    const clarityFields: (keyof UserProfile)[] = [
-      'clarity_fun', 'clarity_health', 'clarity_travel', 'clarity_love', 'clarity_family', 'clarity_social',
-      'clarity_home', 'clarity_work', 'clarity_money', 'clarity_stuff', 'clarity_giving', 'clarity_spirituality'
-    ]
-    clarityFields.forEach(field => {
-      totalFields++
-      if (hasValue(field)) completedFields++
-    })
-
-    // Structured Life Category Fields
-    const structuredFields: (keyof UserProfile)[] = [
-      'hobbies', 'leisure_time_weekly',
-      'travel_frequency', 'passport', 'countries_visited',
-      'close_friends_count', 'social_preference',
-      'lifestyle_category',
-      'spiritual_practice', 'meditation_frequency', 'personal_growth_focus',
-      'volunteer_status', 'charitable_giving', 'legacy_mindset'
-    ]
-    structuredFields.forEach(field => {
-      totalFields++
-      if (hasValue(field)) completedFields++
-    })
-
-    return totalFields > 0 ? Math.round((completedFields / totalFields) * 100) : 0
-  }
+  // Use the single source of truth for completion calculation (from profile-completion.ts)
+  // This excludes media fields (profile_picture_url, progress_photos, story_recordings)
 
   // Helper function to get current version info (matches profile detail page)
   const getCurrentVersionInfo = () => {
@@ -340,12 +286,36 @@ export default function ProfileEditPage() {
   }, [router, profileId])
 
   // Recalculate completion percentage whenever profile changes
+  // Uses the single source of truth from profile-completion.ts (excludes media fields)
   useEffect(() => {
     if (Object.keys(profile).length > 0) {
-      const newPercentage = calculateCompletionManually(profile)
+      const newPercentage = calculateProfileCompletion(profile)
       setCompletionPercentage(newPercentage)
     }
   }, [profile])
+
+  // Check if user is in intensive mode
+  useEffect(() => {
+    async function checkIntensiveMode() {
+      const inIntensive = await isInIntensiveMode()
+      setIntensiveMode(inIntensive)
+    }
+    checkIntensiveMode()
+  }, [])
+
+  // Auto-mark profile step complete when reaching 100% in intensive mode
+  useEffect(() => {
+    async function markProfileComplete() {
+      if (intensiveMode && completionPercentage >= 100 && !profileMarkedComplete) {
+        const success = await markIntensiveStep('profile_completed')
+        if (success) {
+          setProfileMarkedComplete(true)
+          console.log('✅ Profile step marked complete in intensive')
+        }
+      }
+    }
+    markProfileComplete()
+  }, [intensiveMode, completionPercentage, profileMarkedComplete])
 
   // Fetch versions
   const fetchVersions = async () => {
@@ -613,6 +583,27 @@ export default function ProfileEditPage() {
     await saveProfile(profile)
   }
 
+  // Fill profile with fake test data
+  const handleFillTestData = () => {
+    const fakeData = generateFakeProfile()
+    // Merge with existing profile, keeping any existing IDs
+    const newProfile = {
+      ...profile,
+      ...fakeData,
+      // Preserve system fields
+      id: profile.id,
+      user_id: (profile as any).user_id,
+      version_number: (profile as any).version_number,
+      is_draft: (profile as any).is_draft,
+      is_active: (profile as any).is_active,
+      created_at: profile.created_at,
+      updated_at: profile.updated_at
+    }
+    setProfile(newProfile)
+    setHasUnsavedChanges(true)
+    console.log('🧪 Filled profile with test data:', fakeData.first_name, fakeData.last_name)
+  }
+
   // Calculate completed sections
   const getCompletedSections = useCallback(() => {
     // Use the same section IDs as profileSections array
@@ -729,7 +720,8 @@ export default function ProfileEditPage() {
       onProfileChange: handleProfileChange,
       onProfileReload: reloadProfile,
       onError: setError,
-      hasUnsavedChanges
+      hasUnsavedChanges,
+      highlightedField
     }
 
     let sectionContent
@@ -897,18 +889,182 @@ export default function ProfileEditPage() {
           )}
         </PageHero>
 
-        {/* Profile Completion Progress */}
-        <Card>
-          <div className="flex flex-col items-center gap-2">
-            <span className="text-base font-semibold text-primary-500">{completionPercentage}% Complete</span>
-            <div className="w-full bg-neutral-700 rounded-full h-3 border border-neutral-600">
-              <div
-                className="h-3 rounded-full transition-all duration-500 bg-primary-500"
-                style={{ width: `${completionPercentage}%` }}
-              ></div>
+        {/* Test Data Button (Dev Mode Only) */}
+        {showTestDataButton && (
+          <Card className="bg-purple-500/10 border-purple-500/30">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <FlaskConical className="w-6 h-6 text-purple-400" />
+                <div>
+                  <p className="text-sm font-medium text-purple-300">Development Mode</p>
+                  <p className="text-xs text-neutral-400">Fill all fields with realistic fake data for testing</p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleFillTestData}
+                className="border-purple-500 text-purple-400 hover:bg-purple-500/20"
+              >
+                <FlaskConical className="w-4 h-4 mr-2" />
+                Fill with Test Data
+              </Button>
             </div>
-          </div>
-        </Card>
+          </Card>
+        )}
+
+        {/* Profile Completion Progress - Clickable */}
+        {(() => {
+          // Calculate locally to stay in sync with incomplete fields display
+          const localCompletion = calculateProfileCompletion(profile)
+          const incompleteFields = getIncompleteFields(profile)
+          
+          // Debug: Log completion details to console
+          console.log('🔍 Profile Completion Debug:')
+          console.log('  Completion:', localCompletion + '%')
+          console.log('  leisure_time_weekly value:', (profile as any).leisure_time_weekly, '| type:', typeof (profile as any).leisure_time_weekly)
+          console.log('  Incomplete fields from getIncompleteFields():', incompleteFields)
+          
+          if (localCompletion < 100) {
+            console.log('  Profile data keys:', Object.keys(profile))
+            
+            // Check specific fields that might be missing
+            const fieldsToCheck = [
+              'first_name', 'last_name', 'email', 'phone', 'date_of_birth', 'gender', 'ethnicity',
+              'relationship_status', 'has_children',
+              'units', 'height', 'weight', 'exercise_frequency',
+              'living_situation', 'time_at_location', 'city', 'state', 'postal_code', 'country',
+              'employment_type', 'occupation', 'company', 'time_in_role', 'education',
+              'currency', 'household_income', 'savings_retirement', 'assets_equity', 'consumer_debt',
+              'hobbies', 'leisure_time_weekly',
+              'travel_frequency', 'passport', 'countries_visited',
+              'close_friends_count', 'social_preference',
+              'lifestyle_category',
+              'spiritual_practice', 'meditation_frequency', 'personal_growth_focus',
+              'volunteer_status', 'charitable_giving', 'legacy_mindset',
+              'clarity_fun', 'clarity_health', 'clarity_travel', 'clarity_love', 'clarity_family',
+              'clarity_social', 'clarity_home', 'clarity_work', 'clarity_money', 'clarity_stuff',
+              'clarity_giving', 'clarity_spirituality'
+            ]
+            
+            const missingOrEmpty = fieldsToCheck.filter(field => {
+              const value = (profile as any)[field]
+              if (value === undefined || value === null || value === '') return true
+              if (Array.isArray(value) && value.length === 0) return true
+              return false
+            })
+            console.log('  Fields with no value:', missingOrEmpty)
+            
+            // Check conditionals
+            if ((profile as any).relationship_status !== 'Single') {
+              console.log('  Relationship conditionals - partner_name:', (profile as any).partner_name, 'relationship_length:', (profile as any).relationship_length)
+            }
+            if ((profile as any).has_children === true) {
+              console.log('  Children conditionals - children array:', (profile as any).children)
+            }
+          }
+          
+          return (
+            <Card className="relative">
+              <button 
+                onClick={() => setShowIncompleteFields(!showIncompleteFields)}
+                className="w-full text-left focus:outline-none"
+              >
+                <div className="flex flex-col items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base font-semibold text-primary-500">{localCompletion}% Complete</span>
+                    {incompleteFields.length > 0 && (
+                      <span className="text-xs text-neutral-400 flex items-center gap-1">
+                        <Info className="w-3.5 h-3.5" />
+                        Click to see {incompleteFields.length} missing field{incompleteFields.length !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
+                  <div className="w-full bg-neutral-700 rounded-full h-3 border border-neutral-600">
+                    <div
+                      className="h-3 rounded-full transition-all duration-500 bg-primary-500"
+                      style={{ width: `${localCompletion}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </button>
+              
+              {/* Incomplete Fields Dropdown */}
+              {showIncompleteFields && incompleteFields.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-neutral-700">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-semibold text-neutral-200">Missing Fields ({incompleteFields.length})</h4>
+                    <button 
+                      onClick={() => setShowIncompleteFields(false)}
+                      className="text-neutral-400 hover:text-white"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto space-y-2">
+                    {(() => {
+                      // Group by section
+                      const grouped = incompleteFields.reduce((acc, field) => {
+                        if (!acc[field.section]) acc[field.section] = []
+                        acc[field.section].push(field)
+                        return acc
+                      }, {} as Record<string, typeof incompleteFields>)
+                      
+                      return Object.entries(grouped).map(([section, fields]) => (
+                        <div key={section} className="bg-neutral-800/50 rounded-lg p-3">
+                          <h5 className="text-xs font-semibold text-primary-400 mb-2">{section}</h5>
+                          <div className="flex flex-wrap gap-1.5">
+                            {fields.map(field => (
+                              <button
+                                key={field.field}
+                                onClick={() => {
+                                  setShowIncompleteFields(false)
+                                  setHighlightedField(field.field)
+                                  handleSectionChange(field.sectionId)
+                                }}
+                                className="text-xs bg-neutral-700 text-neutral-300 px-2 py-1 rounded hover:bg-primary-500/30 hover:text-primary-300 transition-colors cursor-pointer"
+                              >
+                                {field.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))
+                    })()}
+                  </div>
+                  <p className="text-xs text-neutral-500 mt-3">
+                    Note: Media uploads (photos, videos) are optional and don't affect completion.
+                  </p>
+                </div>
+              )}
+            </Card>
+          )
+        })()}
+
+        {/* Continue to Next Step - Show when profile is 100% complete in intensive mode */}
+        {intensiveMode && completionPercentage >= 100 && (
+          <Card className="bg-gradient-to-r from-primary-500/20 to-secondary-500/20 border-primary-500/50">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary-500/20 flex items-center justify-center">
+                  <CheckCircle2 className="w-6 h-6 text-primary-500" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Profile Complete!</h3>
+                  <p className="text-sm text-neutral-300">You're ready for the next step of your Activation Intensive</p>
+                </div>
+              </div>
+              <Button
+                variant="primary"
+                onClick={() => router.push('/assessment/new')}
+                className="whitespace-nowrap"
+              >
+                Continue to Assessment
+                <ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          </Card>
+        )}
         
         {/* Version Actions - Only show for non-active versions (drafts/completed) */}
         {currentVersionId && profileAny?.is_active !== true && (

@@ -9,7 +9,7 @@ import { VISION_CATEGORIES, getVisionCategory, getVisionCategoryLabel, getVision
 import { UserProfile } from '@/lib/supabase/profile'
 import { ProfileField } from '../components/ProfileField'
 import { SavedRecordings } from '@/components/SavedRecordings'
-import { ProfilePictureUpload } from '../components/ProfilePictureUpload'
+import { ProfilePictureUpload, DEFAULT_PROFILE_IMAGE_URL } from '../components/ProfilePictureUpload'
 import { 
   User, 
   Heart, 
@@ -48,6 +48,7 @@ import {
   CheckCircle2
 } from 'lucide-react'
 import NextImage from 'next/image'
+import { calculateProfileCompletion } from '@/lib/utils/profile-completion'
 
 // Helper function to get category info from design system
 const getCategoryInfo = (categoryId: string) => {
@@ -125,96 +126,11 @@ export default function ProfileDetailPage() {
   const [editedFields, setEditedFields] = useState<Record<string, any>>({})
   const [saving, setSaving] = useState(false)
 
-  // Real-time completion calculation (matches edit page logic)
-  const calculateCompletionManually = (profileData: Partial<UserProfile>): number => {
-    if (!profileData) return 0
-
-    let totalFields = 0
-    let completedFields = 0
-
-    // Helper to check if a field has value
-    const hasValue = (field: keyof UserProfile) => {
-      const value = profileData[field]
-      if (Array.isArray(value)) return value.length > 0
-      if (typeof value === 'boolean') return true
-      return value !== null && value !== undefined && value !== ''
-    }
-
-    // Core Fields (always required)
-    const coreFields: (keyof UserProfile)[] = ['first_name', 'last_name', 'email', 'phone', 'date_of_birth', 'gender', 'profile_picture_url']
-    coreFields.forEach(field => {
-      totalFields++
-      if (hasValue(field)) completedFields++
-    })
-
-    // Relationship Fields (conditional)
-    totalFields++
-    if (hasValue('relationship_status')) {
-      completedFields++
-      if (profileData.relationship_status !== 'Single') {
-        totalFields += 2
-        if (hasValue('partner_name')) completedFields++
-        if (hasValue('relationship_length')) completedFields++
-      }
-    }
-
-    // Family Fields (conditional)
-    totalFields++
-    if (profileData.has_children !== undefined && profileData.has_children !== null) {
-      completedFields++
-      if (profileData.has_children === true) {
-        totalFields++
-        if (profileData.children && Array.isArray(profileData.children) && profileData.children.length > 0) {
-          const childrenWithNames = profileData.children.filter((c: any) => c && c.first_name && c.first_name.trim().length > 0)
-          if (childrenWithNames.length > 0) {
-            completedFields++
-          }
-        }
-      }
-    }
-
-    // Health, Location, Career, Financial Fields
-    const healthFields: (keyof UserProfile)[] = ['units', 'height', 'weight', 'exercise_frequency']
-    const locationFields: (keyof UserProfile)[] = ['living_situation', 'time_at_location', 'city', 'state', 'postal_code', 'country']
-    const careerFields: (keyof UserProfile)[] = ['employment_type', 'occupation', 'company', 'time_in_role', 'education']
-    const financialFields: (keyof UserProfile)[] = ['currency', 'household_income', 'savings_retirement', 'assets_equity', 'consumer_debt']
-
-    ;[...healthFields, ...locationFields, ...careerFields, ...financialFields].forEach(field => {
-      totalFields++
-      if (hasValue(field)) completedFields++
-    })
-
-    // Life Category Clarity Fields (12 categories)
-    const clarityFields: (keyof UserProfile)[] = [
-      'clarity_fun', 'clarity_health', 'clarity_travel', 'clarity_love', 'clarity_family', 'clarity_social',
-      'clarity_home', 'clarity_work', 'clarity_money', 'clarity_stuff', 'clarity_giving', 'clarity_spirituality'
-    ]
-    clarityFields.forEach(field => {
-      totalFields++
-      if (hasValue(field)) completedFields++
-    })
-
-    // Structured Life Category Fields
-    const structuredFields: (keyof UserProfile)[] = [
-      'hobbies', 'leisure_time_weekly',
-      'travel_frequency', 'passport', 'countries_visited',
-      'close_friends_count', 'social_preference',
-      'lifestyle_category',
-      'spiritual_practice', 'meditation_frequency', 'personal_growth_focus',
-      'volunteer_status', 'charitable_giving', 'legacy_mindset'
-    ]
-    structuredFields.forEach(field => {
-      totalFields++
-      if (hasValue(field)) completedFields++
-    })
-
-    return totalFields > 0 ? Math.round((completedFields / totalFields) * 100) : 0
-  }
-
   // Recalculate completion percentage whenever profile data changes
+  // Uses the single source of truth from profile-completion.ts (excludes media fields)
   useEffect(() => {
     if (Object.keys(profile).length > 0) {
-      const newPercentage = calculateCompletionManually(profile)
+      const newPercentage = calculateProfileCompletion(profile)
       setCompletionPercentage(newPercentage)
     }
   }, [profile])
@@ -1633,26 +1549,20 @@ export default function ProfileDetailPage() {
               disabled={isViewingVersion}
               className="inline-block relative group"
             >
-              {profile.profile_picture_url ? (
-                <div className="inline-block w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-neutral-800 border-2 border-white relative">
-                  <NextImage
-                    src={profile.profile_picture_url}
-                    alt="Profile picture"
-                    width={128}
-                    height={128}
-                    className="w-full h-full object-cover"
-                  />
-                  {!isViewingVersion && (
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
-                      <Camera className="w-6 h-6 md:w-8 md:h-8 text-white" />
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="inline-block w-24 h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 border-2 border-white flex items-center justify-center">
-                  <Camera className="w-8 h-8 md:w-12 md:h-12 text-white" />
-                </div>
-              )}
+              <div className="inline-block w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-neutral-800 border-2 border-neutral-700 relative">
+                <NextImage
+                  src={profile.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
+                  alt="Profile picture"
+                  width={128}
+                  height={128}
+                  className="w-full h-full object-cover"
+                />
+                {!isViewingVersion && (
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
+                    <Camera className="w-6 h-6 md:w-8 md:h-8 text-white" />
+                  </div>
+                )}
+              </div>
             </button>
             {/* Hidden file input */}
             <input

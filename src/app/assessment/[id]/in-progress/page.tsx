@@ -18,6 +18,9 @@ import {
   AssessmentProgress
 } from '@/lib/services/assessmentService'
 import ResultsSummary from '../../components/ResultsSummary'
+import { generateFakeAssessmentResponses } from '@/lib/testing/fake-assessment-data'
+import { IntensiveStepCompleteBanner } from '@/components/IntensiveStepCompleteBanner'
+import { getStepInfo, getNextStep } from '@/lib/intensive/step-mapping'
 
 export default function AssessmentPage() {
   const router = useRouter()
@@ -48,6 +51,8 @@ export default function AssessmentPage() {
   const [customResponseSubmitted, setCustomResponseSubmitted] = useState(false)
   const [customResponseScore, setCustomResponseScore] = useState<number | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [isFilling, setIsFilling] = useState(false)
+  const [assessmentResponses, setAssessmentResponses] = useState<any[] | null>(null)
 
   // Ref for scrolling to question card on mobile
   const questionCardRef = useRef<HTMLDivElement>(null)
@@ -440,6 +445,76 @@ export default function AssessmentPage() {
     }
   }
 
+  // Fill all questions with fake test data (dev mode only)
+  const handleFillWithTestData = async () => {
+    if (!assessmentId || !profile) {
+      console.error('Cannot fill test data: missing assessment ID or profile')
+      return
+    }
+
+    setIsFilling(true)
+    console.log('🧪 Starting to fill assessment with test data...')
+
+    try {
+      // Get all questions from all categories, filtered by profile
+      const allQuestions: AssessmentQuestion[] = []
+      
+      for (const category of orderedAssessmentQuestions) {
+        const filteredCategoryQuestions = filterQuestionsByProfile(category.questions, profile)
+        allQuestions.push(...filteredCategoryQuestions)
+      }
+
+      console.log(`📝 Total questions to fill: ${allQuestions.length}`)
+
+      // Generate fake responses for all questions
+      const fakeResponses = generateFakeAssessmentResponses(allQuestions)
+      console.log(`✅ Generated ${fakeResponses.size} fake responses`)
+
+      // Save each response to the database
+      let savedCount = 0
+      for (const [questionId, responseData] of fakeResponses.entries()) {
+        try {
+          await saveResponse({
+            assessment_id: assessmentId,
+            question_id: questionId,
+            question_text: responseData.questionText,
+            category: responseData.category,
+            response_value: responseData.selectedOption.value,
+            response_text: responseData.selectedOption.text,
+            response_emoji: responseData.selectedOption.emoji,
+            green_line: responseData.selectedOption.greenLine as 'above' | 'neutral' | 'below'
+          })
+
+          // Update local state
+          setResponses(prev => new Map(prev).set(questionId, responseData.selectedOption.value))
+          savedCount++
+
+          // Log progress every 10 questions
+          if (savedCount % 10 === 0) {
+            console.log(`💾 Saved ${savedCount}/${allQuestions.length} responses...`)
+          }
+        } catch (error) {
+          console.error(`❌ Failed to save response for question ${questionId}:`, error)
+        }
+      }
+
+      console.log(`✅ Successfully saved ${savedCount}/${allQuestions.length} responses`)
+
+      // Refresh progress
+      const progressData = await fetchAssessmentProgress(assessmentId)
+      setProgress(progressData)
+
+      console.log('🎉 Test data fill complete!')
+      alert(`Successfully filled ${savedCount} questions with test data!`)
+
+    } catch (error) {
+      console.error('❌ Error filling test data:', error)
+      alert('Failed to fill test data. Check console for details.')
+    } finally {
+      setIsFilling(false)
+    }
+  }
+
   // Navigate to next question
   const handleNext = () => {
     if (currentQuestionIndex < filteredQuestions.length - 1) {
@@ -508,6 +583,23 @@ export default function AssessmentPage() {
 
     try {
       await completeAssessment(assessmentId)
+      
+      // Fetch the completed assessment data (with real scores, green line status, and all responses)
+      const completedData = await fetchAssessment(assessmentId, { 
+        includeResponses: true,  // ✅ Need responses to show individual questions
+        includeInsights: false 
+      })
+      
+      console.log('🔍 Completed assessment data:', {
+        assessment: completedData.assessment,
+        responsesCount: completedData.responses?.length,
+        hasResponses: !!completedData.responses,
+        sampleResponse: completedData.responses?.[0]
+      })
+      
+      // Update assessment data with real values
+      setAssessmentData(completedData.assessment)
+      setAssessmentResponses(completedData.responses)
       setIsComplete(true)
       
       // If in intensive mode, mark assessment as complete
@@ -561,28 +653,42 @@ export default function AssessmentPage() {
     )
   }
 
-  if (isComplete && assessmentId && progress) {
-    // Show results summary
+  if (isComplete && assessmentId && assessmentData) {
+    // Get step info for intensive mode
+    const currentStep = getStepInfo('assessment')
+    const nextStep = getNextStep('assessment')
+    
+    // Show results summary with real assessment data and responses
     return (
       <div className="min-h-screen bg-black">
-        <ResultsSummary
-          assessment={{
-            id: assessmentId,
-            user_id: '',
-            status: 'completed',
-            total_score: Object.values(progress.categories).reduce((sum, cat) => sum + (cat.answered * 10), 0),
-            max_possible_score: totalQuestions * 10,
-            overall_percentage: progress.overall.percentage,
-            category_scores: Object.entries(progress.categories).reduce((acc, [key, val]) => ({
-              ...acc,
-              [key]: val.answered * 10
-            }), {}),
-            green_line_status: {},
-            started_at: new Date(),
-            created_at: new Date(),
-            updated_at: new Date()
-          } as any}
-        />
+        <Container size="xl">
+          <Stack gap="lg">
+            {/* Intensive mode: Show completion banner at top */}
+            {isIntensiveMode && nextStep && (
+              <IntensiveStepCompleteBanner
+                currentStepName={currentStep?.title || 'Vibration Assessment'}
+                nextStepName={nextStep.title}
+                nextStepHref={nextStep.href}
+                position="top"
+              />
+            )}
+            
+            <ResultsSummary
+              assessment={assessmentData}
+              responses={assessmentResponses || undefined}
+            />
+            
+            {/* Intensive mode: Show completion banner at bottom */}
+            {isIntensiveMode && nextStep && (
+              <IntensiveStepCompleteBanner
+                currentStepName={currentStep?.title || 'Vibration Assessment'}
+                nextStepName={nextStep.title}
+                nextStepHref={nextStep.href}
+                position="bottom"
+              />
+            )}
+          </Stack>
+        </Container>
       </div>
     )
   }
@@ -637,6 +743,38 @@ export default function AssessmentPage() {
               </div>
               <span className="text-xs text-neutral-400 mt-1">
                 {progress.overall.answered} of {progress.overall.total} questions answered
+              </span>
+            </div>
+          </Card>
+        )}
+
+        {/* DEV ONLY: Fill with Test Data Button */}
+        {process.env.NODE_ENV === 'development' && (
+          <Card className="bg-purple-900/20 border-purple-500/30">
+            <div className="flex flex-col items-center gap-3">
+              <div className="flex items-center gap-2">
+                <div className="px-2 py-1 bg-purple-500/20 border border-purple-500/30 rounded text-xs font-semibold text-purple-300">
+                  DEV MODE
+                </div>
+                <span className="text-sm text-neutral-300">Quick Testing Tools</span>
+              </div>
+              <Button
+                onClick={handleFillWithTestData}
+                disabled={isFilling || !assessmentId || !profile}
+                variant="secondary"
+                className="!bg-purple-600 hover:!bg-purple-700 !border-purple-500"
+              >
+                {isFilling ? (
+                  <>
+                    <Spinner size="sm" className="mr-2" />
+                    Filling with test data...
+                  </>
+                ) : (
+                  'Fill with Test Data'
+                )}
+              </Button>
+              <span className="text-xs text-neutral-400 text-center max-w-md">
+                Auto-fills all questions with random valid responses for rapid testing
               </span>
             </div>
           </Card>

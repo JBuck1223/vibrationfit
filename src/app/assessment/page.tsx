@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Button, Card, Badge, PageHero, StatusBadge, DeleteConfirmationDialog, Container, Stack, Spinner } from '@/lib/design-system/components'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Button, Card, Badge, PageHero, StatusBadge, DeleteConfirmationDialog, Container, Stack, Spinner, Text, Inline } from '@/lib/design-system/components'
 import { fetchAssessments, deleteAssessment, createAssessment, fetchAssessmentProgress, AssessmentProgress } from '@/lib/services/assessmentService'
 import { AssessmentResult } from '@/types/assessment'
+import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { 
   PlayCircle, 
   Trash2, 
@@ -13,11 +14,23 @@ import {
   Clock, 
   CheckCircle,
   AlertTriangle,
-  CalendarDays 
+  CalendarDays,
+  ArrowRight,
+  Target,
+  BarChart,
+  TrendingUp,
+  Sparkles
 } from 'lucide-react'
+
+// Placeholder video URL - user will replace this later
+const ASSESSMENT_INTRO_VIDEO =
+  'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
 
 export default function AssessmentHub() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const isIntensiveMode = searchParams.get('intensive') === 'true'
+  
   const [assessments, setAssessments] = useState<AssessmentResult[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -82,7 +95,8 @@ export default function AssessmentHub() {
 
   const handleContinueAssessment = () => {
     if (incompleteAssessment) {
-      router.push(`/assessment/${incompleteAssessment.id}/in-progress`)
+      const intensiveParam = isIntensiveMode ? '?intensive=true' : ''
+      router.push(`/assessment/${incompleteAssessment.id}/in-progress${intensiveParam}`)
     }
   }
 
@@ -112,31 +126,52 @@ export default function AssessmentHub() {
     router.push(`/assessment/${assessmentId}/results`)
   }
 
-  const handleStartNew = async () => {
+  const handleCreateAssessment = async () => {
+    setIsCreating(true)
+    setErrorMessage(null)
+
     try {
-      setErrorMessage(null)
-      setIsCreating(true)
-      const { assessment } = await createAssessment()
-      router.push(`/assessment/${assessment.id}/in-progress`)
-    } catch (error: any) {
-      console.error('Failed to create assessment:', error)
-      const message =
-        error?.message ||
-        (error instanceof Error ? error.message : 'Failed to start new assessment. Please try again.')
-      setErrorMessage(message)
+      // First, get the user's active profile to use as the profile_version_id
+      const profileResponse = await fetch('/api/profile')
+      if (!profileResponse.ok) {
+        throw new Error('Failed to get profile. Please create a profile first.')
+      }
+      
+      const profileData = await profileResponse.json()
+      
+      if (!profileData.profile?.id) {
+        throw new Error('No active profile found. Please create a profile first.')
+      }
+      
+      // Create new assessment with the active profile
+      const response = await fetch('/api/assessment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profile_version_id: profileData.profile.id,
+          assessment_version: 1,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to create assessment' }))
+        throw new Error(errorData.error || 'Failed to create assessment')
+      }
+
+      const data = await response.json()
+      
+      if (data.assessment?.id) {
+        const intensiveParam = isIntensiveMode ? '?intensive=true' : ''
+        router.push(`/assessment/${data.assessment.id}/in-progress${intensiveParam}`)
+      } else {
+        throw new Error('No assessment ID returned from API')
+      }
+    } catch (err) {
+      console.error('Error creating assessment:', err)
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to create assessment')
     } finally {
       setIsCreating(false)
     }
-  }
-
-  const formatDate = (date: Date | string) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
   }
 
   const formatStartDate = (date: Date | string) => {
@@ -165,12 +200,50 @@ export default function AssessmentHub() {
   return (
     <Container size="xl">
       <Stack gap="lg">
+        {/* Hero with Video */}
         <PageHero
-          title="Assessment Hub"
-          subtitle="Manage your life assessments and track your progress across 12 key life areas."
-        />
+          title="Vibrational Assessment"
+          subtitle="Discover where you stand in each area of your life and unlock personalized insights."
+        >
+          {/* Video */}
+          <div>
+            <OptimizedVideo
+              url={ASSESSMENT_INTRO_VIDEO}
+              context="single"
+              className="mx-auto w-full max-w-3xl"
+            />
+          </div>
 
-        {/* In-Progress Assessment Section */}
+          {/* Action Button - Only show if NO in-progress assessment */}
+          {!incompleteAssessment && (
+            <div className="flex flex-col gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
+              <Button 
+                variant="primary" 
+                size="sm" 
+                onClick={handleCreateAssessment}
+                disabled={isCreating}
+                className="w-full md:w-auto"
+              >
+                {isCreating ? (
+                  <>
+                    <Spinner variant="primary" size="sm" className="mr-2" />
+                    Starting Assessment...
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight className="mr-2 h-4 w-4" />
+                    Take the Assessment
+                  </>
+                )}
+              </Button>
+              {errorMessage && (
+                <p className="text-sm text-red-400">{errorMessage}</p>
+              )}
+            </div>
+          )}
+        </PageHero>
+
+        {/* In-Progress Assessment Card */}
         {incompleteAssessment && (
           <Card variant="elevated" className="p-4 md:p-6">
             <div className="flex flex-col items-center gap-3 md:gap-4 mb-4 md:mb-6 text-center">
@@ -202,93 +275,48 @@ export default function AssessmentHub() {
               </div>
             </div>
 
-            <div className="flex flex-row gap-3">
-              <Button 
-                onClick={() => handleDeleteClick(incompleteAssessment.id)}
-                variant="danger" 
-                size="md"
-                className="flex-1"
-                disabled={deletingId === incompleteAssessment.id}
-              >
-                <Trash2 className="w-4 h-4 md:w-5 md:h-5 mr-2" />
-                {deletingId === incompleteAssessment.id ? 'Deleting...' : 'Delete'}
-              </Button>
-              <Button 
-                onClick={handleContinueAssessment}
-                variant="primary" 
-                size="md"
-                className="flex-1"
-              >
-                <PlayCircle className="w-4 h-4 md:w-5 md:h-5 mr-2" />
-                <span className="md:hidden">Continue</span>
-                <span className="hidden md:inline">Continue Assessment</span>
-              </Button>
-            </div>
+            {/* Buttons: Intensive mode = Continue only (centered), Regular = Delete + Continue */}
+            {isIntensiveMode ? (
+              <div className="flex justify-center">
+                <Button 
+                  onClick={handleContinueAssessment}
+                  variant="primary" 
+                  size="md"
+                  className="w-full md:w-auto md:min-w-[200px]"
+                >
+                  <PlayCircle className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+                  Continue Assessment
+                </Button>
+              </div>
+            ) : (
+              <div className="flex flex-row gap-3">
+                <Button 
+                  onClick={() => handleDeleteClick(incompleteAssessment.id)}
+                  variant="danger" 
+                  size="md"
+                  className="flex-1"
+                  disabled={deletingId === incompleteAssessment.id}
+                >
+                  <Trash2 className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+                  {deletingId === incompleteAssessment.id ? 'Deleting...' : 'Delete'}
+                </Button>
+                <Button 
+                  onClick={handleContinueAssessment}
+                  variant="primary" 
+                  size="md"
+                  className="flex-1"
+                >
+                  <PlayCircle className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+                  <span className="md:hidden">Continue</span>
+                  <span className="hidden md:inline">Continue Assessment</span>
+                </Button>
+              </div>
+            )}
           </Card>
         )}
 
-        {/* Start New Assessment Section */}
-        <Card variant="elevated" className="p-4 md:p-6">
-          <div className="flex flex-col items-center gap-3 md:gap-4 mb-4 md:mb-6 text-center">
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-secondary-500 rounded-xl flex items-center justify-center flex-shrink-0">
-              <PlusCircle className="w-5 h-5 md:w-6 md:h-6 text-[#1F1F1F]" />
-            </div>
-            <div>
-              <h2 className="text-lg md:text-xl lg:text-2xl font-semibold mb-1 md:mb-2">
-                Start New Assessment
-              </h2>
-              <p className="text-xs md:text-sm text-neutral-400">
-                {incompleteAssessment
-                  ? 'Complete or delete your current assessment to begin another Vibrational Assessment.'
-                  : 'Begin your journey of self-discovery across 12 life areas.'
-                }
-              </p>
-            </div>
-          </div>
-
-          <div className="bg-secondary-500/10 p-3 md:p-4 rounded-lg mb-4 md:mb-6">
-            <h3 className="text-sm md:text-base lg:text-lg font-semibold mb-2 md:mb-3 text-secondary-500">What You'll Get:</h3>
-            <ul className="space-y-2 text-xs md:text-sm text-neutral-300">
-              <li className="flex items-center gap-2">
-                <CheckCircle className="w-3 h-3 md:w-4 md:h-4 text-secondary-500 flex-shrink-0" />
-                84 personalized questions across 12 life areas
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="w-3 h-3 md:w-4 md:h-4 text-secondary-500 flex-shrink-0" />
-                Detailed analysis of where you stand vs. the Green Line
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="w-3 h-3 md:w-4 md:h-4 text-secondary-500 flex-shrink-0" />
-                Personalized insights and recommendations
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="w-3 h-3 md:w-4 md:h-4 text-secondary-500 flex-shrink-0" />
-                Progress tracking over time
-              </li>
-            </ul>
-          </div>
-
-          {errorMessage && (
-            <div className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 p-3 md:p-4 text-xs md:text-sm text-red-300">
-              {errorMessage}
-            </div>
-          )}
-
-          <Button 
-            onClick={handleStartNew}
-            variant="secondary" 
-            size="md"
-            className="w-full"
-            loading={isCreating}
-            disabled={Boolean(incompleteAssessment) || isCreating}
-          >
-            <PlusCircle className="w-4 h-4 md:w-5 md:h-5 mr-2" />
-            {incompleteAssessment ? 'Finish Current Assessment First' : 'Start New Assessment'}
-          </Button>
-        </Card>
-
-        {/* Previous Assessments Section */}
-        {completedAssessments.length > 0 && (
+        {/* Previous Assessments Section - Only show for non-intensive users */}
+        {!isIntensiveMode && completedAssessments.length > 0 && (
           <Card variant="default" className="p-4 md:p-6">
             <div className="flex flex-col items-center gap-3 md:gap-4 mb-4 md:mb-6 text-center">
               <div className="w-10 h-10 md:w-12 md:h-12 bg-accent-500 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -374,25 +402,140 @@ export default function AssessmentHub() {
           </Card>
         )}
 
-        {/* Empty State */}
-        {assessments.length === 0 && (
-          <Card variant="default" className="text-center p-8 md:p-12">
-            <div className="w-12 h-12 md:w-16 md:h-16 bg-neutral-700 rounded-xl flex items-center justify-center mx-auto mb-3 md:mb-4">
-              <AlertTriangle className="w-6 h-6 md:w-8 md:h-8 text-neutral-400" />
-            </div>
-            <h3 className="text-lg md:text-xl font-semibold mb-2">No Assessments Yet</h3>
-            <p className="text-sm md:text-base text-neutral-400 mb-4 md:mb-6">
-              Start your first assessment to see how you vibrate across 12 life areas.
+        {/* What is the Assessment? */}
+        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+          <Stack gap="md">
+            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+              What is the Assessment?
+            </Text>
+            <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
+              The Vibrational Assessment is a comprehensive evaluation that measures your current state across all 12 life categories. It provides you with detailed insights into your strengths, growth areas, and alignment levels.
             </p>
-            <Button 
-              onClick={handleStartNew}
-              variant="primary"
-              size="md"
-              className="w-full sm:w-auto"
-            >
-              <PlusCircle className="w-4 h-4 md:w-5 md:h-5 mr-2" />
-              Start Your First Assessment
-            </Button>
+            <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
+              Unlike a simple quiz, this assessment dives deep into each area of your life to give you actionable data and personalized recommendations for your transformation journey.
+            </p>
+          </Stack>
+        </Card>
+
+        {/* What You'll Discover */}
+        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+          <Stack gap="lg">
+            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+              What You'll Discover
+            </Text>
+            <Stack gap="lg">
+              <Stack gap="sm">
+                <Inline gap="sm" className="items-start">
+                  <Target className="h-5 w-5 text-[#5EC49A]" />
+                  <Text size="sm" className="text-white font-semibold">
+                    Your Alignment Score
+                  </Text>
+                </Inline>
+                <p className="text-sm text-neutral-300 leading-relaxed">
+                  Get a comprehensive score for each of the 12 life categories, showing where you're thriving and where there's room for growth. See exactly where you stand on the "Green Line" of alignment.
+                </p>
+              </Stack>
+
+              <Stack gap="sm">
+                <Inline gap="sm" className="items-start">
+                  <BarChart className="h-5 w-5 text-[#2DD4BF]" />
+                  <Text size="sm" className="text-white font-semibold">
+                    Detailed Insights
+                  </Text>
+                </Inline>
+                <p className="text-sm text-neutral-300 leading-relaxed">
+                  Receive personalized insights for each category, highlighting patterns, strengths, and opportunities. Understand not just your score, but what it means and how to improve.
+                </p>
+              </Stack>
+
+              <Stack gap="sm">
+                <Inline gap="sm" className="items-start">
+                  <TrendingUp className="h-5 w-5 text-[#8B5CF6]" />
+                  <Text size="sm" className="text-white font-semibold">
+                    Growth Recommendations
+                  </Text>
+                </Inline>
+                <p className="text-sm text-neutral-300 leading-relaxed">
+                  Get specific, actionable recommendations for each area of your life. Know exactly what steps to take to move from where you are to where you want to be.
+                </p>
+              </Stack>
+
+              <Stack gap="sm">
+                <Inline gap="sm" className="items-start">
+                  <Sparkles className="h-5 w-5 text-[#FFB701]" />
+                  <Text size="sm" className="text-white font-semibold">
+                    Your Unique Blueprint
+                  </Text>
+                </Inline>
+                <p className="text-sm text-neutral-300 leading-relaxed">
+                  Your assessment results become the foundation for your personalized Life Vision. VIVA uses these insights to guide you toward the life you truly desire.
+                </p>
+              </Stack>
+            </Stack>
+          </Stack>
+        </Card>
+
+        {/* Why Take the Assessment? */}
+        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+          <Stack gap="md">
+            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+              Why Take the Assessment?
+            </Text>
+            <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
+              The assessment is your starting point for transformation. It provides the clarity and data you need to create meaningful change. Here's why it's essential:
+            </p>
+            <Stack gap="sm" className="text-sm text-neutral-300 leading-relaxed">
+              <p>
+                • <span className="text-white font-semibold">Baseline Measurement</span> - Establish where you are right now so you can track your progress over time.
+              </p>
+              <p>
+                • <span className="text-white font-semibold">Personalized Insights</span> - VIVA uses your assessment to provide guidance that's specifically tailored to your unique situation and goals.
+              </p>
+              <p>
+                • <span className="text-white font-semibold">Identify Blind Spots</span> - Discover areas of your life that may need attention but weren't on your radar.
+              </p>
+              <p>
+                • <span className="text-white font-semibold">Prioritize Growth</span> - Know which areas to focus on first for maximum impact on your overall alignment and happiness.
+              </p>
+            </Stack>
+          </Stack>
+        </Card>
+
+        {/* Ready to Begin - Only show if no in-progress assessment */}
+        {!incompleteAssessment && (
+          <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+            <Stack gap="md" className="text-center">
+              <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                Ready to Begin?
+              </Text>
+              <p className="text-sm md:text-base text-neutral-300 leading-relaxed max-w-2xl mx-auto">
+                The assessment takes about 15-20 minutes to complete. Be honest with yourself - the more authentic your responses, the more valuable your insights will be.
+              </p>
+              <div className="flex flex-col gap-2 md:gap-4 justify-center items-center">
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={handleCreateAssessment}
+                  disabled={isCreating}
+                  className="w-full md:w-auto"
+                >
+                  {isCreating ? (
+                    <>
+                      <Spinner variant="primary" size="sm" className="mr-2" />
+                      Starting Assessment...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowRight className="mr-2 h-4 w-4" />
+                      Take the Assessment
+                    </>
+                  )}
+                </Button>
+                {errorMessage && (
+                  <p className="text-sm text-red-400">{errorMessage}</p>
+                )}
+              </div>
+            </Stack>
           </Card>
         )}
       </Stack>

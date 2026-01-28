@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/lib/design-system/components'
@@ -25,7 +25,10 @@ import {
   Lock,
   Settings,
   FileText,
-  Unlock
+  Unlock,
+  Timer,
+  Info,
+  Clock
 } from 'lucide-react'
 
 type Step = {
@@ -45,6 +48,9 @@ type Phase = {
   steps: Step[]
 }
 
+// 72 hours in milliseconds
+const INTENSIVE_DURATION_MS = 72 * 60 * 60 * 1000
+
 export function IntensiveSidebar() {
   const router = useRouter()
   const pathname = usePathname()
@@ -53,10 +59,64 @@ export function IntensiveSidebar() {
   const [loading, setLoading] = useState(true)
   const [settingsComplete, setSettingsComplete] = useState(false)
   const [intensiveStarted, setIntensiveStarted] = useState(false)
+  const [startedAt, setStartedAt] = useState<string | null>(null)
+  const [countdown, setCountdown] = useState<{ hours: number; minutes: number; seconds: number } | null>(null)
+  
+  // Refs to preserve scroll position during timer updates
+  const navRef = useRef<HTMLElement>(null)
+  const scrollPositionRef = useRef(0)
+
+  // Save scroll position before re-render
+  useEffect(() => {
+    if (navRef.current) {
+      scrollPositionRef.current = navRef.current.scrollTop
+    }
+  })
+
+  // Restore scroll position after re-render
+  useEffect(() => {
+    if (navRef.current && scrollPositionRef.current > 0) {
+      navRef.current.scrollTop = scrollPositionRef.current
+    }
+  })
 
   useEffect(() => {
     loadSteps()
   }, [pathname])
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (!startedAt) {
+      setCountdown(null)
+      return
+    }
+
+    const calculateCountdown = () => {
+      const startTime = new Date(startedAt).getTime()
+      const endTime = startTime + INTENSIVE_DURATION_MS
+      const now = Date.now()
+      const remaining = endTime - now
+
+      if (remaining <= 0) {
+        setCountdown({ hours: 0, minutes: 0, seconds: 0 })
+        return
+      }
+
+      const hours = Math.floor(remaining / (1000 * 60 * 60))
+      const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60))
+      const seconds = Math.floor((remaining % (1000 * 60)) / 1000)
+
+      setCountdown({ hours, minutes, seconds })
+    }
+
+    // Calculate immediately
+    calculateCountdown()
+
+    // Update every second
+    const interval = setInterval(calculateCountdown, 1000)
+
+    return () => clearInterval(interval)
+  }, [startedAt])
 
   const loadSteps = async () => {
     try {
@@ -93,6 +153,7 @@ export function IntensiveSidebar() {
 
       // Check if intensive has been started (checklist is source of truth)
       setIntensiveStarted(!!checklist.started_at)
+      setStartedAt(checklist.started_at || null)
 
       const stepsList: Step[] = [
         // Phase 0: Start
@@ -143,7 +204,7 @@ export function IntensiveSidebar() {
           id: 'assessment', 
           stepNumber: 4,
           title: 'Assessment', 
-          href: '/assessment/new', 
+          href: '/assessment?intensive=true',  // Pass intensive param for conditional UI
           icon: ClipboardCheck,
           phase: 'Foundation',
           completed: !!checklist.assessment_completed,
@@ -289,7 +350,8 @@ export function IntensiveSidebar() {
   const totalCount = steps.length
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
 
-  const SidebarContent = () => (
+  // Using a variable instead of a component to prevent remounting on timer updates
+  const sidebarContent = (
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="p-4 md:p-6 border-b-2 border-primary-500">
@@ -316,6 +378,84 @@ export function IntensiveSidebar() {
             {completedCount}/{totalCount}
           </span>
         </div>
+
+        {/* DEV MODE: Show BOTH cards for testing/editing - REMOVE AFTER TESTING */}
+        {intensiveStarted && (
+          <>
+            {/* ACTIVE STATE - Timer running */}
+            <div className="mt-4 p-3 rounded-xl bg-gradient-to-r from-primary-500/30 to-secondary-500/20 border-2 border-primary-500/50">
+              {/* Label */}
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <Timer className="w-4 h-4 text-primary-400" />
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-300">
+                  72-Hour Focus Window
+                </span>
+              </div>
+              
+              {/* Time remaining label */}
+              <div className="text-center mb-1">
+                <span className="text-[9px] text-white uppercase tracking-wide">
+                  Time remaining
+                </span>
+              </div>
+              
+              {/* Timer display */}
+              <div className="flex items-center justify-center gap-1">
+                {/* Hours */}
+                <div className="flex flex-col items-center">
+                  <span className="text-2xl font-bold font-mono text-white">
+                    {countdown ? String(countdown.hours).padStart(2, '0') : '71'}
+                  </span>
+                  <span className="text-[9px] text-neutral-200 uppercase font-medium">hrs</span>
+                </div>
+                <span className="text-xl font-bold text-neutral-400">:</span>
+                {/* Minutes */}
+                <div className="flex flex-col items-center">
+                  <span className="text-2xl font-bold font-mono text-white">
+                    {countdown ? String(countdown.minutes).padStart(2, '0') : '42'}
+                  </span>
+                  <span className="text-[9px] text-neutral-200 uppercase font-medium">min</span>
+                </div>
+                <span className="text-xl font-bold text-neutral-400">:</span>
+                {/* Seconds */}
+                <div className="flex flex-col items-center">
+                  <span className="text-2xl font-bold font-mono text-white">
+                    {countdown ? String(countdown.seconds).padStart(2, '0') : '18'}
+                  </span>
+                  <span className="text-[9px] text-neutral-200 uppercase font-medium">sec</span>
+                </div>
+              </div>
+              
+              {/* Subtext */}
+              <p className="text-[10px] text-white text-center mt-2">
+                This is a focus window, not a deadline.
+              </p>
+            </div>
+
+            {/* COMPLETED STATE - Static, calm design */}
+            <div className="mt-3 p-3 rounded-xl bg-gradient-to-r from-blue-500/20 to-cyan-500/10 border-2 border-blue-400/30">
+              {/* Label */}
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Clock className="w-4 h-4 text-blue-400" />
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-300">
+                  72-Hour Focus Window
+                </span>
+              </div>
+              
+              {/* Main text */}
+              <div className="text-center mb-2">
+                <span className="text-lg font-semibold text-blue-300">
+                  Focus window complete
+                </span>
+              </div>
+              
+              {/* Subtext */}
+              <p className="text-[10px] text-white text-center leading-relaxed">
+                You're still in the Intensive. Keep going until you complete all 14 steps.
+              </p>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Dashboard Link */}
@@ -340,7 +480,7 @@ export function IntensiveSidebar() {
       </div>
 
       {/* Steps grouped by phase */}
-      <nav className="flex-1 p-3 md:p-4 space-y-4 overflow-y-auto">
+      <nav ref={navRef} className="flex-1 p-3 md:p-4 space-y-4 overflow-y-auto overscroll-contain" style={{ overflowAnchor: 'none' }}>
         {loading ? (
           <div className="text-center py-8 text-neutral-500 text-sm">
             Loading...
@@ -458,12 +598,12 @@ export function IntensiveSidebar() {
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
-        <SidebarContent />
+        {sidebarContent}
       </aside>
 
       {/* Desktop Sidebar */}
       <aside className="hidden md:block fixed top-0 left-0 bottom-0 w-[280px] bg-[#1F1F1F] border-r-2 border-neutral-800 z-30">
-        <SidebarContent />
+        {sidebarContent}
       </aside>
     </>
   )

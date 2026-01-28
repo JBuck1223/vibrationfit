@@ -15,8 +15,12 @@ import {
   CheckCircle,
   Activity,
   GitCompare,
-  Copy
+  Copy,
+  User
 } from 'lucide-react'
+import { IntensiveStepHeader } from '@/components/IntensiveStepHeader'
+import { IntensiveStepCompletionContent } from '@/components/IntensiveStepCompletionContent'
+import { createClient } from '@/lib/supabase/client'
 
 interface ProfileData {
   id: string
@@ -46,10 +50,50 @@ export default function ProfileDashboardPage() {
   const [showCloneDialog, setShowCloneDialog] = useState(false)
   const [versionToClone, setVersionToClone] = useState<string | null>(null)
   const [isCloning, setIsCloning] = useState(false)
+  
+  // Intensive mode state
+  const [isIntensiveMode, setIsIntensiveMode] = useState(false)
+  const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
+  const [completedAt, setCompletedAt] = useState<string | null>(null)
 
   useEffect(() => {
     fetchProfile()
+    checkIntensiveMode()
   }, [])
+
+  const checkIntensiveMode = async () => {
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // Check for active intensive purchase
+      const { data: intensiveData } = await supabase
+        .from('intensive_purchases')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('completion_status', 'pending')
+        .maybeSingle()
+
+      if (intensiveData) {
+        setIsIntensiveMode(true)
+        
+        // Check if profile step is already completed
+        const { data: checklistData } = await supabase
+          .from('intensive_checklist')
+          .select('profile_completed, profile_completed_at')
+          .eq('intensive_id', intensiveData.id)
+          .maybeSingle()
+
+        if (checklistData?.profile_completed) {
+          setIsAlreadyCompleted(true)
+          setCompletedAt(checklistData.profile_completed_at)
+        }
+      }
+    } catch (error) {
+      console.error('Error checking intensive mode:', error)
+    }
+  }
 
   const fetchProfile = async () => {
     setLoading(true)
@@ -333,30 +377,27 @@ export default function ProfileDashboardPage() {
         .eq('id', user.id)
         .single()
       
-      // Create new profile
+      // Create new profile with just user_id (other fields come from user_accounts)
       const { data: newProfile, error } = await supabase
         .from('user_profiles')
         .insert({
-          user_id: user.id,
-          first_name: accountData?.first_name || '',
-          last_name: accountData?.last_name || '',
-          profile_picture_url: accountData?.profile_picture_url || null,
-          is_draft: false,
-          is_active: true,
-          version_number: 1
+          user_id: user.id
         })
         .select()
         .single()
       
       if (error) {
         console.error('Error creating profile:', error)
-        alert('Failed to create profile: ' + error.message)
+        alert('Failed to create profile: ' + (error.message || 'Unknown error'))
         return
       }
       
-      if (newProfile) {
-        router.push(`/profile/${newProfile.id}/edit`)
+      if (!newProfile) {
+        alert('Failed to create profile - no data returned.')
+        return
       }
+      
+      router.push(`/profile/${newProfile.id}/edit`)
     } catch (error) {
       console.error('Error creating first profile:', error)
       alert('Failed to create profile')
@@ -398,12 +439,27 @@ export default function ProfileDashboardPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {/* Page Hero */}
-        <PageHero
-          eyebrow="PROFILE"
-          title="All Profiles"
-          subtitle="View all of your Profile versions below."
-        />
+        {/* Page Hero - Use IntensiveStepHeader when in intensive mode */}
+        {isIntensiveMode ? (
+          <IntensiveStepHeader stepNumber={3} stepTitle="Create Profile">
+            {isAlreadyCompleted && completedAt ? (
+              <IntensiveStepCompletionContent 
+                stepTitle="Create Profile"
+                completedAt={completedAt}
+              />
+            ) : (
+              <p className="text-sm md:text-base text-neutral-300 text-center max-w-2xl mx-auto">
+                View and manage your profile versions below.
+              </p>
+            )}
+          </IntensiveStepHeader>
+        ) : (
+          <PageHero
+            eyebrow="PROFILE"
+            title="All Profiles"
+            subtitle="View all of your Profile versions below."
+          />
+        )}
 
         {/* Stats Cards */}
         {activeProfile && (
@@ -513,9 +569,14 @@ export default function ProfileDashboardPage() {
         {/* No Profile State */}
         {!activeProfile && (
           <div className="text-center py-16">
-            <Card className="max-w-md mx-auto">
+            <Card className="max-w-md mx-auto text-center">
+              <div className="flex justify-center mb-4">
+                <div className="w-16 h-16 bg-primary-500/20 rounded-full flex items-center justify-center">
+                  <User className="w-8 h-8 text-primary-500" />
+                </div>
+              </div>
               <h3 className="text-2xl font-bold text-white mb-4">No profile yet</h3>
-              <p className="text-neutral-400 mb-8">
+              <p className="text-neutral-400 mb-6 md:mb-8">
                 Start by creating your first profile. Define your personal information and preferences.
               </p>
               <Button size="lg" onClick={handleCreateFirstProfile}>

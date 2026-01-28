@@ -22,6 +22,11 @@ import {
   type IntakeQuestion 
 } from '@/lib/constants/intensive-intake-questions'
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
+import { IntensiveStepCompleteBanner } from '@/components/IntensiveStepCompleteBanner'
+import { ReadOnlySection } from '@/components/IntensiveStepCompletedBanner'
+import { IntensiveStepHeader } from '@/components/IntensiveStepHeader'
+import { IntensiveStepCompletionContent } from '@/components/IntensiveStepCompletionContent'
+import { getStepInfo, getNextStep } from '@/lib/intensive/step-mapping'
 
 // Build form data type from questions
 type IntakeFormData = {
@@ -47,14 +52,25 @@ const initializeFormData = (): IntakeFormData => {
 
 export default function IntensiveIntake() {
   const [formData, setFormData] = useState<IntakeFormData>(initializeFormData)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [intensiveId, setIntensiveId] = useState<string | null>(null)
+  
+  // Completion states
+  const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
+  const [justSubmitted, setJustSubmitted] = useState(false)
+  const [completedAt, setCompletedAt] = useState<string | null>(null)
+  const [savedResponses, setSavedResponses] = useState<IntakeFormData | null>(null)
 
   const router = useRouter()
   const supabase = createClient()
 
   // Get questions for pre_intensive phase
   const questions = getQuestionsForPhase('pre_intensive')
+  
+  // Get step info for banners
+  const currentStep = getStepInfo('intake')
+  const nextStep = getNextStep('intake')
 
   useEffect(() => {
     loadIntensiveData()
@@ -62,6 +78,7 @@ export default function IntensiveIntake() {
 
   const loadIntensiveData = async () => {
     try {
+      setLoading(true)
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         router.push('/auth/login')
@@ -83,6 +100,7 @@ export default function IntensiveIntake() {
         // Allow super_admin to access without enrollment
         if (isSuperAdmin) {
           setIntensiveId('super-admin-test-mode')
+          setLoading(false)
           return
         }
         router.push('/#pricing')
@@ -91,8 +109,41 @@ export default function IntensiveIntake() {
 
       setIntensiveId(intensiveData.id)
 
+      // Check if intake is already completed
+      const { data: checklistData } = await supabase
+        .from('intensive_checklist')
+        .select('intake_completed, intake_completed_at')
+        .eq('intensive_id', intensiveData.id)
+        .single()
+
+      if (checklistData?.intake_completed) {
+        setIsAlreadyCompleted(true)
+        setCompletedAt(checklistData.intake_completed_at)
+        
+        // Fetch the saved responses
+        const { data: responseData } = await supabase
+          .from('intensive_responses')
+          .select('*')
+          .eq('intensive_id', intensiveData.id)
+          .eq('phase', 'pre_intensive')
+          .single()
+
+        if (responseData) {
+          // Map database response to form data format
+          const responses: IntakeFormData = {}
+          questions.forEach(q => {
+            if (responseData[q.id] !== undefined) {
+              responses[q.id] = responseData[q.id]
+            }
+          })
+          setSavedResponses(responses)
+        }
+      }
+
     } catch (error) {
       console.error('Error loading intensive data:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -112,7 +163,7 @@ export default function IntensiveIntake() {
       return
     }
 
-    setLoading(true)
+    setSubmitting(true)
     try {
       // Get user for the insert
       const { data: { user } } = await supabase.auth.getUser()
@@ -148,11 +199,12 @@ export default function IntensiveIntake() {
       }
 
       // Update intensive checklist
+      const completedTime = new Date().toISOString()
       const { error: checklistError } = await supabase
         .from('intensive_checklist')
         .update({
           intake_completed: true,
-          intake_completed_at: new Date().toISOString()
+          intake_completed_at: completedTime
         })
         .eq('intensive_id', intensiveId)
 
@@ -160,14 +212,168 @@ export default function IntensiveIntake() {
         console.error('Error updating checklist:', checklistError)
       }
 
-      // Redirect to next step
-      router.push('/intensive/dashboard')
+      // Show the completion banner instead of redirecting
+      setJustSubmitted(true)
+      setCompletedAt(completedTime)
+      setSavedResponses(formData)
 
     } catch (error) {
       console.error('Error submitting form:', error)
       alert('Error submitting form. Please try again.')
     } finally {
-      setLoading(false)
+      setSubmitting(false)
+    }
+  }
+
+  // Read-only rating display
+  const ReadOnlyRating = ({ 
+    question, 
+    value 
+  }: { 
+    question: IntakeQuestion
+    value: number | null 
+  }) => (
+    <div className="border border-neutral-700/50 rounded-lg p-4 md:p-6 bg-neutral-900/20">
+      <div className="flex items-start gap-3 mb-4">
+        <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-500 flex items-center justify-center font-semibold text-sm">
+          {question.order}
+        </div>
+        <label className="block text-sm md:text-base font-medium text-neutral-300 pt-0.5">
+          {question.questionPre}
+        </label>
+      </div>
+      <div className="flex flex-wrap gap-2 ml-10">
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+          <div
+            key={num}
+            className={`
+              w-10 h-10 rounded border-2 font-semibold flex items-center justify-center text-sm
+              ${value === num 
+                ? 'bg-primary-500/30 border-primary-500/50 text-primary-400' 
+                : 'bg-neutral-800/50 border-neutral-700/30 text-neutral-600'
+              }
+            `}
+          >
+            {num}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
+  // Read-only multiple choice display
+  const ReadOnlyMultipleChoice = ({ 
+    question, 
+    value 
+  }: { 
+    question: IntakeQuestion
+    value: string | null 
+  }) => (
+    <div className="border border-neutral-700/50 rounded-lg p-4 md:p-6 bg-neutral-900/20">
+      <div className="flex items-start gap-3 mb-4">
+        <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-500 flex items-center justify-center font-semibold text-sm">
+          {question.order}
+        </div>
+        <label className="block text-sm md:text-base font-medium text-neutral-300 pt-0.5">
+          {question.questionPre}
+        </label>
+      </div>
+      <div className="ml-10 space-y-2">
+        {question.options?.map((option) => (
+          <div 
+            key={option.value} 
+            className={`
+              flex items-center gap-3 p-3 rounded-lg border
+              ${value === option.value 
+                ? 'bg-primary-500/10 border-primary-500/30 text-primary-400' 
+                : 'bg-neutral-800/30 border-neutral-700/30 text-neutral-500'
+              }
+            `}
+          >
+            <div className={`
+              w-4 h-4 rounded-full border-2 flex-shrink-0
+              ${value === option.value 
+                ? 'bg-primary-500 border-primary-500' 
+                : 'border-neutral-600'
+              }
+            `} />
+            <span className="text-sm">{option.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
+  // Read-only text display
+  const ReadOnlyText = ({ 
+    question, 
+    value 
+  }: { 
+    question: IntakeQuestion
+    value: string | null 
+  }) => (
+    <div className="border border-neutral-700/50 rounded-lg p-4 md:p-6 bg-neutral-900/20">
+      <div className="flex items-start gap-3 mb-4">
+        <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-500 flex items-center justify-center font-semibold text-sm">
+          {question.order}
+        </div>
+        <label className="block text-sm md:text-base font-medium text-neutral-300 pt-0.5">
+          {question.questionPre}
+        </label>
+      </div>
+      <div className="ml-10">
+        <div className="p-3 rounded-lg bg-neutral-800/30 border border-neutral-700/30 text-neutral-400 text-sm min-h-[80px]">
+          {value || <span className="italic text-neutral-600">No response provided</span>}
+        </div>
+      </div>
+    </div>
+  )
+
+  // Read-only boolean display
+  const ReadOnlyBoolean = ({ 
+    question, 
+    value 
+  }: { 
+    question: IntakeQuestion
+    value: boolean | null 
+  }) => (
+    <div className="border border-neutral-700/50 rounded-lg p-4 md:p-6 bg-neutral-900/20">
+      <div className="flex items-start gap-3">
+        <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-500 flex items-center justify-center font-semibold text-sm">
+          {question.order}
+        </div>
+        <div className="flex items-center gap-3 pt-0.5">
+          <div className={`
+            w-5 h-5 rounded border-2 flex items-center justify-center
+            ${value 
+              ? 'bg-primary-500/30 border-primary-500/50' 
+              : 'bg-neutral-800/50 border-neutral-700/30'
+            }
+          `}>
+            {value && <span className="text-primary-400 text-xs">✓</span>}
+          </div>
+          <span className="text-sm md:text-base text-neutral-300">
+            {question.questionPre}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderReadOnlyQuestion = (question: IntakeQuestion, responses: IntakeFormData) => {
+    const value = responses[question.id]
+    
+    switch (question.type) {
+      case 'rating':
+        return <ReadOnlyRating key={question.id} question={question} value={value as number} />
+      case 'multiple_choice':
+        return <ReadOnlyMultipleChoice key={question.id} question={question} value={value as string} />
+      case 'text':
+        return <ReadOnlyText key={question.id} question={question} value={value as string} />
+      case 'boolean':
+        return <ReadOnlyBoolean key={question.id} question={question} value={value as boolean} />
+      default:
+        return null
     }
   }
 
@@ -304,6 +510,88 @@ export default function IntensiveIntake() {
     }
   }
 
+  // Loading state
+  if (loading) {
+    return (
+      <Container size="xl">
+        <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+          <Spinner size="lg" />
+        </div>
+      </Container>
+    )
+  }
+
+  // SCENARIO B: User is revisiting a completed step
+  if (isAlreadyCompleted && !justSubmitted && savedResponses && completedAt) {
+    return (
+      <Container size="xl">
+        <Stack gap="lg">
+          {/* Page Header with completion info integrated */}
+          <IntensiveStepHeader stepNumber={2} stepTitle="Baseline Intake">
+            <IntensiveStepCompletionContent 
+              stepTitle="Baseline Intake"
+              completedAt={completedAt}
+            />
+          </IntensiveStepHeader>
+
+          {/* Read-Only Responses */}
+          <ReadOnlySection
+            title="Your Baseline Responses"
+            helperText="These responses are locked in as part of your 72-Hour Activation baseline and cannot be edited."
+          >
+            <div className="space-y-4">
+              {questions.map(q => renderReadOnlyQuestion(q, savedResponses))}
+            </div>
+          </ReadOnlySection>
+        </Stack>
+      </Container>
+    )
+  }
+
+  // SCENARIO A: User just submitted - show completion banner
+  if (justSubmitted && savedResponses && nextStep) {
+    return (
+      <Container size="xl">
+        <Stack gap="lg">
+          {/* Top Banner */}
+          <IntensiveStepCompleteBanner
+            currentStepName={currentStep?.title || 'Baseline Intake'}
+            nextStepName={nextStep.title}
+            nextStepHref={nextStep.href}
+            position="top"
+          />
+
+          {/* Page Header */}
+          <PageHero
+            eyebrow="ACTIVATION INTENSIVE"
+            title="Baseline Intake Complete"
+            subtitle="Your responses have been saved"
+          />
+
+          {/* Confirmation of submitted responses */}
+          <Card variant="elevated" className="p-6 md:p-8">
+            <h3 className="text-lg font-semibold text-white mb-2">Your Baseline Responses</h3>
+            <p className="text-sm text-neutral-400 mb-6">
+              These answers are your official &quot;before&quot; snapshot and are locked in for this Activation.
+            </p>
+            <div className="space-y-4">
+              {questions.map(q => renderReadOnlyQuestion(q, savedResponses))}
+            </div>
+          </Card>
+
+          {/* Bottom Banner */}
+          <IntensiveStepCompleteBanner
+            currentStepName={currentStep?.title || 'Baseline Intake'}
+            nextStepName={nextStep.title}
+            nextStepHref={nextStep.href}
+            position="bottom"
+          />
+        </Stack>
+      </Container>
+    )
+  }
+
+  // Default: Show the intake form
   if (!intensiveId) {
     return (
       <Container size="xl">
@@ -333,10 +621,10 @@ export default function IntensiveIntake() {
                 type="submit"
                 variant="primary"
                 size="md"
-                disabled={loading}
+                disabled={submitting}
                 className="min-w-[200px]"
               >
-                {loading ? (
+                {submitting ? (
                   <>
                     <Spinner size="sm" className="mr-2" />
                     Submitting...

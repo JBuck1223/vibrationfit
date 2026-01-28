@@ -6,11 +6,16 @@
 
 import { useState, useEffect } from 'react'
 import { Container, Stack, PageHero, Card, Button, Input, Spinner, DatePicker, Checkbox, Modal, Badge } from '@/lib/design-system/components'
-import { User, Check, Rocket } from 'lucide-react'
+import { User, Check, Rocket, FlaskConical } from 'lucide-react'
+import { generateFakePersonalInfo } from '@/lib/testing/fake-profile-data'
 import { ProfilePictureUpload } from '@/app/profile/components/ProfilePictureUpload'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import { IntensiveStepCompleteBanner } from '@/components/IntensiveStepCompleteBanner'
+import { IntensiveStepHeader } from '@/components/IntensiveStepHeader'
+import { IntensiveStepCompletionContent } from '@/components/IntensiveStepCompletionContent'
+import { getStepInfo, getNextStep } from '@/lib/intensive/step-mapping'
 
 // Default profile picture URL to check against
 const DEFAULT_PROFILE_PICTURE = 'https://media.vibrationfit.com/site-assets/default-avatar.png'
@@ -42,9 +47,29 @@ export default function AccountSettingsPage() {
   const [isIntensiveMode, setIsIntensiveMode] = useState(false)
   const [intensiveId, setIntensiveId] = useState<string | null>(null)
   const [showDefaultPictureModal, setShowDefaultPictureModal] = useState(false)
+  const [justCompletedStep, setJustCompletedStep] = useState(false)
+  const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
+  const [completedAt, setCompletedAt] = useState<string | null>(null)
+  
+  // Dev mode for test data
+  const showTestDataButton = process.env.NODE_ENV === 'development'
   
   const supabase = createClient()
   const router = useRouter()
+
+  // Fill with fake test data (dev mode only)
+  const handleFillTestData = () => {
+    const fakeData = generateFakePersonalInfo()
+    setFirstName(fakeData.first_name || '')
+    setLastName(fakeData.last_name || '')
+    setEmail(fakeData.email || '')
+    setPhone(formatPhoneNumber(fakeData.phone || ''))
+    if (fakeData.date_of_birth) {
+      setDateOfBirth(fakeData.date_of_birth)
+    }
+    setHasChanges(true)
+    console.log('🧪 Filled account settings with test data:', fakeData.first_name, fakeData.last_name)
+  }
 
   useEffect(() => {
     fetchUserData()
@@ -56,16 +81,38 @@ export default function AccountSettingsPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const { data: checklist } = await supabase
-        .from('intensive_checklist')
-        .select('id, intensive_id, status')
+      // Check for active intensive purchase (same approach as intake page)
+      const { data: intensiveData } = await supabase
+        .from('intensive_purchases')
+        .select('id')
         .eq('user_id', user.id)
-        .in('status', ['pending', 'in_progress'])
+        .eq('completion_status', 'pending')
         .maybeSingle()
 
-      if (checklist) {
+      if (intensiveData) {
         setIsIntensiveMode(true)
-        setIntensiveId(checklist.intensive_id)
+        setIntensiveId(intensiveData.id)
+        
+        // Step 1 (Account Settings) completion is tracked via user_accounts table
+        // Check if user has filled out required fields
+        const { data: accountData } = await supabase
+          .from('user_accounts')
+          .select('first_name, last_name, email, phone, updated_at')
+          .eq('id', user.id)
+          .single()
+
+        if (accountData) {
+          const hasFirstName = accountData.first_name && accountData.first_name.trim().length > 0
+          const hasLastName = accountData.last_name && accountData.last_name.trim().length > 0
+          const hasEmail = accountData.email && accountData.email.trim().length > 0
+          const hasPhone = accountData.phone && accountData.phone.replace(/\D/g, '').length >= 10
+          
+          if (hasFirstName && hasLastName && hasEmail && hasPhone) {
+            setIsAlreadyCompleted(true)
+            // Use updated_at as the completion timestamp (best available approximation)
+            setCompletedAt(accountData.updated_at)
+          }
+        }
       }
     } catch (error) {
       console.error('Error checking intensive mode:', error)
@@ -112,10 +159,9 @@ export default function AccountSettingsPage() {
       if (error) {
         console.error('Error marking intensive settings complete:', error)
       } else {
-        toast.success('Settings complete! Redirecting to your Intensive Dashboard...')
-        setTimeout(() => {
-          router.push('/intensive/dashboard')
-        }, 1500)
+        // Show completion banner instead of redirecting
+        setJustCompletedStep(true)
+        toast.success('Account settings saved!')
       }
     } catch (error) {
       console.error('Error in markIntensiveSettingsComplete:', error)
@@ -370,27 +416,71 @@ export default function AccountSettingsPage() {
     )
   }
 
+  // Get step info for banners
+  const currentStep = getStepInfo('settings')
+  const nextStep = getNextStep('settings')
+
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {/* Page Hero */}
-        <PageHero
-          eyebrow={isIntensiveMode ? "ACTIVATION INTENSIVE - STEP 1" : undefined}
-          title="Account Settings"
-          subtitle="Manage your personal information and preferences"
-        >
-          <div className="flex flex-col sm:flex-row gap-3 justify-center w-full">
-            {isIntensiveMode && (
-              <Badge variant="premium">
-                <Rocket className="w-4 h-4 mr-2" />
-                Step 1 of 14
-              </Badge>
+        {/* Intensive Mode: Show completion banner at top when just completed */}
+        {justCompletedStep && isIntensiveMode && nextStep && (
+          <IntensiveStepCompleteBanner
+            currentStepName={currentStep?.title || 'Account Settings'}
+            nextStepName={nextStep.title}
+            nextStepHref={nextStep.href}
+            position="top"
+          />
+        )}
+
+        {/* Page Hero - Use IntensiveStepHeader when in intensive mode */}
+        {isIntensiveMode ? (
+          <IntensiveStepHeader stepNumber={1} stepTitle="Account Settings">
+            {isAlreadyCompleted && completedAt && !justCompletedStep ? (
+              <IntensiveStepCompletionContent 
+                stepTitle="Account Settings"
+                completedAt={completedAt}
+              />
+            ) : (
+              <p className="text-sm md:text-base text-neutral-300 text-center max-w-2xl mx-auto">
+                Set up your name, email, phone, and profile picture to continue your Activation.
+              </p>
             )}
+          </IntensiveStepHeader>
+        ) : (
+          <PageHero
+            title="Account Settings"
+            subtitle="Manage your personal information and preferences"
+          >
             <Button variant="outline" onClick={() => router.push('/account')}>
               Account Dashboard
             </Button>
-          </div>
-        </PageHero>
+          </PageHero>
+        )}
+
+        {/* Test Data Button (Dev Mode Only) */}
+        {showTestDataButton && (
+          <Card className="bg-purple-500/10 border-purple-500/30">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <FlaskConical className="w-6 h-6 text-purple-400" />
+                <div>
+                  <p className="text-sm font-medium text-purple-300">Development Mode</p>
+                  <p className="text-xs text-neutral-400">Fill account settings with realistic fake data for testing</p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleFillTestData}
+                className="border-purple-500 text-purple-400 hover:bg-purple-500/20"
+              >
+                <FlaskConical className="w-4 h-4 mr-2" />
+                Fill with Test Data
+              </Button>
+            </div>
+          </Card>
+        )}
 
         {/* Personal Information */}
         <Card className="p-6">
@@ -525,8 +615,8 @@ export default function AccountSettingsPage() {
           </div>
         </Card>
 
-        {/* Intensive Mode - Continue Button */}
-        {isIntensiveMode && (
+        {/* Intensive Mode - Continue Button (only show if not yet completed) */}
+        {isIntensiveMode && !justCompletedStep && (
           <Card className="p-6 bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-primary-500/30">
             <div className="text-center">
               <h3 className="text-xl font-bold text-white mb-3">Ready to Continue?</h3>
@@ -550,6 +640,16 @@ export default function AccountSettingsPage() {
               )}
             </div>
           </Card>
+        )}
+
+        {/* Intensive Mode: Show completion banner at bottom when just completed */}
+        {justCompletedStep && isIntensiveMode && nextStep && (
+          <IntensiveStepCompleteBanner
+            currentStepName={currentStep?.title || 'Account Settings'}
+            nextStepName={nextStep.title}
+            nextStepHref={nextStep.href}
+            position="bottom"
+          />
         )}
       </Stack>
 

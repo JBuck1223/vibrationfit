@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import {
   Button,
   Card,
@@ -19,10 +19,14 @@ import { BarChart3, Eye, ArrowLeft, RefreshCw, Trash2, CalendarDays } from 'luci
 import { fetchAssessments, fetchAssessment } from '@/lib/services/assessmentService'
 import { AssessmentResult, AssessmentResponse } from '@/types/assessment'
 import ResultsSummary from '../../components/ResultsSummary'
+import { IntensiveStepHeader } from '@/components/IntensiveStepHeader'
+import { IntensiveStepCompletionContent } from '@/components/IntensiveStepCompletionContent'
+import { createClient } from '@/lib/supabase/client'
 
 export default function AssessmentResultsPage() {
   const router = useRouter()
   const params = useParams()
+  const searchParams = useSearchParams()
   const routeAssessmentId = Array.isArray(params?.id)
     ? params?.id[0]
     : (params?.id as string | undefined)
@@ -36,6 +40,8 @@ export default function AssessmentResultsPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [assessmentToDelete, setAssessmentToDelete] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [isIntensiveMode, setIsIntensiveMode] = useState(false)
+  const [assessmentCompletedAt, setAssessmentCompletedAt] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -49,6 +55,24 @@ export default function AssessmentResultsPage() {
       setError(null)
 
       try {
+        // Check if user is in intensive mode
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        if (user) {
+          const { data: checklistData } = await supabase
+            .from('intensive_checklist')
+            .select('assessment_completed, assessment_completed_at, status')
+            .eq('user_id', user.id)
+            .in('status', ['pending', 'in_progress'])
+            .maybeSingle()
+          
+          if (checklistData?.assessment_completed) {
+            setIsIntensiveMode(true)
+            setAssessmentCompletedAt(checklistData.assessment_completed_at)
+          }
+        }
+
         const { assessments } = await fetchAssessments()
         const targetAssessment = assessments.find((a) => a.id === routeAssessmentId)
 
@@ -183,49 +207,60 @@ export default function AssessmentResultsPage() {
 
   return (
     <Container size="xl" className="">
-      <PageHero
-        title="Assessment Results"
-        subtitle="Review your vibrational alignment scores and insights."
-        className="mb-6 md:mb-8"
-      >
-        {/* Badge Row */}
-        <div className="text-center mb-4">
-          <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-            <StatusBadge 
-              status={selectedAssessment.is_active ? 'active' : 'complete'} 
-              subtle={!selectedAssessment.is_active}
-              className="uppercase tracking-[0.25em]"
+      <Stack gap="lg">
+        {/* Intensive Mode: Show completed header */}
+        {isIntensiveMode && selectedAssessment?.status === 'completed' && assessmentCompletedAt ? (
+          <IntensiveStepHeader stepNumber={4} stepTitle="Vibration Assessment">
+            <IntensiveStepCompletionContent 
+              stepTitle="Vibration Assessment"
+              completedAt={assessmentCompletedAt}
             />
-            <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
-              <CalendarDays className="w-4 h-4 text-neutral-500" />
-              <span className="font-medium">Started:</span>
-              <span>{formatStartDate(selectedAssessment.started_at || selectedAssessment.created_at)}</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
-              <CalendarDays className="w-4 h-4 text-neutral-500" />
-              <span className="font-medium">Completed:</span>
-              <span>{selectedAssessment.completed_at ? formatStartDate(selectedAssessment.completed_at) : 'Not completed'}</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-xs md:text-sm font-semibold">
-              <BarChart3 className="w-4 h-4 text-primary-500" />
-              <span className="text-primary-500">{selectedAssessment.overall_percentage || 0}%</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Button */}
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <Button
-            variant="outline"
-            size="md"
-            onClick={() => router.push('/assessment')}
-            className="flex items-center gap-2"
+          </IntensiveStepHeader>
+        ) : (
+          <PageHero
+            title="Assessment Results"
+            subtitle="Review your vibrational alignment scores and insights."
+            className="mb-6 md:mb-8"
           >
-            <ArrowLeft className="h-5 w-5" />
-            Assessment Hub
-          </Button>
-        </div>
-      </PageHero>
+            {/* Badge Row */}
+            <div className="text-center mb-4">
+              <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+                <StatusBadge 
+                  status={selectedAssessment.is_active ? 'active' : 'complete'} 
+                  subtle={!selectedAssessment.is_active}
+                  className="uppercase tracking-[0.25em]"
+                />
+                <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+                  <CalendarDays className="w-4 h-4 text-neutral-500" />
+                  <span className="font-medium">Started:</span>
+                  <span>{formatStartDate(selectedAssessment.started_at || selectedAssessment.created_at)}</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+                  <CalendarDays className="w-4 h-4 text-neutral-500" />
+                  <span className="font-medium">Completed:</span>
+                  <span>{selectedAssessment.completed_at ? formatStartDate(selectedAssessment.completed_at) : 'Not completed'}</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs md:text-sm font-semibold">
+                  <BarChart3 className="w-4 h-4 text-primary-500" />
+                  <span className="text-primary-500">{selectedAssessment.overall_percentage || 0}%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Button */}
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <Button
+                variant="outline"
+                size="md"
+                onClick={() => router.push('/assessment')}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="h-5 w-5" />
+                Assessment Hub
+              </Button>
+            </div>
+          </PageHero>
+        )}
 
       {selectedAssessment.status === 'completed' ? (
             <ResultsSummary 
@@ -293,16 +328,17 @@ export default function AssessmentResultsPage() {
           </Card>
         )}
 
-      <DeleteConfirmationDialog
-        isOpen={showDeleteDialog}
-        onClose={() => {
-          setShowDeleteDialog(false)
-          setAssessmentToDelete(null)
-        }}
-        onConfirm={handleDeleteConfirm}
-        itemName="assessment"
-        isDeleting={deletingId !== null}
-      />
+        <DeleteConfirmationDialog
+          isOpen={showDeleteDialog}
+          onClose={() => {
+            setShowDeleteDialog(false)
+            setAssessmentToDelete(null)
+          }}
+          onConfirm={handleDeleteConfirm}
+          itemName="assessment"
+          isDeleting={deletingId !== null}
+        />
+      </Stack>
     </Container>
   )
 }

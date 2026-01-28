@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Container,
@@ -14,6 +14,8 @@ import {
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowRight, User, Heart, Activity, Sparkles } from 'lucide-react'
+import { IntensiveStepCompletionContent } from '@/components/IntensiveStepCompletionContent'
+import { createClient } from '@/lib/supabase/client'
 
 // Placeholder video URL - user will replace this later
 const PROFILE_INTRO_VIDEO =
@@ -23,6 +25,47 @@ export default function ProfileNewPage() {
   const router = useRouter()
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isIntensiveMode, setIsIntensiveMode] = useState(false)
+  const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
+  const [completedAt, setCompletedAt] = useState<string | null>(null)
+
+  useEffect(() => {
+    checkIntensiveMode()
+  }, [])
+
+  const checkIntensiveMode = async () => {
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // Check for active intensive purchase
+      const { data: intensiveData } = await supabase
+        .from('intensive_purchases')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('completion_status', 'pending')
+        .maybeSingle()
+
+      if (intensiveData) {
+        setIsIntensiveMode(true)
+        
+        // Check if profile step is already completed
+        const { data: checklistData } = await supabase
+          .from('intensive_checklist')
+          .select('profile_completed, profile_completed_at')
+          .eq('intensive_id', intensiveData.id)
+          .maybeSingle()
+
+        if (checklistData?.profile_completed) {
+          setIsAlreadyCompleted(true)
+          setCompletedAt(checklistData.profile_completed_at)
+        }
+      }
+    } catch (error) {
+      console.error('Error checking intensive mode:', error)
+    }
+  }
 
   const handleCreateProfile = async () => {
     setIsCreating(true)
@@ -77,8 +120,19 @@ export default function ProfileNewPage() {
   return (
     <Container size="xl">
       <Stack gap="xl">
-        {/* Centered Hero Title */}
+        {/* Completion Banner - Shows above PageHero when step is already complete */}
+        {isIntensiveMode && isAlreadyCompleted && completedAt && (
+          <Card className="bg-neutral-800/80 border-neutral-600/50">
+            <IntensiveStepCompletionContent 
+              stepTitle="Create Profile"
+              completedAt={completedAt}
+            />
+          </Card>
+        )}
+
+        {/* Page Hero - Always shows, with intensive eyebrow when in intensive mode */}
         <PageHero
+          eyebrow={isIntensiveMode ? "ACTIVATION INTENSIVE • STEP 3 OF 14" : undefined}
           title="Welcome to Your Profile"
           subtitle="Your profile is the foundation of your journey with VibrationFit."
         >
