@@ -37,7 +37,7 @@ export function IntensiveStepCompletionContent({
   })
 
   return (
-    <>
+    <div className="space-y-4">
       <div className="flex items-center justify-center gap-2">
         <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-primary-500" />
         <p className="text-base md:text-lg font-medium text-white">
@@ -57,6 +57,6 @@ export function IntensiveStepCompletionContent({
           Back to Activation Dashboard
         </Button>
       </div>
-    </>
+    </div>
   )
 }

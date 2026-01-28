@@ -14,7 +14,7 @@ import {
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowRight, User, Heart, Activity, Sparkles } from 'lucide-react'
-import { IntensiveStepHeader } from '@/components/IntensiveStepHeader'
+import { IntensiveStepCompletionContent } from '@/components/IntensiveStepCompletionContent'
 import { createClient } from '@/lib/supabase/client'
 
 // Placeholder video URL - user will replace this later
@@ -26,6 +26,8 @@ export default function ProfileNewPage() {
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isIntensiveMode, setIsIntensiveMode] = useState(false)
+  const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
+  const [completedAt, setCompletedAt] = useState<string | null>(null)
 
   useEffect(() => {
     checkIntensiveMode()
@@ -37,14 +39,29 @@ export default function ProfileNewPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const { data: checklist } = await supabase
-        .from('intensive_checklist')
+      // Check for active intensive purchase
+      const { data: intensiveData } = await supabase
+        .from('intensive_purchases')
         .select('id')
         .eq('user_id', user.id)
-        .in('status', ['pending', 'in_progress'])
+        .eq('completion_status', 'pending')
         .maybeSingle()
 
-      setIsIntensiveMode(!!checklist)
+      if (intensiveData) {
+        setIsIntensiveMode(true)
+        
+        // Check if profile step is already completed
+        const { data: checklistData } = await supabase
+          .from('intensive_checklist')
+          .select('profile_completed, profile_completed_at')
+          .eq('intensive_id', intensiveData.id)
+          .maybeSingle()
+
+        if (checklistData?.profile_completed) {
+          setIsAlreadyCompleted(true)
+          setCompletedAt(checklistData.profile_completed_at)
+        }
+      }
     } catch (error) {
       console.error('Error checking intensive mode:', error)
     }
@@ -103,87 +120,57 @@ export default function ProfileNewPage() {
   return (
     <Container size="xl">
       <Stack gap="xl">
-        {/* Centered Hero Title - Use IntensiveStepHeader when in intensive mode */}
-        {isIntensiveMode ? (
-          <IntensiveStepHeader stepNumber={3} stepTitle="Create Profile">
-            <p className="text-sm md:text-base text-neutral-300 text-center max-w-2xl mx-auto">
-              Your profile is the foundation of your journey with VibrationFit.
-            </p>
-            {/* Video */}
-            <div>
-              <OptimizedVideo
-                url={PROFILE_INTRO_VIDEO}
-                context="single"
-                className="mx-auto w-full max-w-3xl"
-              />
-            </div>
-            {/* Action Button */}
-            <div className="flex flex-col gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
-              <Button 
-                variant="primary" 
-                size="sm" 
-                onClick={handleCreateProfile}
-                disabled={isCreating}
-                className="w-full md:w-auto"
-              >
-                {isCreating ? (
-                  <>
-                    <Spinner variant="primary" size="sm" className="mr-2" />
-                    Creating Profile...
-                  </>
-                ) : (
-                  <>
-                    <ArrowRight className="mr-2 h-4 w-4" />
-                    Create Your Profile
-                  </>
-                )}
-              </Button>
-              {error && (
-                <p className="text-sm text-red-400">{error}</p>
-              )}
-            </div>
-          </IntensiveStepHeader>
-        ) : (
-          <PageHero
-            title="Welcome to Your Profile"
-            subtitle="Your profile is the foundation of your journey with VibrationFit."
-          >
-            {/* Video */}
-            <div>
-              <OptimizedVideo
-                url={PROFILE_INTRO_VIDEO}
-                context="single"
-                className="mx-auto w-full max-w-3xl"
-              />
-            </div>
-
-            {/* Action Button */}
-            <div className="flex flex-col gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
-              <Button 
-                variant="primary" 
-                size="sm" 
-                onClick={handleCreateProfile}
-                disabled={isCreating}
-                className="w-full md:w-auto"
-              >
-                {isCreating ? (
-                  <>
-                    <Spinner variant="primary" size="sm" className="mr-2" />
-                    Creating Profile...
-                  </>
-                ) : (
-                  <>
-                    <ArrowRight className="mr-2 h-4 w-4" />
-                    Create Your Profile
-                  </>
-                )}
-              </Button>
-              {error && (
-                <p className="text-sm text-red-400">{error}</p>
-              )}
-            </div>
-          </PageHero>
+        {/* Completion Banner - Shows above PageHero when step is already complete */}
+        {isIntensiveMode && isAlreadyCompleted && completedAt && (
+          <Card className="bg-neutral-800/80 border-neutral-600/50">
+            <IntensiveStepCompletionContent 
+              stepTitle="Create Profile"
+              completedAt={completedAt}
+            />
+          </Card>
         )}
+
+        {/* Page Hero - Always shows, with intensive eyebrow when in intensive mode */}
+        <PageHero
+          eyebrow={isIntensiveMode ? "ACTIVATION INTENSIVE • STEP 3 OF 14" : undefined}
+          title="Welcome to Your Profile"
+          subtitle="Your profile is the foundation of your journey with VibrationFit."
+        >
+          {/* Video */}
+          <div>
+            <OptimizedVideo
+              url={PROFILE_INTRO_VIDEO}
+              context="single"
+              className="mx-auto w-full max-w-3xl"
+            />
+          </div>
+
+          {/* Action Button */}
+          <div className="flex flex-col gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
+            <Button 
+              variant="primary" 
+              size="sm" 
+              onClick={handleCreateProfile}
+              disabled={isCreating}
+              className="w-full md:w-auto"
+            >
+              {isCreating ? (
+                <>
+                  <Spinner variant="primary" size="sm" className="mr-2" />
+                  Creating Profile...
+                </>
+              ) : (
+                <>
+                  <ArrowRight className="mr-2 h-4 w-4" />
+                  Create Your Profile
+                </>
+              )}
+            </Button>
+            {error && (
+              <p className="text-sm text-red-400">{error}</p>
+            )}
+          </div>
+        </PageHero>
 
         {/* What is a Profile? */}
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">

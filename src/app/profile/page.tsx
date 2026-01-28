@@ -18,6 +18,9 @@ import {
   Copy,
   User
 } from 'lucide-react'
+import { IntensiveStepHeader } from '@/components/IntensiveStepHeader'
+import { IntensiveStepCompletionContent } from '@/components/IntensiveStepCompletionContent'
+import { createClient } from '@/lib/supabase/client'
 
 interface ProfileData {
   id: string
@@ -47,10 +50,50 @@ export default function ProfileDashboardPage() {
   const [showCloneDialog, setShowCloneDialog] = useState(false)
   const [versionToClone, setVersionToClone] = useState<string | null>(null)
   const [isCloning, setIsCloning] = useState(false)
+  
+  // Intensive mode state
+  const [isIntensiveMode, setIsIntensiveMode] = useState(false)
+  const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
+  const [completedAt, setCompletedAt] = useState<string | null>(null)
 
   useEffect(() => {
     fetchProfile()
+    checkIntensiveMode()
   }, [])
+
+  const checkIntensiveMode = async () => {
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // Check for active intensive purchase
+      const { data: intensiveData } = await supabase
+        .from('intensive_purchases')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('completion_status', 'pending')
+        .maybeSingle()
+
+      if (intensiveData) {
+        setIsIntensiveMode(true)
+        
+        // Check if profile step is already completed
+        const { data: checklistData } = await supabase
+          .from('intensive_checklist')
+          .select('profile_completed, profile_completed_at')
+          .eq('intensive_id', intensiveData.id)
+          .maybeSingle()
+
+        if (checklistData?.profile_completed) {
+          setIsAlreadyCompleted(true)
+          setCompletedAt(checklistData.profile_completed_at)
+        }
+      }
+    } catch (error) {
+      console.error('Error checking intensive mode:', error)
+    }
+  }
 
   const fetchProfile = async () => {
     setLoading(true)
@@ -396,12 +439,27 @@ export default function ProfileDashboardPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {/* Page Hero */}
-        <PageHero
-          eyebrow="PROFILE"
-          title="All Profiles"
-          subtitle="View all of your Profile versions below."
-        />
+        {/* Page Hero - Use IntensiveStepHeader when in intensive mode */}
+        {isIntensiveMode ? (
+          <IntensiveStepHeader stepNumber={3} stepTitle="Create Profile">
+            {isAlreadyCompleted && completedAt ? (
+              <IntensiveStepCompletionContent 
+                stepTitle="Create Profile"
+                completedAt={completedAt}
+              />
+            ) : (
+              <p className="text-sm md:text-base text-neutral-300 text-center max-w-2xl mx-auto">
+                View and manage your profile versions below.
+              </p>
+            )}
+          </IntensiveStepHeader>
+        ) : (
+          <PageHero
+            eyebrow="PROFILE"
+            title="All Profiles"
+            subtitle="View all of your Profile versions below."
+          />
+        )}
 
         {/* Stats Cards */}
         {activeProfile && (
