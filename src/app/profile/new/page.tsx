@@ -28,6 +28,7 @@ export default function ProfileNewPage() {
   const [isIntensiveMode, setIsIntensiveMode] = useState(false)
   const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
   const [completedAt, setCompletedAt] = useState<string | null>(null)
+  const [checkingIntensive, setCheckingIntensive] = useState(true)
 
   useEffect(() => {
     checkIntensiveMode()
@@ -37,7 +38,10 @@ export default function ProfileNewPage() {
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      if (!user) {
+        setCheckingIntensive(false)
+        return
+      }
 
       // Check for active intensive purchase
       const { data: intensiveData } = await supabase
@@ -64,6 +68,8 @@ export default function ProfileNewPage() {
       }
     } catch (error) {
       console.error('Error checking intensive mode:', error)
+    } finally {
+      setCheckingIntensive(false)
     }
   }
 
@@ -115,6 +121,17 @@ export default function ProfileNewPage() {
       setError(err instanceof Error ? err.message : 'Failed to create profile')
       setIsCreating(false)
     }
+  }
+
+  // Show loading spinner while checking intensive status
+  if (checkingIntensive) {
+    return (
+      <Container size="xl">
+        <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+          <Spinner size="lg" />
+        </div>
+      </Container>
+    )
   }
 
   return (

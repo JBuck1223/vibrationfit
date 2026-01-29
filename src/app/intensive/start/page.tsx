@@ -191,7 +191,7 @@ export default function IntensiveStartPage() {
 
   return (
     <Container size="xl">
-      <Stack gap="lg">
+      <Stack gap="xl">
         {/* Completion Banner - Shows when intensive has already been started */}
         {alreadyStarted && startedAt && (
           <IntensiveCompletionBanner
