@@ -26,6 +26,37 @@ import { ReadOnlySection } from '@/components/IntensiveStepCompletedBanner'
 import { IntensiveCompletionBanner } from '@/lib/design-system/components'
 import { getStepInfo, getNextStep } from '@/lib/intensive/step-mapping'
 
+// Text Question Component - defined outside to prevent re-renders
+const TextQuestionComponent = ({ 
+  question,
+  value,
+  onValueChange
+}: { 
+  question: IntakeQuestion
+  value: string
+  onValueChange: (value: string) => void
+}) => (
+  <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
+    <div className="flex items-start gap-3 mb-4">
+      <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
+        {question.order}
+      </div>
+      <label className="block text-sm md:text-base font-medium text-white pt-0.5">
+        {question.questionPre}
+      </label>
+    </div>
+    <div className="ml-10">
+      <Textarea
+        value={value}
+        onChange={(e) => onValueChange(e.target.value)}
+        placeholder="Share your experience..."
+        rows={4}
+        className="text-sm md:text-base"
+      />
+    </div>
+  </div>
+)
+
 // Build form data type from questions
 type IntakeFormData = {
   [key: string]: number | string | boolean | null
@@ -210,8 +241,8 @@ export default function IntensiveIntake() {
         console.error('Error updating checklist:', checklistError)
       }
 
-      // Redirect to dashboard to show progress
-      router.push('/intensive/dashboard')
+      // Redirect to dashboard to show progress with completion toast
+      router.push('/intensive/dashboard?completed=intake')
 
     } catch (error) {
       console.error('Error submitting form:', error)
@@ -238,7 +269,7 @@ export default function IntensiveIntake() {
           {question.questionPre}
         </label>
       </div>
-      <div className="flex flex-wrap gap-2 ml-10">
+      <div className="grid grid-cols-5 md:grid-cols-10 gap-2 ml-10">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
           <div
             key={num}
@@ -392,7 +423,7 @@ export default function IntensiveIntake() {
           {question.hint}
         </p>
       )}
-      <div className="flex flex-wrap gap-2 ml-10">
+      <div className="grid grid-cols-5 md:grid-cols-10 gap-2 ml-10">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
           <button
             key={num}
@@ -444,31 +475,6 @@ export default function IntensiveIntake() {
     </div>
   )
 
-  const TextQuestion = ({ 
-    question
-  }: { 
-    question: IntakeQuestion
-  }) => (
-    <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
-      <div className="flex items-start gap-3 mb-4">
-        <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
-          {question.order}
-        </div>
-        <label className="block text-sm md:text-base font-medium text-white pt-0.5">
-          {question.questionPre}
-        </label>
-      </div>
-      <div className="ml-10">
-        <Textarea
-          value={(formData[question.id] as string) || ''}
-          onChange={(e) => updateFormData(question.id, e.target.value)}
-          placeholder="Share your experience..."
-          rows={4}
-          className="text-sm md:text-base"
-        />
-      </div>
-    </div>
-  )
 
   const BooleanQuestion = ({ 
     question
@@ -498,7 +504,14 @@ export default function IntensiveIntake() {
       case 'multiple_choice':
         return <MultipleChoiceSelector key={question.id} question={question} />
       case 'text':
-        return <TextQuestion key={question.id} question={question} />
+        return (
+          <TextQuestionComponent 
+            key={question.id} 
+            question={question} 
+            value={(formData[question.id] as string) || ''}
+            onValueChange={(value) => updateFormData(question.id, value)}
+          />
+        )
       case 'boolean':
         return <BooleanQuestion key={question.id} question={question} />
       default:

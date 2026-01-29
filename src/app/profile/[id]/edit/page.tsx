@@ -344,8 +344,8 @@ export default function ProfileEditPage() {
         if (success) {
           setProfileMarkedComplete(true)
           console.log('✅ Profile step marked complete in intensive')
-          // Redirect to dashboard to show progress
-          router.push('/intensive/dashboard')
+          // Redirect to dashboard to show progress with completion toast
+          router.push('/intensive/dashboard?completed=profile')
         }
       }
     }

@@ -189,8 +189,8 @@ export default function NewVisionBoardItemPage() {
           if (allCategoriesCovered) {
             const { markIntensiveStep } = await import('@/lib/intensive/checklist')
             await markIntensiveStep('vision_board_completed')
-            // Redirect to dashboard to show progress
-            router.push('/intensive/dashboard')
+            // Redirect to dashboard to show progress with completion toast
+            router.push('/intensive/dashboard?completed=vision_board')
             return
           } else {
             // Show which categories still need items

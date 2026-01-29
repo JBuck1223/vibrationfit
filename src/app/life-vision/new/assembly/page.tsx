@@ -630,8 +630,8 @@ export default function AssemblyPage() {
             const { markIntensiveStep } = await import('@/lib/intensive/checklist')
             const success = await markIntensiveStep('vision_built')
             if (success) {
-              // Redirect to dashboard to show progress
-              router.push('/intensive/dashboard')
+              // Redirect to dashboard to show progress with completion toast
+              router.push('/intensive/dashboard?completed=build_vision')
               return
             }
           }

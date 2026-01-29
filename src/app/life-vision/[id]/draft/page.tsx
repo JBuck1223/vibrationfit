@@ -121,8 +121,8 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
         const { markIntensiveStep } = await import('@/lib/intensive/checklist')
         const success = await markIntensiveStep('vision_refined')
         if (success) {
-          // Redirect to dashboard to show progress
-          router.push('/intensive/dashboard')
+          // Redirect to dashboard to show progress with completion toast
+          router.push('/intensive/dashboard?completed=refine_vision')
           return
         }
       }

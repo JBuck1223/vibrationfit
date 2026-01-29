@@ -139,11 +139,22 @@ function IntensiveDashboardContent() {
     
     const url = new URL(window.location.href)
     
+    // Custom toast styling for intensive completion notifications
+    const successToastStyle = {
+      background: 'linear-gradient(135deg, #0a2a1a 0%, #1F1F1F 100%)',
+      border: '2px solid #199D67',
+      color: '#FFFFFF',
+      borderRadius: '12px',
+      padding: '16px',
+    }
+    
     // Handle "just started" toast
     if (justStarted) {
       toastShownRef.current = true
       toast.success('Activation Intensive started', {
         duration: 5000,
+        icon: <CheckCircle className="w-5 h-5 text-[#39FF14]" />,
+        style: successToastStyle,
       })
       url.searchParams.delete('started')
       window.history.replaceState({}, '', url.toString())
@@ -164,6 +175,8 @@ function IntensiveDashboardContent() {
         
         toast.success(message, {
           duration: 5000,
+          icon: <CheckCircle className="w-5 h-5 text-[#39FF14]" />,
+          style: successToastStyle,
         })
         
         url.searchParams.delete('completed')

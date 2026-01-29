@@ -50,15 +50,17 @@ export default function RootLayout({
             {children}
           </GlobalLayout>
           <Toaster 
-            position="top-right"
+            position="top-center"
             toastOptions={{
               style: {
                 background: '#1F1F1F',
                 color: '#FFFFFF',
                 border: '1px solid #333',
+                zIndex: 99999,
               },
               className: 'toast',
             }}
+            offset="16px"
           />
         </AuthProvider>
       </body>
