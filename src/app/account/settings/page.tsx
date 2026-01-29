@@ -356,7 +356,25 @@ export default function AccountSettingsPage() {
           .from('user_accounts')
           .update({ email })
           .eq('id', user.id)
+      }
+      
+      // In intensive mode, redirect back to dashboard after save (if required fields are filled)
+      if (isIntensiveMode) {
+        const hasFirstName = firstName.trim().length > 0
+        const hasLastName = lastName.trim().length > 0
+        const hasEmail = email.trim().length > 0
+        const hasPhone = phone.replace(/\D/g, '').length >= 10
         
+        if (hasFirstName && hasLastName && hasEmail && hasPhone) {
+          // Redirect to dashboard with completion param for toast
+          // Don't show toast here - dashboard will show completion toast
+          router.push('/intensive/dashboard?completed=settings')
+          return
+        }
+      }
+      
+      // Show toast only if NOT redirecting to dashboard
+      if (email !== originalAccount?.email) {
         toast.success('Account updated! Check your email to confirm the address change.')
       } else {
         toast.success('Account updated successfully')

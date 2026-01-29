@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { completeIntensive } from '@/lib/intensive/utils-client'
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
 import { IntensiveCompletionScreen } from '@/components/IntensiveCompletionScreen'
+import { getStepInfo, getNextStep } from '@/lib/intensive/step-mapping'
+import { toast } from 'sonner'
 import { 
   Clock, 
   CheckCircle, 
@@ -117,16 +119,58 @@ function IntensiveDashboardContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const previewMode = searchParams.get('preview')
+  const completedStep = searchParams.get('completed')
+  const justStarted = searchParams.get('started')
   const [loading, setLoading] = useState(true)
   const [intensive, setIntensive] = useState<IntensivePurchase | null>(null)
   const [checklist, setChecklist] = useState<IntensiveChecklist | null>(null)
   const [timeRemaining, setTimeRemaining] = useState<string>('')
   const [hoursRemaining, setHoursRemaining] = useState<number>(72)
   const [settingsComplete, setSettingsComplete] = useState(false) // Step 1 from user_accounts
+  const toastShownRef = useRef(false) // Prevent duplicate toasts
 
   useEffect(() => {
     loadIntensiveData()
   }, [])
+  
+  // Show toast notification when redirected after starting or completing a step
+  useEffect(() => {
+    if (toastShownRef.current) return
+    
+    const url = new URL(window.location.href)
+    
+    // Handle "just started" toast
+    if (justStarted) {
+      toastShownRef.current = true
+      toast.success('Activation Intensive started', {
+        duration: 5000,
+      })
+      url.searchParams.delete('started')
+      window.history.replaceState({}, '', url.toString())
+      return
+    }
+    
+    // Handle step completion toast
+    if (completedStep) {
+      toastShownRef.current = true
+      
+      const stepInfo = getStepInfo(completedStep)
+      const nextStepInfo = getNextStep(completedStep)
+      
+      if (stepInfo) {
+        const message = nextStepInfo 
+          ? `Step ${stepInfo.stepNumber} of 14 complete – "${stepInfo.title}"\nYour next step, "${nextStepInfo.title}," is now unlocked.`
+          : `Step ${stepInfo.stepNumber} of 14 complete – "${stepInfo.title}"`
+        
+        toast.success(message, {
+          duration: 5000,
+        })
+        
+        url.searchParams.delete('completed')
+        window.history.replaceState({}, '', url.toString())
+      }
+    }
+  }, [justStarted, completedStep])
 
   useEffect(() => {
     // Use checklist.started_at as source of truth for timer
