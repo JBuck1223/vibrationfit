@@ -795,7 +795,6 @@ export async function POST(request: NextRequest) {
                 ...profileDataToUpdate,
                 is_active: true,
                 is_draft: false,
-                version_number: 1,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
               })
