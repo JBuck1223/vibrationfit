@@ -210,8 +210,8 @@ export default function IntensiveIntake() {
         console.error('Error updating checklist:', checklistError)
       }
 
-      // Redirect to completion page
-      router.push('/intensive/intake/complete')
+      // Redirect to dashboard to show progress
+      router.push('/intensive/dashboard')
 
     } catch (error) {
       console.error('Error submitting form:', error)
@@ -521,7 +521,7 @@ export default function IntensiveIntake() {
   if (isAlreadyCompleted && !justSubmitted && savedResponses && completedAt) {
     return (
       <Container size="xl">
-        <Stack gap="xl">
+        <Stack gap="lg">
           {/* Completion Banner - Shows above PageHero when step is already complete */}
           <IntensiveCompletionBanner 
             stepTitle="Baseline Intake"
@@ -562,7 +562,7 @@ export default function IntensiveIntake() {
 
   return (
     <Container size="xl">
-      <Stack gap="xl">
+      <Stack gap="lg">
         <PageHero
           eyebrow="ACTIVATION INTENSIVE • STEP 2 OF 14"
           title="Baseline Intake"

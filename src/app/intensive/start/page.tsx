@@ -191,7 +191,7 @@ export default function IntensiveStartPage() {
 
   return (
     <Container size="xl">
-      <Stack gap="xl">
+      <Stack gap="lg">
         {/* Completion Banner - Shows when intensive has already been started */}
         {alreadyStarted && startedAt && (
           <IntensiveCompletionBanner
@@ -355,55 +355,6 @@ export default function IntensiveStartPage() {
           </Stack>
         </Card>
 
-        {/* Start CTA */}
-        <Card variant="outlined" className="bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-primary-500/30">
-          <Stack gap="md" className="text-center py-4">
-            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em]">
-              Ready to Begin?
-            </Text>
-            <p className="text-sm md:text-base text-neutral-300 leading-relaxed max-w-2xl mx-auto">
-              Your transformation starts with a single click. When you're ready to commit to your 72-hour journey, press the button below to begin.
-            </p>
-            <div className="flex flex-col gap-3 items-center">
-              {alreadyStarted ? (
-                <Button 
-                  variant="primary"
-                  size="lg"
-                  onClick={() => router.push('/intensive/dashboard')}
-                  className="w-full sm:w-auto px-8"
-                >
-                  <ArrowRight className="w-5 h-5 mr-2" />
-                  Go to Dashboard
-                </Button>
-              ) : (
-                <>
-                  <Button 
-                    variant="primary"
-                    size="lg"
-                    onClick={handleStart}
-                    disabled={starting}
-                    className="w-full sm:w-auto px-8"
-                  >
-                    {starting ? (
-                      <>
-                        <Spinner size="sm" className="mr-2" />
-                        Starting...
-                      </>
-                    ) : (
-                      <>
-                        <Rocket className="w-5 h-5 mr-2" />
-                        Start My Activation Intensive
-                      </>
-                    )}
-                  </Button>
-                  <p className="text-xs text-neutral-500 max-w-md">
-                    Your 72-hour timer begins when you click above.
-                  </p>
-                </>
-              )}
-            </div>
-          </Stack>
-        </Card>
       </Stack>
     </Container>
   )

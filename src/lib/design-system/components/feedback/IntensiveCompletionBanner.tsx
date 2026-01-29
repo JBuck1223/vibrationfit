@@ -51,12 +51,22 @@ export function IntensiveCompletionBanner({
 }: IntensiveCompletionBannerProps) {
   const router = useRouter()
 
+  // Helper function to get ordinal suffix for day
+  const getOrdinalSuffix = (day: number): string => {
+    if (day > 3 && day < 21) return 'th' // 11th, 12th, 13th, etc.
+    switch (day % 10) {
+      case 1: return 'st'
+      case 2: return 'nd'
+      case 3: return 'rd'
+      default: return 'th'
+    }
+  }
+
   // Format the completion date and time
   const completedDate = new Date(completedAt)
-  const formattedDate = completedDate.toLocaleDateString('en-US', {
-    month: 'long',
-    day: 'numeric'
-  })
+  const day = completedDate.getDate()
+  const month = completedDate.toLocaleDateString('en-US', { month: 'long' })
+  const formattedDate = `${month} ${day}${getOrdinalSuffix(day)}`
   const formattedTime = completedDate.toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',

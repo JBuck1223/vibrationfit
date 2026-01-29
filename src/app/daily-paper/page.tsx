@@ -118,7 +118,7 @@ export default function DailyPaperIndexPage() {
 
   return (
     <Container size="xl">
-      <Stack gap="xl">
+      <Stack gap="lg">
         <PageHero
           title="Daily Paper"
           subtitle="Capture gratitude, align three actions, and mark a fun moment. Your archive keeps the story tight and easy to review."

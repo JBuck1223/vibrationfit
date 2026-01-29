@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { Button, Card, Badge, PageHero, StatusBadge, DeleteConfirmationDialog, Container, Stack, Spinner, Text, Inline, IntensiveCompletionBanner } from '@/lib/design-system/components'
 import { fetchAssessments, deleteAssessment, createAssessment, fetchAssessmentProgress, AssessmentProgress } from '@/lib/services/assessmentService'
 import { AssessmentResult } from '@/types/assessment'
@@ -30,8 +30,6 @@ const ASSESSMENT_INTRO_VIDEO =
 
 export default function AssessmentHub() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const isIntensiveMode = searchParams.get('intensive') === 'true'
   
   const [assessments, setAssessments] = useState<AssessmentResult[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -41,6 +39,7 @@ export default function AssessmentHub() {
   const [progress, setProgress] = useState<AssessmentProgress | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [assessmentToDelete, setAssessmentToDelete] = useState<string | null>(null)
+  const [isIntensiveMode, setIsIntensiveMode] = useState(false)
   const [isIntensiveCompleted, setIsIntensiveCompleted] = useState(false)
   const [intensiveCompletedAt, setIntensiveCompletedAt] = useState<string | null>(null)
 
@@ -76,10 +75,12 @@ export default function AssessmentHub() {
         .from('intensive_purchases')
         .select('id')
         .eq('user_id', user.id)
-        .in('completion_status', ['pending', 'in_progress', 'completed'])
+        .in('completion_status', ['pending', 'in_progress'])
         .maybeSingle()
 
       if (intensiveData) {
+        setIsIntensiveMode(true)
+        
         // Check if assessment step is completed
         const { data: checklistData } = await supabase
           .from('intensive_checklist')
@@ -132,8 +133,7 @@ export default function AssessmentHub() {
 
   const handleContinueAssessment = () => {
     if (incompleteAssessment) {
-      const intensiveParam = isIntensiveMode ? '?intensive=true' : ''
-      router.push(`/assessment/${incompleteAssessment.id}/in-progress${intensiveParam}`)
+      router.push(`/assessment/${incompleteAssessment.id}/in-progress`)
     }
   }
 
@@ -198,8 +198,7 @@ export default function AssessmentHub() {
       const data = await response.json()
       
       if (data.assessment?.id) {
-        const intensiveParam = isIntensiveMode ? '?intensive=true' : ''
-        router.push(`/assessment/${data.assessment.id}/in-progress${intensiveParam}`)
+        router.push(`/assessment/${data.assessment.id}/in-progress`)
       } else {
         throw new Error('No assessment ID returned from API')
       }
@@ -248,7 +247,7 @@ export default function AssessmentHub() {
         {/* Hero with Video */}
         <PageHero
           eyebrow={isIntensiveMode || isIntensiveCompleted ? "ACTIVATION INTENSIVE • STEP 4 OF 14" : undefined}
-          title="Vibrational Assessment"
+          title="Vibration Assessment"
           subtitle="Discover where you stand in each area of your life and unlock personalized insights."
         >
           {/* Video */}
@@ -260,49 +259,60 @@ export default function AssessmentHub() {
             />
           </div>
 
-          {/* Action Button - Only show if NO in-progress assessment */}
-          {!incompleteAssessment && (
-            <div className="flex flex-col gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
-              {isIntensiveCompleted && sortedCompletedAssessments.length > 0 ? (
-                <Button 
-                  variant="primary" 
-                  size="sm" 
-                  onClick={() => router.push(`/assessment/${sortedCompletedAssessments[0].id}/results`)}
-                  className="w-full md:w-auto"
-                >
-                  <Eye className="mr-2 h-4 w-4" />
-                  View Results
-                </Button>
-              ) : (
-                <Button 
-                  variant="primary" 
-                  size="sm" 
-                  onClick={handleCreateAssessment}
-                  disabled={isCreating}
-                  className="w-full md:w-auto"
-                >
-                  {isCreating ? (
-                    <>
-                      <Spinner variant="primary" size="sm" className="mr-2" />
-                      Starting Assessment...
-                    </>
-                  ) : (
-                    <>
-                      <ArrowRight className="mr-2 h-4 w-4" />
-                      Take the Assessment
-                    </>
-                  )}
-                </Button>
-              )}
-              {errorMessage && (
-                <p className="text-sm text-red-400">{errorMessage}</p>
-              )}
-            </div>
-          )}
+          {/* Action Button - 3 states: Start, Continue, View Results */}
+          <div className="flex flex-col gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
+            {incompleteAssessment ? (
+              // State 2: Continue Assessment (in progress)
+              <Button 
+                variant="primary" 
+                size="sm" 
+                onClick={handleContinueAssessment}
+                className="w-full md:w-auto"
+              >
+                <PlayCircle className="mr-2 h-4 w-4" />
+                Continue Assessment
+              </Button>
+            ) : sortedCompletedAssessments.length > 0 ? (
+              // State 3: View Results (has completed assessment)
+              <Button 
+                variant="primary" 
+                size="sm" 
+                onClick={() => router.push(`/assessment/${sortedCompletedAssessments[0].id}/results`)}
+                className="w-full md:w-auto"
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                View Results
+              </Button>
+            ) : (
+              // State 1: Start Assessment (no assessments)
+              <Button 
+                variant="primary" 
+                size="sm" 
+                onClick={handleCreateAssessment}
+                disabled={isCreating}
+                className="w-full md:w-auto"
+              >
+                {isCreating ? (
+                  <>
+                    <Spinner variant="primary" size="sm" className="mr-2" />
+                    Starting Assessment...
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight className="mr-2 h-4 w-4" />
+                    Start Assessment
+                  </>
+                )}
+              </Button>
+            )}
+            {errorMessage && (
+              <p className="text-sm text-red-400">{errorMessage}</p>
+            )}
+          </div>
         </PageHero>
 
-        {/* In-Progress Assessment Card */}
-        {incompleteAssessment && (
+        {/* In-Progress Assessment Card - Only show for non-intensive users (they need delete option) */}
+        {incompleteAssessment && !isIntensiveMode && (
           <Card variant="elevated" className="p-4 md:p-6">
             <div className="flex flex-col items-center gap-3 md:gap-4 mb-4 md:mb-6 text-center">
               <div className="w-10 h-10 md:w-12 md:h-12 bg-primary-500 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -333,48 +343,34 @@ export default function AssessmentHub() {
               </div>
             </div>
 
-            {/* Buttons: Intensive mode = Continue only (centered), Regular = Delete + Continue */}
-            {isIntensiveMode ? (
-              <div className="flex justify-center">
-                <Button 
-                  onClick={handleContinueAssessment}
-                  variant="primary" 
-                  size="md"
-                  className="w-full md:w-auto md:min-w-[200px]"
-                >
-                  <PlayCircle className="w-4 h-4 md:w-5 md:h-5 mr-2" />
-                  Continue Assessment
-                </Button>
-              </div>
-            ) : (
-              <div className="flex flex-row gap-3">
-                <Button 
-                  onClick={() => handleDeleteClick(incompleteAssessment.id)}
-                  variant="danger" 
-                  size="md"
-                  className="flex-1"
-                  disabled={deletingId === incompleteAssessment.id}
-                >
-                  <Trash2 className="w-4 h-4 md:w-5 md:h-5 mr-2" />
-                  {deletingId === incompleteAssessment.id ? 'Deleting...' : 'Delete'}
-                </Button>
-                <Button 
-                  onClick={handleContinueAssessment}
-                  variant="primary" 
-                  size="md"
-                  className="flex-1"
-                >
-                  <PlayCircle className="w-4 h-4 md:w-5 md:h-5 mr-2" />
-                  <span className="md:hidden">Continue</span>
-                  <span className="hidden md:inline">Continue Assessment</span>
-                </Button>
-              </div>
-            )}
+            {/* Buttons: Delete + Continue for regular members */}
+            <div className="flex flex-row gap-3">
+              <Button 
+                onClick={() => handleDeleteClick(incompleteAssessment.id)}
+                variant="danger" 
+                size="md"
+                className="flex-1"
+                disabled={deletingId === incompleteAssessment.id}
+              >
+                <Trash2 className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+                {deletingId === incompleteAssessment.id ? 'Deleting...' : 'Delete'}
+              </Button>
+              <Button 
+                onClick={handleContinueAssessment}
+                variant="primary" 
+                size="md"
+                className="flex-1"
+              >
+                <PlayCircle className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+                <span className="md:hidden">Continue</span>
+                <span className="hidden md:inline">Continue Assessment</span>
+              </Button>
+            </div>
           </Card>
         )}
 
-        {/* Previous Assessments Section - Only show for non-intensive users */}
-        {!isIntensiveMode && completedAssessments.length > 0 && (
+        {/* Previous Assessments Section - Hide during and after intensive */}
+        {!(isIntensiveMode || isIntensiveCompleted) && completedAssessments.length > 0 && (
           <Card variant="default" className="p-4 md:p-6">
             <div className="flex flex-col items-center gap-3 md:gap-4 mb-4 md:mb-6 text-center">
               <div className="w-10 h-10 md:w-12 md:h-12 bg-accent-500 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -467,7 +463,7 @@ export default function AssessmentHub() {
               What is the Assessment?
             </Text>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-              The Vibrational Assessment is a comprehensive evaluation that measures your current state across all 12 life categories. It provides you with detailed insights into your strengths, growth areas, and alignment levels.
+              The Vibration Assessment is a comprehensive evaluation that measures your current state across all 12 life categories. It provides you with detailed insights into your strengths, growth areas, and alignment levels.
             </p>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
               Unlike a simple quiz, this assessment dives deep into each area of your life to give you actionable data and personalized recommendations for your transformation journey.
@@ -559,43 +555,6 @@ export default function AssessmentHub() {
           </Stack>
         </Card>
 
-        {/* Ready to Begin - Only show if no in-progress assessment */}
-        {!incompleteAssessment && (
-          <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
-            <Stack gap="md" className="text-center">
-              <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-                Ready to Begin?
-              </Text>
-              <p className="text-sm md:text-base text-neutral-300 leading-relaxed max-w-2xl mx-auto">
-                The assessment takes about 15-20 minutes to complete. Be honest with yourself - the more authentic your responses, the more valuable your insights will be.
-              </p>
-              <div className="flex flex-col gap-2 md:gap-4 justify-center items-center">
-                <Button 
-                  variant="primary" 
-                  size="sm" 
-                  onClick={handleCreateAssessment}
-                  disabled={isCreating}
-                  className="w-full md:w-auto"
-                >
-                  {isCreating ? (
-                    <>
-                      <Spinner variant="primary" size="sm" className="mr-2" />
-                      Starting Assessment...
-                    </>
-                  ) : (
-                    <>
-                      <ArrowRight className="mr-2 h-4 w-4" />
-                      Take the Assessment
-                    </>
-                  )}
-                </Button>
-                {errorMessage && (
-                  <p className="text-sm text-red-400">{errorMessage}</p>
-                )}
-              </div>
-            </Stack>
-          </Card>
-        )}
       </Stack>
 
       {/* Delete Confirmation Dialog */}

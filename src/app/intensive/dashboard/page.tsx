@@ -333,7 +333,7 @@ function IntensiveDashboardContent() {
         completed: checklist.profile_completed,
         completedAt: checklist.profile_completed_at,
         href: '/profile/new',
-        viewHref: '/profile',
+        viewHref: '/profile/new',
         locked: !(checklist.intake_completed || false)
       },
       {

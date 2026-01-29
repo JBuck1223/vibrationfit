@@ -516,22 +516,24 @@ export default function ProfileDashboardPage() {
                           </Button>
                         ) : (
                           <>
-                            {/* Clone button for non-draft versions */}
-                            <Button
-                              type="button"
-                              onClick={(e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                                handleCloneVersion(version.id)
-                              }}
-                              variant="ghost"
-                              size="sm"
-                              disabled={isCloning}
-                              className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
-                            >
-                              <Copy className="w-4 h-4" />
-                              Clone
-                            </Button>
+                            {/* Clone button for non-draft versions - Hidden in intensive mode */}
+                            {!isIntensiveMode && (
+                              <Button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  handleCloneVersion(version.id)
+                                }}
+                                variant="ghost"
+                                size="sm"
+                                disabled={isCloning}
+                                className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2"
+                              >
+                                <Copy className="w-4 h-4" />
+                                Clone
+                              </Button>
+                            )}
                             {/* View button */}
                             <Button
                               type="button"

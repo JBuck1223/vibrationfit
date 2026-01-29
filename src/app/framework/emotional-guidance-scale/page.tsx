@@ -59,7 +59,7 @@ function BenefitItem({ children }: { children: React.ReactNode }) {
 export default function EmotionalGuidanceScalePage() {
   return (
     <Container size="xl">
-      <Stack gap="xl">
+      <Stack gap="lg">
         {/* Hero Section */}
         <PageHero
           title="Emotional Guidance Scale"

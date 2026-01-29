@@ -32,12 +32,22 @@ export function IntensiveStepCompletedBanner({
 }: IntensiveStepCompletedBannerProps) {
   const router = useRouter()
 
+  // Helper function to get ordinal suffix for day
+  const getOrdinalSuffix = (day: number): string => {
+    if (day > 3 && day < 21) return 'th' // 11th, 12th, 13th, etc.
+    switch (day % 10) {
+      case 1: return 'st'
+      case 2: return 'nd'
+      case 3: return 'rd'
+      default: return 'th'
+    }
+  }
+
   // Format the completion date and time
   const completedDate = new Date(completedAt)
-  const formattedDate = completedDate.toLocaleDateString('en-US', {
-    month: 'long',
-    day: 'numeric'
-  })
+  const day = completedDate.getDate()
+  const month = completedDate.toLocaleDateString('en-US', { month: 'long' })
+  const formattedDate = `${month} ${day}${getOrdinalSuffix(day)}`
   const formattedTime = completedDate.toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',
@@ -120,11 +130,11 @@ export function ReadOnlySection({
   children
 }: ReadOnlySectionProps) {
   return (
-    <div className="mt-6 md:mt-8">
-      <div className="mb-4 text-center">
-        <h3 className="text-lg font-semibold text-white mb-1">{title}</h3>
-        <p className="text-sm text-neutral-400">{helperText}</p>
-      </div>
+    <div>
+      <Card className="mb-6 text-center">
+        <h3 className="text-xl md:text-2xl font-bold text-white mb-2">{title}</h3>
+        <p className="text-sm text-neutral-400 max-w-lg mx-auto">{helperText}</p>
+      </Card>
       <div className="opacity-80">
         {children}
       </div>

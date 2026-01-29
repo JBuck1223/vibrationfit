@@ -363,8 +363,8 @@ export default function IntensiveUnlockPage() {
         })
         .eq('intensive_id', intensiveId)
 
-      // Redirect to celebration page (step 14 complete!)
-      router.push('/intensive/unlock/complete')
+      // Redirect to dashboard to show progress
+      router.push('/intensive/dashboard')
 
     } catch (error) {
       console.error('Error submitting form:', error)

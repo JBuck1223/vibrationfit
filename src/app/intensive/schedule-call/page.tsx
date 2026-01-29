@@ -339,8 +339,8 @@ export default function ScheduleCallPage() {
       // TODO: Send calendar invite and confirmation email
       // This would integrate with email service
 
-      // Redirect to completion page
-      router.push('/intensive/schedule-call/complete')
+      // Redirect to dashboard to show progress
+      router.push('/intensive/dashboard')
     } catch (error) {
       console.error('Error scheduling call:', error)
       alert('Failed to schedule call. Please try again.')

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import {  Button, Badge, Card, CategoryCard, WarningConfirmationDialog, Icon, VersionBadge, StatusBadge, PageHero, Container, Stack, Spinner } from '@/lib/design-system/components'
+import {  Button, Badge, Card, CategoryCard, WarningConfirmationDialog, Icon, VersionBadge, StatusBadge, PageHero, Container, Stack, Spinner, IntensiveCompletionBanner } from '@/lib/design-system/components'
 import ProfileVersionManager from '@/components/ProfileVersionManager'
 import VersionStatusIndicator from '@/components/VersionStatusIndicator'
 import VersionActionToolbar from '@/components/VersionActionToolbar'
@@ -46,6 +46,8 @@ export default function ProfileEditPage() {
   const [highlightedField, setHighlightedField] = useState<string | null>(null)
   const [intensiveMode, setIntensiveMode] = useState(false)
   const [profileMarkedComplete, setProfileMarkedComplete] = useState(false)
+  const [completedAt, setCompletedAt] = useState<string | null>(null)
+  const [intensiveCheckComplete, setIntensiveCheckComplete] = useState(false)
   const [versionStatus, setVersionStatus] = useState({
     isDraft: false,
     isActive: false,
@@ -287,30 +289,68 @@ export default function ProfileEditPage() {
     }
   }, [profile])
 
-  // Check if user is in intensive mode
+  // Check if user is in intensive mode and if profile step is already complete
   useEffect(() => {
     async function checkIntensiveMode() {
       const inIntensive = await isInIntensiveMode()
       setIntensiveMode(inIntensive)
+      
+      // If in intensive mode, check if profile step is already marked complete
+      if (inIntensive) {
+        const { createClient } = await import('@/lib/supabase/client')
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        if (user) {
+          const { data: intensiveData } = await supabase
+            .from('intensive_purchases')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('completion_status', 'pending')
+            .maybeSingle()
+          
+          if (intensiveData) {
+            const { data: checklistData } = await supabase
+              .from('intensive_checklist')
+              .select('profile_completed, profile_completed_at')
+              .eq('intensive_id', intensiveData.id)
+              .maybeSingle()
+            
+            // If already complete, mark state so we don't redirect
+            if (checklistData?.profile_completed) {
+              setProfileMarkedComplete(true)
+              setCompletedAt(checklistData.profile_completed_at)
+            }
+          }
+        }
+      }
+      
+      // Mark that we've finished checking intensive status
+      setIntensiveCheckComplete(true)
     }
     checkIntensiveMode()
   }, [])
 
-  // Auto-mark profile step complete when reaching 100% in intensive mode
+  // Auto-mark profile step complete when reaching 100% in intensive mode (only for first-time completion)
   useEffect(() => {
     async function markProfileComplete() {
-      if (intensiveMode && completionPercentage >= 100 && !profileMarkedComplete) {
+      // Only redirect if:
+      // 1. We've finished checking if the step is already complete
+      // 2. We're in intensive mode
+      // 3. Profile is 100% complete
+      // 4. Step is NOT already marked complete (first-time completion)
+      if (intensiveCheckComplete && intensiveMode && completionPercentage >= 100 && !profileMarkedComplete) {
         const success = await markIntensiveStep('profile_completed')
         if (success) {
           setProfileMarkedComplete(true)
           console.log('✅ Profile step marked complete in intensive')
-          // Redirect to completion page
-          router.push('/intensive/profile/complete')
+          // Redirect to dashboard to show progress
+          router.push('/intensive/dashboard')
         }
       }
     }
     markProfileComplete()
-  }, [intensiveMode, completionPercentage, profileMarkedComplete, router])
+  }, [intensiveCheckComplete, intensiveMode, completionPercentage, profileMarkedComplete, router])
 
   // Fetch versions
   const fetchVersions = async () => {
@@ -829,6 +869,14 @@ export default function ProfileEditPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
+        {/* Intensive Completion Banner - Shows when step is already complete */}
+        {intensiveMode && profileMarkedComplete && completedAt && (
+          <IntensiveCompletionBanner 
+            stepTitle="Create Profile"
+            completedAt={completedAt}
+          />
+        )}
+
         {/* Header */}
         <PageHero
           title="Edit Profile"
@@ -991,8 +1039,8 @@ export default function ProfileEditPage() {
           )
         })()}
 
-        {/* Continue to Next Step - Show when profile is 100% complete in intensive mode */}
-        {intensiveMode && completionPercentage >= 100 && (
+        {/* Continue to Next Step - Show only when profile JUST reached 100% (not already complete) */}
+        {intensiveMode && completionPercentage >= 100 && !profileMarkedComplete && (
           <Card className="bg-gradient-to-r from-primary-500/20 to-secondary-500/20 border-primary-500/50">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-3">

@@ -29,6 +29,7 @@ export default function ProfileNewPage() {
   const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
   const [completedAt, setCompletedAt] = useState<string | null>(null)
   const [checkingIntensive, setCheckingIntensive] = useState(true)
+  const [activeProfileId, setActiveProfileId] = useState<string | null>(null)
 
   useEffect(() => {
     checkIntensiveMode()
@@ -64,6 +65,18 @@ export default function ProfileNewPage() {
         if (checklistData?.profile_completed) {
           setIsAlreadyCompleted(true)
           setCompletedAt(checklistData.profile_completed_at)
+        }
+
+        // Fetch active profile ID for direct navigation
+        const { data: activeProfile } = await supabase
+          .from('user_profiles')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .maybeSingle()
+
+        if (activeProfile?.id) {
+          setActiveProfileId(activeProfile.id)
         }
       }
     } catch (error) {
@@ -136,7 +149,7 @@ export default function ProfileNewPage() {
 
   return (
     <Container size="xl">
-      <Stack gap="xl">
+      <Stack gap="lg">
         {/* Completion Banner - Shows above PageHero when step is already complete */}
         {isIntensiveMode && isAlreadyCompleted && completedAt && (
           <IntensiveCompletionBanner 
@@ -166,7 +179,7 @@ export default function ProfileNewPage() {
               <Button 
                 variant="primary" 
                 size="sm" 
-                onClick={() => router.push('/profile')}
+                onClick={() => router.push(activeProfileId ? `/profile/${activeProfileId}` : '/profile')}
                 className="w-full md:w-auto"
               >
                 <User className="mr-2 h-4 w-4" />
@@ -298,41 +311,6 @@ export default function ProfileNewPage() {
           </Stack>
         </Card>
 
-        {/* Ready to Begin */}
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
-          <Stack gap="md" className="text-center">
-            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-              Ready to Begin?
-            </Text>
-            <p className="text-sm md:text-base text-neutral-300 leading-relaxed max-w-2xl mx-auto">
-              Take your time filling out your profile. You can save your progress and come back anytime. Remember, this is about honest self-reflection, not perfection.
-            </p>
-            <div className="flex flex-col gap-2 md:gap-4 justify-center items-center">
-              <Button 
-                variant="primary" 
-                size="sm" 
-                onClick={handleCreateProfile}
-                disabled={isCreating}
-                className="w-full md:w-auto"
-              >
-                {isCreating ? (
-                  <>
-                    <Spinner variant="primary" size="sm" className="mr-2" />
-                    Creating Profile...
-                  </>
-                ) : (
-                  <>
-                    <ArrowRight className="mr-2 h-4 w-4" />
-                    Start Creating Your Profile
-                  </>
-                )}
-              </Button>
-              {error && (
-                <p className="text-sm text-red-400">{error}</p>
-              )}
-            </div>
-          </Stack>
-        </Card>
       </Stack>
     </Container>
   )

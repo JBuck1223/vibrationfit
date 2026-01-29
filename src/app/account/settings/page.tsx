@@ -11,7 +11,6 @@ import { ProfilePictureUpload } from '@/app/profile/components/ProfilePictureUpl
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
-import { IntensiveStepCompleteBanner } from '@/components/IntensiveStepCompleteBanner'
 import { IntensiveCompletionBanner } from '@/lib/design-system/components'
 import { getStepInfo, getNextStep } from '@/lib/intensive/step-mapping'
 
@@ -403,16 +402,8 @@ export default function AccountSettingsPage() {
 
   return (
     <Container size="xl">
-      <Stack gap="xl">
-        {/* Intensive Mode: Show completion banner at top when just completed */}
-        {justCompletedStep && isIntensiveMode && nextStep && (
-          <IntensiveStepCompleteBanner
-            currentStepName={currentStep?.title || 'Account Settings'}
-            nextStepName={nextStep.title}
-            nextStepHref={nextStep.href}
-            position="top"
-          />
-        )}
+      <Stack gap="lg">
+        {/* TODO: Add "just completed" banner for Scenario A (Continue to Next Step) */}
 
         {/* Completion Banner - Shows above PageHero when step is already complete in intensive mode */}
         {isIntensiveMode && isAlreadyCompleted && completedAt && !justCompletedStep && (
@@ -568,42 +559,6 @@ export default function AccountSettingsPage() {
           </div>
         </Card>
 
-        {/* Intensive Mode - Continue Button (only show if not yet completed) */}
-        {isIntensiveMode && !justCompletedStep && (
-          <Card className="p-6 bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-primary-500/30">
-            <div className="text-center">
-              <h3 className="text-xl font-bold text-white mb-3">Ready to Continue?</h3>
-              <p className="text-sm md:text-base text-neutral-300 mb-6">
-                Complete your settings to move to the next step in your Activation Intensive.
-              </p>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleContinueToIntensive}
-                disabled={!firstName.trim() || !lastName.trim() || !email.trim() || phone.replace(/\D/g, '').length < 10}
-                className="w-full sm:w-auto"
-              >
-                <Rocket className="w-4 h-4 mr-2" />
-                Continue to Intensive Dashboard
-              </Button>
-              {(!firstName.trim() || !lastName.trim() || !email.trim() || phone.replace(/\D/g, '').length < 10) && (
-                <p className="text-xs text-neutral-500 mt-3">
-                  Please fill in First Name, Last Name, Email, and Phone to continue.
-                </p>
-              )}
-            </div>
-          </Card>
-        )}
-
-        {/* Intensive Mode: Show completion banner at bottom when just completed */}
-        {justCompletedStep && isIntensiveMode && nextStep && (
-          <IntensiveStepCompleteBanner
-            currentStepName={currentStep?.title || 'Account Settings'}
-            nextStepName={nextStep.title}
-            nextStepHref={nextStep.href}
-            position="bottom"
-          />
-        )}
       </Stack>
 
       {/* Opt-Out Confirmation Modal */}

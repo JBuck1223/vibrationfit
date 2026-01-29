@@ -54,21 +54,41 @@ export default function AssessmentResultsPage() {
       setError(null)
 
       try {
-        // Check if user is in intensive mode
+        // Check if user is in intensive mode and mark step complete
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
         
         if (user) {
-          const { data: checklistData } = await supabase
-            .from('intensive_checklist')
-            .select('assessment_completed, assessment_completed_at, status')
+          // Check for active intensive purchase
+          const { data: intensiveData } = await supabase
+            .from('intensive_purchases')
+            .select('id')
             .eq('user_id', user.id)
-            .in('status', ['pending', 'in_progress'])
+            .in('completion_status', ['pending', 'in_progress'])
             .maybeSingle()
-          
-          if (checklistData?.assessment_completed) {
+
+          if (intensiveData) {
             setIsIntensiveMode(true)
-            setAssessmentCompletedAt(checklistData.assessment_completed_at)
+            
+            // Check if assessment step is already completed
+            const { data: checklistData } = await supabase
+              .from('intensive_checklist')
+              .select('assessment_completed, assessment_completed_at')
+              .eq('intensive_id', intensiveData.id)
+              .maybeSingle()
+            
+            if (checklistData?.assessment_completed) {
+              // Already completed - just show the banner
+              setAssessmentCompletedAt(checklistData.assessment_completed_at)
+            } else {
+              // Not yet completed - mark it now!
+              const { markIntensiveStep } = await import('@/lib/intensive/checklist')
+              const success = await markIntensiveStep('assessment_completed')
+              
+              if (success) {
+                setAssessmentCompletedAt(new Date().toISOString())
+              }
+            }
           }
         }
 
@@ -207,7 +227,7 @@ export default function AssessmentResultsPage() {
   return (
     <Container size="xl" className="">
       <Stack gap="lg">
-        {/* Completion Banner - Shows above PageHero when step is already complete in intensive mode */}
+        {/* Completion Banner - Shows standard completion card in intensive mode */}
         {isIntensiveMode && selectedAssessment?.status === 'completed' && assessmentCompletedAt && (
           <IntensiveCompletionBanner 
             stepTitle="Vibration Assessment"
@@ -230,11 +250,14 @@ export default function AssessmentResultsPage() {
                   subtle={!selectedAssessment.is_active}
                   className="uppercase tracking-[0.25em]"
                 />
-                <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
-                  <CalendarDays className="w-4 h-4 text-neutral-500" />
-                  <span className="font-medium">Started:</span>
-                  <span>{formatStartDate(selectedAssessment.started_at || selectedAssessment.created_at)}</span>
-                </div>
+                {/* Hide Started date during intensive */}
+                {!isIntensiveMode && (
+                  <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+                    <CalendarDays className="w-4 h-4 text-neutral-500" />
+                    <span className="font-medium">Started:</span>
+                    <span>{formatStartDate(selectedAssessment.started_at || selectedAssessment.created_at)}</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
                   <CalendarDays className="w-4 h-4 text-neutral-500" />
                   <span className="font-medium">Completed:</span>
@@ -247,18 +270,20 @@ export default function AssessmentResultsPage() {
               </div>
             </div>
 
-            {/* Action Button */}
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <Button
-                variant="outline"
-                size="md"
-                onClick={() => router.push('/assessment')}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="h-5 w-5" />
-                Assessment Hub
-              </Button>
-            </div>
+            {/* Action Button - Hide during intensive */}
+            {!isIntensiveMode && (
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <Button
+                  variant="outline"
+                  size="md"
+                  onClick={() => router.push('/assessment')}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                  Assessment Hub
+                </Button>
+              </div>
+            )}
           </PageHero>
 
         {selectedAssessment.status === 'completed' ? (

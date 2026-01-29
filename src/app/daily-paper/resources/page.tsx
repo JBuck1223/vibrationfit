@@ -24,7 +24,7 @@ const DAILY_PAPER_VIDEO =
 export default function DailyPaperResourcesPage() {
   return (
     <Container size="xl">
-      <Stack gap="xl">
+      <Stack gap="lg">
         <PageHero
           title="Daily Paper Resources"
           subtitle="Learn the daily practice that keeps you vibrationally aligned"

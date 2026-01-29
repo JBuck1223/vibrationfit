@@ -95,7 +95,7 @@ export default function IntensiveWelcomePage() {
 
   return (
     <Container size="xl">
-      <Stack gap="xl">
+      <Stack gap="lg">
         {/* Centered Hero Title */}
         <PageHero
           eyebrow="ACTIVATION INTENSIVE"

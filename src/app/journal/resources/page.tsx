@@ -55,7 +55,7 @@ export default function JournalResourcesPage() {
 
   return (
     <Container size="xl">
-      <Stack gap="xl">
+      <Stack gap="lg">
         {/* Completion Banner - Shows when step is already complete in intensive mode */}
         {isIntensiveMode && isAlreadyCompleted && completedAt && (
           <IntensiveCompletionBanner 

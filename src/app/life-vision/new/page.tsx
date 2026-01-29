@@ -156,7 +156,7 @@ export default function VIVALifeVisionLandingPage() {
         <PageHero
           eyebrow={isIntensiveMode ? "ACTIVATION INTENSIVE • STEP 5 OF 14" : "THE LIFE I CHOOSE"}
           title="Create Your Life Vision with VIVA"
-          subtitle="Your Vibrational Intelligence Virtual Assistant is here to help you articulate and activate the life you choose. We'll guide you through 12 key life areas, capturing your voice and energy to create a unified vision."
+          subtitle="Your Vibrationally Intelligent Virtual Assistant is here to help you articulate and activate the life you choose. We'll guide you through 12 key life areas, capturing your voice and energy to create a unified vision."
         />
 
         {/* Progress Overview */}

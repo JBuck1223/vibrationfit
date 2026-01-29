@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Card, Button, Badge, DeleteConfirmationDialog, Heading, Text, Stack, VersionBadge, StatusBadge, Container, PageHero, Spinner } from '@/lib/design-system/components'
+import { Card, Button, Badge, DeleteConfirmationDialog, Heading, Text, Stack, VersionBadge, StatusBadge, Container, PageHero, Spinner, IntensiveCompletionBanner } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { VersionCard } from '../components/VersionCard'
 import { VISION_CATEGORIES, getVisionCategory, getVisionCategoryLabel, getVisionCategoryKeys, convertCategoryKey, visionToRecordingKey } from '@/lib/design-system/vision-categories'
@@ -126,6 +126,11 @@ export default function ProfileDetailPage() {
   const [editedFields, setEditedFields] = useState<Record<string, any>>({})
   const [saving, setSaving] = useState(false)
 
+  // Intensive mode state
+  const [isIntensiveMode, setIsIntensiveMode] = useState(false)
+  const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
+  const [completedAt, setCompletedAt] = useState<string | null>(null)
+
   // Recalculate completion percentage whenever profile data changes
   // Uses the single source of truth from profile-completion.ts (excludes media fields)
   useEffect(() => {
@@ -137,7 +142,43 @@ export default function ProfileDetailPage() {
 
   useEffect(() => {
     fetchProfile()
+    checkIntensiveMode()
   }, [])
+
+  const checkIntensiveMode = async () => {
+    try {
+      const { createClient } = await import('@/lib/supabase/client')
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // Check for active intensive purchase
+      const { data: intensiveData } = await supabase
+        .from('intensive_purchases')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('completion_status', 'pending')
+        .maybeSingle()
+
+      if (intensiveData) {
+        setIsIntensiveMode(true)
+        
+        // Check if profile step is already completed
+        const { data: checklistData } = await supabase
+          .from('intensive_checklist')
+          .select('profile_completed, profile_completed_at')
+          .eq('intensive_id', intensiveData.id)
+          .maybeSingle()
+
+        if (checklistData?.profile_completed) {
+          setIsAlreadyCompleted(true)
+          setCompletedAt(checklistData.profile_completed_at)
+        }
+      }
+    } catch (error) {
+      console.error('Error checking intensive mode:', error)
+    }
+  }
 
   // Refresh profile when page becomes visible (user navigates back)
   useEffect(() => {
@@ -1530,6 +1571,16 @@ export default function ProfileDetailPage() {
 
   return (
     <>
+        {/* Intensive Completion Banner */}
+        {isIntensiveMode && isAlreadyCompleted && completedAt && (
+          <Container size="xl" className="mb-8">
+            <IntensiveCompletionBanner 
+              stepTitle="Create Profile"
+              completedAt={completedAt}
+            />
+          </Container>
+        )}
+
         {/* Page Hero */}
         <PageHero
           title={profile.first_name && profile.last_name
@@ -1653,24 +1704,30 @@ export default function ProfileDetailPage() {
               <Edit className="w-4 h-4 shrink-0" />
               <span>Edit Profile</span>
             </Button>
-            <Button
-              onClick={() => router.push('/voice-profile')}
-              variant="outline"
-              size="sm"
-              className="flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-            >
-              <Palette className="w-4 h-4 shrink-0" />
-              <span>Voice Profile</span>
-            </Button>
-            <Button
-              onClick={() => router.push('/profile')}
-              variant="outline"
-              size="sm"
-              className="flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-            >
-              <Eye className="w-4 h-4 shrink-0" />
-              <span>See All Profiles</span>
-            </Button>
+            {/* Hide Voice Profile in intensive mode */}
+            {!isIntensiveMode && (
+              <Button
+                onClick={() => router.push('/voice-profile')}
+                variant="outline"
+                size="sm"
+                className="flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+              >
+                <Palette className="w-4 h-4 shrink-0" />
+                <span>Voice Profile</span>
+              </Button>
+            )}
+            {/* Hide See All Profiles in intensive mode */}
+            {!isIntensiveMode && (
+              <Button
+                onClick={() => router.push('/profile')}
+                variant="outline"
+                size="sm"
+                className="flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+              >
+                <Eye className="w-4 h-4 shrink-0" />
+                <span>See All Profiles</span>
+              </Button>
+            )}
           </div>
         </PageHero>
 
@@ -1885,32 +1942,34 @@ export default function ProfileDetailPage() {
           })}
         </div>
 
-        {/* Delete Button */}
-        <div className="mt-8 pt-6 border-t border-neutral-800 text-center">
-          <Button
-            onClick={() => {
-              const currentVersion = getCurrentVersionInfo()
-              if (currentVersion) {
-                handleDeleteVersion(currentVersion)
-              } else if (versions.length > 0) {
-                handleDeleteVersion(versions[0])
-              }
-            }}
-            variant="danger"
-            size="sm"
-            className="flex items-center gap-2 mx-auto"
-            disabled={deletingVersion !== null}
-          >
-            {deletingVersion ? (
-              'Deleting...'
-            ) : (
-              <>
-                <Trash2 className="w-4 h-4" />
-                Delete Version
-              </>
-            )}
-          </Button>
-        </div>
+        {/* Delete Button - Hidden in intensive mode */}
+        {!isIntensiveMode && (
+          <div className="mt-8 pt-6 border-t border-neutral-800 text-center">
+            <Button
+              onClick={() => {
+                const currentVersion = getCurrentVersionInfo()
+                if (currentVersion) {
+                  handleDeleteVersion(currentVersion)
+                } else if (versions.length > 0) {
+                  handleDeleteVersion(versions[0])
+                }
+              }}
+              variant="danger"
+              size="sm"
+              className="flex items-center gap-2 mx-auto"
+              disabled={deletingVersion !== null}
+            >
+              {deletingVersion ? (
+                'Deleting...'
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4" />
+                  Delete Version
+                </>
+              )}
+            </Button>
+          </div>
+        )}
 
       {/* Lightbox */}
       {lightboxOpen && profile.progress_photos && (

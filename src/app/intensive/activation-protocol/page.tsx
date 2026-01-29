@@ -89,8 +89,8 @@ export default function ActivationProtocolPage() {
         })
         .eq('intensive_id', intensiveId)
 
-      // Redirect to completion page
-      router.push('/intensive/activation-protocol/complete')
+      // Redirect to dashboard to show progress
+      router.push('/intensive/dashboard')
     } catch (error) {
       console.error('Error completing intensive:', error)
       alert('Failed to complete intensive. Please try again.')

@@ -209,8 +209,8 @@ export default function NewJournalEntryPage() {
       if (isIntensiveMode) {
         const { markIntensiveStep } = await import('@/lib/intensive/checklist')
         await markIntensiveStep('first_journal_entry')
-        // Redirect to completion page
-        router.push('/intensive/journal/complete')
+        // Redirect to dashboard to show progress
+        router.push('/intensive/dashboard')
       } else {
         // Show success screen for normal mode
         setShowSuccess(true)
