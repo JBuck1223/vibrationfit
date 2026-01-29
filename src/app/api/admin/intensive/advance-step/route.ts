@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
+
+// Create admin client that bypasses RLS
+function getAdminClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+  return createAdminClient(supabaseUrl, supabaseServiceKey, {
+    auth: { autoRefreshToken: false, persistSession: false }
+  })
+}
 
 // Step definitions for the 14-step intensive
 const STEP_DEFINITIONS = [
@@ -56,8 +66,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'stepNumber must be between 0 and 14' }, { status: 400 })
     }
 
+    // Use admin client to bypass RLS
+    const adminClient = getAdminClient()
+
     // Get user's intensive checklist
-    const { data: checklist, error: checklistError } = await supabase
+    const { data: checklist, error: checklistError } = await adminClient
       .from('intensive_checklist')
       .select('*, intensive_purchases(*)')
       .eq('user_id', userId)
@@ -75,49 +88,49 @@ export async function POST(request: NextRequest) {
     // Execute step-specific logic
     switch (stepNumber) {
       case 0:
-        await advanceStep0_StartIntensive(supabase, checklist, now)
+        await advanceStep0_StartIntensive(adminClient, checklist, now)
         break
       case 1:
-        await advanceStep1_Settings(supabase, userId, now)
+        await advanceStep1_Settings(adminClient, userId, now)
         break
       case 2:
-        await advanceStep2_Intake(supabase, userId, checklist.intensive_id, now)
+        await advanceStep2_Intake(adminClient, userId, checklist.intensive_id, now)
         break
       case 3:
-        await advanceStep3_Profile(supabase, userId, now)
+        await advanceStep3_Profile(adminClient, userId, now)
         break
       case 4:
-        await advanceStep4_Assessment(supabase, userId, now)
+        await advanceStep4_Assessment(adminClient, userId, now)
         break
       case 5:
-        await advanceStep5_BuildVision(supabase, userId, now)
+        await advanceStep5_BuildVision(adminClient, userId, now)
         break
       case 6:
-        await advanceStep6_RefineVision(supabase, userId, now)
+        await advanceStep6_RefineVision(adminClient, userId, now)
         break
       case 7:
-        await advanceStep7_GenerateAudio(supabase, userId, now)
+        await advanceStep7_GenerateAudio(adminClient, userId, now)
         break
       case 8:
         // Step 8 is optional and shares completion with step 7
         break
       case 9:
-        await advanceStep9_AudioMix(supabase, userId, now)
+        await advanceStep9_AudioMix(adminClient, userId, now)
         break
       case 10:
-        await advanceStep10_VisionBoard(supabase, userId, now)
+        await advanceStep10_VisionBoard(adminClient, userId, now)
         break
       case 11:
-        await advanceStep11_Journal(supabase, userId, now)
+        await advanceStep11_Journal(adminClient, userId, now)
         break
       case 12:
-        await advanceStep12_BookCall(supabase, checklist.id, now)
+        await advanceStep12_BookCall(adminClient, checklist.id, now)
         break
       case 13:
-        await advanceStep13_ActivationProtocol(supabase, checklist.id, now)
+        await advanceStep13_ActivationProtocol(adminClient, checklist.id, now)
         break
       case 14:
-        await advanceStep14_Unlock(supabase, checklist, now)
+        await advanceStep14_Unlock(adminClient, checklist, now)
         break
     }
 
@@ -130,7 +143,7 @@ export async function POST(request: NextRequest) {
         updated_at: now
       }
 
-      await supabase
+      await adminClient
         .from('intensive_checklist')
         .update(updateData)
         .eq('id', checklist.id)
@@ -715,8 +728,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 })
     }
 
+    // Use admin client to bypass RLS
+    const adminClient = getAdminClient()
+
     // Get user's intensive checklist
-    const { data: checklist } = await supabase
+    const { data: checklist } = await adminClient
       .from('intensive_checklist')
       .select('*')
       .eq('user_id', userId)
@@ -730,7 +746,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user account for step 1 check
-    const { data: userAccount } = await supabase
+    const { data: userAccount } = await adminClient
       .from('user_accounts')
       .select('first_name, last_name, phone')
       .eq('id', userId)

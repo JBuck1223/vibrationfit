@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
+
+// Create admin client that bypasses RLS
+function getAdminClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+  return createSupabaseAdmin(supabaseUrl, supabaseServiceKey, {
+    auth: { autoRefreshToken: false, persistSession: false }
+  })
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,21 +52,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create admin client for user creation
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json({ 
-        error: 'Server configuration error: Missing Supabase credentials' 
-      }, { status: 500 })
-    }
-
-    const adminClient = createAdminClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
+    const adminClient = getAdminClient()
 
     // Create auth user
     const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
@@ -178,8 +173,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Super admin access required' }, { status: 403 })
     }
 
+    // Use admin client to bypass RLS
+    const adminClient = getAdminClient()
+
     // Get all intensive checklists
-    const { data: checklists, error: checklistError } = await supabase
+    const { data: checklists, error: checklistError } = await adminClient
       .from('intensive_checklist')
       .select('user_id, status, started_at, created_at')
       .order('created_at', { ascending: false })
@@ -197,7 +195,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch user accounts for these users
-    const { data: accounts, error: accountsError } = await supabase
+    const { data: accounts, error: accountsError } = await adminClient
       .from('user_accounts')
       .select('id, email, first_name, last_name')
       .in('id', userIds)
