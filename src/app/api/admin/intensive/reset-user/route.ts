@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
+
+// Create admin client that bypasses RLS
+function getAdminClient() {
+  return createSupabaseAdmin(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,79 +37,81 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 })
     }
 
+    // Use admin client to bypass RLS
+    const adminClient = getAdminClient()
     const now = new Date().toISOString()
 
     // Delete related data in order (to avoid foreign key issues)
     
     // 1. Delete journal entries
-    await supabase
+    await adminClient
       .from('journal_entries')
       .delete()
       .eq('user_id', userId)
 
     // 2. Delete vision board items
-    await supabase
+    await adminClient
       .from('vision_board_items')
       .delete()
       .eq('user_id', userId)
 
     // 3. Delete audio tracks (need to get vision first)
-    await supabase
+    await adminClient
       .from('audio_tracks')
       .delete()
       .eq('user_id', userId)
 
     // 4. Delete audio sets
-    await supabase
+    await adminClient
       .from('audio_sets')
       .delete()
       .eq('user_id', userId)
 
     // 5. Delete visions
-    await supabase
+    await adminClient
       .from('vision_versions')
       .delete()
       .eq('user_id', userId)
 
     // 6. Delete assessment responses (need assessment first)
-    const { data: assessments } = await supabase
+    const { data: assessments } = await adminClient
       .from('assessment_results')
       .select('id')
       .eq('user_id', userId)
 
     if (assessments && assessments.length > 0) {
       const assessmentIds = assessments.map(a => a.id)
-      await supabase
+      await adminClient
         .from('assessment_responses')
         .delete()
         .in('assessment_id', assessmentIds)
       
-      await supabase
+      await adminClient
         .from('assessment_insights')
         .delete()
         .in('assessment_id', assessmentIds)
     }
 
     // 7. Delete assessment results
-    await supabase
+    await adminClient
       .from('assessment_results')
       .delete()
       .eq('user_id', userId)
 
     // 8. Delete user profiles
-    await supabase
+    await adminClient
       .from('user_profiles')
       .delete()
       .eq('user_id', userId)
 
     // 9. Delete intensive responses
-    await supabase
+    await adminClient
       .from('intensive_responses')
       .delete()
       .eq('user_id', userId)
 
     // 10. Get existing intensive info before deleting
-    const { data: existingChecklist } = await supabase
+    const { data: existingChecklist } = await adminClient
       .from('intensive_checklist')
       .select('intensive_id')
       .eq('user_id', userId)
@@ -108,19 +120,19 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
 
     // 11. Delete intensive checklist
-    await supabase
+    await adminClient
       .from('intensive_checklist')
       .delete()
       .eq('user_id', userId)
 
     // 12. Delete intensive purchases
-    await supabase
+    await adminClient
       .from('intensive_purchases')
       .delete()
       .eq('user_id', userId)
 
     // 13. Reset user_accounts to minimal state (keep user but clear settings)
-    await supabase
+    await adminClient
       .from('user_accounts')
       .update({
         first_name: null,
@@ -131,7 +143,7 @@ export async function POST(request: NextRequest) {
       .eq('id', userId)
 
     // 14. Create fresh intensive purchase
-    const { data: newPurchase, error: purchaseError } = await supabase
+    const { data: newPurchase, error: purchaseError } = await adminClient
       .from('intensive_purchases')
       .insert({
         user_id: userId,
@@ -155,7 +167,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 15. Create fresh intensive checklist
-    const { error: checklistError } = await supabase
+    const { error: checklistError } = await adminClient
       .from('intensive_checklist')
       .insert({
         intensive_id: newPurchase.id,

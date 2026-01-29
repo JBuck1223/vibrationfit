@@ -129,14 +129,15 @@ function IntensiveDashboardContent() {
   }, [])
 
   useEffect(() => {
-    if (intensive?.activation_deadline) {
+    // Use checklist.started_at as source of truth for timer
+    if (checklist?.started_at) {
       const timer = setInterval(() => {
         updateTimeRemaining()
       }, 1000)
 
       return () => clearInterval(timer)
     }
-  }, [intensive])
+  }, [checklist])
 
   const loadIntensiveData = async () => {
     try {
@@ -244,7 +245,9 @@ function IntensiveDashboardContent() {
         setIntensive(intensiveData)
       }
 
-      updateTimeRemaining(intensiveData.activation_deadline)
+      // Timer will be calculated from checklist.started_at
+      // Pass the value directly since state hasn't updated yet
+      updateTimeRemaining(checklistData?.started_at)
     } catch (error) {
       console.error('Error loading intensive data:', error)
     } finally {
@@ -252,17 +255,22 @@ function IntensiveDashboardContent() {
     }
   }
 
-  const updateTimeRemaining = (deadline?: string | null) => {
-    if (!deadline) {
+  // 72 hours in milliseconds
+  const INTENSIVE_DURATION_MS = 72 * 60 * 60 * 1000
+
+  const updateTimeRemaining = (startedAtOverride?: string | null) => {
+    // Source of truth: intensive_checklist.started_at
+    const startedAt = startedAtOverride ?? checklist?.started_at
+    if (!startedAt) {
       setTimeRemaining('')
       setHoursRemaining(72)
       return
     }
 
-    const deadlineStr = deadline || intensive?.activation_deadline || ''
-    const deadlineDate = new Date(deadlineStr + (deadlineStr.includes('Z') ? '' : 'Z'))
-    const now = new Date()
-    const diff = deadlineDate.getTime() - now.getTime()
+    const startTime = new Date(startedAt).getTime()
+    const endTime = startTime + INTENSIVE_DURATION_MS
+    const now = Date.now()
+    const diff = endTime - now
 
     if (diff <= 0) {
       setTimeRemaining('') // Timer expired, just hide it

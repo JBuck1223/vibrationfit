@@ -1,5 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+
+// Admin client to bypass RLS for intensive check
+function getAdminClient() {
+  return createSupabaseAdmin(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+}
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
@@ -13,23 +23,38 @@ export async function GET(request: Request) {
 
   // Handle PKCE code exchange (standard flow)
   if (code) {
+    console.log('Auth callback: PKCE code flow')
     await supabase.auth.exchangeCodeForSession(code)
     
     // Check if user has active intensive
     const { data: { user } } = await supabase.auth.getUser()
+    console.log('Auth callback: User:', user?.email)
+    
     if (user) {
-      const { data: intensive } = await supabase
+      // Use admin client to bypass RLS
+      const adminClient = getAdminClient()
+      const { data: intensiveChecklist, error: checklistError } = await adminClient
         .from('intensive_checklist')
-        .select('id')
+        .select('id, status, started_at')
         .eq('user_id', user.id)
         .in('status', ['pending', 'in_progress'])
         .maybeSingle()
       
-      if (intensive) {
+      console.log('Auth callback: Intensive checklist:', intensiveChecklist, 'Error:', checklistError)
+      
+      if (intensiveChecklist) {
+        // If intensive hasn't been started yet, go to start page
+        if (!intensiveChecklist.started_at) {
+          console.log('Auth callback: Redirecting to /intensive/start (not started)')
+          return NextResponse.redirect(`${origin}/intensive/start`)
+        }
+        // Otherwise go to intensive dashboard
+        console.log('Auth callback: Redirecting to /intensive/dashboard (already started)')
         return NextResponse.redirect(`${origin}/intensive/dashboard`)
       }
     }
     
+    console.log('Auth callback: No intensive, redirecting to /dashboard')
     return NextResponse.redirect(`${origin}/dashboard`)
   }
 
@@ -62,6 +87,32 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}/auth/setup-password`)
     }
 
+    // Check if user has active intensive (even if not from intensive flow)
+    if (data.user) {
+      // Use admin client to bypass RLS
+      const adminClient = getAdminClient()
+      const { data: intensiveChecklist, error: checklistError } = await adminClient
+        .from('intensive_checklist')
+        .select('id, status, started_at')
+        .eq('user_id', data.user.id)
+        .in('status', ['pending', 'in_progress'])
+        .maybeSingle()
+      
+      console.log('Auth callback (magic link): Intensive checklist:', intensiveChecklist, 'Error:', checklistError)
+      
+      if (intensiveChecklist) {
+        // If intensive hasn't been started yet, go to start page
+        if (!intensiveChecklist.started_at) {
+          console.log('Auth callback (magic link): Redirecting to /intensive/start')
+          return NextResponse.redirect(`${origin}/intensive/start`)
+        }
+        // Otherwise go to intensive dashboard
+        console.log('Auth callback (magic link): Redirecting to /intensive/dashboard')
+        return NextResponse.redirect(`${origin}/intensive/dashboard`)
+      }
+    }
+
+    console.log('Auth callback (magic link): No intensive, redirecting to /dashboard')
     return NextResponse.redirect(`${origin}/dashboard`)
   }
 

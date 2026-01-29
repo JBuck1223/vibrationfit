@@ -54,9 +54,11 @@ export async function POST(request: NextRequest) {
     // Create admin client for user creation
     const adminClient = getAdminClient()
 
-    // Create auth user
+    // Create auth user with a default test password
+    const testPassword = 'TestUser123!'
     const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
       email,
+      password: testPassword,
       email_confirm: true,
       user_metadata: {
         first_name: firstName || 'Test',
@@ -140,7 +142,8 @@ export async function POST(request: NextRequest) {
       userId: newUserId,
       intensiveId: intensivePurchase.id,
       email: email,
-      loginInstructions: 'User can log in via magic link sent to their email'
+      password: testPassword,
+      loginInstructions: `Login with email: ${email} and password: ${testPassword}`
     })
 
   } catch (error) {

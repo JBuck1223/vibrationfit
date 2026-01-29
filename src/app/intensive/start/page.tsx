@@ -15,7 +15,6 @@ import {
   Text
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
-import { IntensiveCompletionBanner } from '@/lib/design-system/components'
 import { 
   Settings, 
   FileText,
@@ -105,15 +104,15 @@ export default function IntensiveStartPage() {
       const result = await startIntensive(checklistId)
       
       if (result.success) {
-        // Refresh the page to show completed state
-        window.location.reload()
+        // Redirect to dashboard after starting
+        router.push('/intensive/dashboard')
       } else {
         alert('Failed to start intensive: ' + result.error)
+        setStarting(false)
       }
     } catch (error) {
       console.error('Error starting intensive:', error)
       alert('Failed to start intensive. Please try again.')
-    } finally {
       setStarting(false)
     }
   }
@@ -192,15 +191,6 @@ export default function IntensiveStartPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {/* Completion Banner - Shows when intensive has already been started */}
-        {alreadyStarted && startedAt && (
-          <IntensiveCompletionBanner
-            stepTitle="Start Intensive"
-            completedAt={startedAt}
-            showReviewText={false}
-          />
-        )}
-
         {/* Hero - Always shows original welcome content */}
         <PageHero
           eyebrow="72-HOUR ACTIVATION INTENSIVE"
@@ -275,33 +265,6 @@ export default function IntensiveStartPage() {
                   </div>
                 </div>
               ))}
-            </div>
-          </Stack>
-        </Card>
-
-        {/* What You'll Create */}
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
-          <Stack gap="lg">
-            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-              What You'll Create
-            </Text>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              <div className="text-center p-4">
-                <div className="text-3xl md:text-4xl font-bold text-primary-500 mb-2">12</div>
-                <div className="text-xs md:text-sm text-neutral-400">Life Categories<br/>in Your Vision</div>
-              </div>
-              <div className="text-center p-4">
-                <div className="text-3xl md:text-4xl font-bold text-secondary-500 mb-2">3+</div>
-                <div className="text-xs md:text-sm text-neutral-400">Personalized<br/>Audio Tracks</div>
-              </div>
-              <div className="text-center p-4">
-                <div className="text-3xl md:text-4xl font-bold text-accent-500 mb-2">1</div>
-                <div className="text-xs md:text-sm text-neutral-400">Complete<br/>Vision Board</div>
-              </div>
-              <div className="text-center p-4">
-                <div className="text-3xl md:text-4xl font-bold text-[#FFB701] mb-2">1</div>
-                <div className="text-xs md:text-sm text-neutral-400">Calibration<br/>Call</div>
-              </div>
             </div>
           </Stack>
         </Card>
