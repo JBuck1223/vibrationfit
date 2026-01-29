@@ -92,7 +92,10 @@ export function IntensiveSidebar() {
     }
 
     const calculateCountdown = () => {
-      const startTime = new Date(startedAt).getTime()
+      // Ensure we parse the timestamp as UTC (Postgres returns timestamp without timezone)
+      // If the string doesn't end with 'Z', append it to force UTC interpretation
+      const utcStartedAt = startedAt.endsWith('Z') ? startedAt : startedAt + 'Z'
+      const startTime = new Date(utcStartedAt).getTime()
       const endTime = startTime + INTENSIVE_DURATION_MS
       const now = Date.now()
       const remaining = endTime - now

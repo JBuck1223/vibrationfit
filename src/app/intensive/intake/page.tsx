@@ -269,12 +269,12 @@ export default function IntensiveIntake() {
           {question.questionPre}
         </label>
       </div>
-      <div className="grid grid-cols-5 md:grid-cols-10 gap-2 ml-10">
+      <div className="flex flex-wrap gap-2 ml-10 max-w-[232px] md:max-w-fit">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
           <div
             key={num}
             className={`
-              w-10 h-10 rounded border-2 font-semibold flex items-center justify-center text-sm
+              w-10 h-10 rounded border-2 font-semibold flex items-center justify-center text-sm flex-shrink-0
               ${value === num 
                 ? 'bg-primary-500/30 border-primary-500/50 text-primary-400' 
                 : 'bg-neutral-800/50 border-neutral-700/30 text-neutral-600'
@@ -423,14 +423,14 @@ export default function IntensiveIntake() {
           {question.hint}
         </p>
       )}
-      <div className="grid grid-cols-5 md:grid-cols-10 gap-2 ml-10">
+      <div className="flex flex-wrap gap-2 ml-10 max-w-[232px] md:max-w-fit">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
           <button
             key={num}
             type="button"
             onClick={() => updateFormData(question.id, num)}
             className={`
-              w-10 h-10 rounded border-2 font-semibold transition-colors duration-150 text-sm
+              w-10 h-10 rounded border-2 font-semibold transition-colors duration-150 text-sm flex-shrink-0
               ${formData[question.id] === num 
                 ? 'bg-primary-500 border-primary-500 text-black' 
                 : 'bg-neutral-900 border-neutral-700 text-neutral-400 hover:border-neutral-600'

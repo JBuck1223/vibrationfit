@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react'
 import { Container, Stack, PageHero, Card, Button, Spinner } from '@/lib/design-system/components'
-import { User, Settings, Key, CreditCard, Shield, Trash2, ChevronRight, Mail, Phone } from 'lucide-react'
+import { User, Settings, Key, CreditCard, Shield, Trash2, ChevronRight, Mail, Phone, Upload } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import NextImage from 'next/image'
@@ -22,6 +22,7 @@ interface AccountLink {
 export default function AccountDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [account, setAccount] = useState<any>(null)
+  const [imageLoadError, setImageLoadError] = useState(false)
   const supabase = createClient()
   const router = useRouter()
 
@@ -106,13 +107,21 @@ export default function AccountDashboardPage() {
           <div className="flex items-center gap-6">
             {/* Profile Picture */}
             <div className="w-20 h-20 rounded-full overflow-hidden bg-neutral-800 border-2 border-neutral-700 flex-shrink-0">
-              <NextImage
-                src={account?.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
-                alt="Profile"
-                width={80}
-                height={80}
-                className="w-full h-full object-cover"
-              />
+              {imageLoadError ? (
+                <div className="w-full h-full flex items-center justify-center bg-neutral-700">
+                  <User className="w-8 h-8 text-neutral-400" />
+                </div>
+              ) : (
+                <NextImage
+                  src={account?.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
+                  alt="Profile"
+                  width={80}
+                  height={80}
+                  className="w-full h-full object-cover"
+                  onError={() => setImageLoadError(true)}
+                  unoptimized={!account?.profile_picture_url}
+                />
+              )}
             </div>
             
             {/* Account Info */}

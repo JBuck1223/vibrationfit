@@ -186,3 +186,13 @@ body {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;  /* Chrome, Safari and Opera */
 }
+
+/* Toast positioning - center on mobile, top-right on desktop */
+@media (min-width: 768px) {
+  [data-sonner-toaster] {
+    --offset: 16px !important;
+    right: var(--offset) !important;
+    left: auto !important;
+    transform: none !important;
+  }
+}

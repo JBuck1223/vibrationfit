@@ -174,12 +174,15 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload, on
               type="button"
               onClick={() => setIsCurrencyDropdownOpen(!isCurrencyDropdownOpen)}
               className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
-                profile.currency 
+                profile.currency && profile.currency !== 'USD'
                   ? 'text-white' 
                   : 'text-[#9CA3AF]'
               }`}
             >
-              {currencyOptions.find(opt => opt.value === (profile.currency || ''))?.label || 'Select currency'}
+              {/* Treat database default 'USD' as unselected for display */}
+              {profile.currency && profile.currency !== 'USD'
+                ? currencyOptions.find(opt => opt.value === profile.currency)?.label || profile.currency
+                : 'Select currency'}
             </button>
             <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
               <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isCurrencyDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -203,7 +206,7 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload, on
                         setIsCurrencyDropdownOpen(false)
                       }}
                       className={`w-full px-6 py-2 text-left transition-colors ${
-                        (profile.currency || '') === option.value 
+                        profile.currency && profile.currency !== 'USD' && profile.currency === option.value 
                           ? 'bg-primary-500/20 text-primary-500 font-semibold' 
                           : 'text-white hover:bg-[#333]'
                       }`}

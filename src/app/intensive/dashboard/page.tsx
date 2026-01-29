@@ -324,7 +324,10 @@ function IntensiveDashboardContent() {
       return
     }
 
-    const startTime = new Date(startedAt).getTime()
+    // Ensure we parse the timestamp as UTC (Postgres returns timestamp without timezone)
+    // If the string doesn't end with 'Z', append it to force UTC interpretation
+    const utcStartedAt = startedAt.endsWith('Z') ? startedAt : startedAt + 'Z'
+    const startTime = new Date(utcStartedAt).getTime()
     const endTime = startTime + INTENSIVE_DURATION_MS
     const now = Date.now()
     const diff = endTime - now
@@ -577,7 +580,9 @@ function IntensiveDashboardContent() {
   const getCompletionTimeHours = () => {
     if (!checklist?.started_at) return undefined
     
-    const started = new Date(checklist.started_at)
+    // Ensure we parse the timestamp as UTC (Postgres returns timestamp without timezone)
+    const utcStartedAt = checklist.started_at.endsWith('Z') ? checklist.started_at : checklist.started_at + 'Z'
+    const started = new Date(utcStartedAt)
     const now = new Date()
     const hours = (now.getTime() - started.getTime()) / (1000 * 60 * 60)
     return hours
