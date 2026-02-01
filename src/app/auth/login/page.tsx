@@ -202,7 +202,6 @@ export default function LoginPage() {
             style={{ width: 'auto', height: '2.5rem' }}
             priority
           />
-          <p className="text-secondary-500">Login to awesomeness!</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
