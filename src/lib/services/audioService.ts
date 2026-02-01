@@ -734,22 +734,26 @@ export async function generateAudioTracks(params: {
   const successfulTracks = results.filter(r => r.status === 'generated' || r.status === 'skipped' || r.status === 'reused').length
   if (successfulTracks > 0) {
     const now = new Date().toISOString()
-    await supabase
-      .from('intensive_checklist')
-      .update({
-        audio_generated: true,
-        audio_generated_at: now
-      })
-      .eq('user_id', userId)
-      .in('status', ['pending', 'in_progress'])
-      .is('audio_generated', false)
-      .then(() => {
+    try {
+      const { error: checklistError } = await supabase
+        .from('intensive_checklist')
+        .update({
+          audio_generated: true,
+          audio_generated_at: now
+        })
+        .eq('user_id', userId)
+        .in('status', ['pending', 'in_progress'])
+        .is('audio_generated', false)
+      
+      if (!checklistError) {
         console.log('[TTS] Marked audio_generated in intensive_checklist')
-      })
-      .catch(err => {
-        // Silently ignore - user may not be in intensive mode
+      } else {
         console.log('[TTS] No intensive checklist to update (user may not be in intensive mode)')
-      })
+      }
+    } catch {
+      // Silently ignore - user may not be in intensive mode
+      console.log('[TTS] No intensive checklist to update (user may not be in intensive mode)')
+    }
   }
 
   // Log final character usage summary

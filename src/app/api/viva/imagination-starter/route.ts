@@ -149,12 +149,12 @@ export async function POST(request: NextRequest) {
     console.log(`[ImaginationStarter] Using model ${toolConfig.model_name}`)
 
     // Stream the response
+    // Note: maxTokens is handled by the model provider, not streamText() options
     const result = streamText({
       model: openai(toolConfig.model_name),
       system: 'You are a warm, creative writing assistant helping someone draft their ideal life vision. Write naturally and conversationally.',
       prompt: prompt,
       temperature: toolConfig.supports_temperature ? (toolConfig.temperature || 0.8) : undefined,
-      maxTokens: dynamicMaxTokens, // Dynamic based on input richness
       
       async onFinish({ text, usage }) {
         const elapsedMs = Date.now() - startTime

@@ -10,7 +10,7 @@ export interface VisionData {
   id: string
   user_id: string
   version_number: number
-  title?: string
+  title?: string | null
   is_draft: boolean
   is_active: boolean
   completion_percent?: number

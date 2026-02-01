@@ -693,7 +693,7 @@ export default function ProfileEditPage() {
           // passport=true or countries_visited>0 means user changed from default
           return profile.travel_frequency || 
                  profile.passport === true ||
-                 (profile.countries_visited !== undefined && profile.countries_visited > 0) ||
+                 (profile.countries_visited != null && profile.countries_visited > 0) ||
                  (profile.clarity_travel && profile.clarity_travel.trim().length > 0)
         case 'social':
           // Social section is complete if any social fields OR clarity story is filled

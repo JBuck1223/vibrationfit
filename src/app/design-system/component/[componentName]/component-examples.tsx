@@ -264,7 +264,7 @@ function VIVALoadingOverlayDemo() {
             </Button>
             <VIVALoadingOverlay 
               isVisible={showDemo2}
-              message="Analyzing your input..."
+              messages={["Analyzing your input..."]}
             />
           </div>
         </Stack>
@@ -283,7 +283,7 @@ function VIVALoadingOverlayDemo() {
             </Button>
             <VIVALoadingOverlay 
               isVisible={showDemo3}
-              message="Processing your request..."
+              messages={["Processing your request..."]}
             />
           </div>
         </Stack>
@@ -303,7 +303,7 @@ function VIVALoadingOverlayDemo() {
               </Button>
               <VIVALoadingOverlay 
                 isVisible={showDemoSm}
-                message="Loading..."
+                messages={["Loading..."]}
               />
             </div>
             <div className="relative h-48 bg-neutral-900 rounded-xl border-2 border-neutral-700 flex items-center justify-center">
@@ -312,7 +312,7 @@ function VIVALoadingOverlayDemo() {
               </Button>
               <VIVALoadingOverlay 
                 isVisible={showDemoMd}
-                message="Processing..."
+                messages={["Processing..."]}
               />
             </div>
             <div className="relative h-48 bg-neutral-900 rounded-xl border-2 border-neutral-700 flex items-center justify-center">
@@ -321,7 +321,7 @@ function VIVALoadingOverlayDemo() {
               </Button>
               <VIVALoadingOverlay 
                 isVisible={showDemoLg}
-                message="Creating magic..."
+                messages={["Creating magic..."]}
               />
             </div>
           </Grid>

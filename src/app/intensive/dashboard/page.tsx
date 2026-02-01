@@ -168,7 +168,7 @@ function IntensiveDashboardContent() {
       toastShownRef.current = true
       
       const stepInfo = getStepInfo(completedStep)
-      const nextStepInfo = getNextStep(completedStep)
+      const nextStepInfo = getNextStep()
       
       if (stepInfo) {
         const message = nextStepInfo 

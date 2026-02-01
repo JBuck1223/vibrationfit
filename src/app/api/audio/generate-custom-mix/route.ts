@@ -362,22 +362,26 @@ export async function POST(request: NextRequest) {
     // Mark audios_generated in intensive_checklist if user is in intensive mode and mix succeeded
     if (mixSuccessCount > 0) {
       const now = new Date().toISOString()
-      await supabase
-        .from('intensive_checklist')
-        .update({
-          audios_generated: true,
-          audios_generated_at: now
-        })
-        .eq('user_id', user.id)
-        .in('status', ['pending', 'in_progress'])
-        .is('audios_generated', false)
-        .then(() => {
-          console.log('🎵 [CUSTOM MIX] Marked audios_generated in intensive_checklist')
-        })
-        .catch(() => {
-          // Silently ignore - user may not be in intensive mode
-          console.log('🎵 [CUSTOM MIX] No intensive checklist to update (user may not be in intensive mode)')
-        })
+      try {
+        const { error: checklistError } = await supabase
+          .from('intensive_checklist')
+          .update({
+            audios_generated: true,
+            audios_generated_at: now
+          })
+          .eq('user_id', user.id)
+          .in('status', ['pending', 'in_progress'])
+          .is('audios_generated', false)
+        
+        if (!checklistError) {
+          console.log('[CUSTOM MIX] Marked audios_generated in intensive_checklist')
+        } else {
+          console.log('[CUSTOM MIX] No intensive checklist to update (user may not be in intensive mode)')
+        }
+      } catch {
+        // Silently ignore - user may not be in intensive mode
+        console.log('[CUSTOM MIX] No intensive checklist to update (user may not be in intensive mode)')
+      }
     }
 
     console.log('🎵 [CUSTOM MIX] Generation complete:', {

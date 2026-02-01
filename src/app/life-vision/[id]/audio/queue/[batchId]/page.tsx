@@ -335,7 +335,7 @@ export default function AudioQueuePage({
     }
     
     // Sort tracks by the canonical category order (forward -> conclusion)
-    const categoryOrder = new Map(
+    const categoryOrder = new Map<string, number>(
       VISION_CATEGORIES.map((cat) => [cat.key, cat.order])
     )
     expectedTracks.sort((a, b) => {

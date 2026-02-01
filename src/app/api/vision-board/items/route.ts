@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
 
         if (allCategoriesCovered) {
           const now = new Date().toISOString()
-          await supabase
+          const { error: checklistError } = await supabase
             .from('intensive_checklist')
             .update({
               vision_board_completed: true,
@@ -155,12 +155,12 @@ export async function POST(request: NextRequest) {
             .eq('user_id', user.id)
             .in('status', ['pending', 'in_progress'])
             .is('vision_board_completed', false)
-            .then(() => {
-              console.log('🎨 [VISION BOARD] Marked vision_board_completed in intensive_checklist')
-            })
-            .catch(() => {
-              console.log('🎨 [VISION BOARD] No intensive checklist to update (user may not be in intensive mode)')
-            })
+          
+          if (!checklistError) {
+            console.log('[VISION BOARD] Marked vision_board_completed in intensive_checklist')
+          } else {
+            console.log('[VISION BOARD] No intensive checklist to update (user may not be in intensive mode)')
+          }
         } else {
           console.log(`🎨 [VISION BOARD] ${coveredCategories.size}/${LIFE_CATEGORY_KEYS.length} categories covered`)
         }
