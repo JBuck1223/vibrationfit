@@ -131,7 +131,8 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
       router.push(`/life-vision/${committedVision.id}`)
     } catch (err) {
       console.error('Error committing draft:', err)
-      alert('Failed to commit draft as active vision')
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      alert(`Failed to commit draft as active vision: ${errorMessage}`)
     } finally {
       setIsCommitting(false)
     }

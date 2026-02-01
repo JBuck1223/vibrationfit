@@ -158,6 +158,78 @@ export function IntensiveSidebar() {
       setIntensiveStarted(!!checklist.started_at)
       setStartedAt(checklist.started_at || null)
 
+      // Check for actual user voice recordings (Step 8)
+      const { count: voiceRecordingCount } = await supabase
+        .from('audio_tracks')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('voice_id', 'user_voice')
+        .eq('status', 'completed')
+      
+      const hasVoiceRecordings = (voiceRecordingCount || 0) > 0
+
+      // Verify Vision Board completion (Step 10)
+      // If vision_board_completed is false but user has items in all 12 categories, mark complete
+      if (!checklist.vision_board_completed) {
+        const { data: visionBoardItems } = await supabase
+          .from('vision_board_items')
+          .select('categories')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+
+        if (visionBoardItems && visionBoardItems.length > 0) {
+          const coveredCategories = new Set<string>()
+          visionBoardItems.forEach(item => {
+            if (item.categories && Array.isArray(item.categories)) {
+              item.categories.forEach((cat: string) => coveredCategories.add(cat))
+            }
+          })
+
+          // 12 life categories (excluding forward and conclusion)
+          const LIFE_CATEGORIES = ['fun', 'health', 'travel', 'love', 'family', 'social', 'home', 'work', 'money', 'stuff', 'giving', 'spirituality']
+          const allCategoriesCovered = LIFE_CATEGORIES.every(cat => coveredCategories.has(cat))
+
+          if (allCategoriesCovered) {
+            console.log('🎨 [SIDEBAR] All 12 categories covered, marking vision_board_completed')
+            const now = new Date().toISOString()
+            await supabase
+              .from('intensive_checklist')
+              .update({
+                vision_board_completed: true,
+                vision_board_completed_at: now
+              })
+              .eq('id', checklist.id)
+
+            // Update local checklist object for step rendering
+            checklist.vision_board_completed = true
+          }
+        }
+      }
+
+      // Verify Journal completion (Step 11)
+      // If first_journal_entry is false but user has at least one journal entry, mark complete
+      if (!checklist.first_journal_entry) {
+        const { count: journalCount } = await supabase
+          .from('journal_entries')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+
+        if ((journalCount || 0) > 0) {
+          console.log('📓 [SIDEBAR] Journal entry found, marking first_journal_entry')
+          const now = new Date().toISOString()
+          await supabase
+            .from('intensive_checklist')
+            .update({
+              first_journal_entry: true,
+              first_journal_entry_at: now
+            })
+            .eq('id', checklist.id)
+
+          // Update local checklist object for step rendering
+          checklist.first_journal_entry = true
+        }
+      }
+
       const stepsList: Step[] = [
         // Phase 0: Start
         { 
@@ -254,7 +326,7 @@ export function IntensiveSidebar() {
           href: '/life-vision/audio/record/new', 
           icon: Mic,
           phase: 'Audio',
-          completed: !!checklist.audio_generated, // shares completion with step 7
+          completed: hasVoiceRecordings || !!checklist.voice_recording_skipped, // Complete if recorded OR skipped
           locked: !checklist.audio_generated,
           optional: true
         },
@@ -278,7 +350,7 @@ export function IntensiveSidebar() {
           icon: ImageIcon,
           phase: 'Activation',
           completed: !!checklist.vision_board_completed,
-          locked: !(checklist.audios_generated || checklist.audio_generated)
+          locked: !checklist.audios_generated // Requires Audio Mix (Step 9) to be complete
         },
         { 
           id: 'journal', 

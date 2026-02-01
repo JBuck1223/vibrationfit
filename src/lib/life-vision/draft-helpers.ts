@@ -143,7 +143,9 @@ export async function commitDraft(draftId: string): Promise<VisionData> {
   })
   
   if (!response.ok) {
-    throw new Error('Failed to commit draft')
+    const errorData = await response.json().catch(() => ({}))
+    console.error('Commit draft error response:', errorData)
+    throw new Error(errorData.error || 'Failed to commit draft')
   }
   
   const { vision } = await response.json()

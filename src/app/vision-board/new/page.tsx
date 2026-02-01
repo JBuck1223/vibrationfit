@@ -21,12 +21,13 @@ const STATUS_OPTIONS = [
 export default function NewVisionBoardItemPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const isIntensiveMode = searchParams.get('intensive') === 'true'
+  const isIntensiveUrlParam = searchParams.get('intensive') === 'true'
   const supabase = createClient()
   
   const [loading, setLoading] = useState(false)
   const [existingItems, setExistingItems] = useState<any[]>([])
   const [categoriesNeeded, setCategoriesNeeded] = useState<string[]>(LIFE_CATEGORY_KEYS)
+  const [isUserInIntensive, setIsUserInIntensive] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [aiGeneratedImageUrl, setAiGeneratedImageUrl] = useState<string | null>(null)
   const [imageSource, setImageSource] = useState<'upload' | 'ai' | null>(null)
@@ -44,42 +45,54 @@ export default function NewVisionBoardItemPage() {
   })
   
 
-  // Load existing vision board items to check which categories are covered
+  // Check if user is in intensive mode and load existing vision board items
   useEffect(() => {
-    const loadExistingItems = async () => {
-      if (!isIntensiveMode) return
-      
+    const loadData = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
 
-        const { data: items } = await supabase
-          .from('vision_board_items')
-          .select('categories')
+        // Check if user has an active intensive checklist
+        const { data: checklist } = await supabase
+          .from('intensive_checklist')
+          .select('id')
           .eq('user_id', user.id)
+          .in('status', ['pending', 'in_progress'])
+          .maybeSingle()
 
-        if (items) {
-          setExistingItems(items)
-          
-          // Get all unique categories that already have items
-          const coveredCategories = new Set<string>()
-          items.forEach(item => {
-            if (item.categories && Array.isArray(item.categories)) {
-              item.categories.forEach((cat: string) => coveredCategories.add(cat))
-            }
-          })
-          
-          // Calculate which categories still need items
-          const needed = LIFE_CATEGORY_KEYS.filter(cat => !coveredCategories.has(cat))
-          setCategoriesNeeded(needed)
+        const inIntensive = !!checklist || isIntensiveUrlParam
+        setIsUserInIntensive(inIntensive)
+
+        // Load existing items if user is in intensive mode
+        if (inIntensive) {
+          const { data: items } = await supabase
+            .from('vision_board_items')
+            .select('categories')
+            .eq('user_id', user.id)
+
+          if (items) {
+            setExistingItems(items)
+            
+            // Get all unique categories that already have items
+            const coveredCategories = new Set<string>()
+            items.forEach(item => {
+              if (item.categories && Array.isArray(item.categories)) {
+                item.categories.forEach((cat: string) => coveredCategories.add(cat))
+              }
+            })
+            
+            // Calculate which categories still need items
+            const needed = LIFE_CATEGORY_KEYS.filter(cat => !coveredCategories.has(cat))
+            setCategoriesNeeded(needed)
+          }
         }
       } catch (error) {
-        console.error('Error loading existing items:', error)
+        console.error('Error loading data:', error)
       }
     }
     
-    loadExistingItems()
-  }, [isIntensiveMode])
+    loadData()
+  }, [isIntensiveUrlParam])
 
   const handleCategoryToggle = (category: string) => {
     setFormData(prev => ({
@@ -168,7 +181,7 @@ export default function NewVisionBoardItemPage() {
       })
 
       // If in intensive mode, check if all categories are now covered
-      if (isIntensiveMode) {
+      if (isUserInIntensive) {
         // Reload items to check completion
         const { data: allItems } = await supabase
           .from('vision_board_items')
@@ -526,14 +539,14 @@ export default function NewVisionBoardItemPage() {
                   Select categories for your vision item
                 </p>
 
-                {isIntensiveMode && categoriesNeeded.length > 0 && (
+                {isUserInIntensive && categoriesNeeded.length > 0 && (
                   <p className="text-sm text-neutral-400 mb-3 text-center">
                     ✨ Intensive: Add at least one image for each life area. Still need: <strong className="text-primary-500">{categoriesNeeded.join(', ')}</strong>
                   </p>
                 )}
                 <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
                   {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => {
-                    const isNeeded = isIntensiveMode && categoriesNeeded.includes(category.key)
+                    const isNeeded = isUserInIntensive && categoriesNeeded.includes(category.key)
                     const isSelected = formData.categories.includes(category.key)
                     return (
                       <CategoryCard 

@@ -81,7 +81,8 @@ interface IntensiveChecklist {
   // Phase 4: Audio (Steps 7-9)
   audio_generated: boolean
   audio_generated_at: string | null
-  // audio_recorded tracked separately or via skip
+  voice_recording_skipped: boolean
+  voice_recording_skipped_at: string | null
   audios_generated: boolean
   audios_generated_at: string | null
   
@@ -127,6 +128,7 @@ function IntensiveDashboardContent() {
   const [timeRemaining, setTimeRemaining] = useState<string>('')
   const [hoursRemaining, setHoursRemaining] = useState<number>(72)
   const [settingsComplete, setSettingsComplete] = useState(false) // Step 1 from user_accounts
+  const [hasVoiceRecordings, setHasVoiceRecordings] = useState(false) // Step 8: actual user voice recordings
   const toastShownRef = useRef(false) // Prevent duplicate toasts
 
   useEffect(() => {
@@ -302,6 +304,81 @@ function IntensiveDashboardContent() {
         setIntensive(intensiveData)
       }
 
+      // Check for actual user voice recordings (Step 8)
+      // User recordings have voice_id = 'user_voice'
+      const { count: voiceRecordingCount } = await supabase
+        .from('audio_tracks')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('voice_id', 'user_voice')
+        .eq('status', 'completed')
+      
+      setHasVoiceRecordings((voiceRecordingCount || 0) > 0)
+
+      // Verify Vision Board completion (Step 10)
+      // If vision_board_completed is false but user has items in all 12 categories, mark complete
+      if (!checklistData.vision_board_completed) {
+        const { data: visionBoardItems } = await supabase
+          .from('vision_board_items')
+          .select('categories')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+
+        if (visionBoardItems && visionBoardItems.length > 0) {
+          const coveredCategories = new Set<string>()
+          visionBoardItems.forEach(item => {
+            if (item.categories && Array.isArray(item.categories)) {
+              item.categories.forEach((cat: string) => coveredCategories.add(cat))
+            }
+          })
+
+          // 12 life categories (excluding forward and conclusion)
+          const LIFE_CATEGORIES = ['fun', 'health', 'travel', 'love', 'family', 'social', 'home', 'work', 'money', 'stuff', 'giving', 'spirituality']
+          const allCategoriesCovered = LIFE_CATEGORIES.every(cat => coveredCategories.has(cat))
+
+          if (allCategoriesCovered) {
+            console.log('🎨 [DASHBOARD] All 12 categories covered, marking vision_board_completed')
+            const now = new Date().toISOString()
+            await supabase
+              .from('intensive_checklist')
+              .update({
+                vision_board_completed: true,
+                vision_board_completed_at: now
+              })
+              .eq('id', checklistData.id)
+
+            // Update local state
+            checklistData.vision_board_completed = true
+            checklistData.vision_board_completed_at = now
+          }
+        }
+      }
+
+      // Verify Journal completion (Step 11)
+      // If first_journal_entry is false but user has at least one journal entry, mark complete
+      if (!checklistData.first_journal_entry) {
+        const { count: journalCount } = await supabase
+          .from('journal_entries')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+
+        if ((journalCount || 0) > 0) {
+          console.log('📓 [DASHBOARD] Journal entry found, marking first_journal_entry')
+          const now = new Date().toISOString()
+          await supabase
+            .from('intensive_checklist')
+            .update({
+              first_journal_entry: true,
+              first_journal_entry_at: now
+            })
+            .eq('id', checklistData.id)
+
+          // Update local state
+          checklistData.first_journal_entry = true
+          checklistData.first_journal_entry_at = now
+        }
+      }
+
       // Timer will be calculated from checklist.started_at
       // Pass the value directly since state hasn't updated yet
       updateTimeRemaining(checklistData?.started_at)
@@ -467,8 +544,8 @@ function IntensiveDashboardContent() {
         description: 'Optionally record sections in your own voice',
         icon: Mic,
         phase: 'Audio',
-        completed: checklist.audio_generated, // Use same flag or can skip
-        completedAt: checklist.audio_generated_at,
+        completed: hasVoiceRecordings || checklist.voice_recording_skipped, // Complete if recorded OR skipped
+        completedAt: hasVoiceRecordings ? checklist.audio_generated_at : checklist.voice_recording_skipped_at,
         href: '/life-vision/audio/record/new',
         viewHref: '/life-vision',
         locked: !checklist.audio_generated,
@@ -500,7 +577,7 @@ function IntensiveDashboardContent() {
         completedAt: checklist.vision_board_completed_at,
         href: '/vision-board/resources',
         viewHref: '/vision-board',
-        locked: !(checklist.audios_generated || checklist.audio_generated)
+        locked: !checklist.audios_generated // Requires Audio Mix (Step 9) to be complete
       },
       {
         id: 'journal',

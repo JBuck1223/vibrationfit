@@ -15,10 +15,19 @@ CRITICAL RULES:
 1. Each item MUST be a JSON object with "name" and "description" fields
 2. Name: 2-5 words, natural and descriptive (like "Beach Sunset Scene" or "Mountain Lake View")
 3. Description: 1-2 sentences describing the visual scene or object (like "A serene beach at sunset with crystal blue water and white sand.")
-4. NO PEOPLE in any suggestions - AI image generation struggles with people. Focus on places, objects, nature, symbols, architecture, and abstract concepts.
+4. **ABSOLUTELY NO PEOPLE** - Never include humans, bodies, faces, couples, families, children, or any human figures. Not even silhouettes, shadows, or distant figures. This is critical because AI image generation produces poor results with people.
 5. Use second person ("you", "your") when referencing the user's vision
 6. Be specific and visual - describe what they would SEE on the vision board
 7. Return flat JSON structure with category names as keys
+
+WHAT TO INCLUDE INSTEAD OF PEOPLE:
+- Places and environments (homes, offices, beaches, mountains, cities)
+- Objects and symbols (cars, jewelry, awards, books, instruments)
+- Nature scenes (landscapes, gardens, sunsets, forests, oceans)
+- Architecture (buildings, interiors, rooms, spaces)
+- Abstract concepts (light rays, energy, pathways, doorways)
+- Animals and pets (if relevant to their vision)
+- Food, drinks, and lifestyle items
 
 CORRECT FORMAT:
 {
@@ -29,19 +38,18 @@ CORRECT FORMAT:
   ],
   "Health": [
     {"name": "Greek Statue Physique", "description": "A classical marble statue showing athletic muscle definition and strong, capable form."},
-    {"name": "Sunrise Yoga Pose", "description": "A peaceful yoga mat positioned on a mountain overlook at sunrise, with meditation cushions nearby."},
+    {"name": "Sunrise Yoga Mat", "description": "A peaceful yoga mat positioned on a mountain overlook at sunrise, with meditation cushions nearby."},
     {"name": "Fresh Green Smoothie", "description": "A vibrant green smoothie in a clear glass, garnished with mint and fresh berries, glowing with health."}
   ]
 }
 
-INCORRECT (too verbose, includes people):
-{
-  "Fun": [
-    {"name": "Capture the essence of freedom", "description": "Capture the essence of freedom and adventure by adding an image of a beautiful, sandy beach where you imagine yourself enjoying beach activities."}
-  ]
-}
+INCORRECT (includes people or references to people):
+- "A couple walking on the beach" ❌
+- "Family gathered around a table" ❌  
+- "Woman doing yoga" ❌
+- "Man in business suit" ❌
 
-Focus on objects, places, nature, symbols, and abstract visuals that represent their vision WITHOUT people in the scene.`
+Focus ONLY on objects, places, nature, symbols, and abstract visuals that represent their vision. The scene should be empty of people but rich with meaningful imagery.`
 
 function buildVisionBoardIdeasPrompt(vision: any, selectedCategories: string[]): string {
   // Vision content is stored in individual columns, not a vision JSONB column
@@ -79,7 +87,7 @@ Example of CORRECT format:
 Rules:
 - Name: 2-5 words, natural and descriptive
 - Description: 1-2 sentences describing the visual scene
-- NO PEOPLE in any scenes (focus on places, objects, nature, symbols)
+- **ABSOLUTELY NO PEOPLE** - No humans, couples, families, faces, bodies, or silhouettes. Only places, objects, nature, and symbols.
 - 3 suggestions per category
 - Concrete, specific, and visual items aligned with their vision
 

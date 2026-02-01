@@ -730,6 +730,28 @@ export async function generateAudioTracks(params: {
     .update({ last_audio_generated_at: new Date().toISOString() })
     .eq('id', visionId)
 
+  // Mark audio_generated in intensive_checklist if user is in intensive mode and at least one track succeeded
+  const successfulTracks = results.filter(r => r.status === 'generated' || r.status === 'skipped' || r.status === 'reused').length
+  if (successfulTracks > 0) {
+    const now = new Date().toISOString()
+    await supabase
+      .from('intensive_checklist')
+      .update({
+        audio_generated: true,
+        audio_generated_at: now
+      })
+      .eq('user_id', userId)
+      .in('status', ['pending', 'in_progress'])
+      .is('audio_generated', false)
+      .then(() => {
+        console.log('[TTS] Marked audio_generated in intensive_checklist')
+      })
+      .catch(err => {
+        // Silently ignore - user may not be in intensive mode
+        console.log('[TTS] No intensive checklist to update (user may not be in intensive mode)')
+      })
+  }
+
   // Log final character usage summary
   const costPer1k = 0.015 // OpenAI TTS
   const totalCost = (totalCharactersProcessed / 1000) * costPer1k

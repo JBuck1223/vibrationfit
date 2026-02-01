@@ -134,11 +134,11 @@ export default function AudioGenerateNewPage() {
               <Button 
                 variant="primary" 
                 size="sm" 
-                onClick={() => router.push('/life-vision')}
+                onClick={() => router.push(activeVisionId ? `/life-vision/${activeVisionId}/audio/sets` : '/life-vision')}
                 className="w-full md:w-auto"
               >
                 <Headphones className="mr-2 h-4 w-4" />
-                Listen to Audio
+                Listen to Audio Sets
               </Button>
             ) : (
               <Button 
@@ -251,11 +251,11 @@ export default function AudioGenerateNewPage() {
                 <Button 
                   variant="primary" 
                   size="sm" 
-                  onClick={() => router.push('/life-vision')}
+                  onClick={() => router.push(activeVisionId ? `/life-vision/${activeVisionId}/audio/sets` : '/life-vision')}
                   className="w-full md:w-auto"
                 >
                   <Headphones className="mr-2 h-4 w-4" />
-                  Listen to Audio
+                  Listen to Audio Sets
                 </Button>
               ) : (
                 <Button 
@@ -278,7 +278,6 @@ export default function AudioGenerateNewPage() {
                   )}
                 </Button>
               )}
-              </Button>
             </div>
           </Stack>
         </Card>

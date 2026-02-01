@@ -258,38 +258,119 @@ async function advanceStep3_Profile(
     .maybeSingle()
 
   if (!existing) {
-    await supabase.from('user_profiles').insert({
+    // Values must match CHECK constraints in user_profiles table
+    const { error } = await supabase.from('user_profiles').insert({
       user_id: userId,
-      gender: 'female',
-      relationship_status: 'married',
+      
+      // Demographics
+      gender: 'Female',
+      ethnicity: 'White',
+      relationship_status: 'Married',
       relationship_length: '5-10 years',
+      partner_name: 'Michael',
       has_children: true,
+      children: JSON.stringify([
+        { name: 'Emma', age: 8, gender: 'Female' },
+        { name: 'Jack', age: 5, gender: 'Male' }
+      ]),
+      
+      // Physical
       units: 'US',
       height: 65,
       weight: 145,
-      exercise_frequency: '3-4 times per week',
-      living_situation: 'own_house',
-      time_at_location: '2-5 years',
+      exercise_frequency: '3-4x',
+      
+      // Location
+      living_situation: 'Own',
+      time_at_location: '3-5 years',
       city: 'Los Angeles',
       state: 'CA',
       postal_code: '90210',
       country: 'United States',
-      employment_type: 'full_time',
+      
+      // Education & Work
+      education: "Bachelor's Degree",
+      education_description: 'Computer Science from UCLA',
+      employment_type: 'Employee',
       occupation: 'Software Developer',
       company: 'Tech Startup Inc.',
-      time_in_role: '1-2 years',
+      time_in_role: '2-3 years',
+      
+      // Financial
       currency: 'USD',
-      household_income: '$100,000 - $150,000',
-      savings_retirement: '$50,000 - $100,000',
-      assets_equity: '$100,000 - $250,000',
-      consumer_debt: '$10,000 - $25,000',
-      clarity_love: 'I want a deeply connected partnership filled with adventure and growth.',
-      clarity_family: 'Quality time with kids, creating lasting memories and strong bonds.',
-      clarity_work: 'Meaningful work that challenges me and creates positive impact.',
-      clarity_money: 'Financial freedom to travel, invest, and give generously.',
+      household_income: '100,000-249,999',
+      savings_retirement: '50,000-99,999',
+      assets_equity: '100,000-249,999',
+      consumer_debt: '10,000-24,999',
+      
+      // Lifestyle
+      hobbies: ['yoga', 'hiking', 'reading', 'cooking', 'photography'],
+      leisure_time_weekly: '10-15 hours',
+      passport: true,
+      countries_visited: 12,
+      has_vehicle: true,
+      vehicles: JSON.stringify([
+        { make: 'Tesla', model: 'Model Y', year: 2023 }
+      ]),
+      items: JSON.stringify([
+        { name: 'MacBook Pro', category: 'Electronics', value: 2500 },
+        { name: 'Peloton Bike', category: 'Fitness', value: 1500 }
+      ]),
+      trips: JSON.stringify([
+        { destination: 'Paris, France', date: '2024-06', type: 'vacation' },
+        { destination: 'Tokyo, Japan', date: '2023-10', type: 'vacation' }
+      ]),
+      
+      // Social
+      close_friends_count: '5-10',
+      
+      // Spiritual & Giving
+      spiritual_practice: 'Meditation and mindfulness',
+      meditation_frequency: 'Daily',
+      personal_growth_focus: true,
+      volunteer_status: 'Monthly',
+      charitable_giving: '5-10% of income',
+      legacy_mindset: true,
+      
+      // Clarity statements (what they want)
+      clarity_love: 'I want a deeply connected partnership filled with adventure, growth, and unwavering support. We travel together, grow together, and our love deepens with each passing year.',
+      clarity_family: 'Quality time with my kids, creating lasting memories and strong bonds. Family dinners, weekend adventures, and being fully present for their milestones.',
+      clarity_work: 'Meaningful work that challenges me and creates positive impact. Leading a team that innovates and builds products that matter.',
+      clarity_money: 'Financial freedom to travel, invest, and give generously. Multiple income streams and complete peace of mind about our future.',
+      clarity_home: 'A beautiful, spacious home with natural light, a chef\'s kitchen, and a backyard where the kids can play. A sanctuary that inspires creativity.',
+      clarity_health: 'Vibrant energy, strong body, clear mind. Running 5Ks, doing yoga daily, sleeping deeply, and aging gracefully with vitality.',
+      clarity_fun: 'Regular adventures, spontaneous road trips, learning new skills, and belly laughs with friends. Life should feel like play.',
+      clarity_travel: 'Exploring new countries every year. Immersive experiences, luxury stays, and creating memories that enrich our souls.',
+      clarity_social: 'A tight circle of inspiring friends who lift each other up. Deep conversations, shared experiences, and genuine connection.',
+      clarity_stuff: 'High-quality possessions that bring joy and serve a purpose. A Tesla, beautiful art, and experiences over things.',
+      clarity_giving: 'Generously supporting causes I believe in. Mentoring others, volunteering time, and leaving the world better than I found it.',
+      clarity_spirituality: 'Daily meditation, deep intuition, and living with purpose. Feeling connected to something greater and trusting the journey.',
+      
+      // Contrast statements (what they want to move away from)
+      contrast_love: 'Feeling disconnected or taken for granted. Routine without romance. Growing apart instead of together.',
+      contrast_family: 'Being too busy for the kids. Missing moments. Distracted parenting and guilt.',
+      contrast_work: 'Unfulfilling work that drains energy. Toxic environments. Trading time for money without meaning.',
+      contrast_money: 'Financial stress and scarcity mindset. Living paycheck to paycheck. Worry about the future.',
+      contrast_home: 'Cramped spaces, clutter, and chaos. A home that feels temporary rather than intentional.',
+      contrast_health: 'Low energy, poor sleep, and neglecting my body. Feeling older than my years.',
+      contrast_fun: 'All work and no play. Forgetting to have fun. Life feeling like a grind.',
+      contrast_travel: 'Being stuck. Never exploring. Putting off adventures until "someday."',
+      contrast_social: 'Superficial relationships. Loneliness despite being busy. No one to truly confide in.',
+      contrast_stuff: 'Accumulating junk. Buying cheap things that break. Clutter that weighs me down.',
+      contrast_giving: 'Being too self-focused. Not making a difference. Living small.',
+      contrast_spirituality: 'Disconnection from purpose. Racing through life. Ignoring my inner voice.',
+      
+      // Version metadata
+      is_active: true,
+      is_draft: false,
       created_at: now,
       updated_at: now
     })
+    
+    if (error) {
+      console.error('Error creating profile:', error)
+      throw new Error(`Failed to create profile: ${error.message}`)
+    }
   }
 }
 

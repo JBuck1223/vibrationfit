@@ -725,7 +725,7 @@ export default function ProfileDetailPage() {
             />
 
             {/* Children Table */}
-            {profile.children && profile.children.length > 0 && (
+            {Array.isArray(profile.children) && profile.children.length > 0 && (
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-neutral-300">Children</label>
                 <div className="bg-neutral-800/50 rounded-lg border border-neutral-700 overflow-hidden">
@@ -1191,7 +1191,7 @@ export default function ProfileDetailPage() {
             />
 
             {/* Trips Table */}
-            {profile.trips && profile.trips.length > 0 && (
+            {Array.isArray(profile.trips) && profile.trips.length > 0 && (
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-neutral-300">Trips I've Taken</label>
                 <div className="bg-neutral-800/50 rounded-lg border border-neutral-700 overflow-hidden">
@@ -1304,7 +1304,7 @@ export default function ProfileDetailPage() {
             />
 
             {/* Vehicles Table */}
-            {profile.vehicles && profile.vehicles.length > 0 && (
+            {Array.isArray(profile.vehicles) && profile.vehicles.length > 0 && (
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-neutral-300">Vehicles</label>
                 <div className="bg-neutral-800/50 rounded-lg border border-neutral-700 overflow-hidden">
@@ -1337,7 +1337,7 @@ export default function ProfileDetailPage() {
             )}
 
             {/* Items Table */}
-            {profile.items && profile.items.length > 0 && (
+            {Array.isArray(profile.items) && profile.items.length > 0 && (
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-neutral-300">Items</label>
                 <div className="bg-neutral-800/50 rounded-lg border border-neutral-700 overflow-hidden">
@@ -1848,7 +1848,7 @@ export default function ProfileDetailPage() {
 
         {/* Detailed Sections */}
         {/* Media */}
-        {profile.progress_photos && profile.progress_photos.length > 0 && (
+        {Array.isArray(profile.progress_photos) && profile.progress_photos.length > 0 && (
           <div className="mb-8">
             <Card className="p-6">
               <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
@@ -1972,7 +1972,7 @@ export default function ProfileDetailPage() {
         )}
 
       {/* Lightbox */}
-      {lightboxOpen && profile.progress_photos && (
+      {lightboxOpen && Array.isArray(profile.progress_photos) && (
         <div 
           className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center"
           onClick={closeLightbox}

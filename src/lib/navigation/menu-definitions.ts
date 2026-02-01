@@ -48,6 +48,7 @@ import {
   Wand2,
   Activity,
   Rocket,
+  Video,
   Wrench,
   TrendingUp,
   UserPlus,
@@ -326,17 +327,33 @@ export const adminNavigation: NavItem[] = [
   },
   
   // ============================================================================
+  // SCHEDULING (Universal)
+  // ============================================================================
+  {
+    name: 'Scheduling',
+    href: '/admin/scheduling',
+    icon: Calendar,
+    requiresAdmin: true,
+    hasDropdown: true,
+    description: 'Manage availability for all event types',
+    children: [
+      { name: 'All Schedules', href: '/admin/scheduling', icon: Calendar, description: 'Manage all scheduling' },
+      { name: 'Sessions', href: '/admin/sessions', icon: Video, description: 'View booked sessions' },
+    ]
+  },
+
+  // ============================================================================
   // INTENSIVE PROGRAM
   // ============================================================================
   {
     name: 'Intensive Program',
-    href: '/admin/intensive/schedule-call',
+    href: '/admin/intensive/tester',
     icon: Rocket,
     requiresAdmin: true,
     hasDropdown: true,
     description: 'Manage Activation Intensive program',
     children: [
-      { name: 'Schedule Calls', href: '/admin/intensive/schedule-call', icon: Calendar, description: 'Schedule intensive coaching calls' },
+      { name: 'Intensive Tester', href: '/admin/intensive/tester', icon: Rocket, description: 'Test intensive flows' },
     ]
   },
   

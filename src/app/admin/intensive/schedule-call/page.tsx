@@ -170,11 +170,11 @@ export default function AdminScheduleCallPage() {
         // Get slot counts for each schedule
         const schedulesWithCounts = await Promise.all(
           data.map(async (schedule) => {
-            // Try generic time_slots first, fallback to intensive_time_slots
+            // Try schedule_time_slots first, fallback to intensive_time_slots
             let count = 0
             
             const { count: genericCount } = await supabase
-              .from('time_slots')
+              .from('schedule_time_slots')
               .select('*', { count: 'exact', head: true })
               .eq('schedule_id', schedule.id)
             
@@ -444,8 +444,8 @@ export default function AdminScheduleCallPage() {
       }
 
       if (scheduleError) {
-        console.error('Error creating schedule:', scheduleError)
-        toast.error('Failed to create schedule')
+        console.error('Error creating schedule:', scheduleError.message || scheduleError.code || JSON.stringify(scheduleError))
+        toast.error(`Failed to create schedule: ${scheduleError.message || scheduleError.code || 'Database error'}`)
         setSaving(false)
         return
       }
@@ -463,7 +463,7 @@ export default function AdminScheduleCallPage() {
         }))
 
         const { error: genericSlotsError } = await supabase
-          .from('time_slots')
+          .from('schedule_time_slots')
           .insert(slotData)
 
         let slotsError = genericSlotsError
@@ -506,8 +506,8 @@ export default function AdminScheduleCallPage() {
       // Reload schedules
       await loadSchedules()
     } catch (error) {
-      console.error('Error creating schedule:', error)
-      toast.error('Failed to create schedule')
+      console.error('Error creating schedule:', error instanceof Error ? error.message : JSON.stringify(error))
+      toast.error(`Failed to create schedule: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setSaving(false)
     }
@@ -570,7 +570,7 @@ export default function AdminScheduleCallPage() {
 
       // Update all slots for this schedule
       const { error: genericSlotsError } = await supabase
-        .from('time_slots')
+        .from('schedule_time_slots')
         .update({ available: !schedule.is_active })
         .eq('schedule_id', schedule.id)
 

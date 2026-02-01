@@ -45,17 +45,28 @@ export async function POST(request: NextRequest) {
 
     // Use the database function to commit the draft
     // This handles both personal and household visions correctly
-    const { error: commitError } = await supabase.rpc('commit_vision_draft_as_active', {
+    const { data: commitResult, error: commitError } = await supabase.rpc('commit_vision_draft_as_active', {
       p_draft_vision_id: draftId,
       p_user_id: user.id
     })
 
     if (commitError) {
       console.error('Error committing draft:', commitError)
+      console.error('Draft ID:', draftId)
+      console.error('User ID:', user.id)
+      console.error('Draft data:', draft)
       return NextResponse.json({ 
-        error: commitError.message || 'Failed to commit draft' 
+        error: commitError.message || 'Failed to commit draft',
+        details: {
+          code: commitError.code,
+          hint: commitError.hint,
+          draftId,
+          userId: user.id
+        }
       }, { status: 500 })
     }
+    
+    console.log('Commit result:', commitResult)
 
     // Fetch the newly committed vision
     const { data: newActive, error: fetchError } = await supabase

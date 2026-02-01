@@ -188,11 +188,10 @@ body {
 }
 
 /* Toast positioning - center on mobile, top-right on desktop */
-@media (min-width: 768px) {
+@media (max-width: 767px) {
   [data-sonner-toaster] {
-    --offset: 16px !important;
-    right: var(--offset) !important;
-    left: auto !important;
-    transform: none !important;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
   }
 }

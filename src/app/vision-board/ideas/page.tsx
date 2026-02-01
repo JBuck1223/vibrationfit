@@ -12,6 +12,7 @@ import {
   Spinner,
   Badge,
   CategoryGrid,
+  VIVALoadingOverlay,
 } from '@/lib/design-system/components'
 import { Sparkles, Plus, Lightbulb, Check, RefreshCw } from 'lucide-react'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
@@ -46,6 +47,7 @@ export default function VisionBoardIdeasPage() {
   )
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [existingCategorySuggestions, setExistingCategorySuggestions] = useState<Set<string>>(new Set())
+  const [hasAutoSelected, setHasAutoSelected] = useState(false)
 
   useEffect(() => {
     loadExistingSuggestions()
@@ -122,16 +124,17 @@ export default function VisionBoardIdeasPage() {
               categoriesWithSuggestions.add(categoryKey)
             })
           } else {
-            // Single category generation
-            const category = VISION_CATEGORIES.find(c => c.key === idea.category)
-            if (category) {
-              const categoryKey = idea.category
+            // Single or multi-category generation (not 'all')
+            // The suggestions array has the same nested structure as 'all'
+            const suggestionsArray = idea.suggestions as any[]
+            suggestionsArray.forEach((catSuggestion: any) => {
+              const categoryKey = catSuggestion.category
               const existing = categoryMap.get(categoryKey)
               
               // Only keep this if it's newer than existing, or if no existing
               if (!existing || new Date(idea.generated_at) > new Date(existing.generatedAt || '')) {
                 // Mark suggestions that were already added
-                const enhancedSuggestions = (idea.suggestions as any[] || []).map((sugg: any) => ({
+                const enhancedSuggestions = (catSuggestion.suggestions || []).map((sugg: any) => ({
                   ...sugg,
                   wasAdded: createdItems?.some(item => 
                     item.name === sugg.name && item.description === sugg.description
@@ -139,8 +142,8 @@ export default function VisionBoardIdeasPage() {
                 }))
 
                 categoryMap.set(categoryKey, {
-                  category: idea.category,
-                  categoryLabel: category.label,
+                  category: catSuggestion.category,
+                  categoryLabel: catSuggestion.categoryLabel,
                   suggestions: enhancedSuggestions || [],
                   generatedAt: idea.generated_at,
                   ideaId: idea.id,
@@ -149,7 +152,7 @@ export default function VisionBoardIdeasPage() {
                 })
               }
               categoriesWithSuggestions.add(categoryKey)
-            }
+            })
           }
         })
 
@@ -157,6 +160,24 @@ export default function VisionBoardIdeasPage() {
         setVisionSuggestions(Array.from(categoryMap.values()))
         setExistingCategorySuggestions(categoriesWithSuggestions)
         setHasGenerated(true)
+        
+        // Auto-select categories that don't have suggestions yet (only on initial load)
+        if (!hasAutoSelected) {
+          const categoriesWithoutSuggestions = categoriesWithout
+            .map(c => c.key)
+            .filter(key => !categoriesWithSuggestions.has(key))
+          
+          if (categoriesWithoutSuggestions.length > 0) {
+            setSelectedCategories(categoriesWithoutSuggestions)
+          }
+          setHasAutoSelected(true)
+        }
+      } else {
+        // No suggestions exist at all - select all categories
+        if (!hasAutoSelected) {
+          setSelectedCategories(categoriesWithout.map(c => c.key))
+          setHasAutoSelected(true)
+        }
       }
     } catch (err) {
       console.error('Error loading suggestions:', err)
@@ -367,7 +388,7 @@ export default function VisionBoardIdeasPage() {
                 <Badge variant="info">
                   {categoryData.suggestions.length} ideas
                 </Badge>
-                {categoryData.itemsCreated && categoryData.itemsCreated > 0 && (
+                {categoryData.itemsCreated !== undefined && categoryData.itemsCreated > 0 && (
                   <Badge variant="success">
                     {categoryData.itemsCreated} added to board
                   </Badge>
@@ -412,7 +433,7 @@ export default function VisionBoardIdeasPage() {
                               : 'border-neutral-600'
                             }
                           `}>
-                            {isSelected && <Check className="w-4 h-4 text-white" />}
+                            {isSelected && <Check className="w-4 h-4 text-black" />}
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
@@ -528,7 +549,7 @@ export default function VisionBoardIdeasPage() {
                   disabled={selectedCategories.length === 0}
                 >
                   <Sparkles className="w-5 h-5" />
-                  Generate Ideas for {selectedCategories.length} {selectedCategories.length === 1 ? 'Category' : 'Categories'}
+                  Generate New Ideas for {selectedCategories.length} {selectedCategories.length === 1 ? 'Category' : 'Categories'}
                 </Button>
                 {visionSuggestions.length > 0 && (
                   <Button 
@@ -558,15 +579,36 @@ export default function VisionBoardIdeasPage() {
     )
   }
 
-  // Loading state
-  if (loading) {
+  // Loading state (initial load only, not generating)
+  if (loading && !generating) {
     return (
       <Container size="xl">
         <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
           <Spinner size="lg" />
-          <p className="text-neutral-400">
-            {generating ? 'Generating personalized suggestions...' : 'Loading your vision...'}
-          </p>
+          <p className="text-neutral-400">Loading your vision...</p>
+        </div>
+      </Container>
+    )
+  }
+
+  // Generating state - show beautiful overlay
+  if (generating) {
+    return (
+      <Container size="xl">
+        <div className="relative min-h-[70vh]">
+          <VIVALoadingOverlay
+            isVisible={true}
+            messages={[
+              "VIVA is analyzing your life vision...",
+              "Finding inspiration from your dreams...",
+              "Crafting personalized vision board ideas...",
+              "Curating the perfect suggestions for you..."
+            ]}
+            cycleDuration={4000}
+            estimatedTime={`Generating ideas for ${selectedCategories.length} ${selectedCategories.length === 1 ? 'category' : 'categories'}`}
+            estimatedDuration={selectedCategories.length * 8000}
+            className="rounded-2xl"
+          />
         </div>
       </Container>
     )
@@ -603,14 +645,12 @@ export default function VisionBoardIdeasPage() {
     )
   }
 
-  // Loading state
+  // Fallback loading state
   return (
     <Container size="xl">
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
         <Spinner size="lg" />
-        <p className="text-neutral-400">
-          {generating ? 'Generating personalized suggestions...' : 'Loading...'}
-        </p>
+        <p className="text-neutral-400">Loading...</p>
       </div>
     </Container>
   )

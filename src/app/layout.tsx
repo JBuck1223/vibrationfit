@@ -50,7 +50,7 @@ export default function RootLayout({
             {children}
           </GlobalLayout>
           <Toaster 
-            position="top-center"
+            position="top-right"
             toastOptions={{
               style: {
                 background: '#1F1F1F',

@@ -39,6 +39,17 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
     const yearDropdownRef = useRef<HTMLDivElement>(null)
     const monthDropdownRef = useRef<HTMLDivElement>(null)
 
+    // Sync internal state when value prop changes (e.g., from parent useEffect)
+    useEffect(() => {
+      if (value) {
+        const newDate = parseLocalDate(value)
+        setSelectedDate(newDate)
+        setCurrentMonth(newDate)
+      } else {
+        setSelectedDate(null)
+      }
+    }, [value])
+
     // Close calendar when clicking outside
     useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {

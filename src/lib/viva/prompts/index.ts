@@ -71,5 +71,12 @@ export { buildActivationReflectionPrompt } from './activation-prompt'
 // Imported directly from @/lib/viva/flip-frequency
 // ENHANCED V3: Now includes density awareness in flip-frequency-prompt.ts
 
+// Imagination Starter (Get Me Started feature)
+export {
+  buildImaginationStarterPrompt,
+  extractCategoryProfileData,
+  CATEGORY_PROFILE_FIELDS,
+} from './imagination-starter-prompt'
+
 // Shared Components
 export { VIVA_PERSONA, VIVA_PERSONA_WITH_GOLDEN_RULES } from './shared/viva-persona'

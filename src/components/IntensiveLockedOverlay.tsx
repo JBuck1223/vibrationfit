@@ -64,6 +64,17 @@ export function IntensiveLockedOverlay() {
         accountData.email?.trim() && 
         accountData.phone?.trim())
 
+      // Check for actual user voice recordings (Step 8)
+      const { count: voiceRecordingCount } = await supabase
+        .from('audio_tracks')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('voice_id', 'user_voice')
+        .eq('status', 'completed')
+      
+      // Step 8 is complete if user recorded OR skipped
+      const step8Complete = (voiceRecordingCount || 0) > 0 || !!checklist.voice_recording_skipped
+
       // Determine next step (14-step flow)
       const steps = [
         // Phase 1: Setup
@@ -77,7 +88,7 @@ export function IntensiveLockedOverlay() {
         { id: 'refine', stepNumber: 6, title: 'Refine Vision', href: '/life-vision/refine/new', completed: !!checklist.vision_refined },
         // Phase 4: Audio
         { id: 'audio', stepNumber: 7, title: 'Generate Audio', href: '/life-vision/audio/generate/new', completed: !!checklist.audio_generated },
-        { id: 'record', stepNumber: 8, title: 'Record Your Voice', href: '/life-vision/audio/record/new', completed: !!checklist.audio_generated }, // Optional, same completion as audio
+        { id: 'record', stepNumber: 8, title: 'Record Your Voice', href: '/life-vision/audio/record/new', completed: step8Complete }, // Optional - complete if recorded OR skipped
         { id: 'mix', stepNumber: 9, title: 'Create Audio Mix', href: '/life-vision/audio/mix/new', completed: !!checklist.audios_generated },
         // Phase 5: Activation
         { id: 'board', stepNumber: 10, title: 'Vision Board', href: '/vision-board/resources', completed: !!checklist.vision_board_completed },

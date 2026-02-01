@@ -31,6 +31,8 @@ export default function AudioRecordNewPage() {
   const [isIntensiveMode, setIsIntensiveMode] = useState(false)
   const [intensiveId, setIntensiveId] = useState<string | null>(null)
   const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
+  const [wasSkipped, setWasSkipped] = useState(false) // Track if completed via skip vs actual recording
+  const [hasActualRecordings, setHasActualRecordings] = useState(false)
   const [completedAt, setCompletedAt] = useState<string | null>(null)
 
   useEffect(() => {
@@ -47,11 +49,10 @@ export default function AudioRecordNewPage() {
         return
       }
 
-      // Check if in intensive mode and step completion
-      // Note: Step 8 (Record Voice) shares completion with Step 7 (audio_generated)
+      // Check if in intensive mode
       const { data: checklist } = await supabase
         .from('intensive_checklist')
-        .select('id, intensive_id, audio_generated, audio_generated_at')
+        .select('id, intensive_id, audio_generated, audio_generated_at, voice_recording_skipped, voice_recording_skipped_at')
         .eq('user_id', user.id)
         .in('status', ['pending', 'in_progress'])
         .maybeSingle()
@@ -59,10 +60,40 @@ export default function AudioRecordNewPage() {
       if (checklist) {
         setIsIntensiveMode(true)
         setIntensiveId(checklist.intensive_id)
-        // Step 8 is optional and shares completion status with Step 7
-        if (checklist.audio_generated) {
+        
+        // Check if user already skipped this step
+        if (checklist.voice_recording_skipped) {
           setIsAlreadyCompleted(true)
-          setCompletedAt(checklist.audio_generated_at)
+          setWasSkipped(true)
+          setCompletedAt(checklist.voice_recording_skipped_at)
+        }
+      }
+
+      // Check for actual user voice recordings (Step 8 is complete if user recorded OR skipped)
+      const { count: voiceRecordingCount } = await supabase
+        .from('audio_tracks')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('voice_id', 'user_voice')
+        .eq('status', 'completed')
+      
+      if ((voiceRecordingCount || 0) > 0) {
+        setIsAlreadyCompleted(true)
+        setHasActualRecordings(true)
+        setWasSkipped(false) // Override skipped if they have actual recordings
+        // Use the most recent recording date as completion date
+        const { data: latestRecording } = await supabase
+          .from('audio_tracks')
+          .select('created_at')
+          .eq('user_id', user.id)
+          .eq('voice_id', 'user_voice')
+          .eq('status', 'completed')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single()
+        
+        if (latestRecording) {
+          setCompletedAt(latestRecording.created_at)
         }
       }
 
@@ -99,9 +130,21 @@ export default function AudioRecordNewPage() {
   }
 
   const handleSkip = async () => {
-    // Mark step as complete (skipped) and go to next step
-    if (isIntensiveMode) {
-      router.push('/intensive/dashboard')
+    // Mark Step 8 as skipped in intensive checklist
+    if (isIntensiveMode && intensiveId) {
+      try {
+        const supabase = createClient()
+        await supabase
+          .from('intensive_checklist')
+          .update({
+            voice_recording_skipped: true,
+            voice_recording_skipped_at: new Date().toISOString()
+          })
+          .eq('intensive_id', intensiveId)
+      } catch (err) {
+        console.error('Error marking step as skipped:', err)
+      }
+      router.push('/life-vision/audio/mix/new')
     } else {
       router.push('/life-vision')
     }
@@ -120,8 +163,8 @@ export default function AudioRecordNewPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {/* Completion Banner - Shows when step is already complete in intensive mode */}
-        {isIntensiveMode && isAlreadyCompleted && completedAt && (
+        {/* Completion Banner - Shows only when user has actual recordings (not just skipped) */}
+        {isIntensiveMode && hasActualRecordings && completedAt && (
           <IntensiveCompletionBanner 
             stepTitle="Record Your Voice"
             completedAt={completedAt}
@@ -143,16 +186,18 @@ export default function AudioRecordNewPage() {
           </div>
 
           <div className="flex flex-col gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
-            {isAlreadyCompleted ? (
+            {hasActualRecordings ? (
+              // User has actual recordings - show Listen button
               <Button 
                 variant="primary" 
                 size="sm" 
-                onClick={() => router.push('/life-vision')}
+                onClick={() => router.push(activeVisionId ? `/life-vision/${activeVisionId}/audio/sets` : '/life-vision')}
               >
                 <Headphones className="mr-2 h-4 w-4" />
-                Listen to Audio
+                Listen to Audio Sets
               </Button>
             ) : (
+              // User hasn't recorded (or only skipped) - show Record and Skip options
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button 
                   variant="primary" 
@@ -172,14 +217,16 @@ export default function AudioRecordNewPage() {
                     </>
                   )}
                 </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={handleSkip}
-                >
-                  <SkipForward className="mr-2 h-4 w-4" />
-                  Skip for Now
-                </Button>
+                {!wasSkipped && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleSkip}
+                  >
+                    <SkipForward className="mr-2 h-4 w-4" />
+                    Skip for Now
+                  </Button>
+                )}
               </div>
             )}
             {error && <p className="text-sm text-red-400">{error}</p>}
@@ -285,16 +332,18 @@ export default function AudioRecordNewPage() {
               significant difference in your transformation.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
-              {isAlreadyCompleted ? (
+              {hasActualRecordings ? (
+                // User has actual recordings - show Listen button
                 <Button 
                   variant="primary" 
                   size="sm" 
-                  onClick={() => router.push('/life-vision')}
+                  onClick={() => router.push(activeVisionId ? `/life-vision/${activeVisionId}/audio/sets` : '/life-vision')}
                 >
                   <Headphones className="mr-2 h-4 w-4" />
-                  Listen to Audio
+                  Listen to Audio Sets
                 </Button>
               ) : (
+                // User hasn't recorded (or only skipped) - show Record and Skip options
                 <>
                   <Button 
                     variant="primary" 
@@ -314,14 +363,16 @@ export default function AudioRecordNewPage() {
                       </>
                     )}
                   </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={handleSkip}
-                  >
-                    <SkipForward className="mr-2 h-4 w-4" />
-                    Skip for Now
-                  </Button>
+                  {!wasSkipped && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={handleSkip}
+                    >
+                      <SkipForward className="mr-2 h-4 w-4" />
+                      Skip for Now
+                    </Button>
+                  )}
                 </>
               )}
             </div>

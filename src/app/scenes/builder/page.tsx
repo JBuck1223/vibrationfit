@@ -13,6 +13,7 @@ import {
   Stack,
   Inline,
   PageHero,
+  VIVALoadingOverlay,
 } from '@/lib/design-system/components'
 import type { EmotionalValence, SceneRecord } from '@/lib/types/vibration'
 
@@ -251,8 +252,25 @@ export default function SceneBuilderPage() {
     }
   }
 
+  const categoryLabel = LIFE_CATEGORIES.find(c => c.value === category)?.label || category
+
   return (
     <Container size="xl">
+      {/* VIVA Loading Overlay for scene generation */}
+      <VIVALoadingOverlay
+        isVisible={isGenerating}
+        messages={[
+          `VIVA is crafting cinematic scenes for ${categoryLabel}...`,
+          "Weaving your vision into vivid present-tense moments...",
+          "Channeling creative visualization energy...",
+          "Bringing your dreams to life in cinematic detail..."
+        ]}
+        cycleDuration={5000}
+        estimatedTime="This usually takes 20-40 seconds"
+        estimatedDuration={30000}
+        className="fixed inset-0 z-50"
+      />
+
       <Stack gap="lg">
         <Stack gap="sm" className="text-center">
           <h1 className="text-3xl md:text-4xl font-semibold text-white">

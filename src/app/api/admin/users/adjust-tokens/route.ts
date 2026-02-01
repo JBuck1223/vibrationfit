@@ -1,20 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient as createAdminClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { grantTokens, recordAdminDeduction } from '@/lib/tokens/transactions'
 
 export async function POST(req: NextRequest) {
   try {
+    // First verify user is authenticated and has super_admin role
+    const userSupabase = await createClient()
+    const { data: { user } } = await userSupabase.auth.getUser()
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    }
+
+    // Check super_admin role in user_accounts
+    const { data: adminAccount } = await userSupabase
+      .from('user_accounts')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (adminAccount?.role !== 'super_admin') {
+      console.log('Token adjustment denied - not super_admin:', { userId: user.id, role: adminAccount?.role })
+      return NextResponse.json({ error: 'Super admin access required' }, { status: 403 })
+    }
+
     const { userId, delta } = await req.json()
-    console.log('Admin token adjustment request:', { userId, delta })
+    console.log('Admin token adjustment request:', { userId, delta, adminId: user.id })
     
     if (!userId || typeof delta !== 'number') {
       return NextResponse.json({ error: 'userId and delta required' }, { status: 400 })
     }
 
-    const supabase = await createAdminClient()
+    // Use service role client to bypass RLS for the actual operation
+    const supabase = createAdminClient()
     
-    // Get admin user for audit trail
-    const { data: { user: adminUser } } = await supabase.auth.getUser()
+    // Admin user for audit trail
+    const adminUser = user
     
     // Ensure user profile exists first (handle multiple rows gracefully)
     const { data: existingProfiles, error: profileCheckError } = await supabase

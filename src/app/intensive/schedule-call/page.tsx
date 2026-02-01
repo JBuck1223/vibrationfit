@@ -139,9 +139,9 @@ export default function ScheduleCallPage() {
     try {
       const supabase = createClient()
       
-      // Try generic time_slots table first, fallback to intensive_time_slots
+      // Try schedule_time_slots table first, fallback to intensive_time_slots
       const { data: genericSlots, error: genericError } = await supabase
-        .from('time_slots')
+        .from('schedule_time_slots')
         .select('*')
         .eq('event_type', 'intensive_calibration')
         .eq('available', true)
@@ -253,54 +253,7 @@ export default function ScheduleCallPage() {
         return
       }
 
-      // Update time slot booking count (try generic table first)
-      if (selectedSlot.id) {
-        // Try to update generic time_slots
-        const { data: genericSlot } = await supabase
-          .from('time_slots')
-          .select('current_bookings, max_bookings')
-          .eq('id', selectedSlot.id)
-          .single()
-
-        if (genericSlot) {
-          const newCount = (genericSlot.current_bookings || 0) + 1
-          if (newCount >= (genericSlot.max_bookings || 1)) {
-            await supabase
-              .from('time_slots')
-              .update({ available: false, current_bookings: newCount })
-              .eq('id', selectedSlot.id)
-          } else {
-            await supabase
-              .from('time_slots')
-              .update({ current_bookings: newCount })
-              .eq('id', selectedSlot.id)
-          }
-        } else {
-          // Try intensive_time_slots
-          const { data: intensiveSlot } = await supabase
-            .from('intensive_time_slots')
-            .select('current_bookings, max_bookings')
-            .eq('id', selectedSlot.id)
-            .single()
-
-          if (intensiveSlot) {
-            const newCount = (intensiveSlot.current_bookings || 0) + 1
-            if (newCount >= (intensiveSlot.max_bookings || 1)) {
-              await supabase
-                .from('intensive_time_slots')
-                .update({ available: false, current_bookings: newCount })
-                .eq('id', selectedSlot.id)
-            } else {
-              await supabase
-                .from('intensive_time_slots')
-                .update({ current_bookings: newCount })
-                .eq('id', selectedSlot.id)
-            }
-          }
-        }
-      }
-
-      // Create video session via API
+      // Create video session via API first
       const sessionResponse = await fetch('/api/video/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -322,6 +275,48 @@ export default function ScheduleCallPage() {
       }
 
       const sessionData = await sessionResponse.json()
+
+      // Update time slot with booking info and link to video session
+      if (selectedSlot.id) {
+        const { data: slotData } = await supabase
+          .from('schedule_time_slots')
+          .select('current_bookings, max_bookings')
+          .eq('id', selectedSlot.id)
+          .single()
+
+        if (slotData) {
+          const newCount = (slotData.current_bookings || 0) + 1
+          const isNowFull = newCount >= (slotData.max_bookings || 1)
+          
+          await supabase
+            .from('schedule_time_slots')
+            .update({ 
+              available: !isNowFull, 
+              current_bookings: newCount,
+              video_session_id: sessionData.session.id,
+              booked_by_user_id: user.id,
+              booked_at: new Date().toISOString()
+            })
+            .eq('id', selectedSlot.id)
+        } else {
+          // Fallback to intensive_time_slots for legacy support
+          const { data: intensiveSlot } = await supabase
+            .from('intensive_time_slots')
+            .select('current_bookings, max_bookings')
+            .eq('id', selectedSlot.id)
+            .single()
+
+          if (intensiveSlot) {
+            const newCount = (intensiveSlot.current_bookings || 0) + 1
+            const isNowFull = newCount >= (intensiveSlot.max_bookings || 1)
+            
+            await supabase
+              .from('intensive_time_slots')
+              .update({ available: !isNowFull, current_bookings: newCount })
+              .eq('id', selectedSlot.id)
+          }
+        }
+      }
 
       // Update checklist with session info
       const { error } = await supabase

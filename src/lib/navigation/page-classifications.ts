@@ -168,8 +168,12 @@ export const PAGE_CLASSIFICATIONS = {
     '/admin/ai-models',
     '/admin/audio-mixer',
     
+    // Scheduling (Universal)
+    '/admin/scheduling',
+    
     // Intensive Program
     '/admin/intensive/schedule-call',
+    '/admin/intensive/tester',
     
     // Developer Tools
     '/sitemap',

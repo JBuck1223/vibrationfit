@@ -87,15 +87,15 @@ export default function VisionBoardResourcesPage() {
               </Button>
             ) : (
               <>
-                <Button variant="ghost" size="sm" asChild className="w-full md:w-auto md:flex-none">
-                  <Link href="/vision-board">
-                    See All
+                <Button variant="primary" size="sm" asChild className="w-full md:w-auto md:flex-none flex items-center gap-2">
+                  <Link href="/vision-board/ideas">
+                    <Sparkles className="w-4 h-4" />
+                    Get Ideas
                   </Link>
                 </Button>
-                <Button variant="outline" size="sm" asChild className="w-full md:w-auto md:flex-none flex items-center gap-2">
-                  <Link href="/vision-board/new">
-                    <Plus className="w-4 h-4" />
-                    Add Item
+                <Button variant="ghost" size="sm" asChild className="w-full md:w-auto md:flex-none">
+                  <Link href="/vision-board">
+                    View Board
                   </Link>
                 </Button>
               </>
@@ -222,9 +222,9 @@ export default function VisionBoardResourcesPage() {
             </p>
             <Inline gap="sm" justify="center" className="flex-wrap">
               <Button variant="primary" size="sm" className="justify-center" asChild>
-                <Link href="/vision-board/new">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Your First Item
+                <Link href="/vision-board/ideas">
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Get Ideas
                 </Link>
               </Button>
               <Button variant="outline" size="sm" className="justify-center" asChild>
