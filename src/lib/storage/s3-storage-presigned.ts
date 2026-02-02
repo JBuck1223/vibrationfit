@@ -25,6 +25,8 @@ export const USER_FOLDERS = {
   // Intensive testimonials
   intensiveTestimonials: 'intensive/testimonials',
   intensiveCalibrationRecordings: 'intensive/calibration-recordings',
+  // Vibe Tribe social
+  vibeTribe: 'vibe-tribe',
 } as const
 
 type UserFolder = keyof typeof USER_FOLDERS
@@ -749,6 +751,13 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
         'video/3gpp', 'video/3gpp2', 'video/x-m4v', 'video/hevc',
         // Audio formats
         'audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg',
+      ],
+    },
+    vibeTribe: {
+      maxSize: 50 * 1024 * 1024, // 50MB for vibe tribe media
+      types: [
+        'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+        'video/mp4', 'video/quicktime', 'video/webm',
       ],
     },
   }

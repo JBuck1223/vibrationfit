@@ -189,12 +189,12 @@ export async function POST(request: NextRequest) {
     console.log(`[FocusGenerateV2] Using model ${toolConfig.model_name}`)
 
     // Stream the response
+    // Note: maxTokens is handled by the model provider
     const result = streamText({
       model: openai(toolConfig.model_name),
       system: FOCUS_STORY_SYSTEM_PROMPT,
       prompt: prompt,
       temperature: toolConfig.supports_temperature ? (toolConfig.temperature || 0.8) : undefined,
-      maxTokens: 1500,
       
       async onFinish({ text, usage }) {
         const elapsedMs = Date.now() - startTime
@@ -244,15 +244,19 @@ export async function POST(request: NextRequest) {
             })
         }
 
-        // Track token usage
+        // Track token usage (AI SDK v4 usage object properties)
         if (usage) {
+          const promptTokens = (usage as any).prompt || (usage as any).promptTokens || 0
+          const completionTokens = (usage as any).completion || (usage as any).completionTokens || 0
+          const totalTokens = (usage as any).total || (usage as any).totalTokens || (promptTokens + completionTokens)
+          
           trackTokenUsage({
             user_id: user.id,
             action_type: 'focus_story_generation',
             model_used: toolConfig.model_name,
-            tokens_used: usage.totalTokens || 0,
-            input_tokens: usage.promptTokens || 0,
-            output_tokens: usage.completionTokens || 0,
+            tokens_used: totalTokens,
+            input_tokens: promptTokens,
+            output_tokens: completionTokens,
             actual_cost_cents: 0,
             success: true,
             metadata: {

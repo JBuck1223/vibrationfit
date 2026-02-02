@@ -13,6 +13,7 @@ export const ACTION_LABELS: Record<string, string> = {
   'final_assembly': 'Final Assembly',
   'merge_clarity': 'Merge Clarity Statements',
   'imagination_starter': 'Imagination Starter',
+  'focus_story_generation': 'Focus Story Generation',
   
   // VIVA Chat & Prompts
   'chat_conversation': 'VIVA Chat',
@@ -53,6 +54,7 @@ export const ACTION_ICONS: Record<string, string> = {
   'final_assembly': 'Palette',
   'merge_clarity': 'Merge',
   'imagination_starter': 'Wand2',
+  'focus_story_generation': 'Focus',
   
   // VIVA Chat & Prompts
   'chat_conversation': 'MessageSquare',
@@ -92,6 +94,7 @@ export const ACTION_CATEGORIES: Record<string, string[]> = {
     'final_assembly',
     'merge_clarity',
     'imagination_starter',
+    'focus_story_generation',
   ],
   'VIVA Assistant': [
     'chat_conversation',

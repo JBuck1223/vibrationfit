@@ -188,15 +188,16 @@ export async function POST(request: NextRequest) {
       storyId = newStory.id
     }
 
-    // Track token usage
+    // Track token usage (AI SDK v4 usage object properties)
     if (result.usage) {
-      const promptTokens = result.usage.promptTokens || 0
-      const completionTokens = result.usage.completionTokens || 0
-      const totalTokens = result.usage.totalTokens || (promptTokens + completionTokens)
+      const usage = result.usage
+      const promptTokens = (usage as any).prompt || (usage as any).promptTokens || 0
+      const completionTokens = (usage as any).completion || (usage as any).completionTokens || 0
+      const totalTokens = (usage as any).total || (usage as any).totalTokens || (promptTokens + completionTokens)
       
       trackTokenUsage({
         user_id: user.id,
-        action_type: 'focus_highlight_extraction',
+        action_type: 'focus_story_generation', // Using focus_story_generation for all focus operations
         model_used: toolConfig.model_name,
         tokens_used: totalTokens,
         input_tokens: promptTokens,

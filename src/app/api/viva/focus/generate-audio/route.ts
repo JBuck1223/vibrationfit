@@ -120,7 +120,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       audioSetId,
       audioUrl: result.audioUrl,
-      duration: result.duration,
       elapsedMs
     })
 

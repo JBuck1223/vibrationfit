@@ -569,8 +569,13 @@ export default function FocusPage({ params }: { params: Promise<{ id: string }> 
             {audioTrack && (
               <div className="mb-6">
                 <AudioPlayer
-                  src={audioTrack.audio_url}
-                  title="Focus Story"
+                  track={{
+                    id: audioTrack.id || 'focus-audio',
+                    title: 'Focus Story',
+                    artist: 'VIVA',
+                    duration: 0,
+                    url: audioTrack.audio_url
+                  }}
                   autoPlay={false}
                 />
               </div>

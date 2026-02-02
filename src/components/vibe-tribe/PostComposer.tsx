@@ -73,7 +73,7 @@ export function PostComposer({
         })
 
         const uploadResults = await uploadMultipleUserFiles(
-          'vibe-tribe',
+          'vibeTribe',
           files,
           userId,
           (progress) => {
