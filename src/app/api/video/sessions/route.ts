@@ -82,6 +82,9 @@ export async function POST(request: NextRequest) {
         enable_recording: body.enable_recording ?? true,
         enable_waiting_room: body.enable_waiting_room ?? true,
         max_participants: sessionType === 'one_on_one' ? 2 : 25,
+        // Dynamic scheduling fields
+        staff_id: body.staff_id || null,
+        event_type: body.event_type || null,
       })
       .select()
       .single()

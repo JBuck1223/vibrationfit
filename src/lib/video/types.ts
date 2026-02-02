@@ -124,6 +124,9 @@ export interface CreateSessionRequest {
   host_admin_id?: string
   enable_recording?: boolean
   enable_waiting_room?: boolean
+  // Dynamic scheduling fields
+  staff_id?: string
+  event_type?: string
 }
 
 export interface CreateSessionResponse {
