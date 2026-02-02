@@ -145,6 +145,17 @@ export const userNavigation: NavItem[] = [
     ]
   },
   {
+    name: 'Vibe Tribe',
+    href: '/vibe-tribe',
+    icon: UsersRound,
+    hasDropdown: true,
+    description: 'Connect with the VibrationFit community',
+    children: [
+      { name: 'Hub', href: '/vibe-tribe', icon: Compass },
+      { name: 'My Activity', href: '/vibe-tribe/activity', icon: Activity },
+    ]
+  },
+  {
     name: 'Tracking',
     href: '/daily-paper',
     icon: TrendingUp,
@@ -575,6 +586,12 @@ export function isNavItemActive(
     
     if (item.href === '/assessment') {
       if (pathname.startsWith('/assessment/')) {
+        return true
+      }
+    }
+    
+    if (item.href === '/vibe-tribe') {
+      if (pathname.startsWith('/vibe-tribe/')) {
         return true
       }
     }

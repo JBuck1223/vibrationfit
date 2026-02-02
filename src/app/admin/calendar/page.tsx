@@ -13,7 +13,8 @@ import {
   PageHero,
   DatePicker,
   TimePicker,
-  Checkbox
+  Checkbox,
+  DeleteConfirmationDialog
 } from '@/lib/design-system/components'
 import { 
   Calendar,
@@ -105,6 +106,11 @@ export default function CalendarPage() {
     daily_room_url: string
     status: string
   } | null>(null)
+  
+  // Delete confirmation
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [eventToDelete, setEventToDelete] = useState<CalendarEvent | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   
   // New event form
   const [showNewEventForm, setShowNewEventForm] = useState(false)
@@ -280,29 +286,49 @@ export default function CalendarPage() {
     setSelectedEventVideoSession(null)
   }
 
-  const deleteEvent = async (eventId: string) => {
-    if (!confirm('Delete this event?')) return
+  const confirmDeleteEvent = (event: CalendarEvent) => {
+    setEventToDelete(event)
+    setShowDeleteConfirm(true)
+  }
 
+  const deleteEvent = async () => {
+    if (!eventToDelete) return
+
+    setIsDeleting(true)
     try {
       const { error } = await supabase
         .from('calendar_events')
         .delete()
-        .eq('id', eventId)
+        .eq('id', eventToDelete.id)
 
-      if (error) throw error
+      if (error) {
+        console.error('Delete error details:', error.message, error.details, error.hint)
+        throw new Error(error.message)
+      }
 
       toast.success('Event deleted')
       setSelectedEvent(null)
+      setShowDeleteConfirm(false)
+      setEventToDelete(null)
       await loadEvents()
 
     } catch (error) {
-      console.error('Error deleting event:', error)
-      toast.error('Failed to delete event')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('Error deleting event:', errorMessage)
+      toast.error(`Failed to delete: ${errorMessage}`)
+    } finally {
+      setIsDeleting(false)
     }
   }
+
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false)
+    setEventToDelete(null)
+  }
   
-  const joinVideoSession = (roomUrl: string) => {
-    window.open(roomUrl, '_blank')
+  const joinVideoSession = (sessionId: string) => {
+    // Navigate to the session page which handles Daily.co token auth
+    window.location.href = `/session/${sessionId}`
   }
 
   const resetNewEventForm = () => {
@@ -469,7 +495,7 @@ export default function CalendarPage() {
             </div>
 
             {/* Add Event */}
-            <Button variant="primary" size="sm" onClick={() => setShowNewEventForm(true)}>
+            <Button variant="outline" size="sm" onClick={() => setShowNewEventForm(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Add Event
             </Button>
@@ -567,7 +593,7 @@ export default function CalendarPage() {
 
                 <div className="flex gap-2 pt-4">
                   <Button
-                    variant="primary"
+                    variant="outline"
                     onClick={createEvent}
                     disabled={saving || !newEvent.title || !newEvent.date}
                     className="flex-1"
@@ -660,13 +686,22 @@ export default function CalendarPage() {
                       </span>
                     </div>
                     <Button
-                      variant="primary"
+                      variant="outline"
                       size="sm"
-                      onClick={() => joinVideoSession(selectedEventVideoSession.daily_room_url)}
-                      className="w-full"
+                      onClick={() => joinVideoSession(selectedEventVideoSession.id)}
+                      className="w-full border-primary-500 text-primary-500 hover:bg-primary-500/10"
                     >
                       <Play className="w-4 h-4 mr-2" />
                       {selectedEventVideoSession.status === 'live' ? 'Join Call' : 'Start Call'}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => window.location.href = `/admin/sessions/${selectedEventVideoSession.id}`}
+                      className="w-full mt-2"
+                    >
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Manage Session
                     </Button>
                   </div>
                 )}
@@ -682,10 +717,9 @@ export default function CalendarPage() {
                 <div className="flex gap-2 pt-4 border-t border-neutral-800">
                   {selectedEvent.event_source !== 'booking' && (
                     <Button
-                      variant="ghost"
+                      variant="danger"
                       size="sm"
-                      onClick={() => deleteEvent(selectedEvent.id)}
-                      className="text-red-500 hover:text-red-400"
+                      onClick={() => confirmDeleteEvent(selectedEvent)}
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
                       Delete
@@ -809,6 +843,18 @@ export default function CalendarPage() {
           ))}
         </div>
       </Stack>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        isOpen={showDeleteConfirm}
+        onClose={cancelDelete}
+        onConfirm={deleteEvent}
+        title="Delete Event"
+        message="Are you sure you want to delete this event? This action cannot be undone."
+        itemName={eventToDelete?.title}
+        itemType="event"
+        isDeleting={isDeleting}
+      />
     </Container>
   )
 }

@@ -12,7 +12,8 @@ import {
   Stack,
   PageHero,
   TimePicker,
-  Checkbox
+  Checkbox,
+  DeleteConfirmationDialog
 } from '@/lib/design-system/components'
 import { 
   Users, 
@@ -109,6 +110,11 @@ export default function SchedulingPage() {
   // Edit staff
   const [editingStaffId, setEditingStaffId] = useState<string | null>(null)
   const [editingStaffData, setEditingStaffData] = useState<Partial<StaffMember> | null>(null)
+  
+  // Delete confirmation
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [staffToDelete, setStaffToDelete] = useState<StaffMember | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   
   // Available users for linking
   const [availableUsers, setAvailableUsers] = useState<UserAccount[]>([])
@@ -234,23 +240,38 @@ export default function SchedulingPage() {
     setSelectedUserId('')
   }
 
-  const deleteStaffMember = async (id: string) => {
-    if (!confirm('Are you sure you want to remove this team member?')) return
+  const confirmDeleteStaff = (staff: StaffMember) => {
+    setStaffToDelete(staff)
+    setShowDeleteConfirm(true)
+  }
 
+  const deleteStaffMember = async () => {
+    if (!staffToDelete) return
+
+    setIsDeleting(true)
     try {
       const { error } = await supabase
         .from('staff')
         .delete()
-        .eq('id', id)
+        .eq('id', staffToDelete.id)
 
       if (error) throw error
 
       toast.success('Team member removed')
+      setShowDeleteConfirm(false)
+      setStaffToDelete(null)
       await loadData()
     } catch (error) {
       console.error('Error deleting staff:', error)
       toast.error('Failed to remove team member')
+    } finally {
+      setIsDeleting(false)
     }
+  }
+
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false)
+    setStaffToDelete(null)
   }
 
   const toggleStaffActive = async (id: string, currentStatus: boolean) => {
@@ -522,7 +543,7 @@ export default function SchedulingPage() {
             </div>
 
             <Button
-              variant="primary"
+              variant="outline"
               onClick={createStaffMember}
               disabled={saving || !newStaffName || !newStaffEmail}
             >
@@ -632,7 +653,7 @@ export default function SchedulingPage() {
                       </div>
 
                       <div className="flex gap-2">
-                        <Button variant="primary" onClick={saveStaffEdit} disabled={saving}>
+                        <Button variant="outline" onClick={saveStaffEdit} disabled={saving}>
                           {saving ? <Spinner size="sm" className="mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                           Save Changes
                         </Button>
@@ -706,7 +727,7 @@ export default function SchedulingPage() {
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          onClick={() => deleteStaffMember(staff.id)}
+                          onClick={() => confirmDeleteStaff(staff)}
                           className="text-red-500 hover:text-red-400"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -745,6 +766,18 @@ export default function SchedulingPage() {
           </div>
         </Card>
       </Stack>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        isOpen={showDeleteConfirm}
+        onClose={cancelDelete}
+        onConfirm={deleteStaffMember}
+        title="Remove Team Member"
+        message="Are you sure you want to remove this team member? This action cannot be undone."
+        itemName={staffToDelete?.display_name}
+        itemType="team member"
+        isDeleting={isDeleting}
+      />
     </Container>
   )
 }

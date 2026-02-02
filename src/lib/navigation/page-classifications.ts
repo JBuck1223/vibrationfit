@@ -58,6 +58,14 @@ export const PAGE_CLASSIFICATIONS = {
     '/journal/[id]',
     '/journal/[id]/edit',
     
+    // Vibe Tribe Community
+    '/vibe-tribe',
+    '/vibe-tribe/wins',
+    '/vibe-tribe/wobbles',
+    '/vibe-tribe/visions',
+    '/vibe-tribe/collaboration',
+    '/vibe-tribe/activity',
+    
     // Tracking System
     '/daily-paper',
     '/daily-paper/new',

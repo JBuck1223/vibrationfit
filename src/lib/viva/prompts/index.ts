@@ -78,5 +78,16 @@ export {
   CATEGORY_PROFILE_FIELDS,
 } from './imagination-starter-prompt'
 
+// Focus Story (5-7 minute day-in-the-life narratives)
+export {
+  FOCUS_HIGHLIGHT_SYSTEM_PROMPT,
+  FOCUS_STORY_SYSTEM_PROMPT,
+  buildHighlightExtractionPrompt,
+  buildDayInTheLifeStoryPrompt,
+  buildStoryRefinementPrompt,
+  type FocusHighlight,
+  type VisionSections,
+} from './focus-story-prompt'
+
 // Shared Components
 export { VIVA_PERSONA, VIVA_PERSONA_WITH_GOLDEN_RULES } from './shared/viva-persona'
