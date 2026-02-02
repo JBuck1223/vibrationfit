@@ -513,10 +513,10 @@ export default function CalendarPage() {
                 <div>
                   <label className="block text-sm font-medium mb-2">Date</label>
                   <DatePicker
-                    value={newEvent.date ? new Date(newEvent.date) : undefined}
+                    value={newEvent.date || undefined}
                     onChange={(date) => setNewEvent({ 
                       ...newEvent, 
-                      date: date ? date.toISOString().split('T')[0] : '' 
+                      date: date || '' 
                     })}
                   />
                 </div>
