@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { Card, Button, Badge, ProgressBar, Container, Stack, PageHero, AIButton, TrackingMilestoneCard, VersionBadge, StatusBadge } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system'
 import Link from 'next/link'
@@ -8,6 +9,7 @@ import AITokenUsage from '@/components/AITokenUsage'
 import HouseholdTokenBalance from '@/components/HouseholdTokenBalance'
 import AssessmentBarChart from '@/app/assessment/components/AssessmentBarChart'
 import { RetentionDashboard } from '@/components/retention'
+import { UnlockCelebrationModal } from '@/components/UnlockCelebrationModal'
 import { 
   Sparkles, 
   BookOpen, 
@@ -63,6 +65,19 @@ interface DashboardContentProps {
 export default function DashboardContent({ user, profileData, visionData, visionBoardData, journalData, assessmentData = [], profileCount, audioSetsCount, refinementsCount, storageQuotaGB }: DashboardContentProps) {
   const [storageUsed, setStorageUsed] = useState(0)
   const [mounted, setMounted] = useState(false)
+  const [showCelebration, setShowCelebration] = useState(false)
+  
+  const searchParams = useSearchParams()
+  const router = useRouter()
+
+  // Check for unlock celebration param
+  useEffect(() => {
+    if (searchParams.get('unlocked') === 'true') {
+      setShowCelebration(true)
+      // Remove the param from URL without refresh
+      router.replace('/dashboard', { scroll: false })
+    }
+  }, [searchParams, router])
 
   // Prevent hydration mismatch for date formatting
   useEffect(() => {
@@ -173,13 +188,20 @@ export default function DashboardContent({ user, profileData, visionData, vision
   const profileCompletePercentage = completionPercentage
 
   return (
-    <Container size="xl">
-      <Stack gap="lg">
-        {/* PageHero */}
-        <PageHero
-          title="Dashboard"
-          subtitle="Track your Conscious Creation progress below."
-        />
+    <>
+      {/* Unlock Celebration Modal */}
+      <UnlockCelebrationModal 
+        isOpen={showCelebration} 
+        onClose={() => setShowCelebration(false)} 
+      />
+
+      <Container size="xl">
+        <Stack gap="lg">
+          {/* PageHero */}
+          <PageHero
+            title="Dashboard"
+            subtitle="Track your Conscious Creation progress below."
+          />
 
         {/* Retention Metrics - The 4 Core Tiles */}
         <RetentionDashboard />
@@ -680,5 +702,6 @@ export default function DashboardContent({ user, profileData, visionData, vision
         </div>
       </Stack>
     </Container>
+    </>
   )
 }

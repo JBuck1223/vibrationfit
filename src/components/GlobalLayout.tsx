@@ -96,6 +96,11 @@ function isPathAccessibleForIntensive(
     return intensive.call_scheduled
   }
   
+  // Main Dashboard - accessible after intensive is fully complete (unlock step done)
+  if (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) {
+    return intensive.unlock_completed
+  }
+  
   // Default: not accessible
   return false
 }

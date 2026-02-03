@@ -171,33 +171,43 @@ export function VibeTribeHub({ userId, isAdmin = false, initialFilter = 'all' }:
 
       {/* Search and Filter Bar */}
       <Card className="p-3 md:p-4">
-        {/* Search */}
-        <div className="relative mb-3">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Search posts..."
-            className="w-full bg-neutral-800 border border-neutral-700 rounded-full pl-10 pr-10 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500"
-          />
-          {searchQuery && (
-            <button
-              onClick={clearSearch}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-          {isSearching && (
-            <div className="absolute right-10 top-1/2 -translate-y-1/2">
-              <Spinner size="sm" />
-            </div>
-          )}
+        {/* Search with Refresh */}
+        <div className="flex items-center gap-2 mb-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Search posts..."
+              className="w-full bg-neutral-800 border border-neutral-700 rounded-full pl-10 pr-10 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500"
+            />
+            {searchQuery && (
+              <button
+                onClick={clearSearch}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+            {isSearching && (
+              <div className="absolute right-10 top-1/2 -translate-y-1/2">
+                <Spinner size="sm" />
+              </div>
+            )}
+          </div>
+          {/* Refresh Button */}
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="p-2 rounded-full text-neutral-400 hover:text-white hover:bg-neutral-800 transition-all flex-shrink-0"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
         </div>
 
         {/* Filters */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        <div className="flex flex-wrap items-center justify-center gap-2">
           {/* All Filter */}
           <button
             onClick={() => handleFilterChange('all')}
@@ -238,15 +248,6 @@ export function VibeTribeHub({ userId, isAdmin = false, initialFilter = 'all' }:
               </button>
             )
           })}
-
-          {/* Refresh Button */}
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="ml-auto p-2 rounded-full text-neutral-400 hover:text-white hover:bg-neutral-800 transition-all flex-shrink-0"
-          >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-          </button>
         </div>
       </Card>
 

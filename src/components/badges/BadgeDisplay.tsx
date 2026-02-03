@@ -20,6 +20,10 @@ interface BadgeDisplayProps {
   hideEmpty?: boolean
   /** Optional className */
   className?: string
+  /** Lock badges until earned (hides icon/name until complete) */
+  lockUntilEarned?: boolean
+  /** Badge variant style: default (3D raised), engraved (pressed in), or premium (dark with color) */
+  variant?: 'default' | 'engraved' | 'premium'
 }
 
 // Category icons matching tiles
@@ -35,6 +39,8 @@ export default function BadgeDisplay({
   compact = false,
   hideEmpty = false,
   className = '',
+  lockUntilEarned = false,
+  variant = 'default',
 }: BadgeDisplayProps) {
   const [badgeStatus, setBadgeStatus] = useState<UserBadgeStatus | null>(null)
   const [loading, setLoading] = useState(true)
@@ -91,7 +97,7 @@ export default function BadgeDisplay({
     return null
   }
 
-  const categories: BadgeCategory[] = ['sessions', 'connections', 'activations', 'creations']
+  const categories: BadgeCategory[] = ['creations', 'activations', 'connections', 'sessions']
 
   return (
     <div className={`space-y-6 ${className}`}>
@@ -144,6 +150,8 @@ export default function BadgeDisplay({
                   size={compact ? 'sm' : 'md'}
                   showLabel={!compact}
                   showProgress={true}
+                  locked={lockUntilEarned}
+                  variant={variant}
                 />
               ))}
             </div>

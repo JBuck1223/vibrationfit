@@ -154,7 +154,7 @@ export default function SnapshotPage() {
             <Award className="w-5 h-5 text-purple-400" />
             <h2 className="text-lg font-semibold text-white">Earned Badges</h2>
           </div>
-          <BadgeDisplay userId={userId} compact hideEmpty={false} />
+          <BadgeDisplay userId={userId} compact={false} hideEmpty={false} lockUntilEarned={true} variant="engraved" />
         </Card>
       </Stack>
     </Container>
