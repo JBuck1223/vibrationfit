@@ -2,10 +2,26 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, Button, Container, Stack, PageHero, Spinner } from '@/lib/design-system/components'
-import { Sparkles, CheckCircle, Circle, Clock } from 'lucide-react'
+import {
+  Container,
+  Card,
+  Button,
+  Stack,
+  Inline,
+  Text,
+  PageHero,
+  Spinner,
+  IntensiveCompletionBanner,
+  CategoryGrid,
+} from '@/lib/design-system/components'
+import { OptimizedVideo } from '@/components/OptimizedVideo'
+import { ArrowRight, Eye, Sparkles, Target, Compass, Lightbulb } from 'lucide-react'
 import { VISION_CATEGORIES, getCategoryClarityField, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
 import { createClient } from '@/lib/supabase/client'
+
+// Placeholder video URL - user will replace this later
+const VISION_INTRO_VIDEO =
+  'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
 
 interface CategoryProgress {
   [key: string]: {
@@ -19,6 +35,18 @@ export default function VIVALifeVisionLandingPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [progress, setProgress] = useState<CategoryProgress>({})
+  const [isIntensiveMode, setIsIntensiveMode] = useState(false)
+  const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
+  const [completedAt, setCompletedAt] = useState<string | null>(null)
+  // 3-state: none (no progress), in_progress (has progress, not complete), completed
+  const [visionStatus, setVisionStatus] = useState<'none' | 'in_progress' | 'completed'>('none')
+  // Track completed categories for the CategoryGrid
+  const [completedCategoryKeys, setCompletedCategoryKeys] = useState<string[]>([])
+  
+  // Categories without forward and conclusion for the grid
+  const categoriesWithout = VISION_CATEGORIES.filter(
+    c => c.key !== 'forward' && c.key !== 'conclusion'
+  )
 
   useEffect(() => {
     loadProgress()
@@ -32,6 +60,23 @@ export default function VIVALifeVisionLandingPage() {
       if (!user) {
         setLoading(false)
         return
+      }
+
+      // Check if in intensive mode and step completion
+      const { data: checklist } = await supabase
+        .from('intensive_checklist')
+        .select('id, vision_built, vision_built_at')
+        .eq('user_id', user.id)
+        .in('status', ['pending', 'in_progress'])
+        .maybeSingle()
+
+      if (checklist) {
+        setIsIntensiveMode(true)
+        if (checklist.vision_built) {
+          setIsAlreadyCompleted(true)
+          setCompletedAt(checklist.vision_built_at)
+          setVisionStatus('completed')
+        }
       }
 
       // Get all category states
@@ -82,6 +127,23 @@ export default function VIVALifeVisionLandingPage() {
       }
 
       setProgress(progressMap)
+      
+      // Set completed category keys for the CategoryGrid
+      // Match category page logic: completed = has ideal_state (hasImagination)
+      const completed = Object.entries(progressMap)
+        .filter(([_, prog]) => prog.hasImagination)
+        .map(([key]) => key)
+      setCompletedCategoryKeys(completed)
+      
+      // Determine vision status based on progress
+      if (!checklist?.vision_built) {
+        const hasAnyProgress = Object.keys(progressMap).length > 0
+        if (hasAnyProgress) {
+          setVisionStatus('in_progress')
+        }
+        // Otherwise remains 'none'
+      }
+      
       setLoading(false)
     } catch (err) {
       console.error('Error loading progress:', err)
@@ -89,14 +151,14 @@ export default function VIVALifeVisionLandingPage() {
     }
   }
 
-  const handleCategoryClick = (categoryKey: string) => {
-    router.push(`/life-vision/new/category/${categoryKey}`)
-  }
-
   const handleGetStarted = async () => {
     // Find first incomplete category
+    // Match category page logic: completed = has ideal_state (hasImagination)
     const categories = VISION_CATEGORIES.filter(cat => cat.order > 0 && cat.order < 13)
-    const firstIncomplete = categories.find(cat => !isCompleted(cat.key))
+    const firstIncomplete = categories.find(cat => {
+      const prog = progress[cat.key]
+      return !prog?.hasImagination
+    })
     
     if (firstIncomplete) {
       router.push(`/life-vision/new/category/${firstIncomplete.key}`)
@@ -106,203 +168,197 @@ export default function VIVALifeVisionLandingPage() {
     }
   }
 
-  const isCompleted = (categoryKey: string) => {
-    const prog = progress[categoryKey]
-    return prog?.hasClarity && prog?.hasImagination && prog?.hasBlueprint
-  }
 
-  const isInProgress = (categoryKey: string) => {
-    const prog = progress[categoryKey]
-    return prog && (prog.hasClarity || prog.hasImagination || prog.hasBlueprint) && !isCompleted(categoryKey)
-  }
-
-  const getCompletionPercentage = () => {
-    const categories = VISION_CATEGORIES.filter(cat => cat.order > 0 && cat.order < 13)
-    const completed = categories.filter(cat => isCompleted(cat.key)).length
-    return Math.round((completed / categories.length) * 100)
+  // Show loading spinner while checking status
+  if (loading) {
+    return (
+      <Container size="xl">
+        <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+          <Spinner size="lg" />
+        </div>
+      </Container>
+    )
   }
 
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {/* Hero Section */}
-        <PageHero
-          eyebrow="THE LIFE I CHOOSE"
-          title="Create Your Life Vision with VIVA"
-          subtitle="Your Vibrational Intelligence Virtual Assistant is here to help you articulate and activate the life you choose. We'll guide you through 12 key life areas, capturing your voice and energy to create a unified vision."
-        />
-
-        {/* Progress Overview */}
-        {!loading && Object.keys(progress).length > 0 && (
-          <Card variant="elevated" className="border-2 border-primary-500/30 bg-primary-500/5">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-white mb-1">Your Progress</h3>
-                <p className="text-sm text-neutral-400">
-                  {getCompletionPercentage()}% Complete • {VISION_CATEGORIES.filter(cat => cat.order > 0 && cat.order < 13).filter(cat => isCompleted(cat.key)).length} of 12 categories
-                </p>
-              </div>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleGetStarted}
-              >
-                Continue
-              </Button>
-            </div>
-            <div className="mt-4 w-full bg-neutral-800 rounded-full h-2 overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-primary-500 to-secondary-500 transition-all duration-500"
-                style={{ width: `${getCompletionPercentage()}%` }}
-              />
-            </div>
-          </Card>
+        {/* Completion Banner - Shows above PageHero when step is already complete */}
+        {isIntensiveMode && isAlreadyCompleted && completedAt && (
+          <IntensiveCompletionBanner 
+            stepTitle="Build Your Life Vision"
+            completedAt={completedAt}
+          />
         )}
 
-        {/* Category Grid */}
-        <Card>
+        {/* Page Hero - Always shows, with intensive eyebrow when in intensive mode */}
+        <PageHero
+          eyebrow={isIntensiveMode ? "ACTIVATION INTENSIVE • STEP 5 OF 14" : undefined}
+          title="Welcome to Your Life Vision"
+          subtitle="Your Life Vision is the blueprint for the life you choose to create."
+        >
+          {/* Video */}
           <div>
-            <h2 className="text-xl md:text-2xl font-bold text-white mb-6 text-center">
-              Life Areas to Explore
-            </h2>
-            
-            {loading ? (
-              <div className="flex justify-center py-12">
-                <Spinner size="lg" variant="primary" />
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {VISION_CATEGORIES.filter(cat => cat.order > 0 && cat.order < 13).map((category) => {
-                  const IconComponent = category.icon
-                  const completed = isCompleted(category.key)
-                  const inProgress = isInProgress(category.key)
-                  
-                  return (
-                    <button
-                      key={category.key}
-                      onClick={() => handleCategoryClick(category.key)}
-                      className={`
-                        relative rounded-2xl p-4 border-2 transition-all duration-300
-                        ${completed 
-                          ? 'border-primary-500 bg-primary-500/10 hover:bg-primary-500/20' 
-                          : inProgress
-                            ? 'border-secondary-500 bg-secondary-500/10 hover:bg-secondary-500/20'
-                            : 'border-neutral-700 bg-neutral-800/50 hover:border-neutral-600'
-                        }
-                        hover:-translate-y-1 hover:shadow-lg
-                      `}
-                    >
-                      {/* Status Icon */}
-                      <div className="absolute top-2 right-2">
-                        {completed ? (
-                          <CheckCircle className="w-5 h-5 text-primary-500" />
-                        ) : inProgress ? (
-                          <Clock className="w-5 h-5 text-secondary-500" />
-                        ) : (
-                          <Circle className="w-5 h-5 text-neutral-600" />
-                        )}
-                      </div>
+            <OptimizedVideo
+              url={VISION_INTRO_VIDEO}
+              context="single"
+              className="mx-auto w-full max-w-3xl"
+            />
+          </div>
 
-                      <div className="flex flex-col items-center text-center">
-                        <div className={`
-                          w-12 h-12 rounded-xl flex items-center justify-center mb-3
-                          ${completed 
-                            ? 'bg-primary-500/20' 
-                            : inProgress
-                              ? 'bg-secondary-500/20'
-                              : 'bg-neutral-800/50'
-                          }
-                        `}>
-                          <IconComponent className={`
-                            w-6 h-6
-                            ${completed 
-                              ? 'text-primary-500' 
-                              : inProgress
-                                ? 'text-secondary-500'
-                                : 'text-white'
-                            }
-                          `} />
-                        </div>
-                        <h4 className="font-semibold text-white text-sm mb-1">
-                          {category.label}
-                        </h4>
-                        <p className="text-xs text-neutral-400 line-clamp-2">
-                          {category.description}
-                        </p>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
+          {/* Category Grid - Progress Tracker */}
+          <div className="mb-6">
+            <CategoryGrid
+              categories={categoriesWithout}
+              selectedCategories={[]}
+              completedCategories={completedCategoryKeys}
+              onCategoryClick={(key: string) => router.push(`/life-vision/new/category/${key}`)}
+              mode="completion"
+              layout="12-column"
+              withCard={true}
+              className="!bg-black/40 backdrop-blur-sm"
+            />
+          </div>
+
+          {/* Action Button - 3 states for all users */}
+          <div className="flex flex-col gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
+            {visionStatus === 'completed' ? (
+              // State 3: View Vision (completed)
+              <Button 
+                variant="primary" 
+                size="sm" 
+                onClick={() => router.push('/life-vision')}
+                className="w-full md:w-auto"
+              >
+                View Life Vision
+                <Eye className="ml-2 h-4 w-4" />
+              </Button>
+            ) : visionStatus === 'in_progress' ? (
+              // State 2: Continue Vision (in progress)
+              <Button 
+                variant="primary" 
+                size="sm" 
+                onClick={handleGetStarted}
+                className="w-full md:w-auto"
+              >
+                Continue Your Vision
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            ) : (
+              // State 1: Start Vision (no progress)
+              <Button 
+                variant="primary" 
+                size="sm" 
+                onClick={handleGetStarted}
+                className="w-full md:w-auto"
+              >
+                Start Your Vision
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
             )}
           </div>
+        </PageHero>
+
+        {/* What is a Life Vision? */}
+        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+          <Stack gap="md">
+            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+              What is Your Life Vision?
+            </Text>
+            <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
+              Your Life Vision is a comprehensive articulation of the life you choose to create across all 12 categories. It's not just a list of goals - it's a living, breathing declaration of who you are becoming and the life you are actively manifesting.
+            </p>
+            <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
+              Think of it as your personal compass - guiding every decision, every action, and every moment toward the life you truly desire. Your vision isn't about what you think you should want; it's about what genuinely lights you up.
+            </p>
+          </Stack>
         </Card>
 
-        {/* How It Works */}
-        <Card>
-          <div>
-            <h2 className="text-xl md:text-2xl font-bold text-white mb-6 text-center">How It Works</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Step 1 */}
-              <Card variant="elevated" hover className="border-2 border-neutral-700 hover:border-primary-500 transition-all duration-300">
-                <div className="flex flex-col items-center text-center">
-                  <div className="w-12 h-12 md:w-16 md:h-16 bg-primary-500/20 rounded-xl flex items-center justify-center mb-4">
-                    <span className="text-2xl md:text-3xl font-bold text-primary-500">1</span>
-                  </div>
-                  <h3 className="text-base md:text-lg font-semibold text-white mb-2">Express Your Clarity</h3>
-                  <p className="text-xs md:text-sm text-neutral-400">
-                    Speak or write about what's clear to you in each life area.
-                  </p>
-                </div>
-              </Card>
+        {/* What You'll Create */}
+        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+          <Stack gap="lg">
+            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+              What You'll Create
+            </Text>
+            <Stack gap="lg">
+              <Stack gap="sm">
+                <Inline gap="sm" className="items-start">
+                  <Target className="h-5 w-5 text-[#5EC49A]" />
+                  <Text size="sm" className="text-white font-semibold">
+                    Clarity in Each Life Area
+                  </Text>
+                </Inline>
+                <p className="text-sm text-neutral-300 leading-relaxed">
+                  Get crystal clear on what you truly want in each of the 12 life categories: Love, Family, Health, Home, Work, Money, Fun, Travel, Social, Stuff, Spirituality, and Giving.
+                </p>
+              </Stack>
 
-              {/* Step 2 */}
-              <Card variant="elevated" hover className="border-2 border-neutral-700 hover:border-secondary-500 transition-all duration-300">
-                <div className="flex flex-col items-center text-center">
-                  <div className="w-12 h-12 md:w-16 md:h-16 bg-secondary-500/20 rounded-xl flex items-center justify-center mb-4">
-                    <span className="text-2xl md:text-3xl font-bold text-secondary-500">2</span>
-                  </div>
-                  <h3 className="text-base md:text-lg font-semibold text-white mb-2">Unleash Your Imagination</h3>
-                  <p className="text-xs md:text-sm text-neutral-400">
-                    Dream freely about your ideal life in each category.
-                  </p>
-                </div>
-              </Card>
+              <Stack gap="sm">
+                <Inline gap="sm" className="items-start">
+                  <Lightbulb className="h-5 w-5 text-[#2DD4BF]" />
+                  <Text size="sm" className="text-white font-semibold">
+                    Your Ideal State
+                  </Text>
+                </Inline>
+                <p className="text-sm text-neutral-300 leading-relaxed">
+                  Dream freely and articulate your ideal life without limitations. This is where you unleash your imagination and connect with what genuinely excites you.
+                </p>
+              </Stack>
 
-              {/* Step 3 */}
-              <Card variant="elevated" hover className="border-2 border-neutral-700 hover:border-accent-500 transition-all duration-300">
-                <div className="flex flex-col items-center text-center">
-                  <div className="w-12 h-12 md:w-16 md:h-16 bg-accent-500/20 rounded-xl flex items-center justify-center mb-4">
-                    <span className="text-2xl md:text-3xl font-bold text-accent-500">3</span>
-                  </div>
-                  <h3 className="text-base md:text-lg font-semibold text-white mb-2">VIVA Creates Your Blueprint</h3>
-                  <p className="text-xs md:text-sm text-neutral-400">
-                    AI synthesizes your vision with Being/Doing/Receiving loops.
-                  </p>
-                </div>
-              </Card>
-            </div>
-          </div>
+              <Stack gap="sm">
+                <Inline gap="sm" className="items-start">
+                  <Compass className="h-5 w-5 text-[#8B5CF6]" />
+                  <Text size="sm" className="text-white font-semibold">
+                    Your Personal Blueprint
+                  </Text>
+                </Inline>
+                <p className="text-sm text-neutral-300 leading-relaxed">
+                  VIVA synthesizes your clarity and imagination into actionable Being/Doing/Receiving loops - a framework for living your vision every day.
+                </p>
+              </Stack>
+
+              <Stack gap="sm">
+                <Inline gap="sm" className="items-start">
+                  <Sparkles className="h-5 w-5 text-[#FFB701]" />
+                  <Text size="sm" className="text-white font-semibold">
+                    A Unified Vision
+                  </Text>
+                </Inline>
+                <p className="text-sm text-neutral-300 leading-relaxed">
+                  All 12 category visions are assembled into one cohesive Life Vision - a complete picture of the life you are creating, expressed in your own voice and energy.
+                </p>
+              </Stack>
+            </Stack>
+          </Stack>
         </Card>
 
-        {/* CTA */}
-        <div className="text-center">
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={handleGetStarted}
-            loading={loading}
-            disabled={loading}
-            className="w-full sm:w-auto"
-          >
-            <Sparkles className="w-4 h-4 mr-2" />
-            {Object.keys(progress).length > 0 ? 'Continue Your Vision' : 'Get Started'}
-          </Button>
-          <p className="text-xs md:text-sm text-neutral-400 mt-4">
-            You can pause and resume anytime. Your progress is automatically saved.
-          </p>
-        </div>
+        {/* Why It Matters */}
+        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+          <Stack gap="md">
+            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+              Why Your Life Vision Matters
+            </Text>
+            <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
+              Your Life Vision is the foundation for intentional living. Here's why it's so transformative:
+            </p>
+            <Stack gap="sm" className="text-sm text-neutral-300 leading-relaxed">
+              <p>
+                • <span className="text-white font-semibold">Direction</span> - Know exactly where you're heading, so every choice moves you toward the life you want.
+              </p>
+              <p>
+                • <span className="text-white font-semibold">Alignment</span> - Your daily actions become aligned with your deepest desires, creating momentum and flow.
+              </p>
+              <p>
+                • <span className="text-white font-semibold">Context for VIVA</span> - Your vision gives VIVA the context to provide personalized guidance tailored to your unique aspirations.
+              </p>
+              <p>
+                • <span className="text-white font-semibold">Manifestation Power</span> - A clear vision, felt deeply, activates the vibrational alignment that draws your desires to you.
+              </p>
+            </Stack>
+          </Stack>
+        </Card>
+
+
       </Stack>
     </Container>
   )

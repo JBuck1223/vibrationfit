@@ -64,6 +64,17 @@ export function IntensiveMobileNav() {
 
       if (!checklist) return
 
+      // Check for actual user voice recordings (Step 8)
+      const { count: voiceRecordingCount } = await supabase
+        .from('audio_tracks')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('voice_id', 'user_voice')
+        .eq('status', 'completed')
+      
+      const hasVoiceRecordings = (voiceRecordingCount || 0) > 0
+      const step8Complete = hasVoiceRecordings || !!checklist.voice_recording_skipped
+
       // Calculate progress
       const completedSteps = [
         hasSettings,
@@ -73,7 +84,7 @@ export function IntensiveMobileNav() {
         !!checklist.vision_built,
         !!checklist.vision_refined,
         !!checklist.audio_generated,
-        !!checklist.audio_generated, // Step 8 shares with 7
+        step8Complete, // Step 8: counts if recorded OR skipped
         !!checklist.audios_generated,
         !!checklist.vision_board_completed,
         !!checklist.first_journal_entry,

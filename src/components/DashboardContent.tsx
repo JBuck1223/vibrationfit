@@ -7,6 +7,7 @@ import Link from 'next/link'
 import AITokenUsage from '@/components/AITokenUsage'
 import HouseholdTokenBalance from '@/components/HouseholdTokenBalance'
 import AssessmentBarChart from '@/app/assessment/components/AssessmentBarChart'
+import { RetentionDashboard } from '@/components/retention'
 import { 
   Sparkles, 
   BookOpen, 
@@ -179,6 +180,9 @@ export default function DashboardContent({ user, profileData, visionData, vision
           title="Dashboard"
           subtitle="Track your Conscious Creation progress below."
         />
+
+        {/* Retention Metrics - The 4 Core Tiles */}
+        <RetentionDashboard />
 
         {/* Detailed Data Views */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

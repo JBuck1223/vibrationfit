@@ -23,6 +23,7 @@ export default function AssemblyPage() {
   const isProcessingRef = useRef(false)
   
   const [isLoading, setIsLoading] = useState(true)
+  const [isIntensiveMode, setIsIntensiveMode] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [vivaProgress, setVivaProgress] = useState(0)
   const [waitingStartTime, setWaitingStartTime] = useState<number | null>(null)
@@ -143,6 +144,18 @@ export default function AssemblyPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
+      // Check if in intensive mode
+      const { data: checklist } = await supabase
+        .from('intensive_checklist')
+        .select('id')
+        .eq('user_id', user.id)
+        .in('status', ['pending', 'in_progress'])
+        .maybeSingle()
+
+      if (checklist) {
+        setIsIntensiveMode(true)
+      }
+
       // Perspective defaults to 'singular' - user will select on page before assembly
 
       // Check for active batch (only pending/processing/retrying - not completed/failed/cancelled)
@@ -164,26 +177,11 @@ export default function AssemblyPage() {
         .eq('user_id', user.id)
         .in('category', categoryKeys)
 
-      // Get scenes count per category
-      const { data: allScenes } = await supabase
-        .from('scenes')
-        .select('category')
-        .eq('user_id', user.id)
-        .in('category', categoryKeys)
-
-      const scenesByCategory: Record<string, number> = {}
-      allScenes?.forEach(scene => {
-        scenesByCategory[scene.category] = (scenesByCategory[scene.category] || 0) + 1
-      })
-
-      // Check readiness for each category
+      // Check readiness for each category (simplified: just need ideal_state)
       const readyCategories = categoryKeys.filter(key => {
         const state = categoryStates?.find(cs => cs.category === key)
-        const hasClarity = state?.clarity_keys && Array.isArray(state.clarity_keys) && state.clarity_keys.length > 0
         const hasIdealState = state?.ideal_state && state.ideal_state.trim().length > 0
-        const hasBlueprint = state?.blueprint_data && Object.keys(state.blueprint_data).length > 0
-        const hasScenes = (scenesByCategory[key] || 0) > 0
-        return hasClarity && hasIdealState && hasBlueprint && hasScenes
+        return hasIdealState
       })
 
       if (readyCategories.length < 12) {
@@ -323,31 +321,12 @@ export default function AssemblyPage() {
           .eq('id', currentBatchId)
       }
 
-      // Get all category states and scenes
+      // Get all category states
       const { data: categoryStates } = await supabase
         .from('vision_new_category_state')
         .select('*')
         .eq('user_id', user.id)
         .in('category', categoryKeys)
-
-      const { data: allScenes } = await supabase
-        .from('scenes')
-        .select('*')
-        .eq('user_id', user.id)
-        .in('category', categoryKeys)
-
-      // Group scenes by category
-      const scenesByCategory: Record<string, any[]> = {}
-      allScenes?.forEach(scene => {
-        if (!scenesByCategory[scene.category]) {
-          scenesByCategory[scene.category] = []
-        }
-        scenesByCategory[scene.category].push({
-          title: scene.title,
-          text: scene.text,
-          essence_word: scene.essence_word
-        })
-      })
 
       const failedCategories: VisionCategoryKey[] = []
 
@@ -407,9 +386,9 @@ export default function AssemblyPage() {
               idealStateText: state?.ideal_state || '',
               clarityPresentStateText: state?.clarity_keys?.[0] || '',
               contrastFlips: state?.contrast_flips || [],
-              scenes: scenesByCategory[categoryKey] || [],
-              blueprintData: state?.blueprint_data || null,
-              transcript: state?.transcript || '',
+              scenes: [], // Not used in simplified flow
+              blueprintData: null, // Not used in simplified flow
+              transcript: '',
               perspective
             }),
             signal: abortControllerRef.current?.signal
@@ -532,9 +511,9 @@ export default function AssemblyPage() {
                 idealStateText: state?.ideal_state || '',
                 clarityPresentStateText: state?.clarity_keys?.[0] || '',
                 contrastFlips: state?.contrast_flips || [],
-                scenes: scenesByCategory[categoryKey] || [],
-                blueprintData: state?.blueprint_data || null,
-                transcript: state?.transcript || '',
+                scenes: [], // Not used in simplified flow
+                blueprintData: null, // Not used in simplified flow
+                transcript: '',
                 perspective
               }),
               signal: abortControllerRef.current?.signal
@@ -611,6 +590,17 @@ export default function AssemblyPage() {
               completed_at: new Date().toISOString()
             })
             .eq('id', currentBatchId)
+
+          // Mark intensive step if in intensive mode
+          if (isIntensiveMode) {
+            const { markIntensiveStep } = await import('@/lib/intensive/checklist')
+            const success = await markIntensiveStep('vision_built')
+            if (success) {
+              // Redirect to dashboard to show progress with completion toast
+              router.push('/intensive/dashboard?completed=build_vision')
+              return
+            }
+          }
         }
       }
 

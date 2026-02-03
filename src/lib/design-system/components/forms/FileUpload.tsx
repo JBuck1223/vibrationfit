@@ -287,7 +287,7 @@ export const FileUpload = React.forwardRef<HTMLDivElement, FileUploadProps>(
             )}
           >
             <div className={cn(
-              'mx-auto mb-3',
+              'flex items-center justify-center mb-3',
               isDragging ? 'text-[#39FF14]' : 'text-[#666666]'
             )}>
               <UploadIcon />

@@ -56,6 +56,25 @@ export default function LoginPage() {
         setError(error.message)
         setLoading(false)
       } else {
+        // Check if user has active intensive
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const { data: intensiveChecklist } = await supabase
+            .from('intensive_checklist')
+            .select('id, status, started_at')
+            .eq('user_id', user.id)
+            .in('status', ['pending', 'in_progress'])
+            .maybeSingle()
+          
+          if (intensiveChecklist) {
+            if (!intensiveChecklist.started_at) {
+              router.push('/intensive/start')
+            } else {
+              router.push('/intensive/dashboard')
+            }
+            return
+          }
+        }
         router.push('/dashboard')
         // Don't set loading to false here - let navigation handle it
       }
@@ -142,8 +161,26 @@ export default function LoginPage() {
         return
       }
 
-      // Small delay to ensure session is established
-      setTimeout(() => {
+      // Small delay to ensure session is established, then check for intensive
+      setTimeout(async () => {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const { data: intensiveChecklist } = await supabase
+            .from('intensive_checklist')
+            .select('id, status, started_at')
+            .eq('user_id', user.id)
+            .in('status', ['pending', 'in_progress'])
+            .maybeSingle()
+          
+          if (intensiveChecklist) {
+            if (!intensiveChecklist.started_at) {
+              router.push('/intensive/start')
+            } else {
+              router.push('/intensive/dashboard')
+            }
+            return
+          }
+        }
         router.push('/dashboard')
       }, 300)
     } catch (err) {
@@ -165,7 +202,6 @@ export default function LoginPage() {
             style={{ width: 'auto', height: '2.5rem' }}
             priority
           />
-          <p className="text-secondary-500">Login to awesomeness!</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">

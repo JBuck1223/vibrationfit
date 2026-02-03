@@ -56,9 +56,11 @@ export default function RootLayout({
                 background: '#1F1F1F',
                 color: '#FFFFFF',
                 border: '1px solid #333',
+                zIndex: 99999,
               },
               className: 'toast',
             }}
+            offset="16px"
           />
         </AuthProvider>
       </body>

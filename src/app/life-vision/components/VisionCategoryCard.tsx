@@ -23,6 +23,7 @@ interface VisionCategoryCardProps {
     id: string
   }
   audioTrack?: {
+    id: string
     url: string
     title: string
   }
@@ -123,11 +124,11 @@ export function VisionCategoryCard({
         ) : (
           <>
             {/* Audio Player */}
-            {audioTrack && audioTrack.url && (
+            {audioTrack && audioTrack.url && audioTrack.id && (
               <div className="mb-4">
                 <AudioPlayer
                   track={{
-                    id: category.key,
+                    id: audioTrack.id,
                     title: audioTrack.title || category.label,
                     artist: '',
                     duration: 180,

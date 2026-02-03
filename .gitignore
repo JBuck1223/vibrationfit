@@ -61,3 +61,5 @@ s3-backup/
 
 # Generated documentation (auto-generated, don't commit)
 docs/generated/
+# macOS metadata files
+._*

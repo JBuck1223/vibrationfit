@@ -174,14 +174,13 @@ export async function editImage({
 
     // Track token usage
     // Note: tokens_used = cost_in_cents * 1000 (pricing: 1000 tokens per cent)
-    // input_tokens = 1 (1 image unit), not prompt length
+    // DO NOT set input_tokens for images - trackTokenUsage overrides tokens_used with input+output if > 0
     await trackTokenUsage({
       user_id: userId,
       action_type: 'image_generation', // Track as image_generation for consistency
       model_used: falModel,
       tokens_used: tokensForImage,
-      input_tokens: 1, // 1 image unit (used by calculate_ai_cost with price_per_unit)
-      output_tokens: 0,
+      // input_tokens/output_tokens omitted for image models (pricing is per-unit, not per-token)
       success: true,
       metadata: {
         context: `edit_${context}`,
@@ -191,6 +190,7 @@ export async function editImage({
         style,
         provider: 'fal',
         cost_cents: costInCents,
+        image_units: 1, // Track units in metadata instead
       },
     })
 
@@ -361,14 +361,13 @@ async function generateImageWithFal({
 
     // Track token usage
     // Note: tokens_used = cost_in_cents * 1000 (pricing: 1000 tokens per cent)
-    // input_tokens = 1 (1 image unit), not prompt length
+    // DO NOT set input_tokens for images - trackTokenUsage overrides tokens_used with input+output if > 0
     await trackTokenUsage({
       user_id: userId,
       action_type: 'image_generation',
       model_used: falModel,
       tokens_used: tokensForImage,
-      input_tokens: 1, // 1 image unit (used by calculate_ai_cost with price_per_unit)
-      output_tokens: 0,
+      // input_tokens/output_tokens omitted for image models (pricing is per-unit, not per-token)
       success: true,
       metadata: {
         context,
@@ -378,6 +377,7 @@ async function generateImageWithFal({
         style,
         provider: 'fal',
         cost_cents: costInCents,
+        image_units: 1, // Track units in metadata instead
       },
     })
 
@@ -542,13 +542,16 @@ async function generateImageWithDalle({
       }
     }
 
+    // DALL-E pricing: $0.040 per image (standard), $0.080 per image (HD)
+    // tokens_used = cost_in_cents * 1000 (pricing: 1000 tokens per cent)
+    const tokensForDalleImage = costInCents * 1000
+
     await trackTokenUsage({
       user_id: userId,
       action_type: 'image_generation',
       model_used: 'dall-e-3',
-      tokens_used: 1,
-      input_tokens: prompt.length,
-      output_tokens: 0,
+      tokens_used: tokensForDalleImage,
+      // input_tokens/output_tokens omitted for image models (pricing is per-unit, not per-token)
       actual_cost_cents: costInCents,
       success: true,
       metadata: {
@@ -559,6 +562,8 @@ async function generateImageWithDalle({
         quality,
         style,
         provider: 'dalle',
+        cost_cents: costInCents,
+        image_units: 1, // Track units in metadata instead
       },
     })
 
@@ -592,7 +597,7 @@ async function generateImageWithDalle({
       success: true,
       imageUrl: permanentImageUrl,
       revisedPrompt,
-      tokensUsed: 1,
+      tokensUsed: tokensForDalleImage,
       galleryId,
       provider: 'dalle',
     }

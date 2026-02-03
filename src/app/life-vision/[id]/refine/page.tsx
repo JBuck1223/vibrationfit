@@ -63,6 +63,8 @@ interface VisionData {
   id: string
   user_id: string
   household_id?: string | null
+  title?: string | null
+  perspective?: string | null
   forward: string
   fun: string
   travel: string
@@ -1328,7 +1330,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     )
   }
 
-  // Handle non-draft vision
+  // Handle non-draft vision - clone it to create a new draft
   const handleCloneToDraft = async () => {
     if (!nonDraftVision) return
     
@@ -1337,12 +1339,45 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       const { data: { user: authUser } } = await supabase.auth.getUser()
       if (!authUser) throw new Error('Not authenticated')
 
+      // Delete ALL existing drafts using API route (bypasses RLS recursion issues)
+      const { data: existingDrafts, error: draftsFetchError } = await supabase
+        .from('vision_versions')
+        .select('id')
+        .eq('user_id', authUser.id)
+        .eq('is_draft', true)
+        .eq('is_active', false)
+
+      if (draftsFetchError) {
+        console.error('Error fetching existing drafts:', draftsFetchError)
+        // Continue anyway - might not be any drafts
+      } else if (existingDrafts && existingDrafts.length > 0) {
+        console.log(`Found ${existingDrafts.length} existing draft(s) to delete`)
+        // Delete each draft using the API route (bypasses RLS)
+        for (const draft of existingDrafts) {
+          try {
+            const deleteResponse = await fetch(`/api/vision?id=${draft.id}`, {
+              method: 'DELETE',
+            })
+            if (!deleteResponse.ok) {
+              const errorData = await deleteResponse.json()
+              console.error(`Failed to delete draft ${draft.id}:`, errorData.error)
+            } else {
+              console.log(`Deleted draft ${draft.id}`)
+            }
+          } catch (err) {
+            console.error(`Error deleting draft ${draft.id}:`, err)
+          }
+        }
+      }
+
       // Clone the vision as a draft
       const { data: newDraft, error: insertError } = await supabase
         .from('vision_versions')
         .insert({
           user_id: authUser.id,
           parent_id: nonDraftVision.id, // Track where this draft came from
+          title: nonDraftVision.title || 'Vision Draft',
+          perspective: nonDraftVision.perspective || 'singular',
           forward: nonDraftVision.forward,
           fun: nonDraftVision.fun,
           travel: nonDraftVision.travel,
@@ -1363,14 +1398,17 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
         .select()
         .single()
 
-      if (insertError) throw insertError
+      if (insertError) {
+        console.error('Clone insert error:', insertError)
+        throw insertError
+      }
 
       // Redirect to the new draft refine page
       router.push(`/life-vision/${newDraft.id}/refine`)
+      // Don't set isCloning(false) - keep loading overlay visible during navigation
     } catch (err) {
       console.error('Error cloning to draft:', err)
       alert('Failed to create draft. Please try again.')
-    } finally {
       setIsCloning(false)
     }
   }

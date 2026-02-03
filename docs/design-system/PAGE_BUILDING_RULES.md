@@ -57,6 +57,7 @@ export default function YourPage() {
 - ✅ Use `<Container>` when you need width constraints
 - ✅ Use `size="xl"` for standard content (1600px max-width)
 - ✅ Container has NO padding - uses PageLayout's padding automatically
+- ✅ Use `<Stack gap="lg">` for spacing between cards (32px standard)
 
 ---
 
@@ -136,6 +137,41 @@ export default function YourPage() {
 - Mobile: `p-4` or `p-6` (max)
 - Desktop: `p-6`, `p-8`, `p-12`
 - Always use responsive: `p-4 md:p-6 lg:p-8`
+
+### 6. Card Gap (Between Cards)
+
+```tsx
+// ❌ WRONG - Using xl gap (too large)
+<Container size="xl">
+  <Stack gap="xl">
+    <Card>...</Card>
+    <Card>...</Card>
+  </Stack>
+</Container>
+
+// ✅ CORRECT - Using lg gap (32px standard)
+<Container size="xl">
+  <Stack gap="lg">
+    <Card>...</Card>
+    <Card>...</Card>
+  </Stack>
+</Container>
+```
+
+**Rules:**
+- **Standard card gap: `gap="lg"` (32px)** - Use this for spacing between main page sections/cards
+- Use `gap="md"` (24px) for tighter spacing within cards
+- Use `gap="sm"` (16px) for spacing between related elements
+- Avoid `gap="xl"` (48px) for main page layouts - too much whitespace
+
+**Gap Scale Reference:**
+| Gap | Tailwind | Pixels | Use Case |
+|-----|----------|--------|----------|
+| `xs` | `gap-2` | 8px | Tight inline elements |
+| `sm` | `gap-4` | 16px | Related elements |
+| `md` | `gap-6` | 24px | Within cards |
+| **`lg`** | **`gap-8`** | **32px** | **Between cards (standard)** |
+| `xl` | `gap-12` | 48px | Special cases only |
 
 ---
 
@@ -337,6 +373,7 @@ Before building a new page, ensure:
 - [ ] **NO** `<PageLayout>` wrapper (GlobalLayout provides it)
 - [ ] Use `<Container size="xl">` for content width constraints
 - [ ] **NO** padding on Container (uses PageLayout's padding)
+- [ ] Use `<Stack gap="lg">` for spacing between cards (32px standard)
 - [ ] All text sizes are responsive (`text-base md:text-lg`)
 - [ ] All spacing is responsive (`p-4 md:p-6 lg:p-8`)
 - [ ] Grid layouts start with `grid-cols-1` for mobile
@@ -364,7 +401,7 @@ Before building a new page, ensure:
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Container, Card, Button, Spinner } from '@/lib/design-system/components'
+import { Container, Card, Button, Spinner, Stack } from '@/lib/design-system/components'
 
 export default function YourPage() {
   const [loading, setLoading] = useState(true)
@@ -385,20 +422,22 @@ export default function YourPage() {
 
   return (
     <Container size="xl">
-      {/* Header */}
-      <div className="mb-8 md:mb-12">
-        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2 md:mb-4">
-          Page Title
-        </h1>
-        <p className="text-sm md:text-base text-neutral-400">
-          Description
-        </p>
-      </div>
+      <Stack gap="lg">
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2 md:mb-4">
+            Page Title
+          </h1>
+          <p className="text-sm md:text-base text-neutral-400">
+            Description
+          </p>
+        </div>
 
-      {/* Content */}
-      <Card className="p-4 md:p-6 lg:p-8">
-        {/* Your content */}
-      </Card>
+        {/* Content */}
+        <Card className="p-4 md:p-6 lg:p-8">
+          {/* Your content */}
+        </Card>
+      </Stack>
     </Container>
   )
 }
@@ -410,14 +449,15 @@ export default function YourPage() {
 
 1. **GlobalLayout wraps ALL pages** - Never add PageLayout manually
 2. **Container has NO padding** - Uses PageLayout's padding automatically
-3. **Mobile-first always** - Start with mobile, then add desktop styles
-4. **Test on 375px** - Minimum mobile viewport width
-5. **Use design system components** - Don't create custom layouts
+3. **Card gap is `lg` (32px)** - Use `<Stack gap="lg">` between cards
+4. **Mobile-first always** - Start with mobile, then add desktop styles
+5. **Test on 375px** - Minimum mobile viewport width
+6. **Use design system components** - Don't create custom layouts
 
 ---
 
-**Last Updated**: 2025-01-31
-**Version**: 1.0
+**Last Updated**: 2026-01-28
+**Version**: 1.1 (Added standard card gap rule: gap="lg" / 32px)
 
 
 

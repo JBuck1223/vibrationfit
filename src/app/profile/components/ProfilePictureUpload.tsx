@@ -26,6 +26,7 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError, 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [showCropper, setShowCropper] = useState(false)
   const [imageRotation, setImageRotation] = useState(0)
+  const [imageLoadError, setImageLoadError] = useState(false)
   const [crop, setCrop] = useState<Crop>({
     unit: 'px',
     width: 300,
@@ -37,6 +38,11 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError, 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
+
+  // Reset error state when currentImageUrl changes
+  useEffect(() => {
+    setImageLoadError(false)
+  }, [currentImageUrl])
 
   const processFile = useCallback((file: File) => {
     // Validate file type
@@ -313,13 +319,22 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError, 
         {!showCropper && (
           <div className="relative inline-block mb-4">
             <div className="w-32 h-32 rounded-full overflow-hidden bg-neutral-800 border-2 border-neutral-700 flex items-center justify-center">
-              <NextImage
-                src={previewUrl || currentImageUrl || DEFAULT_PROFILE_IMAGE_URL}
-                alt="Profile picture"
-                width={128}
-                height={128}
-                className="w-full h-full object-cover"
-              />
+              {imageLoadError ? (
+                // Fallback to simple icon if image fails to load
+                <div className="w-full h-full flex items-center justify-center bg-neutral-700">
+                  <Upload className="w-8 h-8 text-neutral-400" />
+                </div>
+              ) : (
+                <NextImage
+                  src={previewUrl || currentImageUrl || DEFAULT_PROFILE_IMAGE_URL}
+                  alt="Profile picture"
+                  width={128}
+                  height={128}
+                  className="w-full h-full object-cover"
+                  onError={() => setImageLoadError(true)}
+                  unoptimized={!(previewUrl || currentImageUrl)} // Use unoptimized for external default image
+                />
+              )}
             </div>
             
             {/* Upload overlay */}

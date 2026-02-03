@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -12,9 +12,10 @@ import {
   Text,
   PageHero,
   Spinner,
+  IntensiveCompletionBanner,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
-import { ArrowRight, Sparkles, Target, Heart, Zap } from 'lucide-react'
+import { ArrowRight, Sparkles, Target, Heart, Zap, Eye } from 'lucide-react'
 
 // Placeholder video URL - user will replace this later
 const VISION_INTRO_VIDEO =
@@ -24,6 +25,45 @@ export default function LifeVisionRefineNewPage() {
   const router = useRouter()
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isIntensiveMode, setIsIntensiveMode] = useState(false)
+  const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
+  const [completedAt, setCompletedAt] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  // Check intensive mode on mount
+  useEffect(() => {
+    checkIntensiveMode()
+  }, [])
+
+  const checkIntensiveMode = async () => {
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setLoading(false)
+        return
+      }
+
+      const { data: checklist } = await supabase
+        .from('intensive_checklist')
+        .select('id, vision_refined, vision_refined_at')
+        .eq('user_id', user.id)
+        .in('status', ['pending', 'in_progress'])
+        .maybeSingle()
+
+      if (checklist) {
+        setIsIntensiveMode(true)
+        if (checklist.vision_refined) {
+          setIsAlreadyCompleted(true)
+          setCompletedAt(checklist.vision_refined_at)
+        }
+      }
+    } catch (err) {
+      console.error('Error checking intensive mode:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleCreateVision = async () => {
     setIsCreating(true)
@@ -115,9 +155,18 @@ export default function LifeVisionRefineNewPage() {
 
   return (
     <Container size="xl">
-      <Stack gap="xl">
+      <Stack gap="lg">
+        {/* Completion Banner - Shows when step is already complete in intensive mode */}
+        {isIntensiveMode && isAlreadyCompleted && completedAt && (
+          <IntensiveCompletionBanner 
+            stepTitle="Refine Your Vision"
+            completedAt={completedAt}
+          />
+        )}
+
         {/* Centered Hero Title */}
         <PageHero
+          eyebrow={isIntensiveMode ? "ACTIVATION INTENSIVE • STEP 6 OF 14" : undefined}
           title="Refine Your Life Vision"
           subtitle="Create a new draft based on your active vision, then refine and commit when ready."
         >
@@ -132,25 +181,37 @@ export default function LifeVisionRefineNewPage() {
 
           {/* Action Button */}
           <div className="flex flex-col gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
-            <Button 
-              variant="primary" 
-              size="sm" 
-              onClick={handleCreateVision}
-              disabled={isCreating}
-              className="w-full md:w-auto"
-            >
-              {isCreating ? (
-                <>
-                  <Spinner variant="primary" size="sm" className="mr-2" />
-                  Creating Draft...
-                </>
-              ) : (
-                <>
-                  <ArrowRight className="mr-2 h-4 w-4" />
-                  Start Refining
-                </>
-              )}
-            </Button>
+            {isAlreadyCompleted ? (
+              <Button 
+                variant="primary" 
+                size="sm" 
+                onClick={() => router.push('/life-vision')}
+                className="w-full md:w-auto"
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                View Life Vision
+              </Button>
+            ) : (
+              <Button 
+                variant="primary" 
+                size="sm" 
+                onClick={handleCreateVision}
+                disabled={isCreating}
+                className="w-full md:w-auto"
+              >
+                {isCreating ? (
+                  <>
+                    <Spinner variant="primary" size="sm" className="mr-2" />
+                    Creating Draft...
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight className="mr-2 h-4 w-4" />
+                    Start Refining
+                  </>
+                )}
+              </Button>
+            )}
             {error && (
               <p className="text-sm text-red-400">{error}</p>
             )}
@@ -269,25 +330,37 @@ export default function LifeVisionRefineNewPage() {
               Your vision is alive, just like you. Click below to create a refinement draft and give your vision the evolution it deserves. Take your time, play, experiment - and commit only when it feels aligned.
             </p>
             <div className="flex flex-col gap-2 md:gap-4 justify-center items-center">
-              <Button 
-                variant="primary" 
-                size="sm" 
-                onClick={handleCreateVision}
-                disabled={isCreating}
-                className="w-full md:w-auto"
-              >
-                {isCreating ? (
-                  <>
-                    <Spinner variant="primary" size="sm" className="mr-2" />
-                    Creating Draft...
-                  </>
-                ) : (
-                  <>
-                    <ArrowRight className="mr-2 h-4 w-4" />
-                    Start Refining Your Vision
-                  </>
-                )}
-              </Button>
+              {isAlreadyCompleted ? (
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={() => router.push('/life-vision')}
+                  className="w-full md:w-auto"
+                >
+                  <Eye className="mr-2 h-4 w-4" />
+                  View Life Vision
+                </Button>
+              ) : (
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={handleCreateVision}
+                  disabled={isCreating}
+                  className="w-full md:w-auto"
+                >
+                  {isCreating ? (
+                    <>
+                      <Spinner variant="primary" size="sm" className="mr-2" />
+                      Creating Draft...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowRight className="mr-2 h-4 w-4" />
+                      Start Refining Your Vision
+                    </>
+                  )}
+                </Button>
+              )}
               {error && (
                 <p className="text-sm text-red-400">{error}</p>
               )}

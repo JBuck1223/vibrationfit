@@ -59,14 +59,14 @@ export async function getActiveIntensiveClient(): Promise<IntensiveData | null> 
 /**
  * Start the intensive timer
  * Called when user clicks "Start My Intensive" button
- * Updates intensive_checklist (source of truth for all intensive tracking)
+ * Updates intensive_checklist.started_at (source of truth for timer)
  */
 export async function startIntensive(checklistId: string): Promise<{ success: boolean; error?: string }> {
   const supabase = createClient()
   
   const startedAt = new Date().toISOString()
   
-  // Update intensive_checklist (source of truth)
+  // Update intensive_checklist (source of truth for timer and all intensive tracking)
   const { error } = await supabase
     .from('intensive_checklist')
     .update({

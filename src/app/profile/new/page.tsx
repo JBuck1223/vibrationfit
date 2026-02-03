@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Container,
@@ -13,7 +13,9 @@ import {
   Spinner,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
-import { ArrowRight, User, Heart, Activity, Sparkles } from 'lucide-react'
+import { ArrowRight, User, Heart, Activity, Sparkles, Eye } from 'lucide-react'
+import { IntensiveCompletionBanner } from '@/lib/design-system/components'
+import { createClient } from '@/lib/supabase/client'
 
 // Placeholder video URL - user will replace this later
 const PROFILE_INTRO_VIDEO =
@@ -23,7 +25,112 @@ export default function ProfileNewPage() {
   const router = useRouter()
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isIntensiveMode, setIsIntensiveMode] = useState(false)
+  const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
+  const [completedAt, setCompletedAt] = useState<string | null>(null)
+  const [checkingIntensive, setCheckingIntensive] = useState(true)
+  const [activeProfileId, setActiveProfileId] = useState<string | null>(null)
+  // 3-state for Intensive users: none (no profile), in_progress (has profile, not completed), completed
+  const [profileStatus, setProfileStatus] = useState<'none' | 'in_progress' | 'completed'>('none')
 
+  useEffect(() => {
+    checkIntensiveMode()
+  }, [])
+
+  const checkIntensiveMode = async () => {
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setCheckingIntensive(false)
+        return
+      }
+
+      // Check for active intensive purchase
+      const { data: intensiveData } = await supabase
+        .from('intensive_purchases')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('completion_status', 'pending')
+        .maybeSingle()
+
+      if (intensiveData) {
+        setIsIntensiveMode(true)
+        
+        // Check if profile step is already completed
+        const { data: checklistData } = await supabase
+          .from('intensive_checklist')
+          .select('profile_completed, profile_completed_at')
+          .eq('intensive_id', intensiveData.id)
+          .maybeSingle()
+
+        if (checklistData?.profile_completed) {
+          setIsAlreadyCompleted(true)
+          setCompletedAt(checklistData.profile_completed_at)
+          setProfileStatus('completed')
+        }
+
+        // Fetch active profile ID for direct navigation
+        const { data: activeProfile } = await supabase
+          .from('user_profiles')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .maybeSingle()
+
+        if (activeProfile?.id) {
+          setActiveProfileId(activeProfile.id)
+          // If profile exists but not completed in checklist, it's in_progress
+          if (!checklistData?.profile_completed) {
+            setProfileStatus('in_progress')
+          }
+        }
+        // If no profile exists, profileStatus remains 'none'
+      }
+    } catch (error) {
+      console.error('Error checking intensive mode:', error)
+    } finally {
+      setCheckingIntensive(false)
+    }
+  }
+
+  // Handler for Intensive users: Start Profile (creates profile and navigates to edit)
+  const handleStartProfile = async () => {
+    setIsCreating(true)
+    setError(null)
+
+    try {
+      // Create new profile
+      const response = await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profileData: {},
+          saveAsVersion: false,
+          isDraft: false,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to create profile' }))
+        throw new Error(errorData.error || 'Failed to create profile')
+      }
+
+      const data = await response.json()
+      
+      if (data.profile?.id) {
+        router.push(`/profile/${data.profile.id}/edit`)
+      } else {
+        throw new Error('No profile ID returned from API')
+      }
+    } catch (err) {
+      console.error('Error creating profile:', err)
+      setError(err instanceof Error ? err.message : 'Failed to create profile')
+      setIsCreating(false)
+    }
+  }
+
+  // Handler for regular (non-Intensive) users
   const handleCreateProfile = async () => {
     setIsCreating(true)
     setError(null)
@@ -74,11 +181,31 @@ export default function ProfileNewPage() {
     }
   }
 
+  // Show loading spinner while checking intensive status
+  if (checkingIntensive) {
+    return (
+      <Container size="xl">
+        <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+          <Spinner size="lg" />
+        </div>
+      </Container>
+    )
+  }
+
   return (
     <Container size="xl">
-      <Stack gap="xl">
-        {/* Centered Hero Title */}
+      <Stack gap="lg">
+        {/* Completion Banner - Shows above PageHero when step is already complete */}
+        {isIntensiveMode && isAlreadyCompleted && completedAt && (
+          <IntensiveCompletionBanner 
+            stepTitle="Create Profile"
+            completedAt={completedAt}
+          />
+        )}
+
+        {/* Page Hero - Always shows, with intensive eyebrow when in intensive mode */}
         <PageHero
+          eyebrow={isIntensiveMode ? "ACTIVATION INTENSIVE • STEP 3 OF 14" : undefined}
           title="Welcome to Your Profile"
           subtitle="Your profile is the foundation of your journey with VibrationFit."
         >
@@ -91,27 +218,76 @@ export default function ProfileNewPage() {
             />
           </div>
 
-          {/* Action Button */}
+          {/* Action Button - 3 states for Intensive users */}
           <div className="flex flex-col gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
-            <Button 
-              variant="primary" 
-              size="sm" 
-              onClick={handleCreateProfile}
-              disabled={isCreating}
-              className="w-full md:w-auto"
-            >
-              {isCreating ? (
-                <>
-                  <Spinner variant="primary" size="sm" className="mr-2" />
-                  Creating Profile...
-                </>
+            {isIntensiveMode ? (
+              // Intensive mode: 3-state button (Start, Continue, View)
+              profileStatus === 'completed' ? (
+                // State 3: View Profile (completed)
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={() => router.push(activeProfileId ? `/profile/${activeProfileId}` : '/profile')}
+                  className="w-full md:w-auto"
+                >
+                  View Profile
+                  <Eye className="ml-2 h-4 w-4" />
+                </Button>
+              ) : profileStatus === 'in_progress' ? (
+                // State 2: Continue Profile (in progress)
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={() => router.push(`/profile/${activeProfileId}/edit`)}
+                  className="w-full md:w-auto"
+                >
+                  Continue Profile
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
               ) : (
-                <>
-                  <ArrowRight className="mr-2 h-4 w-4" />
-                  Create Your Profile
-                </>
-              )}
-            </Button>
+                // State 1: Start Profile (no profile)
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={handleStartProfile}
+                  disabled={isCreating}
+                  className="w-full md:w-auto"
+                >
+                  {isCreating ? (
+                    <>
+                      Starting Profile...
+                      <Spinner variant="primary" size="sm" className="ml-2" />
+                    </>
+                  ) : (
+                    <>
+                      Start Profile
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </>
+                  )}
+                </Button>
+              )
+            ) : (
+              // Non-intensive mode: Original behavior
+              <Button 
+                variant="primary" 
+                size="sm" 
+                onClick={handleCreateProfile}
+                disabled={isCreating}
+                className="w-full md:w-auto"
+              >
+                {isCreating ? (
+                  <>
+                    <Spinner variant="primary" size="sm" className="mr-2" />
+                    Creating Profile...
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight className="mr-2 h-4 w-4" />
+                    Create Your Profile
+                  </>
+                )}
+              </Button>
+            )}
             {error && (
               <p className="text-sm text-red-400">{error}</p>
             )}
@@ -217,41 +393,6 @@ export default function ProfileNewPage() {
           </Stack>
         </Card>
 
-        {/* Ready to Begin */}
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
-          <Stack gap="md" className="text-center">
-            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-              Ready to Begin?
-            </Text>
-            <p className="text-sm md:text-base text-neutral-300 leading-relaxed max-w-2xl mx-auto">
-              Take your time filling out your profile. You can save your progress and come back anytime. Remember, this is about honest self-reflection, not perfection.
-            </p>
-            <div className="flex flex-col gap-2 md:gap-4 justify-center items-center">
-              <Button 
-                variant="primary" 
-                size="sm" 
-                onClick={handleCreateProfile}
-                disabled={isCreating}
-                className="w-full md:w-auto"
-              >
-                {isCreating ? (
-                  <>
-                    <Spinner variant="primary" size="sm" className="mr-2" />
-                    Creating Profile...
-                  </>
-                ) : (
-                  <>
-                    <ArrowRight className="mr-2 h-4 w-4" />
-                    Start Creating Your Profile
-                  </>
-                )}
-              </Button>
-              {error && (
-                <p className="text-sm text-red-400">{error}</p>
-              )}
-            </div>
-          </Stack>
-        </Card>
       </Stack>
     </Container>
   )

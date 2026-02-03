@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/lib/design-system/components'
@@ -25,7 +25,10 @@ import {
   Lock,
   Settings,
   FileText,
-  Unlock
+  Unlock,
+  Timer,
+  Info,
+  Clock
 } from 'lucide-react'
 
 type Step = {
@@ -45,6 +48,9 @@ type Phase = {
   steps: Step[]
 }
 
+// 72 hours in milliseconds
+const INTENSIVE_DURATION_MS = 72 * 60 * 60 * 1000
+
 export function IntensiveSidebar() {
   const router = useRouter()
   const pathname = usePathname()
@@ -53,10 +59,67 @@ export function IntensiveSidebar() {
   const [loading, setLoading] = useState(true)
   const [settingsComplete, setSettingsComplete] = useState(false)
   const [intensiveStarted, setIntensiveStarted] = useState(false)
+  const [startedAt, setStartedAt] = useState<string | null>(null)
+  const [countdown, setCountdown] = useState<{ hours: number; minutes: number; seconds: number } | null>(null)
+  
+  // Refs to preserve scroll position during timer updates
+  const navRef = useRef<HTMLElement>(null)
+  const scrollPositionRef = useRef(0)
+
+  // Save scroll position before re-render
+  useEffect(() => {
+    if (navRef.current) {
+      scrollPositionRef.current = navRef.current.scrollTop
+    }
+  })
+
+  // Restore scroll position after re-render
+  useEffect(() => {
+    if (navRef.current && scrollPositionRef.current > 0) {
+      navRef.current.scrollTop = scrollPositionRef.current
+    }
+  })
 
   useEffect(() => {
     loadSteps()
   }, [pathname])
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (!startedAt) {
+      setCountdown(null)
+      return
+    }
+
+    const calculateCountdown = () => {
+      // Ensure we parse the timestamp as UTC (Postgres returns timestamp without timezone)
+      // If the string doesn't end with 'Z', append it to force UTC interpretation
+      const utcStartedAt = startedAt.endsWith('Z') ? startedAt : startedAt + 'Z'
+      const startTime = new Date(utcStartedAt).getTime()
+      const endTime = startTime + INTENSIVE_DURATION_MS
+      const now = Date.now()
+      const remaining = endTime - now
+
+      if (remaining <= 0) {
+        setCountdown({ hours: 0, minutes: 0, seconds: 0 })
+        return
+      }
+
+      const hours = Math.floor(remaining / (1000 * 60 * 60))
+      const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60))
+      const seconds = Math.floor((remaining % (1000 * 60)) / 1000)
+
+      setCountdown({ hours, minutes, seconds })
+    }
+
+    // Calculate immediately
+    calculateCountdown()
+
+    // Update every second
+    const interval = setInterval(calculateCountdown, 1000)
+
+    return () => clearInterval(interval)
+  }, [startedAt])
 
   const loadSteps = async () => {
     try {
@@ -93,6 +156,79 @@ export function IntensiveSidebar() {
 
       // Check if intensive has been started (checklist is source of truth)
       setIntensiveStarted(!!checklist.started_at)
+      setStartedAt(checklist.started_at || null)
+
+      // Check for actual user voice recordings (Step 8)
+      const { count: voiceRecordingCount } = await supabase
+        .from('audio_tracks')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('voice_id', 'user_voice')
+        .eq('status', 'completed')
+      
+      const hasVoiceRecordings = (voiceRecordingCount || 0) > 0
+
+      // Verify Vision Board completion (Step 10)
+      // If vision_board_completed is false but user has items in all 12 categories, mark complete
+      if (!checklist.vision_board_completed) {
+        const { data: visionBoardItems } = await supabase
+          .from('vision_board_items')
+          .select('categories')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+
+        if (visionBoardItems && visionBoardItems.length > 0) {
+          const coveredCategories = new Set<string>()
+          visionBoardItems.forEach(item => {
+            if (item.categories && Array.isArray(item.categories)) {
+              item.categories.forEach((cat: string) => coveredCategories.add(cat))
+            }
+          })
+
+          // 12 life categories (excluding forward and conclusion)
+          const LIFE_CATEGORIES = ['fun', 'health', 'travel', 'love', 'family', 'social', 'home', 'work', 'money', 'stuff', 'giving', 'spirituality']
+          const allCategoriesCovered = LIFE_CATEGORIES.every(cat => coveredCategories.has(cat))
+
+          if (allCategoriesCovered) {
+            console.log('🎨 [SIDEBAR] All 12 categories covered, marking vision_board_completed')
+            const now = new Date().toISOString()
+            await supabase
+              .from('intensive_checklist')
+              .update({
+                vision_board_completed: true,
+                vision_board_completed_at: now
+              })
+              .eq('id', checklist.id)
+
+            // Update local checklist object for step rendering
+            checklist.vision_board_completed = true
+          }
+        }
+      }
+
+      // Verify Journal completion (Step 11)
+      // If first_journal_entry is false but user has at least one journal entry, mark complete
+      if (!checklist.first_journal_entry) {
+        const { count: journalCount } = await supabase
+          .from('journal_entries')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+
+        if ((journalCount || 0) > 0) {
+          console.log('📓 [SIDEBAR] Journal entry found, marking first_journal_entry')
+          const now = new Date().toISOString()
+          await supabase
+            .from('intensive_checklist')
+            .update({
+              first_journal_entry: true,
+              first_journal_entry_at: now
+            })
+            .eq('id', checklist.id)
+
+          // Update local checklist object for step rendering
+          checklist.first_journal_entry = true
+        }
+      }
 
       const stepsList: Step[] = [
         // Phase 0: Start
@@ -143,7 +279,7 @@ export function IntensiveSidebar() {
           id: 'assessment', 
           stepNumber: 4,
           title: 'Assessment', 
-          href: '/assessment/new', 
+          href: '/assessment',
           icon: ClipboardCheck,
           phase: 'Foundation',
           completed: !!checklist.assessment_completed,
@@ -190,7 +326,7 @@ export function IntensiveSidebar() {
           href: '/life-vision/audio/record/new', 
           icon: Mic,
           phase: 'Audio',
-          completed: !!checklist.audio_generated, // shares completion with step 7
+          completed: hasVoiceRecordings || !!checklist.voice_recording_skipped, // Complete if recorded OR skipped
           locked: !checklist.audio_generated,
           optional: true
         },
@@ -214,7 +350,7 @@ export function IntensiveSidebar() {
           icon: ImageIcon,
           phase: 'Activation',
           completed: !!checklist.vision_board_completed,
-          locked: !(checklist.audios_generated || checklist.audio_generated)
+          locked: !checklist.audios_generated // Requires Audio Mix (Step 9) to be complete
         },
         { 
           id: 'journal', 
@@ -289,7 +425,8 @@ export function IntensiveSidebar() {
   const totalCount = steps.length
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
 
-  const SidebarContent = () => (
+  // Using a variable instead of a component to prevent remounting on timer updates
+  const sidebarContent = (
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="p-4 md:p-6 border-b-2 border-primary-500">
@@ -316,6 +453,88 @@ export function IntensiveSidebar() {
             {completedCount}/{totalCount}
           </span>
         </div>
+
+        {/* Timer Card - Show active countdown OR completed state */}
+        {intensiveStarted && (
+          <>
+            {/* ACTIVE STATE - Timer still running */}
+            {countdown && (countdown.hours > 0 || countdown.minutes > 0 || countdown.seconds > 0) && (
+              <div className="mt-4 p-3 rounded-xl bg-gradient-to-r from-primary-500/30 to-secondary-500/20 border-2 border-primary-500/50">
+                {/* Label */}
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <Timer className="w-4 h-4 text-primary-400" />
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-300">
+                    72-Hour Focus Window
+                  </span>
+                </div>
+                
+                {/* Time remaining label */}
+                <div className="text-center mb-1">
+                  <span className="text-[9px] text-white uppercase tracking-wide">
+                    Time remaining
+                  </span>
+                </div>
+                
+                {/* Timer display */}
+                <div className="flex items-center justify-center gap-1">
+                  {/* Hours */}
+                  <div className="flex flex-col items-center">
+                    <span className="text-2xl font-bold font-mono text-white">
+                      {String(countdown.hours).padStart(2, '0')}
+                    </span>
+                    <span className="text-[9px] text-neutral-200 uppercase font-medium">hrs</span>
+                  </div>
+                  <span className="text-xl font-bold text-neutral-400">:</span>
+                  {/* Minutes */}
+                  <div className="flex flex-col items-center">
+                    <span className="text-2xl font-bold font-mono text-white">
+                      {String(countdown.minutes).padStart(2, '0')}
+                    </span>
+                    <span className="text-[9px] text-neutral-200 uppercase font-medium">min</span>
+                  </div>
+                  <span className="text-xl font-bold text-neutral-400">:</span>
+                  {/* Seconds */}
+                  <div className="flex flex-col items-center">
+                    <span className="text-2xl font-bold font-mono text-white">
+                      {String(countdown.seconds).padStart(2, '0')}
+                    </span>
+                    <span className="text-[9px] text-neutral-200 uppercase font-medium">sec</span>
+                  </div>
+                </div>
+                
+                {/* Subtext */}
+                <p className="text-[10px] text-white text-center mt-2">
+                  This is a focus window, not a deadline.
+                </p>
+              </div>
+            )}
+
+            {/* COMPLETED STATE - Show when timer has expired */}
+            {countdown && countdown.hours === 0 && countdown.minutes === 0 && countdown.seconds === 0 && (
+              <div className="mt-4 p-3 rounded-xl bg-gradient-to-r from-blue-500/20 to-cyan-500/10 border-2 border-blue-400/30">
+                {/* Label */}
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Clock className="w-4 h-4 text-blue-400" />
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-300">
+                    72-Hour Focus Window
+                  </span>
+                </div>
+                
+                {/* Main text */}
+                <div className="text-center mb-2">
+                  <span className="text-lg font-semibold text-blue-300">
+                    Focus window complete
+                  </span>
+                </div>
+                
+                {/* Subtext */}
+                <p className="text-[10px] text-white text-center leading-relaxed">
+                  You're still in the Intensive. Keep going until you complete all 14 steps.
+                </p>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Dashboard Link */}
@@ -340,7 +559,7 @@ export function IntensiveSidebar() {
       </div>
 
       {/* Steps grouped by phase */}
-      <nav className="flex-1 p-3 md:p-4 space-y-4 overflow-y-auto">
+      <nav ref={navRef} className="flex-1 p-3 md:p-4 space-y-4 overflow-y-auto overscroll-contain" style={{ overflowAnchor: 'none' }}>
         {loading ? (
           <div className="text-center py-8 text-neutral-500 text-sm">
             Loading...
@@ -458,12 +677,12 @@ export function IntensiveSidebar() {
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
-        <SidebarContent />
+        {sidebarContent}
       </aside>
 
       {/* Desktop Sidebar */}
       <aside className="hidden md:block fixed top-0 left-0 bottom-0 w-[280px] bg-[#1F1F1F] border-r-2 border-neutral-800 z-30">
-        <SidebarContent />
+        {sidebarContent}
       </aside>
     </>
   )

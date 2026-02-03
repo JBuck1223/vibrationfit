@@ -89,6 +89,7 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showCloneDialog, setShowCloneDialog] = useState(false)
   const [isCloning, setIsCloning] = useState(false)
+  const [isIntensiveMode, setIsIntensiveMode] = useState(false)
 
   // Show commit confirmation dialog
   const handleCommitAsActive = () => {
@@ -115,11 +116,23 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
     try {
       const committedVision = await commitDraft(draftVision.id)
       
+      // Mark intensive step if in intensive mode
+      if (isIntensiveMode) {
+        const { markIntensiveStep } = await import('@/lib/intensive/checklist')
+        const success = await markIntensiveStep('vision_refined')
+        if (success) {
+          // Redirect to dashboard to show progress with completion toast
+          router.push('/intensive/dashboard?completed=refine_vision')
+          return
+        }
+      }
+      
       // Navigate to the new active vision
       router.push(`/life-vision/${committedVision.id}`)
     } catch (err) {
       console.error('Error committing draft:', err)
-      alert('Failed to commit draft as active vision')
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      alert(`Failed to commit draft as active vision: ${errorMessage}`)
     } finally {
       setIsCommitting(false)
     }
@@ -217,6 +230,18 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
       
       setDraftVision(visionWithVersion)
       setVision(visionWithVersion)
+
+      // Check if in intensive mode
+      const { data: checklist } = await supabase
+        .from('intensive_checklist')
+        .select('id')
+        .eq('user_id', userId)
+        .in('status', ['pending', 'in_progress'])
+        .maybeSingle()
+
+      if (checklist) {
+        setIsIntensiveMode(true)
+      }
 
       // Fetch the active vision for comparison
       const { data: activeVisionData } = await supabase

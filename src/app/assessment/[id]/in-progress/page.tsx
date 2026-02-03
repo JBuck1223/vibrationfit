@@ -4,7 +4,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter, useSearchParams, useParams } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { Button, Spinner, Card, Container, Stack, PageHero, StatusBadge, CategoryCard } from '@/lib/design-system/components'
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckCircle, CalendarDays, Check, Circle } from 'lucide-react'
 import { assessmentQuestions, filterQuestionsByProfile, categoryMetadata } from '@/lib/assessment/questions'
@@ -18,11 +18,10 @@ import {
   AssessmentProgress
 } from '@/lib/services/assessmentService'
 import ResultsSummary from '../../components/ResultsSummary'
+import { getStepInfo, getNextStep } from '@/lib/intensive/step-mapping'
 
 export default function AssessmentPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const isIntensiveMode = searchParams.get('intensive') === 'true'
   const params = useParams()
   const routeAssessmentId = Array.isArray(params?.id)
     ? params?.id[0]
@@ -31,6 +30,7 @@ export default function AssessmentPage() {
   // State
   const [assessmentId, setAssessmentId] = useState<string | null>(null)
   const [assessmentData, setAssessmentData] = useState<any>(null)
+  const [isIntensiveMode, setIsIntensiveMode] = useState(false)
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0)
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [responses, setResponses] = useState<Map<string, number>>(new Map())
@@ -48,6 +48,7 @@ export default function AssessmentPage() {
   const [customResponseSubmitted, setCustomResponseSubmitted] = useState(false)
   const [customResponseScore, setCustomResponseScore] = useState<number | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [assessmentResponses, setAssessmentResponses] = useState<any[] | null>(null)
 
   // Ref for scrolling to question card on mobile
   const questionCardRef = useRef<HTMLDivElement>(null)
@@ -150,6 +151,28 @@ export default function AssessmentPage() {
           }
         } catch (profileError) {
           console.warn('Unable to fetch profile for assessment filters:', profileError)
+        }
+
+        // Check if user is in intensive mode
+        try {
+          const { createClient } = await import('@/lib/supabase/client')
+          const supabase = createClient()
+          const { data: { user } } = await supabase.auth.getUser()
+          
+          if (user) {
+            const { data: intensiveData } = await supabase
+              .from('intensive_purchases')
+              .select('id')
+              .eq('user_id', user.id)
+              .in('completion_status', ['pending', 'in_progress'])
+              .maybeSingle()
+            
+            if (intensiveData) {
+              setIsIntensiveMode(true)
+            }
+          }
+        } catch (intensiveError) {
+          console.warn('Unable to check intensive mode:', intensiveError)
         }
 
         // Verify assessment exists and load responses
@@ -508,18 +531,9 @@ export default function AssessmentPage() {
 
     try {
       await completeAssessment(assessmentId)
-      setIsComplete(true)
       
-      // If in intensive mode, mark assessment as complete
-      if (isIntensiveMode) {
-        const { markIntensiveStep } = await import('@/lib/intensive/checklist')
-        const success = await markIntensiveStep('assessment_completed')
-        
-        if (success) {
-          // Don't auto-redirect - let user see results and navigate manually
-          console.log('Assessment completed in intensive mode')
-        }
-      }
+      // Redirect to results page - intensive step will be marked there
+      router.push(`/assessment/${assessmentId}/results`)
     } catch (error) {
       console.error('Failed to complete assessment:', error)
     }
@@ -561,28 +575,22 @@ export default function AssessmentPage() {
     )
   }
 
-  if (isComplete && assessmentId && progress) {
-    // Show results summary
+  if (isComplete && assessmentId && assessmentData) {
+    // Get step info for intensive mode
+    const currentStep = getStepInfo('assessment')
+    const nextStep = getNextStep('assessment')
+    
+    // Show results summary with real assessment data and responses
     return (
       <div className="min-h-screen bg-black">
-        <ResultsSummary
-          assessment={{
-            id: assessmentId,
-            user_id: '',
-            status: 'completed',
-            total_score: Object.values(progress.categories).reduce((sum, cat) => sum + (cat.answered * 10), 0),
-            max_possible_score: totalQuestions * 10,
-            overall_percentage: progress.overall.percentage,
-            category_scores: Object.entries(progress.categories).reduce((acc, [key, val]) => ({
-              ...acc,
-              [key]: val.answered * 10
-            }), {}),
-            green_line_status: {},
-            started_at: new Date(),
-            created_at: new Date(),
-            updated_at: new Date()
-          } as any}
-        />
+        <Container size="xl">
+          <Stack gap="lg">
+            <ResultsSummary
+              assessment={assessmentData}
+              responses={assessmentResponses || undefined}
+            />
+          </Stack>
+        </Container>
       </div>
     )
   }
@@ -642,6 +650,7 @@ export default function AssessmentPage() {
           </Card>
         )}
 
+        {/* DEV ONLY: Fill with Test Data Button */}
         {/* VIVA Tip */}
         <div className="bg-secondary-500/10 border border-secondary-500/30 rounded-xl p-4">
           <p className="text-xs text-neutral-300 leading-relaxed text-center">

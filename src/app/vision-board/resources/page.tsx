@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import {
   Container,
@@ -9,18 +10,62 @@ import {
   Inline,
   Text,
   PageHero,
+  IntensiveCompletionBanner,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
+import { createClient } from '@/lib/supabase/client'
 import { Image, Eye, Sparkles, Plus } from 'lucide-react'
 
 const VISION_BOARD_VIDEO =
   'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
 
 export default function VisionBoardResourcesPage() {
+  const [isIntensiveMode, setIsIntensiveMode] = useState(false)
+  const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
+  const [completedAt, setCompletedAt] = useState<string | null>(null)
+
+  useEffect(() => {
+    checkIntensiveMode()
+  }, [])
+
+  const checkIntensiveMode = async () => {
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: checklist } = await supabase
+        .from('intensive_checklist')
+        .select('id, vision_board_completed, vision_board_completed_at')
+        .eq('user_id', user.id)
+        .in('status', ['pending', 'in_progress'])
+        .maybeSingle()
+
+      if (checklist) {
+        setIsIntensiveMode(true)
+        if (checklist.vision_board_completed) {
+          setIsAlreadyCompleted(true)
+          setCompletedAt(checklist.vision_board_completed_at)
+        }
+      }
+    } catch (err) {
+      console.error('Error checking intensive mode:', err)
+    }
+  }
+
   return (
     <Container size="xl">
-      <Stack gap="xl">
+      <Stack gap="lg">
+        {/* Completion Banner - Shows when step is already complete in intensive mode */}
+        {isIntensiveMode && isAlreadyCompleted && completedAt && (
+          <IntensiveCompletionBanner 
+            stepTitle="Create Vision Board"
+            completedAt={completedAt}
+          />
+        )}
+
         <PageHero
+          eyebrow={isIntensiveMode ? "ACTIVATION INTENSIVE • STEP 10 OF 14" : undefined}
           title="Vision Board Resources"
           subtitle="Learn how to create and use your digital vision board for manifestation"
         >
@@ -33,17 +78,28 @@ export default function VisionBoardResourcesPage() {
           </div>
           
           <div className="grid grid-cols-2 md:flex md:flex-row gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
-            <Button variant="ghost" size="sm" asChild className="w-full md:w-auto md:flex-none">
-              <Link href="/vision-board">
-                See All
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" asChild className="w-full md:w-auto md:flex-none flex items-center gap-2">
-              <Link href="/vision-board/new">
-                <Plus className="w-4 h-4" />
-                Add Item
-              </Link>
-            </Button>
+            {isAlreadyCompleted ? (
+              <Button variant="primary" size="sm" asChild className="w-full md:w-auto md:flex-none flex items-center gap-2">
+                <Link href="/vision-board">
+                  <Eye className="w-4 h-4" />
+                  View Vision Board
+                </Link>
+              </Button>
+            ) : (
+              <>
+                <Button variant="primary" size="sm" asChild className="w-full md:w-auto md:flex-none flex items-center gap-2">
+                  <Link href="/vision-board/ideas">
+                    <Sparkles className="w-4 h-4" />
+                    Get Ideas
+                  </Link>
+                </Button>
+                <Button variant="ghost" size="sm" asChild className="w-full md:w-auto md:flex-none">
+                  <Link href="/vision-board">
+                    View Board
+                  </Link>
+                </Button>
+              </>
+            )}
           </div>
         </PageHero>
 
@@ -166,9 +222,9 @@ export default function VisionBoardResourcesPage() {
             </p>
             <Inline gap="sm" justify="center" className="flex-wrap">
               <Button variant="primary" size="sm" className="justify-center" asChild>
-                <Link href="/vision-board/new">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Your First Item
+                <Link href="/vision-board/ideas">
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Get Ideas
                 </Link>
               </Button>
               <Button variant="outline" size="sm" className="justify-center" asChild>

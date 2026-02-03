@@ -13,9 +13,10 @@ import {
   PageHero,
   Spinner,
   Badge,
+  IntensiveCompletionBanner,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
-import { ArrowRight, Music, Mic, Sparkles, Volume2, Rocket } from 'lucide-react'
+import { ArrowRight, Music, Mic, Sparkles, Volume2, Rocket, Headphones } from 'lucide-react'
 
 // Placeholder video URL - replace with actual intro video
 const AUDIO_GENERATE_VIDEO =
@@ -28,6 +29,8 @@ export default function AudioGenerateNewPage() {
   const [activeVisionId, setActiveVisionId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [isIntensiveMode, setIsIntensiveMode] = useState(false)
+  const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
+  const [completedAt, setCompletedAt] = useState<string | null>(null)
 
   useEffect(() => {
     checkActiveVision()
@@ -43,15 +46,21 @@ export default function AudioGenerateNewPage() {
         return
       }
 
-      // Check if in intensive mode
+      // Check if in intensive mode and step completion
       const { data: checklist } = await supabase
         .from('intensive_checklist')
-        .select('id')
+        .select('id, audio_generated, audio_generated_at')
         .eq('user_id', user.id)
         .in('status', ['pending', 'in_progress'])
         .maybeSingle()
 
-      setIsIntensiveMode(!!checklist)
+      if (checklist) {
+        setIsIntensiveMode(true)
+        if (checklist.audio_generated) {
+          setIsAlreadyCompleted(true)
+          setCompletedAt(checklist.audio_generated_at)
+        }
+      }
 
       // Find active vision
       const { data: activeVision } = await supabase
@@ -97,18 +106,20 @@ export default function AudioGenerateNewPage() {
 
   return (
     <Container size="xl">
-      <Stack gap="xl">
+      <Stack gap="lg">
+        {/* Completion Banner - Shows when step is already complete in intensive mode */}
+        {isIntensiveMode && isAlreadyCompleted && completedAt && (
+          <IntensiveCompletionBanner 
+            stepTitle="Generate Vision Audio"
+            completedAt={completedAt}
+          />
+        )}
+
         <PageHero
-          eyebrow={isIntensiveMode ? "ACTIVATION INTENSIVE - STEP 7" : "THE LIFE I CHOOSE"}
+          eyebrow={isIntensiveMode ? "ACTIVATION INTENSIVE • STEP 7 OF 14" : "THE LIFE I CHOOSE"}
           title="Generate Vision Audio"
           subtitle="Transform your Life Vision into powerful voice audio that speaks directly to your subconscious."
         >
-          {isIntensiveMode && (
-            <Badge variant="premium">
-              <Rocket className="w-4 h-4 mr-2" />
-              Step 7 of 14
-            </Badge>
-          )}
 
           <div>
             <OptimizedVideo
@@ -119,27 +130,39 @@ export default function AudioGenerateNewPage() {
           </div>
 
           <div className="flex flex-col gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
-            <Button 
-              variant="primary" 
-              size="sm" 
-              onClick={handleGetStarted}
-              disabled={isNavigating || !activeVisionId}
-              className="w-full md:w-auto"
-            >
-              {isNavigating ? (
-                <>
-                  <Spinner variant="primary" size="sm" className="mr-2" />
-                  Loading...
-                </>
-              ) : (
-                <>
-                  <ArrowRight className="mr-2 h-4 w-4" />
-                  Generate My Vision Audio
-                </>
-              )}
-            </Button>
+            {isAlreadyCompleted ? (
+              <Button 
+                variant="primary" 
+                size="sm" 
+                onClick={() => router.push(activeVisionId ? `/life-vision/${activeVisionId}/audio/sets` : '/life-vision')}
+                className="w-full md:w-auto"
+              >
+                <Headphones className="mr-2 h-4 w-4" />
+                Listen to Audio Sets
+              </Button>
+            ) : (
+              <Button 
+                variant="primary" 
+                size="sm" 
+                onClick={handleGetStarted}
+                disabled={isNavigating || !activeVisionId}
+                className="w-full md:w-auto"
+              >
+                {isNavigating ? (
+                  <>
+                    <Spinner variant="primary" size="sm" className="mr-2" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight className="mr-2 h-4 w-4" />
+                    Generate My Vision Audio
+                  </>
+                )}
+              </Button>
+            )}
             {error && <p className="text-sm text-red-400">{error}</p>}
-            {!activeVisionId && !error && (
+            {!activeVisionId && !error && !isAlreadyCompleted && (
               <p className="text-sm text-neutral-400">
                 You need an active Life Vision to generate audio.{' '}
                 <button 
@@ -224,25 +247,37 @@ export default function AudioGenerateNewPage() {
               enhance it with your own voice, music, and frequencies in the next steps.
             </p>
             <div className="flex flex-col gap-2 md:gap-4 justify-center items-center">
-              <Button 
-                variant="primary" 
-                size="sm" 
-                onClick={handleGetStarted}
-                disabled={isNavigating || !activeVisionId}
-                className="w-full md:w-auto"
-              >
-                {isNavigating ? (
-                  <>
-                    <Spinner variant="primary" size="sm" className="mr-2" />
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    <ArrowRight className="mr-2 h-4 w-4" />
-                    Start Generating
-                  </>
-                )}
-              </Button>
+              {isAlreadyCompleted ? (
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={() => router.push(activeVisionId ? `/life-vision/${activeVisionId}/audio/sets` : '/life-vision')}
+                  className="w-full md:w-auto"
+                >
+                  <Headphones className="mr-2 h-4 w-4" />
+                  Listen to Audio Sets
+                </Button>
+              ) : (
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={handleGetStarted}
+                  disabled={isNavigating || !activeVisionId}
+                  className="w-full md:w-auto"
+                >
+                  {isNavigating ? (
+                    <>
+                      <Spinner variant="primary" size="sm" className="mr-2" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowRight className="mr-2 h-4 w-4" />
+                      Start Generating
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </Stack>
         </Card>

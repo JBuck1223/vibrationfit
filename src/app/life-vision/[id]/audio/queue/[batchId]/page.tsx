@@ -6,7 +6,7 @@ import { Container, Card, Button, Badge, Spinner, Stack } from '@/lib/design-sys
 import { createClient } from '@/lib/supabase/client'
 import { CheckCircle, Clock, AlertCircle, ArrowLeft, Play, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
-import { getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
+import { getVisionCategoryLabel, VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
 type BatchStatus = 'pending' | 'processing' | 'completed' | 'partial_success' | 'failed'
 
@@ -260,11 +260,30 @@ export default function AudioQueuePage({
     }
     
     // Load actual tracks if audio sets exist
-    if (batchData.audio_set_ids && batchData.audio_set_ids.length > 0) {
+    let audioSetIds = batchData.audio_set_ids || []
+    
+    // Fallback: if audio_set_ids is empty but batch is processing, try to find the audio set
+    // Custom mixes create audio sets with variant pattern 'custom-{batchId prefix}'
+    if (audioSetIds.length === 0 && batchData.metadata?.custom_mix) {
+      const customVariantPrefix = `custom-${batchId.slice(0, 8)}`
+      const { data: foundSets } = await supabase
+        .from('audio_sets')
+        .select('id')
+        .eq('vision_id', visionId)
+        .eq('voice_id', batchData.voice_id)
+        .like('variant', `${customVariantPrefix}%`)
+        .limit(1)
+      
+      if (foundSets && foundSets.length > 0) {
+        audioSetIds = foundSets.map(s => s.id)
+      }
+    }
+    
+    if (audioSetIds.length > 0) {
       const { data: tracksData } = await supabase
         .from('audio_tracks')
         .select('id, section_key, status, mix_status, created_at, audio_set_id, audio_url, voice_id, s3_key')
-        .in('audio_set_id', batchData.audio_set_ids)
+        .in('audio_set_id', audioSetIds)
         .order('created_at', { ascending: true })
 
       if (tracksData) {
@@ -272,7 +291,7 @@ export default function AudioQueuePage({
         const { data: setsData } = await supabase
           .from('audio_sets')
           .select('id, name, variant')
-          .in('id', batchData.audio_set_ids)
+          .in('id', audioSetIds)
 
         const setMap = new Map(setsData?.map(s => [s.id, { name: s.name, variant: s.variant }]) || [])
 
@@ -287,8 +306,13 @@ export default function AudioQueuePage({
           }
           
           // Find and replace the placeholder entry
+          // Handle custom variant matching: batch has 'custom' but audio set has 'custom-{batchId}'
+          const isCustomVariant = variant.startsWith('custom')
           const index = expectedTracks.findIndex(
-            et => et.sectionKey === track.section_key && et.variant === variant
+            et => et.sectionKey === track.section_key && (
+              et.variant === variant || 
+              (isCustomVariant && et.variant === 'custom')
+            )
           )
           
           if (index >= 0) {
@@ -309,6 +333,16 @@ export default function AudioQueuePage({
         }
       }
     }
+    
+    // Sort tracks by the canonical category order (forward -> conclusion)
+    const categoryOrder = new Map<string, number>(
+      VISION_CATEGORIES.map((cat) => [cat.key, cat.order])
+    )
+    expectedTracks.sort((a, b) => {
+      const orderA = categoryOrder.get(a.sectionKey) ?? 99
+      const orderB = categoryOrder.get(b.sectionKey) ?? 99
+      return orderA - orderB
+    })
     
     setTracks(expectedTracks)
 

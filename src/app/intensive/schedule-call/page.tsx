@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Calendar, CheckCircle } from 'lucide-react'
+import { Calendar, CheckCircle, Video, Loader2 } from 'lucide-react'
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
+import { ReadOnlySection } from '@/components/IntensiveStepCompletedBanner'
+import { IntensiveCompletionBanner } from '@/lib/design-system/components'
 
 import { 
   Container, 
@@ -16,49 +18,103 @@ import {
   PageHero
 } from '@/lib/design-system/components'
 
-interface TimeSlot {
-  id?: string
-  date: string
+// Types
+interface AvailableSlot {
+  staff_id: string
+  staff_name: string
   time: string
-  available: boolean
-  max_bookings?: number
-  current_bookings?: number
-  event_type?: string
+  date: string
 }
+
+interface AvailableStaff {
+  id: string
+  display_name: string
+  default_buffer_minutes: number
+  availability: {
+    [day: string]: {
+      enabled: boolean
+      start: string
+      end: string
+    }
+  }
+}
+
+interface CalendarEvent {
+  staff_id: string
+  scheduled_at: string
+  end_at: string
+}
+
+const EVENT_TYPE = 'intensive_calibration'
+const SLOT_DURATION = 45 // minutes
+const MEETING_TYPE = 'video' as const
 
 export default function ScheduleCallPage() {
   const router = useRouter()
+  const supabase = createClient()
+  
   const [loading, setLoading] = useState(true)
+  const [loadingSlots, setLoadingSlots] = useState(false)
   const [saving, setSaving] = useState(false)
   const [intensiveId, setIntensiveId] = useState<string | null>(null)
+  
+  // Date/time selection
   const [selectedDate, setSelectedDate] = useState<string>('')
   const [selectedTime, setSelectedTime] = useState<string>('')
+  const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null)
+  
+  // Available data
+  const [availableStaff, setAvailableStaff] = useState<AvailableStaff[]>([])
+  const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([])
+  const [availableDates, setAvailableDates] = useState<string[]>([])
+  
+  // Contact info
   const [contactInfo, setContactInfo] = useState({
     email: '',
     phone: '',
     timezone: 'America/New_York'
   })
-  const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([])
+
+  // Format phone number as (XXX) XXX-XXXX
+  const formatPhoneNumber = (value: string): string => {
+    if (!value) return ''
+    const cleaned = value.replace(/\D/g, '')
+    const limited = cleaned.slice(0, 10)
+    
+    if (limited.length <= 3) {
+      return limited
+    } else if (limited.length <= 6) {
+      return `(${limited.slice(0, 3)}) ${limited.slice(3)}`
+    } else {
+      return `(${limited.slice(0, 3)}) ${limited.slice(3, 6)}-${limited.slice(6)}`
+    }
+  }
+  
+  // Completion states
+  const [isAlreadyScheduled, setIsAlreadyScheduled] = useState(false)
+  const [scheduledTime, setScheduledTime] = useState<string | null>(null)
+  const [scheduledAt, setScheduledAt] = useState<string | null>(null)
 
   useEffect(() => {
-    loadIntensiveData()
-    loadAvailableSlots()
+    loadInitialData()
   }, [])
 
-  const loadIntensiveData = async () => {
+  useEffect(() => {
+    if (selectedDate) {
+      loadSlotsForDate(selectedDate)
+    }
+  }, [selectedDate])
+
+  const loadInitialData = async () => {
     try {
-      const supabase = createClient()
-      
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         router.push('/auth/login')
         return
       }
 
-      // Check for super_admin access
       const { isSuperAdmin } = await checkSuperAdminAccess(supabase)
 
-      // Get active intensive
       const { data: intensiveData, error: intensiveError } = await supabase
         .from('intensive_purchases')
         .select('*')
@@ -67,7 +123,6 @@ export default function ScheduleCallPage() {
         .single()
 
       if (intensiveError || !intensiveData) {
-        // Allow super_admin to access without enrollment
         if (isSuperAdmin) {
           setIntensiveId('super-admin-test-mode')
         } else {
@@ -78,126 +133,181 @@ export default function ScheduleCallPage() {
         setIntensiveId(intensiveData.id)
       }
 
-      // Get user profile for contact info
-      const { data: profileData, error: profileError } = await supabase
-        .from('user_profiles')
-        .select('email, phone, first_name, last_name')
-        .eq('user_id', user.id)
+      const { data: checklistData } = await supabase
+        .from('intensive_checklist')
+        .select('call_scheduled, call_scheduled_at, call_scheduled_time')
+        .eq('intensive_id', intensiveData?.id || 'super-admin-test-mode')
+        .single()
+      
+      if (checklistData?.call_scheduled) {
+        setIsAlreadyScheduled(true)
+        setScheduledAt(checklistData.call_scheduled_at)
+        setScheduledTime(checklistData.call_scheduled_time)
+      }
+
+      // Get user account for contact info (primary source)
+      const { data: accountData } = await supabase
+        .from('user_accounts')
+        .select('email, phone')
+        .eq('id', user.id)
         .single()
 
-      if (profileError) {
-        console.log('Profile error:', profileError)
-      }
+      // Priority: user_accounts > auth user
+      const rawPhone = accountData?.phone || ''
+      setContactInfo(prev => ({
+        ...prev,
+        email: accountData?.email || user.email || '',
+        phone: formatPhoneNumber(rawPhone)
+      }))
 
-      if (profileData) {
-        setContactInfo(prev => ({
-          ...prev,
-          email: profileData.email || user.email || '',
-          phone: profileData.phone || prev.phone || ''
-        }))
-      } else {
-        // Fallback to auth user email
-        setContactInfo(prev => ({
-          ...prev,
-          email: user.email || prev.email || ''
-        }))
-      }
+      await loadAvailableStaff()
+      
     } catch (error) {
-      console.error('Error loading intensive:', error)
+      console.error('Error loading data:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  const loadAvailableSlots = async () => {
+  const loadAvailableStaff = async () => {
     try {
-      const supabase = createClient()
+      const { data: staffData, error } = await supabase
+        .from('staff')
+        .select('id, display_name, default_buffer_minutes, availability, event_types')
+        .eq('is_active', true)
+        .contains('event_types', [EVENT_TYPE])
+
+      if (error) throw error
+
+      setAvailableStaff(staffData || [])
+      const dates = generateAvailableDates(staffData || [])
+      setAvailableDates(dates)
       
-      // Try generic time_slots table first, fallback to intensive_time_slots
-      const { data: genericSlots, error: genericError } = await supabase
-        .from('time_slots')
-        .select('*')
-        .eq('event_type', 'intensive_calibration')
-        .eq('available', true)
-        .gte('date', new Date().toISOString().split('T')[0])
-        .order('date', { ascending: true })
-        .order('time', { ascending: true })
-
-      if (!genericError && genericSlots) {
-        const formattedSlots: TimeSlot[] = genericSlots.map(slot => ({
-          id: slot.id,
-          date: slot.date,
-          time: slot.time,
-          available: slot.available && (slot.current_bookings || 0) < (slot.max_bookings || 1),
-          max_bookings: slot.max_bookings,
-          current_bookings: slot.current_bookings,
-          event_type: slot.event_type
-        }))
-        setAvailableSlots(formattedSlots)
-        return
-      }
-
-      // Fallback to intensive_time_slots
-      const { data: intensiveSlots, error: intensiveError } = await supabase
-        .from('intensive_time_slots')
-        .select('*')
-        .eq('available', true)
-        .gte('date', new Date().toISOString().split('T')[0])
-        .order('date', { ascending: true })
-        .order('time', { ascending: true })
-
-      if (!intensiveError && intensiveSlots) {
-        const formattedSlots: TimeSlot[] = intensiveSlots.map(slot => ({
-          id: slot.id,
-          date: slot.date,
-          time: slot.time,
-          available: slot.available && (slot.current_bookings || 0) < (slot.max_bookings || 1),
-          max_bookings: slot.max_bookings,
-          current_bookings: slot.current_bookings
-        }))
-        setAvailableSlots(formattedSlots)
-        return
-      }
-
-      // If both fail, generate client-side slots as fallback
-      console.warn('Could not load slots from database, using fallback')
-      generateTimeSlotsFallback()
     } catch (error) {
-      console.error('Error loading available slots:', error)
-      generateTimeSlotsFallback()
+      console.error('Error loading staff:', error)
     }
   }
 
-  const generateTimeSlotsFallback = () => {
-    const slots: TimeSlot[] = []
-    const now = new Date()
+  const generateAvailableDates = (staffList: AvailableStaff[]): string[] => {
+    const dates: string[] = []
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
     
-    // Generate slots for next 14 days
-    for (let i = 1; i <= 14; i++) {
-      const date = new Date(now)
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+    
+    for (let i = 1; i <= 28; i++) {
+      const date = new Date(today)
       date.setDate(date.getDate() + i)
+      const dayName = dayNames[date.getDay()]
       
-      // Skip weekends for now (simple version)
-      if (date.getDay() === 0 || date.getDay() === 6) continue
+      const hasAvailableStaff = staffList.some(staff => 
+        staff.availability?.[dayName]?.enabled === true
+      )
       
-      const dateStr = date.toISOString().split('T')[0]
+      if (hasAvailableStaff) {
+        dates.push(date.toISOString().split('T')[0])
+      }
       
-      // Available times: 9am-5pm EST in 1-hour blocks
-      const times = [
-        '09:00', '10:00', '11:00', '12:00', 
-        '13:00', '14:00', '15:00', '16:00', '17:00'
-      ]
-      
-      times.forEach(time => {
-        slots.push({
-          date: dateStr,
-          time: time,
-          available: true
-        })
-      })
+      if (dates.length >= 7) break
     }
     
-    setAvailableSlots(slots)
+    return dates
+  }
+
+  const loadSlotsForDate = async (date: string) => {
+    setLoadingSlots(true)
+    setSelectedTime('')
+    setSelectedStaffId(null)
+    
+    try {
+      const dateObj = new Date(date + 'T00:00:00')
+      const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+      const dayName = dayNames[dateObj.getDay()]
+      
+      // Get ALL blocking calendar events for this date (bookings + personal + travel)
+      const { data: blockingEvents } = await supabase
+        .from('calendar_events')
+        .select('staff_id, scheduled_at, end_at')
+        .gte('scheduled_at', `${date}T00:00:00`)
+        .lt('end_at', `${date}T23:59:59`)
+        .eq('blocks_availability', true)
+        .neq('status', 'cancelled')
+
+      // Build map of blocked times per staff
+      const blockedByStaff = new Map<string, Array<{ start: number, end: number }>>()
+      
+      blockingEvents?.forEach((event: CalendarEvent) => {
+        if (!event.staff_id) return
+        const startTime = new Date(event.scheduled_at)
+        const endTime = new Date(event.end_at)
+        
+        // Only consider events on this specific date
+        if (startTime.toISOString().split('T')[0] !== date) return
+        
+        const startMinutes = startTime.getHours() * 60 + startTime.getMinutes()
+        const endMinutes = endTime.getHours() * 60 + endTime.getMinutes()
+        
+        if (!blockedByStaff.has(event.staff_id)) {
+          blockedByStaff.set(event.staff_id, [])
+        }
+        blockedByStaff.get(event.staff_id)!.push({ start: startMinutes, end: endMinutes })
+      })
+
+      // Generate available slots for each staff member
+      const slots: AvailableSlot[] = []
+      
+      for (const staff of availableStaff) {
+        const dayAvail = staff.availability?.[dayName]
+        if (!dayAvail?.enabled) continue
+        
+        const [startH, startM] = dayAvail.start.split(':').map(Number)
+        const [endH, endM] = dayAvail.end.split(':').map(Number)
+        
+        let currentMinutes = startH * 60 + startM
+        const endMinutes = endH * 60 + endM
+        const staffBlocked = blockedByStaff.get(staff.id) || []
+        const buffer = staff.default_buffer_minutes || 15
+        
+        while (currentMinutes + SLOT_DURATION <= endMinutes) {
+          const slotEnd = currentMinutes + SLOT_DURATION
+          
+          // Check if this slot conflicts with any blocked time
+          const hasConflict = staffBlocked.some(blocked => 
+            (currentMinutes < blocked.end && slotEnd > blocked.start)
+          )
+          
+          if (!hasConflict) {
+            const hours = Math.floor(currentMinutes / 60)
+            const mins = currentMinutes % 60
+            const timeStr = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
+            
+            slots.push({
+              staff_id: staff.id,
+              staff_name: staff.display_name,
+              time: timeStr,
+              date: date
+            })
+          }
+          
+          currentMinutes += SLOT_DURATION + buffer
+        }
+      }
+      
+      slots.sort((a, b) => a.time.localeCompare(b.time))
+      setAvailableSlots(slots)
+      
+    } catch (error) {
+      console.error('Error loading slots:', error)
+    } finally {
+      setLoadingSlots(false)
+    }
+  }
+
+  const formatTime12h = (time: string) => {
+    const [hours, minutes] = time.split(':').map(Number)
+    const period = hours >= 12 ? 'PM' : 'AM'
+    const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours
+    return `${displayHours}:${String(minutes).padStart(2, '0')} ${period}`
   }
 
   const handleSchedule = async () => {
@@ -208,120 +318,128 @@ export default function ScheduleCallPage() {
 
     setSaving(true)
     try {
-      const supabase = createClient()
-      
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      // Combine date and time
       const scheduledDateTime = new Date(`${selectedDate}T${selectedTime}:00`)
-
-      // Find the selected slot and update its booking count
-      const selectedSlot = availableSlots.find(
-        slot => slot.date === selectedDate && slot.time === selectedTime && slot.available
-      )
-
-      if (!selectedSlot) {
-        alert('This time slot is no longer available. Please select another.')
-        setSaving(false)
-        return
-      }
-
-      // Update time slot booking count (try generic table first)
-      if (selectedSlot.id) {
-        // Try to update generic time_slots
-        const { data: genericSlot } = await supabase
-          .from('time_slots')
-          .select('current_bookings, max_bookings')
-          .eq('id', selectedSlot.id)
-          .single()
-
-        if (genericSlot) {
-          const newCount = (genericSlot.current_bookings || 0) + 1
-          if (newCount >= (genericSlot.max_bookings || 1)) {
-            await supabase
-              .from('time_slots')
-              .update({ available: false, current_bookings: newCount })
-              .eq('id', selectedSlot.id)
-          } else {
-            await supabase
-              .from('time_slots')
-              .update({ current_bookings: newCount })
-              .eq('id', selectedSlot.id)
-          }
+      
+      // Find staff for this slot
+      let assignedStaffId = selectedStaffId
+      let assignedStaffName = ''
+      
+      if (!assignedStaffId) {
+        const availableSlot = availableSlots.find(s => s.time === selectedTime)
+        if (availableSlot) {
+          assignedStaffId = availableSlot.staff_id
+          assignedStaffName = availableSlot.staff_name
         } else {
-          // Try intensive_time_slots
-          const { data: intensiveSlot } = await supabase
-            .from('intensive_time_slots')
-            .select('current_bookings, max_bookings')
-            .eq('id', selectedSlot.id)
+          const { data: staffData } = await supabase
+            .from('staff')
+            .select('id, display_name')
+            .eq('is_active', true)
+            .contains('event_types', [EVENT_TYPE])
+            .limit(1)
             .single()
-
-          if (intensiveSlot) {
-            const newCount = (intensiveSlot.current_bookings || 0) + 1
-            if (newCount >= (intensiveSlot.max_bookings || 1)) {
-              await supabase
-                .from('intensive_time_slots')
-                .update({ available: false, current_bookings: newCount })
-                .eq('id', selectedSlot.id)
-            } else {
-              await supabase
-                .from('intensive_time_slots')
-                .update({ current_bookings: newCount })
-                .eq('id', selectedSlot.id)
-            }
+          
+          if (staffData) {
+            assignedStaffId = staffData.id
+            assignedStaffName = staffData.display_name
           }
         }
+      } else {
+        const staffMember = availableStaff.find(s => s.id === assignedStaffId)
+        assignedStaffName = staffMember?.display_name || ''
       }
 
-      // Create video session via API
-      const sessionResponse = await fetch('/api/video/sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: 'Activation Intensive - Calibration Call',
+      // Create video session (only if meeting type is video)
+      let videoSessionId = null
+      if (MEETING_TYPE === 'video') {
+        const sessionResponse = await fetch('/api/video/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: assignedStaffName 
+              ? `Calibration Call with ${assignedStaffName}`
+              : 'Activation Intensive - Calibration Call',
+            description: 'Your personalized 1-on-1 vision calibration session',
+            session_type: 'one_on_one',
+            scheduled_at: scheduledDateTime.toISOString(),
+            scheduled_duration_minutes: SLOT_DURATION,
+            participant_email: contactInfo.email,
+            enable_recording: true,
+            enable_waiting_room: true,
+            staff_id: assignedStaffId,
+            event_type: EVENT_TYPE
+          }),
+        })
+
+        if (!sessionResponse.ok) {
+          const sessionError = await sessionResponse.json()
+          throw new Error(sessionError.error || 'Failed to create video session')
+        }
+
+        const sessionData = await sessionResponse.json()
+        videoSessionId = sessionData.session.id
+        console.log('Video session created:', videoSessionId, sessionData.session.daily_room_url)
+      }
+
+      // Create booking (this auto-creates calendar_event via trigger)
+      const { data: booking, error: bookingError } = await supabase
+        .from('bookings')
+        .insert({
+          staff_id: assignedStaffId,
+          user_id: user.id,
+          event_type: EVENT_TYPE,
+          title: assignedStaffName 
+            ? `Calibration Call with ${assignedStaffName}`
+            : 'Activation Intensive - Calibration Call',
           description: 'Your personalized 1-on-1 vision calibration session',
-          session_type: 'one_on_one',
           scheduled_at: scheduledDateTime.toISOString(),
-          scheduled_duration_minutes: 45,
-          participant_email: contactInfo.email,
-          enable_recording: true,
-          enable_waiting_room: true,
-        }),
-      })
+          duration_minutes: SLOT_DURATION,
+          timezone: contactInfo.timezone,
+          meeting_type: MEETING_TYPE,
+          video_session_id: videoSessionId,
+          contact_email: contactInfo.email,
+          contact_phone: contactInfo.phone,
+          status: 'confirmed'
+        })
+        .select()
+        .single()
 
-      if (!sessionResponse.ok) {
-        const sessionError = await sessionResponse.json()
-        throw new Error(sessionError.error || 'Failed to create video session')
+      if (bookingError) {
+        console.error('Booking insert error:', bookingError)
+        throw new Error(`Booking failed: ${bookingError.message}`)
       }
+      
+      console.log('Booking created:', booking.id, 'with video_session_id:', booking.video_session_id)
 
-      const sessionData = await sessionResponse.json()
-
-      // Update checklist with session info
-      const { error } = await supabase
+      // Update intensive checklist
+      const { error: checklistError } = await supabase
         .from('intensive_checklist')
         .update({
           call_scheduled: true,
           call_scheduled_at: new Date().toISOString(),
-          call_scheduled_time: scheduledDateTime.toISOString(),
-          video_session_id: sessionData.session.id
+          call_scheduled_time: scheduledDateTime.toISOString()
         })
         .eq('intensive_id', intensiveId)
 
-      if (error) throw error
+      if (checklistError) {
+        console.error('Checklist update error:', checklistError)
+        throw new Error(`Checklist update failed: ${checklistError.message}`)
+      }
 
-      // TODO: Send calendar invite and confirmation email
-      // This would integrate with email service
-
-      alert('Call scheduled successfully! You\'ll receive a calendar invite shortly.')
-      router.push('/intensive/dashboard')
+      router.push('/intensive/dashboard?completed=schedule_call')
+      
     } catch (error) {
-      console.error('Error scheduling call:', error)
-      alert('Failed to schedule call. Please try again.')
+      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error)
+      console.error('Error scheduling call:', errorMessage, error)
+      alert(`Failed to schedule call: ${errorMessage}`)
     } finally {
       setSaving(false)
     }
   }
+
+  const uniqueTimes = [...new Set(availableSlots.map(s => s.time))].sort()
 
   if (loading) {
     return (
@@ -331,14 +449,65 @@ export default function ScheduleCallPage() {
     )
   }
 
-  // Group slots by date
-  const slotsByDate = availableSlots.reduce((acc, slot) => {
-    if (!acc[slot.date]) acc[slot.date] = []
-    acc[slot.date].push(slot)
-    return acc
-  }, {} as Record<string, TimeSlot[]>)
+  const formatScheduledTime = (dateStr: string) => {
+    const date = new Date(dateStr)
+    return date.toLocaleString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    })
+  }
 
-  const dates = Object.keys(slotsByDate).slice(0, 7) // Show next 7 available days
+  if (isAlreadyScheduled && scheduledAt) {
+    return (
+      <Container size="lg">
+        <Stack gap="lg">
+          <IntensiveCompletionBanner 
+            stepTitle="Book Calibration Call"
+            completedAt={scheduledAt}
+          />
+
+          <PageHero
+            eyebrow="ACTIVATION INTENSIVE • STEP 12 OF 14"
+            title="Book Calibration Call"
+            subtitle="Schedule your 1-on-1 vision calibration session"
+          />
+          
+          <ReadOnlySection
+            title="Your Scheduled Call"
+            helperText="This booking is confirmed. Check your email for the calendar invite."
+          >
+            <Card className="p-6 bg-neutral-800/50">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 bg-primary-500/20 border-2 border-primary-500/40 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Calendar className="w-6 h-6 text-primary-500" />
+                </div>
+                <div>
+                  <p className="text-lg font-semibold text-white">
+                    {scheduledTime ? formatScheduledTime(scheduledTime) : 'Scheduled'}
+                  </p>
+                  <p className="text-sm text-neutral-400">{SLOT_DURATION}-minute video call</p>
+                </div>
+              </div>
+              <div className="mt-6 flex justify-center">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => router.push('/sessions')}
+                >
+                  <Video className="w-4 h-4 mr-2" />
+                  View My Meetings
+                </Button>
+              </div>
+            </Card>
+          </ReadOnlySection>
+        </Stack>
+      </Container>
+    )
+  }
 
   return (
     <Container size="lg">
@@ -348,12 +517,12 @@ export default function ScheduleCallPage() {
           subtitle="Book your personalized 1-on-1 session to activate your transformation"
         />
 
-        {/* What to Expect - 2x2 Grid */}
+        {/* What to Expect */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
           <div className="flex items-start gap-3 p-4 bg-neutral-900/50 border border-neutral-800 rounded-xl">
             <CheckCircle className="w-5 h-5 text-primary-500 mt-0.5 flex-shrink-0" />
             <div>
-              <h3 className="text-sm md:text-base font-semibold mb-1">45-Minute Deep Dive</h3>
+              <h3 className="text-sm md:text-base font-semibold mb-1">{SLOT_DURATION}-Minute Deep Dive</h3>
               <p className="text-xs md:text-sm text-neutral-400">
                 Review your profile, assessment results, and vision in detail
               </p>
@@ -391,24 +560,27 @@ export default function ScheduleCallPage() {
           </div>
         </div>
 
-        {/* Scheduling Card - Full Width Below */}
+        {/* Scheduling Card */}
         <Card>
-            <h2 className="text-lg md:text-xl lg:text-2xl font-bold mb-4 md:mb-6">Select Date & Time</h2>
+          <h2 className="text-lg md:text-xl lg:text-2xl font-bold mb-4 md:mb-6">Select Date & Time</h2>
 
+          {availableStaff.length === 0 ? (
+            <div className="text-center py-8 text-neutral-400">
+              <p>No availability found. Please check back later or contact support.</p>
+            </div>
+          ) : (
+            <>
               {/* Date Selection */}
               <div className="mb-6">
                 <label className="block text-sm font-medium mb-3">Choose a Date</label>
-                <div className="grid grid-cols-2 gap-3">
-                  {dates.map(date => {
-                    const dateObj = new Date(date)
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {availableDates.map(date => {
+                    const dateObj = new Date(date + 'T00:00:00')
                     const isSelected = selectedDate === date
                     return (
                       <button
                         key={date}
-                        onClick={() => {
-                          setSelectedDate(date)
-                          setSelectedTime('') // Reset time when date changes
-                        }}
+                        onClick={() => setSelectedDate(date)}
                         className={`
                           p-4 rounded-xl border-2 transition-all
                           ${isSelected 
@@ -433,29 +605,41 @@ export default function ScheduleCallPage() {
               {selectedDate && (
                 <div className="mb-6">
                   <label className="block text-sm font-medium mb-3">Choose a Time (EST)</label>
-                  <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto">
-                    {slotsByDate[selectedDate]?.map(slot => {
-                      const isSelected = selectedTime === slot.time
-                      return (
-                        <button
-                          key={slot.time}
-                          onClick={() => setSelectedTime(slot.time)}
-                          disabled={!slot.available}
-                          className={`
-                            px-3 py-2 rounded-lg border transition-all text-sm
-                            ${isSelected 
-                              ? 'border-primary-500 bg-primary-500 text-white' 
-                              : slot.available
-                                ? 'border-neutral-700 hover:border-primary-500'
-                                : 'border-neutral-800 opacity-50 cursor-not-allowed'
-                            }
-                          `}
-                        >
-                          {slot.time}
-                        </button>
-                      )
-                    })}
-                  </div>
+                  {loadingSlots ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="w-6 h-6 animate-spin text-primary-500" />
+                      <span className="ml-2 text-neutral-400">Loading available times...</span>
+                    </div>
+                  ) : uniqueTimes.length === 0 ? (
+                    <div className="text-center py-8 text-neutral-400">
+                      No times available on this date. Please select another date.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      {uniqueTimes.map(time => {
+                        const isSelected = selectedTime === time
+                        return (
+                          <button
+                            key={time}
+                            onClick={() => {
+                              setSelectedTime(time)
+                              const slot = availableSlots.find(s => s.time === time)
+                              setSelectedStaffId(slot?.staff_id || null)
+                            }}
+                            className={`
+                              px-3 py-2 rounded-lg border transition-all text-sm
+                              ${isSelected 
+                                ? 'border-primary-500 bg-primary-500 text-black font-semibold' 
+                                : 'border-neutral-700 hover:border-primary-500'
+                              }
+                            `}
+                          >
+                            {formatTime12h(time)}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -474,23 +658,10 @@ export default function ScheduleCallPage() {
                   <label className="block text-sm font-medium mb-2">Phone Number</label>
                   <Input
                     type="tel"
-                    placeholder="+1 (555) 123-4567"
+                    placeholder="(555) 123-4567"
                     value={contactInfo.phone}
-                    onChange={(e) => setContactInfo(prev => ({ ...prev, phone: e.target.value }))}
+                    onChange={(e) => setContactInfo(prev => ({ ...prev, phone: formatPhoneNumber(e.target.value) }))}
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Timezone</label>
-                  <select
-                    value={contactInfo.timezone}
-                    onChange={(e) => setContactInfo(prev => ({ ...prev, timezone: e.target.value }))}
-                    className="w-full px-4 py-3 bg-[#1F1F1F] border-2 border-[#333] rounded-xl focus:border-primary-500 focus:outline-none transition-all"
-                  >
-                    <option value="America/New_York">Eastern (EST)</option>
-                    <option value="America/Chicago">Central (CST)</option>
-                    <option value="America/Denver">Mountain (MST)</option>
-                    <option value="America/Los_Angeles">Pacific (PST)</option>
-                  </select>
                 </div>
               </div>
 
@@ -518,9 +689,10 @@ export default function ScheduleCallPage() {
               <p className="text-xs text-neutral-500 text-center mt-4">
                 You&apos;ll receive a calendar invite via email
               </p>
+            </>
+          )}
         </Card>
       </Stack>
     </Container>
   )
 }
-

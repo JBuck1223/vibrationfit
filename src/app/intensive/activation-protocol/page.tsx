@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, Rocket, CheckCircle, Music, ImageIcon, BookOpen, Calendar } from 'lucide-react'
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
+import { ReadOnlySection } from '@/components/IntensiveStepCompletedBanner'
+import { IntensiveCompletionBanner } from '@/lib/design-system/components'
 
 import { 
   Container, 
@@ -21,6 +23,11 @@ export default function ActivationProtocolPage() {
   const [loading, setLoading] = useState(true)
   const [completing, setCompleting] = useState(false)
   const [intensiveId, setIntensiveId] = useState<string | null>(null)
+  
+  // Completion states
+  const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
+  const [justCompleted, setJustCompleted] = useState(false)
+  const [completedAt, setCompletedAt] = useState<string | null>(null)
 
   useEffect(() => {
     loadData()
@@ -45,6 +52,18 @@ export default function ActivationProtocolPage() {
 
       if (intensiveData) {
         setIntensiveId(intensiveData.id)
+        
+        // Check if already completed
+        const { data: checklistData } = await supabase
+          .from('intensive_checklist')
+          .select('activation_protocol_completed, activation_protocol_completed_at')
+          .eq('intensive_id', intensiveData.id)
+          .single()
+        
+        if (checklistData?.activation_protocol_completed) {
+          setIsAlreadyCompleted(true)
+          setCompletedAt(checklistData.activation_protocol_completed_at)
+        }
       }
 
     } catch (error) {
@@ -59,27 +78,18 @@ export default function ActivationProtocolPage() {
     try {
       const supabase = createClient()
       
-      // Mark activation protocol complete
+      const completedTime = new Date().toISOString()
+      
+      // Mark activation protocol complete (step 13 only - unlock is step 14)
       await supabase
         .from('intensive_checklist')
         .update({
           activation_protocol_completed: true,
-          activation_protocol_completed_at: new Date().toISOString()
+          activation_protocol_completed_at: completedTime
         })
         .eq('intensive_id', intensiveId)
 
-      // Mark intensive as complete
-      await supabase
-        .from('intensive_purchases')
-        .update({
-          completion_status: 'completed',
-          completed_at: new Date().toISOString()
-        })
-        .eq('id', intensiveId)
-
-      // TODO: Activate their membership tier here
-      // This would trigger the continuity billing to start
-
+      // Redirect to dashboard to show progress
       router.push('/intensive/dashboard')
     } catch (error) {
       console.error('Error completing intensive:', error)
@@ -93,6 +103,57 @@ export default function ActivationProtocolPage() {
     return (
       <Container size="lg" className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
         <Spinner size="lg" />
+      </Container>
+    )
+  }
+
+  // SCENARIO B: User is revisiting - protocol already completed
+  if (isAlreadyCompleted && !justCompleted && completedAt) {
+    return (
+      <Container size="lg">
+        <Stack gap="lg">
+          {/* Completion Banner */}
+          <IntensiveCompletionBanner 
+            stepTitle="Activation Protocol"
+            completedAt={completedAt}
+          />
+
+          {/* Page Hero - Normal page title */}
+          <PageHero
+            eyebrow="ACTIVATION INTENSIVE • STEP 13 OF 14"
+            title="Activation Protocol"
+            subtitle="Complete your custom activation protocol"
+          />
+          
+          <ReadOnlySection
+            title="Your Activation Protocol"
+            helperText="You've completed the intensive! Your full platform access is now active."
+          >
+            <Card className="p-6 bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-primary-500/30">
+              <div className="text-center">
+                <Rocket className="w-12 h-12 text-primary-500 mx-auto mb-4" />
+                <h3 className="text-xl font-bold mb-2">Full Platform Unlocked!</h3>
+                <p className="text-neutral-300 mb-6">
+                  Continue your daily practice with the resources below.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <Button variant="ghost" size="sm" onClick={() => router.push('/life-vision')} className="justify-center">
+                    <Music className="w-4 h-4 mr-2" />
+                    Vision Audio
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => router.push('/vision-board')} className="justify-center">
+                    <ImageIcon className="w-4 h-4 mr-2" />
+                    Vision Board
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => router.push('/journal')} className="justify-center">
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    Journal
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </ReadOnlySection>
+        </Stack>
       </Container>
     )
   }
@@ -114,7 +175,7 @@ export default function ActivationProtocolPage() {
           </Button>
           <Badge variant="premium" className="text-xs md:text-sm">
             <Rocket className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
-            Step 10 of 10 - Final Step!
+            Step 13 of 14 - Final Step!
           </Badge>
         </PageHero>
 

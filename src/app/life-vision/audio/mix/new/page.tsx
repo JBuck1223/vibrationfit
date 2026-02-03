@@ -13,6 +13,7 @@ import {
   PageHero,
   Spinner,
   Badge,
+  IntensiveCompletionBanner,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowRight, Sliders, Music, Brain, Waves, Headphones, Rocket } from 'lucide-react'
@@ -28,6 +29,8 @@ export default function AudioMixNewPage() {
   const [activeVisionId, setActiveVisionId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [isIntensiveMode, setIsIntensiveMode] = useState(false)
+  const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
+  const [completedAt, setCompletedAt] = useState<string | null>(null)
 
   useEffect(() => {
     checkActiveVision()
@@ -43,15 +46,21 @@ export default function AudioMixNewPage() {
         return
       }
 
-      // Check if in intensive mode
+      // Check if in intensive mode and step completion
       const { data: checklist } = await supabase
         .from('intensive_checklist')
-        .select('id')
+        .select('id, audios_generated, audios_generated_at')
         .eq('user_id', user.id)
         .in('status', ['pending', 'in_progress'])
         .maybeSingle()
 
-      setIsIntensiveMode(!!checklist)
+      if (checklist) {
+        setIsIntensiveMode(true)
+        if (checklist.audios_generated) {
+          setIsAlreadyCompleted(true)
+          setCompletedAt(checklist.audios_generated_at)
+        }
+      }
 
       // Find active vision
       const { data: activeVision } = await supabase
@@ -97,18 +106,20 @@ export default function AudioMixNewPage() {
 
   return (
     <Container size="xl">
-      <Stack gap="xl">
+      <Stack gap="lg">
+        {/* Completion Banner - Shows when step is already complete in intensive mode */}
+        {isIntensiveMode && isAlreadyCompleted && completedAt && (
+          <IntensiveCompletionBanner 
+            stepTitle="Create Your Audio Mix"
+            completedAt={completedAt}
+          />
+        )}
+
         <PageHero
-          eyebrow={isIntensiveMode ? "ACTIVATION INTENSIVE - STEP 9" : "THE LIFE I CHOOSE"}
+          eyebrow={isIntensiveMode ? "ACTIVATION INTENSIVE • STEP 9 OF 14" : "THE LIFE I CHOOSE"}
           title="Create Your Audio Mix"
           subtitle="Blend your vision audio with ambient soundscapes and healing frequencies for the ultimate manifestation experience."
         >
-          {isIntensiveMode && (
-            <Badge variant="premium">
-              <Rocket className="w-4 h-4 mr-2" />
-              Step 9 of 14
-            </Badge>
-          )}
 
           <div>
             <OptimizedVideo
@@ -119,27 +130,39 @@ export default function AudioMixNewPage() {
           </div>
 
           <div className="flex flex-col gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
-            <Button 
-              variant="primary" 
-              size="sm" 
-              onClick={handleGetStarted}
-              disabled={isNavigating || !activeVisionId}
-              className="w-full md:w-auto"
-            >
-              {isNavigating ? (
-                <>
-                  <Spinner variant="primary" size="sm" className="mr-2" />
-                  Loading...
-                </>
-              ) : (
-                <>
-                  <Sliders className="mr-2 h-4 w-4" />
-                  Create My Audio Mix
-                </>
-              )}
-            </Button>
+            {isAlreadyCompleted ? (
+              <Button 
+                variant="primary" 
+                size="sm" 
+                onClick={() => router.push(activeVisionId ? `/life-vision/${activeVisionId}/audio/sets` : '/life-vision')}
+                className="w-full md:w-auto"
+              >
+                <Headphones className="mr-2 h-4 w-4" />
+                Listen to Audio Sets
+              </Button>
+            ) : (
+              <Button 
+                variant="primary" 
+                size="sm" 
+                onClick={handleGetStarted}
+                disabled={isNavigating || !activeVisionId}
+                className="w-full md:w-auto"
+              >
+                {isNavigating ? (
+                  <>
+                    <Spinner variant="primary" size="sm" className="mr-2" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <Sliders className="mr-2 h-4 w-4" />
+                    Create My Audio Mix
+                  </>
+                )}
+              </Button>
+            )}
             {error && <p className="text-sm text-red-400">{error}</p>}
-            {!activeVisionId && !error && (
+            {!activeVisionId && !error && !isAlreadyCompleted && (
               <p className="text-sm text-neutral-400">
                 You need an active Life Vision with generated audio to create a mix.
               </p>
@@ -258,25 +281,37 @@ export default function AudioMixNewPage() {
               is unlimited - experiment to find what resonates most deeply with you.
             </p>
             <div className="flex flex-col gap-2 md:gap-4 justify-center items-center">
-              <Button 
-                variant="primary" 
-                size="sm" 
-                onClick={handleGetStarted}
-                disabled={isNavigating || !activeVisionId}
-                className="w-full md:w-auto"
-              >
-                {isNavigating ? (
-                  <>
-                    <Spinner variant="primary" size="sm" className="mr-2" />
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    <Sliders className="mr-2 h-4 w-4" />
-                    Start Mixing
-                  </>
-                )}
-              </Button>
+              {isAlreadyCompleted ? (
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={() => router.push(activeVisionId ? `/life-vision/${activeVisionId}/audio/sets` : '/life-vision')}
+                  className="w-full md:w-auto"
+                >
+                  <Headphones className="mr-2 h-4 w-4" />
+                  Listen to Audio Sets
+                </Button>
+              ) : (
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={handleGetStarted}
+                  disabled={isNavigating || !activeVisionId}
+                  className="w-full md:w-auto"
+                >
+                  {isNavigating ? (
+                    <>
+                      <Spinner variant="primary" size="sm" className="mr-2" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <Sliders className="mr-2 h-4 w-4" />
+                      Start Mixing
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </Stack>
         </Card>

@@ -13,7 +13,8 @@ import {
   PageHero,
   RadioGroup,
   Badge,
-  Checkbox
+  Checkbox,
+  IntensiveCompletionBanner
 } from '@/lib/design-system/components'
 import { MediaRecorderComponent } from '@/components/MediaRecorder'
 import { 
@@ -103,6 +104,8 @@ export default function IntensiveUnlockPage() {
   const [testimonialTranscript, setTestimonialTranscript] = useState<string | null>(null)
   const [formData, setFormData] = useState<UnlockFormData>(initializeFormData)
   const [showTextInput, setShowTextInput] = useState(false)
+  const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
+  const [completedAt, setCompletedAt] = useState<string | null>(null)
 
   // Load data on mount
   useEffect(() => {
@@ -139,6 +142,18 @@ export default function IntensiveUnlockPage() {
         }
       } else {
         setIntensiveId(intensiveData.id)
+        
+        // Check if unlock step is already completed
+        const { data: checklistData } = await supabase
+          .from('intensive_checklist')
+          .select('unlock_completed, unlock_completed_at')
+          .eq('intensive_id', intensiveData.id)
+          .maybeSingle()
+
+        if (checklistData?.unlock_completed) {
+          setIsAlreadyCompleted(true)
+          setCompletedAt(checklistData.unlock_completed_at)
+        }
       }
       
       const activeIntensiveId = intensiveData?.id || 'super-admin-test-mode'
@@ -348,8 +363,8 @@ export default function IntensiveUnlockPage() {
         })
         .eq('intensive_id', intensiveId)
 
-      // Redirect to success or next step
-      router.push('/intensive/calibration')
+      // Redirect to dashboard to show progress with completion toast
+      router.push('/intensive/dashboard?completed=unlock')
 
     } catch (error) {
       console.error('Error submitting form:', error)
@@ -614,8 +629,16 @@ export default function IntensiveUnlockPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
+        {/* Completion Banner - Shows when step is already complete */}
+        {isAlreadyCompleted && completedAt && (
+          <IntensiveCompletionBanner 
+            stepTitle="Full Platform Unlock"
+            completedAt={completedAt}
+          />
+        )}
+
         <PageHero
-          eyebrow="ACTIVATION INTENSIVE"
+          eyebrow="ACTIVATION INTENSIVE • STEP 14 OF 14"
           title="Unlock Your Results"
           subtitle="Let's measure your transformation and capture your journey"
         />

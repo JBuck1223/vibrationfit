@@ -36,6 +36,7 @@ export {
   CreatedDateBadge,
   Input,
   DatePicker,
+  TimePicker,
   Radio,
   RadioGroup,
   Checkbox,

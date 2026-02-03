@@ -45,6 +45,7 @@ export default function IntensiveStartPage() {
   const [starting, setStarting] = useState(false)
   const [checklistId, setChecklistId] = useState<string | null>(null)
   const [alreadyStarted, setAlreadyStarted] = useState(false)
+  const [startedAt, setStartedAt] = useState<string | null>(null)
 
   useEffect(() => {
     checkIntensiveStatus()
@@ -84,6 +85,7 @@ export default function IntensiveStartPage() {
       if (fullChecklist?.started_at) {
         // Already started - show completed state
         setAlreadyStarted(true)
+        setStartedAt(fullChecklist.started_at)
       }
 
       setChecklistId(checklist.id)
@@ -102,15 +104,15 @@ export default function IntensiveStartPage() {
       const result = await startIntensive(checklistId)
       
       if (result.success) {
-        // Refresh the page to show completed state
-        window.location.reload()
+        // Redirect to dashboard with started param for toast
+        router.push('/intensive/dashboard?started=true')
       } else {
         alert('Failed to start intensive: ' + result.error)
+        setStarting(false)
       }
     } catch (error) {
       console.error('Error starting intensive:', error)
       alert('Failed to start intensive. Please try again.')
-    } finally {
       setStarting(false)
     }
   }
@@ -189,14 +191,11 @@ export default function IntensiveStartPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {/* Hero */}
+        {/* Hero - Always shows original welcome content */}
         <PageHero
           eyebrow="72-HOUR ACTIVATION INTENSIVE"
-          title={alreadyStarted ? "Your Intensive Has Begun" : "Welcome to Your Transformation"}
-          subtitle={alreadyStarted 
-            ? "You've started your transformation journey. Continue to your dashboard to track your progress."
-            : "Your 14-step journey to creating and activating the life you truly desire begins now."
-          }
+          title="Welcome to Your Transformation"
+          subtitle="Your 14-step journey to creating and activating the life you truly desire begins now."
         >
           <div className="mx-auto w-full max-w-3xl">
             <OptimizedVideo
@@ -270,33 +269,6 @@ export default function IntensiveStartPage() {
           </Stack>
         </Card>
 
-        {/* What You'll Create */}
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
-          <Stack gap="lg">
-            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-              What You'll Create
-            </Text>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              <div className="text-center p-4">
-                <div className="text-3xl md:text-4xl font-bold text-primary-500 mb-2">12</div>
-                <div className="text-xs md:text-sm text-neutral-400">Life Categories<br/>in Your Vision</div>
-              </div>
-              <div className="text-center p-4">
-                <div className="text-3xl md:text-4xl font-bold text-secondary-500 mb-2">3+</div>
-                <div className="text-xs md:text-sm text-neutral-400">Personalized<br/>Audio Tracks</div>
-              </div>
-              <div className="text-center p-4">
-                <div className="text-3xl md:text-4xl font-bold text-accent-500 mb-2">1</div>
-                <div className="text-xs md:text-sm text-neutral-400">Complete<br/>Vision Board</div>
-              </div>
-              <div className="text-center p-4">
-                <div className="text-3xl md:text-4xl font-bold text-[#FFB701] mb-2">1</div>
-                <div className="text-xs md:text-sm text-neutral-400">Calibration<br/>Call</div>
-              </div>
-            </div>
-          </Stack>
-        </Card>
-
         {/* How It Works */}
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
           <Stack gap="lg">
@@ -346,58 +318,6 @@ export default function IntensiveStartPage() {
           </Stack>
         </Card>
 
-        {/* Start CTA */}
-        <Card variant="outlined" className="bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-primary-500/30">
-          <Stack gap="md" className="text-center py-4">
-            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em]">
-              {alreadyStarted ? "Journey In Progress" : "Ready to Begin?"}
-            </Text>
-            <p className="text-sm md:text-base text-neutral-300 leading-relaxed max-w-2xl mx-auto">
-              {alreadyStarted 
-                ? "Your transformation is underway. Head to your dashboard to continue your 14-step journey."
-                : "Your transformation starts with a single click. When you're ready to commit to your 72-hour journey, press the button below to begin."
-              }
-            </p>
-            <div className="flex flex-col gap-3 items-center">
-              {alreadyStarted ? (
-                <Button 
-                  variant="primary"
-                  size="lg"
-                  onClick={() => router.push('/intensive/dashboard')}
-                  className="w-full sm:w-auto px-8"
-                >
-                  <ArrowRight className="w-5 h-5 mr-2" />
-                  Go to Dashboard
-                </Button>
-              ) : (
-                <>
-                  <Button 
-                    variant="primary"
-                    size="lg"
-                    onClick={handleStart}
-                    disabled={starting}
-                    className="w-full sm:w-auto px-8"
-                  >
-                    {starting ? (
-                      <>
-                        <Spinner size="sm" className="mr-2" />
-                        Starting...
-                      </>
-                    ) : (
-                      <>
-                        <Rocket className="w-5 h-5 mr-2" />
-                        Start My Activation Intensive
-                      </>
-                    )}
-                  </Button>
-                  <p className="text-xs text-neutral-500 max-w-md">
-                    Your 72-hour timer begins when you click above.
-                  </p>
-                </>
-              )}
-            </div>
-          </Stack>
-        </Card>
       </Stack>
     </Container>
   )

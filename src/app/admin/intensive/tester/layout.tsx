@@ -1,14 +1,14 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Imagination',
+  title: 'Intensive Tester | Admin',
+  description: 'Test and advance intensive users through steps',
 };
 
-export default function ImaginationLayout({
+export default function IntensiveTesterLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return <>{children}</>;
 }
-

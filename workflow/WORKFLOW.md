@@ -3,9 +3,10 @@
 ## 🎯 Branch Structure
 
 ```
-jordan (Machine 1) ──┐
-                     ├──→ dev (staging) ──→ main (production → Vercel)
-Vanessa (Machine 2) ─┘
+jordan (Machine 1) ──────┐
+                         ├──→ dev (staging) ──→ main (production → Vercel)
+Vanessa (Machine 2) ─────┤
+jvmacmini (JV Mac Mini) ─┘
 ```
 
 ## 🚀 Common Commands
@@ -32,7 +33,7 @@ Vanessa (Machine 2) ─┘
 
 ## 📋 Manual Workflow
 
-### Daily Work on Machine 1
+### Daily Work on Machine 1 (Jordan)
 ```bash
 git checkout jordan
 git pull origin jordan
@@ -42,7 +43,7 @@ git commit -m "your message"
 git push origin jordan
 ```
 
-### Daily Work on Machine 2
+### Daily Work on Machine 2 (Vanessa)
 ```bash
 git checkout Vanessa
 git pull origin Vanessa
@@ -52,17 +53,28 @@ git commit -m "your message"
 git push origin Vanessa
 ```
 
+### Daily Work on JV Mac Mini
+```bash
+git checkout jvmacmini
+git pull origin jvmacmini
+# make changes
+git add -A
+git commit -m "your message"
+git push origin jvmacmini
+```
+
 ### Integration to Dev
 ```bash
-# Merge both branches to dev
+# Merge all branches to dev
 git checkout dev
 git pull origin dev
 git merge jordan
 git merge Vanessa
+git merge jvmacmini
 npm run build
 git push origin dev
 
-# Sync back to both branches
+# Sync back to all branches
 git checkout jordan
 git merge dev
 git push origin jordan
@@ -70,6 +82,10 @@ git push origin jordan
 git checkout Vanessa
 git merge dev
 git push origin Vanessa
+
+git checkout jvmacmini
+git merge dev
+git push origin jvmacmini
 ```
 
 ### Deploy to Production
@@ -94,6 +110,7 @@ git push origin main
 ✅ Dev branch created and pushed  
 ✅ Jordan branch synced with dev  
 ✅ Vanessa branch synced with dev  
+✅ JV Mac Mini branch (jvmacmini) synced with dev  
 ✅ Helper scripts installed and executable  
 
 ## 📚 Full Documentation
@@ -107,6 +124,6 @@ git push origin main
 - **dev** = Staging (test here first)
 - **jordan** = Machine 1 work
 - **Vanessa** = Machine 2 work
+- **jvmacmini** = JV Mac Mini work
 
 Always merge through dev before going to main!
-

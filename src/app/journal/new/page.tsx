@@ -18,11 +18,12 @@ import { colors } from '@/lib/design-system/tokens'
 export default function NewJournalEntryPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const isIntensiveMode = searchParams.get('intensive') === 'true'
+  const isIntensiveUrlParam = searchParams.get('intensive') === 'true'
   const supabase = createClient()
   
   const [loading, setLoading] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [isUserInIntensive, setIsUserInIntensive] = useState(false)
   const [uploadProgress, setUploadProgress] = useState({
     progress: 0,
     status: '',
@@ -48,6 +49,30 @@ export default function NewJournalEntryPage() {
       date: new Date().toLocaleDateString('en-CA') // YYYY-MM-DD format in local timezone
     }))
   }, [])
+
+  // Check if user is in intensive mode
+  useEffect(() => {
+    const checkIntensiveMode = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+
+        // Check if user has an active intensive checklist
+        const { data: checklist } = await supabase
+          .from('intensive_checklist')
+          .select('id')
+          .eq('user_id', user.id)
+          .in('status', ['pending', 'in_progress'])
+          .maybeSingle()
+
+        setIsUserInIntensive(!!checklist || isIntensiveUrlParam)
+      } catch (error) {
+        console.error('Error checking intensive mode:', error)
+      }
+    }
+    
+    checkIntensiveMode()
+  }, [isIntensiveUrlParam])
 
   const handleCategoryToggle = (category: string) => {
     setFormData(prev => ({
@@ -206,10 +231,11 @@ export default function NewJournalEntryPage() {
       setUploadProgress(prev => ({ ...prev, isVisible: false }))
 
       // If in intensive mode, mark first journal entry as complete then redirect
-      if (isIntensiveMode) {
+      if (isUserInIntensive) {
         const { markIntensiveStep } = await import('@/lib/intensive/checklist')
         await markIntensiveStep('first_journal_entry')
-        router.push('/intensive/dashboard')
+        // Redirect to dashboard to show progress with completion toast
+        router.push('/intensive/dashboard?completed=journal')
       } else {
         // Show success screen for normal mode
         setShowSuccess(true)

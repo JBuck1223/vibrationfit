@@ -561,6 +561,13 @@ export default function JournalPage() {
                       {entry.title || 'Untitled Entry'}
                     </h3>
 
+                    {/* Content Preview */}
+                    {entry.content && (
+                      <p className="text-sm text-neutral-400 line-clamp-3">
+                        {entry.content}
+                      </p>
+                    )}
+
                     {/* Categories - Show All */}
                     {entry.categories && entry.categories.length > 0 && (
                       <div className="flex flex-wrap gap-1">

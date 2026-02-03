@@ -149,14 +149,26 @@ export class AssessmentPDFGenerator extends BasePDFGenerator {
       ? new Date(this.assessment.completed_at)
       : new Date(this.assessment.created_at)
     
+    // Helper function to get ordinal suffix for day
+    const getOrdinalSuffix = (day: number): string => {
+      if (day > 3 && day < 21) return 'th' // 11th, 12th, 13th, etc.
+      switch (day % 10) {
+        case 1: return 'st'
+        case 2: return 'nd'
+        case 3: return 'rd'
+        default: return 'th'
+      }
+    }
+    
+    const day = dateCompleted.getDate()
+    const month = dateCompleted.toLocaleDateString('en-US', { month: 'long' })
+    const year = dateCompleted.getFullYear()
+    const formattedDate = `${month} ${day}${getOrdinalSuffix(day)}, ${year}`
+    
     this.doc.setFontSize(10)
     setTextColor(this.doc, PDF_COLORS.mediumGray)
     this.doc.text(
-      `Completed on ${dateCompleted.toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric'
-      })}`,
+      `Completed on ${formattedDate}`,
       this.pageWidth / 2,
       this.pageHeight - 30,
       { align: 'center' }

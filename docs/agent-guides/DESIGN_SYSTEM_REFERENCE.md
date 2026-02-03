@@ -157,7 +157,7 @@ Dark Elevation: linear-gradient(180deg, #1F1F1F, #000000)
 ### Spacing
 - **Container padding:** `px-6` (24px horizontal)
 - **Section spacing:** `mb-12` to `mb-16` (48-64px between sections)
-- **Card gaps:** `gap-6` to `gap-8` (24-32px between cards)
+- **Card gaps:** **`gap="lg"` / `gap-8` (32px) is the standard** - Use `<Stack gap="lg">` between cards
 - **Element spacing:** `space-y-4` (16px vertical rhythm)
 
 ### Typography
@@ -204,19 +204,22 @@ Dark Elevation: linear-gradient(180deg, #1F1F1F, #000000)
 
 ### Page Structure
 ```tsx
-import { PageLayout, Container, Footer } from '@/lib/design-system/components'
+import { Container, Stack, Card } from '@/lib/design-system/components'
 
 export default function Page() {
   return (
-    <PageLayout>
-      <Container size="xl" className="py-12">
-        {/* Your content */}
-      </Container>
-      <Footer />
-    </PageLayout>
+    <Container size="xl">
+      <Stack gap="lg">
+        {/* Your content - 32px gap between cards */}
+        <Card>...</Card>
+        <Card>...</Card>
+      </Stack>
+    </Container>
   )
 }
 ```
+
+**Note:** GlobalLayout wraps all pages automatically - never use `<PageLayout>` directly.
 
 ### Dashboard Grid
 ```tsx

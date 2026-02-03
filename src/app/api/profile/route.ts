@@ -3,7 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { calculateProfileCompletion } from '@/lib/utils/profile-completion'
 
 // Account-level fields that should be stored in user_accounts table (or computed from it)
-const ACCOUNT_FIELDS = ['first_name', 'last_name', 'full_name', 'email', 'phone', 'profile_picture_url', 'date_of_birth']
+// Note: full_name is excluded because it's a generated column in user_accounts (computed from first_name + last_name)
+const ACCOUNT_FIELDS = ['first_name', 'last_name', 'email', 'phone', 'profile_picture_url', 'date_of_birth']
 
 // Helper function to separate account-level fields from profile fields
 function separateAccountFields(data: any): { accountData: any, profileData: any } {
@@ -24,19 +25,20 @@ function separateAccountFields(data: any): { accountData: any, profileData: any 
 }
 
 // Helper function to update user_accounts table
+// Uses UPDATE instead of UPSERT because:
+// 1. User accounts are created during signup, so they should already exist
+// 2. RLS policy allows UPDATE but not INSERT for regular users
 async function updateUserAccount(supabase: any, userId: string, accountData: any): Promise<void> {
   if (!accountData || Object.keys(accountData).length === 0) return
   
   try {
     const { error } = await supabase
       .from('user_accounts')
-      .upsert({
-        id: userId,
+      .update({
         ...accountData,
         updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'id'
       })
+      .eq('id', userId)
     
     if (error) {
       console.error('Error updating user_accounts:', error)
@@ -62,6 +64,20 @@ function cleanProfileData(profileData: any): any {
     delete cleaned.education_level
     // If education is not already set, we could migrate the value, but for now just remove it
     // The user will need to set education again if needed
+  }
+  
+  // Remove full_name - it's a generated column in user_accounts and shouldn't be stored directly
+  if ('full_name' in cleaned) {
+    delete cleaned.full_name
+  }
+  
+  // Remove fields that don't exist in user_profiles schema
+  // These may come from fake data generators or old versions
+  const invalidProfileFields = ['health_conditions', 'medications', 'number_of_children']
+  for (const field of invalidProfileFields) {
+    if (field in cleaned) {
+      delete cleaned[field]
+    }
   }
   
   return cleaned
@@ -779,7 +795,6 @@ export async function POST(request: NextRequest) {
                 ...profileDataToUpdate,
                 is_active: true,
                 is_draft: false,
-                version_number: 1,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
               })
@@ -924,8 +939,11 @@ export async function PUT(request: NextRequest) {
       // Remove versioning fields from fieldUpdates to prevent accidental changes
       const { id, version_number, is_draft, is_active, parent_version_id, created_at, updated_at, ...safeFieldUpdates } = fieldUpdates
 
+      // Clean profile data to remove invalid fields
+      const cleanedFieldUpdates = cleanProfileData(safeFieldUpdates)
+
       // Separate and save account-level fields to user_accounts
-      const { accountData, profileData } = separateAccountFields(safeFieldUpdates)
+      const { accountData, profileData } = separateAccountFields(cleanedFieldUpdates)
       console.log('Profile API PUT: Separated fields:', {
         accountFields: Object.keys(accountData),
         profileFields: Object.keys(profileData),
@@ -984,8 +1002,15 @@ export async function PUT(request: NextRequest) {
 
       console.log('Profile API PUT: Update successful, completion:', completionPercentage)
 
+      // Merge account data back into profile response so frontend state includes those fields
+      // This ensures first_name, last_name, email, phone, date_of_birth are preserved in the UI
+      const profileWithAccount = {
+        ...profile,
+        ...accountData  // Re-add the account fields that were saved to user_accounts
+      }
+
       return NextResponse.json({
-        profile,
+        profile: profileWithAccount,
         completionPercentage,
         success: true
       })

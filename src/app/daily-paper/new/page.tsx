@@ -175,7 +175,7 @@ export default function NewDailyPaperPage() {
 
   return (
     <Container size="xl">
-      <Stack gap="xl">
+      <Stack gap="lg">
         <PageHero
           title="Daily Paper Entry"
           subtitle="Your daily practice for vibrational alignment"

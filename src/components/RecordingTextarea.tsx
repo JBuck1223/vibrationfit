@@ -358,7 +358,7 @@ export function RecordingTextarea({
         
         {/* Recording Buttons */}
         {!showRecorder && !isQuickRecording && (
-          <div className="absolute bottom-3 right-3 flex gap-2">
+          <div className="absolute bottom-3 right-1.5 flex gap-2">
             <button
               type="button"
               onClick={() => {
@@ -395,7 +395,7 @@ export function RecordingTextarea({
         
         {/* Quick Mode: Inline Recording Indicator */}
         {isQuickRecording && (
-          <div className="absolute bottom-3 right-3 flex items-center gap-2">
+          <div className="absolute bottom-3 right-1.5 flex items-center gap-2">
             <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/30 rounded-full">
               <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
               

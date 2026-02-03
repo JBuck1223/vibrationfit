@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateImage } from '@/lib/services/imageService'
+import { LIFE_CATEGORY_KEYS } from '@/lib/design-system/vision-categories'
 
 /**
  * GET /api/vision-board/items
@@ -119,6 +120,54 @@ export async function POST(request: NextRequest) {
         { error: 'Failed to create item' },
         { status: 500 }
       )
+    }
+
+    // Check if user now has items in all 12 life categories
+    // and update intensive_checklist if so
+    try {
+      // Get all user's vision board items
+      const { data: allItems } = await supabase
+        .from('vision_board_items')
+        .select('categories')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+
+      if (allItems && allItems.length > 0) {
+        // Collect all categories that have at least one item
+        const coveredCategories = new Set<string>()
+        allItems.forEach(item => {
+          if (item.categories && Array.isArray(item.categories)) {
+            item.categories.forEach((cat: string) => coveredCategories.add(cat))
+          }
+        })
+
+        // Check if all 12 life categories are covered
+        const allCategoriesCovered = LIFE_CATEGORY_KEYS.every(cat => coveredCategories.has(cat))
+
+        if (allCategoriesCovered) {
+          const now = new Date().toISOString()
+          const { error: checklistError } = await supabase
+            .from('intensive_checklist')
+            .update({
+              vision_board_completed: true,
+              vision_board_completed_at: now
+            })
+            .eq('user_id', user.id)
+            .in('status', ['pending', 'in_progress'])
+            .is('vision_board_completed', false)
+          
+          if (!checklistError) {
+            console.log('[VISION BOARD] Marked vision_board_completed in intensive_checklist')
+          } else {
+            console.log('[VISION BOARD] No intensive checklist to update (user may not be in intensive mode)')
+          }
+        } else {
+          console.log(`🎨 [VISION BOARD] ${coveredCategories.size}/${LIFE_CATEGORY_KEYS.length} categories covered`)
+        }
+      }
+    } catch (checkError) {
+      // Don't fail the request if checklist update fails
+      console.log('🎨 [VISION BOARD] Could not check/update intensive checklist:', checkError)
     }
 
     return NextResponse.json({

@@ -23,6 +23,7 @@ import { SpiritualityGrowthSection } from '../../../components/SpiritualityGrowt
 import { GivingLegacySection } from '../../../components/GivingLegacySection'
 import { UserProfile } from '@/lib/supabase/profile'
 import { Save, AlertCircle, CheckCircle, Loader2, History, Eye, Plus, ArrowLeft, Edit3, ChevronDown, ChevronLeft, ChevronRight, CheckCircle2, FileText } from 'lucide-react'
+import { calculateProfileCompletion } from '@/lib/utils/profile-completion'
 
 export default function ProfileEditPage() {
   const router = useRouter()
@@ -90,88 +91,7 @@ export default function ProfileEditPage() {
   const isLastSection = () => getCurrentSectionIndex() === profileSections.length - 1
 
   // Manual save only - no auto-save timeout needed
-
-  // Manual completion calculation with intelligent conditionals (matches API logic)
-  const calculateCompletionManually = (profileData: Partial<UserProfile>): number => {
-    if (!profileData) return 0
-
-    let totalFields = 0
-    let completedFields = 0
-
-    // Helper to check if a field has value
-    const hasValue = (field: keyof UserProfile) => {
-      const value = profileData[field]
-      if (Array.isArray(value)) return value.length > 0
-      if (typeof value === 'boolean') return true
-      return value !== null && value !== undefined && value !== ''
-    }
-
-    // Core Fields (always required)
-    const coreFields: (keyof UserProfile)[] = ['first_name', 'last_name', 'email', 'phone', 'date_of_birth', 'gender', 'profile_picture_url']
-    coreFields.forEach(field => {
-      totalFields++
-      if (hasValue(field)) completedFields++
-    })
-
-    // Relationship Fields (conditional)
-    totalFields++
-    if (hasValue('relationship_status')) {
-      completedFields++
-      if (profileData.relationship_status !== 'Single') {
-        totalFields += 2
-        if (hasValue('partner_name')) completedFields++
-        if (hasValue('relationship_length')) completedFields++
-      }
-    }
-
-    // Family Fields (conditional)
-    totalFields++
-    if (profileData.has_children !== undefined && profileData.has_children !== null) {
-      completedFields++
-      if (profileData.has_children === true) {
-        totalFields += 2
-        if (hasValue('number_of_children')) completedFields++
-        if (hasValue('children_ages')) completedFields++
-      }
-    }
-
-    // Health, Location, Career, Financial Fields
-    const healthFields: (keyof UserProfile)[] = ['units', 'height', 'weight', 'exercise_frequency']
-    const locationFields: (keyof UserProfile)[] = ['living_situation', 'time_at_location', 'city', 'state', 'postal_code', 'country']
-    const careerFields: (keyof UserProfile)[] = ['employment_type', 'occupation', 'company', 'time_in_role', 'education']
-    const financialFields: (keyof UserProfile)[] = ['currency', 'household_income', 'savings_retirement', 'assets_equity', 'consumer_debt']
-
-    ;[...healthFields, ...locationFields, ...careerFields, ...financialFields].forEach(field => {
-      totalFields++
-      if (hasValue(field)) completedFields++
-    })
-
-    // Life Category Clarity Fields (12 categories)
-    const clarityFields: (keyof UserProfile)[] = [
-      'clarity_fun', 'clarity_health', 'clarity_travel', 'clarity_love', 'clarity_family', 'clarity_social',
-      'clarity_home', 'clarity_work', 'clarity_money', 'clarity_stuff', 'clarity_giving', 'clarity_spirituality'
-    ]
-    clarityFields.forEach(field => {
-      totalFields++
-      if (hasValue(field)) completedFields++
-    })
-
-    // Structured Life Category Fields
-    const structuredFields: (keyof UserProfile)[] = [
-      'hobbies', 'leisure_time_weekly',
-      'travel_frequency', 'passport', 'countries_visited',
-      'close_friends_count', 'social_preference',
-      'lifestyle_category',
-      'spiritual_practice', 'meditation_frequency', 'personal_growth_focus',
-      'volunteer_status', 'charitable_giving', 'legacy_mindset'
-    ]
-    structuredFields.forEach(field => {
-      totalFields++
-      if (hasValue(field)) completedFields++
-    })
-
-    return totalFields > 0 ? Math.round((completedFields / totalFields) * 100) : 0
-  }
+  // Uses the single source of truth for completion calculation (from profile-completion.ts)
 
   // Fetch profile data
   useEffect(() => {
@@ -250,7 +170,7 @@ export default function ProfileEditPage() {
   // Recalculate completion percentage whenever profile changes
   useEffect(() => {
     if (Object.keys(profile).length > 0) {
-      const newPercentage = calculateCompletionManually(profile)
+      const newPercentage = calculateProfileCompletion(profile)
       setCompletionPercentage(newPercentage)
     }
   }, [profile])
@@ -364,7 +284,7 @@ export default function ProfileEditPage() {
       } else {
         console.log('Profile save failed or returned empty data, keeping current local state')
         // Keep current local state if save failed
-        setCompletionPercentage(calculateCompletionManually(profile))
+        setCompletionPercentage(calculateProfileCompletion(profile))
       }
       setSaveStatus('saved')
       setLastSaved(new Date())

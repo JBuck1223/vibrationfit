@@ -98,14 +98,15 @@ export async function POST(request: NextRequest) {
     const result = JSON.parse(payload.body)
     const mixedUrl = result.url
 
-    // Update track record with mixed version URL
+    // Update track record with mixed version URL and mix_status
     const supabase = await createClient()
     await supabase
       .from('audio_tracks')
       .update({
         mixed_audio_url: mixedUrl,
         mixed_s3_key: outputKey,
-        status: 'completed'
+        status: 'completed',
+        mix_status: 'completed'
       })
       .eq('id', trackId)
 

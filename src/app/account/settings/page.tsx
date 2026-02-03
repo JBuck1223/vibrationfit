@@ -11,6 +11,8 @@ import { ProfilePictureUpload } from '@/app/profile/components/ProfilePictureUpl
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import { IntensiveCompletionBanner } from '@/lib/design-system/components'
+import { getStepInfo, getNextStep } from '@/lib/intensive/step-mapping'
 
 // Default profile picture URL to check against
 const DEFAULT_PROFILE_PICTURE = 'https://media.vibrationfit.com/site-assets/default-avatar.png'
@@ -42,6 +44,9 @@ export default function AccountSettingsPage() {
   const [isIntensiveMode, setIsIntensiveMode] = useState(false)
   const [intensiveId, setIntensiveId] = useState<string | null>(null)
   const [showDefaultPictureModal, setShowDefaultPictureModal] = useState(false)
+  const [justCompletedStep, setJustCompletedStep] = useState(false)
+  const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
+  const [completedAt, setCompletedAt] = useState<string | null>(null)
   
   const supabase = createClient()
   const router = useRouter()
@@ -56,16 +61,38 @@ export default function AccountSettingsPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const { data: checklist } = await supabase
-        .from('intensive_checklist')
-        .select('id, intensive_id, status')
+      // Check for active intensive purchase (same approach as intake page)
+      const { data: intensiveData } = await supabase
+        .from('intensive_purchases')
+        .select('id')
         .eq('user_id', user.id)
-        .in('status', ['pending', 'in_progress'])
+        .eq('completion_status', 'pending')
         .maybeSingle()
 
-      if (checklist) {
+      if (intensiveData) {
         setIsIntensiveMode(true)
-        setIntensiveId(checklist.intensive_id)
+        setIntensiveId(intensiveData.id)
+        
+        // Step 1 (Account Settings) completion is tracked via user_accounts table
+        // Check if user has filled out required fields
+        const { data: accountData } = await supabase
+          .from('user_accounts')
+          .select('first_name, last_name, email, phone, updated_at')
+          .eq('id', user.id)
+          .single()
+
+        if (accountData) {
+          const hasFirstName = accountData.first_name && accountData.first_name.trim().length > 0
+          const hasLastName = accountData.last_name && accountData.last_name.trim().length > 0
+          const hasEmail = accountData.email && accountData.email.trim().length > 0
+          const hasPhone = accountData.phone && accountData.phone.replace(/\D/g, '').length >= 10
+          
+          if (hasFirstName && hasLastName && hasEmail && hasPhone) {
+            setIsAlreadyCompleted(true)
+            // Use updated_at as the completion timestamp (best available approximation)
+            setCompletedAt(accountData.updated_at)
+          }
+        }
       }
     } catch (error) {
       console.error('Error checking intensive mode:', error)
@@ -112,10 +139,9 @@ export default function AccountSettingsPage() {
       if (error) {
         console.error('Error marking intensive settings complete:', error)
       } else {
-        toast.success('Settings complete! Redirecting to your Intensive Dashboard...')
-        setTimeout(() => {
-          router.push('/intensive/dashboard')
-        }, 1500)
+        // Show completion banner instead of redirecting
+        setJustCompletedStep(true)
+        toast.success('Account settings saved!')
       }
     } catch (error) {
       console.error('Error in markIntensiveSettingsComplete:', error)
@@ -330,7 +356,25 @@ export default function AccountSettingsPage() {
           .from('user_accounts')
           .update({ email })
           .eq('id', user.id)
+      }
+      
+      // In intensive mode, redirect back to dashboard after save (if required fields are filled)
+      if (isIntensiveMode) {
+        const hasFirstName = firstName.trim().length > 0
+        const hasLastName = lastName.trim().length > 0
+        const hasEmail = email.trim().length > 0
+        const hasPhone = phone.replace(/\D/g, '').length >= 10
         
+        if (hasFirstName && hasLastName && hasEmail && hasPhone) {
+          // Redirect to dashboard with completion param for toast
+          // Don't show toast here - dashboard will show completion toast
+          router.push('/intensive/dashboard?completed=settings')
+          return
+        }
+      }
+      
+      // Show toast only if NOT redirecting to dashboard
+      if (email !== originalAccount?.email) {
         toast.success('Account updated! Check your email to confirm the address change.')
       } else {
         toast.success('Account updated successfully')
@@ -370,26 +414,34 @@ export default function AccountSettingsPage() {
     )
   }
 
+  // Get step info for banners
+  const currentStep = getStepInfo('settings')
+  const nextStep = getNextStep('settings')
+
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {/* Page Hero */}
+        {/* TODO: Add "just completed" banner for Scenario A (Continue to Next Step) */}
+
+        {/* Completion Banner - Shows above PageHero when step is already complete in intensive mode */}
+        {isIntensiveMode && isAlreadyCompleted && completedAt && !justCompletedStep && (
+          <IntensiveCompletionBanner 
+            stepTitle="Account Settings"
+            completedAt={completedAt}
+          />
+        )}
+
+        {/* Page Hero - Always shows, with intensive eyebrow when in intensive mode */}
         <PageHero
-          eyebrow={isIntensiveMode ? "ACTIVATION INTENSIVE - STEP 1" : undefined}
+          eyebrow={isIntensiveMode ? "ACTIVATION INTENSIVE • STEP 1 OF 14" : undefined}
           title="Account Settings"
           subtitle="Manage your personal information and preferences"
         >
-          <div className="flex flex-col sm:flex-row gap-3 justify-center w-full">
-            {isIntensiveMode && (
-              <Badge variant="premium">
-                <Rocket className="w-4 h-4 mr-2" />
-                Step 1 of 14
-              </Badge>
-            )}
+          {!isIntensiveMode && (
             <Button variant="outline" onClick={() => router.push('/account')}>
               Account Dashboard
             </Button>
-          </div>
+          )}
         </PageHero>
 
         {/* Personal Information */}
@@ -525,32 +577,6 @@ export default function AccountSettingsPage() {
           </div>
         </Card>
 
-        {/* Intensive Mode - Continue Button */}
-        {isIntensiveMode && (
-          <Card className="p-6 bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-primary-500/30">
-            <div className="text-center">
-              <h3 className="text-xl font-bold text-white mb-3">Ready to Continue?</h3>
-              <p className="text-sm md:text-base text-neutral-300 mb-6">
-                Complete your settings to move to the next step in your Activation Intensive.
-              </p>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleContinueToIntensive}
-                disabled={!firstName.trim() || !lastName.trim() || !email.trim() || phone.replace(/\D/g, '').length < 10}
-                className="w-full sm:w-auto"
-              >
-                <Rocket className="w-4 h-4 mr-2" />
-                Continue to Intensive Dashboard
-              </Button>
-              {(!firstName.trim() || !lastName.trim() || !email.trim() || phone.replace(/\D/g, '').length < 10) && (
-                <p className="text-xs text-neutral-500 mt-3">
-                  Please fill in First Name, Last Name, Email, and Phone to continue.
-                </p>
-              )}
-            </div>
-          </Card>
-        )}
       </Stack>
 
       {/* Opt-Out Confirmation Modal */}

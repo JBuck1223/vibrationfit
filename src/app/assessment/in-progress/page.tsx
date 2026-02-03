@@ -4,7 +4,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter, useSearchParams, useParams } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { Button, Spinner, Card, Container, Stack, PageHero } from '@/lib/design-system/components'
 import { ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react'
 import { assessmentQuestions, filterQuestionsByProfile, categoryMetadata } from '@/lib/assessment/questions'
@@ -21,8 +21,6 @@ import ResultsSummary from '../components/ResultsSummary'
 
 export default function AssessmentPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const isIntensiveMode = searchParams.get('intensive') === 'true'
   const params = useParams()
   const routeAssessmentId = Array.isArray(params?.id)
     ? params?.id[0]
@@ -30,6 +28,7 @@ export default function AssessmentPage() {
   
   // State
   const [assessmentId, setAssessmentId] = useState<string | null>(null)
+  const [isIntensiveMode, setIsIntensiveMode] = useState(false)
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0)
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [responses, setResponses] = useState<Map<string, number>>(new Map())
@@ -161,6 +160,28 @@ export default function AssessmentPage() {
           }
         } catch (profileError) {
           console.warn('Unable to fetch profile for assessment filters:', profileError)
+        }
+
+        // Check if user is in intensive mode
+        try {
+          const { createClient } = await import('@/lib/supabase/client')
+          const supabase = createClient()
+          const { data: { user } } = await supabase.auth.getUser()
+          
+          if (user) {
+            const { data: intensiveData } = await supabase
+              .from('intensive_purchases')
+              .select('id')
+              .eq('user_id', user.id)
+              .in('completion_status', ['pending', 'in_progress'])
+              .maybeSingle()
+            
+            if (intensiveData) {
+              setIsIntensiveMode(true)
+            }
+          }
+        } catch (intensiveError) {
+          console.warn('Unable to check intensive mode:', intensiveError)
         }
 
         // Verify assessment exists and load responses
@@ -510,18 +531,9 @@ export default function AssessmentPage() {
 
     try {
       await completeAssessment(assessmentId)
-      setIsComplete(true)
       
-      // If in intensive mode, mark assessment as complete
-      if (isIntensiveMode) {
-        const { markIntensiveStep } = await import('@/lib/intensive/checklist')
-        const success = await markIntensiveStep('assessment_completed')
-        
-        if (success) {
-          // Don't auto-redirect - let user see results and navigate manually
-          console.log('Assessment completed in intensive mode')
-        }
-      }
+      // Redirect to results page - intensive step will be marked there
+      router.push(`/assessment/${assessmentId}/results`)
     } catch (error) {
       console.error('Failed to complete assessment:', error)
     }

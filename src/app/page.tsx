@@ -389,7 +389,7 @@ export default function HomePage() {
   }
 
   return (
-      <Stack gap="xl">
+      <Stack gap="lg">
         
         {/* Hero Section */}
         <section>

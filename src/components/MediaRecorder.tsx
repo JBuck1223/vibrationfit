@@ -150,9 +150,18 @@ export function MediaRecorderComponent({
           }
           return prev
         })
-      } catch (err) {
-        console.error('Failed to load audio devices:', err)
-        // Continue without mic selector - will use default
+      } catch (err: any) {
+        // Handle specific error types gracefully
+        if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+          // No microphone found - this is OK, user will see error when they try to record
+          console.log('[MediaRecorder] No microphone found on this device')
+        } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          // Permission denied - user will be prompted again when they try to record
+          console.log('[MediaRecorder] Microphone permission not granted yet')
+        } else {
+          console.error('[MediaRecorder] Failed to load audio devices:', err)
+        }
+        // Continue without mic selector - will use default or show error when recording starts
       }
     }
     

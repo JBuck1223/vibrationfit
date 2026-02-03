@@ -48,6 +48,7 @@ import {
   Wand2,
   Activity,
   Rocket,
+  Video,
   Wrench,
   TrendingUp,
   UserPlus,
@@ -141,6 +142,17 @@ export const userNavigation: NavItem[] = [
     children: [
       { name: 'My Journal', href: '/journal', icon: Zap },
       { name: 'New Entry', href: '/journal/new', icon: Plus },
+    ]
+  },
+  {
+    name: 'Vibe Tribe',
+    href: '/vibe-tribe',
+    icon: UsersRound,
+    hasDropdown: true,
+    description: 'Connect with the VibrationFit community',
+    children: [
+      { name: 'Hub', href: '/vibe-tribe', icon: Compass },
+      { name: 'My Activity', href: '/vibe-tribe/activity', icon: Activity },
     ]
   },
   {
@@ -326,17 +338,33 @@ export const adminNavigation: NavItem[] = [
   },
   
   // ============================================================================
+  // SCHEDULING (Universal)
+  // ============================================================================
+  {
+    name: 'Scheduling',
+    href: '/admin/scheduling',
+    icon: Calendar,
+    requiresAdmin: true,
+    hasDropdown: true,
+    description: 'Manage availability for all event types',
+    children: [
+      { name: 'All Schedules', href: '/admin/scheduling', icon: Calendar, description: 'Manage all scheduling' },
+      { name: 'Sessions', href: '/admin/sessions', icon: Video, description: 'View booked sessions' },
+    ]
+  },
+
+  // ============================================================================
   // INTENSIVE PROGRAM
   // ============================================================================
   {
     name: 'Intensive Program',
-    href: '/admin/intensive/schedule-call',
+    href: '/admin/intensive/tester',
     icon: Rocket,
     requiresAdmin: true,
     hasDropdown: true,
     description: 'Manage Activation Intensive program',
     children: [
-      { name: 'Schedule Calls', href: '/admin/intensive/schedule-call', icon: Calendar, description: 'Schedule intensive coaching calls' },
+      { name: 'Intensive Tester', href: '/admin/intensive/tester', icon: Rocket, description: 'Test intensive flows' },
     ]
   },
   
@@ -558,6 +586,12 @@ export function isNavItemActive(
     
     if (item.href === '/assessment') {
       if (pathname.startsWith('/assessment/')) {
+        return true
+      }
+    }
+    
+    if (item.href === '/vibe-tribe') {
+      if (pathname.startsWith('/vibe-tribe/')) {
         return true
       }
     }

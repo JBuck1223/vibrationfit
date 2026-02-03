@@ -58,6 +58,15 @@ export const PAGE_CLASSIFICATIONS = {
     '/journal/[id]',
     '/journal/[id]/edit',
     
+    // Vibe Tribe Community
+    '/vibe-tribe',
+    '/vibe-tribe/wins',
+    '/vibe-tribe/wobbles',
+    '/vibe-tribe/visions',
+    '/vibe-tribe/collaboration',
+    '/vibe-tribe/activity',
+    '/snapshot/[id]',  // Member profile snapshots
+    
     // Tracking System
     '/daily-paper',
     '/daily-paper/new',
@@ -168,8 +177,12 @@ export const PAGE_CLASSIFICATIONS = {
     '/admin/ai-models',
     '/admin/audio-mixer',
     
+    // Scheduling (Universal)
+    '/admin/scheduling',
+    
     // Intensive Program
     '/admin/intensive/schedule-call',
+    '/admin/intensive/tester',
     
     // Developer Tools
     '/sitemap',

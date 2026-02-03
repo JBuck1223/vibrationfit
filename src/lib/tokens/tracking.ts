@@ -10,7 +10,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 export interface TokenUsage {
   id?: string
   user_id: string
-  action_type: 'vision_generation' | 'vision_refinement' | 'blueprint_generation' | 'chat_conversation' | 'audio_generation' | 'image_generation' | 'transcription' | 'admin_grant' | 'admin_deduct' | 'subscription_grant' | 'trial_grant' | 'token_pack_purchase' | 'life_vision_category_summary' | 'life_vision_master_assembly' | 'life_vision_category_generation' | 'prompt_suggestions' | 'frequency_flip' | 'vibrational_analysis' | 'viva_scene_generation' | 'north_star_reflection' | 'voice_profile_analysis' | 'vision_board_ideas'
+  action_type: 'vision_generation' | 'vision_refinement' | 'blueprint_generation' | 'chat_conversation' | 'audio_generation' | 'image_generation' | 'transcription' | 'admin_grant' | 'admin_deduct' | 'subscription_grant' | 'trial_grant' | 'token_pack_purchase' | 'life_vision_category_summary' | 'life_vision_master_assembly' | 'life_vision_category_generation' | 'prompt_suggestions' | 'frequency_flip' | 'vibrational_analysis' | 'viva_scene_generation' | 'north_star_reflection' | 'voice_profile_analysis' | 'vision_board_ideas' | 'imagination_starter' | 'focus_story_generation'
   model_used: string
   tokens_used: number
   input_tokens?: number
