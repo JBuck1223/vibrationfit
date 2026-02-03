@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 /**
  * GET /api/vibe-tribe/posts/[id]/comments
@@ -21,14 +22,7 @@ export async function GET(
     // Fetch comments for the post
     const { data: comments, error } = await supabase
       .from('vibe_comments')
-      .select(`
-        *,
-        user:user_accounts!vibe_comments_user_id_fkey (
-          id,
-          full_name,
-          profile_picture_url
-        )
-      `)
+      .select('*')
       .eq('post_id', postId)
       .eq('is_deleted', false)
       .order('created_at', { ascending: true })
@@ -38,8 +32,33 @@ export async function GET(
       return NextResponse.json({ error: 'Failed to fetch comments' }, { status: 500 })
     }
 
+    // Fetch user data for all comments (using admin client to bypass RLS)
+    const userIds = [...new Set((comments || []).map(c => c.user_id))]
+    let usersMap: Record<string, { id: string; full_name: string | null; profile_picture_url: string | null }> = {}
+    
+    if (userIds.length > 0) {
+      const adminClient = createAdminClient()
+      const { data: users } = await adminClient
+        .from('user_accounts')
+        .select('id, full_name, profile_picture_url')
+        .in('id', userIds)
+      
+      if (users) {
+        usersMap = users.reduce((acc, user) => {
+          acc[user.id] = user
+          return acc
+        }, {} as typeof usersMap)
+      }
+    }
+
+    // Attach user data to comments
+    const commentsWithUsers = (comments || []).map(comment => ({
+      ...comment,
+      user: usersMap[comment.user_id] || null,
+    }))
+
     // Check which comments the user has hearted
-    const commentIds = (comments || []).map(c => c.id)
+    const commentIds = commentsWithUsers.map(c => c.id)
     let userHearts: string[] = []
     
     if (commentIds.length > 0) {
@@ -53,7 +72,7 @@ export async function GET(
     }
 
     // Add has_hearted flag to each comment
-    const commentsWithHeartStatus = (comments || []).map(comment => ({
+    const commentsWithHeartStatus = commentsWithUsers.map(comment => ({
       ...comment,
       has_hearted: userHearts.includes(comment.id),
     }))
@@ -119,14 +138,7 @@ export async function POST(
         user_id: user.id,
         content: content.trim(),
       })
-      .select(`
-        *,
-        user:user_accounts!vibe_comments_user_id_fkey (
-          id,
-          full_name,
-          profile_picture_url
-        )
-      `)
+      .select('*')
       .single()
 
     if (insertError) {
@@ -137,10 +149,19 @@ export async function POST(
       )
     }
 
+    // Fetch user data for the comment (using admin client to bypass RLS)
+    const adminClient = createAdminClient()
+    const { data: userData } = await adminClient
+      .from('user_accounts')
+      .select('id, full_name, profile_picture_url')
+      .eq('id', user.id)
+      .single()
+
     return NextResponse.json({
       success: true,
       comment: {
         ...newComment,
+        user: userData || null,
         has_hearted: false,
       },
     })

@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Image from 'next/image'
+import Link from 'next/link'
 import { Button, Spinner } from '@/lib/design-system'
 import { Heart, Trash2, Send } from 'lucide-react'
 import { VibeComment } from '@/lib/vibe-tribe/types'
+import { UserBadgeIndicator } from '@/components/badges'
 import { formatDistanceToNow } from 'date-fns'
 
 interface CommentSectionProps {
@@ -193,14 +194,15 @@ function CommentItem({ comment, canDelete, onDelete, onHeart }: CommentItemProps
 
   return (
     <div className="flex items-start gap-3">
-      {/* Avatar */}
-      <div className="w-8 h-8 rounded-full bg-neutral-700 overflow-hidden flex-shrink-0">
+      {/* Avatar - Links to user snapshot */}
+      <Link 
+        href={`/snapshot/${comment.user_id}`}
+        className="w-8 h-8 rounded-full bg-neutral-700 overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-primary-500 transition-all"
+      >
         {comment.user?.profile_picture_url ? (
-          <Image
+          <img
             src={comment.user.profile_picture_url}
             alt={comment.user.full_name || 'User'}
-            width={32}
-            height={32}
             className="w-full h-full object-cover"
           />
         ) : (
@@ -208,14 +210,18 @@ function CommentItem({ comment, canDelete, onDelete, onHeart }: CommentItemProps
             {comment.user?.full_name?.[0] || '?'}
           </div>
         )}
-      </div>
+      </Link>
       
       <div className="flex-1 min-w-0">
-        <div className="bg-neutral-800 rounded-2xl px-4 py-2">
+          <div className="bg-neutral-800 rounded-2xl px-4 py-2">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-sm font-semibold text-white">
+            <Link 
+              href={`/snapshot/${comment.user_id}`}
+              className="text-sm font-semibold text-white hover:text-primary-400 transition-colors"
+            >
               {comment.user?.full_name || 'Anonymous'}
-            </span>
+            </Link>
+            <UserBadgeIndicator userId={comment.user_id} size="xs" />
             <span className="text-xs text-neutral-500">{timeAgo}</span>
           </div>
           <p className="text-sm text-neutral-300 whitespace-pre-wrap">

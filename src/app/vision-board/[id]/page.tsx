@@ -6,7 +6,7 @@ import { Card, Input, Button, CategoryCard, Container, Stack, PageHero, Spinner 
 import { FileUpload } from '@/components/FileUpload'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
-import { Calendar, CheckCircle, Circle, XCircle, ArrowLeft, Trash2, Upload, Sparkles, Filter, Edit3, Save } from 'lucide-react'
+import { Calendar, CheckCircle, Circle, XCircle, ArrowLeft, Trash2, Upload, Sparkles, Filter, Edit3, Save, BookOpen } from 'lucide-react'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
@@ -358,10 +358,16 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
             title={item?.name || 'Vision Board Item'}
             subtitle="View and manage your creation"
           >
-            <div className="flex justify-center">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button variant="ghost" size="sm" onClick={() => router.push('/vision-board')}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Vision Board
+              </Button>
+              <Button asChild variant="primary" size="sm">
+                <Link href={`/vision-board/${item?.id}/stories`}>
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Stories
+                </Link>
               </Button>
             </div>
           </PageHero>

@@ -8,12 +8,11 @@ import {
   Play, 
   RefreshCw, 
   ChevronLeft, 
-  Check,
   X,
-  Volume2,
   ChevronDown,
   ChevronUp,
-  Edit3
+  Edit3,
+  ArrowRight
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { 
@@ -26,7 +25,6 @@ import {
   PageHero,
   Text,
   Heading,
-  AudioPlayer,
   CategoryGrid,
   AutoResizeTextarea,
   VIVALoadingOverlay
@@ -64,11 +62,6 @@ interface StoryData {
   }
 }
 
-interface AudioTrack {
-  id: string
-  audio_url: string
-  duration_seconds: number | null
-}
 
 // Get life categories only (no forward/conclusion)
 const LIFE_CATEGORIES = VISION_CATEGORIES.filter(
@@ -93,7 +86,6 @@ export default function FocusPage({ params }: { params: Promise<{ id: string }> 
   const [generating, setGenerating] = useState(false)
   const [generatingStory, setGeneratingStory] = useState(false)
   const [streamingText, setStreamingText] = useState('')
-  const [audioTrack, setAudioTrack] = useState<AudioTrack | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [vivaProgress, setVivaProgress] = useState(0)
 
@@ -151,24 +143,9 @@ export default function FocusPage({ params }: { params: Promise<{ id: string }> 
             setSelectedCategories(cats)
           }
           
-          // Load audio if completed
-          if (storyData.audio_set_id && storyData.status === 'completed') {
-            const { data: tracks } = await supabase
-              .from('audio_tracks')
-              .select('id, audio_url, duration_seconds')
-              .eq('audio_set_id', storyData.audio_set_id)
-              .eq('section_key', 'focus_story')
-              .eq('status', 'completed')
-              .maybeSingle()
-            
-            if (tracks) {
-              setAudioTrack(tracks)
-            }
-            
-            // Set the story content if available
-            if (storyData.content) {
-              setStreamingText(storyData.content)
-            }
+          // Set the story content if available
+          if (storyData.content) {
+            setStreamingText(storyData.content)
           }
         }
 
@@ -247,7 +224,7 @@ export default function FocusPage({ params }: { params: Promise<{ id: string }> 
     ))
   }
 
-  // Generate story and audio
+  // Generate story (text only, no auto-audio)
   const handleGenerate = async () => {
     if (selectedCategories.length === 0) return
     
@@ -301,29 +278,24 @@ export default function FocusPage({ params }: { params: Promise<{ id: string }> 
       setGeneratingStory(false)
       setVivaProgress(100)
 
-      // Scroll to story
-      setTimeout(() => {
-        storyRef.current?.scrollIntoView({ behavior: 'smooth' })
-      }, 100)
+      // Get the story ID from the API response header or fetch it
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: storyData } = await supabase
+          .from('stories')
+          .select('id')
+          .eq('entity_type', 'life_vision')
+          .eq('entity_id', visionId)
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single()
 
-      // Now generate audio
-      const audioResponse = await fetch('/api/viva/focus/generate-audio', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          visionId,
-          storyContent: fullText
-        })
-      })
-
-      if (audioResponse.ok) {
-        const audioData = await audioResponse.json()
-        if (audioData.audioUrl) {
-          setAudioTrack({
-            id: audioData.audioSetId,
-            audio_url: audioData.audioUrl,
-            duration_seconds: audioData.duration
-          })
+        if (storyData) {
+          // Redirect to story detail page after a brief delay to show completion
+          setTimeout(() => {
+            router.push(`/life-vision/${visionId}/stories/${storyData.id}`)
+          }, 1500)
         }
       }
 
@@ -367,7 +339,6 @@ export default function FocusPage({ params }: { params: Promise<{ id: string }> 
   }
 
   const hasGeneratedStory = streamingText.length > 0
-  const isCompleted = hasGeneratedStory && audioTrack
 
   return (
     <Container size="xl">
@@ -377,14 +348,7 @@ export default function FocusPage({ params }: { params: Promise<{ id: string }> 
           eyebrow="FOCUS STORY"
           title="Your Day in the Life"
           subtitle="Select the life areas you're most excited about, then let VIVA weave them into an immersive 5-7 minute audio journey through your ideal day."
-        >
-          <Button asChild variant="ghost" size="sm">
-            <Link href={`/life-vision/${visionId}`}>
-              <ChevronLeft className="w-4 h-4 mr-1" />
-              Back to Vision
-            </Link>
-          </Button>
-        </PageHero>
+        />
 
         {/* Step 1: Category Selection */}
         <Card className="p-4 md:p-6 lg:p-8">
@@ -404,7 +368,7 @@ export default function FocusPage({ params }: { params: Promise<{ id: string }> 
             categories={LIFE_CATEGORIES}
             selectedCategories={selectedCategories}
             onCategoryClick={handleCategoryToggle}
-            layout="14-column"
+            layout="12-column"
             mode="selection"
             variant="outlined"
             withCard={false}
@@ -520,7 +484,7 @@ export default function FocusPage({ params }: { params: Promise<{ id: string }> 
               <Heading level={3} className="text-white mb-2">3. Generate Your Focus Story</Heading>
               <Text className="text-neutral-400 mb-6 max-w-md mx-auto">
                 VIVA will weave your {selectedCategories.length} selected areas into an immersive 
-                day-in-the-life narrative with audio.
+                day-in-the-life narrative. You can add audio after reviewing your story.
               </Text>
               <Button
                 onClick={handleGenerate}
@@ -531,12 +495,12 @@ export default function FocusPage({ params }: { params: Promise<{ id: string }> 
                 {generating ? (
                   <>
                     <Spinner size="sm" className="mr-2" />
-                    {generatingStory ? 'Writing Story...' : 'Creating Audio...'}
+                    Writing Story...
                   </>
                 ) : hasGeneratedStory ? (
                   <>
                     <RefreshCw className="w-5 h-5 mr-2" />
-                    Regenerate Story
+                    Create New Story
                   </>
                 ) : (
                   <>
@@ -549,35 +513,38 @@ export default function FocusPage({ params }: { params: Promise<{ id: string }> 
           </Card>
         )}
 
-        {/* Step 4: Story Display (streaming or completed) */}
+        {/* Step 4: Story Display (streaming) */}
         {hasGeneratedStory && (
           <Card className="p-4 md:p-6 lg:p-8" ref={storyRef}>
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                <Volume2 className="w-6 h-6 text-white" />
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                  <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <Heading level={3} className="text-white">Your Focus Story</Heading>
+                  <Text size="sm" className="text-neutral-400">
+                    {streamingText.split(/\s+/).length} words
+                  </Text>
+                </div>
               </div>
-              <div>
-                <Heading level={3} className="text-white">Your Focus Story</Heading>
-                <Text size="sm" className="text-neutral-400">
-                  {streamingText.split(/\s+/).length} words
-                  {audioTrack?.duration_seconds && ` • ${Math.round(audioTrack.duration_seconds / 60)} min`}
-                </Text>
-              </div>
+              {!generatingStory && story && (
+                <Button asChild variant="primary" size="sm">
+                  <Link href={`/life-vision/${visionId}/stories/${story.id}`}>
+                    Edit & Add Audio
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Link>
+                </Button>
+              )}
             </div>
 
-            {/* Audio Player */}
-            {audioTrack && (
-              <div className="mb-6">
-                <AudioPlayer
-                  track={{
-                    id: audioTrack.id || 'focus-audio',
-                    title: 'Focus Story',
-                    artist: 'VIVA',
-                    duration: 0,
-                    url: audioTrack.audio_url
-                  }}
-                  autoPlay={false}
-                />
+            {/* Redirect notice */}
+            {!generatingStory && (
+              <div className="mb-4 p-3 bg-primary-500/10 border border-primary-500/30 rounded-lg flex items-center gap-3">
+                <Spinner size="sm" />
+                <Text size="sm" className="text-primary-400">
+                  Redirecting to your story where you can edit and add audio...
+                </Text>
               </div>
             )}
 

@@ -21,14 +21,29 @@ interface SidebarProps {
   isAdmin?: boolean
 }
 
+// LocalStorage key for sidebar state
+const SIDEBAR_COLLAPSED_KEY = 'vibrationfit-sidebar-collapsed'
+
 // Shared Sidebar Base Component
 function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & { navigation: NavItem[] }) {
-  const [collapsed, setCollapsed] = useState(true)
+  // Initialize from localStorage, default to expanded (false)
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(SIDEBAR_COLLAPSED_KEY)
+      return saved !== null ? saved === 'true' : false // Default: expanded
+    }
+    return false // Default: expanded
+  })
   const [expandedItems, setExpandedItems] = useState<string[]>([])
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const pathname = usePathname()
+  
+  // Persist collapsed state to localStorage
+  useEffect(() => {
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed))
+  }, [collapsed])
   // Memoize supabase client to prevent dependency array issues
   const supabase = useMemo(() => createClient(), [])
 

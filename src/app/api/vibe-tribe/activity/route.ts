@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { ActivityItem } from '@/lib/vibe-tribe/types'
 
 /**
@@ -46,114 +47,174 @@ export async function GET(request: NextRequest) {
 
     // Get hearts received on user's posts
     if (filter === 'all' || filter === 'hearts_received') {
-      const { data: postHearts } = await supabase
-        .from('vibe_hearts')
-        .select(`
-          id,
-          created_at,
-          post:vibe_posts!vibe_hearts_post_id_fkey (
-            id,
-            content,
-            vibe_tag,
-            user_id
-          ),
-          user:user_accounts!vibe_hearts_user_id_fkey (
-            full_name
-          )
-        `)
-        .not('post_id', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(limit)
+      // Get user's post IDs first
+      const { data: userPosts } = await supabase
+        .from('vibe_posts')
+        .select('id, content, vibe_tag')
+        .eq('user_id', user.id)
+        .eq('is_deleted', false)
 
-      // Filter to only hearts on current user's posts
-      postHearts?.forEach(heart => {
-        if (heart.post && (heart.post as any).user_id === user.id && heart.user) {
-          activities.push({
-            id: `heart-post-${heart.id}`,
-            type: 'heart_received',
-            title: `${(heart.user as any).full_name || 'Someone'} hearted your post`,
-            description: (heart.post as any).content?.substring(0, 100) || 'Your post',
-            timestamp: heart.created_at,
-            post_id: (heart.post as any).id,
-            vibe_tag: (heart.post as any).vibe_tag,
-          })
+      const userPostIds = (userPosts || []).map(p => p.id)
+      const userPostsMap = (userPosts || []).reduce((acc, p) => {
+        acc[p.id] = p
+        return acc
+      }, {} as Record<string, any>)
+
+      if (userPostIds.length > 0) {
+        const { data: postHearts } = await supabase
+          .from('vibe_hearts')
+          .select('id, created_at, post_id, user_id')
+          .in('post_id', userPostIds)
+          .order('created_at', { ascending: false })
+          .limit(limit)
+
+        // Fetch user names for hearts (using admin client to bypass RLS)
+        const heartUserIds = [...new Set((postHearts || []).map(h => h.user_id))]
+        let heartUsersMap: Record<string, string> = {}
+        if (heartUserIds.length > 0) {
+          const adminClient = createAdminClient()
+          const { data: heartUsers } = await adminClient
+            .from('user_accounts')
+            .select('id, full_name')
+            .in('id', heartUserIds)
+          if (heartUsers) {
+            heartUsersMap = heartUsers.reduce((acc, u) => {
+              acc[u.id] = u.full_name || 'Someone'
+              return acc
+            }, {} as Record<string, string>)
+          }
         }
-      })
+
+        postHearts?.forEach(heart => {
+          const post = userPostsMap[heart.post_id]
+          if (post) {
+            activities.push({
+              id: `heart-post-${heart.id}`,
+              type: 'heart_received',
+              title: `${heartUsersMap[heart.user_id] || 'Someone'} hearted your post`,
+              description: post.content?.substring(0, 100) || 'Your post',
+              timestamp: heart.created_at,
+              post_id: post.id,
+              vibe_tag: post.vibe_tag,
+            })
+          }
+        })
+      }
 
       // Get hearts received on user's comments
-      const { data: commentHearts } = await supabase
-        .from('vibe_hearts')
-        .select(`
-          id,
-          created_at,
-          comment:vibe_comments!vibe_hearts_comment_id_fkey (
-            id,
-            content,
-            post_id,
-            user_id
-          ),
-          user:user_accounts!vibe_hearts_user_id_fkey (
-            full_name
-          )
-        `)
-        .not('comment_id', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(limit)
+      const { data: userComments } = await supabase
+        .from('vibe_comments')
+        .select('id, content, post_id')
+        .eq('user_id', user.id)
+        .eq('is_deleted', false)
 
-      commentHearts?.forEach(heart => {
-        if (heart.comment && (heart.comment as any).user_id === user.id && heart.user) {
-          activities.push({
-            id: `heart-comment-${heart.id}`,
-            type: 'heart_received',
-            title: `${(heart.user as any).full_name || 'Someone'} hearted your comment`,
-            description: (heart.comment as any).content?.substring(0, 100) || 'Your comment',
-            timestamp: heart.created_at,
-            post_id: (heart.comment as any).post_id,
-            comment_id: (heart.comment as any).id,
-          })
+      const userCommentIds = (userComments || []).map(c => c.id)
+      const userCommentsMap = (userComments || []).reduce((acc, c) => {
+        acc[c.id] = c
+        return acc
+      }, {} as Record<string, any>)
+
+      if (userCommentIds.length > 0) {
+        const { data: commentHearts } = await supabase
+          .from('vibe_hearts')
+          .select('id, created_at, comment_id, user_id')
+          .in('comment_id', userCommentIds)
+          .order('created_at', { ascending: false })
+          .limit(limit)
+
+        // Fetch user names for comment hearts (using admin client to bypass RLS)
+        const commentHeartUserIds = [...new Set((commentHearts || []).map(h => h.user_id))]
+        let commentHeartUsersMap: Record<string, string> = {}
+        if (commentHeartUserIds.length > 0) {
+          const adminClient2 = createAdminClient()
+          const { data: commentHeartUsers } = await adminClient2
+            .from('user_accounts')
+            .select('id, full_name')
+            .in('id', commentHeartUserIds)
+          if (commentHeartUsers) {
+            commentHeartUsersMap = commentHeartUsers.reduce((acc, u) => {
+              acc[u.id] = u.full_name || 'Someone'
+              return acc
+            }, {} as Record<string, string>)
+          }
         }
-      })
+
+        commentHearts?.forEach(heart => {
+          const comment = userCommentsMap[heart.comment_id]
+          if (comment) {
+            activities.push({
+              id: `heart-comment-${heart.id}`,
+              type: 'heart_received',
+              title: `${commentHeartUsersMap[heart.user_id] || 'Someone'} hearted your comment`,
+              description: comment.content?.substring(0, 100) || 'Your comment',
+              timestamp: heart.created_at,
+              post_id: comment.post_id,
+              comment_id: comment.id,
+            })
+          }
+        })
+      }
     }
 
     // Get comments on user's posts
     if (filter === 'all' || filter === 'comments') {
-      const { data: comments } = await supabase
-        .from('vibe_comments')
-        .select(`
-          id,
-          content,
-          created_at,
-          post:vibe_posts!vibe_comments_post_id_fkey (
-            id,
-            content,
-            vibe_tag,
-            user_id
-          ),
-          user:user_accounts!vibe_comments_user_id_fkey (
-            full_name
-          )
-        `)
+      // Get user's post IDs first (reuse if already fetched)
+      const { data: userPostsForComments } = await supabase
+        .from('vibe_posts')
+        .select('id, content, vibe_tag')
+        .eq('user_id', user.id)
         .eq('is_deleted', false)
-        .order('created_at', { ascending: false })
-        .limit(limit)
 
-      comments?.forEach(comment => {
-        if (comment.post && (comment.post as any).user_id === user.id && comment.user) {
-          // Only show comments from others on our posts
-          if ((comment as any).user_id !== user.id) {
+      const userPostIdsForComments = (userPostsForComments || []).map(p => p.id)
+      const userPostsMapForComments = (userPostsForComments || []).reduce((acc, p) => {
+        acc[p.id] = p
+        return acc
+      }, {} as Record<string, any>)
+
+      if (userPostIdsForComments.length > 0) {
+        // Get comments on user's posts (excluding user's own comments)
+        const { data: comments } = await supabase
+          .from('vibe_comments')
+          .select('id, content, created_at, post_id, user_id')
+          .in('post_id', userPostIdsForComments)
+          .neq('user_id', user.id)
+          .eq('is_deleted', false)
+          .order('created_at', { ascending: false })
+          .limit(limit)
+
+        // Fetch user names for commenters (using admin client to bypass RLS)
+        const commenterIds = [...new Set((comments || []).map(c => c.user_id))]
+        let commentersMap: Record<string, string> = {}
+        if (commenterIds.length > 0) {
+          const adminClient3 = createAdminClient()
+          const { data: commenters } = await adminClient3
+            .from('user_accounts')
+            .select('id, full_name')
+            .in('id', commenterIds)
+          if (commenters) {
+            commentersMap = commenters.reduce((acc, u) => {
+              acc[u.id] = u.full_name || 'Someone'
+              return acc
+            }, {} as Record<string, string>)
+          }
+        }
+
+        comments?.forEach(comment => {
+          const post = userPostsMapForComments[comment.post_id]
+          if (post) {
             activities.push({
               id: `comment-${comment.id}`,
               type: 'comment',
-              title: `${(comment.user as any).full_name || 'Someone'} commented on your post`,
+              title: `${commentersMap[comment.user_id] || 'Someone'} commented on your post`,
               description: comment.content?.substring(0, 100) || '',
               timestamp: comment.created_at,
-              post_id: (comment.post as any).id,
+              post_id: post.id,
               comment_id: comment.id,
-              vibe_tag: (comment.post as any).vibe_tag,
+              vibe_tag: post.vibe_tag,
             })
           }
-        }
-      })
+        })
+      }
     }
 
     // Sort all activities by timestamp (newest first)

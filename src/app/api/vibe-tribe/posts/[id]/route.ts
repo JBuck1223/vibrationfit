@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 /**
  * GET /api/vibe-tribe/posts/[id]
@@ -20,14 +21,7 @@ export async function GET(
 
     const { data: post, error } = await supabase
       .from('vibe_posts')
-      .select(`
-        *,
-        user:user_accounts!vibe_posts_user_id_fkey (
-          id,
-          full_name,
-          profile_picture_url
-        )
-      `)
+      .select('*')
       .eq('id', id)
       .eq('is_deleted', false)
       .single()
@@ -35,6 +29,16 @@ export async function GET(
     if (error || !post) {
       return NextResponse.json({ error: 'Post not found' }, { status: 404 })
     }
+
+    // Fetch user data (using admin client to bypass RLS)
+    const adminClientForUser = createAdminClient()
+    const { data: userData } = await adminClientForUser
+      .from('user_accounts')
+      .select('id, full_name, profile_picture_url')
+      .eq('id', post.user_id)
+      .single()
+    
+    const postWithUser = { ...post, user: userData || null }
 
     // Check if user has hearted this post
     const { data: heart } = await supabase
@@ -46,7 +50,7 @@ export async function GET(
 
     return NextResponse.json({
       post: {
-        ...post,
+        ...postWithUser,
         has_hearted: !!heart,
       },
     })
@@ -103,8 +107,10 @@ export async function DELETE(
       return NextResponse.json({ error: 'Not authorized to delete this post' }, { status: 403 })
     }
 
-    // Soft delete the post
-    const { error: deleteError } = await supabase
+    // Soft delete the post using admin client to bypass RLS
+    // (Authorization is already verified above)
+    const adminClient = createAdminClient()
+    const { error: deleteError } = await adminClient
       .from('vibe_posts')
       .update({
         is_deleted: true,

@@ -3,9 +3,10 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Card, Button } from '@/lib/design-system'
+import { Card, Button, DeleteConfirmationDialog } from '@/lib/design-system'
 import { Heart, MessageCircle, Trash2, MoreHorizontal, Play } from 'lucide-react'
 import { VibePost, VIBE_TAG_CONFIG } from '@/lib/vibe-tribe/types'
+import { UserBadgeIndicator } from '@/components/badges'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { VibeTagBadge } from './VibeTagBadge'
 import { CommentSection } from './CommentSection'
@@ -33,6 +34,7 @@ export function PostCard({
   const [isHeartLoading, setIsHeartLoading] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const canDelete = currentUserId === post.user_id || isAdmin
 
@@ -68,7 +70,12 @@ export function PostCard({
     }
   }
 
-  const handleDelete = async () => {
+  const handleDeleteClick = () => {
+    setShowMenu(false)
+    setShowDeleteConfirm(true)
+  }
+
+  const handleDeleteConfirm = async () => {
     if (deleting || !onDelete) return
     
     setDeleting(true)
@@ -78,13 +85,15 @@ export function PostCard({
       })
       
       if (response.ok) {
+        setShowDeleteConfirm(false)
         onDelete(post.id)
+      } else {
+        console.error('Delete failed:', await response.text())
       }
     } catch (error) {
       console.error('Error deleting post:', error)
     } finally {
       setDeleting(false)
-      setShowMenu(false)
     }
   }
 
@@ -101,27 +110,34 @@ export function PostCard({
       <Link href={`/vibe-tribe/posts/${post.id}`}>
         <Card className="p-4 hover:border-neutral-500 transition-all cursor-pointer h-full">
           <div className="flex items-start gap-3 mb-3">
-            {/* Avatar */}
-            <div className="w-8 h-8 rounded-full bg-neutral-700 overflow-hidden flex-shrink-0">
-              {post.user?.profile_picture_url ? (
-                <Image
-                  src={post.user.profile_picture_url}
-                  alt={post.user.full_name || 'User'}
-                  width={32}
-                  height={32}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-neutral-400 text-sm font-medium">
-                  {post.user?.full_name?.[0] || '?'}
-                </div>
-              )}
-            </div>
+          {/* Avatar - Links to user snapshot */}
+          <Link 
+            href={`/snapshot/${post.user_id}`}
+            onClick={(e) => e.stopPropagation()}
+            className="w-8 h-8 rounded-full bg-neutral-700 overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-primary-500 transition-all"
+          >
+            {post.user?.profile_picture_url ? (
+              <img
+                src={post.user.profile_picture_url}
+                alt={post.user.full_name || 'User'}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-neutral-400 text-sm font-medium">
+                {post.user?.full_name?.[0] || '?'}
+              </div>
+            )}
+          </Link>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-white truncate">
+                <Link 
+                  href={`/snapshot/${post.user_id}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-sm font-medium text-white truncate hover:text-primary-400 transition-colors"
+                >
                   {post.user?.full_name || 'Anonymous'}
-                </span>
+                </Link>
+                <UserBadgeIndicator userId={post.user_id} size="xs" />
                 <VibeTagBadge tag={post.vibe_tag} size="sm" showLabel={false} />
               </div>
               <span className="text-xs text-neutral-500">{timeAgo}</span>
@@ -154,14 +170,15 @@ export function PostCard({
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-start gap-3">
-          {/* Avatar */}
-          <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-neutral-700 overflow-hidden flex-shrink-0">
+          {/* Avatar - Links to user snapshot */}
+          <Link 
+            href={`/snapshot/${post.user_id}`}
+            className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-neutral-700 overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-primary-500 transition-all"
+          >
             {post.user?.profile_picture_url ? (
-              <Image
+              <img
                 src={post.user.profile_picture_url}
                 alt={post.user.full_name || 'User'}
-                width={48}
-                height={48}
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -169,12 +186,16 @@ export function PostCard({
                 {post.user?.full_name?.[0] || '?'}
               </div>
             )}
-          </div>
+          </Link>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-white">
+              <Link 
+                href={`/snapshot/${post.user_id}`}
+                className="font-semibold text-white hover:text-primary-400 transition-colors"
+              >
                 {post.user?.full_name || 'Anonymous'}
-              </span>
+              </Link>
+              <UserBadgeIndicator userId={post.user_id} size="xs" />
               <VibeTagBadge tag={post.vibe_tag} size="sm" />
             </div>
             <span className="text-sm text-neutral-500">{timeAgo}</span>
@@ -194,12 +215,11 @@ export function PostCard({
             {showMenu && (
               <div className="absolute right-0 top-full mt-1 bg-neutral-800 rounded-lg shadow-lg border border-neutral-700 py-1 z-10">
                 <button
-                  onClick={handleDelete}
-                  disabled={deleting}
+                  onClick={handleDeleteClick}
                   className="flex items-center gap-2 px-4 py-2 text-red-500 hover:bg-neutral-700 w-full text-left"
                 >
                   <Trash2 className="w-4 h-4" />
-                  {deleting ? 'Deleting...' : 'Delete'}
+                  Delete
                 </button>
               </div>
             )}
@@ -323,6 +343,17 @@ export function PostCard({
           isAdmin={isAdmin}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDeleteConfirm}
+        itemName={post.content?.substring(0, 30) || 'this post'}
+        itemType="Post"
+        isLoading={deleting}
+        loadingText="Deleting..."
+      />
     </Card>
   )
 }

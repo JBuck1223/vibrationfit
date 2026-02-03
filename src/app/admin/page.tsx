@@ -22,6 +22,7 @@ import {
   Megaphone,
   HeadphonesIcon,
   Link2,
+  Award,
 } from 'lucide-react'
 
 interface AdminSection {
@@ -132,6 +133,13 @@ const systemSections: AdminSection[] = [
     href: '/admin/users',
     icon: Users,
     color: 'text-primary-500',
+  },
+  {
+    title: 'Badges',
+    description: 'Award and manage badges',
+    href: '/admin/badges',
+    icon: Award,
+    color: 'text-[#FFB701]',
   },
   {
     title: 'Sessions',

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict mv19Q48rVTcB4bb3zgpGV2LQqIdaw1FmcgaNYDODojIuyymZcCrfbVbvxv38CVF
+\restrict BzkTLecQyNiQWyY5193JIwrBiexk7z9c06JD6hkXvEAp4zd06jAUeXEZx2iFjGs
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Homebrew)
@@ -454,6 +454,37 @@ CREATE TYPE public.user_role AS ENUM (
     'admin',
     'super_admin'
 );
+
+
+--
+-- Name: vibe_media_type; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.vibe_media_type AS ENUM (
+    'none',
+    'image',
+    'video',
+    'mixed'
+);
+
+
+--
+-- Name: vibe_tag; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.vibe_tag AS ENUM (
+    'win',
+    'wobble',
+    'vision',
+    'collaboration'
+);
+
+
+--
+-- Name: TYPE vibe_tag; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TYPE public.vibe_tag IS 'Categories for Vibe Tribe posts: win, wobble, vision, practice';
 
 
 --
@@ -1737,6 +1768,125 @@ COMMENT ON FUNCTION public.commit_draft_as_active(p_draft_profile_id uuid, p_use
 
 
 --
+-- Name: commit_vision_draft_as_active(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.commit_vision_draft_as_active(p_draft_vision_id uuid, p_user_id uuid) RETURNS boolean
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+  v_draft RECORD;
+BEGIN
+  -- Get the draft vision
+  SELECT id, user_id, household_id, is_draft
+  INTO v_draft
+  FROM vision_versions
+  WHERE id = p_draft_vision_id AND is_draft = true;
+  
+  -- Verify draft exists
+  IF v_draft.id IS NULL THEN
+    RAISE EXCEPTION 'Draft vision not found: %', p_draft_vision_id;
+  END IF;
+  
+  -- Verify user has access
+  IF v_draft.household_id IS NOT NULL THEN
+    -- For household visions, check membership
+    IF NOT is_active_household_member(v_draft.household_id, p_user_id) THEN
+      RAISE EXCEPTION 'User % does not have access to household draft %', p_user_id, p_draft_vision_id;
+    END IF;
+  ELSE
+    -- For personal visions, check ownership
+    IF v_draft.user_id != p_user_id THEN
+      RAISE EXCEPTION 'User % does not own draft vision %', p_user_id, p_draft_vision_id;
+    END IF;
+  END IF;
+  
+  -- Deactivate other active visions in the same scope
+  IF v_draft.household_id IS NOT NULL THEN
+    -- Deactivate other household visions
+    UPDATE vision_versions
+    SET is_active = false, updated_at = NOW()
+    WHERE 
+      household_id = v_draft.household_id
+      AND is_active = true
+      AND is_draft = false
+      AND id != p_draft_vision_id;
+  ELSE
+    -- Deactivate other personal visions
+    UPDATE vision_versions
+    SET is_active = false, updated_at = NOW()
+    WHERE 
+      user_id = v_draft.user_id
+      AND household_id IS NULL
+      AND is_active = true
+      AND is_draft = false
+      AND id != p_draft_vision_id;
+  END IF;
+  
+  -- Convert draft to active version (update in place)
+  UPDATE vision_versions
+  SET 
+    is_draft = false,
+    is_active = true,
+    updated_at = NOW()
+  WHERE id = p_draft_vision_id;
+  
+  RETURN true;
+END;
+$$;
+
+
+--
+-- Name: FUNCTION commit_vision_draft_as_active(p_draft_vision_id uuid, p_user_id uuid); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION public.commit_vision_draft_as_active(p_draft_vision_id uuid, p_user_id uuid) IS 'Commits a draft vision as the new active version, deactivating others in the same scope (personal or household)';
+
+
+--
+-- Name: create_calendar_event_for_booking(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.create_calendar_event_for_booking() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+BEGIN
+  INSERT INTO calendar_events (
+    staff_id,
+    user_id,
+    title,
+    description,
+    scheduled_at,
+    end_at,
+    timezone,
+    event_source,
+    event_category,
+    blocks_availability,
+    booking_id,
+    video_session_id,
+    status
+  ) VALUES (
+    NEW.staff_id,
+    NEW.user_id,
+    COALESCE(NEW.title, 'Booking: ' || NEW.event_type),
+    NEW.description,
+    NEW.scheduled_at,
+    NEW.scheduled_at + (NEW.duration_minutes || ' minutes')::INTERVAL,
+    NEW.timezone,
+    'booking',
+    'client_call',
+    true,
+    NEW.id,
+    NEW.video_session_id,
+    CASE WHEN NEW.status = 'pending' THEN 'tentative' ELSE 'confirmed' END
+  );
+  
+  RETURN NEW;
+END;
+$$;
+
+
+--
 -- Name: create_draft_from_version(uuid, uuid, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1879,27 +2029,24 @@ CREATE FUNCTION public.create_solo_household_for_new_account() RETURNS trigger
 DECLARE
   new_household_id UUID;
 BEGIN
-  -- Only create household if user doesn't already have one
   IF NEW.household_id IS NULL THEN
-    -- Create solo household
     INSERT INTO households (
       admin_user_id,
       name,
       plan_type,
-      billing_status,
-      max_household_members,
+      subscription_status,
+      max_members,
       shared_tokens_enabled
     ) VALUES (
       NEW.id,
       'My Household',
       'solo',
-      'trialing', -- New users start in trial
+      'trialing',
       1,
       FALSE
     )
     RETURNING id INTO new_household_id;
 
-    -- Create household_members record
     INSERT INTO household_members (
       household_id,
       user_id,
@@ -1918,7 +2065,6 @@ BEGIN
       NOW()
     );
 
-    -- Update the user_accounts record with the household_id
     NEW.household_id := new_household_id;
     NEW.is_household_admin := TRUE;
   END IF;
@@ -2326,16 +2472,6 @@ CREATE TABLE public.intensive_checklist (
     calibration_attended_at timestamp without time zone,
     audios_generated boolean DEFAULT false,
     audios_generated_at timestamp without time zone,
-    activation_protocol_started boolean DEFAULT false,
-    activation_started_at timestamp without time zone,
-    streak_day_1 boolean DEFAULT false,
-    streak_day_2 boolean DEFAULT false,
-    streak_day_3 boolean DEFAULT false,
-    streak_day_4 boolean DEFAULT false,
-    streak_day_5 boolean DEFAULT false,
-    streak_day_6 boolean DEFAULT false,
-    streak_day_7 boolean DEFAULT false,
-    streak_day_7_reached_at timestamp without time zone,
     created_at timestamp without time zone DEFAULT now(),
     updated_at timestamp without time zone DEFAULT now(),
     profile_completed boolean DEFAULT false,
@@ -2364,6 +2500,8 @@ CREATE TABLE public.intensive_checklist (
     completed_at timestamp without time zone,
     unlock_completed boolean DEFAULT false,
     unlock_completed_at timestamp without time zone,
+    voice_recording_skipped boolean DEFAULT false,
+    voice_recording_skipped_at timestamp with time zone,
     CONSTRAINT intensive_checklist_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'in_progress'::text, 'completed'::text])))
 );
 
@@ -2372,7 +2510,23 @@ CREATE TABLE public.intensive_checklist (
 -- Name: TABLE intensive_checklist; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON TABLE public.intensive_checklist IS '48-hour activation intensive completion tracking';
+COMMENT ON TABLE public.intensive_checklist IS '
+Tracks progress through the 14-step Activation Intensive:
+Step 1: Settings (tracked via user_accounts table)
+Step 2: Baseline Intake (intake_completed)
+Step 3: Profile (profile_completed)
+Step 4: Assessment (assessment_completed)
+Step 5: Life Vision (vision_built)
+Step 6: Refine Vision (vision_refined)
+Step 7: Generate Audio (audio_generated)
+Step 8: Record Audio (optional, can be skipped)
+Step 9: Audio Mix (audios_generated)
+Step 10: Vision Board (vision_board_completed)
+Step 11: Journal (first_journal_entry)
+Step 12: Book Call (call_scheduled)
+Step 13: Activation Protocol (activation_protocol_completed)
+Step 14: Platform Unlock (unlock_completed)
+';
 
 
 --
@@ -2450,6 +2604,20 @@ COMMENT ON COLUMN public.intensive_checklist.started_at IS 'When user clicked St
 --
 
 COMMENT ON COLUMN public.intensive_checklist.completed_at IS 'When user completed all steps and graduated';
+
+
+--
+-- Name: COLUMN intensive_checklist.voice_recording_skipped; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.intensive_checklist.voice_recording_skipped IS 'True if user explicitly skipped Step 8 (Record Voice)';
+
+
+--
+-- Name: COLUMN intensive_checklist.voice_recording_skipped_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.intensive_checklist.voice_recording_skipped_at IS 'Timestamp when user skipped Step 8';
 
 
 --
@@ -3469,6 +3637,38 @@ $$;
 
 
 --
+-- Name: has_user_hearted_comment(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.has_user_hearted_comment(p_user_id uuid, p_comment_id uuid) RETURNS boolean
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM vibe_hearts 
+    WHERE user_id = p_user_id AND comment_id = p_comment_id
+  );
+END;
+$$;
+
+
+--
+-- Name: has_user_hearted_post(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.has_user_hearted_post(p_user_id uuid, p_post_id uuid) RETURNS boolean
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM vibe_hearts 
+    WHERE user_id = p_user_id AND post_id = p_post_id
+  );
+END;
+$$;
+
+
+--
 -- Name: increment_ai_usage(uuid, integer, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4241,6 +4441,32 @@ COMMENT ON FUNCTION public.update_blueprint_progress() IS 'Automatically updates
 
 
 --
+-- Name: update_calendar_event_for_booking(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_calendar_event_for_booking() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+BEGIN
+  UPDATE calendar_events
+  SET 
+    status = CASE 
+      WHEN NEW.status IN ('cancelled', 'no_show') THEN 'cancelled'
+      WHEN NEW.status = 'pending' THEN 'tentative'
+      ELSE 'confirmed'
+    END,
+    scheduled_at = NEW.scheduled_at,
+    end_at = NEW.scheduled_at + (NEW.duration_minutes || ' minutes')::INTERVAL,
+    title = COALESCE(NEW.title, 'Booking: ' || NEW.event_type),
+    staff_id = NEW.staff_id
+  WHERE booking_id = NEW.id;
+  
+  RETURN NEW;
+END;
+$$;
+
+
+--
 -- Name: update_campaign_metrics(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4283,6 +4509,42 @@ BEGIN
   END IF;
   
   RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: update_comment_hearts_count(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_comment_hearts_count() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE vibe_comments SET hearts_count = hearts_count + 1 WHERE id = NEW.comment_id;
+    -- Update hearts_received for comment author
+    UPDATE user_community_stats 
+    SET hearts_received = hearts_received + 1, updated_at = now()
+    WHERE user_id = (SELECT user_id FROM vibe_comments WHERE id = NEW.comment_id);
+    -- Update hearts_given for the user who hearted
+    UPDATE user_community_stats 
+    SET hearts_given = hearts_given + 1, updated_at = now()
+    WHERE user_id = NEW.user_id;
+    RETURN NEW;
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE vibe_comments SET hearts_count = hearts_count - 1 WHERE id = OLD.comment_id;
+    -- Update hearts_received for comment author
+    UPDATE user_community_stats 
+    SET hearts_received = GREATEST(0, hearts_received - 1), updated_at = now()
+    WHERE user_id = (SELECT user_id FROM vibe_comments WHERE id = OLD.comment_id);
+    -- Update hearts_given for the user who removed heart
+    UPDATE user_community_stats 
+    SET hearts_given = GREATEST(0, hearts_given - 1), updated_at = now()
+    WHERE user_id = OLD.user_id;
+    RETURN OLD;
+  END IF;
+  RETURN NULL;
 END;
 $$;
 
@@ -4370,6 +4632,66 @@ $$;
 
 
 --
+-- Name: update_post_comments_count(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_post_comments_count() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE vibe_posts SET comments_count = comments_count + 1 WHERE id = NEW.post_id;
+    -- Update total_comments for the commenter
+    UPDATE user_community_stats 
+    SET total_comments = total_comments + 1, updated_at = now()
+    WHERE user_id = NEW.user_id;
+    RETURN NEW;
+  ELSIF TG_OP = 'DELETE' OR (TG_OP = 'UPDATE' AND NEW.is_deleted = true AND OLD.is_deleted = false) THEN
+    UPDATE vibe_posts SET comments_count = GREATEST(0, comments_count - 1) WHERE id = COALESCE(OLD.post_id, NEW.post_id);
+    RETURN COALESCE(NEW, OLD);
+  END IF;
+  RETURN NULL;
+END;
+$$;
+
+
+--
+-- Name: update_post_hearts_count(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_post_hearts_count() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE vibe_posts SET hearts_count = hearts_count + 1 WHERE id = NEW.post_id;
+    -- Update hearts_received for post author
+    UPDATE user_community_stats 
+    SET hearts_received = hearts_received + 1, updated_at = now()
+    WHERE user_id = (SELECT user_id FROM vibe_posts WHERE id = NEW.post_id);
+    -- Update hearts_given for the user who hearted
+    UPDATE user_community_stats 
+    SET hearts_given = hearts_given + 1, updated_at = now()
+    WHERE user_id = NEW.user_id;
+    RETURN NEW;
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE vibe_posts SET hearts_count = hearts_count - 1 WHERE id = OLD.post_id;
+    -- Update hearts_received for post author
+    UPDATE user_community_stats 
+    SET hearts_received = GREATEST(0, hearts_received - 1), updated_at = now()
+    WHERE user_id = (SELECT user_id FROM vibe_posts WHERE id = OLD.post_id);
+    -- Update hearts_given for the user who removed heart
+    UPDATE user_community_stats 
+    SET hearts_given = GREATEST(0, hearts_given - 1), updated_at = now()
+    WHERE user_id = OLD.user_id;
+    RETURN OLD;
+  END IF;
+  RETURN NULL;
+END;
+$$;
+
+
+--
 -- Name: update_profile_stats(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4384,6 +4706,34 @@ BEGIN
   DO UPDATE SET 
     profiles_created = user_stats.profiles_created + 1,
     last_profile_update = NOW();
+END;
+$$;
+
+
+--
+-- Name: update_schedules_updated_at(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_schedules_updated_at() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: update_stories_updated_at(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_stories_updated_at() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
 END;
 $$;
 
@@ -4412,6 +4762,50 @@ CREATE FUNCTION public.update_user_accounts_updated_at() RETURNS trigger
 BEGIN
   NEW.updated_at = NOW();
   RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: update_user_post_stats(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_user_post_stats() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+DECLARE
+  last_date DATE;
+  current_streak INTEGER;
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    -- Get or create user stats
+    INSERT INTO user_community_stats (user_id, total_posts, last_post_date, streak_days)
+    VALUES (NEW.user_id, 1, CURRENT_DATE, 1)
+    ON CONFLICT (user_id) DO UPDATE SET
+      total_posts = user_community_stats.total_posts + 1,
+      streak_days = CASE
+        WHEN user_community_stats.last_post_date = CURRENT_DATE THEN user_community_stats.streak_days
+        WHEN user_community_stats.last_post_date = CURRENT_DATE - 1 THEN user_community_stats.streak_days + 1
+        ELSE 1
+      END,
+      longest_streak = GREATEST(
+        user_community_stats.longest_streak,
+        CASE
+          WHEN user_community_stats.last_post_date = CURRENT_DATE THEN user_community_stats.streak_days
+          WHEN user_community_stats.last_post_date = CURRENT_DATE - 1 THEN user_community_stats.streak_days + 1
+          ELSE 1
+        END
+      ),
+      last_post_date = CURRENT_DATE,
+      updated_at = now();
+    RETURN NEW;
+  ELSIF TG_OP = 'DELETE' OR (TG_OP = 'UPDATE' AND NEW.is_deleted = true AND OLD.is_deleted = false) THEN
+    UPDATE user_community_stats 
+    SET total_posts = GREATEST(0, total_posts - 1), updated_at = now()
+    WHERE user_id = COALESCE(OLD.user_id, NEW.user_id);
+    RETURN COALESCE(NEW, OLD);
+  END IF;
+  RETURN NULL;
 END;
 $$;
 
@@ -4453,6 +4847,20 @@ CREATE FUNCTION public.update_video_session_timestamp() RETURNS trigger
     AS $$
 BEGIN
   NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: update_vision_focus_updated_at(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_vision_focus_updated_at() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  NEW.updated_at = now();
   RETURN NEW;
 END;
 $$;
@@ -7333,7 +7741,7 @@ COMMENT ON COLUMN public.audio_background_tracks.file_url IS 'Full URL to the au
 CREATE TABLE public.audio_generation_batches (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
-    vision_id uuid NOT NULL,
+    vision_id uuid,
     audio_set_ids uuid[] DEFAULT '{}'::uuid[] NOT NULL,
     variant_ids text[] NOT NULL,
     voice_id text NOT NULL,
@@ -7349,6 +7757,9 @@ CREATE TABLE public.audio_generation_batches (
     completed_at timestamp with time zone,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     metadata jsonb DEFAULT '{}'::jsonb,
+    content_type text DEFAULT 'life_vision'::text,
+    content_id uuid,
+    CONSTRAINT audio_generation_batches_content_type_check CHECK ((content_type = ANY (ARRAY['life_vision'::text, 'focus_story'::text, 'story'::text, 'affirmation'::text, 'visualization'::text, 'journal'::text, 'custom'::text]))),
     CONSTRAINT valid_status CHECK ((status = ANY (ARRAY['pending'::text, 'processing'::text, 'completed'::text, 'partial_success'::text, 'failed'::text]))),
     CONSTRAINT valid_track_counts CHECK (((tracks_completed >= 0) AND (tracks_failed >= 0) AND (tracks_pending >= 0) AND (((tracks_completed + tracks_failed) + tracks_pending) <= total_tracks_expected)))
 );
@@ -7387,6 +7798,20 @@ COMMENT ON COLUMN public.audio_generation_batches.sections_requested IS 'Array o
 --
 
 COMMENT ON COLUMN public.audio_generation_batches.status IS 'pending: created, not started | processing: in progress | completed: all succeeded | partial_success: some failed | failed: all failed';
+
+
+--
+-- Name: COLUMN audio_generation_batches.content_type; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.audio_generation_batches.content_type IS 'Type of content being generated';
+
+
+--
+-- Name: COLUMN audio_generation_batches.content_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.audio_generation_batches.content_id IS 'Generic reference to source content';
 
 
 --
@@ -7513,7 +7938,7 @@ COMMENT ON COLUMN public.audio_recommended_combos.binaural_volume IS 'Volume per
 
 CREATE TABLE public.audio_sets (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    vision_id uuid NOT NULL,
+    vision_id uuid,
     user_id uuid NOT NULL,
     name text NOT NULL,
     description text,
@@ -7522,7 +7947,10 @@ CREATE TABLE public.audio_sets (
     is_active boolean DEFAULT true,
     metadata jsonb,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    content_type text DEFAULT 'life_vision'::text,
+    content_id uuid,
+    CONSTRAINT audio_sets_content_type_check CHECK ((content_type = ANY (ARRAY['life_vision'::text, 'focus_story'::text, 'story'::text, 'affirmation'::text, 'visualization'::text, 'journal'::text, 'custom'::text])))
 );
 
 
@@ -7548,13 +7976,27 @@ COMMENT ON COLUMN public.audio_sets.metadata IS 'Additional metadata like backgr
 
 
 --
+-- Name: COLUMN audio_sets.content_type; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.audio_sets.content_type IS 'Type of content: life_vision, focus_story, affirmation, visualization, journal, custom';
+
+
+--
+-- Name: COLUMN audio_sets.content_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.audio_sets.content_id IS 'Generic reference to source content (vision_focus.id, affirmation.id, etc.)';
+
+
+--
 -- Name: audio_tracks; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.audio_tracks (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
-    vision_id uuid NOT NULL,
+    vision_id uuid,
     section_key text NOT NULL,
     content_hash text NOT NULL,
     text_content text NOT NULL,
@@ -7572,6 +8014,8 @@ CREATE TABLE public.audio_tracks (
     mixed_audio_url text,
     mixed_s3_key text,
     play_count integer DEFAULT 0 NOT NULL,
+    content_type text DEFAULT 'life_vision'::text,
+    CONSTRAINT audio_tracks_content_type_check CHECK ((content_type = ANY (ARRAY['life_vision'::text, 'focus_story'::text, 'story'::text, 'affirmation'::text, 'visualization'::text, 'journal'::text, 'custom'::text]))),
     CONSTRAINT audio_tracks_mix_status_check CHECK ((mix_status = ANY (ARRAY['not_required'::text, 'pending'::text, 'mixing'::text, 'completed'::text, 'failed'::text])))
 );
 
@@ -7619,6 +8063,13 @@ COMMENT ON COLUMN public.audio_tracks.play_count IS 'Number of times this track 
 
 
 --
+-- Name: COLUMN audio_tracks.content_type; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.audio_tracks.content_type IS 'Type of content this track belongs to';
+
+
+--
 -- Name: audio_variants; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -7657,6 +8108,129 @@ CREATE TABLE public.audio_voice_clones (
 --
 
 COMMENT ON TABLE public.audio_voice_clones IS 'Stores user voice clones from ElevenLabs for personalized TTS generation';
+
+
+--
+-- Name: bookings; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.bookings (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    staff_id uuid,
+    user_id uuid,
+    event_type text NOT NULL,
+    title text,
+    description text,
+    scheduled_at timestamp with time zone NOT NULL,
+    duration_minutes integer DEFAULT 45 NOT NULL,
+    timezone text DEFAULT 'America/New_York'::text,
+    meeting_type text DEFAULT 'video'::text NOT NULL,
+    location text,
+    video_session_id uuid,
+    contact_name text,
+    contact_email text,
+    contact_phone text,
+    status text DEFAULT 'confirmed'::text NOT NULL,
+    cancelled_at timestamp with time zone,
+    cancelled_by uuid,
+    cancellation_reason text,
+    staff_notes text,
+    client_notes text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT bookings_meeting_type_check CHECK ((meeting_type = ANY (ARRAY['video'::text, 'phone'::text, 'in_person'::text]))),
+    CONSTRAINT bookings_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'confirmed'::text, 'cancelled'::text, 'completed'::text, 'no_show'::text])))
+);
+
+
+--
+-- Name: TABLE bookings; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.bookings IS '1:1 appointment bookings from clients/users. Auto-creates calendar_event.';
+
+
+--
+-- Name: COLUMN bookings.event_type; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.bookings.event_type IS 'Type of booking: intensive_calibration, coaching_1on1, sales_call, etc.';
+
+
+--
+-- Name: COLUMN bookings.meeting_type; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.bookings.meeting_type IS 'How the meeting happens: video, phone, or in_person';
+
+
+--
+-- Name: COLUMN bookings.video_session_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.bookings.video_session_id IS 'Links to Daily.co video session if meeting_type is video';
+
+
+--
+-- Name: calendar_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.calendar_events (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    staff_id uuid,
+    user_id uuid,
+    title text NOT NULL,
+    description text,
+    location text,
+    event_source text DEFAULT 'manual'::text NOT NULL,
+    event_category text DEFAULT 'personal'::text NOT NULL,
+    scheduled_at timestamp with time zone NOT NULL,
+    end_at timestamp with time zone NOT NULL,
+    all_day boolean DEFAULT false NOT NULL,
+    timezone text DEFAULT 'America/New_York'::text,
+    is_recurring boolean DEFAULT false,
+    recurrence_rule text,
+    recurrence_parent_id uuid,
+    blocks_availability boolean DEFAULT true NOT NULL,
+    booking_id uuid,
+    video_session_id uuid,
+    is_private boolean DEFAULT false,
+    color text,
+    status text DEFAULT 'confirmed'::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT calendar_events_category_check CHECK ((event_category = ANY (ARRAY['client_call'::text, 'internal'::text, 'speaking'::text, 'travel'::text, 'conference'::text, 'personal'::text, 'blocked'::text, 'focus'::text, 'other'::text]))),
+    CONSTRAINT calendar_events_source_check CHECK ((event_source = ANY (ARRAY['booking'::text, 'manual'::text, 'travel'::text, 'external_sync'::text, 'system'::text]))),
+    CONSTRAINT calendar_events_status_check CHECK ((status = ANY (ARRAY['tentative'::text, 'confirmed'::text, 'cancelled'::text])))
+);
+
+
+--
+-- Name: TABLE calendar_events; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.calendar_events IS 'All calendar events - client calls (from bookings), personal, travel, speaking, blocked time. Blocks availability when blocks_availability=true.';
+
+
+--
+-- Name: COLUMN calendar_events.event_source; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.calendar_events.event_source IS 'Where event came from: booking (auto-created), manual, travel, external_sync';
+
+
+--
+-- Name: COLUMN calendar_events.event_category; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.calendar_events.event_category IS 'Category for display: client_call, speaking, travel, personal, blocked, focus';
+
+
+--
+-- Name: COLUMN calendar_events.blocks_availability; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.calendar_events.blocks_availability IS 'If true, this event blocks booking availability for this staff member';
 
 
 --
@@ -8555,6 +9129,137 @@ COMMENT ON TABLE public.sms_templates IS 'Database-driven SMS templates with var
 
 
 --
+-- Name: staff; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.staff (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid,
+    display_name text NOT NULL,
+    email text,
+    phone text,
+    avatar_url text,
+    bio text,
+    event_types text[] DEFAULT '{}'::text[] NOT NULL,
+    default_buffer_minutes integer DEFAULT 15 NOT NULL,
+    timezone text DEFAULT 'America/New_York'::text NOT NULL,
+    hourly_rate numeric(10,2),
+    department text,
+    manager_id uuid,
+    internal_notes text,
+    is_active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    availability jsonb DEFAULT '{"friday": {"end": "17:00", "start": "09:00", "enabled": true}, "monday": {"end": "17:00", "start": "09:00", "enabled": true}, "sunday": {"end": "14:00", "start": "10:00", "enabled": false}, "tuesday": {"end": "17:00", "start": "09:00", "enabled": true}, "saturday": {"end": "14:00", "start": "10:00", "enabled": false}, "thursday": {"end": "17:00", "start": "09:00", "enabled": true}, "wednesday": {"end": "17:00", "start": "09:00", "enabled": true}}'::jsonb NOT NULL
+);
+
+
+--
+-- Name: TABLE staff; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.staff IS 'Team members (coaches, admins, contractors) - used for scheduling, CRM, support, and more';
+
+
+--
+-- Name: stories; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.stories (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    entity_type text NOT NULL,
+    entity_id uuid NOT NULL,
+    title text,
+    content text,
+    word_count integer,
+    source text DEFAULT 'ai_generated'::text NOT NULL,
+    audio_set_id uuid,
+    user_audio_url text,
+    user_audio_duration_seconds integer,
+    metadata jsonb DEFAULT '{}'::jsonb,
+    status text DEFAULT 'draft'::text NOT NULL,
+    error_message text,
+    generation_count integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT stories_entity_type_check CHECK ((entity_type = ANY (ARRAY['life_vision'::text, 'vision_board_item'::text, 'goal'::text, 'schedule_block'::text, 'journal_entry'::text, 'custom'::text]))),
+    CONSTRAINT stories_source_check CHECK ((source = ANY (ARRAY['ai_generated'::text, 'user_written'::text, 'ai_assisted'::text]))),
+    CONSTRAINT stories_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'generating'::text, 'completed'::text, 'failed'::text])))
+);
+
+
+--
+-- Name: TABLE stories; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.stories IS 'Polymorphic stories attached to entities. Entity provides context (name, description, categories).';
+
+
+--
+-- Name: COLUMN stories.entity_type; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.stories.entity_type IS 'Type of entity: life_vision, vision_board_item, goal, schedule_block, journal_entry, custom';
+
+
+--
+-- Name: COLUMN stories.entity_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.stories.entity_id IS 'UUID of the entity (vision_board_items.id, vision_versions.id, etc.)';
+
+
+--
+-- Name: COLUMN stories.title; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.stories.title IS 'Optional title - can override or supplement the entity name';
+
+
+--
+-- Name: COLUMN stories.source; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.stories.source IS 'How content was created: ai_generated, user_written, ai_assisted';
+
+
+--
+-- Name: COLUMN stories.audio_set_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.stories.audio_set_id IS 'Reference to AI-generated audio via audio_sets (with background mixing)';
+
+
+--
+-- Name: COLUMN stories.user_audio_url; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.stories.user_audio_url IS 'URL to user-recorded audio file';
+
+
+--
+-- Name: COLUMN stories.user_audio_duration_seconds; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.stories.user_audio_duration_seconds IS 'Duration of user-recorded audio in seconds';
+
+
+--
+-- Name: COLUMN stories.metadata; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.stories.metadata IS 'Additional data: prompts used, generation settings, highlights extracted, etc.';
+
+
+--
+-- Name: COLUMN stories.generation_count; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.stories.generation_count IS 'Number of times story has been regenerated';
+
+
+--
 -- Name: support_ticket_replies; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8840,6 +9545,32 @@ CREATE TABLE public.user_activity_metrics (
     last_calculated_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now()
 );
+
+
+--
+-- Name: user_community_stats; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.user_community_stats (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    total_posts integer DEFAULT 0 NOT NULL,
+    total_comments integer DEFAULT 0 NOT NULL,
+    hearts_given integer DEFAULT 0 NOT NULL,
+    hearts_received integer DEFAULT 0 NOT NULL,
+    streak_days integer DEFAULT 0 NOT NULL,
+    last_post_date date,
+    longest_streak integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: TABLE user_community_stats; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.user_community_stats IS 'Aggregated community statistics per user';
 
 
 --
@@ -9343,6 +10074,89 @@ COMMENT ON COLUMN public.user_storage.quota_gb IS 'Storage quota granted (25GB, 
 
 
 --
+-- Name: vibe_comments; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.vibe_comments (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    post_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    content text NOT NULL,
+    hearts_count integer DEFAULT 0 NOT NULL,
+    is_deleted boolean DEFAULT false NOT NULL,
+    deleted_at timestamp with time zone,
+    deleted_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT vibe_comments_content_not_empty CHECK ((content <> ''::text))
+);
+
+
+--
+-- Name: TABLE vibe_comments; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.vibe_comments IS 'Comments on Vibe Tribe posts';
+
+
+--
+-- Name: vibe_hearts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.vibe_hearts (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    post_id uuid,
+    comment_id uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT vibe_hearts_one_target CHECK ((((post_id IS NOT NULL) AND (comment_id IS NULL)) OR ((post_id IS NULL) AND (comment_id IS NOT NULL))))
+);
+
+
+--
+-- Name: TABLE vibe_hearts; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.vibe_hearts IS 'Hearts (likes) on posts and comments';
+
+
+--
+-- Name: vibe_posts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.vibe_posts (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    content text,
+    media_urls jsonb DEFAULT '[]'::jsonb,
+    media_type public.vibe_media_type DEFAULT 'none'::public.vibe_media_type NOT NULL,
+    vibe_tag public.vibe_tag NOT NULL,
+    hearts_count integer DEFAULT 0 NOT NULL,
+    comments_count integer DEFAULT 0 NOT NULL,
+    is_deleted boolean DEFAULT false NOT NULL,
+    deleted_at timestamp with time zone,
+    deleted_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    life_categories text[] DEFAULT '{}'::text[],
+    CONSTRAINT vibe_posts_has_content CHECK ((((content IS NOT NULL) AND (content <> ''::text)) OR (jsonb_array_length(media_urls) > 0)))
+);
+
+
+--
+-- Name: TABLE vibe_posts; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.vibe_posts IS 'Community posts in the Vibe Tribe feed';
+
+
+--
+-- Name: COLUMN vibe_posts.life_categories; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.vibe_posts.life_categories IS 'Optional life vision categories (health, wealth, relationships, etc.)';
+
+
+--
 -- Name: vibrational_event_sources; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9467,7 +10281,12 @@ CREATE TABLE public.video_session_participants (
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
     phone text,
-    CONSTRAINT email_or_user CHECK (((user_id IS NOT NULL) OR (email IS NOT NULL)))
+    rsvp_status text DEFAULT 'invited'::text,
+    rsvp_at timestamp with time zone,
+    reminder_sent_at timestamp with time zone,
+    notes text,
+    CONSTRAINT email_or_user CHECK (((user_id IS NOT NULL) OR (email IS NOT NULL))),
+    CONSTRAINT video_participants_rsvp_check CHECK ((rsvp_status = ANY (ARRAY['invited'::text, 'registered'::text, 'declined'::text, 'maybe'::text])))
 );
 
 
@@ -9483,6 +10302,13 @@ COMMENT ON TABLE public.video_session_participants IS 'Participants in video ses
 --
 
 COMMENT ON COLUMN public.video_session_participants.phone IS 'Phone number for SMS reminders';
+
+
+--
+-- Name: COLUMN video_session_participants.rsvp_status; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.video_session_participants.rsvp_status IS 'RSVP: invited (default), registered (confirmed attending), declined, maybe';
 
 
 --
@@ -9550,7 +10376,13 @@ CREATE TABLE public.video_sessions (
     host_notes text,
     session_summary text,
     created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now()
+    updated_at timestamp with time zone DEFAULT now(),
+    staff_id uuid,
+    event_type text,
+    booking_id uuid,
+    is_group_session boolean DEFAULT false,
+    rsvp_enabled boolean DEFAULT false,
+    rsvp_deadline timestamp with time zone
 );
 
 
@@ -9580,6 +10412,20 @@ COMMENT ON COLUMN public.video_sessions.daily_room_url IS 'Full URL to join the 
 --
 
 COMMENT ON COLUMN public.video_sessions.session_summary IS 'Can be VIVA-generated after the call';
+
+
+--
+-- Name: COLUMN video_sessions.is_group_session; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.video_sessions.is_group_session IS 'True for group sessions where multiple people can join';
+
+
+--
+-- Name: COLUMN video_sessions.rsvp_enabled; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.video_sessions.rsvp_enabled IS 'True if RSVP tracking is enabled';
 
 
 --
@@ -9671,6 +10517,84 @@ COMMENT ON COLUMN public.vision_board_items.actualized_image_url IS 'Evidence im
 --
 
 COMMENT ON COLUMN public.vision_board_items.actualization_story IS 'Story describing how the vision was actualized. Only used when status is actualized.';
+
+
+--
+-- Name: vision_focus; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.vision_focus (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    vision_id uuid NOT NULL,
+    suggested_highlights jsonb DEFAULT '[]'::jsonb NOT NULL,
+    selected_highlights jsonb DEFAULT '[]'::jsonb NOT NULL,
+    story_content text,
+    story_word_count integer,
+    audio_set_id uuid,
+    status text DEFAULT 'draft'::text NOT NULL,
+    error_message text,
+    generation_count integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT vision_focus_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'suggesting'::text, 'generating_story'::text, 'generating_audio'::text, 'completed'::text, 'failed'::text])))
+);
+
+
+--
+-- Name: TABLE vision_focus; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.vision_focus IS 'Focus stories - 5-7 minute day-in-the-life audio narratives from life visions';
+
+
+--
+-- Name: COLUMN vision_focus.suggested_highlights; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.vision_focus.suggested_highlights IS 'VIVA-extracted highlights from vision: [{category, text, essence, timeOfDay}]';
+
+
+--
+-- Name: COLUMN vision_focus.selected_highlights; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.vision_focus.selected_highlights IS 'User-confirmed highlights for story generation';
+
+
+--
+-- Name: COLUMN vision_focus.story_content; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.vision_focus.story_content IS 'Generated day-in-the-life narrative text';
+
+
+--
+-- Name: COLUMN vision_focus.story_word_count; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.vision_focus.story_word_count IS 'Word count of story (target: 750-1000 for 5-7 min audio)';
+
+
+--
+-- Name: COLUMN vision_focus.audio_set_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.vision_focus.audio_set_id IS 'Reference to audio_sets where content_type=focus_story';
+
+
+--
+-- Name: COLUMN vision_focus.status; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.vision_focus.status IS 'draft: initial | suggesting: extracting highlights | generating_story: VIVA writing | generating_audio: TTS | completed | failed';
+
+
+--
+-- Name: COLUMN vision_focus.generation_count; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.vision_focus.generation_count IS 'Number of times story/audio has been regenerated';
 
 
 --
@@ -10734,6 +11658,22 @@ ALTER TABLE ONLY public.audio_voice_clones
 
 
 --
+-- Name: bookings bookings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.bookings
+    ADD CONSTRAINT bookings_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: calendar_events calendar_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.calendar_events
+    ADD CONSTRAINT calendar_events_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: conversation_sessions conversation_sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -11070,6 +12010,22 @@ ALTER TABLE ONLY public.sms_templates
 
 
 --
+-- Name: staff staff_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff
+    ADD CONSTRAINT staff_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: stories stories_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stories
+    ADD CONSTRAINT stories_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: support_ticket_replies support_ticket_replies_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -11118,11 +12074,27 @@ ALTER TABLE ONLY public.assessment_responses
 
 
 --
+-- Name: vision_focus unique_focus_per_vision; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vision_focus
+    ADD CONSTRAINT unique_focus_per_vision UNIQUE (vision_id);
+
+
+--
 -- Name: intensive_responses unique_phase_per_intensive; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.intensive_responses
     ADD CONSTRAINT unique_phase_per_intensive UNIQUE (intensive_id, phase);
+
+
+--
+-- Name: stories unique_story_per_entity; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stories
+    ADD CONSTRAINT unique_story_per_entity UNIQUE (entity_type, entity_id);
 
 
 --
@@ -11139,6 +12111,22 @@ ALTER TABLE ONLY public.user_accounts
 
 ALTER TABLE ONLY public.user_activity_metrics
     ADD CONSTRAINT user_activity_metrics_pkey PRIMARY KEY (user_id);
+
+
+--
+-- Name: user_community_stats user_community_stats_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_community_stats
+    ADD CONSTRAINT user_community_stats_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: user_community_stats user_community_stats_user_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_community_stats
+    ADD CONSTRAINT user_community_stats_user_id_key UNIQUE (user_id);
 
 
 --
@@ -11163,6 +12151,46 @@ ALTER TABLE ONLY public.user_storage
 
 ALTER TABLE ONLY public.refinements
     ADD CONSTRAINT vibe_assistant_logs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: vibe_comments vibe_comments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vibe_comments
+    ADD CONSTRAINT vibe_comments_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: vibe_hearts vibe_hearts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vibe_hearts
+    ADD CONSTRAINT vibe_hearts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: vibe_hearts vibe_hearts_unique_comment; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vibe_hearts
+    ADD CONSTRAINT vibe_hearts_unique_comment UNIQUE (user_id, comment_id);
+
+
+--
+-- Name: vibe_hearts vibe_hearts_unique_post; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vibe_hearts
+    ADD CONSTRAINT vibe_hearts_unique_post UNIQUE (user_id, post_id);
+
+
+--
+-- Name: vibe_posts vibe_posts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vibe_posts
+    ADD CONSTRAINT vibe_posts_pkey PRIMARY KEY (id);
 
 
 --
@@ -11291,6 +12319,14 @@ ALTER TABLE ONLY public.vision_board_ideas
 
 ALTER TABLE ONLY public.vision_board_items
     ADD CONSTRAINT vision_board_items_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: vision_focus vision_focus_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vision_focus
+    ADD CONSTRAINT vision_focus_pkey PRIMARY KEY (id);
 
 
 --
@@ -12095,6 +13131,13 @@ CREATE INDEX idx_audio_recommended_combos_track ON public.audio_recommended_comb
 
 
 --
+-- Name: idx_audio_sets_content; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audio_sets_content ON public.audio_sets USING btree (content_type, content_id) WHERE (content_id IS NOT NULL);
+
+
+--
 -- Name: idx_audio_sets_is_active; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -12127,6 +13170,13 @@ CREATE INDEX idx_audio_sets_vision_id ON public.audio_sets USING btree (vision_i
 --
 
 CREATE INDEX idx_audio_tracks_audio_set_id ON public.audio_tracks USING btree (audio_set_id);
+
+
+--
+-- Name: idx_audio_tracks_content; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audio_tracks_content ON public.audio_tracks USING btree (content_type);
 
 
 --
@@ -12197,6 +13247,76 @@ CREATE UNIQUE INDEX idx_audio_voice_clones_user_active ON public.audio_voice_clo
 --
 
 CREATE INDEX idx_audio_voice_clones_user_id ON public.audio_voice_clones USING btree (user_id);
+
+
+--
+-- Name: idx_bookings_event_type; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_bookings_event_type ON public.bookings USING btree (event_type);
+
+
+--
+-- Name: idx_bookings_scheduled_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_bookings_scheduled_at ON public.bookings USING btree (scheduled_at);
+
+
+--
+-- Name: idx_bookings_staff_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_bookings_staff_id ON public.bookings USING btree (staff_id);
+
+
+--
+-- Name: idx_bookings_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_bookings_status ON public.bookings USING btree (status);
+
+
+--
+-- Name: idx_bookings_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_bookings_user_id ON public.bookings USING btree (user_id);
+
+
+--
+-- Name: idx_calendar_events_blocks; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_calendar_events_blocks ON public.calendar_events USING btree (staff_id, scheduled_at, end_at) WHERE ((blocks_availability = true) AND (status <> 'cancelled'::text));
+
+
+--
+-- Name: idx_calendar_events_booking_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_calendar_events_booking_id ON public.calendar_events USING btree (booking_id);
+
+
+--
+-- Name: idx_calendar_events_end_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_calendar_events_end_at ON public.calendar_events USING btree (end_at);
+
+
+--
+-- Name: idx_calendar_events_scheduled_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_calendar_events_scheduled_at ON public.calendar_events USING btree (scheduled_at);
+
+
+--
+-- Name: idx_calendar_events_staff_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_calendar_events_staff_id ON public.calendar_events USING btree (staff_id);
 
 
 --
@@ -12935,6 +14055,62 @@ CREATE INDEX idx_sms_user_id ON public.sms_messages USING btree (user_id);
 
 
 --
+-- Name: idx_staff_department; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_staff_department ON public.staff USING btree (department) WHERE (department IS NOT NULL);
+
+
+--
+-- Name: idx_staff_is_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_staff_is_active ON public.staff USING btree (is_active);
+
+
+--
+-- Name: idx_staff_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_staff_user_id ON public.staff USING btree (user_id);
+
+
+--
+-- Name: idx_stories_audio_set; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_stories_audio_set ON public.stories USING btree (audio_set_id) WHERE (audio_set_id IS NOT NULL);
+
+
+--
+-- Name: idx_stories_entity; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_stories_entity ON public.stories USING btree (entity_type, entity_id);
+
+
+--
+-- Name: idx_stories_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_stories_status ON public.stories USING btree (status) WHERE (status <> 'completed'::text);
+
+
+--
+-- Name: idx_stories_user; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_stories_user ON public.stories USING btree (user_id);
+
+
+--
+-- Name: idx_stories_user_entity_type; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_stories_user_entity_type ON public.stories USING btree (user_id, entity_type);
+
+
+--
 -- Name: idx_ticket_replies_created_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -13194,6 +14370,13 @@ CREATE INDEX idx_user_accounts_sms_opt_in ON public.user_accounts USING btree (s
 
 
 --
+-- Name: idx_user_community_stats_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_user_community_stats_user_id ON public.user_community_stats USING btree (user_id);
+
+
+--
 -- Name: idx_user_profiles_created_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -13261,6 +14444,90 @@ CREATE INDEX idx_user_storage_recent ON public.user_storage USING btree (user_id
 --
 
 CREATE INDEX idx_user_storage_user_id ON public.user_storage USING btree (user_id);
+
+
+--
+-- Name: idx_vibe_comments_created_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vibe_comments_created_at ON public.vibe_comments USING btree (created_at DESC);
+
+
+--
+-- Name: idx_vibe_comments_not_deleted; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vibe_comments_not_deleted ON public.vibe_comments USING btree (is_deleted) WHERE (is_deleted = false);
+
+
+--
+-- Name: idx_vibe_comments_post_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vibe_comments_post_id ON public.vibe_comments USING btree (post_id);
+
+
+--
+-- Name: idx_vibe_comments_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vibe_comments_user_id ON public.vibe_comments USING btree (user_id);
+
+
+--
+-- Name: idx_vibe_hearts_comment_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vibe_hearts_comment_id ON public.vibe_hearts USING btree (comment_id) WHERE (comment_id IS NOT NULL);
+
+
+--
+-- Name: idx_vibe_hearts_post_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vibe_hearts_post_id ON public.vibe_hearts USING btree (post_id) WHERE (post_id IS NOT NULL);
+
+
+--
+-- Name: idx_vibe_hearts_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vibe_hearts_user_id ON public.vibe_hearts USING btree (user_id);
+
+
+--
+-- Name: idx_vibe_posts_created_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vibe_posts_created_at ON public.vibe_posts USING btree (created_at DESC);
+
+
+--
+-- Name: idx_vibe_posts_not_deleted; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vibe_posts_not_deleted ON public.vibe_posts USING btree (is_deleted) WHERE (is_deleted = false);
+
+
+--
+-- Name: idx_vibe_posts_tag_created; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vibe_posts_tag_created ON public.vibe_posts USING btree (vibe_tag, created_at DESC) WHERE (is_deleted = false);
+
+
+--
+-- Name: idx_vibe_posts_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vibe_posts_user_id ON public.vibe_posts USING btree (user_id);
+
+
+--
+-- Name: idx_vibe_posts_vibe_tag; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vibe_posts_vibe_tag ON public.vibe_posts USING btree (vibe_tag);
 
 
 --
@@ -13355,6 +14622,13 @@ CREATE INDEX idx_video_participants_phone ON public.video_session_participants U
 
 
 --
+-- Name: idx_video_participants_rsvp; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_video_participants_rsvp ON public.video_session_participants USING btree (session_id, rsvp_status);
+
+
+--
 -- Name: idx_video_participants_session; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -13383,6 +14657,13 @@ CREATE INDEX idx_video_recordings_status ON public.video_session_recordings USIN
 
 
 --
+-- Name: idx_video_sessions_booking_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_video_sessions_booking_id ON public.video_sessions USING btree (booking_id);
+
+
+--
 -- Name: idx_video_sessions_daily_room; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -13401,6 +14682,13 @@ CREATE INDEX idx_video_sessions_host ON public.video_sessions USING btree (host_
 --
 
 CREATE INDEX idx_video_sessions_scheduled ON public.video_sessions USING btree (scheduled_at);
+
+
+--
+-- Name: idx_video_sessions_staff_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_video_sessions_staff_id ON public.video_sessions USING btree (staff_id);
 
 
 --
@@ -13471,6 +14759,34 @@ CREATE INDEX idx_vision_board_ideas_user_active ON public.vision_board_ideas USI
 --
 
 CREATE INDEX idx_vision_board_ideas_vision ON public.vision_board_ideas USING btree (vision_version_id);
+
+
+--
+-- Name: idx_vision_focus_audio_set; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vision_focus_audio_set ON public.vision_focus USING btree (audio_set_id) WHERE (audio_set_id IS NOT NULL);
+
+
+--
+-- Name: idx_vision_focus_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vision_focus_status ON public.vision_focus USING btree (status);
+
+
+--
+-- Name: idx_vision_focus_user; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vision_focus_user ON public.vision_focus USING btree (user_id);
+
+
+--
+-- Name: idx_vision_focus_vision; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vision_focus_vision ON public.vision_focus USING btree (vision_id);
 
 
 --
@@ -13803,10 +15119,17 @@ CREATE TRIGGER ai_model_pricing_updated_at BEFORE UPDATE ON public.ai_model_pric
 
 
 --
--- Name: user_accounts auto_create_solo_household_for_account; Type: TRIGGER; Schema: public; Owner: -
+-- Name: bookings booking_create_calendar_event; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE TRIGGER auto_create_solo_household_for_account BEFORE INSERT ON public.user_accounts FOR EACH ROW EXECUTE FUNCTION public.create_solo_household_for_new_account();
+CREATE TRIGGER booking_create_calendar_event AFTER INSERT ON public.bookings FOR EACH ROW EXECUTE FUNCTION public.create_calendar_event_for_booking();
+
+
+--
+-- Name: bookings booking_update_calendar_event; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER booking_update_calendar_event AFTER UPDATE ON public.bookings FOR EACH ROW EXECUTE FUNCTION public.update_calendar_event_for_booking();
 
 
 --
@@ -13852,6 +15175,27 @@ CREATE TRIGGER set_updated_at_on_vibrational_event_sources BEFORE UPDATE ON publ
 
 
 --
+-- Name: user_community_stats set_user_community_stats_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER set_user_community_stats_updated_at BEFORE UPDATE ON public.user_community_stats FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: vibe_posts set_vibe_posts_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER set_vibe_posts_updated_at BEFORE UPDATE ON public.vibe_posts FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: staff staff_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER staff_updated_at BEFORE UPDATE ON public.staff FOR EACH ROW EXECUTE FUNCTION public.update_schedules_updated_at();
+
+
+--
 -- Name: daily_papers trg_daily_papers_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -13894,6 +15238,13 @@ CREATE TRIGGER trigger_set_ticket_number BEFORE INSERT ON public.support_tickets
 
 
 --
+-- Name: stories trigger_stories_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trigger_stories_updated_at BEFORE UPDATE ON public.stories FOR EACH ROW EXECUTE FUNCTION public.update_stories_updated_at();
+
+
+--
 -- Name: vision_versions trigger_track_category_refinement; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -13915,6 +15266,20 @@ CREATE TRIGGER trigger_update_campaigns_updated_at BEFORE UPDATE ON public.marke
 
 
 --
+-- Name: vibe_hearts trigger_update_comment_hearts_count_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trigger_update_comment_hearts_count_delete AFTER DELETE ON public.vibe_hearts FOR EACH ROW WHEN ((old.comment_id IS NOT NULL)) EXECUTE FUNCTION public.update_comment_hearts_count();
+
+
+--
+-- Name: vibe_hearts trigger_update_comment_hearts_count_insert; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trigger_update_comment_hearts_count_insert AFTER INSERT ON public.vibe_hearts FOR EACH ROW WHEN ((new.comment_id IS NOT NULL)) EXECUTE FUNCTION public.update_comment_hearts_count();
+
+
+--
 -- Name: leads trigger_update_leads_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -13926,6 +15291,27 @@ CREATE TRIGGER trigger_update_leads_updated_at BEFORE UPDATE ON public.leads FOR
 --
 
 CREATE TRIGGER trigger_update_membership_tiers_updated_at BEFORE UPDATE ON public.membership_tiers FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- Name: vibe_comments trigger_update_post_comments_count; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trigger_update_post_comments_count AFTER INSERT OR DELETE OR UPDATE OF is_deleted ON public.vibe_comments FOR EACH ROW EXECUTE FUNCTION public.update_post_comments_count();
+
+
+--
+-- Name: vibe_hearts trigger_update_post_hearts_count_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trigger_update_post_hearts_count_delete AFTER DELETE ON public.vibe_hearts FOR EACH ROW WHEN ((old.post_id IS NOT NULL)) EXECUTE FUNCTION public.update_post_hearts_count();
+
+
+--
+-- Name: vibe_hearts trigger_update_post_hearts_count_insert; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trigger_update_post_hearts_count_insert AFTER INSERT ON public.vibe_hearts FOR EACH ROW WHEN ((new.post_id IS NOT NULL)) EXECUTE FUNCTION public.update_post_hearts_count();
 
 
 --
@@ -13943,6 +15329,13 @@ CREATE TRIGGER trigger_update_user_accounts_updated_at BEFORE UPDATE ON public.u
 
 
 --
+-- Name: vibe_posts trigger_update_user_post_stats; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trigger_update_user_post_stats AFTER INSERT OR DELETE OR UPDATE OF is_deleted ON public.vibe_posts FOR EACH ROW EXECUTE FUNCTION public.update_user_post_stats();
+
+
+--
 -- Name: user_profiles trigger_update_user_profiles_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -13954,6 +15347,13 @@ CREATE TRIGGER trigger_update_user_profiles_updated_at BEFORE UPDATE ON public.u
 --
 
 CREATE TRIGGER trigger_update_vision_refinement_tracking AFTER INSERT ON public.refinements FOR EACH ROW WHEN ((((new.operation_type)::text = 'refine_vision'::text) AND (new.vision_id IS NOT NULL))) EXECUTE FUNCTION public.update_vision_refinement_tracking();
+
+
+--
+-- Name: vision_focus trigger_vision_focus_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trigger_vision_focus_updated_at BEFORE UPDATE ON public.vision_focus FOR EACH ROW EXECUTE FUNCTION public.update_vision_focus_updated_at();
 
 
 --
@@ -13989,6 +15389,20 @@ CREATE TRIGGER update_assessment_results_updated_at BEFORE UPDATE ON public.asse
 --
 
 CREATE TRIGGER update_audio_generation_batches_updated_at BEFORE UPDATE ON public.audio_generation_batches FOR EACH ROW EXECUTE FUNCTION public.update_audio_generation_batches_updated_at();
+
+
+--
+-- Name: bookings update_bookings_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_bookings_updated_at BEFORE UPDATE ON public.bookings FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- Name: calendar_events update_calendar_events_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_calendar_events_updated_at BEFORE UPDATE ON public.calendar_events FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 
 --
@@ -14431,6 +15845,78 @@ ALTER TABLE ONLY public.audio_voice_clones
 
 
 --
+-- Name: bookings bookings_cancelled_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.bookings
+    ADD CONSTRAINT bookings_cancelled_by_fkey FOREIGN KEY (cancelled_by) REFERENCES auth.users(id);
+
+
+--
+-- Name: bookings bookings_staff_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.bookings
+    ADD CONSTRAINT bookings_staff_id_fkey FOREIGN KEY (staff_id) REFERENCES public.staff(id) ON DELETE SET NULL;
+
+
+--
+-- Name: bookings bookings_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.bookings
+    ADD CONSTRAINT bookings_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: bookings bookings_video_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.bookings
+    ADD CONSTRAINT bookings_video_session_id_fkey FOREIGN KEY (video_session_id) REFERENCES public.video_sessions(id) ON DELETE SET NULL;
+
+
+--
+-- Name: calendar_events calendar_events_booking_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.calendar_events
+    ADD CONSTRAINT calendar_events_booking_id_fkey FOREIGN KEY (booking_id) REFERENCES public.bookings(id) ON DELETE CASCADE;
+
+
+--
+-- Name: calendar_events calendar_events_recurrence_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.calendar_events
+    ADD CONSTRAINT calendar_events_recurrence_parent_id_fkey FOREIGN KEY (recurrence_parent_id) REFERENCES public.calendar_events(id) ON DELETE CASCADE;
+
+
+--
+-- Name: calendar_events calendar_events_staff_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.calendar_events
+    ADD CONSTRAINT calendar_events_staff_id_fkey FOREIGN KEY (staff_id) REFERENCES public.staff(id) ON DELETE CASCADE;
+
+
+--
+-- Name: calendar_events calendar_events_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.calendar_events
+    ADD CONSTRAINT calendar_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: calendar_events calendar_events_video_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.calendar_events
+    ADD CONSTRAINT calendar_events_video_session_id_fkey FOREIGN KEY (video_session_id) REFERENCES public.video_sessions(id) ON DELETE SET NULL;
+
+
+--
 -- Name: conversation_sessions conversation_sessions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -14791,6 +16277,38 @@ ALTER TABLE ONLY public.sms_templates
 
 
 --
+-- Name: staff staff_manager_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff
+    ADD CONSTRAINT staff_manager_id_fkey FOREIGN KEY (manager_id) REFERENCES public.staff(id) ON DELETE SET NULL;
+
+
+--
+-- Name: staff staff_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff
+    ADD CONSTRAINT staff_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_accounts(id) ON DELETE SET NULL;
+
+
+--
+-- Name: stories stories_audio_set_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stories
+    ADD CONSTRAINT stories_audio_set_id_fkey FOREIGN KEY (audio_set_id) REFERENCES public.audio_sets(id) ON DELETE SET NULL;
+
+
+--
+-- Name: stories stories_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stories
+    ADD CONSTRAINT stories_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: support_ticket_replies support_ticket_replies_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -14887,6 +16405,14 @@ ALTER TABLE ONLY public.user_activity_metrics
 
 
 --
+-- Name: user_community_stats user_community_stats_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_community_stats
+    ADD CONSTRAINT user_community_stats_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: user_profiles user_profiles_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -14940,6 +16466,70 @@ ALTER TABLE ONLY public.refinements
 
 ALTER TABLE ONLY public.refinements
     ADD CONSTRAINT vibe_assistant_logs_vision_id_fkey FOREIGN KEY (vision_id) REFERENCES public.vision_versions(id) ON DELETE SET NULL;
+
+
+--
+-- Name: vibe_comments vibe_comments_deleted_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vibe_comments
+    ADD CONSTRAINT vibe_comments_deleted_by_fkey FOREIGN KEY (deleted_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: vibe_comments vibe_comments_post_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vibe_comments
+    ADD CONSTRAINT vibe_comments_post_id_fkey FOREIGN KEY (post_id) REFERENCES public.vibe_posts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: vibe_comments vibe_comments_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vibe_comments
+    ADD CONSTRAINT vibe_comments_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: vibe_hearts vibe_hearts_comment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vibe_hearts
+    ADD CONSTRAINT vibe_hearts_comment_id_fkey FOREIGN KEY (comment_id) REFERENCES public.vibe_comments(id) ON DELETE CASCADE;
+
+
+--
+-- Name: vibe_hearts vibe_hearts_post_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vibe_hearts
+    ADD CONSTRAINT vibe_hearts_post_id_fkey FOREIGN KEY (post_id) REFERENCES public.vibe_posts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: vibe_hearts vibe_hearts_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vibe_hearts
+    ADD CONSTRAINT vibe_hearts_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: vibe_posts vibe_posts_deleted_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vibe_posts
+    ADD CONSTRAINT vibe_posts_deleted_by_fkey FOREIGN KEY (deleted_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: vibe_posts vibe_posts_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vibe_posts
+    ADD CONSTRAINT vibe_posts_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
 
 --
@@ -14999,11 +16589,27 @@ ALTER TABLE ONLY public.video_session_recordings
 
 
 --
+-- Name: video_sessions video_sessions_booking_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_sessions
+    ADD CONSTRAINT video_sessions_booking_id_fkey FOREIGN KEY (booking_id) REFERENCES public.bookings(id) ON DELETE SET NULL;
+
+
+--
 -- Name: video_sessions video_sessions_host_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.video_sessions
     ADD CONSTRAINT video_sessions_host_user_id_fkey FOREIGN KEY (host_user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: video_sessions video_sessions_staff_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_sessions
+    ADD CONSTRAINT video_sessions_staff_id_fkey FOREIGN KEY (staff_id) REFERENCES public.staff(id) ON DELETE SET NULL;
 
 
 --
@@ -15028,6 +16634,30 @@ ALTER TABLE ONLY public.vision_board_ideas
 
 ALTER TABLE ONLY public.vision_board_items
     ADD CONSTRAINT vision_board_items_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: vision_focus vision_focus_audio_set_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vision_focus
+    ADD CONSTRAINT vision_focus_audio_set_id_fkey FOREIGN KEY (audio_set_id) REFERENCES public.audio_sets(id) ON DELETE SET NULL;
+
+
+--
+-- Name: vision_focus vision_focus_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vision_focus
+    ADD CONSTRAINT vision_focus_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: vision_focus vision_focus_vision_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vision_focus
+    ADD CONSTRAINT vision_focus_vision_id_fkey FOREIGN KEY (vision_id) REFERENCES public.vision_versions(id) ON DELETE CASCADE;
 
 
 --
@@ -15310,6 +16940,24 @@ CREATE POLICY "Admins can add members" ON public.household_members FOR INSERT WI
 
 
 --
+-- Name: vibe_comments Admins can delete any comment; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can delete any comment" ON public.vibe_comments FOR DELETE TO authenticated USING ((EXISTS ( SELECT 1
+   FROM public.user_accounts
+  WHERE ((user_accounts.id = auth.uid()) AND (user_accounts.role = ANY (ARRAY['admin'::public.user_role, 'super_admin'::public.user_role]))))));
+
+
+--
+-- Name: vibe_posts Admins can delete any post; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can delete any post" ON public.vibe_posts FOR DELETE TO authenticated USING ((EXISTS ( SELECT 1
+   FROM public.user_accounts
+  WHERE ((user_accounts.id = auth.uid()) AND (user_accounts.role = ANY (ARRAY['admin'::public.user_role, 'super_admin'::public.user_role]))))));
+
+
+--
 -- Name: media_metadata Admins can insert site content metadata; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -15419,6 +17067,17 @@ CREATE POLICY "Admins can manage sms templates" ON public.sms_templates USING (p
 
 
 --
+-- Name: staff Admins can manage staff; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can manage staff" ON public.staff TO authenticated USING ((EXISTS ( SELECT 1
+   FROM public.user_accounts
+  WHERE ((user_accounts.id = auth.uid()) AND (user_accounts.role = ANY (ARRAY['admin'::public.user_role, 'super_admin'::public.user_role])))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM public.user_accounts
+  WHERE ((user_accounts.id = auth.uid()) AND (user_accounts.role = ANY (ARRAY['admin'::public.user_role, 'super_admin'::public.user_role]))))));
+
+
+--
 -- Name: lead_tracking_events Admins can manage tracking events; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -15459,6 +17118,24 @@ CREATE POLICY "Admins can update accounts" ON public.user_accounts FOR UPDATE US
 --
 
 CREATE POLICY "Admins can update all intensive responses" ON public.intensive_responses FOR UPDATE USING ((EXISTS ( SELECT 1
+   FROM public.user_accounts
+  WHERE ((user_accounts.id = auth.uid()) AND (user_accounts.role = ANY (ARRAY['admin'::public.user_role, 'super_admin'::public.user_role]))))));
+
+
+--
+-- Name: vibe_comments Admins can update any comment; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can update any comment" ON public.vibe_comments FOR UPDATE TO authenticated USING ((EXISTS ( SELECT 1
+   FROM public.user_accounts
+  WHERE ((user_accounts.id = auth.uid()) AND (user_accounts.role = ANY (ARRAY['admin'::public.user_role, 'super_admin'::public.user_role]))))));
+
+
+--
+-- Name: vibe_posts Admins can update any post; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can update any post" ON public.vibe_posts FOR UPDATE TO authenticated USING ((EXISTS ( SELECT 1
    FROM public.user_accounts
   WHERE ((user_accounts.id = auth.uid()) AND (user_accounts.role = ANY (ARRAY['admin'::public.user_role, 'super_admin'::public.user_role]))))));
 
@@ -15580,6 +17257,41 @@ CREATE POLICY "Anyone can view active membership tiers" ON public.membership_tie
 
 
 --
+-- Name: staff Anyone can view active staff; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Anyone can view active staff" ON public.staff FOR SELECT TO authenticated USING ((is_active = true));
+
+
+--
+-- Name: user_community_stats Anyone can view community stats; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Anyone can view community stats" ON public.user_community_stats FOR SELECT TO authenticated USING (true);
+
+
+--
+-- Name: vibe_hearts Anyone can view hearts; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Anyone can view hearts" ON public.vibe_hearts FOR SELECT TO authenticated USING (true);
+
+
+--
+-- Name: vibe_comments Anyone can view non-deleted comments; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Anyone can view non-deleted comments" ON public.vibe_comments FOR SELECT USING ((is_deleted = false));
+
+
+--
+-- Name: vibe_posts Anyone can view non-deleted posts; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Anyone can view non-deleted posts" ON public.vibe_posts FOR SELECT USING ((is_deleted = false));
+
+
+--
 -- Name: media_metadata Anyone can view site content metadata; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -15633,6 +17345,27 @@ CREATE POLICY "Authenticated can read sms templates" ON public.sms_templates FOR
 --
 
 CREATE POLICY "Authenticated can view message log" ON public.message_send_log FOR SELECT USING ((auth.uid() IS NOT NULL));
+
+
+--
+-- Name: vibe_hearts Authenticated users can add hearts; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Authenticated users can add hearts" ON public.vibe_hearts FOR INSERT TO authenticated WITH CHECK ((auth.uid() = user_id));
+
+
+--
+-- Name: vibe_comments Authenticated users can create comments; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Authenticated users can create comments" ON public.vibe_comments FOR INSERT TO authenticated WITH CHECK ((auth.uid() = user_id));
+
+
+--
+-- Name: vibe_posts Authenticated users can create posts; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Authenticated users can create posts" ON public.vibe_posts FOR INSERT TO authenticated WITH CHECK ((auth.uid() = user_id));
 
 
 --
@@ -15717,6 +17450,20 @@ CREATE POLICY "Service role has full access to user_storage" ON public.user_stor
 
 
 --
+-- Name: user_community_stats Stats are managed by system; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Stats are managed by system" ON public.user_community_stats FOR INSERT TO authenticated WITH CHECK ((auth.uid() = user_id));
+
+
+--
+-- Name: user_community_stats Stats are updated by system; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Stats are updated by system" ON public.user_community_stats FOR UPDATE TO authenticated USING (true);
+
+
+--
 -- Name: user_accounts Super admins can manage all; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -15773,10 +17520,24 @@ CREATE POLICY "Users can create own audio generation batches" ON public.audio_ge
 
 
 --
+-- Name: vision_focus Users can create own focus; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can create own focus" ON public.vision_focus FOR INSERT WITH CHECK ((auth.uid() = user_id));
+
+
+--
 -- Name: journal_entries Users can create own journal entries; Type: POLICY; Schema: public; Owner: -
 --
 
 CREATE POLICY "Users can create own journal entries" ON public.journal_entries FOR INSERT TO authenticated WITH CHECK ((auth.uid() = user_id));
+
+
+--
+-- Name: stories Users can create own stories; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can create own stories" ON public.stories FOR INSERT WITH CHECK ((auth.uid() = user_id));
 
 
 --
@@ -15845,6 +17606,13 @@ CREATE POLICY "Users can delete own category state" ON public.vision_new_categor
 
 
 --
+-- Name: vision_focus Users can delete own focus; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can delete own focus" ON public.vision_focus FOR DELETE USING ((auth.uid() = user_id));
+
+
+--
 -- Name: journal_entries Users can delete own journal entries; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -15863,6 +17631,13 @@ CREATE POLICY "Users can delete own media metadata" ON public.media_metadata FOR
 --
 
 CREATE POLICY "Users can delete own profile" ON public.user_profiles FOR DELETE USING ((auth.uid() = user_id));
+
+
+--
+-- Name: stories Users can delete own stories; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can delete own stories" ON public.stories FOR DELETE USING ((auth.uid() = user_id));
 
 
 --
@@ -15910,6 +17685,13 @@ CREATE POLICY "Users can delete their own audio tracks" ON public.audio_tracks F
 
 
 --
+-- Name: vibe_comments Users can delete their own comments; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can delete their own comments" ON public.vibe_comments FOR DELETE TO authenticated USING ((auth.uid() = user_id));
+
+
+--
 -- Name: conversation_sessions Users can delete their own conversation sessions; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -15935,6 +17717,13 @@ CREATE POLICY "Users can delete their own frequency flip seeds" ON public.freque
 --
 
 CREATE POLICY "Users can delete their own generated images" ON public.generated_images FOR DELETE USING ((auth.uid() = user_id));
+
+
+--
+-- Name: vibe_posts Users can delete their own posts; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can delete their own posts" ON public.vibe_posts FOR DELETE TO authenticated USING ((auth.uid() = user_id));
 
 
 --
@@ -16134,6 +17923,13 @@ CREATE POLICY "Users can manage their voice profile" ON public.voice_profiles US
 
 
 --
+-- Name: vibe_hearts Users can remove their own hearts; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can remove their own hearts" ON public.vibe_hearts FOR DELETE TO authenticated USING ((auth.uid() = user_id));
+
+
+--
 -- Name: support_ticket_replies Users can reply to own tickets; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -16178,6 +17974,13 @@ CREATE POLICY "Users can update own category state" ON public.vision_new_categor
 
 
 --
+-- Name: vision_focus Users can update own focus; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can update own focus" ON public.vision_focus FOR UPDATE USING ((auth.uid() = user_id));
+
+
+--
 -- Name: intensive_checklist Users can update own intensive checklist; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -16217,6 +18020,13 @@ CREATE POLICY "Users can update own media metadata" ON public.media_metadata FOR
 --
 
 CREATE POLICY "Users can update own profile" ON public.user_profiles FOR UPDATE USING ((auth.uid() = user_id));
+
+
+--
+-- Name: stories Users can update own stories; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can update own stories" ON public.stories FOR UPDATE USING ((auth.uid() = user_id));
 
 
 --
@@ -16278,6 +18088,13 @@ CREATE POLICY "Users can update their own audio tracks" ON public.audio_tracks F
 
 
 --
+-- Name: vibe_comments Users can update their own comments; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can update their own comments" ON public.vibe_comments FOR UPDATE TO authenticated USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+
+
+--
 -- Name: conversation_sessions Users can update their own conversation sessions; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -16310,6 +18127,13 @@ CREATE POLICY "Users can update their own frequency flip seeds" ON public.freque
 --
 
 CREATE POLICY "Users can update their own generated images" ON public.generated_images FOR UPDATE USING ((auth.uid() = user_id));
+
+
+--
+-- Name: vibe_posts Users can update their own posts; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can update their own posts" ON public.vibe_posts FOR UPDATE TO authenticated USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
 
 
 --
@@ -16424,6 +18248,13 @@ CREATE POLICY "Users can view own emails" ON public.email_messages FOR SELECT US
 
 
 --
+-- Name: vision_focus Users can view own focus; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can view own focus" ON public.vision_focus FOR SELECT USING ((auth.uid() = user_id));
+
+
+--
 -- Name: intensive_checklist Users can view own intensive checklist; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -16477,6 +18308,13 @@ CREATE POLICY "Users can view own profile" ON public.user_profiles FOR SELECT US
 --
 
 CREATE POLICY "Users can view own storage grants" ON public.user_storage FOR SELECT USING ((auth.uid() = user_id));
+
+
+--
+-- Name: stories Users can view own stories; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can view own stories" ON public.stories FOR SELECT USING ((auth.uid() = user_id));
 
 
 --
@@ -16775,6 +18613,129 @@ ALTER TABLE public.audio_variants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audio_voice_clones ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: bookings; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: bookings bookings_admin_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY bookings_admin_all ON public.bookings USING ((EXISTS ( SELECT 1
+   FROM public.user_accounts
+  WHERE ((user_accounts.id = auth.uid()) AND (user_accounts.role = ANY (ARRAY['admin'::public.user_role, 'super_admin'::public.user_role]))))));
+
+
+--
+-- Name: bookings bookings_admin_select; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY bookings_admin_select ON public.bookings FOR SELECT USING ((EXISTS ( SELECT 1
+   FROM public.user_accounts
+  WHERE ((user_accounts.id = auth.uid()) AND (user_accounts.role = ANY (ARRAY['admin'::public.user_role, 'super_admin'::public.user_role]))))));
+
+
+--
+-- Name: bookings bookings_staff_select; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY bookings_staff_select ON public.bookings FOR SELECT USING ((staff_id IN ( SELECT staff.id
+   FROM public.staff
+  WHERE (staff.user_id = auth.uid()))));
+
+
+--
+-- Name: bookings bookings_staff_update; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY bookings_staff_update ON public.bookings FOR UPDATE USING ((staff_id IN ( SELECT staff.id
+   FROM public.staff
+  WHERE (staff.user_id = auth.uid()))));
+
+
+--
+-- Name: bookings bookings_user_insert; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY bookings_user_insert ON public.bookings FOR INSERT WITH CHECK ((auth.uid() IS NOT NULL));
+
+
+--
+-- Name: bookings bookings_user_select; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY bookings_user_select ON public.bookings FOR SELECT USING ((user_id = auth.uid()));
+
+
+--
+-- Name: bookings bookings_user_update; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY bookings_user_update ON public.bookings FOR UPDATE USING ((user_id = auth.uid()));
+
+
+--
+-- Name: calendar_events calendar_admin_delete; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY calendar_admin_delete ON public.calendar_events FOR DELETE USING ((EXISTS ( SELECT 1
+   FROM public.user_accounts
+  WHERE ((user_accounts.id = auth.uid()) AND (user_accounts.role = ANY (ARRAY['admin'::public.user_role, 'super_admin'::public.user_role]))))));
+
+
+--
+-- Name: calendar_events calendar_admin_insert; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY calendar_admin_insert ON public.calendar_events FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
+   FROM public.user_accounts
+  WHERE ((user_accounts.id = auth.uid()) AND (user_accounts.role = ANY (ARRAY['admin'::public.user_role, 'super_admin'::public.user_role]))))));
+
+
+--
+-- Name: calendar_events calendar_admin_select; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY calendar_admin_select ON public.calendar_events FOR SELECT USING ((EXISTS ( SELECT 1
+   FROM public.user_accounts
+  WHERE ((user_accounts.id = auth.uid()) AND (user_accounts.role = ANY (ARRAY['admin'::public.user_role, 'super_admin'::public.user_role]))))));
+
+
+--
+-- Name: calendar_events calendar_admin_update; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY calendar_admin_update ON public.calendar_events FOR UPDATE USING ((EXISTS ( SELECT 1
+   FROM public.user_accounts
+  WHERE ((user_accounts.id = auth.uid()) AND (user_accounts.role = ANY (ARRAY['admin'::public.user_role, 'super_admin'::public.user_role]))))));
+
+
+--
+-- Name: calendar_events; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.calendar_events ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: calendar_events calendar_staff_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY calendar_staff_all ON public.calendar_events USING ((staff_id IN ( SELECT staff.id
+   FROM public.staff
+  WHERE (staff.user_id = auth.uid()))));
+
+
+--
+-- Name: calendar_events calendar_staff_select; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY calendar_staff_select ON public.calendar_events FOR SELECT USING (((staff_id IN ( SELECT staff.id
+   FROM public.staff
+  WHERE (staff.user_id = auth.uid()))) OR (user_id = auth.uid())));
+
+
+--
 -- Name: conversation_sessions; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -16981,6 +18942,18 @@ ALTER TABLE public.sms_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sms_templates ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: staff; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.staff ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: stories; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.stories ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: support_ticket_replies; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -17017,6 +18990,12 @@ ALTER TABLE public.user_accounts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_activity_metrics ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: user_community_stats; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.user_community_stats ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: user_profiles; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -17027,6 +19006,24 @@ ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.user_storage ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: vibe_comments; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.vibe_comments ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: vibe_hearts; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.vibe_hearts ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: vibe_posts; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.vibe_posts ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: vibrational_event_sources; Type: ROW SECURITY; Schema: public; Owner: -
@@ -17113,6 +19110,24 @@ ALTER TABLE public.video_session_recordings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.video_sessions ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: video_sessions video_sessions_admin_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY video_sessions_admin_all ON public.video_sessions USING ((EXISTS ( SELECT 1
+   FROM public.user_accounts
+  WHERE ((user_accounts.id = auth.uid()) AND (user_accounts.role = ANY (ARRAY['admin'::public.user_role, 'super_admin'::public.user_role]))))));
+
+
+--
+-- Name: video_sessions video_sessions_admin_select; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY video_sessions_admin_select ON public.video_sessions FOR SELECT USING ((EXISTS ( SELECT 1
+   FROM public.user_accounts
+  WHERE ((user_accounts.id = auth.uid()) AND (user_accounts.role = ANY (ARRAY['admin'::public.user_role, 'super_admin'::public.user_role]))))));
+
+
+--
 -- Name: video_sessions video_sessions_host_all; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -17137,6 +19152,12 @@ ALTER TABLE public.vision_board_ideas ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.vision_board_items ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: vision_focus; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.vision_focus ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: vision_new_category_state; Type: ROW SECURITY; Schema: public; Owner: -
@@ -17486,5 +19507,5 @@ CREATE EVENT TRIGGER pgrst_drop_watch ON sql_drop
 -- PostgreSQL database dump complete
 --
 
-\unrestrict mv19Q48rVTcB4bb3zgpGV2LQqIdaw1FmcgaNYDODojIuyymZcCrfbVbvxv38CVF
+\unrestrict BzkTLecQyNiQWyY5193JIwrBiexk7z9c06JD6hkXvEAp4zd06jAUeXEZx2iFjGs
 

@@ -17,11 +17,21 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
   isAdmin?: boolean
 }
 
+// LocalStorage key for sidebar state
+const SIDEBAR_COLLAPSED_KEY = 'vibrationfit-sidebar-collapsed'
+
 export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
   ({ className, navigation, isAdmin = false, ...props }, ref) => {
     // Use admin navigation if isAdmin is true, otherwise use provided navigation or centralized userNavigation
     const navItems = isAdmin ? centralAdminNav : (navigation || userNavigation)
-    const [collapsed, setCollapsed] = useState(true)
+    // Initialize from localStorage, default to expanded (false)
+    const [collapsed, setCollapsed] = useState(() => {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem(SIDEBAR_COLLAPSED_KEY)
+        return saved !== null ? saved === 'true' : false // Default: expanded
+      }
+      return false // Default: expanded
+    })
     const [expandedItems, setExpandedItems] = useState<string[]>([])
     const [user, setUser] = useState<any>(null)
     const [profile, setProfile] = useState<any>(null)
@@ -31,6 +41,11 @@ export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
     
     // Fetch real-time storage data
     const { data: storageData, loading: storageLoading } = useStorageData()
+    
+    // Persist collapsed state to localStorage
+    useEffect(() => {
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed))
+    }, [collapsed])
 
     useEffect(() => {
       const getUser = async () => {

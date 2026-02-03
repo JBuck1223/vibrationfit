@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { VibeTag, VIBE_TAGS } from '@/lib/vibe-tribe/types'
 
 /**
@@ -26,17 +27,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid vibe tag' }, { status: 400 })
     }
 
-    // Build query
+    // Build query - fetch posts
     let query = supabase
       .from('vibe_posts')
-      .select(`
-        *,
-        user:user_accounts!vibe_posts_user_id_fkey (
-          id,
-          full_name,
-          profile_picture_url
-        )
-      `, { count: 'exact' })
+      .select('*', { count: 'exact' })
       .eq('is_deleted', false)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
@@ -58,8 +52,33 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch posts' }, { status: 500 })
     }
 
+    // Fetch user data for all posts (using admin client to bypass RLS)
+    const userIds = [...new Set((posts || []).map(p => p.user_id))]
+    let usersMap: Record<string, { id: string; full_name: string | null; profile_picture_url: string | null }> = {}
+    
+    if (userIds.length > 0) {
+      const adminClient = createAdminClient()
+      const { data: users } = await adminClient
+        .from('user_accounts')
+        .select('id, full_name, profile_picture_url')
+        .in('id', userIds)
+      
+      if (users) {
+        usersMap = users.reduce((acc, user) => {
+          acc[user.id] = user
+          return acc
+        }, {} as typeof usersMap)
+      }
+    }
+
+    // Attach user data to posts
+    const postsWithUsers = (posts || []).map(post => ({
+      ...post,
+      user: usersMap[post.user_id] || null,
+    }))
+
     // Check which posts the current user has hearted
-    const postIds = (posts || []).map(p => p.id)
+    const postIds = postsWithUsers.map(p => p.id)
     let userHearts: string[] = []
     
     if (postIds.length > 0) {
@@ -73,7 +92,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Add has_hearted flag to each post
-    const postsWithHeartStatus = (posts || []).map(post => ({
+    const postsWithHeartStatus = postsWithUsers.map(post => ({
       ...post,
       has_hearted: userHearts.includes(post.id),
     }))
@@ -155,14 +174,7 @@ export async function POST(request: NextRequest) {
         vibe_tag,
         life_categories,
       })
-      .select(`
-        *,
-        user:user_accounts!vibe_posts_user_id_fkey (
-          id,
-          full_name,
-          profile_picture_url
-        )
-      `)
+      .select('*')
       .single()
 
     if (insertError) {
@@ -173,10 +185,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Fetch the user data for the post (using admin client to bypass RLS)
+    const adminClient = createAdminClient()
+    const { data: userData } = await adminClient
+      .from('user_accounts')
+      .select('id, full_name, profile_picture_url')
+      .eq('id', user.id)
+      .single()
+
     return NextResponse.json({
       success: true,
       post: {
         ...newPost,
+        user: userData || null,
         has_hearted: false,
       },
     })

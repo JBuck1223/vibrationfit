@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { Card, Button, Spinner } from '@/lib/design-system'
 import { Heart, FileText, Flame, Calendar, ExternalLink } from 'lucide-react'
@@ -69,11 +68,9 @@ export function UserMiniProfile({ userId, trigger }: UserMiniProfileProps) {
                   <div className="flex items-start gap-3 mb-4">
                     <div className="w-14 h-14 rounded-full bg-neutral-700 overflow-hidden flex-shrink-0">
                       {profile.profile_picture_url ? (
-                        <Image
+                        <img
                           src={profile.profile_picture_url}
                           alt={profile.full_name || 'User'}
-                          width={56}
-                          height={56}
                           className="w-full h-full object-cover"
                         />
                       ) : (
@@ -122,8 +119,8 @@ export function UserMiniProfile({ userId, trigger }: UserMiniProfileProps) {
 
                   {/* View Profile Link */}
                   <Button asChild variant="ghost" size="sm" className="w-full">
-                    <Link href={`/profile/${userId}`}>
-                      View Full Profile
+                    <Link href={`/snapshot/${userId}`}>
+                      View Snapshot
                       <ExternalLink className="w-3 h-3 ml-1" />
                     </Link>
                   </Button>

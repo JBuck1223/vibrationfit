@@ -88,7 +88,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [editingCategory, setEditingCategory] = useState<string | null>(null)
   const [editingContent, setEditingContent] = useState('')
-  const [audioTracks, setAudioTracks] = useState<Record<string, { url: string; title: string }>>({})
+  const [audioTracks, setAudioTracks] = useState<Record<string, { id: string; url: string; title: string }>>({})
   const [userProfile, setUserProfile] = useState<{ first_name?: string; full_name?: string } | null>(null)
   const [isCommitting, setIsCommitting] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -190,7 +190,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
       // Get audio tracks for the standard audio set
       const { data: tracks } = await supabase
         .from('audio_tracks')
-        .select('section_key, audio_url')
+        .select('id, section_key, audio_url')
         .eq('audio_set_id', audioSets[0].id)
         .eq('status', 'completed')
 
@@ -221,7 +221,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         spirituality: 'spirituality',
       }
       
-      const trackMap: Record<string, { url: string; title: string }> = {}
+      const trackMap: Record<string, { id: string; url: string; title: string }> = {}
       tracks.forEach(track => {
         // Always use voice-only audio_url for standard version
         const url = track.audio_url
@@ -229,6 +229,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
           // Map section_key (meta_intro) to category key (forward)
           const categoryKey = sectionToCategory[track.section_key] || track.section_key
           trackMap[categoryKey] = {
+            id: track.id,
             url,
             title: VISION_SECTIONS.find(cat => cat.key === categoryKey)?.label || categoryKey
           }

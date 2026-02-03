@@ -65,6 +65,7 @@ export const PAGE_CLASSIFICATIONS = {
     '/vibe-tribe/visions',
     '/vibe-tribe/collaboration',
     '/vibe-tribe/activity',
+    '/snapshot/[id]',  // Member profile snapshots
     
     // Tracking System
     '/daily-paper',
