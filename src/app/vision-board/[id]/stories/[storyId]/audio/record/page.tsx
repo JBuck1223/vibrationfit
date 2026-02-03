@@ -198,7 +198,7 @@ export default function VisionBoardStoryAudioRecordPage({
               </Link>
             </Button>
             <div className="flex items-center gap-2">
-              <Badge variant="default">{wordCount} words</Badge>
+              <Badge variant="secondary">{wordCount} words</Badge>
               {existingRecording && (
                 <Badge variant="success">
                   <CheckCircle className="w-3 h-3 mr-1" />Recorded

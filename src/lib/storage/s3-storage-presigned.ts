@@ -27,6 +27,8 @@ export const USER_FOLDERS = {
   intensiveCalibrationRecordings: 'intensive/calibration-recordings',
   // Vibe Tribe social
   vibeTribe: 'vibe-tribe',
+  // Stories (for life vision and vision board)
+  storyAudioRecordings: 'stories/audio-recordings',
 } as const
 
 type UserFolder = keyof typeof USER_FOLDERS
@@ -759,6 +761,10 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
         'image/jpeg', 'image/png', 'image/webp', 'image/gif',
         'video/mp4', 'video/quicktime', 'video/webm',
       ],
+    },
+    storyAudioRecordings: {
+      maxSize: 1024 * 1024 * 1024, // 1GB for story audio recordings
+      types: ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg'],
     },
   }
 

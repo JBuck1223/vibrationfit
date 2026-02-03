@@ -246,7 +246,7 @@ export default function VisionBoardStoryAudioGeneratePage({
               </Link>
             </Button>
             <div className="flex items-center gap-2">
-              <Badge variant="default">{wordCount} words</Badge>
+              <Badge variant="secondary">{wordCount} words</Badge>
               <Badge variant="info">~{estimatedDuration} min</Badge>
             </div>
           </div>

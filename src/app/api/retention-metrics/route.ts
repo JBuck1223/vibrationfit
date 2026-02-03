@@ -159,7 +159,12 @@ async function getNextSession(
     return undefined
   }
 
-  const session = data.video_sessions as { title: string; scheduled_at: string }
+  const sessions = data.video_sessions as unknown as { title: string; scheduled_at: string }[]
+  const session = Array.isArray(sessions) ? sessions[0] : sessions
+  if (!session) {
+    return undefined
+  }
+  
   return {
     title: session.title,
     scheduledAt: session.scheduled_at,
@@ -191,8 +196,7 @@ async function getConnectionsMetrics(
           .eq('user_id', userId)
           .eq('is_deleted', false)
           .gte('created_at', oneWeekAgo.toISOString())
-          .then(r => r.count || 0)
-          .catch(() => 0),
+          .then(r => r.error ? 0 : (r.count || 0)),
         
         // Posts lifetime
         supabase
@@ -200,8 +204,7 @@ async function getConnectionsMetrics(
           .select('*', { count: 'exact', head: true })
           .eq('user_id', userId)
           .eq('is_deleted', false)
-          .then(r => r.count || 0)
-          .catch(() => 0),
+          .then(r => r.error ? 0 : (r.count || 0)),
         
         // Comments this week
         supabase
@@ -210,8 +213,7 @@ async function getConnectionsMetrics(
           .eq('user_id', userId)
           .eq('is_deleted', false)
           .gte('created_at', oneWeekAgo.toISOString())
-          .then(r => r.count || 0)
-          .catch(() => 0),
+          .then(r => r.error ? 0 : (r.count || 0)),
         
         // Comments lifetime
         supabase
@@ -219,8 +221,7 @@ async function getConnectionsMetrics(
           .select('*', { count: 'exact', head: true })
           .eq('user_id', userId)
           .eq('is_deleted', false)
-          .then(r => r.count || 0)
-          .catch(() => 0),
+          .then(r => r.error ? 0 : (r.count || 0)),
         
         // Hearts given this week
         supabase
@@ -228,16 +229,14 @@ async function getConnectionsMetrics(
           .select('*', { count: 'exact', head: true })
           .eq('user_id', userId)
           .gte('created_at', oneWeekAgo.toISOString())
-          .then(r => r.count || 0)
-          .catch(() => 0),
+          .then(r => r.error ? 0 : (r.count || 0)),
         
         // Hearts given lifetime
         supabase
           .from('vibe_hearts')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', userId)
-          .then(r => r.count || 0)
-          .catch(() => 0),
+          .then(r => r.error ? 0 : (r.count || 0)),
         
         // Last post
         supabase
@@ -248,8 +247,7 @@ async function getConnectionsMetrics(
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle()
-          .then(r => r.data)
-          .catch(() => null),
+          .then(r => r.error ? null : r.data),
       ])
 
     const recent = postsRecent + commentsRecent + heartsRecent

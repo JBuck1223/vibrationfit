@@ -121,7 +121,7 @@ export default function VisionBoardStoryDetailPage({
                   VIVA Generated
                 </Badge>
               )}
-              <Badge variant={story.status === 'completed' ? 'success' : 'default'}>
+              <Badge variant={story.status === 'completed' ? 'success' : 'secondary'}>
                 {story.status === 'completed' ? 'Complete' : 'Draft'}
               </Badge>
             </div>

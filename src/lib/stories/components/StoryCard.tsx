@@ -55,7 +55,7 @@ export function StoryCard({
       case 'failed':
         return <Badge variant="error">Failed</Badge>
       default:
-        return <Badge variant="default">Draft</Badge>
+        return <Badge variant="secondary">Draft</Badge>
     }
   }
 

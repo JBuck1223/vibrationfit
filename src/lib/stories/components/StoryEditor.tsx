@@ -139,7 +139,7 @@ export function StoryEditor({
             {wordCount.toLocaleString()} words
           </Text>
           {story.status === 'draft' && (
-            <Badge variant="default">Draft</Badge>
+            <Badge variant="secondary">Draft</Badge>
           )}
           {story.status === 'completed' && (
             <Badge variant="success">Complete</Badge>
