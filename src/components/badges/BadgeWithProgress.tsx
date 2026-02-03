@@ -1,6 +1,6 @@
 'use client'
 
-import { BadgeWithProgress as BadgeWithProgressType, BADGE_CATEGORY_COLORS } from '@/lib/badges/types'
+import { BadgeWithProgress as BadgeWithProgressType, BADGE_CATEGORY_COLORS, BADGE_DEFINITIONS } from '@/lib/badges/types'
 
 interface BadgeWithProgressProps {
   badge: BadgeWithProgressType
@@ -49,7 +49,9 @@ export default function BadgeWithProgress({
   onClick,
 }: BadgeWithProgressProps) {
   const { definition, earned, progress } = badge
-  const { icon: Icon, label, category } = definition
+  const { label, category, type } = definition
+  // Look up icon from BADGE_DEFINITIONS since functions can't be serialized from API
+  const Icon = BADGE_DEFINITIONS[type].icon
   const colors = BADGE_CATEGORY_COLORS[category]
   const config = SIZE_CONFIG[size]
   
@@ -57,6 +59,12 @@ export default function BadgeWithProgress({
   const radius = (config.ring - config.strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
   const strokeDashoffset = circumference - (progress.percentage / 100) * circumference
+  
+  // Determine visual state based on progress
+  const hasProgress = progress.percentage > 0
+  
+  // Full opacity for badges with any progress, dimmed for no progress
+  const iconOpacity = earned || hasProgress ? 1 : 0.35
 
   return (
     <div
@@ -72,15 +80,15 @@ export default function BadgeWithProgress({
             width={config.ring}
             height={config.ring}
           >
-            {/* Background ring */}
+            {/* Background ring - slightly more visible */}
             <circle
               cx={config.ring / 2}
               cy={config.ring / 2}
               r={radius}
               fill="none"
-              stroke="currentColor"
+              stroke={hasProgress ? colors.primary : 'currentColor'}
               strokeWidth={config.strokeWidth}
-              className="text-neutral-700"
+              className={hasProgress ? 'opacity-20' : 'text-neutral-700'}
             />
             {/* Progress ring */}
             <circle
@@ -98,36 +106,46 @@ export default function BadgeWithProgress({
           </svg>
         )}
 
-        {/* Earned glow effect */}
-        {earned && (
-          <div
-            className="absolute inset-0 rounded-full blur-md opacity-40"
-            style={{ backgroundColor: colors.primary }}
-          />
-        )}
-
         {/* Icon container */}
         <div
           className={`
-            relative flex items-center justify-center rounded-full
+            relative flex items-center justify-center rounded-full overflow-hidden
             ${config.iconContainer}
-            ${earned ? colors.bg : 'bg-neutral-800'}
-            ${earned ? `border-2 ${colors.border}` : 'border border-neutral-700'}
             transition-all duration-300
             ${onClick ? 'hover:scale-105' : ''}
-            ${earned ? 'shadow-lg' : ''}
           `}
           style={{
             margin: earned ? 0 : (config.ring - parseInt(config.iconContainer.split('-')[1]) * 4) / 2,
+            // Silver metallic background for badges with progress, category color for earned
+            background: earned 
+              ? `linear-gradient(135deg, ${colors.primary}25 0%, ${colors.primary}15 100%)`
+              : hasProgress 
+                ? 'linear-gradient(145deg, #9a9a9a 0%, #6a6a6a 30%, #7d7d7d 70%, #8a8a8a 100%)'
+                : '#262626',
+            border: earned 
+              ? `2px solid ${colors.primary}50`
+              : hasProgress 
+                ? '2px solid #a0a0a0'
+                : '1px solid #404040',
+            boxShadow: hasProgress || earned
+              ? 'inset 0 2px 4px rgba(255,255,255,0.15), inset 0 -2px 4px rgba(0,0,0,0.3)'
+              : 'none',
           }}
         >
           <Icon
             className={`
               ${config.iconSize}
-              ${earned ? '' : 'opacity-40 grayscale'}
               transition-all duration-300
+              ${!earned && !hasProgress ? 'grayscale' : ''}
             `}
-            style={{ color: earned ? colors.primary : '#666' }}
+            style={{ 
+              color: earned || hasProgress ? colors.primary : '#555',
+              opacity: iconOpacity,
+              // 3D embossed effect
+              filter: hasProgress || earned
+                ? 'drop-shadow(1px 1px 0px rgba(0,0,0,0.4)) drop-shadow(-0.5px -0.5px 0px rgba(255,255,255,0.3))'
+                : 'none',
+            }}
           />
         </div>
       </div>
@@ -138,8 +156,11 @@ export default function BadgeWithProgress({
           className={`
             ${config.labelSize}
             font-medium text-center leading-tight
-            ${earned ? 'text-white' : 'text-neutral-500'}
+            transition-colors duration-300
           `}
+          style={{
+            color: earned ? '#fff' : hasProgress ? '#d4d4d4' : '#737373'
+          }}
         >
           {label}
         </span>
@@ -147,7 +168,12 @@ export default function BadgeWithProgress({
 
       {/* Progress text */}
       {showProgress && !earned && (
-        <span className={`${config.progressSize} text-neutral-500`}>
+        <span 
+          className={`${config.progressSize} font-medium transition-colors duration-300`}
+          style={{
+            color: hasProgress ? colors.primary : '#737373'
+          }}
+        >
           {progress.current} / {progress.target}
         </span>
       )}
