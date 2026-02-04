@@ -22,6 +22,7 @@ import {
   Sun, 
   Moon, 
   Zap, 
+  ArrowRight,
   Calendar,
   BookOpen,
   Image as ImageIcon,
@@ -571,7 +572,7 @@ export default function ActivationProtocolPage() {
                     <div className="w-10 h-10 bg-primary-500/20 rounded-full flex items-center justify-center">
                       <span className="text-primary-400 font-bold">{milestone.day}</span>
                     </div>
-                    <Badge variant="outline" className="text-primary-400 border-primary-500/30">
+                    <Badge variant="neutral" className="text-primary-400 border-primary-500/30">
                       {milestone.label}
                     </Badge>
                   </div>

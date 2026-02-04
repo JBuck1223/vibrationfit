@@ -427,7 +427,7 @@ function CommentItem({
             <CommentItem
               key={reply.id}
               comment={reply}
-              canDelete={currentUserId === reply.user_id || isAdmin}
+              canDelete={currentUserId === reply.user_id || !!isAdmin}
               currentUserId={currentUserId}
               isAdmin={isAdmin}
               onDelete={() => onDeleteComment(reply.id)}

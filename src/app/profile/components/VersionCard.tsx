@@ -7,7 +7,7 @@ import { CalendarDays } from 'lucide-react'
 interface VersionCardProps {
   version: {
     id: string
-    version_number: number
+    version_number?: number
     is_draft: boolean
     is_active: boolean
     created_at: string
@@ -45,7 +45,7 @@ export const VersionCard: React.FC<VersionCardProps> = ({
           <div className="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-2 text-sm">
             {/* Version Badge */}
             <VersionBadge 
-              versionNumber={version.version_number} 
+              versionNumber={version.version_number ?? 1} 
               status={displayStatus} 
             />
             
