@@ -355,7 +355,7 @@ export default function IntensiveUnlockPage() {
         console.error('Error storing response (non-blocking):', insertError)
       }
 
-      // Mark unlock completed and intensive as completed
+      // Mark unlock completed and intensive as completed in checklist
       const { error: updateError } = await supabase
         .from('intensive_checklist')
         .update({

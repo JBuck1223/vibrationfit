@@ -16,10 +16,13 @@ import {
   Activity,
   GitCompare,
   Copy,
-  User
+  User,
+  Sparkles,
+  HelpCircle
 } from 'lucide-react'
 import { IntensiveCompletionBanner } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
+import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
 
 interface ProfileData {
   id: string
@@ -27,7 +30,7 @@ interface ProfileData {
   first_name?: string
   last_name?: string
   profile_picture_url?: string
-  version_number: number
+  version_number?: number // Calculated, not stored
   is_draft: boolean
   is_active: boolean
   created_at: string
@@ -50,6 +53,10 @@ export default function ProfileDashboardPage() {
   const [versionToClone, setVersionToClone] = useState<string | null>(null)
   const [isCloning, setIsCloning] = useState(false)
   
+  // Fresh profile dialog state
+  const [showFreshProfileDialog, setShowFreshProfileDialog] = useState(false)
+  const [isCreatingFresh, setIsCreatingFresh] = useState(false)
+  
   // Intensive mode state
   const [isIntensiveMode, setIsIntensiveMode] = useState(false)
   const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
@@ -62,31 +69,16 @@ export default function ProfileDashboardPage() {
 
   const checkIntensiveMode = async () => {
     try {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      // Check for active intensive purchase
-      const { data: intensiveData } = await supabase
-        .from('intensive_purchases')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('completion_status', 'pending')
-        .maybeSingle()
+      // Use centralized intensive check (source of truth: intensive_checklist.status)
+      const intensiveData = await getActiveIntensiveClient()
 
       if (intensiveData) {
         setIsIntensiveMode(true)
         
-        // Check if profile step is already completed
-        const { data: checklistData } = await supabase
-          .from('intensive_checklist')
-          .select('profile_completed, profile_completed_at')
-          .eq('intensive_id', intensiveData.id)
-          .maybeSingle()
-
-        if (checklistData?.profile_completed) {
+        // Check if profile step is already completed (data is already in intensiveData)
+        if (intensiveData.profile_completed) {
           setIsAlreadyCompleted(true)
-          setCompletedAt(checklistData.profile_completed_at)
+          setCompletedAt(intensiveData.profile_completed_at || intensiveData.created_at)
         }
       }
     } catch (error) {
@@ -241,14 +233,13 @@ export default function ProfileDashboardPage() {
         return
       }
 
-      // Create new draft version
+      // Create new draft version (version_number is calculated, not stored)
       const { id, created_at, updated_at, version_number, ...versionData } = sourceVersion
       const newVersionData = {
         ...versionData,
         user_id: user.id,
         is_draft: true,
         is_active: false,
-        version_number: 1, // Placeholder
       }
 
       const { data: newVersion, error: insertError } = await supabase
@@ -403,6 +394,136 @@ export default function ProfileDashboardPage() {
     }
   }
 
+  const handleCreateFreshProfile = async () => {
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        alert('Please log in to create a profile')
+        return
+      }
+      
+      // Check if a draft already exists
+      const { data: existingDraft } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_draft', true)
+        .eq('is_active', false)
+        .maybeSingle()
+
+      if (existingDraft) {
+        // Show override dialog
+        setShowFreshProfileDialog(true)
+        return
+      }
+
+      // No existing draft, proceed with creation
+      await performCreateFreshProfile()
+    } catch (error) {
+      console.error('Error checking for drafts:', error)
+      alert('Failed to check for existing drafts. Please try again.')
+    }
+  }
+
+  const performCreateFreshProfile = async () => {
+    setIsCreatingFresh(true)
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        alert('Please log in to create a profile')
+        setIsCreatingFresh(false)
+        return
+      }
+      
+      // Delete any existing drafts first (only one draft at a time)
+      const { data: existingDrafts, error: findError } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_draft', true)
+        .eq('is_active', false)
+
+      if (findError) {
+        console.error('Error finding existing drafts:', findError)
+      }
+
+      // Delete each draft individually
+      if (existingDrafts && existingDrafts.length > 0) {
+        console.log(`Found ${existingDrafts.length} existing draft(s) to delete`)
+        for (const draft of existingDrafts) {
+          const { error: deleteError } = await supabase
+            .from('user_profiles')
+            .delete()
+            .eq('id', draft.id)
+            .eq('user_id', user.id)
+
+          if (deleteError) {
+            console.error(`Failed to delete draft ${draft.id}:`, deleteError)
+          } else {
+            console.log(`Deleted draft ${draft.id}`)
+          }
+        }
+      }
+      
+      // Create a brand new profile from scratch as a draft
+      // Note: Database trigger auto-sets parent_id, so we need to clear it after insert
+      const { data: newProfile, error } = await supabase
+        .from('user_profiles')
+        .insert({
+          user_id: user.id,
+          is_draft: true,
+          is_active: false
+        })
+        .select()
+        .single()
+      
+      if (error) {
+        console.error('Error creating fresh profile:', error)
+        alert('Failed to create profile: ' + (error.message || 'Unknown error'))
+        setIsCreatingFresh(false)
+        return
+      }
+      
+      if (!newProfile) {
+        alert('Failed to create profile - no data returned.')
+        setIsCreatingFresh(false)
+        return
+      }
+
+      // IMPORTANT: Clear the parent_id that the database trigger auto-set
+      // This ensures the draft page treats this as a fresh profile with no change tracking
+      const { error: updateError } = await supabase
+        .from('user_profiles')
+        .update({ parent_id: null })
+        .eq('id', newProfile.id)
+        .eq('user_id', user.id)
+
+      if (updateError) {
+        console.error('Error clearing parent_id:', updateError)
+        // Continue anyway - the profile was created, just might have change tracking
+      }
+      
+      // Navigate to draft page
+      router.push(`/profile/${newProfile.id}/draft`)
+      // Don't set isCreatingFresh(false) - keep loading overlay visible during navigation
+    } catch (error) {
+      console.error('Error creating fresh profile:', error)
+      alert('Failed to create profile')
+      setIsCreatingFresh(false)
+    }
+  }
+
+  const confirmCreateFreshProfile = async () => {
+    // Set loading state BEFORE dismissing dialog to prevent flash
+    setIsCreatingFresh(true)
+    setShowFreshProfileDialog(false)
+    await performCreateFreshProfile()
+  }
+
   const profileCount = versions.length
   const completedProfiles = versions.filter(v => !v.is_draft && v.is_active).length
 
@@ -451,7 +572,33 @@ export default function ProfileDashboardPage() {
           eyebrow={isIntensiveMode ? "ACTIVATION INTENSIVE • STEP 3 OF 14" : "PROFILE"}
           title="All Profiles"
           subtitle="View all of your Profile versions below."
-        />
+        >
+          {/* Action buttons - only when NOT in intensive mode */}
+          {!isIntensiveMode && (
+            <div className="flex flex-wrap justify-center gap-3 pt-2">
+              <Button
+                onClick={() => router.push('/profile/new')}
+                variant="outline"
+                size="md"
+                className="gap-2"
+              >
+                <HelpCircle className="w-4 h-4" />
+                How It Works
+              </Button>
+              {activeProfile && (
+                <Button
+                  onClick={handleCreateFreshProfile}
+                  variant="outline"
+                  size="md"
+                  className="gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Start New Profile
+                </Button>
+              )}
+            </div>
+          )}
+        </PageHero>
 
         {/* Stats Cards */}
         {activeProfile && (
@@ -657,6 +804,74 @@ export default function ProfileDashboardPage() {
               </h3>
               <p className="text-neutral-400">
                 Creating your draft version...
+              </p>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Fresh Profile Override Dialog */}
+      {showFreshProfileDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="max-w-md w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-white">
+                Override Existing Draft?
+              </h3>
+              <button
+                onClick={() => setShowFreshProfileDialog(false)}
+                className="text-neutral-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-neutral-400 mb-6">
+              Only one draft at a time. Starting a new profile will delete your existing draft. This action cannot be undone.
+            </p>
+            
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowFreshProfileDialog(false)}
+                disabled={isCreatingFresh}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={confirmCreateFreshProfile}
+                disabled={isCreatingFresh}
+                className="flex-1 gap-2"
+              >
+                {isCreatingFresh ? (
+                  <>
+                    <Spinner variant="primary" size="sm" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    Start Fresh
+                  </>
+                )}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Fresh Profile Loading Overlay */}
+      {isCreatingFresh && !showFreshProfileDialog && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <Card className="max-w-md w-full">
+            <div className="text-center py-8">
+              <Spinner variant="primary" size="lg" className="mb-4" />
+              <h3 className="text-xl font-semibold text-white mb-2">
+                Creating Fresh Profile
+              </h3>
+              <p className="text-neutral-400">
+                Setting up your new profile...
               </p>
             </div>
           </Card>

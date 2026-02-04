@@ -154,8 +154,23 @@ export async function deleteDraft(draftId: string): Promise<void> {
 }
 
 /**
+ * Fields that come from user_accounts, not user_profiles
+ * These should NOT be compared for change tracking since they're managed separately
+ */
+const ACCOUNT_SOURCED_FIELDS = [
+  'first_name',
+  'last_name', 
+  'email',
+  'phone',
+  'date_of_birth',
+  'profile_picture_url',
+]
+
+/**
  * Get fields that differ between draft and parent
  * Returns list of field keys that have changed
+ * NOTE: Excludes account-sourced fields (first_name, last_name, email, phone, date_of_birth, profile_picture_url)
+ * as these come from user_accounts and should not be compared against the parent profile
  */
 export function getChangedFields(
   draft: Partial<UserProfile>, 
@@ -164,12 +179,10 @@ export function getChangedFields(
   const changedFields: string[] = []
   
   // List of fields to check for changes
+  // NOTE: All Personal Info section fields are excluded since that data comes from user_accounts
+  // This includes: first_name, last_name, email, phone, date_of_birth, profile_picture_url, gender, ethnicity
   const fieldsToCheck: (keyof UserProfile)[] = [
-    // Core fields
-    'first_name', 'last_name', 'email', 'phone', 'date_of_birth', 'gender', 'ethnicity',
-    'profile_picture_url',
-    
-    // Relationship
+    // Relationship (Personal Info fields gender/ethnicity excluded since they're part of Personal Info UI)
     'relationship_status', 'partner_name', 'relationship_length',
     
     // Family
@@ -271,15 +284,11 @@ export function getChangedSections(
   }
   
   // Map fields to sections
+  // NOTE: Personal Info section fields are completely excluded from change tracking
+  // All Personal Info fields (first_name, last_name, email, phone, date_of_birth, profile_picture_url, gender, ethnicity)
+  // come from or are displayed with user_accounts data and should not show as "changed"
   const fieldToSection: Record<string, string> = {
-    first_name: 'personal',
-    last_name: 'personal',
-    email: 'personal',
-    phone: 'personal',
-    date_of_birth: 'personal',
-    gender: 'personal',
-    ethnicity: 'personal',
-    profile_picture_url: 'personal',
+    // Personal section - NO FIELDS MAPPED - Personal Info doesn't show change tracking
     
     relationship_status: 'love',
     partner_name: 'love',
@@ -409,16 +418,11 @@ export function getRefinedSections(draft: Partial<UserProfile>): string[] {
   const sections = new Set<string>()
   
   // Map fields to their sections
+  // NOTE: Personal Info section fields are completely excluded from refined tracking
+  // All Personal Info fields (first_name, last_name, email, phone, date_of_birth, profile_picture_url, gender, ethnicity)
+  // come from or are displayed with user_accounts data
   const fieldToSection: Record<string, string> = {
-    // Personal
-    'email': 'personal', 
-    'phone': 'personal', 
-    'date_of_birth': 'personal',
-    'gender': 'personal', 
-    'ethnicity': 'personal',
-    'first_name': 'personal',
-    'last_name': 'personal',
-    'profile_picture_url': 'personal',
+    // Personal section - NO FIELDS MAPPED - Personal Info doesn't show refined tracking
     
     // Love
     'relationship_status': 'love', 

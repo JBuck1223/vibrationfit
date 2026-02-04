@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
 import { Calendar, CheckCircle, Video, Loader2 } from 'lucide-react'
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
 import { ReadOnlySection } from '@/components/IntensiveStepCompletedBanner'
@@ -115,14 +116,10 @@ export default function ScheduleCallPage() {
 
       const { isSuperAdmin } = await checkSuperAdminAccess(supabase)
 
-      const { data: intensiveData, error: intensiveError } = await supabase
-        .from('intensive_purchases')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('completion_status', 'pending')
-        .single()
+      // Use centralized intensive check (source of truth: intensive_checklist.status)
+      const intensiveData = await getActiveIntensiveClient()
 
-      if (intensiveError || !intensiveData) {
+      if (!intensiveData) {
         if (isSuperAdmin) {
           setIntensiveId('super-admin-test-mode')
         } else {
@@ -130,19 +127,16 @@ export default function ScheduleCallPage() {
           return
         }
       } else {
-        setIntensiveId(intensiveData.id)
+        setIntensiveId(intensiveData.intensive_id)
       }
 
-      const { data: checklistData } = await supabase
-        .from('intensive_checklist')
-        .select('call_scheduled, call_scheduled_at, call_scheduled_time')
-        .eq('intensive_id', intensiveData?.id || 'super-admin-test-mode')
-        .single()
-      
-      if (checklistData?.call_scheduled) {
+      // Check if call is already scheduled (data is in intensiveData)
+      if (intensiveData?.call_scheduled) {
         setIsAlreadyScheduled(true)
-        setScheduledAt(checklistData.call_scheduled_at)
-        setScheduledTime(checklistData.call_scheduled_time)
+        setScheduledAt(intensiveData.call_scheduled_at || intensiveData.created_at)
+        if (intensiveData.call_scheduled_time) {
+          setScheduledTime(intensiveData.call_scheduled_time)
+        }
       }
 
       // Get user account for contact info (primary source)

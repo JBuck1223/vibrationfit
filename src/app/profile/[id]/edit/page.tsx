@@ -292,36 +292,19 @@ export default function ProfileEditPage() {
   // Check if user is in intensive mode and if profile step is already complete
   useEffect(() => {
     async function checkIntensiveMode() {
-      const inIntensive = await isInIntensiveMode()
+      // Use centralized intensive check (source of truth: intensive_checklist.status)
+      const { getActiveIntensiveClient } = await import('@/lib/intensive/utils-client')
+      const intensiveData = await getActiveIntensiveClient()
+      
+      const inIntensive = !!intensiveData
       setIntensiveMode(inIntensive)
       
       // If in intensive mode, check if profile step is already marked complete
-      if (inIntensive) {
-        const { createClient } = await import('@/lib/supabase/client')
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        
-        if (user) {
-          const { data: intensiveData } = await supabase
-            .from('intensive_purchases')
-            .select('id')
-            .eq('user_id', user.id)
-            .eq('completion_status', 'pending')
-            .maybeSingle()
-          
-          if (intensiveData) {
-            const { data: checklistData } = await supabase
-              .from('intensive_checklist')
-              .select('profile_completed, profile_completed_at')
-              .eq('intensive_id', intensiveData.id)
-              .maybeSingle()
-            
-            // If already complete, mark state so we don't redirect
-            if (checklistData?.profile_completed) {
-              setProfileMarkedComplete(true)
-              setCompletedAt(checklistData.profile_completed_at)
-            }
-          }
+      if (intensiveData) {
+        // Data is already in intensiveData from checklist
+        if (intensiveData.profile_completed) {
+          setProfileMarkedComplete(true)
+          setCompletedAt(intensiveData.profile_completed_at || intensiveData.created_at)
         }
       }
       
@@ -657,7 +640,7 @@ export default function ProfileEditPage() {
           // Family section requires user action beyond defaults
           // has_children defaults to false, so we need clarity story OR explicit children data
           const hasChildrenData = profile.has_children === true && 
-                 profile.children && profile.children.length > 0 && 
+                 profile.children && Array.isArray(profile.children) && profile.children.length > 0 && 
                  profile.children.some(c => c.first_name && c.first_name.trim().length > 0)
           return hasChildrenData || (profile.clarity_family && profile.clarity_family.trim().length > 0)
         case 'health':

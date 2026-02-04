@@ -134,10 +134,10 @@ export default function SitemapPage() {
         { href: '/profile/[id]', label: 'Profile Detail', icon: Eye, description: 'Individual profile view', isDynamic: true },
         { href: '/profile/[id]/edit', label: 'Edit Specific Profile', icon: Settings, description: 'Edit specific profile version', isDynamic: true },
         
-        // Voice Profile
-        { href: '/voice-profile', label: 'Voice Profile', icon: Mic, description: 'Manage voice profile' },
-        { href: '/voice-profile/quiz', label: 'Voice Quiz', icon: Brain, description: 'Voice profile quiz' },
-        { href: '/voice-profile/analyze', label: 'Voice Analysis', icon: BarChart3, description: 'Analyze voice profile' },
+        // Voice Profile - hidden for now, feature preserved for future use
+        // { href: '/voice-profile', label: 'Voice Profile', icon: Mic, description: 'Manage voice profile' },
+        // { href: '/voice-profile/quiz', label: 'Voice Quiz', icon: Brain, description: 'Voice profile quiz' },
+        // { href: '/voice-profile/analyze', label: 'Voice Analysis', icon: BarChart3, description: 'Analyze voice profile' },
         
         // Household
         { href: '/household/settings', label: 'Household Settings', icon: Users, description: 'Manage household' },

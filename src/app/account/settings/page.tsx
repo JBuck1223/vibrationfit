@@ -13,6 +13,7 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { IntensiveCompletionBanner } from '@/lib/design-system/components'
 import { getStepInfo, getNextStep } from '@/lib/intensive/step-mapping'
+import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
 
 // Default profile picture URL to check against
 const DEFAULT_PROFILE_PICTURE = 'https://media.vibrationfit.com/site-assets/default-avatar.png'
@@ -58,27 +59,19 @@ export default function AccountSettingsPage() {
 
   const checkIntensiveMode = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      // Check for active intensive purchase (same approach as intake page)
-      const { data: intensiveData } = await supabase
-        .from('intensive_purchases')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('completion_status', 'pending')
-        .maybeSingle()
+      // Use centralized intensive check (source of truth: intensive_checklist.status)
+      const intensiveData = await getActiveIntensiveClient()
 
       if (intensiveData) {
         setIsIntensiveMode(true)
-        setIntensiveId(intensiveData.id)
+        setIntensiveId(intensiveData.intensive_id)
         
         // Step 1 (Account Settings) completion is tracked via user_accounts table
         // Check if user has filled out required fields
         const { data: accountData } = await supabase
           .from('user_accounts')
           .select('first_name, last_name, email, phone, updated_at')
-          .eq('id', user.id)
+          .eq('id', intensiveData.user_id)
           .single()
 
         if (accountData) {

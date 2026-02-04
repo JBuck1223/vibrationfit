@@ -117,6 +117,10 @@ export function ProfileField({
       const newArray = Array.isArray(editValue) ? [...editValue, arrayInput.trim()] : [arrayInput.trim()]
       setEditValue(newArray)
       setArrayInput('')
+      // Auto-save in autoEdit mode
+      if (autoEdit && onSave && fieldKey) {
+        onSave(fieldKey, newArray)
+      }
     }
   }
 
@@ -124,6 +128,10 @@ export function ProfileField({
     if (Array.isArray(editValue)) {
       const newArray = editValue.filter((_, i) => i !== index)
       setEditValue(newArray)
+      // Auto-save in autoEdit mode
+      if (autoEdit && onSave && fieldKey) {
+        onSave(fieldKey, newArray)
+      }
     }
   }
 

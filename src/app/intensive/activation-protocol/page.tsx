@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
 import Link from 'next/link'
 import { 
   Container, 
@@ -95,27 +96,16 @@ export default function ActivationProtocolPage() {
         return
       }
 
-      // Get intensive data
-      const { data: intensiveData } = await supabase
-        .from('intensive_purchases')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('completion_status', 'pending')
-        .single()
+      // Use centralized intensive check (source of truth: intensive_checklist.status)
+      const intensiveData = await getActiveIntensiveClient()
 
       if (intensiveData) {
-        setIntensiveId(intensiveData.id)
+        setIntensiveId(intensiveData.intensive_id)
         
-        // Check if already completed
-        const { data: checklistData } = await supabase
-          .from('intensive_checklist')
-          .select('activation_protocol_completed, activation_protocol_completed_at')
-          .eq('intensive_id', intensiveData.id)
-          .single()
-        
-        if (checklistData?.activation_protocol_completed) {
+        // Check if already completed (data is in intensiveData)
+        if (intensiveData.activation_protocol_completed) {
           setIsAlreadyCompleted(true)
-          setCompletedAt(checklistData.activation_protocol_completed_at)
+          setCompletedAt(intensiveData.activation_protocol_completed_at || intensiveData.created_at)
         }
       }
 

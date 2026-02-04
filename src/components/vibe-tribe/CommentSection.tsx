@@ -307,10 +307,6 @@ function CommentItem({
     }
   }
 
-  const handleReplySubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    onSubmitReply(comment.id)
-  }
 
   return (
     <div className={isReply ? 'ml-8' : ''}>
@@ -394,26 +390,32 @@ function CommentItem({
 
           {/* Inline Reply Input */}
           {isReplying && (
-            <form onSubmit={handleReplySubmit} className="mt-3 ml-2">
+            <div className="mt-3 ml-2">
               <div className="flex items-center gap-2">
                 <input
                   ref={inputRef}
                   type="text"
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && replyText.trim() && !submitting) {
+                      e.preventDefault()
+                      onSubmitReply(comment.id)
+                    }
+                  }}
                   placeholder={`Reply to ${comment.user?.full_name || 'Anonymous'}...`}
                   className="flex-1 bg-neutral-800 border border-neutral-700 rounded-full px-4 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#39FF14]"
                 />
-                <Button
-                  type="submit"
-                  size="sm"
+                <button
+                  type="button"
                   disabled={!replyText.trim() || submitting}
-                  className="rounded-full px-4"
+                  onClick={() => onSubmitReply(comment.id)}
+                  className="rounded-full px-4 py-2 bg-[#39FF14] text-black hover:bg-[rgba(57,255,20,0.9)] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                   <Send className="w-4 h-4" />
-                </Button>
+                </button>
               </div>
-            </form>
+            </div>
           )}
         </div>
       </div>

@@ -147,32 +147,17 @@ export default function ProfileDetailPage() {
 
   const checkIntensiveMode = async () => {
     try {
-      const { createClient } = await import('@/lib/supabase/client')
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      // Check for active intensive purchase
-      const { data: intensiveData } = await supabase
-        .from('intensive_purchases')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('completion_status', 'pending')
-        .maybeSingle()
+      // Use centralized intensive check (source of truth: intensive_checklist.status)
+      const { getActiveIntensiveClient } = await import('@/lib/intensive/utils-client')
+      const intensiveData = await getActiveIntensiveClient()
 
       if (intensiveData) {
         setIsIntensiveMode(true)
         
-        // Check if profile step is already completed
-        const { data: checklistData } = await supabase
-          .from('intensive_checklist')
-          .select('profile_completed, profile_completed_at')
-          .eq('intensive_id', intensiveData.id)
-          .maybeSingle()
-
-        if (checklistData?.profile_completed) {
+        // Check if profile step is already completed (data is already in intensiveData)
+        if (intensiveData.profile_completed) {
           setIsAlreadyCompleted(true)
-          setCompletedAt(checklistData.profile_completed_at)
+          setCompletedAt(intensiveData.profile_completed_at || intensiveData.created_at)
         }
       }
     } catch (error) {
@@ -1704,18 +1689,7 @@ export default function ProfileDetailPage() {
               <Edit className="w-4 h-4 shrink-0" />
               <span>Edit Profile</span>
             </Button>
-            {/* Hide Voice Profile in intensive mode */}
-            {!isIntensiveMode && (
-              <Button
-                onClick={() => router.push('/voice-profile')}
-                variant="outline"
-                size="sm"
-                className="flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-              >
-                <Palette className="w-4 h-4 shrink-0" />
-                <span>Voice Profile</span>
-              </Button>
-            )}
+            {/* Voice Profile button hidden - feature preserved for future use */}
             {/* Hide See All Profiles in intensive mode */}
             {!isIntensiveMode && (
               <Button

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Eye, Headphones, Music, Moon, Zap, Sparkles, Clock, CheckCircle, Circle, X, Target, Volume2, CalendarDays } from 'lucide-react'
+import { Plus, Eye, Headphones, Music, Moon, Zap, Sparkles, Clock, CheckCircle, Circle, X, Target, Volume2, CalendarDays, HelpCircle } from 'lucide-react'
 import { Card, Button, Badge, Spinner, VersionBadge, StatusBadge, TrackingMilestoneCard, Container, Stack, PageHero } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
 import { colors } from '@/lib/design-system/tokens'
@@ -346,7 +346,20 @@ export default function AllVisionAudiosPage() {
           eyebrow="THE LIFE I CHOOSE"
           title="All Vision Audios"
           subtitle="Browse all audio sets generated from your Life Visions."
-        />
+        >
+          {/* Action Button */}
+          <div className="flex justify-center items-center">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => router.push('/life-vision/audio/new')}
+              className="w-full sm:w-auto"
+            >
+              <HelpCircle className="mr-2 h-4 w-4" />
+              How It Works
+            </Button>
+          </div>
+        </PageHero>
 
         {/* Stats Cards */}
         {visionVersions.length > 0 && (

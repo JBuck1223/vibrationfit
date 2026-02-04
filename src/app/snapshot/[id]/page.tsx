@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
-import { Container, Stack, PageHero, Card, Spinner } from '@/lib/design-system/components'
+import { Container, Stack, PageHero, Card, Spinner, Button } from '@/lib/design-system/components'
 import { RetentionDashboard } from '@/components/retention'
 import { BadgeDisplay } from '@/components/badges'
 import { User, Calendar, ArrowLeft, Award } from 'lucide-react'
@@ -127,14 +127,17 @@ export default function SnapshotPage() {
               </div>
             )}
             
-            {/* Back link */}
-            <Link 
-              href="/vibe-tribe"
-              className="text-sm text-neutral-400 hover:text-white transition-colors inline-flex items-center gap-1"
+            {/* Back button */}
+            <Button 
+              variant="outline"
+              size="sm"
+              asChild
             >
-              <ArrowLeft className="w-3 h-3" />
-              Back to Vibe Tribe
-            </Link>
+              <Link href="/vibe-tribe">
+                <ArrowLeft className="w-3 h-3 mr-1" />
+                Back to Hub
+              </Link>
+            </Button>
           </div>
         </PageHero>
 

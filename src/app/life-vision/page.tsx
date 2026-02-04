@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Calendar, CheckCircle, Circle, Edit3, Eye, History, Star, ArrowLeft, X, Sparkles, Zap, Download, VolumeX, Diamond, Copy } from 'lucide-react'
+import { Plus, Calendar, CheckCircle, Circle, Edit3, Eye, History, Star, ArrowLeft, X, Sparkles, Zap, Download, VolumeX, Diamond, Copy, HelpCircle } from 'lucide-react'
 import { Card, Button, Badge, ProgressBar, Spinner, Grid, TrackingMilestoneCard, PageHero, Container, Stack } from '@/lib/design-system/components'
 import { VisionVersionCard } from './components/VisionVersionCard'
 import { getVisionCategoryKeys, getVisionCategoryIcon, getVisionCategoryLabel, VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
@@ -490,7 +490,39 @@ export default function VisionListPage() {
           eyebrow="THE LIFE I CHOOSE"
           title="All Life Visions"
           subtitle="View all of your Life Vision versions below."
-        />
+        >
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center max-w-2xl mx-auto">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => router.push('/life-vision/new')}
+              className="w-full sm:w-auto"
+            >
+              <HelpCircle className="mr-2 h-4 w-4" />
+              How It Works
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => handleCloneVersion(activeVision?.id || '')}
+              disabled={isCloning || !activeVision}
+              className="w-full sm:w-auto"
+            >
+              {isCloning ? (
+                <>
+                  <Spinner size="sm" className="mr-2" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Start New Life Vision
+                </>
+              )}
+            </Button>
+          </div>
+        </PageHero>
 
         {/* Stats Cards */}
         {activeVision && (
