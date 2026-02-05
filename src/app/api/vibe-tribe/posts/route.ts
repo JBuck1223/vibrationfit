@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid vibe tag' }, { status: 400 })
     }
 
-    // Build query - fetch posts
+    // Build query - fetch posts (newest first, frontend reverses for chat-like display)
     let query = supabase
       .from('vibe_posts')
       .select('*', { count: 'exact' })

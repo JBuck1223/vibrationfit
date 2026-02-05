@@ -15,6 +15,7 @@ import {
   LogOut,
 } from 'lucide-react'
 import { userNavigation, adminNavigation, mobileNavigation, isNavItemActive, type NavItem } from '@/lib/navigation'
+import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
 
 interface SidebarProps {
   className?: string
@@ -26,24 +27,30 @@ const SIDEBAR_COLLAPSED_KEY = 'vibrationfit-sidebar-collapsed'
 
 // Shared Sidebar Base Component
 function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & { navigation: NavItem[] }) {
-  // Initialize from localStorage, default to expanded (false)
-  const [collapsed, setCollapsed] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(SIDEBAR_COLLAPSED_KEY)
-      return saved !== null ? saved === 'true' : false // Default: expanded
-    }
-    return false // Default: expanded
-  })
+  // Initialize with default value for SSR consistency, then sync with localStorage
+  const [collapsed, setCollapsed] = useState(false) // Default: expanded
+  const [hasMounted, setHasMounted] = useState(false)
   const [expandedItems, setExpandedItems] = useState<string[]>([])
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const pathname = usePathname()
   
-  // Persist collapsed state to localStorage
+  // Sync with localStorage after mount to avoid hydration mismatch
   useEffect(() => {
-    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed))
-  }, [collapsed])
+    const saved = localStorage.getItem(SIDEBAR_COLLAPSED_KEY)
+    if (saved !== null) {
+      setCollapsed(saved === 'true')
+    }
+    setHasMounted(true)
+  }, [])
+  
+  // Persist collapsed state to localStorage (only after initial mount)
+  useEffect(() => {
+    if (hasMounted) {
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed))
+    }
+  }, [collapsed, hasMounted])
   // Memoize supabase client to prevent dependency array issues
   const supabase = useMemo(() => createClient(), [])
 
@@ -139,19 +146,13 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
             {/* Profile Picture */}
             {loading ? (
               <div className="w-8 h-8 rounded-full bg-neutral-700 animate-pulse flex-shrink-0" />
-            ) : profile?.profile_picture_url ? (
+            ) : (
               <img
-                src={profile.profile_picture_url}
-                alt={profile.first_name || 'Profile'}
+                src={profile?.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
+                alt={profile?.first_name || 'Profile'}
                 className="w-8 h-8 rounded-full object-cover border-2 border-primary-500 flex-shrink-0"
                 loading="eager"
               />
-            ) : profile?.first_name ? (
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
-                {profile.first_name[0].toUpperCase()}
-              </div>
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-neutral-700 animate-pulse flex-shrink-0" />
             )}
             
             {/* Name */}

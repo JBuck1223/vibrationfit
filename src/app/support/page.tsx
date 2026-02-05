@@ -41,35 +41,32 @@ export default function SupportPage() {
         if (user) {
           console.log('Auth user found:', user.id)
           
-          // Fetch active user profile
-          const { data: profile, error: profileError } = await supabase
-            .from('user_profiles')
-            .select('user_id, email, first_name, last_name, profile_picture_url, created_at')
-            .eq('user_id', user.id)
-            .eq('is_active', true)
+          // Fetch user account (email, name, profile picture are on user_accounts table)
+          const { data: account, error: accountError } = await supabase
+            .from('user_accounts')
+            .select('id, email, first_name, last_name, full_name, profile_picture_url, created_at')
+            .eq('id', user.id)
             .maybeSingle()
 
-          if (profileError) {
-            console.error('Profile fetch error:', profileError.message, profileError)
+          if (accountError) {
+            console.error('Account fetch error:', accountError.message, accountError)
           } else {
-            console.log('Profile data:', profile)
+            console.log('Account data:', account)
           }
 
-          if (profile) {
-            const fullName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim()
-
+          if (account) {
             setUserInfo({
-              id: profile.user_id,
-              email: profile.email || user.email || '',
-              created_at: profile.created_at || user.created_at,
-              full_name: fullName || undefined,
-              profile_picture_url: profile.profile_picture_url || undefined
+              id: account.id,
+              email: account.email || user.email || '',
+              created_at: account.created_at || user.created_at,
+              full_name: account.full_name || undefined,
+              profile_picture_url: account.profile_picture_url || undefined
             })
 
             // Auto-populate email
             setFormData(prev => ({
               ...prev,
-              guest_email: profile.email || user.email || ''
+              guest_email: account.email || user.email || ''
             }))
           } else {
             // Fallback to auth user data if no profile exists
