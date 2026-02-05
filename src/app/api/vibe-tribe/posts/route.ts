@@ -19,12 +19,41 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const tag = searchParams.get('tag') as VibeTag | null
     const search = searchParams.get('search')
+    const filterUserId = searchParams.get('user_id') // Filter to show only specific user's posts
+    const filterHearted = searchParams.get('hearted') === 'true' // Filter to posts user has hearted
+    const filterCommented = searchParams.get('commented') === 'true' // Filter to posts user has commented on
     const limit = parseInt(searchParams.get('limit') || '20', 10)
     const offset = parseInt(searchParams.get('offset') || '0', 10)
 
     // Validate tag if provided
     if (tag && !VIBE_TAGS.includes(tag)) {
       return NextResponse.json({ error: 'Invalid vibe tag' }, { status: 400 })
+    }
+
+    // For hearted/commented filters, we need to get the post IDs first
+    let filteredPostIds: string[] | null = null
+
+    if (filterHearted) {
+      // Get posts the user has hearted
+      const { data: heartedPosts } = await supabase
+        .from('vibe_hearts')
+        .select('post_id')
+        .eq('user_id', user.id)
+        .not('post_id', 'is', null)
+      
+      filteredPostIds = (heartedPosts || []).map(h => h.post_id).filter(Boolean) as string[]
+    }
+
+    if (filterCommented) {
+      // Get posts the user has commented on
+      const { data: commentedPosts } = await supabase
+        .from('vibe_comments')
+        .select('post_id')
+        .eq('user_id', user.id)
+        .eq('is_deleted', false)
+      
+      const commentedPostIds = [...new Set((commentedPosts || []).map(c => c.post_id))]
+      filteredPostIds = commentedPostIds as string[]
     }
 
     // Build query - fetch posts (newest first, frontend reverses for chat-like display)
@@ -38,6 +67,24 @@ export async function GET(request: NextRequest) {
     // Apply tag filter if provided
     if (tag) {
       query = query.eq('vibe_tag', tag)
+    }
+
+    // Apply user filter if provided (for "My Posts" filter)
+    if (filterUserId) {
+      query = query.eq('user_id', filterUserId)
+    }
+
+    // Apply hearted/commented filter if we have post IDs
+    if (filteredPostIds !== null) {
+      if (filteredPostIds.length === 0) {
+        // No posts match the filter, return empty
+        return NextResponse.json({
+          posts: [],
+          hasMore: false,
+          total: 0,
+        })
+      }
+      query = query.in('id', filteredPostIds)
     }
 
     // Apply search filter if provided

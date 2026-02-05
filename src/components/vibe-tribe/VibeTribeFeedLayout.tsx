@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
+import Link from 'next/link'
 import { Spinner } from '@/lib/design-system'
-import { Search, Pin, ChevronDown, Image as ImageIcon, ArrowUp, X, Trophy, Heart, Sparkles, Lightbulb, Send } from 'lucide-react'
+import { Search, Pin, ChevronDown, Image as ImageIcon, ArrowUp, X, Trophy, Heart, Sparkles, Lightbulb, Send, User, FileText, MessageCircle } from 'lucide-react'
 import { VibeTag, VIBE_TAG_CONFIG, VibePost, VIBE_TAGS } from '@/lib/vibe-tribe/types'
 import { PostCard } from './PostCard'
 import { StickyPostComposer } from './StickyPostComposer'
@@ -41,6 +42,7 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
   const [showSearch, setShowSearch] = useState(false)
   const [showFilterDropdown, setShowFilterDropdown] = useState(false)
   const [showPinned, setShowPinned] = useState(false)
+  const [activityFilter, setActivityFilter] = useState<'off' | 'posts' | 'hearts' | 'comments'>('off')
   
   const observerRef = useRef<IntersectionObserver | null>(null)
   const loadMoreRef = useRef<HTMLDivElement>(null)
@@ -90,6 +92,15 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
         params.set('pinned', 'true')
       }
 
+      // Apply activity filter
+      if (activityFilter === 'posts') {
+        params.set('user_id', userId)
+      } else if (activityFilter === 'hearts') {
+        params.set('hearted', 'true')
+      } else if (activityFilter === 'comments') {
+        params.set('commented', 'true')
+      }
+
       const response = await fetch(`/api/vibe-tribe/posts?${params}`)
       
       if (response.ok) {
@@ -115,7 +126,7 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
       setRefreshing(false)
       setIsSearching(false)
     }
-  }, [activeFilter, offset, searchQuery, showPinned])
+  }, [activeFilter, offset, searchQuery, showPinned, activityFilter, userId])
 
   // Initial load and filter change
   useEffect(() => {
@@ -123,7 +134,7 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
     setOffset(0)
     setHasMore(true)
     fetchPosts(true)
-  }, [activeFilter, showPinned])
+  }, [activeFilter, showPinned, activityFilter])
 
   // Focus search input when shown
   useEffect(() => {
@@ -254,14 +265,17 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
                 <div className="flex flex-col">
                   <h1 className="text-base font-bold text-white leading-tight">Vibe Tribe</h1>
                   {userProfile?.full_name && (
-                    <span className="text-xs font-medium text-[#39FF14] leading-tight">
+                    <Link 
+                      href={`/snapshot/${userProfile.id}`}
+                      className="text-xs font-medium text-[#39FF14] leading-tight hover:underline"
+                    >
                       {userProfile.full_name}
-                    </span>
+                    </Link>
                   )}
                 </div>
               </div>
 
-              {/* Right side - Search, Filter dropdown and Pin */}
+              {/* Right side - Search, My Posts, Filter dropdown and Pin */}
               <div className="flex items-center gap-2">
                 {/* Search Icon */}
                 <button
@@ -269,6 +283,19 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
                   className="w-10 h-10 rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center text-white hover:bg-neutral-700 transition-colors"
                 >
                   <Search className="w-5 h-5" />
+                </button>
+
+                {/* My Activity Icon */}
+                <button
+                  onClick={() => setActivityFilter(activityFilter === 'off' ? 'posts' : 'off')}
+                  className={`w-10 h-10 rounded-full border flex items-center justify-center transition-colors ${
+                    activityFilter !== 'off'
+                      ? 'border-[#39FF14] text-[#39FF14] bg-[#39FF14]/10' 
+                      : 'bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700'
+                  }`}
+                  title={activityFilter !== 'off' ? 'Show all posts' : 'Show my activity'}
+                >
+                  <User className="w-5 h-5" />
                 </button>
 
                 {/* Filter Dropdown - Pill shaped */}
@@ -333,10 +360,58 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
         </div>
       </div>
 
+      {/* Activity Filter Bar - shows when activity filter is active */}
+      {activityFilter !== 'off' && (
+        <div className="bg-black border-b border-neutral-800 px-4 py-2">
+          <div className="flex items-center gap-2 max-w-2xl mx-auto overflow-x-auto pb-1">
+            <button
+              onClick={() => setActivityFilter('posts')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all duration-200 text-sm font-medium ${
+                activityFilter === 'posts'
+                  ? 'bg-[#39FF14] text-black'
+                  : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              My Posts
+            </button>
+            <button
+              onClick={() => setActivityFilter('hearts')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all duration-200 text-sm font-medium ${
+                activityFilter === 'hearts'
+                  ? 'bg-[#39FF14] text-black'
+                  : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+              }`}
+            >
+              <Heart className="w-4 h-4" />
+              Hearts
+            </button>
+            <button
+              onClick={() => setActivityFilter('comments')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all duration-200 text-sm font-medium ${
+                activityFilter === 'comments'
+                  ? 'bg-[#39FF14] text-black'
+                  : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+              }`}
+            >
+              <MessageCircle className="w-4 h-4" />
+              Comments
+            </button>
+            <button
+              onClick={() => setActivityFilter('off')}
+              className="ml-auto p-2 text-neutral-400 hover:text-white transition-colors"
+              title="Close filter"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Feed */}
       <div className="flex-1 overflow-y-auto pb-40 md:pb-24">
         <div className="max-w-2xl mx-auto px-4 py-4">
-          {loading ? (
+          {(loading || refreshing) ? (
             <div className="flex justify-center py-12">
               <Spinner size="lg" />
             </div>
@@ -374,6 +449,12 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-neutral-800 flex items-center justify-center">
                 {searchQuery ? (
                   <Search className="w-8 h-8 text-neutral-500" />
+                ) : activityFilter === 'posts' ? (
+                  <FileText className="w-8 h-8 text-neutral-500" />
+                ) : activityFilter === 'hearts' ? (
+                  <Heart className="w-8 h-8 text-neutral-500" />
+                ) : activityFilter === 'comments' ? (
+                  <MessageCircle className="w-8 h-8 text-neutral-500" />
                 ) : showPinned ? (
                   <Pin className="w-8 h-8 text-neutral-500" />
                 ) : (
@@ -383,19 +464,31 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
               <h3 className="text-lg font-semibold text-white mb-2">
                 {searchQuery 
                   ? 'No posts found'
-                  : showPinned
-                    ? 'No pinned posts'
-                    : activeFilter !== 'all' 
-                      ? `No ${VIBE_TAG_CONFIG[activeFilter].label.toLowerCase()} posts yet`
-                      : 'No posts yet'
+                  : activityFilter === 'posts'
+                    ? 'No posts yet'
+                    : activityFilter === 'hearts'
+                      ? 'No hearted posts'
+                      : activityFilter === 'comments'
+                        ? 'No commented posts'
+                        : showPinned
+                          ? 'No pinned posts'
+                          : activeFilter !== 'all' 
+                            ? `No ${VIBE_TAG_CONFIG[activeFilter].label.toLowerCase()} posts yet`
+                            : 'No posts yet'
                 }
               </h3>
               <p className="text-neutral-400 max-w-md mx-auto">
                 {searchQuery
                   ? 'Try a different search term or clear the search'
-                  : showPinned
-                    ? 'Pinned posts will appear here'
-                    : 'Be the first to share something with the Vibe Tribe!'
+                  : activityFilter === 'posts'
+                    ? 'Share something with the Vibe Tribe to see your posts here!'
+                    : activityFilter === 'hearts'
+                      ? 'Heart some posts to see them here!'
+                      : activityFilter === 'comments'
+                        ? 'Comment on posts to see them here!'
+                        : showPinned
+                          ? 'Pinned posts will appear here'
+                          : 'Be the first to share something with the Vibe Tribe!'
                 }
               </p>
             </div>
