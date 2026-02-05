@@ -129,6 +129,9 @@ export const PAGE_CLASSIFICATIONS = {
     
     // Video Sessions (member list)
     '/sessions',
+    
+    // Alignment Gym (Graduate Unlock)
+    '/alignment-gym',
   ],
   
   /**
@@ -229,9 +232,6 @@ export const PAGE_CLASSIFICATIONS = {
     
     // Video Session Join (accessible without auth, prompts login)
     '/session/[id]',
-    
-    // Alignment Gym (Graduate Unlock)
-    '/alignment-gym',
   ],
 } as const
 

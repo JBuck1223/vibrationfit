@@ -27,7 +27,8 @@ import {
   Button, 
   Card,
   Spinner,
-  Badge
+  Badge,
+  TrackingMilestoneCard
 } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
 import type { VideoSession, VideoSessionParticipant } from '@/lib/video/types'
@@ -193,55 +194,73 @@ export default function AlignmentGymPage() {
         />
 
         {/* Stats Row */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="p-4 bg-gradient-to-br from-primary-500/10 to-transparent border-primary-500/20">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary-500/20 flex items-center justify-center">
-                <Trophy className="w-5 h-5 text-primary-500" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <TrackingMilestoneCard
+            label="Sessions Attended"
+            mobileLabel="Attended"
+            value={attendanceStats.totalAttended}
+            theme="primary"
+            icon={<Trophy className="w-6 h-6" />}
+          />
+
+          <TrackingMilestoneCard
+            label="Week Streak"
+            mobileLabel="Streak"
+            value={attendanceStats.currentStreak}
+            theme="secondary"
+            icon={<Sparkles className="w-6 h-6" />}
+          />
+
+          <TrackingMilestoneCard
+            label="Replays Available"
+            mobileLabel="Replays"
+            value={pastSessions.length}
+            theme="neutral"
+            icon={<Video className="w-6 h-6" />}
+          />
+        </div>
+
+        {/* What is Alignment Gym */}
+        <Card className="p-6 md:p-8 bg-gradient-to-br from-neutral-900 to-neutral-800/50">
+          <h3 className="text-lg md:text-xl font-bold text-white mb-8 text-center">
+            What is The Alignment Gym?
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary-500/20 flex items-center justify-center flex-shrink-0">
+                <Users className="w-5 h-5 text-primary-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">{attendanceStats.totalAttended}</p>
-                <p className="text-xs text-neutral-400">Sessions Attended</p>
+                <h4 className="font-medium text-white mb-1">Weekly Group Coaching</h4>
+                <p className="text-sm text-neutral-400">
+                  Live sessions with your guide and fellow graduates. Practice tools, get feedback, and stay calibrated.
+                </p>
               </div>
             </div>
-          </Card>
-
-          <Card className="p-4 bg-gradient-to-br from-secondary-500/10 to-transparent border-secondary-500/20">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-secondary-500/20 flex items-center justify-center">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-secondary-500/20 flex items-center justify-center flex-shrink-0">
                 <Sparkles className="w-5 h-5 text-secondary-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">{attendanceStats.currentStreak}</p>
-                <p className="text-xs text-neutral-400">Week Streak</p>
+                <h4 className="font-medium text-white mb-1">Ask Anything</h4>
+                <p className="text-sm text-neutral-400">
+                  Bring your questions, challenges, or wins. Get real-time guidance on applying conscious creation to your life.
+                </p>
               </div>
             </div>
-          </Card>
-
-          <Card className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-neutral-800 flex items-center justify-center">
-                <Video className="w-5 h-5 text-neutral-400" />
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-accent-500/20 flex items-center justify-center flex-shrink-0">
+                <Trophy className="w-5 h-5 text-accent-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">{pastSessions.length}</p>
-                <p className="text-xs text-neutral-400">Replays Available</p>
+                <h4 className="font-medium text-white mb-1">Build Your Streak</h4>
+                <p className="text-sm text-neutral-400">
+                  Attend regularly to maintain momentum and earn badges for 3, 12, and 50+ sessions.
+                </p>
               </div>
             </div>
-          </Card>
-
-          <Card className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-neutral-800 flex items-center justify-center">
-                <Users className="w-5 h-5 text-neutral-400" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-white">Weekly</p>
-                <p className="text-xs text-neutral-400">Live Sessions</p>
-              </div>
-            </div>
-          </Card>
-        </div>
+          </div>
+        </Card>
 
         {/* Error State */}
         {error && (
@@ -336,7 +355,7 @@ export default function AlignmentGymPage() {
             <div className="w-16 h-16 rounded-full bg-neutral-800 flex items-center justify-center mx-auto mb-4">
               <Calendar className="w-8 h-8 text-neutral-500" />
             </div>
-            <h3 className="text-lg md:text-xl font-medium text-white mb-2">
+            <h3 className="text-lg md:text-xl font-bold text-white mb-2">
               No Upcoming Sessions
             </h3>
             <p className="text-sm md:text-base text-neutral-400">
@@ -403,23 +422,25 @@ export default function AlignmentGymPage() {
 
         {/* Replays Section */}
         <Card className="p-4 md:p-6 lg:p-8">
-          <h3 className="text-base md:text-lg font-medium text-white mb-4 flex items-center gap-2">
-            <PlayCircle className="w-5 h-5 text-secondary-500" />
-            Session Replays
-          </h3>
-          
           {pastSessions.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="w-12 h-12 rounded-full bg-neutral-800 flex items-center justify-center mx-auto mb-3">
-                <Video className="w-6 h-6 text-neutral-500" />
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-full bg-neutral-800 flex items-center justify-center mx-auto mb-4">
+                <PlayCircle className="w-8 h-8 text-neutral-500" />
               </div>
+              <h3 className="text-lg md:text-xl font-bold text-white mb-2">
+                Session Replays
+              </h3>
               <p className="text-neutral-400 text-sm">
                 No replays available yet. Attend live sessions and recordings will appear here.
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {pastSessions.map(session => {
+            <>
+              <h3 className="text-lg md:text-xl font-bold text-white mb-4 text-center">
+                Session Replays
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {pastSessions.map(session => {
                 const scheduledDate = new Date(session.scheduled_at)
                 const userAttended = session.participants?.some(
                   (p: VideoSessionParticipant) => p.user_id === userId && p.attended
@@ -473,51 +494,11 @@ export default function AlignmentGymPage() {
                   </div>
                 )
               })}
-            </div>
+              </div>
+            </>
           )}
         </Card>
 
-        {/* What is Alignment Gym */}
-        <Card className="p-6 md:p-8 bg-gradient-to-br from-neutral-900 to-neutral-800/50">
-          <h3 className="text-lg md:text-xl font-bold text-white mb-4">
-            What is The Alignment Gym?
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary-500/20 flex items-center justify-center flex-shrink-0">
-                <Users className="w-5 h-5 text-primary-500" />
-              </div>
-              <div>
-                <h4 className="font-medium text-white mb-1">Weekly Group Coaching</h4>
-                <p className="text-sm text-neutral-400">
-                  Live sessions with your guide and fellow graduates. Practice tools, get feedback, and stay calibrated.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-secondary-500/20 flex items-center justify-center flex-shrink-0">
-                <Sparkles className="w-5 h-5 text-secondary-500" />
-              </div>
-              <div>
-                <h4 className="font-medium text-white mb-1">Ask Anything</h4>
-                <p className="text-sm text-neutral-400">
-                  Bring your questions, challenges, or wins. Get real-time guidance on applying conscious creation to your life.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-accent-500/20 flex items-center justify-center flex-shrink-0">
-                <Trophy className="w-5 h-5 text-accent-500" />
-              </div>
-              <div>
-                <h4 className="font-medium text-white mb-1">Build Your Streak</h4>
-                <p className="text-sm text-neutral-400">
-                  Attend regularly to maintain momentum and earn badges for 3, 12, and 50+ sessions.
-                </p>
-              </div>
-            </div>
-          </div>
-        </Card>
       </Stack>
     </Container>
   )
