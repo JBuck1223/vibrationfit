@@ -630,7 +630,7 @@ export async function checkStorageBeforeUpload(userId: string, fileSize: number)
 
 **Phase 4: Calibration & Launch**
 9. `/intensive/call-prep` - Attend Calibration Call (Zoom)
-10. `/intensive/activation-protocol` - Complete Activation Protocol & daily rituals
+10. `/map` - My Activation Plan (MAP) & daily rituals
 
 **Progress Tracker:** `/intensive/dashboard` - Shows countdown timer, completion status, next steps
 
@@ -773,7 +773,7 @@ export async function checkStorageBeforeUpload(userId: string, fileSize: number)
 - [x] `/intensive/schedule-call` - Call scheduling interface
 - [x] `/intensive/refine-vision` - Vision refinement with VIVA
 - [x] `/intensive/call-prep` - Calibration call preparation
-- [x] `/intensive/activation-protocol` - Daily rituals & completion
+- [x] `/map` - My Activation Plan (MAP) & daily rituals
 - [ ] Add `?intensive=true` query param handling to existing pages:
   - [ ] `/profile/edit` - Mark profile completion in checklist
   - [ ] `/assessment` - Mark assessment completion

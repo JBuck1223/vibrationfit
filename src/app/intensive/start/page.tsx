@@ -182,7 +182,7 @@ export default function IntensiveStartPage() {
       icon: Rocket,
       color: 'text-primary-500',
       steps: [
-        { num: 13, title: 'Activation Protocol', icon: Rocket },
+        { num: 13, title: 'My Activation Plan', icon: Rocket },
         { num: 14, title: 'Unlock Platform', icon: Unlock },
       ]
     }

@@ -92,7 +92,7 @@ function isPathAccessibleForIntensive(
   }
   
   // Step 13: Activation Protocol & Calibration - accessible after call scheduled
-  if (pathname.startsWith('/intensive/activation-protocol') || pathname.startsWith('/intensive/calibration')) {
+  if (pathname.startsWith('/map') || pathname.startsWith('/intensive/calibration')) {
     return intensive.call_scheduled
   }
   

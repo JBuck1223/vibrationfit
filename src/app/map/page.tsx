@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
 import Link from 'next/link'
@@ -32,6 +32,7 @@ import {
   Eye,
   Headphones,
   CheckCircle,
+  Circle,
   User,
   ClipboardCheck,
   Mic,
@@ -39,8 +40,8 @@ import {
   Unlock
 } from 'lucide-react'
 
-// Placeholder video URL - replace with actual activation protocol video
-const ACTIVATION_PROTOCOL_VIDEO =
+// Placeholder video URL - replace with actual MAP video
+const MAP_VIDEO =
   'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
 
 // Milestone data for the 28-day challenge
@@ -72,14 +73,17 @@ const MILESTONES = [
   }
 ]
 
-export default function ActivationProtocolPage() {
+export default function MAPPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  
   const [loading, setLoading] = useState(true)
   const [completing, setCompleting] = useState(false)
-  const [intensiveId, setIntensiveId] = useState<string | null>(null)
   const [activeVisionId, setActiveVisionId] = useState<string | null>(null)
   
-  // Completion states
+  // Intensive flow states
+  const [isIntensiveFlow, setIsIntensiveFlow] = useState(false)
+  const [intensiveId, setIntensiveId] = useState<string | null>(null)
   const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
   const [completedAt, setCompletedAt] = useState<string | null>(null)
 
@@ -97,13 +101,21 @@ export default function ActivationProtocolPage() {
         return
       }
 
-      // Use centralized intensive check (source of truth: intensive_checklist.status)
+      // Check if coming from intensive flow (via query param or active intensive)
+      const fromIntensive = searchParams.get('intensive') === 'true'
+      
+      // Check for active intensive
       const intensiveData = await getActiveIntensiveClient()
 
       if (intensiveData) {
         setIntensiveId(intensiveData.intensive_id)
         
-        // Check if already completed (data is in intensiveData)
+        // If intensive exists but not completed, this is part of intensive flow
+        if (!intensiveData.unlock_completed || fromIntensive) {
+          setIsIntensiveFlow(true)
+        }
+        
+        // Check if activation protocol step is already completed
         if (intensiveData.activation_protocol_completed) {
           setIsAlreadyCompleted(true)
           setCompletedAt(intensiveData.activation_protocol_completed_at || intensiveData.created_at)
@@ -132,6 +144,8 @@ export default function ActivationProtocolPage() {
   }
 
   const handleContinueToUnlock = async () => {
+    if (!intensiveId) return
+    
     setCompleting(true)
     try {
       const supabase = createClient()
@@ -179,10 +193,10 @@ export default function ActivationProtocolPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {/* Completion Banner if revisiting */}
-        {isAlreadyCompleted && completedAt && (
+        {/* Completion Banner if revisiting during intensive */}
+        {isIntensiveFlow && isAlreadyCompleted && completedAt && (
           <IntensiveCompletionBanner 
-            stepTitle="Activation Protocol"
+            stepTitle="My Activation Plan"
             completedAt={completedAt}
           />
         )}
@@ -191,20 +205,54 @@ export default function ActivationProtocolPage() {
         {/* HERO SECTION */}
         {/* ============================================ */}
         <PageHero
-          eyebrow="ACTIVATION INTENSIVE • STEP 13 OF 14"
-          title="28-Day Life I Choose Activation Challenge"
-          subtitle="Use this simple daily plan to make your Life I Choose your new normal."
+          eyebrow={isIntensiveFlow ? "ACTIVATION INTENSIVE • STEP 13 OF 14" : "MY ACTIVATION PLAN"}
+          title="Your 28-Day MAP"
+          subtitle="Your personal roadmap to make The Life I Choose your new normal."
         >
           <div className="mx-auto w-full max-w-3xl">
             <OptimizedVideo
-              url={ACTIVATION_PROTOCOL_VIDEO}
+              url={MAP_VIDEO}
               context="single"
               className="w-full"
             />
           </div>
 
           <div className="flex flex-col gap-2 items-center">
-            {isAlreadyCompleted ? (
+            {isIntensiveFlow ? (
+              // Intensive flow buttons
+              isAlreadyCompleted ? (
+                <Button 
+                  variant="primary"
+                  size="lg"
+                  onClick={() => router.push('/dashboard')}
+                  className="w-full sm:w-auto px-8"
+                >
+                  <ArrowRight className="w-5 h-5 mr-2" />
+                  Go to Dashboard
+                </Button>
+              ) : (
+                <Button 
+                  variant="primary"
+                  size="lg"
+                  onClick={handleContinueToUnlock}
+                  disabled={completing}
+                  className="w-full sm:w-auto px-8"
+                >
+                  {completing ? (
+                    <>
+                      <Spinner size="sm" className="mr-2" />
+                      Continuing...
+                    </>
+                  ) : (
+                    <>
+                      <Unlock className="w-5 h-5 mr-2" />
+                      Continue to Unlock Platform
+                    </>
+                  )}
+                </Button>
+              )
+            ) : (
+              // Standalone page - just show dashboard link
               <Button 
                 variant="primary"
                 size="lg"
@@ -213,26 +261,6 @@ export default function ActivationProtocolPage() {
               >
                 <ArrowRight className="w-5 h-5 mr-2" />
                 Go to Dashboard
-              </Button>
-            ) : (
-              <Button 
-                variant="primary"
-                size="lg"
-                onClick={handleContinueToUnlock}
-                disabled={completing}
-                className="w-full sm:w-auto px-8"
-              >
-                {completing ? (
-                  <>
-                    <Spinner size="sm" className="mr-2" />
-                    Continuing...
-                  </>
-                ) : (
-                  <>
-                    <Unlock className="w-5 h-5 mr-2" />
-                    Continue to Unlock Platform
-                  </>
-                )}
               </Button>
             )}
           </div>
@@ -244,10 +272,13 @@ export default function ActivationProtocolPage() {
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
           <Stack gap="md">
             <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-              About This Challenge
+              About Your MAP
             </Text>
             <p className="text-sm text-neutral-300 leading-relaxed">
-              You finished the Intensive. Your Life Vision, audios, and tools are ready. This page shows you exactly how to use them for the next 28 days.
+              {isIntensiveFlow 
+                ? "You finished the Intensive. Your Life Vision, audios, and tools are ready. This page shows you exactly how to use them for the next 28 days."
+                : "Your Life Vision, audios, and tools are ready. This page shows you exactly how to use them for maximum impact."
+              }
             </p>
             <p className="text-sm text-neutral-300 leading-relaxed">
               This challenge is optional, but our most successful members follow it. Copy them first, then customize. Don&apos;t overthink it. Follow the ritual. Let reality catch up.
@@ -306,8 +337,8 @@ export default function ActivationProtocolPage() {
                     <span>Complete your <strong>Daily Paper</strong> for the day.</span>
                   </div>
                   <div className="flex items-start gap-2 text-neutral-500">
-                    <span className="w-4 flex-shrink-0 mt-0.5 text-center text-xs">(Optional)</span>
-                    <span>Open your <strong>Journal</strong> and capture one intention: &quot;One aligned choice I&apos;ll make today is...&quot;</span>
+                    <Circle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <span><em>(Optional)</em> Open your <strong>Journal</strong> and capture one intention: &quot;One aligned choice I&apos;ll make today is...&quot;</span>
                   </div>
                 </div>
 
@@ -375,8 +406,8 @@ export default function ActivationProtocolPage() {
                     <span>Make one micro decision from that place.</span>
                   </div>
                   <div className="flex items-start gap-2 text-neutral-500">
-                    <span className="w-4 flex-shrink-0 mt-0.5 text-center text-xs">(Optional)</span>
-                    <span>After the moment, Journal: &quot;Did anything shift in how I intentionally showed up?&quot;</span>
+                    <Circle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <span><em>(Optional)</em> After the moment, Journal: &quot;Did anything shift in how I intentionally showed up?&quot;</span>
                   </div>
                 </div>
 
@@ -645,11 +676,11 @@ export default function ActivationProtocolPage() {
         {/* ============================================ */}
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] text-center">
           <div className="py-6">
-            {!isAlreadyCompleted ? (
+            {isIntensiveFlow && !isAlreadyCompleted ? (
               <>
                 <h2 className="text-xl md:text-2xl font-bold mb-3 text-white">Ready to Unlock?</h2>
                 <p className="text-sm text-neutral-300 mb-6">
-                  You&apos;ve reviewed the protocol. Continue to unlock your full platform access.
+                  You&apos;ve reviewed your MAP. Continue to unlock your full platform access.
                 </p>
                 <Button
                   variant="primary"
@@ -674,7 +705,7 @@ export default function ActivationProtocolPage() {
             ) : (
               <>
                 <p className="text-neutral-300 mb-4">
-                  This is your daily reference. Come back anytime during your 28-Day Challenge.
+                  This is your MAP. Come back anytime during your 28-Day journey.
                 </p>
                 <Button variant="primary" asChild>
                   <Link href="/dashboard">

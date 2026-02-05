@@ -61,6 +61,7 @@ import {
   BookOpen,
   Star,
   Music,
+  Map,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -156,6 +157,12 @@ export const userNavigation: NavItem[] = [
     description: 'Weekly live group coaching sessions',
   },
   {
+    name: 'MAP',
+    href: '/map',
+    icon: Map,
+    description: 'My Activation Plan - Your 28-Day roadmap',
+  },
+  {
     name: 'Tracking',
     href: '/daily-paper',
     icon: TrendingUp,
@@ -163,7 +170,7 @@ export const userNavigation: NavItem[] = [
     description: 'Track your daily progress and abundance',
     children: [
       { name: 'Daily Paper', href: '/daily-paper', icon: FileText },
-      { name: 'Abundance Tracker', href: '/abundance-tracker', icon: Star },
+      { name: 'Abundance Tracker', href: '/abundance-tracker', icon: DollarSign },
     ]
   },
   {

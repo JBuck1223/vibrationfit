@@ -610,14 +610,14 @@ function IntensiveDashboardContent() {
       {
         id: 'activation_protocol',
         stepNumber: 13,
-        title: 'Activation Protocol',
-        description: 'Complete your custom activation protocol',
+        title: 'My Activation Plan',
+        description: 'Your personalized 28-day MAP',
         icon: Rocket,
         phase: 'Completion',
         completed: checklist.activation_protocol_completed,
         completedAt: checklist.activation_protocol_completed_at,
-        href: '/intensive/activation-protocol',
-        viewHref: '/intensive/activation-protocol',
+        href: '/map?intensive=true',
+        viewHref: '/map',
         locked: !checklist.call_scheduled
       },
       {

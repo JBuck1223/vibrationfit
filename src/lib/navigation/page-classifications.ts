@@ -108,7 +108,7 @@ export const PAGE_CLASSIFICATIONS = {
     // Activation Intensive Program
     '/intensive',
     '/intensive/activate',
-    '/intensive/activation-protocol',
+    '/map',
     '/intensive/builder',
     '/intensive/calibration',
     '/intensive/call-prep',

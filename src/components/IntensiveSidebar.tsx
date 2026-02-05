@@ -377,8 +377,8 @@ export function IntensiveSidebar() {
         { 
           id: 'activation', 
           stepNumber: 13,
-          title: 'Activation Protocol', 
-          href: '/intensive/activation-protocol', 
+          title: 'My Activation Plan', 
+          href: '/map?intensive=true', 
           icon: Rocket,
           phase: 'Completion',
           completed: !!checklist.activation_protocol_completed,
