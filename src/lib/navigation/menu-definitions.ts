@@ -60,7 +60,6 @@ import {
   UsersRound,
   BookOpen,
   Star,
-  Compass,
   Music,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -148,12 +147,13 @@ export const userNavigation: NavItem[] = [
     name: 'Vibe Tribe',
     href: '/vibe-tribe',
     icon: UsersRound,
-    hasDropdown: true,
     description: 'Connect with the VibrationFit community',
-    children: [
-      { name: 'Hub', href: '/vibe-tribe', icon: Compass },
-      { name: 'My Activity', href: '/vibe-tribe/activity', icon: Activity },
-    ]
+  },
+  {
+    name: 'Alignment Gym',
+    href: '/alignment-gym',
+    icon: Video,
+    description: 'Weekly live group coaching sessions',
   },
   {
     name: 'Tracking',

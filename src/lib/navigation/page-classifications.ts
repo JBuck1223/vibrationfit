@@ -64,7 +64,6 @@ export const PAGE_CLASSIFICATIONS = {
     '/vibe-tribe/wobbles',
     '/vibe-tribe/visions',
     '/vibe-tribe/collaboration',
-    '/vibe-tribe/activity',
     '/snapshot/[id]',  // Member profile snapshots
     
     // Tracking System
@@ -230,6 +229,9 @@ export const PAGE_CLASSIFICATIONS = {
     
     // Video Session Join (accessible without auth, prompts login)
     '/session/[id]',
+    
+    // Alignment Gym (Graduate Unlock)
+    '/alignment-gym',
   ],
 } as const
 
