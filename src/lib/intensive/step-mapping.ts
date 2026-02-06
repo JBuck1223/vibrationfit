@@ -169,11 +169,11 @@ export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
   activation_protocol: {
     id: 'activation_protocol',
     stepNumber: 13,
-    title: 'Activation Protocol',
+    title: 'My Activation Plan',
     checklistKey: 'activation_protocol_completed',
     completedAtKey: 'activation_protocol_completed_at',
-    href: '/intensive/activation-protocol',
-    viewHref: '/intensive/activation-protocol',
+    href: '/map?intensive=true',
+    viewHref: '/map',
     nextStepId: 'unlock',
     phase: 'Completion'
   },

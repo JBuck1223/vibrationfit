@@ -64,7 +64,6 @@ export const PAGE_CLASSIFICATIONS = {
     '/vibe-tribe/wobbles',
     '/vibe-tribe/visions',
     '/vibe-tribe/collaboration',
-    '/vibe-tribe/activity',
     '/snapshot/[id]',  // Member profile snapshots
     
     // Tracking System
@@ -109,7 +108,7 @@ export const PAGE_CLASSIFICATIONS = {
     // Activation Intensive Program
     '/intensive',
     '/intensive/activate',
-    '/intensive/activation-protocol',
+    '/map',
     '/intensive/builder',
     '/intensive/calibration',
     '/intensive/call-prep',
@@ -130,6 +129,9 @@ export const PAGE_CLASSIFICATIONS = {
     
     // Video Sessions (member list)
     '/sessions',
+    
+    // Alignment Gym (Graduate Unlock)
+    '/alignment-gym',
   ],
   
   /**

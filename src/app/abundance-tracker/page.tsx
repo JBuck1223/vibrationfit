@@ -100,14 +100,14 @@ export default function AbundanceLogPage() {
           title="Abundance Tracker"
           subtitle="Log daily gifts, synchronicities, and abundance moments. Train your mind to notice what's flowing to you."
         />
-        <Card className="p-4 md:p-6">
-          <p className="text-neutral-400 text-sm md:text-base">
-            Celebrate every moment of receiving. Each entry updates your vibrational log with an Above the Green Line pulse.
-          </p>
-        </Card>
-
         <Card>
           <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="text-sm text-neutral-400 text-center italic">
+              {valueType === 'money'
+                ? 'Money entries require an amount. Value entries can capture intangible appreciation without a dollar value.'
+                : 'Value entries celebrate intangible abundance—share the story in the note and add an amount if you want to track it numerically.'}
+            </div>
+
             <div className="grid gap-4 md:grid-cols-3">
               <DatePicker
                 label="Date"
@@ -163,12 +163,6 @@ export default function AbundanceLogPage() {
               />
             </div>
 
-            <div className="text-xs text-neutral-500">
-              {valueType === 'money'
-                ? 'Money entries require an amount. Value entries can capture intangible appreciation without a dollar value.'
-                : 'Value entries celebrate intangible abundance—share the story in the note and add an amount if you want to track it numerically.'}
-            </div>
-
             {successMessage && (
               <div className="bg-primary-500/10 border border-primary-500/40 rounded-xl p-4 text-sm text-primary-200">
                 {successMessage}
@@ -181,9 +175,11 @@ export default function AbundanceLogPage() {
               </div>
             )}
 
-            <Button type="submit" variant="primary" loading={isSubmitting}>
-              {isSubmitting ? 'Logging...' : 'Log Abundance Moment'}
-            </Button>
+            <div className="flex justify-end">
+              <Button type="submit" variant="primary" loading={isSubmitting}>
+                {isSubmitting ? 'Logging...' : 'Log Abundance Moment'}
+              </Button>
+            </div>
           </form>
         </Card>
       </Stack>

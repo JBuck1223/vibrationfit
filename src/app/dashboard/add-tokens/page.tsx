@@ -4,7 +4,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Container, Card, Button, Badge, Stack, PageHero } from '@/lib/design-system/components'
+import { Container, Card, Button, Stack, PageHero } from '@/lib/design-system/components'
 import { Zap, Check, Sparkles, TrendingUp } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -94,31 +94,27 @@ export default function AddTokensPage() {
       <Stack gap="lg">
         {/* Header */}
         <PageHero
-          title="Add More Creation Tokens"
+          title="Creation Token Packs"
           subtitle="Never expires • Use anytime • Full creative freedom"
-        >
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500/10 border border-primary-500/30 rounded-full">
-            <Zap className="w-4 h-4 text-primary-500" />
-            <span className="text-sm font-semibold text-primary-500">Token Packs</span>
-          </div>
-        </PageHero>
+        />
 
         {/* Token Packs */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:items-stretch">
           {TOKEN_PACKS.map((pack) => (
             <Card
               key={pack.id}
-              className={`p-8 relative ${
+              className={`p-8 relative flex flex-col ${
                 pack.popular
                   ? 'border-2 border-primary-500 bg-gradient-to-br from-primary-500/5 to-secondary-500/5'
                   : ''
               }`}
             >
               {pack.popular && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <Badge variant="success" className="px-4 py-1">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
+                  <span className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-gradient-to-r from-primary-500 to-secondary-500 text-black font-bold text-sm rounded-full shadow-lg shadow-primary-500/30">
+                    <Sparkles className="w-3.5 h-3.5" />
                     Best Value
-                  </Badge>
+                  </span>
                 </div>
               )}
 
@@ -145,8 +141,8 @@ export default function AddTokensPage() {
                 </div>
               </div>
 
-              {/* Features */}
-              <ul className="space-y-3 mb-6">
+              {/* Features - flex-grow pushes button to bottom */}
+              <ul className="space-y-3 mb-6 flex-grow">
                 {pack.features.map((feature, idx) => (
                   <li key={idx} className="flex items-start gap-2 text-sm">
                     <Check className="w-4 h-4 text-primary-500 mt-0.5 flex-shrink-0" />
@@ -155,11 +151,11 @@ export default function AddTokensPage() {
                 ))}
               </ul>
 
-              {/* CTA */}
+              {/* CTA - mt-auto ensures alignment at bottom */}
               <Button
                 variant={pack.popular ? 'primary' : 'secondary'}
                 size="lg"
-                className="w-full"
+                className="w-full mt-auto"
                 onClick={() => handlePurchase(pack.id)}
                 disabled={loading}
               >

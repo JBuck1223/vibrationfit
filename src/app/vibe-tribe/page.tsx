@@ -2,16 +2,23 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Container, Stack, PageHero, Spinner } from '@/lib/design-system'
+import { Spinner } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
-import { VibeTribeHub } from '@/components/vibe-tribe'
+import { VibeTribeFeedLayout } from '@/components/vibe-tribe/VibeTribeFeedLayout'
 import { VibeTag, VIBE_TAGS } from '@/lib/vibe-tribe/types'
+
+interface UserProfile {
+  id: string
+  full_name: string | null
+  profile_picture_url: string | null
+}
 
 export default function VibeTribePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<{ id: string } | null>(null)
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
 
   // Get initial filter from URL
@@ -32,14 +39,19 @@ export default function VibeTribePage() {
       
       setUser(user)
 
-      // Check if admin
+      // Get user account data including profile picture and name
       const { data: account } = await supabase
         .from('user_accounts')
-        .select('role')
+        .select('role, full_name, profile_picture_url')
         .eq('id', user.id)
         .single()
       
       setIsAdmin(account?.role === 'admin' || account?.role === 'super_admin')
+      setUserProfile({
+        id: user.id,
+        full_name: account?.full_name || null,
+        profile_picture_url: account?.profile_picture_url || null,
+      })
       setLoading(false)
     }
     
@@ -48,32 +60,20 @@ export default function VibeTribePage() {
 
   if (loading) {
     return (
-      <Container size="xl">
-        <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-          <Spinner size="lg" />
-        </div>
-      </Container>
+      <div className="flex min-h-screen items-center justify-center bg-black">
+        <Spinner size="lg" />
+      </div>
     )
   }
 
-  return (
-    <Container size="xl">
-      <Stack gap="lg">
-        <PageHero
-          eyebrow="THE LIFE I CHOOSE"
-          title="Vibe Tribe"
-          subtitle="Connect, share, and grow together with the VibrationFit community"
-        />
+  if (!user) return null
 
-        {/* Hub - Main action center */}
-        {user && (
-          <VibeTribeHub 
-            userId={user.id} 
-            isAdmin={isAdmin} 
-            initialFilter={initialFilter}
-          />
-        )}
-      </Stack>
-    </Container>
+  return (
+    <VibeTribeFeedLayout 
+      userId={user.id} 
+      isAdmin={isAdmin} 
+      initialFilter={initialFilter}
+      userProfile={userProfile}
+    />
   )
 }

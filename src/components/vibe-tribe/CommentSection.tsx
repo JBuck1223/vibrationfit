@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { Button, Spinner } from '@/lib/design-system'
+import { Spinner } from '@/lib/design-system'
 import { Heart, Trash2, Send, Reply, X } from 'lucide-react'
 import { VibeComment } from '@/lib/vibe-tribe/types'
 import { UserBadgeIndicator } from '@/components/badges'
-import { formatDistanceToNow } from 'date-fns'
+import { format, isToday, isYesterday } from 'date-fns'
 
 interface CommentSectionProps {
   postId: string
@@ -190,30 +190,31 @@ export function CommentSection({
   }
 
   return (
-    <div className="mt-4 pt-4 border-t border-neutral-800">
-      {/* Top-level Comment Input */}
-      <form onSubmit={handleSubmitTopLevel} className="mb-4">
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Add a comment..."
-            className="flex-1 bg-neutral-800 border border-neutral-700 rounded-full px-4 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500"
-          />
-          <Button
-            type="submit"
-            size="sm"
-            disabled={!newComment.trim() || submitting}
-            className="rounded-full px-4"
-          >
-            <Send className="w-4 h-4" />
-          </Button>
-        </div>
-      </form>
+    <div className="mt-4">
+      {/* Top-level Comment Input - hidden when replying to someone */}
+      {!replyingToId && (
+        <form onSubmit={handleSubmitTopLevel} className="mb-4">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Add a comment..."
+              className="flex-1 bg-neutral-800 border border-neutral-700 rounded-full px-4 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500"
+            />
+            <button
+              type="submit"
+              disabled={!newComment.trim() || submitting}
+              className="h-9 w-9 rounded-full flex items-center justify-center bg-[#39FF14] text-black hover:bg-[rgba(57,255,20,0.9)] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-shrink-0"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
+        </form>
+      )}
 
-      {/* Comments List */}
-      <div className="space-y-4">
+      {/* Comments List - with gray line above */}
+      <div className="pt-4 border-t border-neutral-800 space-y-4">
         {comments.length === 0 ? (
           <p className="text-sm text-neutral-500 text-center py-2">
             No comments yet. Be the first to comment!
@@ -260,6 +261,8 @@ interface CommentItemProps {
   onDeleteComment: (id: string, parentId?: string) => void
   onHeartComment: (comment: VibeComment) => void
   isReply?: boolean
+  replyToAuthor?: { name: string; userId: string } // Who this comment is replying to
+  nestingLevel?: number // Track nesting depth for indentation
 }
 
 function CommentItem({ 
@@ -278,10 +281,20 @@ function CommentItem({
   onDeleteComment,
   onHeartComment,
   isReply = false,
+  replyToAuthor,
+  nestingLevel = 0,
 }: CommentItemProps) {
   const [deleting, setDeleting] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
-  const timeAgo = formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })
+  
+  // Format time: show time for today, "Yesterday" for yesterday, or date for older
+  const commentDate = new Date(comment.created_at)
+  const timeDisplay = isToday(commentDate) 
+    ? format(commentDate, 'h:mm a')
+    : isYesterday(commentDate)
+      ? 'Yesterday'
+      : format(commentDate, 'MMM d')
+  
   const isReplying = replyingToId === comment.id
 
   // Focus input when replying
@@ -303,18 +316,60 @@ function CommentItem({
       setReplyText('')
     } else {
       setReplyingToId(comment.id)
-      setReplyText('')
+      // Auto-fill with @ mention
+      const authorName = comment.user?.full_name || 'Anonymous'
+      setReplyText(`@${authorName} `)
     }
+  }
+
+  // Calculate indentation based on nesting level (max 3 levels deep visually)
+  const indentClass = nestingLevel === 0 ? '' : nestingLevel === 1 ? 'ml-10' : 'ml-8'
+
+  // Render content with @ mentions as clickable links
+  const renderContentWithMention = (content: string) => {
+    // Check if content starts with an @ mention
+    const mentionMatch = content.match(/^@([^\s]+(?:\s+[^\s]+)?)\s/)
+    
+    if (mentionMatch) {
+      const mentionName = mentionMatch[1]
+      const restOfContent = content.slice(mentionMatch[0].length)
+      
+      // If we have the replyToAuthor info, use it for the link
+      // Otherwise just show the mention without a link
+      if (replyToAuthor && mentionName === replyToAuthor.name) {
+        return (
+          <>
+            <Link 
+              href={`/snapshot/${replyToAuthor.userId}`}
+              className="text-[#39FF14] font-medium hover:underline"
+            >
+              @{mentionName}
+            </Link>
+            {' '}{restOfContent}
+          </>
+        )
+      }
+      
+      // Fallback: show mention without link (for older comments or mismatches)
+      return (
+        <>
+          <span className="text-[#39FF14] font-medium">@{mentionName}</span>
+          {' '}{restOfContent}
+        </>
+      )
+    }
+    
+    return content
   }
 
 
   return (
-    <div className={isReply ? 'ml-8' : ''}>
+    <div className={`relative ${indentClass}`}>
       <div className="flex items-start gap-3">
         {/* Avatar - Links to user snapshot */}
         <Link 
           href={`/snapshot/${comment.user_id}`}
-          className={`${isReply ? 'w-6 h-6' : 'w-8 h-8'} rounded-full bg-neutral-700 overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-primary-500 transition-all`}
+          className="w-10 h-10 rounded-full bg-neutral-700 overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-primary-500 transition-all"
         >
           {comment.user?.profile_picture_url ? (
             <img
@@ -323,31 +378,30 @@ function CommentItem({
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-neutral-400 text-xs font-medium">
+            <div className="w-full h-full flex items-center justify-center text-neutral-400 text-sm font-medium">
               {comment.user?.full_name?.[0] || '?'}
             </div>
           )}
         </Link>
         
         <div className="flex-1 min-w-0">
-          <div className="bg-neutral-800 rounded-2xl px-4 py-2">
-            <div className="flex items-center gap-2 mb-1">
-              <Link 
-                href={`/snapshot/${comment.user_id}`}
-                className="text-sm font-semibold text-white hover:text-primary-400 transition-colors"
-              >
-                {comment.user?.full_name || 'Anonymous'}
-              </Link>
-              <UserBadgeIndicator userId={comment.user_id} size="xs" />
-              <span className="text-xs text-neutral-500">{timeAgo}</span>
-            </div>
-            <p className="text-sm text-neutral-300 whitespace-pre-wrap">
-              {comment.content}
-            </p>
+          {/* User info row */}
+          <div className="flex items-center gap-2">
+            <Link 
+              href={`/snapshot/${comment.user_id}`}
+              className="text-sm font-bold text-white hover:text-primary-400 transition-colors"
+            >
+              {comment.user?.full_name || 'Anonymous'}
+            </Link>
+            <span className="text-xs text-neutral-500">{timeDisplay}</span>
           </div>
+          {/* Comment content - directly under name */}
+          <p className="text-sm text-neutral-200 whitespace-pre-wrap">
+            {renderContentWithMention(comment.content)}
+          </p>
           
           {/* Comment Actions */}
-          <div className="flex items-center gap-4 mt-1 ml-2">
+          <div className="flex items-center gap-4 mt-2">
             <button
               onClick={onHeart}
               className={`
@@ -359,7 +413,7 @@ function CommentItem({
               `}
             >
               <Heart 
-                className="w-3 h-3" 
+                className="w-3.5 h-3.5" 
                 fill={comment.has_hearted ? 'currentColor' : 'none'}
               />
               {comment.hearts_count > 0 && (
@@ -373,7 +427,7 @@ function CommentItem({
                 isReplying ? 'text-[#39FF14]' : 'text-neutral-500 hover:text-white'
               }`}
             >
-              <Reply className="w-3 h-3" />
+              <Reply className="w-3.5 h-3.5" />
               {isReplying ? 'Cancel' : 'Reply'}
             </button>
             
@@ -390,7 +444,7 @@ function CommentItem({
 
           {/* Inline Reply Input */}
           {isReplying && (
-            <div className="mt-3 ml-2">
+            <div className="mt-3">
               <div className="flex items-center gap-2">
                 <input
                   ref={inputRef}
@@ -410,7 +464,7 @@ function CommentItem({
                   type="button"
                   disabled={!replyText.trim() || submitting}
                   onClick={() => onSubmitReply(comment.id)}
-                  className="rounded-full px-4 py-2 bg-[#39FF14] text-black hover:bg-[rgba(57,255,20,0.9)] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  className="h-9 w-9 rounded-full flex items-center justify-center bg-[#39FF14] text-black hover:bg-[rgba(57,255,20,0.9)] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-shrink-0"
                 >
                   <Send className="w-4 h-4" />
                 </button>
@@ -441,6 +495,11 @@ function CommentItem({
               onDeleteComment={onDeleteComment}
               onHeartComment={onHeartComment}
               isReply={true}
+              replyToAuthor={{ 
+                name: comment.user?.full_name || 'Anonymous', 
+                userId: comment.user_id 
+              }}
+              nestingLevel={nestingLevel + 1}
             />
           ))}
         </div>

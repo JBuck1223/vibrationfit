@@ -26,7 +26,7 @@ const STEP_DEFINITIONS = [
   { step: 10, name: 'Vision Board', checklistField: 'vision_board_completed' },
   { step: 11, name: 'Journal', checklistField: 'first_journal_entry' },
   { step: 12, name: 'Book Call', checklistField: 'call_scheduled' },
-  { step: 13, name: 'Activation Protocol', checklistField: 'activation_protocol_completed' },
+  { step: 13, name: 'My Activation Plan', checklistField: 'activation_protocol_completed' },
   { step: 14, name: 'Unlock Platform', checklistField: 'unlock_completed' },
 ]
 

@@ -48,7 +48,8 @@ import {
   X,
   FlaskConical,
   Mic,
-  Clock
+  Clock,
+  DollarSign
 } from 'lucide-react'
 import { Card, Badge, Container, Input } from '@/lib/design-system'
 
@@ -123,7 +124,7 @@ export default function SitemapPage() {
         { href: '/daily-paper', label: 'Daily Paper', icon: BookOpen, description: 'Daily paper view and tracking' },
         { href: '/daily-paper/new', label: 'New Daily Paper Entry', icon: Plus, description: 'Create new daily paper entry' },
         { href: '/daily-paper/resources', label: 'Daily Paper Resources', icon: FileText, description: 'Daily paper PDFs and resources' },
-        { href: '/abundance-tracker', label: 'Abundance Tracker', icon: Star, description: 'Track abundance and gratitude' },
+        { href: '/abundance-tracker', label: 'Abundance Tracker', icon: DollarSign, description: 'Track abundance and gratitude' },
 
         // Profile & Account
         { href: '/profile', label: 'All Profiles', icon: Eye, description: 'All user profiles' },
@@ -163,7 +164,7 @@ export default function SitemapPage() {
         { href: '/intensive/schedule-call', label: 'Schedule Call', icon: Calendar, description: 'Schedule coaching call' },
         { href: '/intensive/call-prep', label: 'Call Preparation', icon: FileText, description: 'Prepare for call' },
         { href: '/intensive/refine-vision', label: 'Refine Vision', icon: Target, description: 'Refine vision in intensive' },
-        { href: '/intensive/activation-protocol', label: 'Activation Protocol', icon: Zap, description: 'Activation process' },
+        { href: '/map', label: 'My Activation Plan', icon: Zap, description: 'Your 28-Day MAP' },
         { href: '/intensive/activate', label: 'Start Activation', icon: Rocket, description: 'Begin activation' },
         { href: '/intensive/check-email', label: 'Check Email', icon: MessageCircle, description: 'Email verification step' },
 

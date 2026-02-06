@@ -65,6 +65,78 @@ export async function GET(
 }
 
 /**
+ * PATCH /api/vibe-tribe/posts/[id]
+ * Edit a post (owner only)
+ */
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const supabase = await createClient()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { content } = body
+
+    if (!content || content.trim() === '') {
+      return NextResponse.json({ error: 'Content is required' }, { status: 400 })
+    }
+
+    // Get the post to check ownership
+    const { data: post, error: fetchError } = await supabase
+      .from('vibe_posts')
+      .select('id, user_id')
+      .eq('id', id)
+      .eq('is_deleted', false)
+      .single()
+
+    if (fetchError || !post) {
+      return NextResponse.json({ error: 'Post not found' }, { status: 404 })
+    }
+
+    // Only owner can edit
+    if (post.user_id !== user.id) {
+      return NextResponse.json({ error: 'Not authorized to edit this post' }, { status: 403 })
+    }
+
+    // Update the post using admin client to bypass RLS
+    const adminClient = createAdminClient()
+    const { data: updatedPost, error: updateError } = await adminClient
+      .from('vibe_posts')
+      .update({
+        content: content.trim(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (updateError) {
+      console.error('Error updating vibe post:', updateError)
+      return NextResponse.json(
+        { error: 'Failed to update post' },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({ success: true, post: updatedPost })
+
+  } catch (error: any) {
+    console.error('VIBE TRIBE POST PATCH ERROR:', error)
+    return NextResponse.json(
+      { error: error.message || 'Failed to update post' },
+      { status: 500 }
+    )
+  }
+}
+
+/**
  * DELETE /api/vibe-tribe/posts/[id]
  * Soft delete a post (owner or admin only)
  */

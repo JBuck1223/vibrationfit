@@ -58,7 +58,7 @@
 - `/intensive/schedule-call` - Schedule Call
 - `/intensive/call-prep` - Call Preparation
 - `/intensive/refine-vision` - Refine Vision
-- `/intensive/activation-protocol` - Activation Protocol
+- `/map` - My Activation Plan (28-Day MAP)
 - `/intensive/activate` - Activation Process
 - `/intensive/check-email` - Check Email Status
 

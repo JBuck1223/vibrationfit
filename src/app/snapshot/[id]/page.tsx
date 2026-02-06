@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import { Container, Stack, PageHero, Card, Spinner, Button } from '@/lib/design-system/components'
 import { RetentionDashboard } from '@/components/retention'
 import { BadgeDisplay } from '@/components/badges'
+import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
 import { User, Calendar, ArrowLeft, Award } from 'lucide-react'
 import Link from 'next/link'
 
@@ -113,19 +114,13 @@ export default function SnapshotPage() {
         >
           {/* Profile picture */}
           <div className="flex flex-col items-center gap-4">
-            {member.profile_picture_url ? (
-              <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-neutral-700">
-                <img
-                  src={member.profile_picture_url}
-                  alt={displayName}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            ) : (
-              <div className="w-24 h-24 rounded-full bg-neutral-800 border-2 border-neutral-700 flex items-center justify-center">
-                <User className="w-10 h-10 text-neutral-500" />
-              </div>
-            )}
+            <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-neutral-700">
+              <img
+                src={member.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
+                alt={displayName}
+                className="w-full h-full object-cover"
+              />
+            </div>
             
             {/* Back button */}
             <Button 

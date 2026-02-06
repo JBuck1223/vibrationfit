@@ -28,7 +28,7 @@ https://vibrationfit.com/journal/resources
 
 Calibration Call
 
-https://vibrationfit.com/intensive/activation-protocol
+https://vibrationfit.com/map
 
 
 Not in use yet:
