@@ -462,7 +462,9 @@ export default function AlignmentGymPage() {
                             {session.title}
                           </h4>
                           {userAttended && (
-                            <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" title="You attended" />
+                            <span title="You attended">
+                              <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                            </span>
                           )}
                         </div>
                         <p className="text-xs text-neutral-500">
