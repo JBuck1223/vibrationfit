@@ -56,6 +56,7 @@ export {
   // Feedback Components
   Spinner,
   ProgressBar,
+  EmptyState,
   
   // Media Components
   Video,

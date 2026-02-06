@@ -8,6 +8,193 @@ import { createClient as createServerClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 
+type OrderInsertParams = {
+  userId: string
+  session: Stripe.Checkout.Session
+  totalAmount: number
+  paymentIntentId: string | null
+  promoCode?: string | null
+  referralSource?: string | null
+  campaignName?: string | null
+  supabaseAdmin: any
+}
+
+async function ensureOrder({
+  userId,
+  session,
+  totalAmount,
+  paymentIntentId,
+  promoCode,
+  referralSource,
+  campaignName,
+  supabaseAdmin,
+}: OrderInsertParams) {
+  const { data: existingOrder } = await (supabaseAdmin as any)
+    .from('orders')
+    .select('*')
+    .eq('stripe_checkout_session_id', session.id)
+    .maybeSingle()
+
+  if (existingOrder) {
+    return existingOrder
+  }
+
+  const { data: order } = await (supabaseAdmin as any)
+    .from('orders')
+    .insert({
+      user_id: userId,
+      stripe_checkout_session_id: session.id,
+      stripe_payment_intent_id: paymentIntentId,
+      total_amount: totalAmount,
+      currency: session.currency || 'usd',
+      status: totalAmount > 0 ? 'paid' : 'pending',
+      paid_at: totalAmount > 0 ? new Date().toISOString() : null,
+      promo_code: promoCode || null,
+      referral_source: referralSource || null,
+      campaign_name: campaignName || null,
+      metadata: {
+        source: session.metadata?.source || session.metadata?.product_type || 'stripe_checkout',
+        mode: session.mode,
+      },
+    })
+    .select()
+    .single()
+
+  return order
+}
+
+type OrderItemParams = {
+  orderId: string
+  stripePriceId: string | null
+  amount: number
+  currency: string
+  isSubscription: boolean
+  subscriptionId?: string | null
+  extraFields?: Record<string, unknown>
+  metadata?: Record<string, unknown>
+  supabaseAdmin: any
+}
+
+async function createOrderItemByPriceId({
+  orderId,
+  stripePriceId,
+  amount,
+  currency,
+  isSubscription,
+  subscriptionId,
+  extraFields,
+  metadata,
+  supabaseAdmin,
+}: OrderItemParams) {
+  if (!stripePriceId) {
+    return null
+  }
+
+  const { data: price } = await (supabaseAdmin as any)
+    .from('product_prices')
+    .select('id, product_id')
+    .eq('stripe_price_id', stripePriceId)
+    .maybeSingle()
+
+  if (!price) {
+    return null
+  }
+
+  const { data: existingItem } = await (supabaseAdmin as any)
+    .from('order_items')
+    .select('*')
+    .eq('order_id', orderId)
+    .eq('price_id', price.id)
+    .maybeSingle()
+
+  if (existingItem) {
+    return existingItem
+  }
+
+  const { data: orderItem } = await (supabaseAdmin as any)
+    .from('order_items')
+    .insert({
+      order_id: orderId,
+      product_id: price.product_id,
+      price_id: price.id,
+      quantity: 1,
+      amount,
+      currency,
+      is_subscription: isSubscription,
+      subscription_id: subscriptionId || null,
+      metadata: metadata || {},
+      ...(extraFields || {}),
+    })
+    .select()
+    .single()
+
+  return orderItem
+}
+
+type OrderItemByProductKeyParams = {
+  orderId: string
+  productKey: string
+  amount: number
+  currency: string
+  isSubscription: boolean
+  subscriptionId?: string | null
+  extraFields?: Record<string, unknown>
+  metadata?: Record<string, unknown>
+  supabaseAdmin: any
+}
+
+async function createOrderItemByProductKey({
+  orderId,
+  productKey,
+  amount,
+  currency,
+  isSubscription,
+  subscriptionId,
+  extraFields,
+  metadata,
+  supabaseAdmin,
+}: OrderItemByProductKeyParams) {
+  const { data: product } = await (supabaseAdmin as any)
+    .from('products')
+    .select('id')
+    .eq('key', productKey)
+    .maybeSingle()
+
+  if (!product) {
+    return null
+  }
+
+  const { data: existingItem } = await (supabaseAdmin as any)
+    .from('order_items')
+    .select('*')
+    .eq('order_id', orderId)
+    .eq('product_id', product.id)
+    .maybeSingle()
+
+  if (existingItem) {
+    return existingItem
+  }
+
+  const { data: orderItem } = await (supabaseAdmin as any)
+    .from('order_items')
+    .insert({
+      order_id: orderId,
+      product_id: product.id,
+      price_id: null,
+      quantity: 1,
+      amount,
+      currency,
+      is_subscription: isSubscription,
+      subscription_id: subscriptionId || null,
+      metadata: metadata || {},
+      ...(extraFields || {}),
+    })
+    .select()
+    .single()
+
+  return orderItem
+}
+
 export async function POST(request: NextRequest) {
   // Check if Stripe is configured
   if (!stripe) {
@@ -225,51 +412,94 @@ export async function POST(request: NextRequest) {
           }
 
           console.log('✅ User ID confirmed:', userId)
-          console.log('Creating intensive purchase record...')
+          console.log('Creating intensive order item...')
 
-          // Create intensive purchase record
           const activationDeadline = new Date()
-          activationDeadline.setHours(activationDeadline.getHours() + 72) // 72 hours from now
-          
+          activationDeadline.setHours(activationDeadline.getHours() + 72)
           console.log('Activation deadline:', activationDeadline.toISOString())
 
-          const { data: intensive, error: intensiveError } = await supabaseAdmin
-            .from('intensive_purchases')
-            .insert({
-              user_id: userId,
-              stripe_payment_intent_id: session.payment_intent as string,
-              stripe_checkout_session_id: session.id,
-              amount: session.amount_total || 49900,
-              payment_plan: paymentPlan,
-              installments_total: paymentPlan === 'full' ? 1 : paymentPlan === '2pay' ? 2 : 3,
-              installments_paid: 1, // First payment complete
-              completion_status: 'pending',
-              activation_deadline: activationDeadline.toISOString(),
-              promo_code: session.metadata.promo_code || null, // Track promo code for affiliates
-              referral_source: session.metadata.referral_source || session.metadata.source || null,
-              campaign_name: session.metadata.campaign_name || null,
-            })
-            .select()
-            .single()
+          const paymentIntentId = session.payment_intent as string | null
+          const orderTotal = session.amount_total || 49900
+          const order = await ensureOrder({
+            userId,
+            session,
+            totalAmount: orderTotal,
+            paymentIntentId,
+            promoCode: session.metadata.promo_code || null,
+            referralSource: session.metadata.referral_source || session.metadata.source || null,
+            campaignName: session.metadata.campaign_name || null,
+            supabaseAdmin,
+          })
 
-          if (intensiveError) {
-            console.error('❌ Failed to create intensive purchase:', intensiveError)
-            console.error('User ID that failed:', userId)
-            console.error('Payment plan:', paymentPlan)
+          let intensivePriceId: string | null = null
+          try {
+            const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 10 })
+            intensivePriceId = lineItems.data[0]?.price?.id ?? null
+          } catch (lineItemError) {
+            console.error('Unable to fetch line items for intensive order item:', lineItemError)
+          }
+
+          const intensiveOrderItem =
+            (await createOrderItemByPriceId({
+              orderId: order.id,
+              stripePriceId: intensivePriceId,
+              amount: orderTotal,
+              currency: session.currency || 'usd',
+              isSubscription: false,
+              metadata: {
+                payment_plan: paymentPlan,
+              },
+              extraFields: {
+                stripe_payment_intent_id: paymentIntentId,
+                stripe_checkout_session_id: session.id,
+                payment_plan: paymentPlan,
+                installments_total: paymentPlan === 'full' ? 1 : paymentPlan === '2pay' ? 2 : 3,
+                installments_paid: 1,
+                completion_status: 'pending',
+                activation_deadline: activationDeadline.toISOString(),
+                promo_code: session.metadata.promo_code || null,
+                referral_source: session.metadata.referral_source || session.metadata.source || null,
+                campaign_name: session.metadata.campaign_name || null,
+              },
+              supabaseAdmin,
+            })) ||
+            (await createOrderItemByProductKey({
+              orderId: order.id,
+              productKey: 'intensive',
+              amount: orderTotal,
+              currency: session.currency || 'usd',
+              isSubscription: false,
+              metadata: {
+                payment_plan: paymentPlan,
+              },
+              extraFields: {
+                stripe_payment_intent_id: paymentIntentId,
+                stripe_checkout_session_id: session.id,
+                payment_plan: paymentPlan,
+                installments_total: paymentPlan === 'full' ? 1 : paymentPlan === '2pay' ? 2 : 3,
+                installments_paid: 1,
+                completion_status: 'pending',
+                activation_deadline: activationDeadline.toISOString(),
+                promo_code: session.metadata.promo_code || null,
+                referral_source: session.metadata.referral_source || session.metadata.source || null,
+                campaign_name: session.metadata.campaign_name || null,
+              },
+              supabaseAdmin,
+            }))
+
+          if (!intensiveOrderItem?.id) {
+            console.error('❌ Failed to create intensive order item')
             break
           }
-          
-          console.log('✅ Created intensive purchase:', intensive?.id)
 
-          // Create checklist for intensive
           await supabaseAdmin.from('intensive_checklist').insert({
-            intensive_id: intensive.id,
+            intensive_id: intensiveOrderItem.id,
             user_id: userId,
           })
 
-          console.log('✅ Intensive purchase created:', {
+          console.log('✅ Intensive order item created:', {
             userId,
-            intensiveId: intensive.id,
+            intensiveId: intensiveOrderItem.id,
             paymentPlan,
             deadline: activationDeadline.toISOString(),
           })
@@ -316,7 +546,7 @@ export async function POST(request: NextRequest) {
                     tier_type: tierType,
                     intensive_payment_plan: paymentPlan,
                     continuity_plan: continuityPlan,
-                    intensive_purchase_id: intensive.id.toString(),
+                    intensive_order_item_id: intensiveOrderItem.id,
                     billing_starts_day: '56',
                   },
                 })
@@ -339,11 +569,49 @@ export async function POST(request: NextRequest) {
                 .select()
                 .single()
 
+                const membershipOrderItem =
+                  (await createOrderItemByPriceId({
+                    orderId: order.id,
+                    stripePriceId: continuityPriceId,
+                    amount: 0,
+                    currency: session.currency || 'usd',
+                    isSubscription: true,
+                    subscriptionId: newSubscription?.id || null,
+                    metadata: {
+                      trial_days: 56,
+                      billing_starts_day: 56,
+                    },
+                    supabaseAdmin,
+                  })) ||
+                  (await createOrderItemByProductKey({
+                    orderId: order.id,
+                    productKey: tierType,
+                    amount: 0,
+                    currency: session.currency || 'usd',
+                    isSubscription: true,
+                    subscriptionId: newSubscription?.id || null,
+                    metadata: {
+                      trial_days: 56,
+                      billing_starts_day: 56,
+                    },
+                    supabaseAdmin,
+                  }))
+
+                if (membershipOrderItem?.id && newSubscription?.id) {
+                  await supabaseAdmin
+                    .from('customer_subscriptions')
+                    .update({
+                      order_id: order.id,
+                      order_item_id: membershipOrderItem.id,
+                    })
+                    .eq('id', newSubscription.id)
+                }
+
                 // Grant intensive trial tokens (1M for 56 days)
                 const { data: result, error: grantError } = await supabase
                   .rpc('grant_trial_tokens', {
                     p_user_id: userId,
-                    p_intensive_id: intensive?.id || null,
+                    p_intensive_id: intensiveOrderItem.id || null,
                   })
 
                 if (grantError) {
@@ -534,6 +802,7 @@ export async function POST(request: NextRequest) {
           // (Cannot be configured in Stripe Dashboard per price - trials are subscription-level only)
           const scheduleStartDate = Math.floor(Date.now() / 1000) + (56 * 24 * 60 * 60) // 56 days from now
           let subscriptionId: string | undefined
+          let customerSubscriptionId: string | null = null
           
           try {
             console.log('Creating Vision Pro subscription separately with 56-day trial...')
@@ -582,21 +851,8 @@ export async function POST(request: NextRequest) {
             .single()
 
             console.log('✅ Vision Pro subscription record created:', visionProSubId)
+            customerSubscriptionId = newSubscription?.id || null
             
-            // Grant intensive trial tokens (1M for 56 days)
-            // Note: In combined checkout, intensive purchase is created separately
-            const { data: result, error: grantError } = await supabase
-              .rpc('grant_trial_tokens', {
-                p_user_id: userId,
-                p_intensive_id: null, // Will be linked when intensive purchase is created
-              })
-              
-            if (grantError) {
-              console.error('❌ Failed to grant intensive trial tokens:', grantError)
-            } else {
-              console.log('✅ Intensive trial tokens granted:', result)
-            }
-
             // Create household if plan_type is 'household'
             const planType = session.metadata?.plan_type
             if (planType === 'household') {
@@ -663,20 +919,17 @@ export async function POST(request: NextRequest) {
             // Don't break - intensive purchase is still valid
           }
 
-          // 2. Create Intensive Purchase (only Intensive is in checkout)
-          console.log('Creating intensive purchase...')
+          // 2. Create Intensive Order Item (only Intensive is in checkout)
+          console.log('Creating intensive order item...')
           const activationDeadline = new Date()
-          activationDeadline.setHours(activationDeadline.getHours() + 72) // 72 hours from now
+          activationDeadline.setHours(activationDeadline.getHours() + 72)
 
-          // Get payment intent and amount (different for payment vs subscription mode)
-          // Handle free intensive (coupon makes it $0)
           let paymentIntentId: string | null = null
-          let intensiveAmount = session.amount_total || 0 // Use actual total (may be $0 with coupon)
+          let intensiveAmount = session.amount_total || 0
           const promoCode = session.metadata.promo_code || ''
           const isFreeIntensive = session.metadata.is_free_intensive === 'true' || intensiveAmount === 0
 
           if (session.mode === 'subscription') {
-            // Subscription mode - get payment intent from invoice
             const subscriptionId = session.subscription as string
             const subscription = await stripe.subscriptions.retrieve(subscriptionId)
             const latestInvoiceId = subscription.latest_invoice as string
@@ -686,46 +939,145 @@ export async function POST(request: NextRequest) {
               intensiveAmount = (invoice as any).amount_paid || intensiveAmount
             }
           } else {
-            // Payment mode - use session payment intent (may be null for free)
             paymentIntentId = session.payment_intent as string | null
             intensiveAmount = session.amount_total || 0
           }
 
           console.log(`💰 Intensive amount: $${(intensiveAmount / 100).toFixed(2)} ${isFreeIntensive ? '(FREE with promo: ' + promoCode + ')' : ''}`)
 
-          const { data: intensive, error: intensiveError } = await supabaseAdmin
-            .from('intensive_purchases')
-            .insert({
-              user_id: userId,
-              stripe_payment_intent_id: paymentIntentId, // May be null for free purchases
-              stripe_checkout_session_id: session.id,
-              stripe_subscription_id: session.mode === 'subscription' ? session.subscription as string : null,
-              amount: intensiveAmount, // May be 0 for free intensive
-              payment_plan: intensivePaymentPlan,
-              installments_total: intensivePaymentPlan === 'full' ? 1 : intensivePaymentPlan === '2pay' ? 2 : 3,
-              installments_paid: 1,
-              completion_status: 'pending',
-              activation_deadline: activationDeadline.toISOString(),
-              promo_code: promoCode || null, // Store promo code if used
-            })
-            .select()
-            .single()
+          const order = await ensureOrder({
+            userId,
+            session,
+            totalAmount: intensiveAmount,
+            paymentIntentId,
+            promoCode: promoCode || null,
+            referralSource: session.metadata.referral_source || session.metadata.source || null,
+            campaignName: session.metadata.campaign_name || null,
+            supabaseAdmin,
+          })
 
-          if (intensiveError) {
-            console.error('❌ Failed to create intensive purchase:', intensiveError)
+          let intensivePriceId: string | null = null
+          try {
+            const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 10 })
+            intensivePriceId = lineItems.data[0]?.price?.id ?? null
+          } catch (lineItemError) {
+            console.error('Unable to fetch line items for combined checkout:', lineItemError)
+          }
+
+          const intensiveOrderItem =
+            (await createOrderItemByPriceId({
+              orderId: order.id,
+              stripePriceId: intensivePriceId,
+              amount: intensiveAmount,
+              currency: session.currency || 'usd',
+              isSubscription: false,
+              metadata: {
+                payment_plan: intensivePaymentPlan,
+                is_free: isFreeIntensive,
+              },
+              extraFields: {
+                stripe_payment_intent_id: paymentIntentId,
+                stripe_checkout_session_id: session.id,
+                payment_plan: intensivePaymentPlan,
+                installments_total: intensivePaymentPlan === 'full' ? 1 : intensivePaymentPlan === '2pay' ? 2 : 3,
+                installments_paid: 1,
+                completion_status: 'pending',
+                activation_deadline: activationDeadline.toISOString(),
+                promo_code: promoCode || null,
+                referral_source: session.metadata.referral_source || session.metadata.source || null,
+                campaign_name: session.metadata.campaign_name || null,
+              },
+              supabaseAdmin,
+            })) ||
+            (await createOrderItemByProductKey({
+              orderId: order.id,
+              productKey: 'intensive',
+              amount: intensiveAmount,
+              currency: session.currency || 'usd',
+              isSubscription: false,
+              metadata: {
+                payment_plan: intensivePaymentPlan,
+                is_free: isFreeIntensive,
+              },
+              extraFields: {
+                stripe_payment_intent_id: paymentIntentId,
+                stripe_checkout_session_id: session.id,
+                payment_plan: intensivePaymentPlan,
+                installments_total: intensivePaymentPlan === 'full' ? 1 : intensivePaymentPlan === '2pay' ? 2 : 3,
+                installments_paid: 1,
+                completion_status: 'pending',
+                activation_deadline: activationDeadline.toISOString(),
+                promo_code: promoCode || null,
+                referral_source: session.metadata.referral_source || session.metadata.source || null,
+                campaign_name: session.metadata.campaign_name || null,
+              },
+              supabaseAdmin,
+            }))
+
+          if (!intensiveOrderItem?.id) {
+            console.error('❌ Failed to create intensive order item for combined checkout')
             break
           }
 
-          // Create checklist for intensive
           await supabaseAdmin.from('intensive_checklist').insert({
-            intensive_id: intensive.id,
+            intensive_id: intensiveOrderItem.id,
             user_id: userId,
           })
+
+          const { data: result, error: grantError } = await supabase
+            .rpc('grant_trial_tokens', {
+              p_user_id: userId,
+              p_intensive_id: intensiveOrderItem.id,
+            })
+
+          if (grantError) {
+            console.error('❌ Failed to grant intensive trial tokens:', grantError)
+          } else {
+            console.log('✅ Intensive trial tokens granted:', result)
+          }
+
+          const membershipOrderItem =
+            (await createOrderItemByPriceId({
+              orderId: order.id,
+              stripePriceId: continuityPriceId,
+              amount: 0,
+              currency: session.currency || 'usd',
+              isSubscription: true,
+              subscriptionId: customerSubscriptionId,
+              metadata: {
+                trial_days: 56,
+                billing_starts_day: 56,
+              },
+              supabaseAdmin,
+            })) ||
+            (await createOrderItemByProductKey({
+              orderId: order.id,
+              productKey: tierType,
+              amount: 0,
+              currency: session.currency || 'usd',
+              isSubscription: true,
+              subscriptionId: customerSubscriptionId,
+              metadata: {
+                trial_days: 56,
+                billing_starts_day: 56,
+              },
+              supabaseAdmin,
+            }))
+
+          if (membershipOrderItem?.id && customerSubscriptionId) {
+            await supabaseAdmin
+              .from('customer_subscriptions')
+              .update({
+                order_id: order.id,
+                order_item_id: membershipOrderItem.id,
+              })
+              .eq('id', customerSubscriptionId)
+          }
 
           console.log('✅ Combined checkout completed:', {
             userId,
             subscriptionId,
-            intensiveId: intensive.id,
+            intensiveId: intensiveOrderItem.id,
             intensivePaymentPlan,
             continuityPlan,
             deadline: activationDeadline.toISOString(),

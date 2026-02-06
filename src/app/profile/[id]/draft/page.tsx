@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { CheckCircle, Eye, Edit3, Save, Check } from 'lucide-react'
+import { CheckCircle, Eye, Edit3, Save, Check, Calendar } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { 
   getDraftProfile, 
@@ -28,6 +28,7 @@ import {
 } from '@/lib/design-system/components'
 import { ProfileField } from '../../components/ProfileField'
 import { PersonalInfoSection } from '../../components/PersonalInfoSection'
+import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { colors } from '@/lib/design-system/tokens'
 import { 
   User, Heart, Users, Activity, MapPin, Briefcase, DollarSign,
@@ -133,16 +134,8 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
         const parent = await getParentProfile(draftData.parent_id)
         if (parent) {
           setParentProfile(parent)
-          
-          // Calculate changed fields
-          const changed = getChangedFields(mergedDraftData, parent)
-          const sections = getChangedSections(mergedDraftData, parent)
-          
-          console.log('Changed fields:', changed)
-          console.log('Changed sections:', sections)
-          
-          setChangedFields(changed)
-          setChangedSections(sections)
+          console.log('Parent profile loaded:', parent)
+          // Changed fields will be calculated by the useEffect
         }
       }
     } catch (err) {
@@ -150,6 +143,18 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
       setError('Failed to load draft profile')
     }
   }, [supabase])
+
+  // Calculate changed fields when both profiles are loaded
+  useEffect(() => {
+    if (draftProfile && parentProfile) {
+      const changed = getChangedFields(draftProfile, parentProfile)
+      const sections = getChangedSections(draftProfile, parentProfile)
+      setChangedFields(changed)
+      setChangedSections(sections)
+      console.log('Recalculated changed fields:', changed)
+      console.log('Recalculated changed sections:', sections)
+    }
+  }, [draftProfile, parentProfile])
 
   useEffect(() => {
     const loadProfileById = async () => {
@@ -258,8 +263,17 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
         throw new Error('Failed to save changes')
       }
 
-      const { profile } = await response.json()
-      
+      // Reload the draft profile to get updated data from database
+      const { data: updatedDraft } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', draftProfile.id)
+        .single()
+
+      if (!updatedDraft) {
+        throw new Error('Failed to reload draft profile')
+      }
+
       // Re-fetch account data to merge with profile (account fields are stored separately)
       const { data: accountData } = await supabase
         .from('user_accounts')
@@ -269,29 +283,22 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
 
       // Merge account data into profile
       const mergedProfile = {
-        ...profile,
-        first_name: accountData?.first_name ?? profile?.first_name,
-        last_name: accountData?.last_name ?? profile?.last_name,
+        ...updatedDraft,
+        first_name: accountData?.first_name ?? updatedDraft?.first_name,
+        last_name: accountData?.last_name ?? updatedDraft?.last_name,
         full_name: accountData?.full_name ?? null,
-        profile_picture_url: accountData?.profile_picture_url ?? profile?.profile_picture_url,
-        email: accountData?.email ?? profile?.email,
-        phone: accountData?.phone ?? profile?.phone,
-        date_of_birth: accountData?.date_of_birth ?? profile?.date_of_birth,
+        profile_picture_url: accountData?.profile_picture_url ?? updatedDraft?.profile_picture_url,
+        email: accountData?.email ?? updatedDraft?.email,
+        phone: accountData?.phone ?? updatedDraft?.phone,
+        date_of_birth: accountData?.date_of_birth ?? updatedDraft?.date_of_birth,
       }
       
       // Update draft profile with merged data
+      // This will trigger the useEffect to recalculate changed fields
       setDraftProfile(mergedProfile)
 
       // Clear edited fields
       setEditedFields({})
-
-      // Recalculate changed fields
-      if (parentProfile) {
-        const changed = getChangedFields(mergedProfile, parentProfile)
-        const sections = getChangedSections(mergedProfile, parentProfile)
-        setChangedFields(changed)
-        setChangedSections(sections)
-      }
     } catch (error) {
       console.error('Error saving changes:', error)
       alert('Failed to save changes')
@@ -315,7 +322,10 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
       return
     }
 
-    if (changedFields.length === 0) {
+    // For fresh profiles (no parent), allow commit without requiring changes
+    // For cloned profiles, require at least one change
+    const isFresh = !draftProfile?.parent_id && !parentProfile
+    if (!isFresh && changedFields.length === 0) {
       alert('No changes to commit')
       return
     }
@@ -343,8 +353,16 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
     }
   }
 
-  // Check if field is changed
+  // Check if field is changed (only for drafts with a parent to compare against)
+  // Fresh profiles have no parent, so no fields should be marked as "changed"
+  // Also show as "changed" if the field has been edited but not yet saved
+  const isFreshProfileCheck = !draftProfile?.parent_id && !parentProfile
   const isFieldChanged = (fieldKey: string): boolean => {
+    // Show yellow for:
+    // 1. Fields that differ from parent (after save comparison)
+    // 2. Fields that have been edited but not yet saved
+    if (editedFields[fieldKey] !== undefined) return true
+    if (isFreshProfileCheck) return false
     return changedFields.includes(fieldKey)
   }
 
@@ -357,6 +375,29 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
     const displayValue = editedFields[props.fieldKey] !== undefined 
       ? editedFields[props.fieldKey] 
       : props.value
+    
+    // For story fields, use RecordingTextarea to enable voice recording
+    if (props.type === 'story') {
+      return (
+        <div
+          className={`rounded-lg p-3 ${isChanged ? '' : ''}`}
+          style={isChanged ? { 
+            border: `2px solid ${NEON_YELLOW}80`,
+            backgroundColor: `${NEON_YELLOW}10`
+          } : undefined}
+        >
+          <label className="block text-sm text-neutral-400 mb-1">{props.label}</label>
+          <RecordingTextarea
+            value={displayValue || ''}
+            onChange={(value: string) => handleFieldChange(props.fieldKey, value)}
+            placeholder={props.placeholder || `Enter your ${props.label.toLowerCase()}...`}
+            rows={6}
+            storageFolder="profile"
+            instanceId={props.fieldKey}
+          />
+        </div>
+      )
+    }
     
     return (
       <div
@@ -442,8 +483,11 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
   }
 
   // Use calculated changed fields/sections (more reliable than DB refined_fields at this stage)
-  const changedFieldCount = changedFields.length
-  const sectionsWithChanges = Object.keys(changedSections).filter(
+  // IMPORTANT: Only show change tracking if this draft has a parent profile to compare against
+  // Fresh profiles (no parent_id) should show NO changed fields since there's nothing to compare
+  const isFreshProfile = !draftProfile?.parent_id && !parentProfile
+  const changedFieldCount = isFreshProfile ? 0 : changedFields.length
+  const sectionsWithChanges = isFreshProfile ? 0 : Object.keys(changedSections).filter(
     key => changedSections[key].length > 0
   ).length
 
@@ -463,9 +507,10 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
               status="draft" 
             />
             <StatusBadge status="draft" subtle={true} className="uppercase tracking-[0.25em]" />
-            <span className="text-neutral-300 text-xs md:text-sm">
-              Created: {new Date(draftProfile.created_at || '').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
-            </span>
+            <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+              <Calendar className="w-3.5 h-3.5" />
+              Created: {new Date(draftProfile.created_at || '').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </div>
             {changedFieldCount > 0 && (
               <Badge 
                 variant="warning" 
@@ -490,7 +535,7 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
           </Button>
           <Button
             onClick={handleCommitAsActive}
-            disabled={isCommitting || changedFieldCount === 0}
+            disabled={isCommitting || (!isFreshProfile && changedFieldCount === 0)}
             variant="primary"
             size="sm"
             className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
@@ -516,7 +561,8 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
           <h2 className="text-2xl font-bold text-white mb-6 text-center">Choose a Section to Edit</h2>
           <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-[repeat(13,minmax(0,1fr))] gap-2">
             {PROFILE_CATEGORIES.map((category) => {
-              const isRefined = (changedSections[category.key]?.length || 0) > 0
+              // Only show change indicators if this draft has a parent to compare against
+              const isRefined = !isFreshProfile && (changedSections[category.key]?.length || 0) > 0
               return (
                 <div key={category.key} className="relative">
                   {isRefined && (
@@ -547,8 +593,9 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
           const currentSection = PROFILE_CATEGORIES.find(cat => cat.key === selectedCategory)
           if (!currentSection) return null
           
-          const sectionChanges = changedSections[currentSection.key] || []
-          const hasSectionChanges = sectionChanges.length > 0
+          // Only show change indicators if this draft has a parent to compare against
+          const sectionChanges = isFreshProfile ? [] : (changedSections[currentSection.key] || [])
+          const hasSectionChanges = !isFreshProfile && sectionChanges.length > 0
           
           return (
             <Card className="p-6">
@@ -684,13 +731,22 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
               
               {/* Save/Cancel Buttons */}
               {hasUnsavedChanges && (
-                <div className="mt-6 pt-6 border-t border-neutral-700 flex gap-3">
+                <div className="mt-6 pt-6 border-t border-neutral-700 flex gap-3 md:justify-end">
+                  <Button
+                    onClick={handleCancelChanges}
+                    variant="outline"
+                    size="sm"
+                    disabled={saving}
+                    className="flex-1 md:flex-initial flex items-center justify-center gap-2"
+                  >
+                    Cancel
+                  </Button>
                   <Button
                     onClick={handleSaveChanges}
                     variant="primary"
                     size="sm"
                     disabled={saving}
-                    className="flex-1 flex items-center justify-center gap-2"
+                    className="flex-1 md:flex-initial flex items-center justify-center gap-2"
                   >
                     {saving ? (
                       <>
@@ -703,15 +759,6 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
                         Save Changes
                       </>
                     )}
-                  </Button>
-                  <Button
-                    onClick={handleCancelChanges}
-                    variant="outline"
-                    size="sm"
-                    disabled={saving}
-                    className="flex-1 flex items-center justify-center gap-2"
-                  >
-                    Cancel
                   </Button>
                 </div>
               )}

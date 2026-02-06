@@ -63,17 +63,9 @@ export function PersonalInfoSection({ profile, onProfileChange, onError, onSave,
     }
   }, [isGenderDropdownOpen, isEthnicityDropdownOpen])
 
-  // Format phone number on initial load
-  useEffect(() => {
-    if (profile.phone && profile.phone.length > 0) {
-      // Only format if it's not already formatted
-      const cleaned = profile.phone.replace(/\D/g, '')
-      const formatted = formatPhoneNumber(cleaned)
-      if (formatted !== profile.phone) {
-        handleInputChange('phone', formatted)
-      }
-    }
-  }, []) // Run only once on mount
+  // NOTE: Phone formatting on initial load was removed because it was triggering
+  // the "Save Changes" button to appear immediately without user edits.
+  // Phone formatting now only happens on user input (handlePhoneChange).
 
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })

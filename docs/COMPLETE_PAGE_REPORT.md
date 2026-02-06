@@ -167,7 +167,7 @@ Premium intensive coaching program.
 |-------|------|---------|
 | `/intensive` | `src/app/intensive/page.tsx` | Intensive program home |
 | `/intensive/activate` | `src/app/intensive/activate/page.tsx` | Activation flow |
-| `/intensive/activation-protocol` | `src/app/intensive/activation-protocol/page.tsx` | Protocol steps |
+| `/map` | `src/app/map/page.tsx` | My Activation Plan (28-Day MAP) |
 | `/intensive/builder` | `src/app/intensive/builder/page.tsx` | Vision builder |
 | `/intensive/calibration` | `src/app/intensive/calibration/page.tsx` | Calibration exercises |
 | `/intensive/call-prep` | `src/app/intensive/call-prep/page.tsx` | Coaching call prep |

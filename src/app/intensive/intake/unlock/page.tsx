@@ -123,14 +123,15 @@ export default function IntensiveUnlockPage() {
       // Check for super_admin access
       const { isSuperAdmin } = await checkSuperAdminAccess(supabase)
 
-      // Get intensive purchase
+      // Get intensive order item
       const { data: intensiveData, error: intensiveError } = await supabase
-        .from('intensive_purchases')
-        .select('id')
-        .eq('user_id', user.id)
+        .from('order_items')
+        .select('id, orders!inner(user_id), products!inner(product_type)')
+        .eq('orders.user_id', user.id)
+        .eq('products.product_type', 'intensive')
         .order('created_at', { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle()
 
       if (intensiveError || !intensiveData) {
         // Allow super_admin to access without enrollment
@@ -344,27 +345,35 @@ export default function IntensiveUnlockPage() {
         }
       })
 
-      // Store post-intensive response
+      // Store post-intensive response (one per user per intensive)
       const { error: insertError } = await supabase
         .from('intensive_responses')
         .insert(insertData)
 
       if (insertError) {
-        console.error('Error storing response:', insertError)
-        throw new Error('Failed to save responses')
+        // Log but don't block - the user should still be able to unlock
+        // This will error if user already submitted (unique constraint) - that's expected
+        console.error('Error storing response (non-blocking):', insertError)
       }
 
-      // Mark unlock completed in checklist
-      await supabase
+      // Mark unlock completed and intensive as completed in checklist
+      const { error: updateError } = await supabase
         .from('intensive_checklist')
         .update({
           unlock_completed: true,
-          unlock_completed_at: new Date().toISOString()
+          unlock_completed_at: new Date().toISOString(),
+          status: 'completed',
+          completed_at: new Date().toISOString()
         })
         .eq('intensive_id', intensiveId)
 
-      // Redirect to dashboard to show progress with completion toast
-      router.push('/intensive/dashboard?completed=unlock')
+      if (updateError) {
+        console.error('Error updating checklist:', updateError)
+        throw new Error('Failed to complete unlock')
+      }
+
+      // Redirect to main dashboard with unlock celebration
+      router.push('/dashboard?unlocked=true')
 
     } catch (error) {
       console.error('Error submitting form:', error)
@@ -639,8 +648,8 @@ export default function IntensiveUnlockPage() {
 
         <PageHero
           eyebrow="ACTIVATION INTENSIVE • STEP 14 OF 14"
-          title="Unlock Your Results"
-          subtitle="Let's measure your transformation and capture your journey"
+          title="Unlock Platform"
+          subtitle="Let's capture your journey and unlock your full membership"
         />
 
         {/* Engagement Score Banner */}
@@ -780,10 +789,10 @@ export default function IntensiveUnlockPage() {
               {submitting ? (
                 <>
                   <Spinner size="sm" className="mr-2" />
-                  Submitting...
+                  Unlocking...
                 </>
               ) : (
-                'Unlock My Results'
+                'Unlock Platform'
               )}
             </Button>
           </div>

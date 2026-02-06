@@ -16,13 +16,15 @@ import {
   Heart,
   Anchor,
   GraduationCap,
-  Flame,
-  Shield,
-  Trophy,
   BookOpen,
   Layers,
   Headphones,
   LayoutGrid,
+  Sparkles,
+  Zap,
+  Target,
+  Star,
+  Award,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -41,9 +43,11 @@ export type BadgeType =
   | 'vibe_anchor'
   // Activations
   | 'graduate_72h'
-  | 'daily_alchemist'
-  | 'signal_keeper'
-  | 'activated_28'
+  | 'activated_3d'
+  | 'activated_7d'
+  | 'activated_14d'
+  | 'activated_21d'
+  | 'activated_28d'
   // Creations
   | 'life_author'
   | 'vision_weaver'
@@ -105,7 +109,7 @@ export const BADGE_DEFINITIONS: Record<BadgeType, BadgeDefinition> = {
   gym_rookie: {
     type: 'gym_rookie',
     category: 'sessions',
-    label: 'Gym Rookie',
+    label: 'First Reps',
     description: 'Attended 3 Alignment Gym sessions',
     icon: Dumbbell,
     threshold: 3,
@@ -113,7 +117,7 @@ export const BADGE_DEFINITIONS: Record<BadgeType, BadgeDefinition> = {
   gym_regular: {
     type: 'gym_regular',
     category: 'sessions',
-    label: 'Gym Regular',
+    label: 'Consistent Practice',
     description: 'Attended 12 Alignment Gym sessions',
     icon: Users,
     threshold: 12,
@@ -121,7 +125,7 @@ export const BADGE_DEFINITIONS: Record<BadgeType, BadgeDefinition> = {
   gym_og: {
     type: 'gym_og',
     category: 'sessions',
-    label: 'Gym OG',
+    label: 'Vibration Fit',
     description: 'Attended 50+ Alignment Gym sessions',
     icon: Crown,
     threshold: 50,
@@ -141,7 +145,7 @@ export const BADGE_DEFINITIONS: Record<BadgeType, BadgeDefinition> = {
   vibe_contributor: {
     type: 'vibe_contributor',
     category: 'connections',
-    label: 'Vibe Contributor',
+    label: 'Conscious Connector',
     description: '25 Vibe Tribe interactions',
     icon: Heart,
     threshold: 25,
@@ -167,29 +171,45 @@ export const BADGE_DEFINITIONS: Record<BadgeType, BadgeDefinition> = {
     icon: GraduationCap,
     special: 'checklist_72h',
   },
-  daily_alchemist: {
-    type: 'daily_alchemist',
+  activated_3d: {
+    type: 'activated_3d',
     category: 'activations',
-    label: 'Daily Alchemist',
-    description: '7-day activation streak',
-    icon: Flame,
+    label: '3-Day Activated',
+    description: "You've started. You're officially someone who shows up for The Life I Choose.",
+    icon: Sparkles,
+    streakDays: 3,
+  },
+  activated_7d: {
+    type: 'activated_7d',
+    category: 'activations',
+    label: '7-Day Activated',
+    description: 'You stayed with it past the novelty. Consistency is now part of your story.',
+    icon: Zap,
     streakDays: 7,
   },
-  signal_keeper: {
-    type: 'signal_keeper',
+  activated_14d: {
+    type: 'activated_14d',
     category: 'activations',
-    label: 'Signal Keeper',
-    description: '28-day streak with activation + evidence',
-    icon: Shield,
-    streakDays: 28,
+    label: '14-Day Activated',
+    description: "You're building a new normal. Returning to alignment is what you do.",
+    icon: Target,
+    streakDays: 14,
   },
-  activated_28: {
-    type: 'activated_28',
+  activated_21d: {
+    type: 'activated_21d',
     category: 'activations',
-    label: 'Activated 28',
-    description: 'Completed the 28-Day Life I Choose Challenge',
-    icon: Trophy,
-    special: 'challenge_28d',
+    label: '21-Day Activated',
+    description: 'Old patterns are losing their grip. This version of you is sticking.',
+    icon: Star,
+    streakDays: 21,
+  },
+  activated_28d: {
+    type: 'activated_28d',
+    category: 'activations',
+    label: '28-Day Activated',
+    description: 'You completed 28 days. You have proof: you are a conscious creator in action.',
+    icon: Award,
+    streakDays: 28,
   },
 
   // ============================================

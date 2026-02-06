@@ -10,6 +10,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { 
   Video, 
+  VideoOff,
   Calendar,
   Clock,
   User,
@@ -24,7 +25,13 @@ import {
   FileText,
   Download,
   Send,
-  X
+  X,
+  Mic,
+  MicOff,
+  UserCheck,
+  UserX,
+  TrendingUp,
+  BarChart3
 } from 'lucide-react'
 import { 
   Container, 
@@ -397,45 +404,146 @@ export default function AdminSessionDetailPage() {
 
           {/* Right Column - Sidebar */}
           <div className="space-y-4 md:space-y-6">
-            {/* Participant */}
+            {/* Attendance Analytics */}
             <Card className="p-4 md:p-6">
-              <h2 className="text-base md:text-lg font-medium text-white mb-4">Participant</h2>
+              <h2 className="text-base md:text-lg font-medium text-white mb-4 flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-primary-500" />
+                Attendance Analytics
+              </h2>
               
-              {participant ? (
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-secondary-500/20 flex items-center justify-center flex-shrink-0">
-                    <User className="w-6 h-6 text-secondary-500" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm md:text-base text-white font-medium truncate">
-                      {participant.name || 'Unnamed'}
-                    </p>
-                    {participant.email && (
-                      <p className="text-xs md:text-sm text-neutral-500 truncate">
-                        {participant.email}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-4">
-                  <div className="w-12 h-12 rounded-full bg-neutral-800 flex items-center justify-center mx-auto mb-3">
-                    <User className="w-6 h-6 text-neutral-500" />
-                  </div>
-                  <p className="text-neutral-400 text-sm">No participant yet</p>
-                </div>
-              )}
+              {/* Quick Stats */}
+              {(() => {
+                const allParticipants = session.participants || []
+                const nonHostParticipants = allParticipants.filter(p => !p.is_host)
+                const attendedCount = nonHostParticipants.filter(p => p.attended).length
+                const totalInvited = nonHostParticipants.length
+                const avgDuration = nonHostParticipants
+                  .filter(p => p.duration_seconds)
+                  .reduce((acc, p, _, arr) => acc + (p.duration_seconds || 0) / arr.length, 0)
+                const attendanceRate = totalInvited > 0 ? Math.round((attendedCount / totalInvited) * 100) : 0
 
-              {participant?.attended && (
-                <div className="mt-4 pt-4 border-t border-neutral-800">
-                  <Badge variant="success">Attended</Badge>
-                  {participant.duration_seconds && (
-                    <p className="text-xs text-neutral-500 mt-2">
-                      Duration: {formatDuration(participant.duration_seconds)}
-                    </p>
+                return (
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div className="bg-neutral-800/50 rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <UserCheck className="w-4 h-4 text-green-500" />
+                        <span className="text-xs text-neutral-500">Attended</span>
+                      </div>
+                      <p className="text-xl font-bold text-white">
+                        {attendedCount}<span className="text-sm text-neutral-500">/{totalInvited}</span>
+                      </p>
+                    </div>
+                    <div className="bg-neutral-800/50 rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <TrendingUp className="w-4 h-4 text-primary-500" />
+                        <span className="text-xs text-neutral-500">Rate</span>
+                      </div>
+                      <p className="text-xl font-bold text-white">{attendanceRate}%</p>
+                    </div>
+                    <div className="bg-neutral-800/50 rounded-lg p-3 col-span-2">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Clock className="w-4 h-4 text-secondary-500" />
+                        <span className="text-xs text-neutral-500">Avg Duration</span>
+                      </div>
+                      <p className="text-xl font-bold text-white">
+                        {avgDuration > 0 ? formatDuration(Math.round(avgDuration)) : '—'}
+                      </p>
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {/* Participant List */}
+              <div className="border-t border-neutral-800 pt-4">
+                <h3 className="text-sm font-medium text-neutral-400 mb-3">
+                  Participants ({session.participants?.length || 0})
+                </h3>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {session.participants && session.participants.length > 0 ? (
+                    session.participants.map((p) => (
+                      <div 
+                        key={p.id} 
+                        className={`flex items-center gap-3 p-2 rounded-lg ${
+                          p.is_host ? 'bg-primary-500/10 border border-primary-500/20' : 'bg-neutral-800/50'
+                        }`}
+                      >
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          p.is_host 
+                            ? 'bg-primary-500/20' 
+                            : p.attended 
+                              ? 'bg-green-500/20' 
+                              : 'bg-neutral-700'
+                        }`}>
+                          {p.is_host ? (
+                            <User className="w-4 h-4 text-primary-500" />
+                          ) : p.attended ? (
+                            <UserCheck className="w-4 h-4 text-green-500" />
+                          ) : (
+                            <UserX className="w-4 h-4 text-neutral-500" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm text-white font-medium truncate">
+                              {p.name || 'Unnamed'}
+                            </p>
+                            {p.is_host && (
+                              <Badge variant="premium" className="text-[10px] px-1.5 py-0">Host</Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-neutral-500">
+                            {p.attended ? (
+                              <>
+                                <span className="text-green-400">Attended</span>
+                                {p.duration_seconds && (
+                                  <>
+                                    <span>·</span>
+                                    <span>{formatDuration(p.duration_seconds)}</span>
+                                  </>
+                                )}
+                              </>
+                            ) : (
+                              <span className="text-neutral-500">Did not attend</span>
+                            )}
+                          </div>
+                        </div>
+                        {/* Camera/Mic stats if available */}
+                        {p.attended && (p.camera_on_percent != null || p.mic_on_percent != null) && (
+                          <div className="flex items-center gap-1">
+                            {p.camera_on_percent != null && (
+                              <div className="flex items-center gap-0.5" title={`Camera on ${p.camera_on_percent}%`}>
+                                {p.camera_on_percent > 50 ? (
+                                  <Video className="w-3 h-3 text-green-400" />
+                                ) : (
+                                  <VideoOff className="w-3 h-3 text-neutral-500" />
+                                )}
+                                <span className="text-[10px] text-neutral-500">{p.camera_on_percent}%</span>
+                              </div>
+                            )}
+                            {p.mic_on_percent != null && (
+                              <div className="flex items-center gap-0.5" title={`Mic on ${p.mic_on_percent}%`}>
+                                {p.mic_on_percent > 50 ? (
+                                  <Mic className="w-3 h-3 text-green-400" />
+                                ) : (
+                                  <MicOff className="w-3 h-3 text-neutral-500" />
+                                )}
+                                <span className="text-[10px] text-neutral-500">{p.mic_on_percent}%</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-4">
+                      <div className="w-10 h-10 rounded-full bg-neutral-800 flex items-center justify-center mx-auto mb-2">
+                        <Users className="w-5 h-5 text-neutral-500" />
+                      </div>
+                      <p className="text-neutral-500 text-sm">No participants yet</p>
+                    </div>
                   )}
                 </div>
-              )}
+              </div>
             </Card>
 
             {/* Quick Actions */}

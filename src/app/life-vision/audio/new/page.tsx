@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Container,
@@ -14,6 +14,7 @@ import {
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowRight, Music, Headphones, Sparkles, Waves, Brain, Volume2 } from 'lucide-react'
+import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
 
 // Placeholder video URL - replace with actual audio intro video
 const AUDIO_INTRO_VIDEO =
@@ -22,11 +23,41 @@ const AUDIO_INTRO_VIDEO =
 export default function AudioNewPage() {
   const router = useRouter()
   const [isNavigating, setIsNavigating] = useState(false)
+  const [isIntensiveMode, setIsIntensiveMode] = useState(false)
+  const [checkingIntensive, setCheckingIntensive] = useState(true)
+
+  useEffect(() => {
+    checkIntensiveMode()
+  }, [])
+
+  const checkIntensiveMode = async () => {
+    try {
+      const intensiveData = await getActiveIntensiveClient()
+      if (intensiveData) {
+        setIsIntensiveMode(true)
+      }
+    } catch (error) {
+      console.error('Error checking intensive mode:', error)
+    } finally {
+      setCheckingIntensive(false)
+    }
+  }
 
   const handleGetStarted = () => {
     setIsNavigating(true)
     // Redirect to life vision dashboard where they can select a vision for audio
     router.push('/life-vision')
+  }
+
+  // Show loading spinner while checking intensive status
+  if (checkingIntensive) {
+    return (
+      <Container size="xl">
+        <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+          <Spinner size="lg" />
+        </div>
+      </Container>
+    )
   }
 
   return (
@@ -49,25 +80,37 @@ export default function AudioNewPage() {
 
           {/* Action Button */}
           <div className="flex flex-col gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
-            <Button 
-              variant="primary" 
-              size="sm" 
-              onClick={handleGetStarted}
-              disabled={isNavigating}
-              className="w-full md:w-auto"
-            >
-              {isNavigating ? (
-                <>
-                  <Spinner variant="primary" size="sm" className="mr-2" />
-                  Loading...
-                </>
-              ) : (
-                <>
-                  <ArrowRight className="mr-2 h-4 w-4" />
-                  Get Started with Audio
-                </>
-              )}
-            </Button>
+            {isIntensiveMode ? (
+              <Button 
+                variant="primary" 
+                size="sm" 
+                onClick={handleGetStarted}
+                disabled={isNavigating}
+                className="w-full md:w-auto"
+              >
+                {isNavigating ? (
+                  <>
+                    <Spinner variant="primary" size="sm" className="mr-2" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight className="mr-2 h-4 w-4" />
+                    Get Started with Audio
+                  </>
+                )}
+              </Button>
+            ) : (
+              <Button 
+                variant="primary" 
+                size="sm" 
+                onClick={() => router.push('/life-vision/audio')}
+                className="w-full md:w-auto"
+              >
+                <ArrowRight className="mr-2 h-4 w-4" />
+                Audio Hub
+              </Button>
+            )}
           </div>
         </PageHero>
 
@@ -193,39 +236,6 @@ export default function AudioNewPage() {
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed mt-4">
               When combined with your written Life Vision (which engages your conscious mind), audio creates a complete transformation system that works on both conscious and subconscious levels simultaneously.
             </p>
-          </Stack>
-        </Card>
-
-        {/* Ready to Begin */}
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
-          <Stack gap="md" className="text-center">
-            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-              Ready to Create Your Audio?
-            </Text>
-            <p className="text-sm md:text-base text-neutral-300 leading-relaxed max-w-2xl mx-auto">
-              First, you'll need an active Life Vision. If you don't have one yet, we'll help you create it. Then you can generate unlimited audio versions with different voices, backgrounds, and frequencies to support every aspect of your transformation journey.
-            </p>
-            <div className="flex flex-col gap-2 md:gap-4 justify-center items-center">
-              <Button 
-                variant="primary" 
-                size="sm" 
-                onClick={handleGetStarted}
-                disabled={isNavigating}
-                className="w-full md:w-auto"
-              >
-                {isNavigating ? (
-                  <>
-                    <Spinner variant="primary" size="sm" className="mr-2" />
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    <ArrowRight className="mr-2 h-4 w-4" />
-                    Start Creating Your Audio
-                  </>
-                )}
-              </Button>
-            </div>
           </Stack>
         </Card>
       </Stack>

@@ -120,15 +120,24 @@ export default function RetentionDashboard({
 
   return (
     <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${className}`}>
-      {/* Sessions Tile */}
+      {/* Creations Tile */}
       <RetentionMetricTile
-        type="sessions"
-        headline={`${metrics.sessions.recent} / ${metrics.sessions.target} weeks`}
+        type="creations"
+        headline={`${metrics.creations.recent} in last 30 days`}
         subtext=""
-        lifetimeLabel="Alignment Gyms"
-        lifetimeValue={metrics.sessions.lifetime}
-        ctaText={getSessionCta()}
-        ctaHref="/alignment-gym"
+        lifetimeLabel="assets created"
+        lifetimeValue={metrics.creations.lifetime}
+        ctaText={getCreationContext()}
+        readonly={readonly}
+      />
+
+      {/* Activations Tile */}
+      <RetentionMetricTile
+        type="activations"
+        headline={`${metrics.activations.recent} / ${metrics.activations.target} days`}
+        subtext=""
+        lifetimeLabel="activation days"
+        lifetimeValue={metrics.activations.lifetime}
         readonly={readonly}
       />
 
@@ -145,24 +154,15 @@ export default function RetentionDashboard({
         readonly={readonly}
       />
 
-      {/* Activations Tile */}
+      {/* Sessions Tile */}
       <RetentionMetricTile
-        type="activations"
-        headline={`${metrics.activations.recent} / ${metrics.activations.target} days`}
+        type="sessions"
+        headline={`${metrics.sessions.recent} / ${metrics.sessions.target} weeks`}
         subtext=""
-        lifetimeLabel="activation days"
-        lifetimeValue={metrics.activations.lifetime}
-        readonly={readonly}
-      />
-
-      {/* Creations Tile */}
-      <RetentionMetricTile
-        type="creations"
-        headline={`${metrics.creations.recent} in last 30 days`}
-        subtext=""
-        lifetimeLabel="assets created"
-        lifetimeValue={metrics.creations.lifetime}
-        ctaText={getCreationContext()}
+        lifetimeLabel="Alignment Gyms"
+        lifetimeValue={metrics.sessions.lifetime}
+        ctaText={getSessionCta()}
+        ctaHref="/alignment-gym"
         readonly={readonly}
       />
     </div>

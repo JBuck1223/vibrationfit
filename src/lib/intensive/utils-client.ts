@@ -27,6 +27,21 @@ export interface IntensiveData {
   calibration_call_completed: boolean
   activation_protocol_completed: boolean
   unlock_completed: boolean
+  // Step completion timestamps
+  intake_completed_at?: string | null
+  profile_completed_at?: string | null
+  assessment_completed_at?: string | null
+  vision_built_at?: string | null
+  vision_refined_at?: string | null
+  audio_generated_at?: string | null
+  audios_generated_at?: string | null
+  vision_board_completed_at?: string | null
+  first_journal_entry_at?: string | null
+  call_scheduled_at?: string | null
+  call_scheduled_time?: string | null
+  calibration_call_completed_at?: string | null
+  activation_protocol_completed_at?: string | null
+  unlock_completed_at?: string | null
 }
 
 /**

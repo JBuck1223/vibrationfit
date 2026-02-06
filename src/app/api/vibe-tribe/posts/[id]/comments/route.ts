@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { VibeComment } from '@/lib/vibe-tribe/types'
 
 /**
  * GET /api/vibe-tribe/posts/[id]/comments
- * Get all comments for a post
+ * Get all comments for a post (threaded structure)
  */
 export async function GET(
   request: NextRequest,
@@ -19,7 +20,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Fetch comments for the post
+    // Fetch ALL comments for the post (including replies)
     const { data: comments, error } = await supabase
       .from('vibe_comments')
       .select('*')
@@ -75,10 +76,35 @@ export async function GET(
     const commentsWithHeartStatus = commentsWithUsers.map(comment => ({
       ...comment,
       has_hearted: userHearts.includes(comment.id),
+      replies: [] as VibeComment[],
     }))
 
+    // Build threaded structure: separate top-level comments from replies
+    const commentMap = new Map<string, VibeComment>()
+    const topLevelComments: VibeComment[] = []
+
+    // First pass: index all comments by ID
+    for (const comment of commentsWithHeartStatus) {
+      commentMap.set(comment.id, comment)
+    }
+
+    // Second pass: attach replies to their parents
+    for (const comment of commentsWithHeartStatus) {
+      if (comment.parent_comment_id) {
+        // This is a reply - attach to parent
+        const parent = commentMap.get(comment.parent_comment_id)
+        if (parent) {
+          if (!parent.replies) parent.replies = []
+          parent.replies.push(comment)
+        }
+      } else {
+        // Top-level comment
+        topLevelComments.push(comment)
+      }
+    }
+
     return NextResponse.json({
-      comments: commentsWithHeartStatus,
+      comments: topLevelComments,
     })
 
   } catch (error: any) {
@@ -92,7 +118,7 @@ export async function GET(
 
 /**
  * POST /api/vibe-tribe/posts/[id]/comments
- * Add a comment to a post
+ * Add a comment to a post (or reply to another comment)
  */
 export async function POST(
   request: NextRequest,
@@ -108,7 +134,7 @@ export async function POST(
     }
 
     const body = await request.json()
-    const { content } = body
+    const { content, parent_comment_id } = body
 
     // Validation
     if (!content || content.trim() === '') {
@@ -130,13 +156,29 @@ export async function POST(
       return NextResponse.json({ error: 'Post not found' }, { status: 404 })
     }
 
-    // Create comment
+    // If replying to a comment, verify the parent comment exists
+    if (parent_comment_id) {
+      const { data: parentComment, error: parentError } = await supabase
+        .from('vibe_comments')
+        .select('id')
+        .eq('id', parent_comment_id)
+        .eq('post_id', postId)
+        .eq('is_deleted', false)
+        .single()
+
+      if (parentError || !parentComment) {
+        return NextResponse.json({ error: 'Parent comment not found' }, { status: 404 })
+      }
+    }
+
+    // Create comment (or reply)
     const { data: newComment, error: insertError } = await supabase
       .from('vibe_comments')
       .insert({
         post_id: postId,
         user_id: user.id,
         content: content.trim(),
+        parent_comment_id: parent_comment_id || null,
       })
       .select('*')
       .single()
@@ -163,6 +205,7 @@ export async function POST(
         ...newComment,
         user: userData || null,
         has_hearted: false,
+        replies: [],
       },
     })
 

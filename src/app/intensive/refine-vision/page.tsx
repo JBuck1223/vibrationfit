@@ -41,11 +41,12 @@ export default function RefineVisionPage() {
 
       // Get active intensive
       const { data: intensiveData } = await supabase
-        .from('intensive_purchases')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('completion_status', 'pending')
-        .single()
+        .from('order_items')
+        .select('id, orders!inner(user_id), products!inner(product_type), completion_status')
+        .eq('orders.user_id', user.id)
+        .eq('products.product_type', 'intensive')
+        .in('completion_status', ['pending', 'in_progress'])
+        .maybeSingle()
 
       if (intensiveData) {
         setIntensiveId(intensiveData.id)

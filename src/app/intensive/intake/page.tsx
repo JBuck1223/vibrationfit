@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
 
 import { 
   Card, 
@@ -117,15 +118,10 @@ export default function IntensiveIntake() {
       // Check for super_admin access
       const { isSuperAdmin } = await checkSuperAdminAccess(supabase)
 
-      // Get intensive purchase
-      const { data: intensiveData, error } = await supabase
-        .from('intensive_purchases')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('completion_status', 'pending')
-        .single()
+      // Use centralized intensive check (source of truth: intensive_checklist.status)
+      const intensiveData = await getActiveIntensiveClient()
 
-      if (error || !intensiveData) {
+      if (!intensiveData) {
         // Allow super_admin to access without enrollment
         if (isSuperAdmin) {
           setIntensiveId('super-admin-test-mode')
@@ -136,24 +132,18 @@ export default function IntensiveIntake() {
         return
       }
 
-      setIntensiveId(intensiveData.id)
+      setIntensiveId(intensiveData.intensive_id)
 
-      // Check if intake is already completed
-      const { data: checklistData } = await supabase
-        .from('intensive_checklist')
-        .select('intake_completed, intake_completed_at')
-        .eq('intensive_id', intensiveData.id)
-        .single()
-
-      if (checklistData?.intake_completed) {
+      // Check if intake is already completed (data is in intensiveData)
+      if (intensiveData.intake_completed) {
         setIsAlreadyCompleted(true)
-        setCompletedAt(checklistData.intake_completed_at)
+        setCompletedAt(intensiveData.intake_completed_at || intensiveData.created_at)
         
         // Fetch the saved responses
         const { data: responseData } = await supabase
           .from('intensive_responses')
           .select('*')
-          .eq('intensive_id', intensiveData.id)
+          .eq('intensive_id', intensiveData.intensive_id)
           .eq('phase', 'pre_intensive')
           .single()
 

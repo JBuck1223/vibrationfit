@@ -60,8 +60,8 @@ import {
   UsersRound,
   BookOpen,
   Star,
-  Compass,
   Music,
+  Map,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -100,7 +100,7 @@ export const userNavigation: NavItem[] = [
     children: [
       { name: 'My Active Profile', href: '/profile/active', icon: CheckCircle },
       { name: 'All Profiles', href: '/profile', icon: Eye },
-      { name: 'Voice Profile', href: '/voice-profile', icon: Palette },
+      // { name: 'Voice Profile', href: '/voice-profile', icon: Palette }, // Hidden for now - feature preserved for future use
     ]
   },
   {
@@ -148,12 +148,19 @@ export const userNavigation: NavItem[] = [
     name: 'Vibe Tribe',
     href: '/vibe-tribe',
     icon: UsersRound,
-    hasDropdown: true,
     description: 'Connect with the VibrationFit community',
-    children: [
-      { name: 'Hub', href: '/vibe-tribe', icon: Compass },
-      { name: 'My Activity', href: '/vibe-tribe/activity', icon: Activity },
-    ]
+  },
+  {
+    name: 'Alignment Gym',
+    href: '/alignment-gym',
+    icon: Video,
+    description: 'Weekly live group coaching sessions',
+  },
+  {
+    name: 'MAP',
+    href: '/map',
+    icon: Map,
+    description: 'My Activation Plan - Your 28-Day roadmap',
   },
   {
     name: 'Tracking',
@@ -163,7 +170,7 @@ export const userNavigation: NavItem[] = [
     description: 'Track your daily progress and abundance',
     children: [
       { name: 'Daily Paper', href: '/daily-paper', icon: FileText },
-      { name: 'Abundance Tracker', href: '/abundance-tracker', icon: Star },
+      { name: 'Abundance Tracker', href: '/abundance-tracker', icon: DollarSign },
     ]
   },
   {

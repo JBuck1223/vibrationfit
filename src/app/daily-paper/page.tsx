@@ -13,6 +13,7 @@ import {
   Text,
   TrackingMilestoneCard,
   PageHero,
+  EmptyState,
 } from '@/lib/design-system/components'
 import { ArrowRight, FileText, Sparkles, Plus } from 'lucide-react'
 import { DailyPaperEntry, useDailyPaperEntries } from '@/hooks/useDailyPaper'
@@ -80,41 +81,6 @@ export default function DailyPaperIndexPage() {
   const handleRefresh = () => {
     void refresh()
   }
-
-  const EmptyState = () => (
-    <Card variant="outlined" className="bg-[#111111] border-dashed border-[#333]">
-      <Stack gap="md" className="items-center text-center">
-        <div className="flex justify-center">
-          <FileText className="w-10 h-10 text-neutral-400" />
-        </div>
-        <Text size="lg" className="text-white font-semibold">
-          No Daily Papers yet
-        </Text>
-        <p className="text-sm text-neutral-400 max-w-sm">
-          Start with gratitude, set three aligned actions, and add one fun promise.
-        </p>
-        <div className="grid grid-cols-2 md:flex md:flex-row gap-2 md:gap-4 md:justify-center items-center md:max-w-2xl md:mx-auto w-full">
-          <Button 
-            variant="primary"
-            size="sm" 
-            onClick={() => router.push('/daily-paper/new')}
-            className="w-full md:w-auto md:flex-none"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Entry
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => router.push('/daily-paper/resources')}
-            className="w-full md:w-auto md:flex-none"
-          >
-            Resources
-          </Button>
-        </div>
-      </Stack>
-    </Card>
-  )
 
   return (
     <Container size="xl">
@@ -187,7 +153,21 @@ export default function DailyPaperIndexPage() {
             </Inline>
           </Card>
         ) : entries.length === 0 ? (
-          <EmptyState />
+          <EmptyState
+            icon={FileText}
+            title="No Daily Papers yet"
+            description="Start with gratitude, set three aligned actions, and add one fun promise."
+            action={{
+              label: "Add Entry",
+              href: "/daily-paper/new",
+              icon: Plus,
+            }}
+            secondaryAction={{
+              label: "Resources",
+              href: "/daily-paper/resources",
+              variant: "outline",
+            }}
+          />
         ) : (
           <Stack gap="lg">
             {entries.map((entry) => {

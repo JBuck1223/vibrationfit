@@ -539,9 +539,9 @@ export default function NewCampaignPage() {
             <div>
               <p className="text-xs text-neutral-500 mb-2">Database Storage:</p>
               <ul className="text-xs text-neutral-300 space-y-1">
-                <li>• intensive_purchases.promo_code</li>
-                <li>• intensive_purchases.referral_source</li>
-                <li>• intensive_purchases.campaign_name</li>
+                <li>• order_items.promo_code</li>
+                <li>• order_items.referral_source</li>
+                <li>• order_items.campaign_name</li>
                 <li>• customer_subscriptions (same fields)</li>
               </ul>
             </div>

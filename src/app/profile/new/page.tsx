@@ -16,6 +16,7 @@ import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowRight, User, Heart, Activity, Sparkles, Eye } from 'lucide-react'
 import { IntensiveCompletionBanner } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
+import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
 
 // Placeholder video URL - user will replace this later
 const PROFILE_INTRO_VIDEO =
@@ -39,49 +40,32 @@ export default function ProfileNewPage() {
 
   const checkIntensiveMode = async () => {
     try {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        setCheckingIntensive(false)
-        return
-      }
-
-      // Check for active intensive purchase
-      const { data: intensiveData } = await supabase
-        .from('intensive_purchases')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('completion_status', 'pending')
-        .maybeSingle()
+      // Use centralized intensive check (source of truth: intensive_checklist.status)
+      const intensiveData = await getActiveIntensiveClient()
 
       if (intensiveData) {
         setIsIntensiveMode(true)
         
-        // Check if profile step is already completed
-        const { data: checklistData } = await supabase
-          .from('intensive_checklist')
-          .select('profile_completed, profile_completed_at')
-          .eq('intensive_id', intensiveData.id)
-          .maybeSingle()
-
-        if (checklistData?.profile_completed) {
+        // Check if profile step is already completed (data is already in intensiveData)
+        if (intensiveData.profile_completed) {
           setIsAlreadyCompleted(true)
-          setCompletedAt(checklistData.profile_completed_at)
+          setCompletedAt(intensiveData.profile_completed_at || intensiveData.created_at)
           setProfileStatus('completed')
         }
 
         // Fetch active profile ID for direct navigation
+        const supabase = createClient()
         const { data: activeProfile } = await supabase
           .from('user_profiles')
           .select('id')
-          .eq('user_id', user.id)
+          .eq('user_id', intensiveData.user_id)
           .eq('is_active', true)
           .maybeSingle()
 
         if (activeProfile?.id) {
           setActiveProfileId(activeProfile.id)
           // If profile exists but not completed in checklist, it's in_progress
-          if (!checklistData?.profile_completed) {
+          if (!intensiveData.profile_completed) {
             setProfileStatus('in_progress')
           }
         }
@@ -267,25 +251,15 @@ export default function ProfileNewPage() {
                 </Button>
               )
             ) : (
-              // Non-intensive mode: Original behavior
+              // Non-intensive mode: Just show Profile Hub button
               <Button 
                 variant="primary" 
                 size="sm" 
-                onClick={handleCreateProfile}
-                disabled={isCreating}
+                onClick={() => router.push('/profile')}
                 className="w-full md:w-auto"
               >
-                {isCreating ? (
-                  <>
-                    <Spinner variant="primary" size="sm" className="mr-2" />
-                    Creating Profile...
-                  </>
-                ) : (
-                  <>
-                    <ArrowRight className="mr-2 h-4 w-4" />
-                    Create Your Profile
-                  </>
-                )}
+                <ArrowRight className="mr-2 h-4 w-4" />
+                Profile Hub
               </Button>
             )}
             {error && (

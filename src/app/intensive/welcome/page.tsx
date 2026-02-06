@@ -237,7 +237,7 @@ export default function IntensiveWelcomePage() {
                 <span className="text-white font-semibold">Journal Practice</span> - An established habit of conscious creation through daily reflection.
               </p>
               <p>
-                <span className="text-white font-semibold">Activation Protocol</span> - Your personalized daily practice for living above the Green Line.
+                <span className="text-white font-semibold">My Activation Plan (MAP)</span> - Your personalized daily practice for living above the Green Line.
               </p>
             </Stack>
           </Stack>

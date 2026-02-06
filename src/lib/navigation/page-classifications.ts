@@ -64,7 +64,6 @@ export const PAGE_CLASSIFICATIONS = {
     '/vibe-tribe/wobbles',
     '/vibe-tribe/visions',
     '/vibe-tribe/collaboration',
-    '/vibe-tribe/activity',
     '/snapshot/[id]',  // Member profile snapshots
     
     // Tracking System
@@ -101,15 +100,15 @@ export const PAGE_CLASSIFICATIONS = {
     // Vibrational System
     '/scenes/builder',
 
-    // Voice Profile System
-    '/voice-profile',
-    '/voice-profile/quiz',
-    '/voice-profile/analyze',
+    // Voice Profile System - hidden for now, feature preserved for future use
+    // '/voice-profile',
+    // '/voice-profile/quiz',
+    // '/voice-profile/analyze',
     
     // Activation Intensive Program
     '/intensive',
     '/intensive/activate',
-    '/intensive/activation-protocol',
+    '/map',
     '/intensive/builder',
     '/intensive/calibration',
     '/intensive/call-prep',
@@ -130,6 +129,9 @@ export const PAGE_CLASSIFICATIONS = {
     
     // Video Sessions (member list)
     '/sessions',
+    
+    // Alignment Gym (Graduate Unlock)
+    '/alignment-gym',
   ],
   
   /**

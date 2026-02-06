@@ -95,7 +95,7 @@ export function IntensiveLockedOverlay() {
         { id: 'journal', stepNumber: 11, title: 'First Journal Entry', href: '/journal/resources', completed: !!checklist.first_journal_entry },
         { id: 'call', stepNumber: 12, title: 'Book Calibration Call', href: '/intensive/schedule-call', completed: !!checklist.call_scheduled },
         // Phase 6: Completion
-        { id: 'activate', stepNumber: 13, title: 'Activation Protocol', href: '/intensive/activation-protocol', completed: !!checklist.activation_protocol_completed },
+        { id: 'activate', stepNumber: 13, title: 'My Activation Plan', href: '/map?intensive=true', completed: !!checklist.activation_protocol_completed },
         { id: 'unlock', stepNumber: 14, title: 'Unlock Platform', href: '/intensive/intake/unlock', completed: !!checklist.unlock_completed },
       ]
 

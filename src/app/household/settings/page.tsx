@@ -29,30 +29,25 @@ export default function HouseholdSettingsPage() {
     try {
       setLoading(true)
       
-      // Use API route with query params to get all data
-      console.log('Fetching household data...')
       const response = await fetch('/api/household?includeMembers=true')
-      
-      console.log('Response status:', response.status)
-      console.log('Response ok:', response.ok)
-      
       const data = await response.json()
-      console.log('Response data:', JSON.stringify(data, null, 2))
 
       if (!response.ok || !data.household) {
-        console.error('Household API error:', { 
-          status: response.status, 
-          ok: response.ok,
-          data,
-          hasHousehold: !!data.household,
-          error: data.error 
-        })
+        // 404 is expected when user isn't in a household - not an error
+        if (response.status === 404) {
+          console.log('User is not in a household')
+        } else {
+          // Log actual errors (500, auth issues, etc.)
+          console.error('Household API error:', { 
+            status: response.status, 
+            error: data.error 
+          })
+        }
         setError(data.error || 'Not in a household')
         setLoading(false)
         return
       }
       
-      console.log('Successfully loaded household:', data.household.name)
       setHousehold(data)
     } catch (error) {
       console.error('Exception loading household:', error)

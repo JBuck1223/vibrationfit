@@ -1,8 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { Trophy, Heart, Sparkles, Lightbulb, Home, Activity } from 'lucide-react'
+import { Trophy, Heart, Sparkles, Lightbulb } from 'lucide-react'
 import { Card } from '@/lib/design-system'
 import { VIBE_TAG_CONFIG, VibeTag } from '@/lib/vibe-tribe/types'
 
@@ -17,51 +16,10 @@ const ICON_MAP: Record<VibeTag, any> = {
   collaboration: Lightbulb,
 }
 
+// VibeTribeNav is no longer needed since we consolidated to /vibe-tribe
+// Keeping the export for backwards compatibility but it renders nothing
 export function VibeTribeNav({ className = '' }: VibeTribeNavProps) {
-  const pathname = usePathname()
-  
-  const isActive = (route: string) => {
-    if (route === '/vibe-tribe') {
-      return pathname === '/vibe-tribe'
-    }
-    return pathname?.startsWith(route)
-  }
-
-  return (
-    <div className={`flex items-center gap-2 overflow-x-auto pb-2 ${className}`}>
-      {/* Hub */}
-      <Link 
-        href="/vibe-tribe"
-        className={`
-          flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap
-          transition-all duration-200 text-sm font-medium
-          ${isActive('/vibe-tribe') && pathname === '/vibe-tribe'
-            ? 'bg-[#39FF14] text-black' 
-            : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
-          }
-        `}
-      >
-        <Home className="w-4 h-4" />
-        <span>Hub</span>
-      </Link>
-
-      {/* Activity */}
-      <Link 
-        href="/vibe-tribe/activity"
-        className={`
-          flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap
-          transition-all duration-200 text-sm font-medium
-          ${isActive('/vibe-tribe/activity')
-            ? 'bg-white text-black' 
-            : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
-          }
-        `}
-      >
-        <Activity className="w-4 h-4" />
-        <span>My Activity</span>
-      </Link>
-    </div>
-  )
+  return null
 }
 
 // Card-based navigation for dedicated section pages (optional use)

@@ -55,39 +55,24 @@ export default function AssessmentResultsPage() {
 
       try {
         // Check if user is in intensive mode and mark step complete
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        
-        if (user) {
-          // Check for active intensive purchase
-          const { data: intensiveData } = await supabase
-            .from('intensive_purchases')
-            .select('id')
-            .eq('user_id', user.id)
-            .in('completion_status', ['pending', 'in_progress'])
-            .maybeSingle()
+        // Use centralized intensive check (source of truth: intensive_checklist.status)
+        const { getActiveIntensiveClient } = await import('@/lib/intensive/utils-client')
+        const intensiveData = await getActiveIntensiveClient()
 
-          if (intensiveData) {
-            setIsIntensiveMode(true)
+        if (intensiveData) {
+          setIsIntensiveMode(true)
+          
+          // Check if assessment step is already completed (data is in intensiveData)
+          if (intensiveData.assessment_completed) {
+            // Already completed - just show the banner
+            setAssessmentCompletedAt(intensiveData.assessment_completed_at || intensiveData.created_at)
+          } else {
+            // Not yet completed - mark it now!
+            const { markIntensiveStep } = await import('@/lib/intensive/checklist')
+            const success = await markIntensiveStep('assessment_completed')
             
-            // Check if assessment step is already completed
-            const { data: checklistData } = await supabase
-              .from('intensive_checklist')
-              .select('assessment_completed, assessment_completed_at')
-              .eq('intensive_id', intensiveData.id)
-              .maybeSingle()
-            
-            if (checklistData?.assessment_completed) {
-              // Already completed - just show the banner
-              setAssessmentCompletedAt(checklistData.assessment_completed_at)
-            } else {
-              // Not yet completed - mark it now!
-              const { markIntensiveStep } = await import('@/lib/intensive/checklist')
-              const success = await markIntensiveStep('assessment_completed')
-              
-              if (success) {
-                setAssessmentCompletedAt(new Date().toISOString())
-              }
+            if (success) {
+              setAssessmentCompletedAt(new Date().toISOString())
             }
           }
         }

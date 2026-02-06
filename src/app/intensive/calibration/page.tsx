@@ -122,13 +122,14 @@ export default function IntensiveCalibration() {
       // Check for super_admin access
       const { isSuperAdmin } = await checkSuperAdminAccess(supabase)
 
-      // Get intensive purchase
+      // Get intensive order item
       const { data: intensiveData, error } = await supabase
-        .from('intensive_purchases')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('completion_status', 'pending')
-        .single()
+        .from('order_items')
+        .select('id, orders!inner(user_id), products!inner(product_type), completion_status')
+        .eq('orders.user_id', user.id)
+        .eq('products.product_type', 'intensive')
+        .in('completion_status', ['pending', 'in_progress'])
+        .maybeSingle()
 
       if (error || !intensiveData) {
         // Allow super_admin to access without enrollment
@@ -200,7 +201,7 @@ export default function IntensiveCalibration() {
 
     try {
       const { data: intensiveData } = await supabase
-        .from('intensive_purchases')
+        .from('order_items')
         .select('activation_deadline')
         .eq('id', intensiveId)
         .single()
@@ -537,7 +538,7 @@ export default function IntensiveCalibration() {
               onClick={() => router.push('/intensive/activate')}
             >
               <ArrowRight className="w-5 h-5 mr-2" />
-              Start Activation Protocol
+              Start My Activation Plan
             </Button>
           </div>
         )}

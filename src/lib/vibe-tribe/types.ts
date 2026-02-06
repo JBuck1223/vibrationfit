@@ -32,6 +32,7 @@ export interface VibeComment {
   id: string
   post_id: string
   user_id: string
+  parent_comment_id: string | null  // For threaded replies
   content: string
   hearts_count: number
   is_deleted: boolean
@@ -45,6 +46,7 @@ export interface VibeComment {
     profile_picture_url: string | null
   }
   has_hearted?: boolean
+  replies?: VibeComment[]  // Nested replies for threading
 }
 
 export interface VibeHeart {

@@ -14,7 +14,46 @@ import {
   getBadgesByCategory,
   BadgeWithProgress,
 } from '@/lib/badges/types'
-import { Search, Award, Users, Gift, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
+import { Search, Award, Users, Gift, Trash2, ChevronDown, ChevronUp, Target, Flame, Sparkles, Info } from 'lucide-react'
+
+// Helper to format requirement text
+function getRequirementText(definition: typeof BADGE_DEFINITIONS[keyof typeof BADGE_DEFINITIONS]): string {
+  if (definition.threshold) {
+    return `${definition.threshold} required`
+  }
+  if (definition.streakDays) {
+    return `${definition.streakDays}-day streak`
+  }
+  if (definition.special) {
+    switch (definition.special) {
+      case 'checklist_72h':
+        return 'Complete checklist in 72h'
+      case 'challenge_28d':
+        return 'Complete 28-day challenge'
+      case 'full_12_vision':
+        return 'All 12 vision categories'
+    }
+  }
+  return 'Custom requirement'
+}
+
+// Helper to get requirement type icon and label
+function getRequirementType(definition: typeof BADGE_DEFINITIONS[keyof typeof BADGE_DEFINITIONS]): {
+  icon: typeof Target
+  label: string
+  color: string
+} {
+  if (definition.threshold) {
+    return { icon: Target, label: 'Threshold', color: 'text-blue-400' }
+  }
+  if (definition.streakDays) {
+    return { icon: Flame, label: 'Streak', color: 'text-orange-400' }
+  }
+  if (definition.special) {
+    return { icon: Sparkles, label: 'Special', color: 'text-purple-400' }
+  }
+  return { icon: Target, label: 'Custom', color: 'text-neutral-400' }
+}
 
 interface UserWithBadges {
   id: string
@@ -291,12 +330,28 @@ function BadgesAdminContent() {
           )}
         </Card>
 
-        {/* All Badges Overview */}
+        {/* All Badges Overview with Requirements */}
         <Card className="p-4 md:p-6">
           <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <Award className="w-5 h-5 text-yellow-400" />
-            All Badges Overview
+            All Badges &amp; Requirements
           </h2>
+
+          {/* Requirements Legend */}
+          <div className="flex flex-wrap gap-4 mb-6 p-3 bg-neutral-800/50 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Target className="w-4 h-4 text-blue-400" />
+              <span className="text-xs text-neutral-400">Threshold = Reach count</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Flame className="w-4 h-4 text-orange-400" />
+              <span className="text-xs text-neutral-400">Streak = Daily consistency</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-purple-400" />
+              <span className="text-xs text-neutral-400">Special = Custom criteria</span>
+            </div>
+          </div>
 
           {categories.map(category => {
             const categoryBadges = getBadgesByCategory(category)
@@ -311,12 +366,17 @@ function BadgesAdminContent() {
                     style={{ backgroundColor: colors.primary }}
                   />
                   {info.label}
+                  <span className="text-xs text-neutral-500 font-normal">
+                    ({info.description})
+                  </span>
                 </h3>
 
                 <div className="space-y-2">
                   {categoryBadges.map(definition => {
                     const stats = badgeStats.find(s => s.type === definition.type)
                     const isExpanded = expandedBadge === definition.type
+                    const reqType = getRequirementType(definition)
+                    const ReqIcon = reqType.icon
 
                     return (
                       <div
@@ -345,10 +405,17 @@ function BadgesAdminContent() {
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
-                            <span className="text-sm text-white font-semibold">
-                              {stats?.earnedCount || 0}
-                            </span>
-                            <span className="text-xs text-neutral-500">earned</span>
+                            {/* Requirement badge */}
+                            <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full bg-neutral-800/70 ${reqType.color}`}>
+                              <ReqIcon className="w-3 h-3" />
+                              <span className="text-xs font-medium">{getRequirementText(definition)}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-sm text-white font-semibold">
+                                {stats?.earnedCount || 0}
+                              </span>
+                              <span className="text-xs text-neutral-500">earned</span>
+                            </div>
                             {isExpanded ? (
                               <ChevronUp className="w-4 h-4 text-neutral-400" />
                             ) : (
@@ -357,46 +424,102 @@ function BadgesAdminContent() {
                           </div>
                         </div>
 
-                        {/* Expanded users list */}
-                        {isExpanded && stats && stats.users.length > 0 && (
-                          <div className="bg-neutral-900 p-3 max-h-60 overflow-y-auto">
-                            <div className="space-y-2">
-                              {stats.users.map(user => (
-                                <div
-                                  key={user.id}
-                                  className="flex items-center justify-between p-2 bg-neutral-800 rounded"
-                                >
-                                  <div>
-                                    <p className="text-sm text-white">
-                                      {user.full_name || 'No name'}
-                                    </p>
-                                    <p className="text-xs text-neutral-500">{user.email}</p>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs text-neutral-500">
-                                      {new Date(user.earned_at).toLocaleDateString()}
-                                    </span>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        setRevokingBadge({ userId: user.id, badgeType: definition.type })
-                                      }}
-                                      className="text-red-400 hover:text-red-300 p-1"
-                                    >
-                                      <Trash2 className="w-3 h-3" />
-                                    </Button>
+                        {/* Expanded section with details and users */}
+                        {isExpanded && (
+                          <div className="bg-neutral-900 border-t border-neutral-800">
+                            {/* Badge Details */}
+                            <div className="p-4 border-b border-neutral-800">
+                              <div className="flex items-start justify-between">
+                                <div className="space-y-2">
+                                  <h4 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider flex items-center gap-1.5">
+                                    <Info className="w-3.5 h-3.5" />
+                                    Badge Requirements
+                                  </h4>
+                                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                                    <div>
+                                      <span className="text-neutral-500">Type:</span>
+                                      <span className={`ml-2 ${reqType.color}`}>{reqType.label}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-neutral-500">Category:</span>
+                                      <span className="ml-2 text-white capitalize">{definition.category}</span>
+                                    </div>
+                                    {definition.threshold && (
+                                      <div>
+                                        <span className="text-neutral-500">Threshold:</span>
+                                        <span className="ml-2 text-white">{definition.threshold}</span>
+                                      </div>
+                                    )}
+                                    {definition.streakDays && (
+                                      <div>
+                                        <span className="text-neutral-500">Streak Days:</span>
+                                        <span className="ml-2 text-white">{definition.streakDays}</span>
+                                      </div>
+                                    )}
+                                    {definition.special && (
+                                      <div>
+                                        <span className="text-neutral-500">Special:</span>
+                                        <span className="ml-2 text-purple-400">{definition.special}</span>
+                                      </div>
+                                    )}
+                                    {definition.showInline && (
+                                      <div>
+                                        <span className="text-neutral-500">Show Inline:</span>
+                                        <span className="ml-2 text-green-400">Yes (displays next to name)</span>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
-                              ))}
+                                <div className="text-xs text-neutral-500 bg-neutral-800 px-2 py-1 rounded">
+                                  <code>{definition.type}</code>
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        )}
 
-                        {isExpanded && (!stats || stats.users.length === 0) && (
-                          <div className="bg-neutral-900 p-4 text-center">
-                            <p className="text-sm text-neutral-500">No users have earned this badge yet</p>
+                            {/* Users who earned this badge */}
+                            <div className="p-3">
+                              <h4 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                                <Users className="w-3.5 h-3.5" />
+                                Users Earned ({stats?.users?.length || 0})
+                              </h4>
+                              {stats && stats.users.length > 0 ? (
+                                <div className="space-y-2 max-h-48 overflow-y-auto">
+                                  {stats.users.map(user => (
+                                    <div
+                                      key={user.id}
+                                      className="flex items-center justify-between p-2 bg-neutral-800 rounded"
+                                    >
+                                      <div>
+                                        <p className="text-sm text-white">
+                                          {user.full_name || 'No name'}
+                                        </p>
+                                        <p className="text-xs text-neutral-500">{user.email}</p>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-xs text-neutral-500">
+                                          {new Date(user.earned_at).toLocaleDateString()}
+                                        </span>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            setRevokingBadge({ userId: user.id, badgeType: definition.type })
+                                          }}
+                                          className="text-red-400 hover:text-red-300 p-1"
+                                        >
+                                          <Trash2 className="w-3 h-3" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-sm text-neutral-500 text-center py-2">
+                                  No users have earned this badge yet
+                                </p>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>

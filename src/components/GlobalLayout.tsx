@@ -6,7 +6,7 @@ import { PageLayout } from '@/lib/design-system'
 import { Spinner } from '@/lib/design-system/components'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
-import { SidebarLayout } from '@/components/Sidebar'
+import { SidebarLayout, UserSidebar, MobileBottomNav } from '@/components/Sidebar'
 import { IntensiveSidebar } from '@/components/IntensiveSidebar'
 import { IntensiveMobileNav } from '@/components/IntensiveMobileNav'
 import { IntensiveLockedOverlay } from '@/components/IntensiveLockedOverlay'
@@ -92,8 +92,13 @@ function isPathAccessibleForIntensive(
   }
   
   // Step 13: Activation Protocol & Calibration - accessible after call scheduled
-  if (pathname.startsWith('/intensive/activation-protocol') || pathname.startsWith('/intensive/calibration')) {
+  if (pathname.startsWith('/map') || pathname.startsWith('/intensive/calibration')) {
     return intensive.call_scheduled
+  }
+  
+  // Main Dashboard - accessible after intensive is fully complete (unlock step done)
+  if (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) {
+    return intensive.unlock_completed
   }
   
   // Default: not accessible
@@ -162,6 +167,20 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
     // Video session pages: Fullscreen interface for video calls
     if (pathname?.startsWith('/session/')) {
       return <>{children}</>
+    }
+    
+    // Vibe Tribe pages: Full-screen layout with own sticky header
+    // Uses custom flex layout to allow sidebar + full-height content
+    if (pathname?.startsWith('/vibe-tribe')) {
+      return (
+        <div className="flex h-screen bg-black">
+          <UserSidebar />
+          <main className="flex-1 flex flex-col overflow-hidden">
+            {children}
+          </main>
+          <MobileBottomNav />
+        </div>
+      )
     }
     
     // USER pages: Use IntensiveSidebar if in intensive mode, otherwise regular SidebarLayout

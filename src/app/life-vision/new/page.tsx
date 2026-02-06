@@ -220,40 +220,54 @@ export default function VIVALifeVisionLandingPage() {
             />
           </div>
 
-          {/* Action Button - 3 states for all users */}
+          {/* Action Button - Different for intensive vs non-intensive */}
           <div className="flex flex-col gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
-            {visionStatus === 'completed' ? (
-              // State 3: View Vision (completed)
+            {isIntensiveMode ? (
+              // Intensive mode: 3-state button
+              visionStatus === 'completed' ? (
+                // State 3: View Vision (completed)
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={() => router.push('/life-vision')}
+                  className="w-full md:w-auto"
+                >
+                  View Life Vision
+                  <Eye className="ml-2 h-4 w-4" />
+                </Button>
+              ) : visionStatus === 'in_progress' ? (
+                // State 2: Continue Vision (in progress)
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={handleGetStarted}
+                  className="w-full md:w-auto"
+                >
+                  Continue Your Vision
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              ) : (
+                // State 1: Start Vision (no progress)
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={handleGetStarted}
+                  className="w-full md:w-auto"
+                >
+                  Start Your Vision
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              )
+            ) : (
+              // Non-intensive mode: Just show Life Vision Hub button
               <Button 
                 variant="primary" 
                 size="sm" 
                 onClick={() => router.push('/life-vision')}
                 className="w-full md:w-auto"
               >
-                View Life Vision
-                <Eye className="ml-2 h-4 w-4" />
-              </Button>
-            ) : visionStatus === 'in_progress' ? (
-              // State 2: Continue Vision (in progress)
-              <Button 
-                variant="primary" 
-                size="sm" 
-                onClick={handleGetStarted}
-                className="w-full md:w-auto"
-              >
-                Continue Your Vision
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            ) : (
-              // State 1: Start Vision (no progress)
-              <Button 
-                variant="primary" 
-                size="sm" 
-                onClick={handleGetStarted}
-                className="w-full md:w-auto"
-              >
-                Start Your Vision
-                <ArrowRight className="ml-2 h-4 w-4" />
+                <ArrowRight className="mr-2 h-4 w-4" />
+                Life Vision Hub
               </Button>
             )}
           </div>

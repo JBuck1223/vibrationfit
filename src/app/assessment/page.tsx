@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation'
 import { Button, Card, Badge, PageHero, StatusBadge, DeleteConfirmationDialog, Container, Stack, Spinner, Text, Inline, IntensiveCompletionBanner } from '@/lib/design-system/components'
 import { fetchAssessments, deleteAssessment, createAssessment, fetchAssessmentProgress, AssessmentProgress } from '@/lib/services/assessmentService'
 import { AssessmentResult } from '@/types/assessment'
-import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { createClient } from '@/lib/supabase/client'
+import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
 import { 
   PlayCircle, 
   Trash2, 
@@ -21,12 +21,10 @@ import {
   BarChart,
   TrendingUp,
   Sparkles,
-  Eye
+  Eye,
+  HelpCircle,
+  Plus
 } from 'lucide-react'
-
-// Placeholder video URL - user will replace this later
-const ASSESSMENT_INTRO_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
 
 export default function AssessmentHub() {
   const router = useRouter()
@@ -66,31 +64,16 @@ export default function AssessmentHub() {
 
   const checkIntensiveCompletion = async () => {
     try {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      // Check for active intensive purchase
-      const { data: intensiveData } = await supabase
-        .from('intensive_purchases')
-        .select('id')
-        .eq('user_id', user.id)
-        .in('completion_status', ['pending', 'in_progress'])
-        .maybeSingle()
+      // Use centralized intensive check (source of truth: intensive_checklist.status)
+      const intensiveData = await getActiveIntensiveClient()
 
       if (intensiveData) {
         setIsIntensiveMode(true)
         
-        // Check if assessment step is completed
-        const { data: checklistData } = await supabase
-          .from('intensive_checklist')
-          .select('assessment_completed, assessment_completed_at')
-          .eq('intensive_id', intensiveData.id)
-          .maybeSingle()
-
-        if (checklistData?.assessment_completed) {
+        // Check if assessment step is completed (data is already in intensiveData)
+        if (intensiveData.assessment_completed) {
           setIsIntensiveCompleted(true)
-          setIntensiveCompletedAt(checklistData.assessment_completed_at)
+          setIntensiveCompletedAt(intensiveData.assessment_completed_at || intensiveData.created_at)
         }
       }
     } catch (error) {
@@ -244,53 +227,50 @@ export default function AssessmentHub() {
           />
         )}
 
-        {/* Hero with Video */}
+        {/* Hero */}
         <PageHero
           eyebrow={isIntensiveMode || isIntensiveCompleted ? "ACTIVATION INTENSIVE • STEP 4 OF 14" : undefined}
           title="Vibration Assessment"
-          subtitle="Discover where you stand in each area of your life and unlock personalized insights."
+          subtitle="Track your progress and measure your alignment across all 12 life categories."
         >
-          {/* Video */}
-          <div>
-            <OptimizedVideo
-              url={ASSESSMENT_INTRO_VIDEO}
-              context="single"
-              className="mx-auto w-full max-w-3xl"
-            />
-          </div>
+          {/* Action Buttons - Only for non-intensive users */}
+          {!isIntensiveMode && !isIntensiveCompleted && (
+            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center max-w-2xl mx-auto">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => router.push('/assessment/new')}
+                className="w-full sm:w-auto"
+              >
+                <HelpCircle className="mr-2 h-4 w-4" />
+                How It Works
+              </Button>
+            </div>
+          )}
+        </PageHero>
 
-          {/* Action Button - 3 states: Start, Continue, View Results */}
-          <div className="flex flex-col gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
-            {incompleteAssessment ? (
-              // State 2: Continue Assessment (in progress)
+        {/* Take New Assessment Card */}
+        {!incompleteAssessment && !isIntensiveMode && !isIntensiveCompleted && (
+          <Card variant="elevated" className="p-4 md:p-6">
+            <div className="flex flex-col items-center gap-3 md:gap-4 mb-4 md:mb-6 text-center">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-primary-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                <BarChart3 className="w-5 h-5 md:w-6 md:h-6 text-[#1F1F1F]" />
+              </div>
+              <div>
+                <h2 className="text-lg md:text-xl lg:text-2xl font-semibold mb-2">Ready for a New Assessment?</h2>
+                <p className="text-sm text-neutral-400 max-w-2xl mx-auto">
+                  Take a new assessment to measure your current alignment and track your progress over time.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex justify-center">
               <Button 
-                variant="primary" 
-                size="sm" 
-                onClick={handleContinueAssessment}
-                className="w-full md:w-auto"
-              >
-                <PlayCircle className="mr-2 h-4 w-4" />
-                Continue Assessment
-              </Button>
-            ) : sortedCompletedAssessments.length > 0 ? (
-              // State 3: View Results (has completed assessment)
-              <Button 
-                variant="primary" 
-                size="sm" 
-                onClick={() => router.push(`/assessment/${sortedCompletedAssessments[0].id}/results`)}
-                className="w-full md:w-auto"
-              >
-                <Eye className="mr-2 h-4 w-4" />
-                View Results
-              </Button>
-            ) : (
-              // State 1: Start Assessment (no assessments)
-              <Button 
-                variant="primary" 
-                size="sm" 
                 onClick={handleCreateAssessment}
+                variant="primary" 
+                size="md"
                 disabled={isCreating}
-                className="w-full md:w-auto"
+                className="w-full sm:w-auto"
               >
                 {isCreating ? (
                   <>
@@ -299,17 +279,17 @@ export default function AssessmentHub() {
                   </>
                 ) : (
                   <>
-                    <ArrowRight className="mr-2 h-4 w-4" />
-                    Start Assessment
+                    <Plus className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+                    Take New Assessment
                   </>
                 )}
               </Button>
-            )}
+            </div>
             {errorMessage && (
-              <p className="text-sm text-red-400">{errorMessage}</p>
+              <p className="text-sm text-red-400 text-center mt-4">{errorMessage}</p>
             )}
-          </div>
-        </PageHero>
+          </Card>
+        )}
 
         {/* In-Progress Assessment Card - Only show for non-intensive users (they need delete option) */}
         {incompleteAssessment && !isIntensiveMode && (
@@ -455,105 +435,6 @@ export default function AssessmentHub() {
             </div>
           </Card>
         )}
-
-        {/* What is the Assessment? */}
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
-          <Stack gap="md">
-            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-              What is the Assessment?
-            </Text>
-            <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-              The Vibration Assessment is a comprehensive evaluation that measures your current state across all 12 life categories. It provides you with detailed insights into your strengths, growth areas, and alignment levels.
-            </p>
-            <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-              Unlike a simple quiz, this assessment dives deep into each area of your life to give you actionable data and personalized recommendations for your transformation journey.
-            </p>
-          </Stack>
-        </Card>
-
-        {/* What You'll Discover */}
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
-          <Stack gap="lg">
-            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-              What You'll Discover
-            </Text>
-            <Stack gap="lg">
-              <Stack gap="sm">
-                <Inline gap="sm" className="items-start">
-                  <Target className="h-5 w-5 text-[#5EC49A]" />
-                  <Text size="sm" className="text-white font-semibold">
-                    Your Alignment Score
-                  </Text>
-                </Inline>
-                <p className="text-sm text-neutral-300 leading-relaxed">
-                  Get a comprehensive score for each of the 12 life categories, showing where you're thriving and where there's room for growth. See exactly where you stand on the "Green Line" of alignment.
-                </p>
-              </Stack>
-
-              <Stack gap="sm">
-                <Inline gap="sm" className="items-start">
-                  <BarChart className="h-5 w-5 text-[#2DD4BF]" />
-                  <Text size="sm" className="text-white font-semibold">
-                    Detailed Insights
-                  </Text>
-                </Inline>
-                <p className="text-sm text-neutral-300 leading-relaxed">
-                  Receive personalized insights for each category, highlighting patterns, strengths, and opportunities. Understand not just your score, but what it means and how to improve.
-                </p>
-              </Stack>
-
-              <Stack gap="sm">
-                <Inline gap="sm" className="items-start">
-                  <TrendingUp className="h-5 w-5 text-[#8B5CF6]" />
-                  <Text size="sm" className="text-white font-semibold">
-                    Growth Recommendations
-                  </Text>
-                </Inline>
-                <p className="text-sm text-neutral-300 leading-relaxed">
-                  Get specific, actionable recommendations for each area of your life. Know exactly what steps to take to move from where you are to where you want to be.
-                </p>
-              </Stack>
-
-              <Stack gap="sm">
-                <Inline gap="sm" className="items-start">
-                  <Sparkles className="h-5 w-5 text-[#FFB701]" />
-                  <Text size="sm" className="text-white font-semibold">
-                    Your Unique Blueprint
-                  </Text>
-                </Inline>
-                <p className="text-sm text-neutral-300 leading-relaxed">
-                  Your assessment results become the foundation for your personalized Life Vision. VIVA uses these insights to guide you toward the life you truly desire.
-                </p>
-              </Stack>
-            </Stack>
-          </Stack>
-        </Card>
-
-        {/* Why Take the Assessment? */}
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
-          <Stack gap="md">
-            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-              Why Take the Assessment?
-            </Text>
-            <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-              The assessment is your starting point for transformation. It provides the clarity and data you need to create meaningful change. Here's why it's essential:
-            </p>
-            <Stack gap="sm" className="text-sm text-neutral-300 leading-relaxed">
-              <p>
-                • <span className="text-white font-semibold">Baseline Measurement</span> - Establish where you are right now so you can track your progress over time.
-              </p>
-              <p>
-                • <span className="text-white font-semibold">Personalized Insights</span> - VIVA uses your assessment to provide guidance that's specifically tailored to your unique situation and goals.
-              </p>
-              <p>
-                • <span className="text-white font-semibold">Identify Blind Spots</span> - Discover areas of your life that may need attention but weren't on your radar.
-              </p>
-              <p>
-                • <span className="text-white font-semibold">Prioritize Growth</span> - Know which areas to focus on first for maximum impact on your overall alignment and happiness.
-              </p>
-            </Stack>
-          </Stack>
-        </Card>
 
       </Stack>
 

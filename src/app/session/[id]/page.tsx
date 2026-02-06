@@ -58,6 +58,7 @@ export default function SessionPage() {
   const [isHost, setIsHost] = useState(false)
   const [hostName, setHostName] = useState<string | null>(null)
   const [userName, setUserName] = useState<string>('Participant')
+  const [userId, setUserId] = useState<string | undefined>(undefined)
   const [callSettings, setCallSettings] = useState<CallSettings | null>(null)
   const [callDuration, setCallDuration] = useState(0)
   const [error, setError] = useState<string | null>(null)
@@ -76,6 +77,7 @@ export default function SessionPage() {
         // Check if user is authenticated
         const { data: { user } } = await supabase.auth.getUser()
         setIsAuthenticated(!!user)
+        setUserId(user?.id)
 
         if (user) {
           // User is logged in - fetch full session details
@@ -490,6 +492,7 @@ export default function SessionPage() {
         roomUrl={roomUrl}
         token={token}
         userName={userName}
+        userId={userId}
         sessionId={sessionId}
         sessionTitle={session?.title}
         isHost={isHost}

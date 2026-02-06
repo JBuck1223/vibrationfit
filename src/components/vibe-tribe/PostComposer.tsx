@@ -183,7 +183,7 @@ export function PostComposer({
       )}
 
       {/* Content Input */}
-      <div className="mb-4">
+      <div className="mb-4 relative">
         <Textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
@@ -193,8 +193,20 @@ export function PostComposer({
               : placeholder
           }
           rows={3}
-          className="resize-none"
+          className="resize-none pb-12"
         />
+        {/* Image upload icon positioned at bottom right of textarea */}
+        <div className="absolute bottom-5 right-4 flex items-center gap-2">
+          {files.length > 0 && (
+            <span className="text-xs text-neutral-400">
+              {files.length} file{files.length > 1 ? 's' : ''}
+            </span>
+          )}
+          <ImageIcon 
+            className="w-5 h-5 cursor-pointer transition-opacity text-[#39FF14] hover:opacity-70"
+            onClick={() => setShowMediaUpload(!showMediaUpload)}
+          />
+        </div>
       </div>
 
       {/* Life Categories (Optional) */}
@@ -264,23 +276,7 @@ export function PostComposer({
       />
 
       {/* Actions */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant={showMediaUpload ? 'primary' : 'ghost'}
-            size="sm"
-            onClick={() => setShowMediaUpload(!showMediaUpload)}
-          >
-            <ImageIcon className="w-4 h-4" />
-          </Button>
-          {files.length > 0 && (
-            <span className="text-xs text-neutral-400">
-              {files.length} file{files.length > 1 ? 's' : ''} selected
-            </span>
-          )}
-        </div>
-        
+      <div className="flex items-center justify-end">
         <Button
           onClick={handleSubmit}
           disabled={!canSubmit || submitting}

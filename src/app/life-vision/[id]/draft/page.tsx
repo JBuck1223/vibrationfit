@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { CheckCircle, Eye, Gem, Download, VolumeX, Edit3, Trash2, Copy, Sparkles, X } from 'lucide-react'
+import { CheckCircle, Eye, Gem, Download, VolumeX, Edit3, Trash2, Copy, Sparkles, X, Calendar } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { getDraftVision, commitDraft, getDraftCategories } from '@/lib/life-vision/draft-helpers'
 import { calculateVersionNumber } from '@/lib/life-vision/version-helpers'
@@ -710,9 +710,10 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
                 isHouseholdVision={!!vision.household_id}
               />
               <StatusBadge status="draft" subtle={true} className="uppercase tracking-[0.25em]" />
-              <span className="text-neutral-300 text-xs md:text-sm">
-                Created: {new Date(vision.created_at).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
-              </span>
+              <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+                <Calendar className="w-3.5 h-3.5" />
+                Created: {new Date(vision.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </div>
               {refinedCount > 0 && (
                 <Badge 
                   variant="warning" 
