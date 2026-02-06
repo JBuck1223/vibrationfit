@@ -98,21 +98,48 @@ BEGIN
   RAISE NOTICE 'User account created/updated for user ID: %', v_user_id;
 
   -- ============================================================================
-  -- STEP 3: Create intensive_purchases row
+  -- STEP 3: Create intensive order item
   -- ============================================================================
-  -- Check if user already has an active intensive
-  SELECT id INTO v_intensive_id
-  FROM public.intensive_purchases
-  WHERE user_id = v_user_id
-    AND completion_status IN ('pending', 'in_progress');
+  SELECT oi.id INTO v_intensive_id
+  FROM public.order_items oi
+  JOIN public.orders o ON o.id = oi.order_id
+  JOIN public.products p ON p.id = oi.product_id
+  WHERE o.user_id = v_user_id
+    AND p.product_type = 'intensive'
+    AND oi.completion_status IN ('pending', 'in_progress')
+  LIMIT 1;
 
   IF v_intensive_id IS NULL THEN
-    INSERT INTO public.intensive_purchases (
+    INSERT INTO public.orders (
       id,
       user_id,
-      stripe_payment_intent_id,
+      total_amount,
+      currency,
+      status,
+      paid_at,
+      created_at,
+      updated_at
+    ) VALUES (
+      gen_random_uuid(),
+      v_user_id,
+      49900,
+      'usd',
+      'paid',
+      NOW(),
+      NOW(),
+      NOW()
+    )
+    RETURNING id INTO v_intensive_id;
+
+    INSERT INTO public.order_items (
+      id,
+      order_id,
+      product_id,
+      quantity,
       amount,
       currency,
+      is_subscription,
+      stripe_payment_intent_id,
       payment_plan,
       installments_total,
       installments_paid,
@@ -121,22 +148,25 @@ BEGIN
       created_at
     ) VALUES (
       gen_random_uuid(),
-      v_user_id,
-      'test_manual_enrollment_' || EXTRACT(EPOCH FROM NOW())::TEXT,
-      49900, -- $499 in cents
+      v_intensive_id,
+      (SELECT id FROM public.products WHERE key = 'intensive' LIMIT 1),
+      1,
+      49900,
       'usd',
+      FALSE,
+      'test_manual_enrollment_' || EXTRACT(EPOCH FROM NOW())::TEXT,
       'full',
       1,
       1,
       'pending',
-      NULL, -- Deadline is set when user clicks "Start"
+      NULL,
       NOW()
     )
     RETURNING id INTO v_intensive_id;
 
-    RAISE NOTICE 'Created intensive purchase with ID: %', v_intensive_id;
+    RAISE NOTICE 'Created intensive order item with ID: %', v_intensive_id;
   ELSE
-    RAISE NOTICE 'User already has active intensive with ID: %', v_intensive_id;
+    RAISE NOTICE 'User already has active intensive order item with ID: %', v_intensive_id;
   END IF;
 
   -- ============================================================================
@@ -215,8 +245,10 @@ END $$;
 -- Check user_accounts:
 -- SELECT id, email, first_name, last_name, phone FROM public.user_accounts WHERE email = 'test-intensive@vibrationfit.com';
 
--- Check intensive_purchases:
--- SELECT * FROM public.intensive_purchases WHERE user_id = (SELECT id FROM auth.users WHERE email = 'test-intensive@vibrationfit.com');
+-- Check intensive order_items:
+-- SELECT * FROM public.order_items WHERE order_id IN (
+--   SELECT id FROM public.orders WHERE user_id = (SELECT id FROM auth.users WHERE email = 'test-intensive@vibrationfit.com')
+-- );
 
 -- Check intensive_checklist:
 -- SELECT * FROM public.intensive_checklist WHERE user_id = (SELECT id FROM auth.users WHERE email = 'test-intensive@vibrationfit.com');

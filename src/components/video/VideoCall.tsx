@@ -33,15 +33,18 @@ import {
   ScreenShareOff,
   Circle,
   Square,
-  X
+  X,
+  MessageCircle
 } from 'lucide-react'
 import { Button, Badge, Card } from '@/lib/design-system/components'
+import { SessionChat } from '@/components/video/SessionChat'
 import type { CallSettings } from '@/lib/video/types'
 
 interface VideoCallProps {
   roomUrl: string
   token: string
   userName: string
+  userId?: string // Current user's ID for chat
   sessionId?: string // For triggering host-joined notification
   sessionTitle?: string
   isHost?: boolean
@@ -111,6 +114,7 @@ function VideoCallUI({
   roomUrl,
   token,
   userName,
+  userId,
   sessionId,
   sessionTitle,
   isHost = false,
@@ -131,6 +135,7 @@ function VideoCallUI({
   const [screenSharing, setScreenSharing] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
   const [showParticipants, setShowParticipants] = useState(false)
+  const [showChat, setShowChat] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [callDuration, setCallDuration] = useState(0)
   const [error, setError] = useState<string | null>(null)
@@ -139,6 +144,7 @@ function VideoCallUI({
   // Refs
   const containerRef = useRef<HTMLDivElement>(null)
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const joinTrackedRef = useRef(false)
 
   // Join the call
   useEffect(() => {
@@ -158,6 +164,21 @@ function VideoCallUI({
         durationIntervalRef.current = setInterval(() => {
           setCallDuration(prev => prev + 1)
         }, 1000)
+
+        // Track participant join for analytics
+        if (sessionId && !joinTrackedRef.current) {
+          joinTrackedRef.current = true
+          try {
+            await fetch(`/api/video/sessions/${sessionId}/participant-stats`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'join' }),
+            })
+            console.log('✅ Participant join tracked')
+          } catch (trackErr) {
+            console.error('Error tracking participant join:', trackErr)
+          }
+        }
 
         // If host joined and we have a sessionId, send notification to participants
         if (isHost && sessionId && !hostJoinedNotified) {
@@ -253,11 +274,25 @@ function VideoCallUI({
 
   // Leave call
   const handleLeave = useCallback(async () => {
+    // Track participant leave for analytics
+    if (sessionId) {
+      try {
+        await fetch(`/api/video/sessions/${sessionId}/participant-stats`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'leave' }),
+        })
+        console.log('✅ Participant leave tracked')
+      } catch (trackErr) {
+        console.error('Error tracking participant leave:', trackErr)
+      }
+    }
+
     if (daily) {
       await daily.leave()
     }
     onLeave?.()
-  }, [daily, onLeave])
+  }, [daily, onLeave, sessionId])
 
   // Toggle fullscreen
   const toggleFullscreen = useCallback(() => {
@@ -428,6 +463,19 @@ function VideoCallUI({
             onClose={() => setShowParticipants(false)}
           />
         )}
+
+        {/* Chat panel */}
+        {showChat && sessionId && (
+          <div className="absolute top-20 right-4 w-80 h-[60vh] max-h-[500px] z-30">
+            <SessionChat
+              sessionId={sessionId}
+              currentUserId={userId}
+              currentUserName={userName}
+              isHost={isHost}
+              onClose={() => setShowChat(false)}
+            />
+          </div>
+        )}
       </div>
 
       {/* Control Bar */}
@@ -499,6 +547,21 @@ function VideoCallUI({
           >
             <Users className="w-5 h-5 md:w-6 md:h-6" />
           </button>
+
+          {/* Chat (only if sessionId is available) */}
+          {sessionId && (
+            <button
+              onClick={() => setShowChat(!showChat)}
+              className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-200 ${
+                showChat 
+                  ? 'bg-primary-500/20 text-primary-500' 
+                  : 'bg-neutral-700 hover:bg-neutral-600 text-white'
+              }`}
+              title="Live Chat"
+            >
+              <MessageCircle className="w-5 h-5 md:w-6 md:h-6" />
+            </button>
+          )}
 
           {/* Leave call */}
           <button

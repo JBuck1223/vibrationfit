@@ -2,13 +2,15 @@
 -- Replace 'your-email@example.com' with your actual email
 
 -- OPTION 1: Reset to "Not Started" (shows welcome screen again)
-UPDATE intensive_purchases
+UPDATE order_items
 SET 
   started_at = NULL,
   activation_deadline = NULL,
   completion_status = 'pending',
   completed_at = NULL
-WHERE user_id = (SELECT id FROM auth.users WHERE email = 'your-email@example.com');
+WHERE order_id IN (
+  SELECT id FROM orders WHERE user_id = (SELECT id FROM auth.users WHERE email = 'your-email@example.com')
+);
 
 UPDATE intensive_checklist
 SET 
@@ -37,7 +39,7 @@ WHERE user_id = (SELECT id FROM auth.users WHERE email = 'your-email@example.com
 
 -- OPTION 2: Delete intensive completely
 -- DELETE FROM intensive_checklist WHERE user_id = (SELECT id FROM auth.users WHERE email = 'your-email@example.com');
--- DELETE FROM intensive_purchases WHERE user_id = (SELECT id FROM auth.users WHERE email = 'your-email@example.com');
+-- DELETE FROM orders WHERE user_id = (SELECT id FROM auth.users WHERE email = 'your-email@example.com');
 
 
 -- OPTION 3: Fast-forward to 90% complete (test completion flow)

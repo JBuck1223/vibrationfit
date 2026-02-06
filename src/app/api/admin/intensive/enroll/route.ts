@@ -20,25 +20,56 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 })
     }
 
-    // Create intensive purchase
-    const { data: intensive, error: intensiveError } = await supabase
-      .from('intensive_purchases')
+    const { data: intensiveProduct, error: productError } = await supabase
+      .from('products')
+      .select('id')
+      .eq('key', 'intensive')
+      .maybeSingle()
+
+    if (productError || !intensiveProduct) {
+      return NextResponse.json({ error: 'Intensive product not found' }, { status: 500 })
+    }
+
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
       .insert({
         user_id: userId,
+        total_amount: 0,
+        currency: 'usd',
+        status: 'paid',
+        paid_at: new Date().toISOString(),
+        metadata: { source: 'admin_enroll' },
+      })
+      .select()
+      .single()
+
+    if (orderError || !order) {
+      return NextResponse.json({ error: 'Failed to create order' }, { status: 500 })
+    }
+
+    const { data: intensive, error: intensiveError } = await supabase
+      .from('order_items')
+      .insert({
+        order_id: order.id,
+        product_id: intensiveProduct.id,
+        price_id: null,
+        quantity: 1,
+        amount: 0,
+        currency: 'usd',
+        is_subscription: false,
+        stripe_payment_intent_id: `manual_enrollment_${Date.now()}`,
         payment_plan: paymentPlan,
         installments_total: paymentPlan === 'full' ? 1 : paymentPlan === '2pay' ? 2 : 3,
         installments_paid: 1,
         completion_status: 'pending',
-        activation_deadline: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(), // 72 hours from now
-        stripe_payment_intent_id: `manual_enrollment_${Date.now()}`,
-        continuity_plan: 'annual'
+        activation_deadline: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString()
       })
       .select()
       .single()
 
     if (intensiveError) {
-      console.error('Error creating intensive purchase:', intensiveError)
-      return NextResponse.json({ error: 'Failed to create intensive purchase' }, { status: 500 })
+      console.error('Error creating intensive order item:', intensiveError)
+      return NextResponse.json({ error: 'Failed to create intensive order item' }, { status: 500 })
     }
 
     // Create checklist

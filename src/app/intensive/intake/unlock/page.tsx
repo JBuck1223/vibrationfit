@@ -123,14 +123,15 @@ export default function IntensiveUnlockPage() {
       // Check for super_admin access
       const { isSuperAdmin } = await checkSuperAdminAccess(supabase)
 
-      // Get intensive purchase
+      // Get intensive order item
       const { data: intensiveData, error: intensiveError } = await supabase
-        .from('intensive_purchases')
-        .select('id')
-        .eq('user_id', user.id)
+        .from('order_items')
+        .select('id, orders!inner(user_id), products!inner(product_type)')
+        .eq('orders.user_id', user.id)
+        .eq('products.product_type', 'intensive')
         .order('created_at', { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle()
 
       if (intensiveError || !intensiveData) {
         // Allow super_admin to access without enrollment

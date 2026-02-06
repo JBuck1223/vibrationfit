@@ -135,9 +135,10 @@ src/
 ## 🎨 VibrationFit Design System Rules
 
 ### Core Principle
-Always reference `vibrationfit-brand-kit.html` for design patterns and visual style. This is the single source of truth for VibrationFit's brand aesthetic.
+Always reference `src/lib/design-system/tokens.ts` for colors and design values. This is the single source of truth for VibrationFit's brand aesthetic.
 
 **For detailed component examples, color system, and design patterns, see:**
+- `src/lib/design-system/tokens.ts` (source of truth for colors)
 - `docs/agent-guides/DESIGN_SYSTEM_REFERENCE.md` (complete reference)
 
 ### Quick Reference
@@ -149,12 +150,12 @@ Always reference `vibrationfit-brand-kit.html` for design patterns and visual st
 - `Card` variants: `default`, `elevated`, `outlined`
 - Other: `Input`, `Textarea`, `Badge`, `ProgressBar`, `Spinner`, `Container`, `PageLayout`, `Footer`
 
-**Brand Colors:**
-- Primary Green: `#199D67` (growth, alignment, "above the Green Line")
-- Secondary Teal: `#14B8A6` (clarity, flow)
-- Accent Purple: `#8B5CF6` (premium, AI)
-- Energy Yellow: `#FFB701` (celebration, wins)
-- Contrast Red: `#D03739` (alerts, "below Green Line")
+**Brand Colors (from `src/lib/design-system/tokens.ts`):**
+- Primary Electric Lime: `#39FF14` (growth, alignment, "above the Green Line")
+- Secondary Neon Cyan: `#00FFFF` (clarity, flow)
+- Accent Neon Purple: `#BF00FF` (premium, VIVA)
+- Energy Neon Yellow: `#FFFF00` (celebration, wins)
+- Contrast Neon Red: `#FF0040` (alerts, "below Green Line")
 
 **Design Principles:**
 - Buttons: Always pill-shaped (`rounded-full`), hover lift 2px, 300ms transitions
@@ -170,9 +171,8 @@ Always reference `vibrationfit-brand-kit.html` for design patterns and visual st
 - **NEVER use "AI"** - Always say "VIVA" for AI-related features, descriptions, and references
 
 **File References:**
-- Brand Kit: `vibrationfit-brand-kit.html` (visual reference)
-- Components: `/src/lib/design-system/components.tsx`
-- Tokens: `/src/lib/design-system/tokens.ts`
+- Tokens: `src/lib/design-system/tokens.ts` (source of truth for colors)
+- Components: `src/lib/design-system/components.tsx`
 
 ---
 

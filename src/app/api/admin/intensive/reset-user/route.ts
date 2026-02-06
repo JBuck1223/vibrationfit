@@ -125,9 +125,9 @@ export async function POST(request: NextRequest) {
       .delete()
       .eq('user_id', userId)
 
-    // 12. Delete intensive purchases
+    // 12. Delete orders (cascades to order_items)
     await adminClient
-      .from('intensive_purchases')
+      .from('orders')
       .delete()
       .eq('user_id', userId)
 
@@ -142,27 +142,62 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', userId)
 
-    // 14. Create fresh intensive purchase
-    const { data: newPurchase, error: purchaseError } = await adminClient
-      .from('intensive_purchases')
+    // 14. Create fresh order and intensive order item
+    const { data: intensiveProduct, error: productError } = await adminClient
+      .from('products')
+      .select('id')
+      .eq('key', 'intensive')
+      .maybeSingle()
+
+    if (productError || !intensiveProduct) {
+      return NextResponse.json({
+        error: 'Intensive product not found'
+      }, { status: 500 })
+    }
+
+    const { data: order, error: orderError } = await adminClient
+      .from('orders')
       .insert({
         user_id: userId,
-        stripe_payment_intent_id: `reset_${Date.now()}`,
+        total_amount: 49900,
+        currency: 'usd',
+        status: 'paid',
+        paid_at: now,
+        metadata: { source: 'admin_reset' },
+      })
+      .select()
+      .single()
+
+    if (orderError || !order) {
+      return NextResponse.json({
+        error: 'Failed to create order for intensive reset'
+      }, { status: 500 })
+    }
+
+    const { data: newPurchase, error: purchaseError } = await adminClient
+      .from('order_items')
+      .insert({
+        order_id: order.id,
+        product_id: intensiveProduct.id,
+        price_id: null,
+        quantity: 1,
         amount: 49900,
         currency: 'usd',
+        is_subscription: false,
+        stripe_payment_intent_id: `reset_${Date.now()}`,
         payment_plan: 'full',
         installments_total: 1,
         installments_paid: 1,
         completion_status: 'pending',
-        created_at: now
+        created_at: now,
       })
       .select()
       .single()
 
     if (purchaseError || !newPurchase) {
-      console.error('Error creating new intensive purchase:', purchaseError)
-      return NextResponse.json({ 
-        error: 'Failed to create new intensive purchase' 
+      console.error('Error creating new intensive order item:', purchaseError)
+      return NextResponse.json({
+        error: 'Failed to create new intensive order item'
       }, { status: 500 })
     }
 

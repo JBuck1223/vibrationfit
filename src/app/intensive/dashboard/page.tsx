@@ -45,7 +45,6 @@ import {
 
 interface IntensivePurchase {
   id: string
-  user_id: string
   payment_plan: string
   activation_deadline: string | null
   started_at: string | null
@@ -293,8 +292,8 @@ function IntensiveDashboardContent() {
 
       // Get intensive purchase for reference
       const { data: intensiveData } = await supabase
-        .from('intensive_purchases')
-        .select('*')
+        .from('order_items')
+        .select('id, payment_plan, activation_deadline, started_at, completion_status, completed_at, created_at')
         .eq('id', checklistData.intensive_id)
         .single()
 

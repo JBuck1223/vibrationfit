@@ -38,11 +38,12 @@ export async function markIntensiveStep(step: IntensiveStepType) {
 
     // Get active intensive
     const { data: intensiveData, error: intensiveError } = await supabase
-      .from('intensive_purchases')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('completion_status', 'pending')
-      .single()
+      .from('order_items')
+      .select('id, orders!inner(user_id), products!inner(product_type), completion_status')
+      .eq('orders.user_id', user.id)
+      .eq('products.product_type', 'intensive')
+      .in('completion_status', ['pending', 'in_progress'])
+      .maybeSingle()
     
     if (intensiveError || !intensiveData) {
       console.error('No active intensive found:', intensiveError)
@@ -81,11 +82,12 @@ export async function getActiveIntensiveId(): Promise<string | null> {
     if (!user) return null
 
     const { data: intensiveData } = await supabase
-      .from('intensive_purchases')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('completion_status', 'pending')
-      .single()
+      .from('order_items')
+      .select('id, orders!inner(user_id), products!inner(product_type), completion_status')
+      .eq('orders.user_id', user.id)
+      .eq('products.product_type', 'intensive')
+      .in('completion_status', ['pending', 'in_progress'])
+      .maybeSingle()
     
     return intensiveData?.id || null
   } catch (err) {

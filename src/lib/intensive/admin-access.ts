@@ -52,12 +52,13 @@ export async function getIntensiveForUser(
 ): Promise<{ id: string; isTestMode: boolean } | null> {
   // First try to get actual enrollment
   const { data: intensiveData } = await supabase
-    .from('intensive_purchases')
-    .select('id')
-    .eq('user_id', userId)
+    .from('order_items')
+    .select('id, orders!inner(user_id), products!inner(product_type)')
+    .eq('orders.user_id', userId)
+    .eq('products.product_type', 'intensive')
     .order('created_at', { ascending: false })
     .limit(1)
-    .single()
+    .maybeSingle()
 
   if (intensiveData) {
     return { id: intensiveData.id, isTestMode: false }

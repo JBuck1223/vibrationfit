@@ -7,14 +7,12 @@ import { createClient } from '@/lib/supabase/server'
 
 export interface IntensiveData {
   id: string
-  user_id: string
   payment_plan: string
   completion_status: 'pending' | 'in_progress' | 'completed' | 'refunded'
   created_at: string
   started_at: string | null
   completed_at: string | null
   activation_deadline: string | null
-  continuity_plan: string
 }
 
 /**
@@ -25,9 +23,10 @@ export async function getActiveIntensive(userId: string): Promise<IntensiveData 
   const supabase = await createClient()
   
   const { data, error } = await supabase
-    .from('intensive_purchases')
-    .select('*')
-    .eq('user_id', userId)
+    .from('order_items')
+    .select('id, payment_plan, completion_status, created_at, started_at, completed_at, activation_deadline, orders!inner(user_id), products!inner(product_type)')
+    .eq('orders.user_id', userId)
+    .eq('products.product_type', 'intensive')
     .in('completion_status', ['pending', 'in_progress'])
     .order('created_at', { ascending: false })
     .limit(1)

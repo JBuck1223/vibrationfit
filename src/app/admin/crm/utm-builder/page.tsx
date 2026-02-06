@@ -393,7 +393,7 @@ export default function UTMBuilderPage() {
                 • <strong>Auto-Apply:</strong> Promo codes are automatically applied at checkout (user sees FREE badge)
               </li>
               <li>
-                • <strong>Database Tracking:</strong> All params saved to intensive_purchases and customer_subscriptions tables
+                • <strong>Database Tracking:</strong> All params saved to order_items and customer_subscriptions tables
               </li>
               <li>
                 • <strong>Affiliate Reports:</strong> Use ref= parameter to calculate commissions and track performance

@@ -245,12 +245,13 @@ export async function GET(request: NextRequest) {
     // INTENSIVE PURCHASE / DAYS SINCE START
     // ========================================================================
     const { data: intensive } = await supabase
-      .from('intensive_purchases')
-      .select('started_at, created_at')
-      .eq('user_id', user.id)
+      .from('order_items')
+      .select('started_at, created_at, orders!inner(user_id), products!inner(product_type)')
+      .eq('orders.user_id', user.id)
+      .eq('products.product_type', 'intensive')
       .order('created_at', { ascending: false })
       .limit(1)
-      .single()
+      .maybeSingle()
 
     if (intensive) {
       const startDate = intensive.started_at || intensive.created_at
