@@ -40,7 +40,7 @@ DECLARE
   v_call_scheduled_done BOOLEAN := FALSE;  -- Step 12: Book Calibration Call
   
   -- Phase 6: Completion
-  v_activation_protocol_done BOOLEAN := FALSE; -- Step 13: Activation Protocol
+  v_activation_protocol_done BOOLEAN := FALSE; -- Step 13: My Activation Plan
   v_unlock_done BOOLEAN := FALSE;              -- Step 14: Platform Unlock
   -- ============================================================================
 
@@ -295,7 +295,7 @@ BEGIN
   RAISE NOTICE '  [%] Step 10: Vision Board', CASE WHEN v_vision_board_done THEN 'X' ELSE ' ' END;
   RAISE NOTICE '  [%] Step 11: Journal', CASE WHEN v_journal_done THEN 'X' ELSE ' ' END;
   RAISE NOTICE '  [%] Step 12: Book Call', CASE WHEN v_call_scheduled_done THEN 'X' ELSE ' ' END;
-  RAISE NOTICE '  [%] Step 13: Activation Protocol', CASE WHEN v_activation_protocol_done THEN 'X' ELSE ' ' END;
+  RAISE NOTICE '  [%] Step 13: My Activation Plan', CASE WHEN v_activation_protocol_done THEN 'X' ELSE ' ' END;
   RAISE NOTICE '  [%] Step 14: Unlock', CASE WHEN v_unlock_done THEN 'X' ELSE ' ' END;
   RAISE NOTICE '';
   RAISE NOTICE 'Login via Magic Link to: %', v_test_email;
