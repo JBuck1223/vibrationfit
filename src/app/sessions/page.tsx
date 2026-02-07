@@ -140,7 +140,6 @@ export default function MemberSessionsPage() {
               variant="primary" 
               size="sm"
               onClick={() => router.push('/intensive/schedule-call')}
-              className="bg-gradient-to-r from-primary-500 to-secondary-500"
             >
               <Calendar className="w-4 h-4 mr-2" />
               Schedule a Call
@@ -165,7 +164,6 @@ export default function MemberSessionsPage() {
                   variant="primary"
                   size="sm"
                   onClick={() => router.push(`/session/${nextSession.id}`)}
-                  className="bg-gradient-to-r from-primary-500 to-secondary-500"
                 >
                   <Play className="w-4 h-4 mr-2" />
                   Join Now

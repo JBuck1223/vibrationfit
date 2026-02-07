@@ -153,6 +153,8 @@ export interface UpdateSessionRequest {
   scheduled_at?: string
   scheduled_duration_minutes?: number
   status?: VideoSessionStatus
+  ended_at?: string
+  actual_duration_seconds?: number
   host_notes?: string
   session_summary?: string
 }
@@ -271,24 +273,7 @@ export function formatDuration(seconds: number): string {
 }
 
 export function isSessionJoinable(session: VideoSession): boolean {
-  const now = new Date()
-  const scheduledAt = new Date(session.scheduled_at)
-  
-  // Can join 10 minutes before scheduled time
-  const joinableFrom = new Date(scheduledAt)
-  joinableFrom.setMinutes(joinableFrom.getMinutes() - 10)
-  
-  // Can join until 30 minutes after scheduled end
-  const joinableUntil = new Date(scheduledAt)
-  joinableUntil.setMinutes(
-    joinableUntil.getMinutes() + session.scheduled_duration_minutes + 30
-  )
-  
-  return (
-    now >= joinableFrom &&
-    now <= joinableUntil &&
-    session.status !== 'completed' &&
-    session.status !== 'cancelled'
-  )
+  // Only completed or cancelled sessions are not joinable
+  return session.status !== 'completed' && session.status !== 'cancelled'
 }
 

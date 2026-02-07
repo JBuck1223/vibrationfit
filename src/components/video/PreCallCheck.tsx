@@ -430,7 +430,7 @@ export function PreCallCheck({
               variant="primary" 
               onClick={handleJoin}
               disabled={loading || !!error}
-              className="flex-1 bg-gradient-to-r from-primary-500 to-secondary-500 hover:from-primary-600 hover:to-secondary-600"
+              className="flex-1"
             >
               <CheckCircle className="w-5 h-5 mr-2" />
               Join Session

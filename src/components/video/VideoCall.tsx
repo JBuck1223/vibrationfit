@@ -15,7 +15,7 @@ import {
   useParticipantIds,
   useParticipant,
   useMeetingState,
-  useDevices,
+  useScreenShare,
   DailyVideo,
   DailyAudio,
 } from '@daily-co/daily-react'
@@ -35,7 +35,8 @@ import {
   Square,
   X,
   MessageCircle,
-  Sparkles
+  Sparkles,
+  Clock
 } from 'lucide-react'
 import { Button, Badge, Card } from '@/lib/design-system/components'
 import { SessionChat } from '@/components/video/SessionChat'
@@ -129,11 +130,11 @@ function VideoCallUI({
   const localParticipant = useLocalParticipant()
   const participantIds = useParticipantIds({ filter: 'remote' })
   const meetingState = useMeetingState()
+  const { isSharingScreen, screens, startScreenShare, stopScreenShare } = useScreenShare()
   
   // State
   const [cameraEnabled, setCameraEnabled] = useState(initialSettings?.camera ?? true)
   const [micEnabled, setMicEnabled] = useState(initialSettings?.microphone ?? true)
-  const [screenSharing, setScreenSharing] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
   const [showParticipants, setShowParticipants] = useState(false)
   const [showChat, setShowChat] = useState(false)
@@ -214,18 +215,34 @@ function VideoCallUI({
     }
   }, [daily, meetingState, roomUrl, token, userName, cameraEnabled, micEnabled, onError, isHost, sessionId, hostJoinedNotified])
 
-  // Handle recording events
+  // Handle recording events — update UI + database
   useEffect(() => {
     if (!daily) return
 
     const handleRecordingStarted = () => {
       setIsRecording(true)
       onRecordingStart?.()
+      // Update DB recording status
+      if (sessionId) {
+        fetch(`/api/video/sessions/${sessionId}/recording-status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'recording' }),
+        }).catch(err => console.error('Failed to update recording status:', err))
+      }
     }
 
     const handleRecordingStopped = () => {
       setIsRecording(false)
       onRecordingStop?.()
+      // Update DB — Daily.co webhook will handle the rest (processing → S3 upload)
+      if (sessionId) {
+        fetch(`/api/video/sessions/${sessionId}/recording-status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'processing' }),
+        }).catch(err => console.error('Failed to update recording status:', err))
+      }
     }
 
     daily.on('recording-started', handleRecordingStarted)
@@ -235,7 +252,7 @@ function VideoCallUI({
       daily.off('recording-started', handleRecordingStarted)
       daily.off('recording-stopped', handleRecordingStopped)
     }
-  }, [daily, onRecordingStart, onRecordingStop])
+  }, [daily, onRecordingStart, onRecordingStop, sessionId])
 
   // Toggle camera
   const toggleCamera = useCallback(async () => {
@@ -253,16 +270,14 @@ function VideoCallUI({
     setMicEnabled(newState)
   }, [daily, micEnabled])
 
-  // Toggle screen share
-  const toggleScreenShare = useCallback(async () => {
-    if (!daily) return
-    if (screenSharing) {
-      await daily.stopScreenShare()
+  // Toggle screen share (uses useScreenShare hook for reliable state)
+  const toggleScreenShare = useCallback(() => {
+    if (isSharingScreen) {
+      stopScreenShare()
     } else {
-      await daily.startScreenShare()
+      startScreenShare()
     }
-    setScreenSharing(!screenSharing)
-  }, [daily, screenSharing])
+  }, [isSharingScreen, startScreenShare, stopScreenShare])
 
   // Start/stop recording (host only)
   const toggleRecording = useCallback(async () => {
@@ -270,7 +285,11 @@ function VideoCallUI({
     if (isRecording) {
       await daily.stopRecording()
     } else {
-      await daily.startRecording()
+      await daily.startRecording({
+        layout: {
+          preset: 'active-participant',
+        },
+      })
     }
   }, [daily, isRecording, isHost])
 
@@ -288,13 +307,35 @@ function VideoCallUI({
       } catch (trackErr) {
         console.error('Error tracking participant leave:', trackErr)
       }
+
+      // If host is leaving, mark session as completed
+      if (isHost) {
+        try {
+          // Stop recording if still running
+          if (isRecording && daily) {
+            await daily.stopRecording()
+          }
+          await fetch(`/api/video/sessions/${sessionId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              status: 'completed',
+              ended_at: new Date().toISOString(),
+              actual_duration_seconds: callDuration,
+            }),
+          })
+          console.log('✅ Session marked as completed')
+        } catch (err) {
+          console.error('Error completing session:', err)
+        }
+      }
     }
 
     if (daily) {
       await daily.leave()
     }
     onLeave?.()
-  }, [daily, onLeave, sessionId])
+  }, [daily, onLeave, sessionId, isHost, isRecording, callDuration])
 
   // Toggle fullscreen
   const toggleFullscreen = useCallback(() => {
@@ -318,6 +359,33 @@ function VideoCallUI({
     }
     return `${m}:${s.toString().padStart(2, '0')}`
   }
+
+  // Track how long we've been waiting for others to join
+  const [waitingSeconds, setWaitingSeconds] = useState(0)
+  const waitingIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  useEffect(() => {
+    if (participantIds.length === 0) {
+      // Start waiting timer when no remote participants
+      if (!waitingIntervalRef.current) {
+        setWaitingSeconds(0)
+        waitingIntervalRef.current = setInterval(() => {
+          setWaitingSeconds(prev => prev + 1)
+        }, 1000)
+      }
+    } else {
+      // Stop when someone joins
+      if (waitingIntervalRef.current) {
+        clearInterval(waitingIntervalRef.current)
+        waitingIntervalRef.current = null
+      }
+    }
+    return () => {
+      if (waitingIntervalRef.current) {
+        clearInterval(waitingIntervalRef.current)
+      }
+    }
+  }, [participantIds.length])
 
   // Get remote participant
   const remoteParticipantId = participantIds[0]
@@ -372,17 +440,17 @@ function VideoCallUI({
   return (
     <div 
       ref={containerRef}
-      className="min-h-screen bg-black flex flex-col"
+      className="h-screen bg-black flex flex-col overflow-hidden"
     >
       {/* Global audio for all participants */}
       <DailyAudio />
 
-      {/* Header */}
-      <div className="absolute top-0 left-0 right-0 z-20 p-4 bg-gradient-to-b from-black/80 to-transparent">
+      {/* Header — solid bar, not overlaying video */}
+      <div className="flex-shrink-0 px-4 py-3 bg-neutral-900 border-b border-neutral-800">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {sessionTitle && (
-              <h1 className="text-white font-medium">{sessionTitle}</h1>
+              <h1 className="text-white font-medium text-sm md:text-base truncate">{sessionTitle}</h1>
             )}
             {isRecording && (
               <Badge variant="error" className="animate-pulse">
@@ -393,6 +461,16 @@ function VideoCallUI({
           </div>
           
           <div className="flex items-center gap-3">
+            {/* Highlighted Message indicator in header */}
+            {highlightedMessage && (
+              <div className="hidden md:flex items-center gap-2 bg-energy-500/10 border border-energy-500/30 rounded-full px-3 py-1 max-w-xs">
+                <Sparkles className="w-3.5 h-3.5 text-energy-500 flex-shrink-0" />
+                <p className="text-xs text-white truncate">
+                  <span className="text-energy-400 font-medium">{highlightedMessage.sender_name}:</span>{' '}
+                  {highlightedMessage.message}
+                </p>
+              </div>
+            )}
             <span className="text-white font-mono text-sm">
               {formatDuration(callDuration)}
             </span>
@@ -404,104 +482,144 @@ function VideoCallUI({
             </button>
           </div>
         </div>
+
+        {/* Highlighted Message Banner — mobile (below header row) */}
+        {highlightedMessage && (
+          <div className="md:hidden mt-2 flex items-center gap-2 bg-energy-500/10 border border-energy-500/30 rounded-xl px-3 py-2">
+            <Sparkles className="w-3.5 h-3.5 text-energy-500 flex-shrink-0" />
+            <p className="text-xs text-white truncate">
+              <span className="text-energy-400 font-medium">{highlightedMessage.sender_name}:</span>{' '}
+              {highlightedMessage.message}
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Highlighted Message Banner (visible to all participants) */}
-      {highlightedMessage && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 w-[90%] max-w-lg animate-in fade-in slide-in-from-top-2 duration-300">
-          <div className="bg-gradient-to-r from-energy-500/30 to-primary-500/30 backdrop-blur-md border border-energy-500/40 rounded-2xl px-5 py-3">
-            <div className="flex items-start gap-3">
-              <Sparkles className="w-5 h-5 text-energy-500 flex-shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-energy-400 font-semibold uppercase tracking-wider">
-                  {highlightedMessage.sender_name}
-                </p>
-                <p className="text-white text-sm md:text-base mt-0.5 leading-snug">
-                  {highlightedMessage.message}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Main Video Area */}
-      <div className="flex-1 relative">
-        {/* Remote Video (Full Screen) */}
-        <div className="absolute inset-0">
-          {remoteParticipantId ? (
-            <RemoteParticipantTile participantId={remoteParticipantId} />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-neutral-900">
-              <div className="text-center">
-                <div className="w-32 h-32 rounded-full bg-neutral-800 flex items-center justify-center mx-auto mb-4">
-                  <Users className="w-16 h-16 text-neutral-600" />
+      {/* Main Content — video + optional chat side panel */}
+      <div className="flex-1 flex min-h-0">
+        {/* Video Area */}
+        <div className="flex-1 relative min-w-0">
+          {/* Remote Video (Full Screen) */}
+          <div className="absolute inset-0">
+            {remoteParticipantId ? (
+              <RemoteParticipantTile participantId={remoteParticipantId} />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-neutral-900">
+                <div className="text-center max-w-sm">
+                  <div className="w-24 h-24 rounded-full bg-neutral-800 flex items-center justify-center mx-auto mb-5">
+                    {isHost ? (
+                      <Users className="w-12 h-12 text-neutral-600" />
+                    ) : (
+                      <div className="relative">
+                        <Users className="w-12 h-12 text-neutral-600" />
+                        <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-neutral-700 flex items-center justify-center">
+                          <Clock className="w-3 h-3 text-neutral-400" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  {isHost ? (
+                    <>
+                      <p className="text-white text-lg font-medium">No participants yet</p>
+                      <p className="text-neutral-500 text-sm mt-2">
+                        Members will appear here when they join
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-white text-lg font-medium">Waiting for host to join</p>
+                      <p className="text-neutral-500 text-sm mt-2">
+                        The session will begin once the host arrives
+                      </p>
+                      <div className="mt-4 inline-flex items-center gap-2 bg-neutral-800/80 px-4 py-2 rounded-full">
+                        <div className="w-2 h-2 rounded-full bg-primary-500 animate-pulse" />
+                        <span className="text-neutral-300 text-sm font-mono">
+                          {formatDuration(waitingSeconds)}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
-                <p className="text-white text-lg">Waiting for participant...</p>
-                <p className="text-neutral-500 text-sm mt-1">Share the session link to invite someone</p>
               </div>
-            </div>
-          )}
-        </div>
-
-        {/* Local Video (Picture-in-Picture) */}
-        <div className="absolute bottom-24 right-4 w-48 md:w-64 aspect-video rounded-xl overflow-hidden shadow-2xl border-2 border-neutral-700 bg-neutral-800">
-          {localParticipant && cameraEnabled ? (
-            <DailyVideo
-              automirror
-              sessionId={localParticipant.session_id}
-              type="video"
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <div className="w-12 h-12 rounded-full bg-neutral-700 flex items-center justify-center">
-                <span className="text-lg font-bold text-neutral-400">
-                  {userName?.[0]?.toUpperCase() || 'Y'}
-                </span>
-              </div>
-            </div>
-          )}
-          
-          {/* Local participant name */}
-          <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
-            <span className="text-xs text-white bg-black/50 px-2 py-1 rounded-full">
-              You
-            </span>
-            {!micEnabled && (
-              <MicOff className="w-3 h-3 text-red-400" />
             )}
           </div>
+
+          {/* Local Video (Picture-in-Picture) */}
+          <div className="absolute bottom-4 right-4 w-36 md:w-56 aspect-video rounded-xl overflow-hidden shadow-2xl border-2 border-neutral-700 bg-neutral-800 z-10">
+            {localParticipant && cameraEnabled ? (
+              <DailyVideo
+                automirror
+                fit="cover"
+                sessionId={localParticipant.session_id}
+                type="video"
+                className="w-full h-full"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full bg-neutral-700 flex items-center justify-center">
+                  <span className="text-lg font-bold text-neutral-400">
+                    {userName?.[0]?.toUpperCase() || 'Y'}
+                  </span>
+                </div>
+              </div>
+            )}
+            
+            {/* Local participant name */}
+            <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
+              <span className="text-xs text-white bg-black/50 px-2 py-1 rounded-full">
+                You
+              </span>
+              {!micEnabled && (
+                <MicOff className="w-3 h-3 text-red-400" />
+              )}
+            </div>
+          </div>
+
+          {/* Participants panel */}
+          {showParticipants && (
+            <div className="absolute top-4 right-4 z-20">
+              <ParticipantsPanel 
+                localName={userName}
+                cameraEnabled={cameraEnabled}
+                micEnabled={micEnabled}
+                participantIds={participantIds}
+                onClose={() => setShowParticipants(false)}
+              />
+            </div>
+          )}
         </div>
 
-        {/* Participants panel */}
-        {showParticipants && (
-          <ParticipantsPanel 
-            localName={userName}
-            cameraEnabled={cameraEnabled}
-            micEnabled={micEnabled}
-            participantIds={participantIds}
-            onClose={() => setShowParticipants(false)}
-          />
-        )}
-
-        {/* Chat panel */}
+        {/* Chat Side Panel — sits beside video on desktop, slides up on mobile */}
         {showChat && sessionId && (
-          <div className="absolute top-20 right-4 w-80 h-[60vh] max-h-[500px] z-30">
-            <SessionChat
-              sessionId={sessionId}
-              currentUserId={userId}
-              currentUserName={userName}
-              isHost={isHost}
-              onClose={() => setShowChat(false)}
-              onHighlightChange={(msg) => setHighlightedMessage(msg ? { sender_name: msg.sender_name, message: msg.message } : null)}
-            />
-          </div>
+          <>
+            {/* Desktop: side panel */}
+            <div className="hidden md:flex flex-col w-80 flex-shrink-0 border-l border-neutral-800">
+              <SessionChat
+                sessionId={sessionId}
+                currentUserId={userId}
+                currentUserName={userName}
+                isHost={isHost}
+                onClose={() => setShowChat(false)}
+                onHighlightChange={(msg) => setHighlightedMessage(msg ? { sender_name: msg.sender_name, message: msg.message } : null)}
+              />
+            </div>
+            {/* Mobile: bottom sheet overlay */}
+            <div className="md:hidden fixed inset-x-0 bottom-0 z-40 h-[55vh]">
+              <SessionChat
+                sessionId={sessionId}
+                currentUserId={userId}
+                currentUserName={userName}
+                isHost={isHost}
+                onClose={() => setShowChat(false)}
+                onHighlightChange={(msg) => setHighlightedMessage(msg ? { sender_name: msg.sender_name, message: msg.message } : null)}
+              />
+            </div>
+          </>
         )}
       </div>
 
-      {/* Control Bar */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 p-4 bg-gradient-to-t from-black/80 to-transparent">
+      {/* Control Bar — solid bar, not overlaying video */}
+      <div className="flex-shrink-0 px-4 py-3 bg-neutral-900 border-t border-neutral-800">
         <div className="flex items-center justify-center gap-3 md:gap-4">
           {/* Camera toggle */}
           <button
@@ -533,13 +651,13 @@ function VideoCallUI({
           <button
             onClick={toggleScreenShare}
             className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-200 ${
-              screenSharing 
+              isSharingScreen 
                 ? 'bg-primary-500 hover:bg-primary-600 text-black' 
                 : 'bg-neutral-700 hover:bg-neutral-600 text-white'
             }`}
-            title={screenSharing ? 'Stop sharing' : 'Share screen'}
+            title={isSharingScreen ? 'Stop sharing' : 'Share screen'}
           >
-            {screenSharing ? <ScreenShareOff className="w-5 h-5 md:w-6 md:h-6" /> : <ScreenShare className="w-5 h-5 md:w-6 md:h-6" />}
+            {isSharingScreen ? <ScreenShareOff className="w-5 h-5 md:w-6 md:h-6" /> : <ScreenShare className="w-5 h-5 md:w-6 md:h-6" />}
           </button>
 
           {/* Recording (host only) */}
@@ -611,9 +729,10 @@ function RemoteParticipantTile({ participantId }: { participantId: string }) {
     <div className="w-full h-full">
       {hasVideo ? (
         <DailyVideo
+          fit="cover"
           sessionId={participantId}
           type="video"
-          className="w-full h-full object-cover"
+          className="w-full h-full"
         />
       ) : (
         <div className="w-full h-full flex items-center justify-center bg-neutral-900">
@@ -647,7 +766,7 @@ function ParticipantsPanel({
   onClose: () => void
 }) {
   return (
-    <div className="absolute top-20 right-4 w-72 bg-neutral-900/95 backdrop-blur rounded-2xl border border-neutral-700 p-4 z-30">
+    <div className="w-72 bg-neutral-900/95 backdrop-blur rounded-2xl border border-neutral-700 p-4">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-white font-medium flex items-center gap-2">
           <Users className="w-4 h-4" />

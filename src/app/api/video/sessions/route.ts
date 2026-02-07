@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
         scheduled_duration_minutes: durationMinutes,
         host_user_id: user.id,
         enable_recording: body.enable_recording ?? true,
-        enable_waiting_room: body.enable_waiting_room ?? true,
+        enable_waiting_room: false,
         max_participants: maxParticipants,
         is_group_session: sessionType !== 'one_on_one',
         // Dynamic scheduling fields

@@ -138,7 +138,30 @@ export default function AlignmentGymPage() {
 
   useEffect(() => {
     fetchSessions()
-  }, [fetchSessions])
+
+    // Subscribe to session status changes (e.g. host joins → status becomes 'live')
+    const channel = supabase
+      .channel('alignment-gym-status')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'video_sessions',
+        },
+        (payload) => {
+          const updated = payload.new as Record<string, unknown>
+          setSessions(prev => prev.map(s => 
+            s.id === updated.id ? { ...s, ...updated } as SessionWithParticipants : s
+          ))
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [fetchSessions, supabase])
 
   // Separate upcoming and past sessions
   const now = new Date()
@@ -154,6 +177,7 @@ export default function AlignmentGymPage() {
   // Get next session
   const nextSession = upcomingSessions[0]
   const isLive = nextSession?.status === 'live'
+  // Alignment Gym sessions are always accessible — members can enter the pre-call screen
   const canJoin = nextSession && (isLive || isSessionJoinable(nextSession))
 
   // Format relative time
@@ -273,10 +297,13 @@ export default function AlignmentGymPage() {
 
         {/* Next Session Highlight */}
         {nextSession ? (
-          <Card className={`p-6 md:p-8 ${isLive 
-            ? 'bg-gradient-to-br from-green-500/20 to-primary-500/10 border-green-500/40' 
-            : 'bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-primary-500/30'
-          }`}>
+          <Card 
+            className={`p-6 md:p-8 cursor-pointer transition-all hover:scale-[1.01] ${isLive 
+              ? 'bg-gradient-to-br from-green-500/20 to-primary-500/10 border-green-500/40' 
+              : 'bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-primary-500/30'
+            }`}
+            onClick={() => router.push(`/session/${nextSession.id}`)}
+          >
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
               <div>
                 <Badge variant={isLive ? 'success' : 'premium'} className={`mb-2 ${isLive ? 'animate-pulse' : ''}`}>
@@ -295,20 +322,18 @@ export default function AlignmentGymPage() {
                   </p>
                 )}
               </div>
-              {canJoin && (
-                <Button
-                  variant="primary"
-                  size="lg"
-                  onClick={() => router.push(`/session/${nextSession.id}`)}
-                  className={isLive 
-                    ? 'bg-gradient-to-r from-green-500 to-primary-500 animate-pulse' 
-                    : 'bg-gradient-to-r from-primary-500 to-secondary-500'
-                  }
-                >
-                  <Play className="w-5 h-5 mr-2" />
-                  {isLive ? 'Join Live Session' : 'Join Session'}
-                </Button>
-              )}
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  router.push(`/session/${nextSession.id}`)
+                }}
+                className={isLive ? 'animate-pulse' : ''}
+              >
+                <Play className="w-5 h-5 mr-2" />
+                {isLive ? 'Join Live Session' : canJoin ? 'Join Session' : 'View Session'}
+              </Button>
             </div>
 
             <div className="flex flex-wrap gap-4 text-sm">
@@ -343,9 +368,9 @@ export default function AlignmentGymPage() {
               )}
             </div>
 
-            {!canJoin && (
+            {!canJoin && !isLive && (
               <p className="mt-4 text-sm text-neutral-500">
-                Join link will be available 10 minutes before the session starts.
+                Session opens 10 minutes before start time. Click to view details.
               </p>
             )}
           </Card>
@@ -374,19 +399,35 @@ export default function AlignmentGymPage() {
               {upcomingSessions.slice(1).map(session => {
                 const scheduledDate = new Date(session.scheduled_at)
                 const joinable = isSessionJoinable(session)
+                const sessionIsLive = session.status === 'live'
                 
                 return (
                   <div 
                     key={session.id} 
-                    className="flex items-center gap-4 p-3 rounded-xl bg-neutral-800/50 hover:bg-neutral-800 transition-colors"
+                    className="flex items-center gap-4 p-3 rounded-xl bg-neutral-800/50 hover:bg-neutral-800 transition-colors cursor-pointer"
+                    onClick={() => router.push(`/session/${session.id}`)}
                   >
-                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-primary-500/10 flex items-center justify-center flex-shrink-0">
-                      <Video className="w-5 h-5 md:w-6 md:h-6 text-primary-500" />
+                    <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                      sessionIsLive ? 'bg-green-500/20' : 'bg-primary-500/10'
+                    }`}>
+                      {sessionIsLive ? (
+                        <span className="relative flex h-3 w-3">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500" />
+                        </span>
+                      ) : (
+                        <Video className="w-5 h-5 md:w-6 md:h-6 text-primary-500" />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-sm md:text-base text-white font-medium truncate">
-                        {session.title}
-                      </h4>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm md:text-base text-white font-medium truncate">
+                          {session.title}
+                        </h4>
+                        {sessionIsLive && (
+                          <Badge variant="success" className="text-[10px] animate-pulse">Live</Badge>
+                        )}
+                      </div>
                       <p className="text-xs md:text-sm text-neutral-500">
                         {scheduledDate.toLocaleDateString(undefined, {
                           weekday: 'short',
@@ -398,11 +439,21 @@ export default function AlignmentGymPage() {
                         })}
                       </p>
                     </div>
-                    {joinable ? (
+                    {sessionIsLive ? (
                       <Button
                         variant="primary"
                         size="sm"
-                        onClick={() => router.push(`/session/${session.id}`)}
+                        onClick={(e) => { e.stopPropagation(); router.push(`/session/${session.id}`) }}
+                        className="animate-pulse"
+                      >
+                        <Play className="w-3 h-3 mr-1" />
+                        Join
+                      </Button>
+                    ) : joinable ? (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={(e) => { e.stopPropagation(); router.push(`/session/${session.id}`) }}
                       >
                         <Play className="w-3 h-3 mr-1" />
                         Join

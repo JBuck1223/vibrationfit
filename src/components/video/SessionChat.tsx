@@ -10,8 +10,8 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Send, MessageCircle, X, Pin, PinOff, Sparkles } from 'lucide-react'
-import { Button, Spinner } from '@/lib/design-system/components'
+import { Send, X, Pin, PinOff } from 'lucide-react'
+import { Spinner } from '@/lib/design-system/components'
 
 interface ChatMessage {
   id: string
@@ -247,170 +247,118 @@ export function SessionChat({
     }
   }
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-    })
-  }
-
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
-  }
-
   const isOwnMessage = (msg: ChatMessage) => {
     return msg.user_id === currentUserId
   }
 
+  // Assign stable colors to usernames
+  const nameColors = [
+    'text-primary-400',
+    'text-secondary-400',
+    'text-accent-400',
+    'text-energy-400',
+    'text-blue-400',
+    'text-pink-400',
+    'text-orange-400',
+    'text-cyan-400',
+  ]
+
+  const getNameColor = (name: string) => {
+    let hash = 0
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash)
+    }
+    return nameColors[Math.abs(hash) % nameColors.length]
+  }
+
   return (
-    <div className="flex flex-col h-full bg-neutral-900/95 backdrop-blur rounded-2xl border border-neutral-700 overflow-hidden">
+    <div className="flex flex-col h-full bg-neutral-900 overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-700">
-        <h3 className="text-white font-medium flex items-center gap-2">
-          <MessageCircle className="w-4 h-4 text-primary-500" />
-          Live Chat
-          {messages.length > 0 && (
-            <span className="text-xs text-neutral-500">({messages.length})</span>
-          )}
-        </h3>
+      <div className="flex items-center justify-between px-3 py-2 border-b border-neutral-800">
+        <span className="text-sm text-neutral-300 font-medium">Live chat</span>
         {onClose && (
           <button
             onClick={onClose}
-            className="p-1 hover:bg-neutral-700 rounded-full transition-colors"
+            className="p-1 hover:bg-neutral-800 rounded transition-colors"
           >
             <X className="w-4 h-4 text-neutral-400" />
           </button>
         )}
       </div>
 
-      {/* Highlighted Message Banner */}
+      {/* Pinned / Highlighted message */}
       {highlightedId && (() => {
         const hlMsg = messages.find((m) => m.id === highlightedId)
         if (!hlMsg) return null
         return (
-          <div className="mx-3 mt-3 p-3 bg-gradient-to-r from-energy-500/20 to-primary-500/20 border border-energy-500/40 rounded-xl">
-            <div className="flex items-start gap-2">
-              <Sparkles className="w-4 h-4 text-energy-500 flex-shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] text-energy-500 font-medium uppercase tracking-wider mb-0.5">
-                  Highlighted
-                </p>
-                <p className="text-sm text-white font-medium">
-                  {hlMsg.sender_name}
-                </p>
-                <p className="text-sm text-neutral-200 mt-0.5">
-                  {hlMsg.message}
-                </p>
-              </div>
-              {isHost && (
-                <button
-                  onClick={() => toggleHighlight(highlightedId)}
-                  className="p-1 hover:bg-neutral-700 rounded-full transition-colors flex-shrink-0"
-                  title="Remove highlight"
-                >
-                  <PinOff className="w-3.5 h-3.5 text-neutral-400" />
-                </button>
-              )}
-            </div>
+          <div className="px-3 py-2 bg-energy-500/10 border-b border-energy-500/30 flex items-center gap-2">
+            <Pin className="w-3 h-3 text-energy-500 flex-shrink-0" />
+            <p className="text-xs text-neutral-200 truncate flex-1">
+              <span className="text-energy-400 font-medium">{hlMsg.sender_name}</span>{' '}
+              {hlMsg.message}
+            </p>
+            {isHost && (
+              <button
+                onClick={() => toggleHighlight(highlightedId)}
+                className="p-0.5 hover:bg-neutral-800 rounded transition-colors flex-shrink-0"
+                title="Unpin"
+              >
+                <PinOff className="w-3 h-3 text-neutral-500" />
+              </button>
+            )}
           </div>
         )
       })()}
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
+      {/* Messages — YouTube Live style feed */}
+      <div className="flex-1 overflow-y-auto px-3 py-1 min-h-0">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <Spinner size="sm" />
           </div>
         ) : error ? (
-          <div className="text-center text-red-400 text-sm py-4">{error}</div>
+          <div className="text-center text-red-400 text-xs py-4">{error}</div>
         ) : messages.length === 0 ? (
-          <div className="text-center text-neutral-500 text-sm py-8">
-            No messages yet. Start the conversation!
+          <div className="flex items-center justify-center h-full">
+            <p className="text-neutral-600 text-xs">No messages yet</p>
           </div>
         ) : (
           messages.map((msg) => {
             const isHighlighted = msg.id === highlightedId
+            const own = isOwnMessage(msg)
             return (
               <div
                 key={msg.id}
-                className={`group flex gap-2 ${
-                  isOwnMessage(msg) ? 'flex-row-reverse' : ''
-                } ${isHighlighted ? 'relative' : ''}`}
+                className={`group flex items-start gap-1.5 py-[3px] hover:bg-neutral-800/50 px-1 -mx-1 rounded ${
+                  isHighlighted ? 'bg-energy-500/10' : ''
+                }`}
               >
-                {/* Avatar */}
-                <div
-                  className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-medium ${
-                    isHighlighted
-                      ? 'bg-energy-500/30 text-energy-500'
-                      : isOwnMessage(msg)
-                        ? 'bg-primary-500/20 text-primary-500'
-                        : 'bg-secondary-500/20 text-secondary-500'
-                  }`}
-                >
-                  {getInitials(msg.sender_name)}
-                </div>
+                {/* Compact message: @Name message */}
+                <p className="text-[13px] leading-5 flex-1 min-w-0 break-words">
+                  <span className={`font-medium ${
+                    isHighlighted ? 'text-energy-400' : own ? 'text-primary-400' : getNameColor(msg.sender_name)
+                  }`}>
+                    {own ? 'You' : msg.sender_name}
+                  </span>
+                  <span className="text-neutral-200 ml-1.5">{msg.message}</span>
+                </p>
 
-                {/* Message bubble */}
-                <div
-                  className={`max-w-[75%] ${
-                    isOwnMessage(msg) ? 'text-right' : ''
-                  }`}
-                >
-                  <div className="flex items-baseline gap-2 mb-0.5">
-                    <span
-                      className={`text-xs font-medium ${
-                        isHighlighted
-                          ? 'text-energy-500'
-                          : isOwnMessage(msg) ? 'text-primary-400' : 'text-white'
-                      }`}
-                    >
-                      {isOwnMessage(msg) ? 'You' : msg.sender_name}
-                    </span>
-                    <span className="text-[10px] text-neutral-500">
-                      {formatTime(msg.sent_at)}
-                    </span>
-                    {isHighlighted && (
-                      <Pin className="w-3 h-3 text-energy-500" />
-                    )}
-                  </div>
-                  <div
-                    className={`inline-block px-3 py-1.5 rounded-2xl text-sm ${
-                      isHighlighted
-                        ? 'bg-energy-500/20 text-white border border-energy-500/30'
-                        : isOwnMessage(msg)
-                          ? 'bg-primary-500/20 text-white'
-                          : 'bg-neutral-800 text-neutral-200'
-                    }`}
-                  >
-                    {msg.message}
-                  </div>
-                </div>
-
-                {/* Host highlight button (shows on hover) */}
+                {/* Host: pin button on hover */}
                 {isHost && !msg.id.startsWith('optimistic-') && (
                   <button
                     onClick={() => toggleHighlight(msg.id)}
                     disabled={highlightingId === msg.id}
-                    className={`self-center opacity-0 group-hover:opacity-100 p-1 rounded-full transition-all flex-shrink-0 ${
+                    className={`mt-0.5 opacity-0 group-hover:opacity-100 p-0.5 rounded transition-all flex-shrink-0 ${
                       isHighlighted
-                        ? 'bg-energy-500/20 text-energy-500 opacity-100'
-                        : 'hover:bg-neutral-700 text-neutral-500 hover:text-white'
+                        ? 'opacity-100 text-energy-500'
+                        : 'text-neutral-600 hover:text-white'
                     }`}
-                    title={isHighlighted ? 'Remove highlight' : 'Highlight message'}
+                    title={isHighlighted ? 'Unpin' : 'Pin to feed'}
                   >
-                    {highlightingId === msg.id ? (
-                      <Spinner size="sm" />
-                    ) : isHighlighted ? (
-                      <PinOff className="w-3.5 h-3.5" />
+                    {isHighlighted ? (
+                      <PinOff className="w-3 h-3" />
                     ) : (
-                      <Pin className="w-3.5 h-3.5" />
+                      <Pin className="w-3 h-3" />
                     )}
                   </button>
                 )}
@@ -422,28 +370,24 @@ export function SessionChat({
       </div>
 
       {/* Input */}
-      <form onSubmit={handleSend} className="p-3 border-t border-neutral-700">
-        <div className="flex gap-2">
+      <form onSubmit={handleSend} className="px-3 py-2 border-t border-neutral-800">
+        <div className="flex gap-2 items-center">
           <input
             ref={inputRef}
             type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="Say something..."
-            className="flex-1 bg-neutral-800 border border-neutral-700 rounded-full px-4 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-primary-500 transition-colors"
+            className="flex-1 bg-transparent border-none text-sm text-white placeholder-neutral-600 focus:outline-none"
             disabled={isSending}
             maxLength={500}
           />
           <button
             type="submit"
             disabled={!newMessage.trim() || isSending}
-            className="w-10 h-10 rounded-full bg-primary-500 hover:bg-primary-600 disabled:bg-neutral-700 disabled:text-neutral-500 text-black flex items-center justify-center transition-colors"
+            className="p-1.5 text-primary-500 disabled:text-neutral-700 hover:text-primary-400 transition-colors flex-shrink-0"
           >
-            {isSending ? (
-              <Spinner size="sm" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
+            <Send className="w-4 h-4" />
           </button>
         </div>
       </form>

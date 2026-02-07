@@ -46,10 +46,35 @@ export async function POST(
 
     // Check if user is authorized to join
     const isHost = session.host_user_id === user.id
-    const participant = session.participants?.find(
+    let participant = session.participants?.find(
       (p: { user_id?: string; email?: string }) => 
         p.user_id === user.id || p.email === user.email
     )
+
+    // Alignment Gym sessions are open to all authenticated users
+    // Auto-add them as a participant if they aren't already
+    if (!isHost && !participant && session.session_type === 'alignment_gym') {
+      const { data: account } = await supabase
+        .from('user_accounts')
+        .select('first_name, full_name')
+        .eq('id', user.id)
+        .single()
+
+      const name = account?.full_name || account?.first_name || user.email || 'Member'
+
+      const { data: newParticipant } = await supabase
+        .from('video_session_participants')
+        .insert({
+          session_id: id,
+          user_id: user.id,
+          name,
+          is_host: false,
+        })
+        .select()
+        .single()
+
+      participant = newParticipant
+    }
 
     if (!isHost && !participant) {
       return NextResponse.json(

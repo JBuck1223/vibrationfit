@@ -116,7 +116,7 @@ export function WaitingRoom({
 
           {/* Loading indicator */}
           <div className="flex items-center justify-center gap-3">
-            <Spinner className="w-5 h-5 text-primary-500" />
+            <Spinner size="sm" />
             <span className="text-sm text-neutral-500">
               The host will let you in shortly
             </span>
