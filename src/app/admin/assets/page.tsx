@@ -954,7 +954,7 @@ function AssetsAdminContent() {
       {/* Success Notification */}
       {successMessage && (
         <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right duration-300 max-w-md">
-          <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/10 to-[#14B8A6]/10 border-[#39FF14]/30 shadow-2xl">
+          <Card variant="elevated" className="bg-[#39FF14]/10 border-[#39FF14]/30 shadow-2xl">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0 w-10 h-10 bg-[#39FF14] rounded-full flex items-center justify-center">
                 <CheckCircle2 className="w-6 h-6 text-black" />
@@ -988,7 +988,7 @@ function AssetsAdminContent() {
       {/* Error Notification */}
       {errorMessage && (
         <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right duration-300 max-w-md">
-          <Card variant="elevated" className="bg-gradient-to-br from-red-500/10 to-[#D03739]/10 border-red-500/30 shadow-2xl">
+          <Card variant="elevated" className="bg-red-500/10 border-red-500/30 shadow-2xl">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0 w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
                 <X className="w-6 h-6 text-white" />
@@ -1085,7 +1085,7 @@ function AssetsAdminContent() {
                     .map((variant) => (
                       <Button
                         key={variant.type}
-                        variant={videoModalUrl === variant.url ? 'primary' : 'secondary'}
+                        variant={videoModalUrl === variant.url ? 'primary' : 'outline'}
                         size="sm"
                         onClick={() => setVideoModalUrl(variant.url)}
                       >

@@ -370,7 +370,7 @@ export default function IntensiveTesterPage() {
               </div>
               
               <Button
-                variant="secondary"
+                variant="outline"
                 size="sm"
                 onClick={() => setShowCreateUser(!showCreateUser)}
               >
@@ -418,7 +418,7 @@ export default function IntensiveTesterPage() {
         {/* Progress Overview */}
         {selectedUserId && progress && (
           <>
-            <Card className="p-4 md:p-6 bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-primary-500/30">
+            <Card className="p-4 md:p-6 bg-primary-500/10 border-primary-500/30">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
                 <div>
                   <h3 className="text-lg font-semibold mb-1">Progress Overview</h3>
@@ -512,7 +512,7 @@ export default function IntensiveTesterPage() {
                               )}
                               {!complete && !locked && (
                                 <Button
-                                  variant={isNext ? 'primary' : 'secondary'}
+                                  variant={isNext ? 'primary' : 'outline'}
                                   size="sm"
                                   onClick={() => handleAdvanceStep(index)}
                                   disabled={actionLoading !== null}

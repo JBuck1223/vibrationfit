@@ -34,14 +34,13 @@ export async function GET(
       .from('video_sessions')
       .select(`
         *,
-        participants:video_session_participants(*),
-        messages:video_session_messages(*),
-        recordings:video_session_recordings(*)
+        participants:video_session_participants(*)
       `)
       .eq('id', id)
       .single()
 
     if (error || !session) {
+      console.error('Error fetching session:', error?.message, 'id:', id)
       return NextResponse.json(
         { error: 'Session not found' },
         { status: 404 }

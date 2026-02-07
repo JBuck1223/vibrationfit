@@ -34,7 +34,8 @@ import {
   Circle,
   Square,
   X,
-  MessageCircle
+  MessageCircle,
+  Sparkles
 } from 'lucide-react'
 import { Button, Badge, Card } from '@/lib/design-system/components'
 import { SessionChat } from '@/components/video/SessionChat'
@@ -140,6 +141,7 @@ function VideoCallUI({
   const [callDuration, setCallDuration] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [hostJoinedNotified, setHostJoinedNotified] = useState(false)
+  const [highlightedMessage, setHighlightedMessage] = useState<{ sender_name: string; message: string } | null>(null)
 
   // Refs
   const containerRef = useRef<HTMLDivElement>(null)
@@ -404,6 +406,25 @@ function VideoCallUI({
         </div>
       </div>
 
+      {/* Highlighted Message Banner (visible to all participants) */}
+      {highlightedMessage && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 w-[90%] max-w-lg animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="bg-gradient-to-r from-energy-500/30 to-primary-500/30 backdrop-blur-md border border-energy-500/40 rounded-2xl px-5 py-3">
+            <div className="flex items-start gap-3">
+              <Sparkles className="w-5 h-5 text-energy-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-energy-400 font-semibold uppercase tracking-wider">
+                  {highlightedMessage.sender_name}
+                </p>
+                <p className="text-white text-sm md:text-base mt-0.5 leading-snug">
+                  {highlightedMessage.message}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Video Area */}
       <div className="flex-1 relative">
         {/* Remote Video (Full Screen) */}
@@ -473,6 +494,7 @@ function VideoCallUI({
               currentUserName={userName}
               isHost={isHost}
               onClose={() => setShowChat(false)}
+              onHighlightChange={(msg) => setHighlightedMessage(msg ? { sender_name: msg.sender_name, message: msg.message } : null)}
             />
           </div>
         )}

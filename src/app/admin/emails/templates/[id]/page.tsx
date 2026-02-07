@@ -486,7 +486,7 @@ export default function EmailTemplateDetailPage() {
                   />
                   <Button
                     onClick={handleSendTest}
-                    variant="secondary"
+                    variant="outline"
                     disabled={sending || !testEmail}
                   >
                     {sending ? <Spinner size="sm" /> : <Send className="w-4 h-4" />}
@@ -518,7 +518,7 @@ export default function EmailTemplateDetailPage() {
                     className="bg-neutral-800 border-neutral-700 font-mono text-sm flex-1"
                     onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addVariable())}
                   />
-                  <Button type="button" variant="secondary" size="sm" onClick={addVariable}>
+                  <Button type="button" variant="outline" size="sm" onClick={addVariable}>
                     <Plus className="w-4 h-4" />
                   </Button>
                 </div>
@@ -556,7 +556,7 @@ export default function EmailTemplateDetailPage() {
                     className="bg-neutral-800 border-neutral-700 text-sm flex-1"
                     onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTrigger())}
                   />
-                  <Button type="button" variant="secondary" size="sm" onClick={addTrigger}>
+                  <Button type="button" variant="outline" size="sm" onClick={addTrigger}>
                     <Plus className="w-4 h-4" />
                   </Button>
                 </div>
@@ -623,7 +623,7 @@ export default function EmailTemplateDetailPage() {
                   onClick={handleSave}
                   variant="primary"
                   disabled={saving || !hasChanges}
-                  className="w-full bg-gradient-to-r from-primary-500 to-secondary-500"
+                  className="w-full"
                 >
                   {saving ? (
                     <>
@@ -640,7 +640,7 @@ export default function EmailTemplateDetailPage() {
 
                 <Button
                   onClick={handleDuplicate}
-                  variant="secondary"
+                  variant="outline"
                   className="w-full"
                 >
                   <Copy className="w-4 h-4 mr-2" />

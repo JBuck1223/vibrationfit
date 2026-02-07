@@ -458,7 +458,7 @@ export default function CalendarPage() {
               <Button variant="ghost" size="sm" onClick={goToPrevious}>
                 <ChevronLeft className="w-4 h-4" />
               </Button>
-              <Button variant="secondary" size="sm" onClick={goToToday}>
+              <Button variant="outline" size="sm" onClick={goToToday}>
                 Today
               </Button>
               <Button variant="ghost" size="sm" onClick={goToNext}>
@@ -479,7 +479,7 @@ export default function CalendarPage() {
               <button
                 onClick={() => setViewMode('week')}
                 className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                  viewMode === 'week' ? 'bg-primary-500 text-white' : 'text-neutral-400'
+                  viewMode === 'week' ? 'bg-primary-500 text-black' : 'text-neutral-400'
                 }`}
               >
                 Week
@@ -487,7 +487,7 @@ export default function CalendarPage() {
               <button
                 onClick={() => setViewMode('month')}
                 className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                  viewMode === 'month' ? 'bg-primary-500 text-white' : 'text-neutral-400'
+                  viewMode === 'month' ? 'bg-primary-500 text-black' : 'text-neutral-400'
                 }`}
               >
                 Month

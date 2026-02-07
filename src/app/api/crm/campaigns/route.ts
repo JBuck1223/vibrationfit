@@ -1,12 +1,29 @@
 // /src/app/api/crm/campaigns/route.ts
-
-// Force dynamic rendering (no caching)
-export const dynamic = 'force-dynamic'
-import { createAdminClient } from '@/lib/supabase/admin'
 // Campaign management API endpoints
+
+export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient, isUserAdmin } from '@/lib/supabase/admin'
+
+// Allowed fields for campaign creation
+const CAMPAIGN_INSERT_FIELDS = [
+  'name', 'slug', 'status', 'campaign_type', 'objective', 'target_audience',
+  'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term',
+  'start_date', 'end_date', 'budget', 'cost_per_lead_target',
+  'creative_urls', 'landing_page_url', 'tracking_url',
+] as const
+
+function pickAllowedFields(body: Record<string, unknown>, allowedFields: readonly string[]) {
+  const result: Record<string, unknown> = {}
+  for (const key of allowedFields) {
+    if (key in body) {
+      result[key] = body[key]
+    }
+  }
+  return result
+}
 
 // GET /api/crm/campaigns - List all campaigns
 export async function GET(request: NextRequest) {
@@ -20,20 +37,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check if user is admin
-    const isAdmin =
-      user.email === 'buckinghambliss@gmail.com' ||
-      user.email === 'admin@vibrationfit.com' ||
-      user.user_metadata?.is_admin === true
-
-    if (!isAdmin) {
+    if (!isUserAdmin(user)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-
-    // Use admin client for database queries (bypasses RLS)
-    const adminClient = createAdminClient()
     }
 
-    // Use admin client for database queries (bypasses RLS)
     const adminClient = createAdminClient()
 
     // Get query parameters for filtering
@@ -57,13 +64,13 @@ export async function GET(request: NextRequest) {
     const { data: campaigns, error } = await query
 
     if (error) {
-      console.error('❌ Error fetching campaigns:', error)
+      console.error('Error fetching campaigns:', error)
       return NextResponse.json({ error: 'Failed to fetch campaigns' }, { status: 500 })
     }
 
     return NextResponse.json({ campaigns })
-  } catch (error: any) {
-    console.error('❌ Error in campaigns API:', error)
+  } catch (error: unknown) {
+    console.error('Error in campaigns API:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -80,19 +87,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check if user is admin
-    const isAdmin =
-      user.email === 'buckinghambliss@gmail.com' ||
-      user.email === 'admin@vibrationfit.com' ||
-      user.user_metadata?.is_admin === true
-
-    if (!isAdmin) {
+    if (!isUserAdmin(user)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    // Use admin client for database queries (bypasses RLS)
     const adminClient = createAdminClient()
-
     const body = await request.json()
 
     // Validate required fields
@@ -104,11 +103,13 @@ export async function POST(request: NextRequest) {
     const slug =
       body.slug || body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
+    const insertData = pickAllowedFields(body, CAMPAIGN_INSERT_FIELDS)
+
     // Create campaign
     const { data: campaign, error } = await adminClient
       .from('marketing_campaigns')
       .insert({
-        ...body,
+        ...insertData,
         slug,
         created_by: user.id,
       })
@@ -116,10 +117,9 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      console.error('❌ Error creating campaign:', error)
+      console.error('Error creating campaign:', error)
 
       if (error.code === '23505') {
-        // Unique constraint violation
         return NextResponse.json({ error: 'Campaign slug already exists' }, { status: 400 })
       }
 
@@ -127,9 +127,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ campaign }, { status: 201 })
-  } catch (error: any) {
-    console.error('❌ Error in create campaign API:', error)
+  } catch (error: unknown) {
+    console.error('Error in create campaign API:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
-

@@ -35,6 +35,7 @@ export default function CampaignsPage() {
   }, [filter])
 
   async function fetchCampaigns() {
+    setLoading(true)
     try {
       const params = new URLSearchParams()
       if (filter !== 'all') {
@@ -56,17 +57,17 @@ export default function CampaignsPage() {
   function getStatusColor(status: string) {
     switch (status) {
       case 'active':
-        return 'bg-primary-500'
+        return 'bg-primary-500 text-black'
       case 'completed':
-        return 'bg-secondary-500'
+        return 'bg-secondary-500 text-black'
       case 'paused':
-        return 'bg-[#FFB701]'
+        return 'bg-[#FFB701] text-black'
       case 'draft':
-        return 'bg-[#666666]'
+        return 'bg-[#666666] text-white'
       case 'archived':
-        return 'bg-[#404040]'
+        return 'bg-[#404040] text-white'
       default:
-        return 'bg-[#666666]'
+        return 'bg-[#666666] text-white'
     }
   }
 
@@ -86,7 +87,7 @@ export default function CampaignsPage() {
           title="Marketing Campaigns"
           subtitle="Manage campaigns and track ROI"
         >
-          <div className="flex justify-center mt-4">
+          <div className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -135,7 +136,7 @@ export default function CampaignsPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 md:gap-3 mb-2 flex-wrap">
                     <h3 className="text-lg md:text-xl font-semibold truncate">{campaign.name}</h3>
-                    <Badge className={`${getStatusColor(campaign.status)} text-white px-2 md:px-3 py-1 text-xs`}>
+                    <Badge className={`${getStatusColor(campaign.status)} px-2 md:px-3 py-1 text-xs`}>
                       {campaign.status}
                     </Badge>
                   </div>

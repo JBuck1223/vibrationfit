@@ -172,9 +172,9 @@ function MessageBubble({ message }: { message: Message }) {
           <Badge
             className="text-xs px-2 py-0.5 bg-neutral-800 text-neutral-400"
           >
-            {message.type === 'email' && '📧 Email'}
-            {message.type === 'sms' && '💬 SMS'}
-            {message.type === 'reply' && '💭 Reply'}
+            {message.type === 'email' && 'Email'}
+            {message.type === 'sms' && 'SMS'}
+            {message.type === 'reply' && 'Reply'}
           </Badge>
 
           {/* Direction Badge */}

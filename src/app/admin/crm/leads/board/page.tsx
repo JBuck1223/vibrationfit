@@ -85,7 +85,7 @@ export default function LeadsBoardPage() {
       // ✅ API succeeded, optimistic update is now confirmed
     } catch (error) {
       console.error('Error updating lead:', error)
-      alert('Failed to update lead status')
+      // Error already logged
     }
   }
 

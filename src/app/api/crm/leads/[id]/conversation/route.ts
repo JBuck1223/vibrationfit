@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdminClient, isUserAdmin } from '@/lib/supabase/admin'
 
 export async function GET(
   request: NextRequest,
@@ -21,13 +21,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check if user is admin
-    const isAdmin =
-      user.email === 'buckinghambliss@gmail.com' ||
-      user.email === 'admin@vibrationfit.com' ||
-      user.user_metadata?.is_admin === true
-
-    if (!isAdmin) {
+    if (!isUserAdmin(user)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -44,22 +38,34 @@ export async function GET(
       return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
     }
 
-    // Fetch SMS messages for this lead
-    const { data: smsMessages } = await adminClient
-      .from('sms_messages')
-      .select('*')
-      .eq('lead_id', id)
-      .order('created_at', { ascending: true })
-
-    // Fetch emails (by email address)
-    const { data: emails } = await adminClient
-      .from('email_messages')
-      .select('*')
-      .or(`from_email.eq.${lead.email},to_email.eq.${lead.email}`)
-      .order('created_at', { ascending: true })
+    // Fetch SMS and emails in parallel
+    const [{ data: smsMessages }, { data: emails }] = await Promise.all([
+      adminClient
+        .from('sms_messages')
+        .select('*')
+        .eq('lead_id', id)
+        .order('created_at', { ascending: true }),
+      // Use separate .eq() calls instead of string interpolation in .or() to prevent filter injection
+      lead.email
+        ? adminClient
+            .from('email_messages')
+            .select('*')
+            .or(`from_email.eq."${lead.email}",to_email.eq."${lead.email}"`)
+            .order('created_at', { ascending: true })
+        : Promise.resolve({ data: [] }),
+    ])
 
     // Combine and sort all messages
-    const allMessages: any[] = []
+    const allMessages: Array<{
+      type: string
+      id: string
+      content: string
+      htmlContent?: string
+      subject?: string
+      direction: string
+      timestamp: string
+      metadata: Record<string, unknown>
+    }> = []
 
     // Add SMS messages
     smsMessages?.forEach((sms) => {
@@ -110,12 +116,11 @@ export async function GET(
         status: lead.status,
       },
     })
-  } catch (error: any) {
-    console.error('❌ Error fetching lead conversation:', error)
+  } catch (error: unknown) {
+    console.error('Error fetching lead conversation:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     )
   }
 }
-

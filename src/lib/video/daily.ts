@@ -400,6 +400,32 @@ export async function createGroupRoom(
 }
 
 /**
+ * Create an Alignment Gym room (unlimited participants, host-led)
+ * Members join with camera/mic off by default; no waiting room.
+ */
+export async function createAlignmentGymRoom(
+  scheduledAt: Date,
+  durationMinutes = 90
+): Promise<DailyRoom> {
+  const expirationTime = new Date(scheduledAt)
+  expirationTime.setMinutes(expirationTime.getMinutes() + durationMinutes + 30)
+  
+  return createRoom({
+    properties: {
+      // No max_participants — Daily.co bills by minutes, no cap needed
+      enable_knocking: false,         // No waiting room — open to all members
+      enable_screenshare: true,
+      enable_chat: true,
+      enable_recording: 'cloud',
+      enable_prejoin_ui: true,
+      start_video_off: true,          // Members join with camera off
+      start_audio_off: true,          // Members join muted
+      exp: Math.floor(expirationTime.getTime() / 1000),
+    },
+  })
+}
+
+/**
  * Create a webinar/large event room
  */
 export async function createWebinarRoom(
@@ -411,7 +437,7 @@ export async function createWebinarRoom(
   
   return createRoom({
     properties: {
-      max_participants: 1000,       // Real-time participants
+      // No max_participants — Daily.co bills by minutes, no cap needed
       enable_knocking: false,       // No waiting room for webinars
       enable_screenshare: true,
       enable_chat: true,

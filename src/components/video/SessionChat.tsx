@@ -5,11 +5,12 @@
  * 
  * YouTube-live style chat feed for video sessions.
  * Uses Supabase realtime for instant message updates.
+ * Host can highlight/pin a message to display it prominently.
  */
 
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Send, MessageCircle, X } from 'lucide-react'
+import { Send, MessageCircle, X, Pin, PinOff, Sparkles } from 'lucide-react'
 import { Button, Spinner } from '@/lib/design-system/components'
 
 interface ChatMessage {
@@ -29,6 +30,8 @@ interface SessionChatProps {
   currentUserName?: string
   isHost?: boolean
   onClose?: () => void
+  /** Callback when a message is highlighted — parent can display it prominently */
+  onHighlightChange?: (message: ChatMessage | null) => void
 }
 
 export function SessionChat({
@@ -37,6 +40,7 @@ export function SessionChat({
   currentUserName = 'You',
   isHost = false,
   onClose,
+  onHighlightChange,
 }: SessionChatProps) {
   const supabase = createClient()
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -44,6 +48,8 @@ export function SessionChat({
   const [isLoading, setIsLoading] = useState(true)
   const [isSending, setIsSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [highlightedId, setHighlightedId] = useState<string | null>(null)
+  const [highlightingId, setHighlightingId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -52,18 +58,26 @@ export function SessionChat({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [])
 
-  // Fetch initial messages
+  // Fetch initial messages + highlighted state
   useEffect(() => {
     const fetchMessages = async () => {
       try {
-        const response = await fetch(`/api/video/sessions/${sessionId}/messages`)
-        const data = await response.json()
+        const [messagesRes, highlightRes] = await Promise.all([
+          fetch(`/api/video/sessions/${sessionId}/messages`),
+          fetch(`/api/video/sessions/${sessionId}/highlight`),
+        ])
+        const messagesData = await messagesRes.json()
+        const highlightData = await highlightRes.json()
 
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to load messages')
+        if (!messagesRes.ok) {
+          throw new Error(messagesData.error || 'Failed to load messages')
         }
 
-        setMessages(data.messages || [])
+        setMessages(messagesData.messages || [])
+        if (highlightData.highlighted_message) {
+          setHighlightedId(highlightData.highlighted_message.id)
+          onHighlightChange?.(highlightData.highlighted_message)
+        }
         setError(null)
       } catch (err) {
         console.error('Error fetching messages:', err)
@@ -74,7 +88,7 @@ export function SessionChat({
     }
 
     fetchMessages()
-  }, [sessionId])
+  }, [sessionId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Subscribe to realtime updates
   useEffect(() => {
@@ -91,7 +105,6 @@ export function SessionChat({
         (payload) => {
           const newMsg = payload.new as ChatMessage
           setMessages((prev) => {
-            // Avoid duplicates
             if (prev.some((m) => m.id === newMsg.id)) {
               return prev
             }
@@ -110,6 +123,35 @@ export function SessionChat({
         (payload) => {
           const deletedId = (payload.old as { id: string }).id
           setMessages((prev) => prev.filter((m) => m.id !== deletedId))
+          // Clear highlight if deleted message was highlighted
+          if (deletedId === highlightedId) {
+            setHighlightedId(null)
+            onHighlightChange?.(null)
+          }
+        }
+      )
+      // Listen for highlight changes on the session itself
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'video_sessions',
+          filter: `id=eq.${sessionId}`,
+        },
+        (payload) => {
+          const updated = payload.new as { highlighted_message_id: string | null }
+          setHighlightedId(updated.highlighted_message_id)
+          if (updated.highlighted_message_id) {
+            // Find the message in our local state
+            setMessages((prev) => {
+              const msg = prev.find((m) => m.id === updated.highlighted_message_id)
+              if (msg) onHighlightChange?.(msg)
+              return prev
+            })
+          } else {
+            onHighlightChange?.(null)
+          }
         }
       )
       .subscribe()
@@ -117,12 +159,45 @@ export function SessionChat({
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [sessionId, supabase])
+  }, [sessionId, supabase, highlightedId, onHighlightChange])
 
   // Auto-scroll when messages change
   useEffect(() => {
     scrollToBottom()
   }, [messages, scrollToBottom])
+
+  // Highlight / unhighlight a message (host only)
+  const toggleHighlight = useCallback(async (messageId: string) => {
+    if (!isHost) return
+    setHighlightingId(messageId)
+
+    const newHighlightId = highlightedId === messageId ? null : messageId
+
+    try {
+      const response = await fetch(`/api/video/sessions/${sessionId}/highlight`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message_id: newHighlightId }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update highlight')
+      }
+
+      setHighlightedId(newHighlightId)
+
+      if (newHighlightId) {
+        const msg = messages.find((m) => m.id === newHighlightId)
+        onHighlightChange?.(msg || null)
+      } else {
+        onHighlightChange?.(null)
+      }
+    } catch (err) {
+      console.error('Error toggling highlight:', err)
+    } finally {
+      setHighlightingId(null)
+    }
+  }, [isHost, highlightedId, sessionId, messages, onHighlightChange])
 
   // Send message
   const handleSend = async (e?: React.FormEvent) => {
@@ -133,7 +208,6 @@ export function SessionChat({
 
     setIsSending(true)
 
-    // Optimistic update
     const optimisticId = `optimistic-${Date.now()}`
     const optimisticMessage: ChatMessage = {
       id: optimisticId,
@@ -159,15 +233,12 @@ export function SessionChat({
         throw new Error('Failed to send message')
       }
 
-      // Replace optimistic message with real one (realtime will handle this,
-      // but we remove the optimistic one to avoid brief duplicate)
       const data = await response.json()
       setMessages((prev) =>
         prev.map((m) => (m.id === optimisticId ? data.message : m))
       )
     } catch (err) {
       console.error('Error sending message:', err)
-      // Remove optimistic message on error
       setMessages((prev) => prev.filter((m) => m.id !== optimisticId))
       setError('Failed to send message')
     } finally {
@@ -176,7 +247,6 @@ export function SessionChat({
     }
   }
 
-  // Format time
   const formatTime = (dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleTimeString('en-US', {
@@ -185,7 +255,6 @@ export function SessionChat({
     })
   }
 
-  // Get initials for avatar
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -195,7 +264,6 @@ export function SessionChat({
       .slice(0, 2)
   }
 
-  // Check if message is from current user
   const isOwnMessage = (msg: ChatMessage) => {
     return msg.user_id === currentUserId
   }
@@ -221,6 +289,39 @@ export function SessionChat({
         )}
       </div>
 
+      {/* Highlighted Message Banner */}
+      {highlightedId && (() => {
+        const hlMsg = messages.find((m) => m.id === highlightedId)
+        if (!hlMsg) return null
+        return (
+          <div className="mx-3 mt-3 p-3 bg-gradient-to-r from-energy-500/20 to-primary-500/20 border border-energy-500/40 rounded-xl">
+            <div className="flex items-start gap-2">
+              <Sparkles className="w-4 h-4 text-energy-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] text-energy-500 font-medium uppercase tracking-wider mb-0.5">
+                  Highlighted
+                </p>
+                <p className="text-sm text-white font-medium">
+                  {hlMsg.sender_name}
+                </p>
+                <p className="text-sm text-neutral-200 mt-0.5">
+                  {hlMsg.message}
+                </p>
+              </div>
+              {isHost && (
+                <button
+                  onClick={() => toggleHighlight(highlightedId)}
+                  className="p-1 hover:bg-neutral-700 rounded-full transition-colors flex-shrink-0"
+                  title="Remove highlight"
+                >
+                  <PinOff className="w-3.5 h-3.5 text-neutral-400" />
+                </button>
+              )}
+            </div>
+          </div>
+        )
+      })()}
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
         {isLoading ? (
@@ -234,54 +335,88 @@ export function SessionChat({
             No messages yet. Start the conversation!
           </div>
         ) : (
-          messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex gap-2 ${
-                isOwnMessage(msg) ? 'flex-row-reverse' : ''
-              }`}
-            >
-              {/* Avatar */}
+          messages.map((msg) => {
+            const isHighlighted = msg.id === highlightedId
+            return (
               <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-medium ${
-                  isOwnMessage(msg)
-                    ? 'bg-primary-500/20 text-primary-500'
-                    : 'bg-secondary-500/20 text-secondary-500'
-                }`}
+                key={msg.id}
+                className={`group flex gap-2 ${
+                  isOwnMessage(msg) ? 'flex-row-reverse' : ''
+                } ${isHighlighted ? 'relative' : ''}`}
               >
-                {getInitials(msg.sender_name)}
-              </div>
-
-              {/* Message bubble */}
-              <div
-                className={`max-w-[75%] ${
-                  isOwnMessage(msg) ? 'text-right' : ''
-                }`}
-              >
-                <div className="flex items-baseline gap-2 mb-0.5">
-                  <span
-                    className={`text-xs font-medium ${
-                      isOwnMessage(msg) ? 'text-primary-400' : 'text-white'
-                    }`}
-                  >
-                    {isOwnMessage(msg) ? 'You' : msg.sender_name}
-                  </span>
-                  <span className="text-[10px] text-neutral-500">
-                    {formatTime(msg.sent_at)}
-                  </span>
-                </div>
+                {/* Avatar */}
                 <div
-                  className={`inline-block px-3 py-1.5 rounded-2xl text-sm ${
-                    isOwnMessage(msg)
-                      ? 'bg-primary-500/20 text-white'
-                      : 'bg-neutral-800 text-neutral-200'
+                  className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-medium ${
+                    isHighlighted
+                      ? 'bg-energy-500/30 text-energy-500'
+                      : isOwnMessage(msg)
+                        ? 'bg-primary-500/20 text-primary-500'
+                        : 'bg-secondary-500/20 text-secondary-500'
                   }`}
                 >
-                  {msg.message}
+                  {getInitials(msg.sender_name)}
                 </div>
+
+                {/* Message bubble */}
+                <div
+                  className={`max-w-[75%] ${
+                    isOwnMessage(msg) ? 'text-right' : ''
+                  }`}
+                >
+                  <div className="flex items-baseline gap-2 mb-0.5">
+                    <span
+                      className={`text-xs font-medium ${
+                        isHighlighted
+                          ? 'text-energy-500'
+                          : isOwnMessage(msg) ? 'text-primary-400' : 'text-white'
+                      }`}
+                    >
+                      {isOwnMessage(msg) ? 'You' : msg.sender_name}
+                    </span>
+                    <span className="text-[10px] text-neutral-500">
+                      {formatTime(msg.sent_at)}
+                    </span>
+                    {isHighlighted && (
+                      <Pin className="w-3 h-3 text-energy-500" />
+                    )}
+                  </div>
+                  <div
+                    className={`inline-block px-3 py-1.5 rounded-2xl text-sm ${
+                      isHighlighted
+                        ? 'bg-energy-500/20 text-white border border-energy-500/30'
+                        : isOwnMessage(msg)
+                          ? 'bg-primary-500/20 text-white'
+                          : 'bg-neutral-800 text-neutral-200'
+                    }`}
+                  >
+                    {msg.message}
+                  </div>
+                </div>
+
+                {/* Host highlight button (shows on hover) */}
+                {isHost && !msg.id.startsWith('optimistic-') && (
+                  <button
+                    onClick={() => toggleHighlight(msg.id)}
+                    disabled={highlightingId === msg.id}
+                    className={`self-center opacity-0 group-hover:opacity-100 p-1 rounded-full transition-all flex-shrink-0 ${
+                      isHighlighted
+                        ? 'bg-energy-500/20 text-energy-500 opacity-100'
+                        : 'hover:bg-neutral-700 text-neutral-500 hover:text-white'
+                    }`}
+                    title={isHighlighted ? 'Remove highlight' : 'Highlight message'}
+                  >
+                    {highlightingId === msg.id ? (
+                      <Spinner size="sm" />
+                    ) : isHighlighted ? (
+                      <PinOff className="w-3.5 h-3.5" />
+                    ) : (
+                      <Pin className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                )}
               </div>
-            </div>
-          ))
+            )
+          })
         )}
         <div ref={messagesEndRef} />
       </div>

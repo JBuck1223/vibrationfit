@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdminClient, isUserAdmin } from '@/lib/supabase/admin'
 import { sendEmail } from '@/lib/email/aws-ses'
 import { generatePersonalMessageEmail } from '@/lib/email/templates/personal-message'
 
@@ -13,7 +13,6 @@ export async function GET(
 ) {
   try {
     const { id: ticketId } = await params
-    console.log('🔍 Fetching replies for ticket:', ticketId)
 
     const supabase = await createClient()
     const {
@@ -21,13 +20,28 @@ export async function GET(
     } = await supabase.auth.getUser()
 
     if (!user) {
-      console.log('❌ No user authenticated')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    console.log('✅ User authenticated:', user.email)
-
     const adminClient = createAdminClient()
+    const isAdmin = isUserAdmin(user)
+
+    // If not admin, verify user owns this ticket
+    if (!isAdmin) {
+      const { data: ticket, error: ticketError } = await adminClient
+        .from('support_tickets')
+        .select('user_id')
+        .eq('id', ticketId)
+        .single()
+
+      if (ticketError || !ticket) {
+        return NextResponse.json({ error: 'Ticket not found' }, { status: 404 })
+      }
+
+      if (ticket.user_id !== user.id) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
+    }
 
     const { data: replies, error } = await adminClient
       .from('support_ticket_replies')
@@ -36,14 +50,9 @@ export async function GET(
       .order('created_at', { ascending: true })
 
     if (error) {
-      console.error('❌ Database error fetching replies:', error)
-      return NextResponse.json({ 
-        error: 'Failed to fetch replies', 
-        details: error.message 
-      }, { status: 500 })
+      console.error('Error fetching replies:', error)
+      return NextResponse.json({ error: 'Failed to fetch replies' }, { status: 500 })
     }
-
-    console.log('✅ Found replies:', replies?.length || 0)
 
     // Map to frontend format
     const formattedReplies = (replies || []).map(reply => ({
@@ -53,16 +62,13 @@ export async function GET(
       reply: reply.message,
       is_internal: reply.is_staff,
       created_at: reply.created_at,
-      admin: { email: 'Admin' }, // Will show as "Admin" for now
+      admin: { email: 'Admin' },
     }))
 
     return NextResponse.json({ replies: formattedReplies })
-  } catch (error: any) {
-    console.error('❌ Error in replies GET API:', error)
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      details: error.message 
-    }, { status: 500 })
+  } catch (error: unknown) {
+    console.error('Error in replies GET API:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
@@ -81,13 +87,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check if admin
-    const isAdmin =
-      user.email === 'buckinghambliss@gmail.com' ||
-      user.email === 'admin@vibrationfit.com' ||
-      user.user_metadata?.is_admin === true
-
-    if (!isAdmin) {
+    if (!isUserAdmin(user)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -107,7 +107,7 @@ export async function POST(
       .single()
 
     if (ticketError || !ticket) {
-      console.error('❌ Error fetching ticket:', ticketError)
+      console.error('Error fetching ticket:', ticketError)
       return NextResponse.json({ error: 'Ticket not found' }, { status: 404 })
     }
 
@@ -118,13 +118,13 @@ export async function POST(
         ticket_id: ticketId,
         user_id: user.id,
         message: reply,
-        is_staff: is_internal || false,
+        is_staff: true,
       })
       .select()
       .single()
 
     if (replyError) {
-      console.error('❌ Error inserting reply:', replyError)
+      console.error('Error inserting reply:', replyError)
       return NextResponse.json({ error: 'Failed to create reply' }, { status: 500 })
     }
 
@@ -134,8 +134,6 @@ export async function POST(
         const customerEmail = ticket.guest_email
 
         if (customerEmail) {
-          console.log('📤 Sending reply notification to:', customerEmail)
-
           const emailContent = generatePersonalMessageEmail({
             recipientName: undefined,
             senderName: 'VibrationFit Support Team',
@@ -162,17 +160,11 @@ export async function POST(
             direction: 'outbound',
             status: 'sent',
           })
-
-          console.log('✅ Reply notification email sent to:', customerEmail)
-        } else {
-          console.log('⚠️ No email address found for ticket - skipping email notification')
         }
       } catch (emailError) {
-        console.error('❌ Error sending reply notification email:', emailError)
+        console.error('Error sending reply notification email:', emailError)
         // Don't fail the request if email fails
       }
-    } else {
-      console.log('📝 Internal note - no email sent')
     }
 
     // Format response to match frontend expectations
@@ -187,8 +179,8 @@ export async function POST(
     }
 
     return NextResponse.json({ reply: formattedReply })
-  } catch (error: any) {
-    console.error('❌ Error in replies POST API:', error)
+  } catch (error: unknown) {
+    console.error('Error in replies POST API:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

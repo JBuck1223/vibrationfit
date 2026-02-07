@@ -67,15 +67,14 @@ export default function AlignmentGymPage() {
       }
       setUserId(user.id)
 
-      // Fetch group sessions (Alignment Gym sessions)
-      // These are sessions where session_type = 'group' or title contains 'Alignment Gym'
+      // Fetch Alignment Gym sessions (dedicated type + legacy group sessions)
       const { data: sessionsData, error: sessionsError } = await supabase
         .from('video_sessions')
         .select(`
           *,
           participants:video_session_participants(*)
         `)
-        .or('session_type.eq.group,title.ilike.%alignment gym%')
+        .or('session_type.eq.alignment_gym,session_type.eq.group,title.ilike.%alignment gym%')
         .order('scheduled_at', { ascending: false })
 
       if (sessionsError) {

@@ -32,6 +32,7 @@ export default function LeadsPage() {
   }, [filter])
 
   async function fetchLeads() {
+    setLoading(true)
     try {
       const params = new URLSearchParams()
       if (filter !== 'all') {
@@ -53,17 +54,17 @@ export default function LeadsPage() {
   function getStatusColor(status: string) {
     switch (status) {
       case 'converted':
-        return 'bg-primary-500'
+        return 'bg-primary-500 text-black'
       case 'qualified':
-        return 'bg-secondary-500'
+        return 'bg-secondary-500 text-black'
       case 'contacted':
-        return 'bg-[#FFB701]'
+        return 'bg-[#FFB701] text-black'
       case 'new':
-        return 'bg-[#8B5CF6]'
+        return 'bg-[#8B5CF6] text-white'
       case 'lost':
-        return 'bg-[#666666]'
+        return 'bg-[#666666] text-white'
       default:
-        return 'bg-[#666666]'
+        return 'bg-[#666666] text-white'
     }
   }
 
@@ -96,7 +97,7 @@ export default function LeadsPage() {
           title="Leads"
           subtitle={`${leads.length} total leads`}
         >
-          <div className="flex justify-center mt-4">
+          <div className="flex gap-2">
             <Button 
               variant="outline" 
               size="sm"
@@ -170,7 +171,7 @@ export default function LeadsPage() {
                       </div>
                     </td>
                     <td className="py-3 md:py-4 px-3 md:px-4">
-                      <Badge className={`${getStatusColor(lead.status)} text-white px-2 py-1 text-xs`}>
+                      <Badge className={`${getStatusColor(lead.status)} px-2 py-1 text-xs`}>
                         {lead.status}
                       </Badge>
                     </td>

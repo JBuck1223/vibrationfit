@@ -14,6 +14,7 @@ import {
 } from '@/lib/design-system/components'
 import { ArrowLeft, Mail, MessageSquare, Phone, Calendar, RefreshCw } from 'lucide-react'
 import { ConversationThread } from '@/components/crm/ConversationThread'
+import { toast } from 'sonner'
 
 interface Lead {
   id: string
@@ -56,7 +57,7 @@ export default function LeadDetailPage() {
       setLead(data.lead)
     } catch (error) {
       console.error('Error fetching lead:', error)
-      alert('Failed to load lead')
+      toast.error('Failed to load lead')
     } finally {
       setLoading(false)
     }
@@ -80,17 +81,17 @@ export default function LeadDetailPage() {
   function getStatusColor(status: string) {
     switch (status) {
       case 'new':
-        return 'bg-[#8B5CF6]'
+        return 'bg-[#8B5CF6] text-white'
       case 'contacted':
-        return 'bg-[#FFB701]'
+        return 'bg-[#FFB701] text-black'
       case 'qualified':
-        return 'bg-secondary-500'
+        return 'bg-secondary-500 text-black'
       case 'converted':
-        return 'bg-primary-500'
+        return 'bg-primary-500 text-black'
       case 'lost':
-        return 'bg-[#666666]'
+        return 'bg-[#666666] text-white'
       default:
-        return 'bg-neutral-600'
+        return 'bg-neutral-600 text-white'
     }
   }
 
@@ -138,7 +139,7 @@ export default function LeadDetailPage() {
           title={`${lead.first_name} ${lead.last_name}`}
           subtitle={lead.type}
         >
-          <div className="flex flex-wrap gap-3 mt-4">
+          <div className="flex flex-wrap gap-3">
             <Badge className={`${getStatusColor(lead.status)} px-3 py-1`}>
               {lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
             </Badge>

@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Card, Container, Spinner, Stack, PageHero } from '@/lib/design-system/components'
 import { RefreshCw } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface DashboardStats {
   totalMembers: number
@@ -23,6 +24,7 @@ export default function CRMDashboardPage() {
   const router = useRouter()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [updating, setUpdating] = useState(false)
 
   useEffect(() => {
@@ -31,48 +33,52 @@ export default function CRMDashboardPage() {
 
   async function fetchDashboardStats() {
     try {
-      // Fetch members
-      const membersRes = await fetch('/api/crm/members')
-      const membersData = await membersRes.json()
+      setError(null)
+
+      // Fetch all data in parallel
+      const [membersRes, leadsRes, ticketsRes] = await Promise.all([
+        fetch('/api/crm/members'),
+        fetch('/api/crm/leads'),
+        fetch('/api/support/tickets'),
+      ])
+
+      const [membersData, leadsData, ticketsData] = await Promise.all([
+        membersRes.json(),
+        leadsRes.json(),
+        ticketsRes.json(),
+      ])
+
       const members = membersData.members || []
-
-      // Fetch leads
-      const leadsRes = await fetch('/api/crm/leads')
-      const leadsData = await leadsRes.json()
       const leads = leadsData.leads || []
-
-      // Fetch tickets
-      const ticketsRes = await fetch('/api/support/tickets')
-      const ticketsData = await ticketsRes.json()
       const tickets = ticketsData.tickets || []
 
       // Calculate stats
       const stats: DashboardStats = {
         totalMembers: members.length,
         activeMembers: members.filter(
-          (c: any) => c.engagement_status === 'active' || c.engagement_status === 'champion'
+          (c: Record<string, unknown>) => c.engagement_status === 'active' || c.engagement_status === 'champion'
         ).length,
-        atRiskMembers: members.filter((c: any) => c.engagement_status === 'at_risk').length,
-        churnedMembers: members.filter((c: any) => c.health_status === 'churned').length,
+        atRiskMembers: members.filter((c: Record<string, unknown>) => c.engagement_status === 'at_risk').length,
+        churnedMembers: members.filter((c: Record<string, unknown>) => c.health_status === 'churned').length,
         totalLeads: leads.length,
-        convertedLeads: leads.filter((l: any) => l.status === 'converted').length,
+        convertedLeads: leads.filter((l: Record<string, unknown>) => l.status === 'converted').length,
         openTickets: tickets.filter(
-          (t: any) => t.status === 'new' || t.status === 'in_progress'
+          (t: Record<string, unknown>) => t.status === 'new' || t.status === 'open' || t.status === 'in_progress'
         ).length,
-        totalMRR: members.reduce((sum: number, c: any) => sum + (c.mrr || 0), 0),
+        totalMRR: members.reduce((sum: number, c: Record<string, unknown>) => sum + ((c.mrr as number) || 0), 0),
       }
 
       setStats(stats)
-    } catch (error) {
-      console.error('Error fetching dashboard stats:', error)
+    } catch (err) {
+      console.error('Error fetching dashboard stats:', err)
+      setError('Failed to load dashboard data')
+      toast.error('Failed to load dashboard data')
     } finally {
       setLoading(false)
     }
   }
 
   async function handleUpdateMetrics() {
-    if (!confirm('Update all user activity metrics? This may take a few minutes.')) return
-
     setUpdating(true)
     try {
       const response = await fetch('/api/crm/metrics/update', {
@@ -83,11 +89,11 @@ export default function CRMDashboardPage() {
       if (!response.ok) throw new Error('Failed to update metrics')
 
       const result = await response.json()
-      alert(`Successfully updated metrics for ${result.usersProcessed} users!`)
+      toast.success(`Updated metrics for ${result.usersProcessed} users`)
       fetchDashboardStats()
-    } catch (error: any) {
-      console.error('Error updating metrics:', error)
-      alert('Failed to update metrics')
+    } catch (err) {
+      console.error('Error updating metrics:', err)
+      toast.error('Failed to update metrics')
     } finally {
       setUpdating(false)
     }
@@ -109,7 +115,7 @@ export default function CRMDashboardPage() {
           title="CRM Dashboard"
           subtitle="Overview of your business metrics"
         >
-          <div className="flex flex-wrap gap-2 justify-center mt-4">
+          <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -130,126 +136,130 @@ export default function CRMDashboardPage() {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-        <Button variant="outline" size="sm" onClick={() => router.push('/admin/crm/members')}>
-          Members
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => router.push('/admin/crm/leads')}>
-          Leads
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => router.push('/admin/crm/campaigns')}>
-          Campaigns
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => router.push('/admin/crm/support/board')}>
-          Support
-        </Button>
-      </div>
+          <Button variant="outline" size="sm" onClick={() => router.push('/admin/crm/members')}>
+            Members
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => router.push('/admin/crm/leads')}>
+            Leads
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => router.push('/admin/crm/campaigns')}>
+            Campaigns
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => router.push('/admin/crm/support/board')}>
+            Support
+          </Button>
+        </div>
 
-      {/* Stats Grid */}
-      {stats && (
-        <>
-          <h2 className="text-xl md:text-2xl font-semibold">Member Metrics</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-            <Card className="text-center p-4 md:p-6">
-              <div className="text-2xl md:text-3xl font-bold text-primary-500">
-                {stats.totalMembers}
-              </div>
-              <div className="text-xs md:text-sm text-neutral-400 mt-2">Total Members</div>
-            </Card>
+        {/* Error State */}
+        {error && (
+          <Card className="text-center p-6 border-[#D03739]">
+            <p className="text-[#D03739] mb-3">{error}</p>
+            <Button variant="outline" size="sm" onClick={fetchDashboardStats}>
+              Retry
+            </Button>
+          </Card>
+        )}
 
-            <Card className="text-center p-4 md:p-6">
-              <div className="text-2xl md:text-3xl font-bold text-secondary-500">
-                {stats.activeMembers}
-              </div>
-              <div className="text-xs md:text-sm text-neutral-400 mt-2">Active</div>
-            </Card>
+        {/* Stats Grid */}
+        {stats && (
+          <>
+            <h2 className="text-xl md:text-2xl font-semibold">Member Metrics</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+              <Card className="text-center p-4 md:p-6">
+                <div className="text-2xl md:text-3xl font-bold text-primary-500">
+                  {stats.totalMembers}
+                </div>
+                <div className="text-xs md:text-sm text-neutral-400 mt-2">Total Members</div>
+              </Card>
 
-            <Card className="text-center p-4 md:p-6">
-              <div className="text-2xl md:text-3xl font-bold text-[#FFB701]">
-                {stats.atRiskMembers}
-              </div>
-              <div className="text-xs md:text-sm text-neutral-400 mt-2">At Risk</div>
-            </Card>
+              <Card className="text-center p-4 md:p-6">
+                <div className="text-2xl md:text-3xl font-bold text-secondary-500">
+                  {stats.activeMembers}
+                </div>
+                <div className="text-xs md:text-sm text-neutral-400 mt-2">Active</div>
+              </Card>
 
-            <Card className="text-center p-4 md:p-6">
-              <div className="text-2xl md:text-3xl font-bold text-[#D03739]">
-                {stats.churnedMembers}
-              </div>
-              <div className="text-xs md:text-sm text-neutral-400 mt-2">Churned</div>
-            </Card>
-          </div>
+              <Card className="text-center p-4 md:p-6">
+                <div className="text-2xl md:text-3xl font-bold text-[#FFB701]">
+                  {stats.atRiskMembers}
+                </div>
+                <div className="text-xs md:text-sm text-neutral-400 mt-2">At Risk</div>
+              </Card>
 
-          <h2 className="text-xl md:text-2xl font-semibold">Revenue & Pipeline</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-            <Card className="text-center p-4 md:p-6">
-              <div className="text-2xl md:text-3xl font-bold text-[#8B5CF6]">
-                ${stats.totalMRR.toFixed(0)}
-              </div>
-              <div className="text-xs md:text-sm text-neutral-400 mt-2">Total MRR</div>
-            </Card>
+              <Card className="text-center p-4 md:p-6">
+                <div className="text-2xl md:text-3xl font-bold text-[#D03739]">
+                  {stats.churnedMembers}
+                </div>
+                <div className="text-xs md:text-sm text-neutral-400 mt-2">Churned</div>
+              </Card>
+            </div>
 
-            <Card className="text-center p-4 md:p-6">
-              <div className="text-2xl md:text-3xl font-bold text-primary-500">
-                {stats.totalLeads}
-              </div>
-              <div className="text-xs md:text-sm text-neutral-400 mt-2">Total Leads</div>
-            </Card>
+            <h2 className="text-xl md:text-2xl font-semibold">Revenue & Pipeline</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+              <Card className="text-center p-4 md:p-6">
+                <div className="text-2xl md:text-3xl font-bold text-[#8B5CF6]">
+                  ${stats.totalMRR.toFixed(0)}
+                </div>
+                <div className="text-xs md:text-sm text-neutral-400 mt-2">Total MRR</div>
+              </Card>
 
-            <Card className="text-center p-4 md:p-6">
-              <div className="text-2xl md:text-3xl font-bold text-secondary-500">
-                {stats.convertedLeads}
-              </div>
-              <div className="text-xs md:text-sm text-neutral-400 mt-2">Converted</div>
-            </Card>
+              <Card className="text-center p-4 md:p-6">
+                <div className="text-2xl md:text-3xl font-bold text-primary-500">
+                  {stats.totalLeads}
+                </div>
+                <div className="text-xs md:text-sm text-neutral-400 mt-2">Total Leads</div>
+              </Card>
 
-            <Card className="text-center p-4 md:p-6">
-              <div className="text-2xl md:text-3xl font-bold text-[#FFB701]">
-                {stats.openTickets}
-              </div>
-              <div className="text-xs md:text-sm text-neutral-400 mt-2">Open Tickets</div>
-            </Card>
-          </div>
+              <Card className="text-center p-4 md:p-6">
+                <div className="text-2xl md:text-3xl font-bold text-secondary-500">
+                  {stats.convertedLeads}
+                </div>
+                <div className="text-xs md:text-sm text-neutral-400 mt-2">Converted</div>
+              </Card>
 
-          {/* Conversion Rate */}
-          <Card className="p-4 md:p-6 lg:p-8">
-            <h3 className="text-lg md:text-xl font-semibold mb-4">Lead Conversion Rate</h3>
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <div className="h-4 bg-[#1F1F1F] rounded-full overflow-hidden">
+              <Card className="text-center p-4 md:p-6">
+                <div className="text-2xl md:text-3xl font-bold text-[#FFB701]">
+                  {stats.openTickets}
+                </div>
+                <div className="text-xs md:text-sm text-neutral-400 mt-2">Open Tickets</div>
+              </Card>
+            </div>
+
+            {/* Conversion Rate */}
+            <Card className="p-4 md:p-6 lg:p-8">
+              <h3 className="text-lg md:text-xl font-semibold mb-4">Lead Conversion Rate</h3>
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
                   <div
-                    className="h-full bg-gradient-to-r from-primary-500 to-secondary-500"
-                    style={{
-                      width: `${
-                        stats.totalLeads > 0
-                          ? (stats.convertedLeads / stats.totalLeads) * 100
-                          : 0
-                      }%`,
-                    }}
-                  />
+                    className="h-4 bg-[#1F1F1F] rounded-full overflow-hidden"
+                    role="progressbar"
+                    aria-valuenow={stats.totalLeads > 0 ? Math.round((stats.convertedLeads / stats.totalLeads) * 100) : 0}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                  >
+                    <div
+                      className="h-full bg-primary-500"
+                      style={{
+                        width: `${
+                          stats.totalLeads > 0
+                            ? (stats.convertedLeads / stats.totalLeads) * 100
+                            : 0
+                        }%`,
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className="text-xl md:text-2xl font-bold text-primary-500">
+                  {stats.totalLeads > 0
+                    ? Math.round((stats.convertedLeads / stats.totalLeads) * 100)
+                    : 0}
+                  %
                 </div>
               </div>
-              <div className="text-xl md:text-2xl font-bold text-primary-500">
-                {stats.totalLeads > 0
-                  ? Math.round((stats.convertedLeads / stats.totalLeads) * 100)
-                  : 0}
-                %
-              </div>
-            </div>
-          </Card>
-        </>
-      )}
+            </Card>
+          </>
+        )}
       </Stack>
     </Container>
   )
 }
-
-
-
-
-
-
-
-
-
-
-
-

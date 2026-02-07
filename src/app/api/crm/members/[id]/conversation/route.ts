@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdminClient, isUserAdmin } from '@/lib/supabase/admin'
 
 export async function GET(
   request: NextRequest,
@@ -21,54 +21,56 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check if user is admin
-    const isAdmin =
-      user.email === 'buckinghambliss@gmail.com' ||
-      user.email === 'admin@vibrationfit.com' ||
-      user.user_metadata?.is_admin === true
-
-    if (!isAdmin) {
+    if (!isUserAdmin(user)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const adminClient = createAdminClient()
 
-    // Get member details (user_profiles) - optional, just for metadata
-    const { data: member } = await adminClient
-      .from('user_profiles')
-      .select('*')
-      .eq('user_id', id)
-      .single()
+    // Get member details and auth user in parallel
+    const [{ data: member }, { data: authUser }] = await Promise.all([
+      adminClient
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', id)
+        .single(),
+      adminClient.auth.admin.getUserById(id),
+    ])
 
-    // Get user's email from auth.users
-    const { data: authUser } = await adminClient.auth.admin.getUserById(id)
     const userEmail = authUser?.user?.email || member?.email
 
-    // Fetch SMS messages for this member
-    const { data: smsMessages } = await adminClient
-      .from('sms_messages')
-      .select('*')
-      .eq('user_id', id)
-      .order('created_at', { ascending: true })
-
-    // Fetch emails for this member (by email address OR user_id)
-    let emailQuery = adminClient
-      .from('email_messages')
-      .select('*')
-      .order('created_at', { ascending: true })
-
-    if (userEmail) {
-      // Search by email address (catches both inbound and outbound)
-      emailQuery = emailQuery.or(`from_email.eq.${userEmail},to_email.eq.${userEmail},user_id.eq.${id}`)
-    } else {
-      // Fallback to user_id only
-      emailQuery = emailQuery.eq('user_id', id)
-    }
-
-    const { data: emails } = await emailQuery
+    // Fetch SMS and emails in parallel
+    const [{ data: smsMessages }, { data: emails }] = await Promise.all([
+      adminClient
+        .from('sms_messages')
+        .select('*')
+        .eq('user_id', id)
+        .order('created_at', { ascending: true }),
+      // Use quoted values in .or() to prevent filter injection
+      userEmail
+        ? adminClient
+            .from('email_messages')
+            .select('*')
+            .or(`from_email.eq."${userEmail}",to_email.eq."${userEmail}",user_id.eq.${id}`)
+            .order('created_at', { ascending: true })
+        : adminClient
+            .from('email_messages')
+            .select('*')
+            .eq('user_id', id)
+            .order('created_at', { ascending: true }),
+    ])
 
     // Combine and sort all messages
-    const allMessages: any[] = []
+    const allMessages: Array<{
+      type: string
+      id: string
+      content: string
+      htmlContent?: string
+      subject?: string
+      direction: string
+      timestamp: string
+      metadata: Record<string, unknown>
+    }> = []
 
     // Add SMS messages
     smsMessages?.forEach((sms) => {
@@ -118,12 +120,11 @@ export async function GET(
         phone: member.phone,
       } : null,
     })
-  } catch (error: any) {
-    console.error('❌ Error fetching member conversation:', error)
+  } catch (error: unknown) {
+    console.error('Error fetching member conversation:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     )
   }
 }
-

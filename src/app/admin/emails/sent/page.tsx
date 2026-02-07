@@ -90,14 +90,14 @@ export default function SentEmailsPage() {
     switch (status) {
       case 'sent':
       case 'delivered':
-        return 'bg-primary-500'
+        return 'bg-primary-500 text-black'
       case 'failed':
       case 'bounced':
-        return 'bg-[#D03739]'
+        return 'bg-[#D03739] text-white'
       case 'opened':
-        return 'bg-secondary-500'
+        return 'bg-secondary-500 text-black'
       default:
-        return 'bg-neutral-600'
+        return 'bg-neutral-600 text-white'
     }
   }
 
@@ -135,7 +135,7 @@ export default function SentEmailsPage() {
           />
           <div className="flex gap-2">
             <Button
-              variant="secondary"
+              variant="outline"
               size="sm"
               onClick={syncEmails}
               disabled={syncing}
@@ -145,7 +145,7 @@ export default function SentEmailsPage() {
               {syncing ? 'Syncing...' : 'Sync Emails'}
             </Button>
             <Button
-              variant="secondary"
+              variant="outline"
               size="sm"
               onClick={syncSMSHistory}
               disabled={syncingSMS}
@@ -215,7 +215,7 @@ export default function SentEmailsPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2">
-                      <Badge className={`${getStatusColor(email.status)} text-white px-2 py-1 text-xs`}>
+                      <Badge className={`${getStatusColor(email.status)} px-2 py-1 text-xs`}>
                         {email.status}
                       </Badge>
                       <Badge className="bg-[#1F1F1F] text-neutral-400 px-2 py-1 text-xs flex items-center gap-1">

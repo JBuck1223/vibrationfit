@@ -8,7 +8,7 @@
 // DATABASE TYPES (matching Supabase schema)
 // ============================================================================
 
-export type VideoSessionType = 'one_on_one' | 'group' | 'workshop' | 'webinar'
+export type VideoSessionType = 'one_on_one' | 'group' | 'workshop' | 'webinar' | 'alignment_gym'
 
 export type VideoSessionStatus = 
   | 'scheduled' 
@@ -51,6 +51,7 @@ export interface VideoSession {
   max_participants: number
   host_notes?: string
   session_summary?: string
+  highlighted_message_id?: string
   created_at: string
   updated_at: string
 }
@@ -226,6 +227,7 @@ export function getSessionTypeLabel(type: VideoSessionType): string {
     group: 'Group Session',
     workshop: 'Workshop',
     webinar: 'Live Event',
+    alignment_gym: 'Alignment Gym',
   }
   return labels[type]
 }

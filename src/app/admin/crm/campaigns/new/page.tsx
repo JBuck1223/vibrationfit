@@ -6,7 +6,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Card, Input, Textarea, Container, Stack, PageHero, Select, DatePicker } from '@/lib/design-system/components'
-import { Check, Copy } from 'lucide-react'
+import { Check, Copy, Target, User, Users, BarChart3 } from 'lucide-react'
+import { toast } from 'sonner'
 
 export default function NewCampaignPage() {
   const router = useRouter()
@@ -33,7 +34,8 @@ export default function NewCampaignPage() {
     landing_page_url: '',
     notes: '',
   })
-  const [copied, setCopied] = useState(false)
+  const [copiedSolo, setCopiedSolo] = useState(false)
+  const [copiedHousehold, setCopiedHousehold] = useState(false)
 
   function handleChange(field: string, value: string) {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -73,8 +75,13 @@ export default function NewCampaignPage() {
     const url = buildCampaignURL(planType)
     try {
       await navigator.clipboard.writeText(url)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      if (planType === 'solo') {
+        setCopiedSolo(true)
+        setTimeout(() => setCopiedSolo(false), 2000)
+      } else {
+        setCopiedHousehold(true)
+        setTimeout(() => setCopiedHousehold(false), 2000)
+      }
     } catch (error) {
       console.error('Failed to copy:', error)
     }
@@ -172,7 +179,8 @@ export default function NewCampaignPage() {
       router.push(`/admin/crm/campaigns/${campaign.id}`)
     } catch (error: any) {
       console.error('Error creating campaign:', error)
-      alert(error.message || 'Failed to create campaign')
+      const errMsg = error instanceof Error ? error.message : 'Failed to create campaign'
+      toast.error(errMsg)
     } finally {
       setLoading(false)
     }
@@ -384,7 +392,8 @@ export default function NewCampaignPage() {
         {/* VibrationFit Tracking Parameters */}
         <Card className="p-4 md:p-6 lg:p-8">
           <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">
-            🎯 VibrationFit Tracking
+            <Target className="w-5 h-5 inline mr-2" />
+            VibrationFit Tracking
           </h2>
 
           <div className="space-y-4">
@@ -439,9 +448,9 @@ export default function NewCampaignPage() {
         {/* Generated URLs Preview */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Solo URL */}
-          <Card className="p-4 md:p-6 bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-primary-500/30">
+          <Card className="p-4 md:p-6 bg-primary-500/10 border-primary-500/30">
             <h2 className="text-lg md:text-xl font-semibold mb-3 flex items-center gap-2">
-              👤 Solo Link (1 Seat)
+              <User className="w-5 h-5" /> Solo Link (1 Seat)
             </h2>
             
             <div className="bg-black/50 p-3 rounded-xl mb-3 border border-primary-500/30 min-h-[80px] flex items-center">
@@ -457,11 +466,11 @@ export default function NewCampaignPage() {
                 size="sm"
                 onClick={() => copyURL('solo')}
               >
-                {copied ? <><Check className="w-4 h-4 mr-1" /> Copied!</> : <><Copy className="w-4 h-4 mr-1" /> Copy Solo</>}
+                {copiedSolo ? <><Check className="w-4 h-4 mr-1" /> Copied!</> : <><Copy className="w-4 h-4 mr-1" /> Copy Solo</>}
               </Button>
               <Button
                 type="button"
-                variant="secondary"
+                variant="outline"
                 size="sm"
                 onClick={() => window.open(buildCampaignURL('solo'), '_blank')}
               >
@@ -481,9 +490,9 @@ export default function NewCampaignPage() {
           </Card>
 
           {/* Household URL */}
-          <Card className="p-4 md:p-6 bg-gradient-to-br from-accent-500/10 to-secondary-500/10 border-accent-500/30">
+          <Card className="p-4 md:p-6 bg-accent-500/10 border-accent-500/30">
             <h2 className="text-lg md:text-xl font-semibold mb-3 flex items-center gap-2">
-              👥 Household Link (2 Seats)
+              <Users className="w-5 h-5" /> Household Link (2 Seats)
             </h2>
             
             <div className="bg-black/50 p-3 rounded-xl mb-3 border border-accent-500/30 min-h-[80px] flex items-center">
@@ -499,11 +508,11 @@ export default function NewCampaignPage() {
                 size="sm"
                 onClick={() => copyURL('household')}
               >
-                {copied ? <><Check className="w-4 h-4 mr-1" /> Copied!</> : <><Copy className="w-4 h-4 mr-1" /> Copy Household</>}
+                {copiedHousehold ? <><Check className="w-4 h-4 mr-1" /> Copied!</> : <><Copy className="w-4 h-4 mr-1" /> Copy Household</>}
               </Button>
               <Button
                 type="button"
-                variant="secondary"
+                variant="outline"
                 size="sm"
                 onClick={() => window.open(buildCampaignURL('household'), '_blank')}
               >
@@ -525,7 +534,7 @@ export default function NewCampaignPage() {
 
         {/* What Gets Tracked */}
         <Card className="p-4 md:p-6 bg-neutral-900/50 border-neutral-700">
-          <h3 className="text-base font-semibold mb-3">📊 What Gets Tracked in Database</h3>
+          <h3 className="text-base font-semibold mb-3 flex items-center gap-2"><BarChart3 className="w-4 h-4" /> What Gets Tracked in Database</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <p className="text-xs text-neutral-500 mb-2">URL Parameters:</p>

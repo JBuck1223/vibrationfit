@@ -270,13 +270,12 @@ export default function AdminSessionDetailPage() {
               variant="primary"
               size="sm"
               onClick={() => router.push(`/session/${sessionId}`)}
-              className="bg-gradient-to-r from-primary-500 to-secondary-500"
             >
               <Play className="w-4 h-4 mr-2" />
               Join Session
             </Button>
           )}
-          <Button variant="secondary" size="sm" onClick={copyJoinLink}>
+          <Button variant="outline" size="sm" onClick={copyJoinLink}>
             {copied ? (
               <>
                 <Check className="w-4 h-4 mr-2" />
@@ -374,7 +373,7 @@ export default function AdminSessionDetailPage() {
                 className="bg-neutral-800 border-neutral-700 mb-4"
               />
               <Button
-                variant="secondary"
+                variant="outline"
                 size="sm"
                 onClick={saveNotes}
                 disabled={savingNotes}
@@ -391,7 +390,7 @@ export default function AdminSessionDetailPage() {
                   Recording
                 </h2>
                 <Button
-                  variant="secondary"
+                  variant="outline"
                   size="sm"
                   onClick={() => window.open(session.recording_url!, '_blank')}
                 >
@@ -552,7 +551,7 @@ export default function AdminSessionDetailPage() {
               
               <div className="space-y-2">
                 <Button
-                  variant="secondary"
+                  variant="outline"
                   size="sm"
                   onClick={copyJoinLink}
                   className="w-full justify-start"
@@ -563,7 +562,7 @@ export default function AdminSessionDetailPage() {
 
                 {participant?.email && (
                   <Button
-                    variant="secondary"
+                    variant="outline"
                     size="sm"
                     onClick={openEmailModal}
                     className="w-full justify-start"
@@ -574,7 +573,7 @@ export default function AdminSessionDetailPage() {
                 )}
 
                 <Button
-                  variant="secondary"
+                  variant="outline"
                   size="sm"
                   onClick={() => window.open(session.daily_room_url, '_blank')}
                   className="w-full justify-start"
@@ -714,7 +713,6 @@ export default function AdminSessionDetailPage() {
                       size="sm"
                       onClick={sendInvitation}
                       disabled={sendingEmail || !emailPreview}
-                      className="bg-gradient-to-r from-primary-500 to-secondary-500"
                     >
                       {sendingEmail ? (
                         <>

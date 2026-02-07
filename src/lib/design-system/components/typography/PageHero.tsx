@@ -68,7 +68,7 @@ export const PageHero = React.forwardRef<HTMLDivElement, PageHeroProps>(
 
               {/* Custom Children (video, buttons, etc.) */}
               {children && (
-                <div className="space-y-4 md:space-y-4 lg:space-y-6">
+                <div className="flex flex-col items-center space-y-4 md:space-y-4 lg:space-y-6">
                   {children}
                 </div>
               )}

@@ -272,7 +272,7 @@ function UsersAdminContent() {
           
           <div className="space-y-4">
             {adminUsers.map((user) => (
-              <div key={user.id} className="p-4 md:p-6 bg-gradient-to-r from-primary-500/10 to-secondary-500/10 rounded-xl border border-primary-500/30 space-y-4 md:space-y-6">
+              <div key={user.id} className="p-4 md:p-6 bg-primary-500/10 rounded-xl border border-primary-500/30 space-y-4 md:space-y-6">
                 {/* Header Row */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:justify-between">
                   <div className="flex items-center gap-3 md:gap-4 w-full sm:w-auto">
@@ -287,8 +287,8 @@ function UsersAdminContent() {
                         />
                       </div>
                     ) : (
-                      <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
-                        <Shield className="w-6 h-6 md:w-8 md:h-8 text-white" />
+                      <div className="w-12 h-12 md:w-16 md:h-16 bg-primary-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
+                        <Shield className="w-6 h-6 md:w-8 md:h-8 text-black" />
                       </div>
                     )}
                     <div className="min-w-0 flex-1">

@@ -20,7 +20,8 @@ import {
   Mail,
   Phone,
   CheckCircle,
-  ChevronDown
+  ChevronDown,
+  Dumbbell
 } from 'lucide-react'
 import { 
   PageHero, 
@@ -30,7 +31,9 @@ import {
   Input,
   Textarea,
   Spinner,
-  Stack
+  Stack,
+  DatePicker,
+  TimePicker
 } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
 import type { VideoSessionType } from '@/lib/video/types'
@@ -69,6 +72,10 @@ const SESSION_TYPE_DEFAULTS: Record<VideoSessionType, { title: string; descripti
   group: {
     title: 'Group Session',
     description: 'Join us for a collaborative group session focused on growth and alignment.',
+  },
+  alignment_gym: {
+    title: 'The Alignment Gym',
+    description: 'Weekly live group coaching to keep you calibrated and moving toward your vision. Open to all members.',
   },
   workshop: {
     title: 'Activation Workshop',
@@ -249,7 +256,7 @@ function NewSessionContent() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button 
-                variant="secondary" 
+                variant="outline" 
                 onClick={() => router.push(`/admin/sessions/${createdSessionId}`)}
               >
                 View Session
@@ -284,7 +291,7 @@ function NewSessionContent() {
               <label className="block text-sm font-medium text-neutral-300 mb-3">
                 Session Type
               </label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 <button
                   type="button"
                   onClick={() => handleSessionTypeChange('one_on_one')}
@@ -319,6 +326,24 @@ function NewSessionContent() {
                     formData.session_type === 'group' ? 'text-white' : 'text-neutral-400'
                   }`}>
                     Group
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSessionTypeChange('alignment_gym')}
+                  className={`p-4 rounded-xl border-2 transition-all ${
+                    formData.session_type === 'alignment_gym'
+                      ? 'border-primary-500 bg-primary-500/10'
+                      : 'border-neutral-700 hover:border-neutral-600'
+                  }`}
+                >
+                  <Dumbbell className={`w-6 h-6 mx-auto mb-2 ${
+                    formData.session_type === 'alignment_gym' ? 'text-primary-500' : 'text-neutral-400'
+                  }`} />
+                  <p className={`text-sm font-medium ${
+                    formData.session_type === 'alignment_gym' ? 'text-white' : 'text-neutral-400'
+                  }`}>
+                    Alignment Gym
                   </p>
                 </button>
                 <button
@@ -491,33 +516,18 @@ function NewSessionContent() {
 
             {/* Date & Time */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-2">
-                  <Calendar className="w-4 h-4 inline mr-2" />
-                  Date *
-                </label>
-                <Input
-                  type="date"
-                  value={formData.scheduled_date}
-                  onChange={(e) => handleChange('scheduled_date', e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="bg-neutral-800 border-neutral-700"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-2">
-                  <Clock className="w-4 h-4 inline mr-2" />
-                  Time *
-                </label>
-                <Input
-                  type="time"
-                  value={formData.scheduled_time}
-                  onChange={(e) => handleChange('scheduled_time', e.target.value)}
-                  className="bg-neutral-800 border-neutral-700"
-                  required
-                />
-              </div>
+              <DatePicker
+                label="Date *"
+                value={formData.scheduled_date}
+                onChange={(date) => handleChange('scheduled_date', date)}
+                minDate={new Date().toISOString().split('T')[0]}
+              />
+              <TimePicker
+                label="Time *"
+                value={formData.scheduled_time}
+                onChange={(time) => handleChange('scheduled_time', time)}
+                step={15}
+              />
             </div>
 
             {/* Duration */}
@@ -595,7 +605,7 @@ function NewSessionContent() {
                 type="submit"
                 variant="primary"
                 disabled={loading}
-                className="flex-1 bg-gradient-to-r from-primary-500 to-secondary-500"
+                className="flex-1"
               >
                 {loading ? (
                   <>

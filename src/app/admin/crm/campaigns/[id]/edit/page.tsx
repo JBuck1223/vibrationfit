@@ -5,7 +5,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Button, Card, Input, Textarea, Container, Stack, PageHero, Spinner } from '@/lib/design-system/components'
+import { Button, Card, Input, Textarea, Container, Stack, PageHero, Spinner, DatePicker } from '@/lib/design-system/components'
+import { toast } from 'sonner'
 
 export default function EditCampaignPage() {
   const router = useRouter()
@@ -65,7 +66,7 @@ export default function EditCampaignPage() {
       })
     } catch (error) {
       console.error('Error fetching campaign:', error)
-      alert('Failed to load campaign')
+      toast.error('Failed to load campaign')
     } finally {
       setFetching(false)
     }
@@ -101,7 +102,7 @@ export default function EditCampaignPage() {
       router.push(`/admin/crm/campaigns/${params.id}`)
     } catch (error: any) {
       console.error('Error updating campaign:', error)
-      alert(error.message || 'Failed to update campaign')
+      toast.error('Failed to update campaign')
     } finally {
       setLoading(false)
     }
@@ -177,23 +178,17 @@ export default function EditCampaignPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Start Date</label>
-                <Input
-                  type="date"
-                  value={formData.start_date}
-                  onChange={(e) => handleChange('start_date', e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">End Date</label>
-                <Input
-                  type="date"
-                  value={formData.end_date}
-                  onChange={(e) => handleChange('end_date', e.target.value)}
-                />
-              </div>
+              <DatePicker
+                label="Start Date"
+                value={formData.start_date}
+                onChange={(date) => handleChange('start_date', date)}
+              />
+              <DatePicker
+                label="End Date"
+                value={formData.end_date}
+                onChange={(date) => handleChange('end_date', date)}
+                minDate={formData.start_date || undefined}
+              />
             </div>
 
             <div className="grid grid-cols-3 gap-4">

@@ -1,11 +1,11 @@
 // /src/app/api/crm/metrics/update/route.ts
-
-// Force dynamic rendering (no caching)
-export const dynamic = 'force-dynamic'
 // API endpoint to trigger metrics update
+
+export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { isUserAdmin } from '@/lib/supabase/admin'
 import { updateActivityMetrics } from '@/lib/jobs/update-activity-metrics'
 
 export async function POST(request: NextRequest) {
@@ -19,13 +19,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check if user is admin
-    const isAdmin =
-      user.email === 'buckinghambliss@gmail.com' ||
-      user.email === 'admin@vibrationfit.com' ||
-      user.user_metadata?.is_admin === true
-
-    if (!isAdmin) {
+    if (!isUserAdmin(user)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -33,24 +27,17 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}))
     const userId = body.userId
 
+    // Validate userId format if provided
+    if (userId && typeof userId !== 'string') {
+      return NextResponse.json({ error: 'Invalid userId' }, { status: 400 })
+    }
+
     // Trigger metrics update
     const result = await updateActivityMetrics(userId)
 
     return NextResponse.json(result)
-  } catch (error: any) {
-    console.error('❌ Error in metrics update API:', error)
+  } catch (error: unknown) {
+    console.error('Error in metrics update API:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
