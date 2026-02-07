@@ -74,7 +74,7 @@ const STEP_ICONS = [
   ImageIcon,  // 10 - Vision Board
   BookOpen,   // 11 - Journal
   Calendar,   // 12 - Book Call
-  Rocket,     // 13 - Activation Protocol
+  Rocket,     // 13 - My Activation Plan
   Unlock      // 14 - Unlock
 ]
 

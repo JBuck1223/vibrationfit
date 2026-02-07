@@ -212,10 +212,10 @@ export default function HomePage() {
                   <div className="text-center">
                     <div className="text-lg font-semibold text-[#39FF14] mb-1">Tune</div>
                     <div className="text-sm text-neutral-300 hidden md:block">
-                      Refine your vision, build your Vision Board, start the Activation Protocol
+                      Refine your vision, build your Vision Board, start the My Activation Plan
                     </div>
                     <div className="text-sm text-neutral-300 md:hidden">
-                      Refine vision, build board, Activation Protocol
+                      Refine vision, build board, My Activation Plan
                     </div>
                   </div>
                   
@@ -321,7 +321,7 @@ export default function HomePage() {
                             </div>
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <p className="text-sm text-neutral-400">Activation Protocol — Execute custom Activation Plan</p>
+                              <p className="text-sm text-neutral-400">My Activation Plan — Execute custom Activation Plan</p>
                             </div>
                           </div>
                         </div>
@@ -409,7 +409,7 @@ export default function HomePage() {
                             </div>
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <p className="text-sm text-neutral-400">Execute Activation Protocol — Your custom Activation Plan in place</p>
+                              <p className="text-sm text-neutral-400">Execute My Activation Plan — Your custom Activation Plan in place</p>
                             </div>
                             </div>
                           </div>
@@ -722,14 +722,14 @@ export default function HomePage() {
                     {
                       id: 'calibration-call',
                       title: '30‑Minute Calibration Call',
-                      description: '• Align your plan and remove blockers\n• Outcome: coach reviews assets and sets your Activation Protocol\n• Done when: 30‑min session completed and next steps documented',
+                      description: '• Align your plan and remove blockers\n• Outcome: coach reviews assets and sets your My Activation Plan\n• Done when: 30‑min session completed and next steps documented',
                       icon: CalendarDays,
                       included: true,
                       locked: true
                     },
                     {
                       id: 'activation-protocol',
-                      title: 'Activation Protocol',
+                      title: 'My Activation Plan',
                       description: '• Daily rituals that keep you in harmony\n• Outcome: simple cadence to sustain momentum with less guesswork\n• Done when: AM/PM audio scheduled + 7‑day checklist started',
                       icon: Zap,
                       included: true,

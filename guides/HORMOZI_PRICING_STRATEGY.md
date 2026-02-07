@@ -207,7 +207,7 @@ Metadata: drip_tokens: 375000, storage_gb: 25, rollover_max_cycles: 3
 - ✅ Load first 7 daily journal prompts (pre-written)
 
 #### **Hour 36-72: Activate**
-- ✅ **Activation Protocol:**
+- ✅ **My Activation Plan:**
   - 2×/day audio (morning + evening)
   - 10-min journaling (with prompts)
   - 1 visual Vision Board review

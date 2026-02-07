@@ -706,7 +706,7 @@ Tomorrow I'll dive into building my actual vision. I can't wait to see what emer
   await supabase.from('journal_entries').insert({
     user_id: userId,
     date: today.toISOString().split('T')[0],
-    title: 'Video: My Activation Protocol Commitment',
+    title: 'Video: My My Activation Plan Commitment',
     content: 'Recorded a video committing to my daily activation practice.',
     categories: ['health', 'spirituality'],
     audio_recordings: JSON.stringify([{

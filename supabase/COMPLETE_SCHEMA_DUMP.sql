@@ -2524,7 +2524,7 @@ Step 9: Audio Mix (audios_generated)
 Step 10: Vision Board (vision_board_completed)
 Step 11: Journal (first_journal_entry)
 Step 12: Book Call (call_scheduled)
-Step 13: Activation Protocol (activation_protocol_completed)
+Step 13: My Activation Plan (activation_protocol_completed)
 Step 14: Platform Unlock (unlock_completed)
 ';
 
