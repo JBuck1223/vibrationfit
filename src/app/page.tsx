@@ -1365,7 +1365,7 @@ export default function HomePage() {
                     variant="elevated"
                     className="!bg-[#00FFFF]/10 !border-[#00FFFF]/30"
                   >
-                    Vibrational fitness is your system for conscious creation. Instead of "trying to manifest," you follow a simple structure: Train → Tune → Track, powered by VIVA's 4‑Layer Writing Architecture and 5‑Phase Flow across all 12 life categories.
+                    Vibrational fitness is your system for conscious creation. Instead of &quot;trying to manifest,&quot; you follow a simple structure: <strong>Creations</strong>, <strong>Activations</strong>, <strong>Connections</strong>, and <strong>Sessions</strong>, all guided by your My Activation Plan and powered by VIVA&apos;s 4‑Layer Writing Architecture and 5‑Phase Flow across all 12 life categories.
                   </FeatureCard>
 
                   <FeatureCard 
@@ -1385,7 +1385,7 @@ export default function HomePage() {
                     variant="elevated"
                     className="!bg-[#FFFF00]/10 !border-[#FFFF00]/30"
                   >
-                    VIVA asks, you answer. Prompts, checklists, and the My Activation Plan tell you exactly what to do next—so staying aligned becomes a set of simple daily reps, not a mysterious practice you have to invent.
+                    VIVA asks, you answer. Prompts, checklists, and the My Activation Plan tell you exactly what to do next, every day for 28 days and beyond, so staying aligned becomes a set of simple daily reps, not a mysterious practice you have to invent.
                   </FeatureCard>
                 </Grid>
 
@@ -1689,12 +1689,12 @@ export default function HomePage() {
                 
                 {/* PLAN TYPE TOGGLE */}
                 <div className="flex justify-center">
-                  <div className="flex md:inline-flex w-full md:w-auto items-center gap-2 p-2 bg-neutral-800/80 backdrop-blur-sm rounded-full border border-neutral-700">
+                  <div className="inline-flex w-auto items-center gap-1.5 p-1.5 bg-neutral-800/80 backdrop-blur-sm rounded-full border border-neutral-700">
                     <button
                       onClick={() => setPlanType('solo')}
-                      className={`flex-1 md:flex-none px-6 py-3.5 rounded-full font-semibold transition-all duration-300 ${
+                      className={`px-5 md:px-6 py-3 md:py-3.5 rounded-full font-semibold transition-all duration-300 ${
                         planType === 'solo'
-                          ? 'bg-[#39FF14] text-black shadow-lg shadow-[#39FF14]/30 scale-105'
+                          ? 'bg-[#39FF14] text-black shadow-lg shadow-[#39FF14]/30'
                           : 'text-neutral-400 hover:text-white hover:bg-neutral-700/50'
                       }`}
                     >
@@ -1710,9 +1710,9 @@ export default function HomePage() {
                     </button>
                     <button
                       onClick={() => setPlanType('household')}
-                      className={`flex-1 md:flex-none px-6 py-3.5 rounded-full font-semibold transition-all duration-300 ${
+                      className={`px-5 md:px-6 py-3 md:py-3.5 rounded-full font-semibold transition-all duration-300 ${
                         planType === 'household'
-                          ? 'bg-[#8B5CF6] text-white shadow-lg shadow-[#8B5CF6]/30 scale-105'
+                          ? 'bg-[#8B5CF6] text-white shadow-lg shadow-[#8B5CF6]/30'
                           : 'text-neutral-400 hover:text-white hover:bg-neutral-700/50'
                       }`}
                     >
@@ -2180,7 +2180,7 @@ export default function HomePage() {
                               <h5 className="text-white font-semibold">When do guarantees start?</h5>
                             </div>
                             <div className="ml-4 mb-0 text-justify">
-                              <p className="text-neutral-300 text-sm">From checkout (today), not at first renewal.</p>
+                              <p className="text-neutral-300 text-sm">All guarantee periods start from your checkout date. Your 72‑hour window begins the moment you enroll in the Intensive. Membership Satisfaction Guarantee windows (16 weeks Annual, 12 weeks 28‑Day) also start from checkout.</p>
                             </div>
                           </div>
                           <div>
@@ -2189,7 +2189,7 @@ export default function HomePage() {
                               <h5 className="text-white font-semibold">What qualifies for the 72‑Hour Activation Guarantee?</h5>
                             </div>
                             <div className="ml-4 mb-0 text-justify">
-                              <p className="text-neutral-300 text-sm">Complete your Activation Checklist in 72 hours. Completion = Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), First refinement done, AM/PM Vision Audios generated, Vision Board built (12 images), 3 journal entries logged (written, voice, video), Calibration Call booked, My Activation Plan scheduled.</p>
+                              <p className="text-neutral-300 text-sm">Complete your Activation Checklist within 72 hours (profile, assessment, vision, audios, board, journals, Calibration Call, and MAP). If you do that and aren&apos;t satisfied, you get a full refund.</p>
                             </div>
                           </div>
                           <div>
@@ -2362,11 +2362,17 @@ export default function HomePage() {
                   {/* Bridge Section */}
                   <div className="bg-[#1F1F1F]/50 rounded-xl p-6 border border-[#39FF14]/30 w-full max-w-5xl mx-auto">
                     <Heading level={3} className="text-[#39FF14] mb-3 text-center">The Fix</Heading>
-                    <Text size="base" className="text-neutral-300 mb-4">
-                      Chaos is an input problem. Structure fixes inputs. Conscious Creation System: Train → Tune → Track turns scattered signals into a dominant point of attraction.
+                    <Text size="base" className="text-neutral-300 mb-4 text-center">
+                      Chaos is an input problem. Structure fixes inputs.
                     </Text>
-                    <Text size="sm" className="text-neutral-300">
-                      <strong className="text-[#39FF14]">Cost of chaos:</strong> weeks pass, assets = 0. <strong className="text-[#39FF14]">Structure</strong> = a complete vision, audio, board, journals in 72 hours—visible progress now.
+                    <div className="text-center mb-4">
+                      <Text size="base" className="text-neutral-300 font-semibold">The Conscious Creation System</Text>
+                      <Text size="lg" className="text-[#39FF14] font-bold">Creations → Activations → Connections → Sessions</Text>
+                      <Text size="base" className="text-neutral-300">turns scattered signals into a dominant point of attraction.</Text>
+                    </div>
+                    <Text size="sm" className="text-neutral-300 text-center">
+                      <strong className="text-[#39FF14]">Cost of chaos:</strong> weeks pass, assets = 0.<br />
+                      <strong className="text-[#39FF14]">With structure:</strong> a complete vision, audios, board, and journals in 72 hours, plus your MAP so you know exactly what to do next.
                     </Text>
                   </div>
 
@@ -2397,7 +2403,7 @@ export default function HomePage() {
                     <span className="block md:inline">The Solution:</span>{' '}
                     <span className="block md:inline text-[#39FF14]">Conscious Creation, Simplified</span>
                   </Heading>
-                  <Text size="lg" className="text-neutral-200 max-w-3xl mx-auto">
+                  <Text size="base" className="text-neutral-200 max-w-3xl mx-auto">
                     Structure beats "trying." Follow a simple rhythm Creations → Activations → Connections → Sessions so you always know what to do to stay aligned with your Life Vision.
                   </Text>
                   <Text size="sm" className="text-neutral-300 tracking-wide max-w-3xl mx-auto">
@@ -2543,14 +2549,14 @@ export default function HomePage() {
                       <Stack gap="sm">
                         <Icon icon={Brain} size="lg" color="#00FFFF" className="mx-auto" />
                         <Text size="sm" className="font-semibold text-white">Establish Harmony</Text>
-                        <Text size="sm" className="text-neutral-400">AM/PM Vision Audios + daily My Activation Plan</Text>
+                        <Text size="sm" className="text-neutral-400">AM/PM Vision Audios + your daily Activations with My Activation Plan</Text>
                       </Stack>
                     </Card>
                     <Card variant="glass" className="text-center">
                       <Stack gap="sm">
                         <Icon icon={Target} size="lg" color="#BF00FF" className="mx-auto" />
                         <Text size="sm" className="font-semibold text-white">Lock It In</Text>
-                        <Text size="sm" className="text-neutral-400">Vision Board built, 3 journals logged, dashboard tracking</Text>
+                        <Text size="sm" className="text-neutral-400">Vision Board built, 3 journals logged, dashboard tracking your streaks</Text>
                       </Stack>
                     </Card>
                   </Grid>
@@ -2609,53 +2615,42 @@ export default function HomePage() {
                 {
                   id: 'skeptical',
                   title: 'What if I\'m skeptical?',
-                  description: 'Good. That\'s why we stack raw proof, a structured mechanism, and guarantees. See the vision transformations (including $0.74 → $1M screenshots), the Conscious Creation System: Train → Tune → Track, and our 72‑Hour Activation + Membership Guarantees.'
+                  description: 'Good. That\'s why we stack raw proof, a structured mechanism, and guarantees. See the vision transformations (including $0.74 → $1M screenshots), the Conscious Creation System: Creations → Activations → Connections → Sessions, and our 72‑Hour Activation + Membership Guarantees.'
                 },
                 {
                   id: 'religious',
                   title: 'Is this religious?',
-                  description: 'No doctrine. It\'s a practical system with tools and habits. We measure observable outputs (vision built, audio generated, board created, journals logged, call completed) and track progress.'
+                  description: 'No doctrine. No beliefs to adopt. It\'s a practical system with tools and habits. We measure observable outputs (vision built, audio generated, board created, journals logged, call completed) and track your progress over time.'
                 },
                 {
                   id: 'how-fast',
                   title: 'How fast is "fast"?',
-                  description: '"Active" in 72 hours: Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), First refinement done, AM/PM Vision Audios generated, Vision Board built (12 images), 3 journal entries logged (written, voice, video), Calibration Call booked, My Activation Plan scheduled'
+                  description: '"Active" in 72 hours means: Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), first refinement done, AM/PM Vision Audios generated, Vision Board built (12 images), 3 journal entries logged (written, voice, video), Calibration Call booked, My Activation Plan scheduled.'
                 },
                 {
                   id: 'tried-loa',
                   title: 'What if I\'ve tried LoA and failed?',
-                  description: 'Most people had belief without structure. We give you the mechanism (Train → Tune → Track), proof it works, and guarantees if you\'re not satisfied.'
+                  description: 'Most people had belief without structure. We give you the mechanism (Creations → Activations → Connections → Sessions), a 72‑Hour Activation to get your Life Vision fully online, and a 28‑Day MAP (My Activation Plan) so you know exactly what to do each day, plus proof and guarantees if you\'re not satisfied.'
                 },
                 {
                   id: 'dont-know',
                   title: 'What if I don\'t know what I want?',
-                  description: 'VIVA AI turns contrast into clarity and drafts your 12‑category life vision with you using our 4‑Layer Conscious Creation Writing Architecture (encoded in VIVA). You\'ll have a concrete first draft to refine within 72 hours of starting—something that used to take Jordan and Vanessa months to do on their own without VIVA\'s help.'
+                  description: 'VIVA AI turns contrast into clarity and drafts your 12‑category Life Vision with you using our 4‑Layer Conscious Creation Writing Architecture (encoded in VIVA). You\'ll have a concrete first draft to refine within 72 hours of starting—something that used to take Jordan and Vanessa months to do on their own without VIVA\'s help.'
                 },
                 {
                   id: 'doesnt-work',
                   title: 'What if it doesn\'t work for me?',
-                  description: 'Two layers of protection: 72‑Hour Activation Guarantee (complete your Activation Checklist in 72 hours; not satisfied—full refund) and Membership Satisfaction Guarantee (16 weeks Annual, 12 weeks 28‑Day) from checkout.'
+                  description: 'You have two layers of protection: a 72‑Hour Activation Guarantee (complete your Activation Checklist in 72 hours; not satisfied → full refund) and a Membership Satisfaction Guarantee (16 weeks for Annual, 12 weeks for 28‑Day) from checkout.'
                 },
                 {
                   id: 'guarantee-start',
                   title: 'When do guarantees start?',
-                  description: (
-                    <span>
-                      From checkout (today), not at first renewal. See{' '}
-                      <a
-                        href="#our-guarantees"
-                        className="text-[#39FF14] underline underline-offset-4 hover:text-[#5EC49A] transition-colors"
-                      >
-                        Our Guarantees
-                      </a>{' '}
-                      for more information.
-                    </span>
-                  )
+                  description: 'All guarantee periods start from your checkout date. Your 72‑hour window begins the moment you enroll in the Intensive. Membership Satisfaction Guarantee windows (16 weeks Annual, 12 weeks 28‑Day) also start from checkout.'
                 },
                 {
                   id: 'guarantee-qualify',
                   title: 'What qualifies for the 72‑Hour Activation Guarantee?',
-                  description: 'Complete your Activation Checklist in 72 hours. Completion = Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), First refinement done, AM/PM Vision Audios generated, Vision Board built (12 images), 3 journal entries logged (written, voice, video), Calibration Call booked, My Activation Plan scheduled. If you complete your Activation Checklist in 72 hours and are not satisfied, you\'ll get a full refund of your $499 Intensive fee. No questions asked.'
+                  description: 'Complete your Activation Checklist in 72 hours. Completion = Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), first refinement done, AM/PM Vision Audios generated, Vision Board built (12 images), 3 journal entries logged (written, voice, video), Calibration Call booked, My Activation Plan scheduled. If you complete your Activation Checklist in 72 hours and are not satisfied, you\'ll get a full refund of your $499 Intensive fee. No questions asked.'
                 },
                 {
                   id: 'refunds',
@@ -2708,7 +2703,7 @@ export default function HomePage() {
                 {
                   id: 'what-is-vibrational-fitness',
                   title: 'What is Vibrational Fitness?',
-                  description: 'Vibrational fitness is your system for conscious creation. It’s the practice of using a repeatable structure—Train → Tune → Track—to stay aligned with your Life Vision so your outer world naturally starts to reflect it.'
+                  description: 'Vibrational fitness is your system for conscious creation. It\'s the practice of using a repeatable structure of Creations, Activations, Connections, and Sessions to stay aligned with your Life Vision, with your MAP showing you exactly what to do so your outer world naturally starts to reflect it.'
                 },
                 {
                   id: 'switch-cancel',

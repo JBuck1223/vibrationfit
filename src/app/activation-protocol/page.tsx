@@ -26,22 +26,21 @@ import {
   Calendar,
   BookOpen,
   Image as ImageIcon,
+  Music,
+  Users,
   FileText,
-  Target,
+  Eye,
   Headphones,
   CheckCircle,
-  Circle,
   User,
   ClipboardCheck,
   Mic,
   Layers,
-  Unlock,
-  Video,
-  UsersRound
+  Unlock
 } from 'lucide-react'
 
-// Placeholder video URL - replace with actual MAP video
-const MAP_VIDEO =
+// Placeholder video URL - replace with actual activation protocol video
+const ACTIVATION_PROTOCOL_VIDEO =
   'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
 
 // Milestone data for the 28-day challenge
@@ -73,7 +72,7 @@ const MILESTONES = [
   }
 ]
 
-export default function MAPPage() {
+export default function ActivationProtocolPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   
@@ -196,7 +195,7 @@ export default function MAPPage() {
         {/* Completion Banner if revisiting during intensive */}
         {isIntensiveFlow && isAlreadyCompleted && completedAt && (
           <IntensiveCompletionBanner 
-            stepTitle="My Activation Plan"
+            stepTitle="Activation Protocol"
             completedAt={completedAt}
           />
         )}
@@ -205,13 +204,13 @@ export default function MAPPage() {
         {/* HERO SECTION */}
         {/* ============================================ */}
         <PageHero
-          eyebrow={isIntensiveFlow ? "ACTIVATION INTENSIVE • STEP 13 OF 14" : "MY ACTIVATION PLAN"}
-          title="Your 28‑Day Activation MAP"
-          subtitle="Your personal roadmap to make The Life I Choose your new normal."
+          eyebrow={isIntensiveFlow ? "ACTIVATION INTENSIVE • STEP 13 OF 14" : "YOUR DAILY RITUAL"}
+          title="28-Day Life I Choose Activation Challenge"
+          subtitle="Use this simple daily plan to make your Life I Choose your new normal."
         >
           <div className="mx-auto w-full max-w-3xl">
             <OptimizedVideo
-              url={MAP_VIDEO}
+              url={ACTIVATION_PROTOCOL_VIDEO}
               context="single"
               className="w-full"
             />
@@ -272,13 +271,16 @@ export default function MAPPage() {
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
           <Stack gap="md">
             <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-              About Your MAP
+              About This Challenge
             </Text>
             <p className="text-sm text-neutral-300 leading-relaxed">
-              You&apos;ve completed your Creations. Your profile, assessment, Life Vision, audios, Vision Board, and first journals are complete.
+              {isIntensiveFlow 
+                ? "You finished the Intensive. Your Life Vision, audios, and tools are ready. This page shows you exactly how to use them for the next 28 days."
+                : "Your Life Vision, audios, and tools are ready. This page shows you exactly how to use them for maximum impact."
+              }
             </p>
             <p className="text-sm text-neutral-300 leading-relaxed">
-              Now your 28‑Day MAP shows you exactly how to run your Daily Activations, Connections, and Sessions so The Life I Choose becomes your new normal.
+              This challenge is optional, but our most successful members follow it. Copy them first, then customize. Don&apos;t overthink it. Follow the ritual. Let reality catch up.
             </p>
           </Stack>
         </Card>
@@ -290,9 +292,9 @@ export default function MAPPage() {
           <Stack gap="lg">
             <div>
               <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-                Daily Activations
+                Your Daily Ritual
               </Text>
-              <p className="text-sm text-neutral-500 mt-2">Your 10–20 Minute Ritual</p>
+              <p className="text-sm text-neutral-500 mt-2">10-20 Minutes</p>
             </div>
             
             <p className="text-sm text-neutral-300 leading-relaxed">
@@ -315,7 +317,11 @@ export default function MAPPage() {
                 <div className="space-y-2 text-sm text-neutral-300">
                   <div className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
-                    <span>Read your <strong>Life Vision</strong> out loud or listen to the audio.</span>
+                    <span>Open your current <strong>Life Vision Focus</strong>.</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
+                    <span>Read your Focus paragraph out loud or listen to the audio.</span>
                   </div>
                   <div className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
@@ -330,16 +336,16 @@ export default function MAPPage() {
                     <span>Complete your <strong>Daily Paper</strong> for the day.</span>
                   </div>
                   <div className="flex items-start gap-2 text-neutral-500">
-                    <Circle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                    <span><em>(Optional)</em> Open your <strong>Journal</strong> and capture one intention: &quot;One aligned choice I&apos;ll make today is...&quot;</span>
+                    <span className="w-4 flex-shrink-0 mt-0.5 text-center text-xs">(Optional)</span>
+                    <span>Open your <strong>Journal</strong> and capture one intention: &quot;One aligned choice I&apos;ll make today is...&quot;</span>
                   </div>
                 </div>
 
                 <div className="flex flex-wrap gap-2 pt-2">
                   <Button variant="outline" size="sm" asChild>
                     <Link href={getVisionLink('')}>
-                      <Target className="w-4 h-4 mr-2" />
-                      Life Vision
+                      <Eye className="w-4 h-4 mr-2" />
+                      Life Vision Focus
                     </Link>
                   </Button>
                   <Button variant="outline" size="sm" asChild>
@@ -384,7 +390,7 @@ export default function MAPPage() {
                 <div className="space-y-2 text-sm text-neutral-300">
                   <div className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
-                    <span>Open your <strong>Vision Audios</strong>.</span>
+                    <span>Open your <strong>Category Audios</strong>.</span>
                   </div>
                   <div className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
@@ -399,16 +405,16 @@ export default function MAPPage() {
                     <span>Make one micro decision from that place.</span>
                   </div>
                   <div className="flex items-start gap-2 text-neutral-500">
-                    <Circle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                    <span><em>(Optional)</em> After the moment, Journal: &quot;Did anything shift in how I intentionally showed up?&quot;</span>
+                    <span className="w-4 flex-shrink-0 mt-0.5 text-center text-xs">(Optional)</span>
+                    <span>After the moment, Journal: &quot;Did anything shift in how I intentionally showed up?&quot;</span>
                   </div>
                 </div>
 
                 <div className="flex flex-wrap gap-2 pt-2">
                   <Button variant="outline" size="sm" asChild>
                     <Link href={getVisionLink('/audio')}>
-                      <Headphones className="w-4 h-4 mr-2" />
-                      Vision Audios
+                      <Music className="w-4 h-4 mr-2" />
+                      Category Audios
                     </Link>
                   </Button>
                   <Button variant="outline" size="sm" asChild>
@@ -437,7 +443,7 @@ export default function MAPPage() {
                 <div className="space-y-2 text-sm text-neutral-300">
                   <div className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
-                    <span>Read your <strong>Life Vision</strong> out loud or listen to the audio.</span>
+                    <span>Open your <strong>Life Vision Focus</strong> and read your Focus paragraph or listen to the audio again.</span>
                   </div>
                   <div className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
@@ -470,8 +476,8 @@ export default function MAPPage() {
                 <div className="flex flex-wrap gap-2 pt-2">
                   <Button variant="outline" size="sm" asChild>
                     <Link href={getVisionLink('')}>
-                      <Target className="w-4 h-4 mr-2" />
-                      Life Vision
+                      <Eye className="w-4 h-4 mr-2" />
+                      Life Vision Focus
                     </Link>
                   </Button>
                   <Button variant="outline" size="sm" asChild>
@@ -487,9 +493,9 @@ export default function MAPPage() {
                     </Link>
                   </Button>
                   <Button variant="outline" size="sm" asChild>
-                    <Link href={getVisionLink('/audio')}>
+                    <Link href={getVisionLink('/audio/sets')}>
                       <Headphones className="w-4 h-4 mr-2" />
-                      Vision Audios
+                      Sleep Immersion
                     </Link>
                   </Button>
                 </div>
@@ -499,27 +505,28 @@ export default function MAPPage() {
         </Card>
 
         {/* ============================================ */}
-        {/* SECTION 3: WEEKLY ALIGNMENT */}
+        {/* SECTION 3: WEEKLY RITUAL */}
         {/* ============================================ */}
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
           <Stack gap="lg">
             <div>
               <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-                Weekly Alignment
+                Weekly Alignment Ritual
               </Text>
-              <p className="text-sm text-neutral-500 mt-2">Sessions & Connections</p>
+              <p className="text-sm text-neutral-500 mt-2">Every 7 Days</p>
             </div>
+
+            <p className="text-sm text-neutral-300 leading-relaxed">
+              Once a week during the challenge, do this:
+            </p>
 
             <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
               <Stack gap="md">
                 <Inline gap="sm" className="items-start">
-                  <Video className="h-5 w-5 text-teal-400" />
-                  <div>
-                    <Text size="sm" className="text-white font-semibold">
-                      Sessions: Alignment Gym
-                    </Text>
-                    <Text size="xs" className="text-neutral-500">Every 7 days</Text>
-                  </div>
+                  <Calendar className="h-5 w-5 text-teal-400" />
+                  <Text size="sm" className="text-white font-semibold">
+                    Alignment Gym
+                  </Text>
                 </Inline>
                 
                 <div className="space-y-2 text-sm text-neutral-300">
@@ -538,12 +545,12 @@ export default function MAPPage() {
             <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
               <Stack gap="md">
                 <Inline gap="sm" className="items-start">
-                  <UsersRound className="h-5 w-5 text-purple-400" />
+                  <Users className="h-5 w-5 text-purple-400" />
                   <div>
                     <Text size="sm" className="text-white font-semibold">
-                      Connections: Vibe Tribe
+                      Share to Vibe Tribe
                     </Text>
-                    <Text size="xs" className="text-neutral-500">Optional but recommended</Text>
+                    <Text size="xs" className="text-neutral-500">(optional)</Text>
                   </div>
                 </Inline>
                 
@@ -559,13 +566,13 @@ export default function MAPPage() {
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" asChild>
                 <Link href="/alignment-gym">
-                  <Video className="w-4 h-4 mr-2" />
+                  <Users className="w-4 h-4 mr-2" />
                   Go to Alignment Gym
                 </Link>
               </Button>
               <Button variant="outline" size="sm" asChild>
                 <Link href="/vibe-tribe">
-                  <UsersRound className="w-4 h-4 mr-2" />
+                  <Users className="w-4 h-4 mr-2" />
                   Go to Vibe Tribe
                 </Link>
               </Button>
@@ -580,7 +587,7 @@ export default function MAPPage() {
           <Stack gap="lg">
             <div>
               <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-                Your 28‑Day Activation Milestones
+                Your 28-Day Milestones
               </Text>
               <p className="text-sm text-neutral-500 mt-2">We&apos;ll remind you of these inside VibrationFit. Here&apos;s what to look for:</p>
             </div>
@@ -614,7 +621,7 @@ export default function MAPPage() {
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
           <Stack gap="lg">
             <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-              When Everything Upgrades, Start a New Creations Cycle
+              When Everything Upgrades, Start a New Life Vision Version
             </Text>
 
             <p className="text-sm text-neutral-300 leading-relaxed">
@@ -658,7 +665,7 @@ export default function MAPPage() {
             </div>
 
             <p className="text-sm text-neutral-400 italic">
-              Your Daily Activations stay the same. They simply run on your newest Life Vision Version.
+              Your Daily Ritual stays the same. It simply runs on your newest Life Vision Version.
             </p>
           </Stack>
         </Card>
@@ -672,7 +679,7 @@ export default function MAPPage() {
               <>
                 <h2 className="text-xl md:text-2xl font-bold mb-3 text-white">Ready to Unlock?</h2>
                 <p className="text-sm text-neutral-300 mb-6">
-                  You&apos;ve reviewed your MAP. Continue to unlock your full platform access.
+                  You&apos;ve reviewed the protocol. Continue to unlock your full platform access.
                 </p>
                 <Button
                   variant="primary"
@@ -697,7 +704,7 @@ export default function MAPPage() {
             ) : (
               <>
                 <p className="text-neutral-300 mb-4">
-                  This is your MAP. Come back anytime during your journey.
+                  This is your daily reference. Come back anytime during your 28-Day Challenge.
                 </p>
                 <Button variant="primary" asChild>
                   <Link href="/dashboard">

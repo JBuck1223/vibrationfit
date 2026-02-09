@@ -189,7 +189,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET - List all users with intensives (for dropdown)
+// GET - List all users with intensives (for dropdown), including orphaned users
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -224,26 +224,71 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 })
     }
 
-    // Get unique user IDs
-    const userIds = [...new Set((checklists || []).map(c => c.user_id))]
-    
-    if (userIds.length === 0) {
-      return NextResponse.json({ users: [] })
+    // Get unique user IDs from checklists
+    const userIdsWithChecklists = new Set((checklists || []).map(c => c.user_id))
+
+    // Also get users who have order_items for intensive but no checklist (orphaned users)
+    const { data: intensiveProduct } = await adminClient
+      .from('products')
+      .select('id')
+      .eq('key', 'intensive')
+      .maybeSingle()
+
+    let orphanedUsers: any[] = []
+    if (intensiveProduct) {
+      // Find users with intensive orders but no checklist
+      const { data: ordersWithIntensive } = await adminClient
+        .from('order_items')
+        .select('order_id, orders!inner(user_id)')
+        .eq('product_id', intensiveProduct.id)
+
+      if (ordersWithIntensive) {
+        const orderUserIds = new Set(ordersWithIntensive.map((o: any) => o.orders?.user_id).filter(Boolean))
+        // Find user IDs that have orders but no checklist
+        const orphanedUserIds = [...orderUserIds].filter(id => !userIdsWithChecklists.has(id))
+        
+        if (orphanedUserIds.length > 0) {
+          const { data: orphanedAccounts } = await adminClient
+            .from('user_accounts')
+            .select('id, email, first_name, last_name')
+            .in('id', orphanedUserIds)
+
+          orphanedUsers = (orphanedAccounts || []).map(account => ({
+            userId: account.id,
+            email: account.email,
+            firstName: account.first_name,
+            lastName: account.last_name,
+            displayName: account.first_name && account.last_name 
+              ? `${account.first_name} ${account.last_name}` 
+              : account.email,
+            status: 'orphaned',
+            startedAt: null,
+            createdAt: null,
+            isOrphaned: true
+          }))
+        }
+      }
     }
 
-    // Fetch user accounts for these users
-    const { data: accounts, error: accountsError } = await adminClient
-      .from('user_accounts')
-      .select('id, email, first_name, last_name')
-      .in('id', userIds)
+    // Fetch user accounts for checklist users
+    const userIds = [...userIdsWithChecklists]
+    let accounts: any[] = []
+    
+    if (userIds.length > 0) {
+      const { data: accountsData, error: accountsError } = await adminClient
+        .from('user_accounts')
+        .select('id, email, first_name, last_name')
+        .in('id', userIds)
 
-    if (accountsError) {
-      console.error('Error fetching accounts:', accountsError)
-      return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 })
+      if (accountsError) {
+        console.error('Error fetching accounts:', accountsError)
+        return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 })
+      }
+      accounts = accountsData || []
     }
 
     // Create a map of user accounts by ID
-    const accountMap = new Map((accounts || []).map(a => [a.id, a]))
+    const accountMap = new Map(accounts.map(a => [a.id, a]))
 
     // Build the response, deduplicating by user_id (keep most recent checklist)
     const userMap = new Map()
@@ -261,14 +306,18 @@ export async function GET(request: NextRequest) {
               : account.email,
             status: checklist.status,
             startedAt: checklist.started_at,
-            createdAt: checklist.created_at
+            createdAt: checklist.created_at,
+            isOrphaned: false
           })
         }
       }
     }
 
+    // Combine regular users and orphaned users
+    const allUsers = [...Array.from(userMap.values()), ...orphanedUsers]
+
     return NextResponse.json({ 
-      users: Array.from(userMap.values()) 
+      users: allUsers 
     })
 
   } catch (error) {

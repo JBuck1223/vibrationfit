@@ -198,7 +198,9 @@ export const userNavigation: NavItem[] = [
     hasDropdown: true,
     description: 'File storage management',
     children: [
-      { name: 'Storage Usage', href: '/dashboard/storage', icon: Eye },
+      { name: 'Storage Dashboard', href: '/dashboard/storage', icon: HardDrive },
+      { name: 'Storage History', href: '/dashboard/storage-history', icon: BarChart3 },
+      { name: 'Buy Storage', href: '/dashboard/add-storage', icon: ShoppingCart },
     ]
   },
   {

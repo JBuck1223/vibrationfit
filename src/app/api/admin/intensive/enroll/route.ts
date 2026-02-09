@@ -27,6 +27,36 @@ export async function POST(request: NextRequest) {
     // Use service role client for database operations (bypasses RLS)
     const adminDb = createAdminClient()
 
+    // First, verify the user exists
+    const { data: userAccount, error: userError } = await adminDb
+      .from('user_accounts')
+      .select('id, email')
+      .eq('id', userId)
+      .maybeSingle()
+
+    if (userError || !userAccount) {
+      return NextResponse.json({ 
+        error: `User not found: ${userError?.message || 'No user with this ID'}`,
+        userId 
+      }, { status: 404 })
+    }
+
+    console.log('Enrolling user:', userAccount.email, userId)
+
+    // Check if user already has an active checklist
+    const { data: existingChecklist } = await adminDb
+      .from('intensive_checklist')
+      .select('id, status')
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (existingChecklist) {
+      return NextResponse.json({ 
+        error: `User already has an intensive checklist (status: ${existingChecklist.status}). Use Reset User instead.`,
+        existingChecklistId: existingChecklist.id
+      }, { status: 409 })
+    }
+
     const { data: intensiveProduct, error: productError } = await adminDb
       .from('products')
       .select('id')
@@ -35,8 +65,12 @@ export async function POST(request: NextRequest) {
 
     if (productError || !intensiveProduct) {
       console.error('Error finding intensive product:', productError)
-      return NextResponse.json({ error: 'Intensive product not found' }, { status: 500 })
+      return NextResponse.json({ 
+        error: `Intensive product not found: ${productError?.message || 'No product with key=intensive'}` 
+      }, { status: 500 })
     }
+
+    console.log('Found intensive product:', intensiveProduct.id)
 
     const { data: order, error: orderError } = await adminDb
       .from('orders')
@@ -53,7 +87,10 @@ export async function POST(request: NextRequest) {
 
     if (orderError || !order) {
       console.error('Error creating order:', orderError)
-      return NextResponse.json({ error: 'Failed to create order' }, { status: 500 })
+      return NextResponse.json({ 
+        error: `Failed to create order: ${orderError?.message || 'Unknown error'}`,
+        details: orderError
+      }, { status: 500 })
     }
 
     const { data: intensive, error: intensiveError } = await adminDb
