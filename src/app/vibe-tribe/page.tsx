@@ -48,7 +48,7 @@ export default function VibeTribePage() {
         .eq('is_deleted', false)
         .limit(1)
       
-      const userHasPosted = posts && posts.length > 0
+      const userHasPosted = !!(posts && posts.length > 0)
       setHasPostedBefore(userHasPosted)
 
       // If user hasn't posted, redirect to onboarding
