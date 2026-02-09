@@ -17,6 +17,7 @@ import {
 } from '@/lib/design-system/components'
 import { ArrowLeft, Send, Mail, MessageSquare, User, Calendar, Hash, RefreshCw } from 'lucide-react'
 import { ConversationThread } from '@/components/crm/ConversationThread'
+import { toast } from 'sonner'
 
 interface Ticket {
   id: string
@@ -76,7 +77,7 @@ export default function SupportTicketDetailPage() {
       setTicket(data.ticket)
     } catch (error) {
       console.error('Error fetching ticket:', error)
-      alert('Failed to load ticket')
+      toast.error('Failed to load ticket')
     } finally {
       setLoading(false)
     }
@@ -131,7 +132,7 @@ export default function SupportTicketDetailPage() {
       await fetchConversation() // Refresh conversation
     } catch (error) {
       console.error('Error sending reply:', error)
-      alert('Failed to send reply')
+      toast.error('Failed to send reply')
     } finally {
       setSending(false)
     }
@@ -153,7 +154,7 @@ export default function SupportTicketDetailPage() {
       setTicket({ ...ticket, status: newStatus })
     } catch (error) {
       console.error('Error updating status:', error)
-      alert('Failed to update status')
+      toast.error('Failed to update status')
     } finally {
       setUpdating(false)
     }
@@ -175,7 +176,7 @@ export default function SupportTicketDetailPage() {
       setTicket({ ...ticket, priority: newPriority })
     } catch (error) {
       console.error('Error updating priority:', error)
-      alert('Failed to update priority')
+      toast.error('Failed to update priority')
     } finally {
       setUpdating(false)
     }
@@ -194,17 +195,17 @@ export default function SupportTicketDetailPage() {
   function getStatusColor(status: string) {
     switch (status) {
       case 'open':
-        return 'bg-[#8B5CF6]'
+        return 'bg-[#8B5CF6] text-white'
       case 'in_progress':
-        return 'bg-[#FFB701]'
+        return 'bg-[#FFB701] text-black'
       case 'waiting_reply':
-        return 'bg-secondary-500'
+        return 'bg-secondary-500 text-black'
       case 'resolved':
-        return 'bg-primary-500'
+        return 'bg-primary-500 text-black'
       case 'closed':
-        return 'bg-[#666666]'
+        return 'bg-[#666666] text-white'
       default:
-        return 'bg-neutral-600'
+        return 'bg-neutral-600 text-white'
     }
   }
 
@@ -238,7 +239,7 @@ export default function SupportTicketDetailPage() {
       <Container size="xl" className="py-8">
         <Card className="p-8 text-center">
           <p className="text-neutral-400 mb-4">Ticket not found</p>
-          <Button variant="secondary" onClick={() => router.push('/admin/crm/support/board')}>
+          <Button variant="outline" onClick={() => router.push('/admin/crm/support/board')}>
             Back to Support Board
           </Button>
         </Card>
@@ -313,7 +314,7 @@ export default function SupportTicketDetailPage() {
 
             <div>
               <label className="block text-sm font-medium text-neutral-300 mb-2">Category</label>
-              <Badge className={`${getStatusColor(ticket.status)} text-white px-3 py-1.5`}>
+              <Badge className={`${getStatusColor(ticket.status)} px-3 py-1.5`}>
                 {ticket.category}
               </Badge>
             </div>

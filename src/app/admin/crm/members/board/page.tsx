@@ -5,8 +5,9 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Badge, Container, Spinner , Stack, PageHero } from '@/lib/design-system/components'
+import { Button, Card, Badge, Container, Spinner, Stack, PageHero } from '@/lib/design-system/components'
 import { Kanban, KanbanColumn } from '@/components/crm/Kanban'
+import { toast } from 'sonner'
 
 interface Member {
   user_id: string
@@ -111,9 +112,9 @@ export default function MemberBoardPage() {
       }
       
       // ✅ API succeeded, optimistic update is now confirmed
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error moving member:', error)
-      alert('Failed to update member')
+      toast.error('Failed to update member')
     }
   }
 
@@ -163,7 +164,7 @@ export default function MemberBoardPage() {
           title="Member Board" 
           subtitle={`${members.length} members`}
         >
-          <div className="flex flex-col sm:flex-row gap-2 mt-4">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Button 
               variant="outline" 
               size="sm"
@@ -214,7 +215,7 @@ export default function MemberBoardPage() {
           await handleMove(itemId, newColumnId)
         }}
         onItemClick={(item) => {
-          router.push(`/admin/crm/members/${item.user_id}`)
+          router.push(`/admin/crm/members/${item.id}`)
         }}
         renderItem={(member) => (
           <div
@@ -229,12 +230,12 @@ export default function MemberBoardPage() {
 
             <div className="flex flex-wrap gap-1 md:gap-2 mb-2 md:mb-3">
               {member.subscription_tier && groupBy !== 'subscription_tier' && (
-                <Badge className="bg-secondary-500 text-white px-2 py-0.5 text-xs">
+                <Badge className="bg-secondary-500 text-black px-2 py-0.5 text-xs">
                   {member.subscription_tier}
                 </Badge>
               )}
               {member.engagement_status && groupBy !== 'engagement_status' && (
-                <Badge className="bg-primary-500 text-white px-2 py-0.5 text-xs">
+                <Badge className="bg-primary-500 text-black px-2 py-0.5 text-xs">
                   {member.engagement_status}
                 </Badge>
               )}

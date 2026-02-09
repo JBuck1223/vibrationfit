@@ -941,7 +941,7 @@ export default function DesignSystemExperiment() {
                             <div className="flex items-start gap-3 py-4 md:items-center">
                               <Heading level={4} className="text-[#39FF14] bg-[#39FF14]/10 px-3 py-1 rounded flex-shrink-0 w-24 text-center">Tune</Heading>
                               <Text size="sm" className="text-white leading-relaxed flex-1 min-w-0 break-words">
-                                Refine your vision, build your Vision Board, start the Activation Protocol
+                                Refine your vision, build your Vision Board, start the My Activation Plan
                               </Text>
                             </div>
                             
@@ -1720,7 +1720,7 @@ const tracks: AudioTrack[] = [/* multiple tracks */]
                           },
                           {
                             id: 'activation-protocol',
-                            title: 'Activation Protocol',
+                            title: 'My Activation Plan',
                             description: 'Daily rituals and completion ceremony to maintain momentum and track progress.',
                             icon: Zap,
                             included: true

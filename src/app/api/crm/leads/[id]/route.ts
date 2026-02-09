@@ -1,12 +1,28 @@
 // /src/app/api/crm/leads/[id]/route.ts
-
-// Force dynamic rendering (no caching)
-export const dynamic = 'force-dynamic'
-import { createAdminClient } from '@/lib/supabase/admin'
 // Individual lead operations
+
+export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient, isUserAdmin } from '@/lib/supabase/admin'
+
+// Allowed fields for lead updates
+const LEAD_UPDATABLE_FIELDS = [
+  'status', 'first_name', 'last_name', 'email', 'phone', 'company', 'message',
+  'source', 'metadata', 'notes', 'assigned_to', 'converted_to_user_id',
+  'conversion_value', 'sms_opt_in', 'sms_consent_date', 'sms_opt_out_date',
+] as const
+
+function pickAllowedFields(body: Record<string, unknown>, allowedFields: readonly string[]) {
+  const result: Record<string, unknown> = {}
+  for (const key of allowedFields) {
+    if (key in body) {
+      result[key] = body[key]
+    }
+  }
+  return result
+}
 
 export async function GET(
   request: NextRequest,
@@ -23,17 +39,10 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check if user is admin
-    const isAdmin =
-      user.email === 'buckinghambliss@gmail.com' ||
-      user.email === 'admin@vibrationfit.com' ||
-      user.user_metadata?.is_admin === true
-
-    if (!isAdmin) {
+    if (!isUserAdmin(user)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    // Use admin client for database queries (bypasses RLS)
     const adminClient = createAdminClient()
 
     // Get lead
@@ -44,8 +53,10 @@ export async function GET(
       .single()
 
     if (error) {
-      console.error('❌ Error fetching lead:', error)
-      return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
+      console.error('Error fetching lead:', error)
+      const status = error.code === 'PGRST116' ? 404 : 500
+      const message = error.code === 'PGRST116' ? 'Lead not found' : 'Failed to fetch lead'
+      return NextResponse.json({ error: message }, { status })
     }
 
     // Get campaign if associated
@@ -72,8 +83,8 @@ export async function GET(
       campaign,
       messages: messages || [],
     })
-  } catch (error: any) {
-    console.error('❌ Error in get lead API:', error)
+  } catch (error: unknown) {
+    console.error('Error in get lead API:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -93,38 +104,35 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check if user is admin
-    const isAdmin =
-      user.email === 'buckinghambliss@gmail.com' ||
-      user.email === 'admin@vibrationfit.com' ||
-      user.user_metadata?.is_admin === true
-
-    if (!isAdmin) {
+    if (!isUserAdmin(user)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const body = await request.json()
+    const updateData = pickAllowedFields(body, LEAD_UPDATABLE_FIELDS)
 
-    // Use admin client to bypass RLS
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
+    }
+
     const adminClient = createAdminClient()
 
     // Update lead
     const { data: lead, error } = await adminClient
       .from('leads')
-      .update(body)
+      .update(updateData)
       .eq('id', id)
       .select()
       .single()
 
     if (error) {
-      console.error('❌ Error updating lead:', error)
+      console.error('Error updating lead:', error)
       return NextResponse.json({ error: 'Failed to update lead' }, { status: 500 })
     }
 
     return NextResponse.json({ lead })
-  } catch (error: any) {
-    console.error('❌ Error in update lead API:', error)
+  } catch (error: unknown) {
+    console.error('Error in update lead API:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
-

@@ -45,6 +45,15 @@ export async function POST(
       return NextResponse.json({ error: 'Only the host can trigger this notification' }, { status: 403 })
     }
 
+    // Mark session as LIVE so members see the live indicator
+    await supabase
+      .from('video_sessions')
+      .update({ 
+        status: 'live',
+        started_at: new Date().toISOString(),
+      })
+      .eq('id', sessionId)
+
     // Get host info
     const { data: hostAccount } = await supabase
       .from('user_accounts')

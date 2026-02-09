@@ -450,7 +450,7 @@ export default function SchedulingPage() {
                   ))}
                 </select>
                 <Button
-                  variant="secondary"
+                  variant="outline"
                   size="sm"
                   onClick={createStaffFromUser}
                   disabled={!selectedUserId}

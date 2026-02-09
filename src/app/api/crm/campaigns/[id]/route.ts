@@ -1,12 +1,30 @@
 // /src/app/api/crm/campaigns/[id]/route.ts
-
-// Force dynamic rendering (no caching)
-export const dynamic = 'force-dynamic'
-import { createAdminClient } from '@/lib/supabase/admin'
 // Individual campaign operations
+
+export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient, isUserAdmin } from '@/lib/supabase/admin'
+
+// Allowed fields for campaign updates
+const CAMPAIGN_UPDATABLE_FIELDS = [
+  'name', 'slug', 'status', 'campaign_type', 'objective', 'target_audience',
+  'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term',
+  'start_date', 'end_date', 'budget', 'cost_per_lead_target',
+  'creative_urls', 'landing_page_url', 'tracking_url',
+  'total_clicks', 'total_spent',
+] as const
+
+function pickAllowedFields(body: Record<string, unknown>, allowedFields: readonly string[]) {
+  const result: Record<string, unknown> = {}
+  for (const key of allowedFields) {
+    if (key in body) {
+      result[key] = body[key]
+    }
+  }
+  return result
+}
 
 // GET /api/crm/campaigns/[id] - Get campaign details
 export async function GET(
@@ -24,33 +42,26 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check if user is admin
-    const isAdmin =
-      user.email === 'buckinghambliss@gmail.com' ||
-      user.email === 'admin@vibrationfit.com' ||
-      user.user_metadata?.is_admin === true
-
-    if (!isAdmin) {
+    if (!isUserAdmin(user)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-
-    // Use admin client for database queries (bypasses RLS)
-    const adminClient = createAdminClient()
     }
 
+    const adminClient = createAdminClient()
+
     // Get campaign
-    const { data: campaign, error } = await supabase
+    const { data: campaign, error } = await adminClient
       .from('marketing_campaigns')
       .select('*')
       .eq('id', id)
       .single()
 
     if (error) {
-      console.error('❌ Error fetching campaign:', error)
+      console.error('Error fetching campaign:', error)
       return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
     }
 
     // Get related leads
-    const { data: leads } = await supabase
+    const { data: leads } = await adminClient
       .from('leads')
       .select('*')
       .eq('campaign_id', id)
@@ -62,8 +73,8 @@ export async function GET(
       leadCount: leads?.length || 0,
       conversionCount: leads?.filter((l) => l.status === 'converted').length || 0,
     })
-  } catch (error: any) {
-    console.error('❌ Error in get campaign API:', error)
+  } catch (error: unknown) {
+    console.error('Error in get campaign API:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -84,39 +95,39 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check if user is admin
-    const isAdmin =
-      user.email === 'buckinghambliss@gmail.com' ||
-      user.email === 'admin@vibrationfit.com' ||
-      user.user_metadata?.is_admin === true
-
-    if (!isAdmin) {
+    if (!isUserAdmin(user)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
+    const adminClient = createAdminClient()
     const body = await request.json()
+    const updateData = pickAllowedFields(body, CAMPAIGN_UPDATABLE_FIELDS)
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
+    }
 
     // Update campaign
-    const { data: campaign, error } = await supabase
+    const { data: campaign, error } = await adminClient
       .from('marketing_campaigns')
-      .update(body)
+      .update(updateData)
       .eq('id', id)
       .select()
       .single()
 
     if (error) {
-      console.error('❌ Error updating campaign:', error)
+      console.error('Error updating campaign:', error)
       return NextResponse.json({ error: 'Failed to update campaign' }, { status: 500 })
     }
 
     return NextResponse.json({ campaign })
-  } catch (error: any) {
-    console.error('❌ Error in update campaign API:', error)
+  } catch (error: unknown) {
+    console.error('Error in update campaign API:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
-// DELETE /api/crm/campaigns/[id] - Delete campaign
+// DELETE /api/crm/campaigns/[id] - Archive campaign
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -132,31 +143,26 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check if user is admin
-    const isAdmin =
-      user.email === 'buckinghambliss@gmail.com' ||
-      user.email === 'admin@vibrationfit.com' ||
-      user.user_metadata?.is_admin === true
-
-    if (!isAdmin) {
+    if (!isUserAdmin(user)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
+    const adminClient = createAdminClient()
+
     // Archive instead of delete (safer)
-    const { error } = await supabase
+    const { error } = await adminClient
       .from('marketing_campaigns')
       .update({ status: 'archived' })
       .eq('id', id)
 
     if (error) {
-      console.error('❌ Error archiving campaign:', error)
+      console.error('Error archiving campaign:', error)
       return NextResponse.json({ error: 'Failed to archive campaign' }, { status: 500 })
     }
 
     return NextResponse.json({ success: true })
-  } catch (error: any) {
-    console.error('❌ Error in delete campaign API:', error)
+  } catch (error: unknown) {
+    console.error('Error in delete campaign API:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
-

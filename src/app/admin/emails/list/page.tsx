@@ -80,13 +80,13 @@ export default function EmailTemplatesListPage() {
   function getStatusColor(status: string) {
     switch (status) {
       case 'active':
-        return 'bg-primary-500'
+        return 'bg-primary-500 text-black'
       case 'draft':
-        return 'bg-yellow-500'
+        return 'bg-yellow-500 text-black'
       case 'archived':
-        return 'bg-neutral-600'
+        return 'bg-neutral-600 text-white'
       default:
-        return 'bg-neutral-600'
+        return 'bg-neutral-600 text-white'
     }
   }
 
@@ -134,12 +134,11 @@ export default function EmailTemplatesListPage() {
                 onClick={() => router.push('/admin/emails/new')}
                 variant="primary"
                 size="sm"
-                className="bg-gradient-to-r from-primary-500 to-secondary-500"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 New Template
               </Button>
-              <Button onClick={() => router.push('/admin/emails/sent')} variant="secondary" size="sm">
+              <Button onClick={() => router.push('/admin/emails/sent')} variant="outline" size="sm">
                 <Mail className="w-4 h-4 mr-2" />
                 Sent Emails
               </Button>
@@ -211,7 +210,7 @@ export default function EmailTemplatesListPage() {
                         <h3 className="text-base md:text-lg font-semibold text-white">
                           {template.name}
                         </h3>
-                        <Badge className={`${getStatusColor(template.status)} text-white px-2 md:px-3 py-1 text-xs`}>
+                        <Badge className={`${getStatusColor(template.status)} px-2 md:px-3 py-1 text-xs`}>
                           {template.status}
                         </Badge>
                         <Badge className={`${getCategoryColor(template.category)} px-2 md:px-3 py-1 text-xs`}>

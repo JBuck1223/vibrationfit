@@ -17,6 +17,11 @@ export interface VibePost {
   is_deleted: boolean
   deleted_at: string | null
   deleted_by: string | null
+  // Pinned post fields (optional until migration is run)
+  is_pinned?: boolean
+  pinned_at?: string | null
+  pinned_by?: string | null
+  // Timestamps
   created_at: string
   updated_at: string
   // Joined data

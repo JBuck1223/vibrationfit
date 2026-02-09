@@ -277,7 +277,7 @@ export default function NewSMSTemplatePage() {
                       className="bg-neutral-800 border-neutral-700 font-mono text-sm flex-1"
                       onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addVariable())}
                     />
-                    <Button type="button" variant="secondary" size="sm" onClick={addVariable}>
+                    <Button type="button" variant="outline" size="sm" onClick={addVariable}>
                       <Plus className="w-4 h-4" />
                     </Button>
                   </div>
@@ -315,7 +315,7 @@ export default function NewSMSTemplatePage() {
                       className="bg-neutral-800 border-neutral-700 text-sm flex-1"
                       onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTrigger())}
                     />
-                    <Button type="button" variant="secondary" size="sm" onClick={addTrigger}>
+                    <Button type="button" variant="outline" size="sm" onClick={addTrigger}>
                       <Plus className="w-4 h-4" />
                     </Button>
                   </div>
@@ -355,7 +355,7 @@ export default function NewSMSTemplatePage() {
                     type="submit"
                     variant="primary"
                     disabled={loading}
-                    className="w-full bg-gradient-to-r from-primary-500 to-secondary-500"
+                    className="w-full"
                   >
                     {loading ? (
                       <>

@@ -243,7 +243,6 @@ export default function SitemapPage() {
         { href: '/auth/auto-login', label: 'Auto Login', icon: User, description: 'Automatic login', badge: 'API' },
 
         // Utilities
-        { href: '/checkout', label: 'Checkout', icon: CheckCircle, description: 'Payment checkout' },
         { href: '/support', label: 'Support', icon: HelpCircle, description: 'Customer support' },
       ]
     },

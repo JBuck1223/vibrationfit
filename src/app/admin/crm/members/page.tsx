@@ -5,8 +5,9 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Badge, Container, Spinner, Input, Textarea , Stack, PageHero } from '@/lib/design-system/components'
-import { Mail, MessageSquare } from 'lucide-react'
+import { Button, Card, Badge, Container, Spinner, Input, Textarea, Stack, PageHero } from '@/lib/design-system/components'
+import { Mail, MessageSquare, Send } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface Member {
   user_id: string
@@ -43,6 +44,7 @@ export default function MembersPage() {
   }, [filter])
 
   async function fetchMembers() {
+    setLoading(true)
     try {
       const params = new URLSearchParams()
       if (filter !== 'all') {
@@ -51,8 +53,6 @@ export default function MembersPage() {
 
       const response = await fetch(`/api/crm/members?${params.toString()}`)
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        console.error('❌ Members API error:', response.status, errorData)
         throw new Error('Failed to fetch members')
       }
 
@@ -60,6 +60,7 @@ export default function MembersPage() {
       setMembers(data.members)
     } catch (error) {
       console.error('Error fetching members:', error)
+      toast.error('Failed to load members')
     } finally {
       setLoading(false)
     }
@@ -107,10 +108,9 @@ export default function MembersPage() {
       
       // Show detailed results
       if (data.results.failed > 0) {
-        const errorSummary = data.results.errors.slice(0, 5).join('\n')
-        alert(`✅ Sent to ${data.results.success} members\n❌ Failed: ${data.results.failed}\n\nReasons:\n${errorSummary}${data.results.errors.length > 5 ? '\n...and more' : ''}`)
+        toast.warning(`Sent to ${data.results.success} members. ${data.results.failed} failed.`)
       } else {
-        alert(`✅ Successfully sent to ${data.results.success} members!`)
+        toast.success(`Successfully sent to ${data.results.success} members`)
       }
 
       // Clear
@@ -118,30 +118,31 @@ export default function MembersPage() {
       setBulkMessage('')
       setSelectedMembers([])
       setShowBulkModal(false)
-    } catch (error: any) {
-      alert(error.message || 'Failed to send bulk message')
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : 'Failed to send bulk message'
+      toast.error(errMsg)
     } finally {
       setSendingBulk(false)
     }
   }
 
   function getStatusColor(status: string) {
-    if (!status) return 'bg-[#666666]'
+    if (!status) return 'bg-[#666666] text-white'
     
     switch (status.toLowerCase()) {
       case 'active':
       case 'champion':
-        return 'bg-primary-500'
+        return 'bg-primary-500 text-black'
       case 'healthy':
-        return 'bg-secondary-500'
+        return 'bg-secondary-500 text-black'
       case 'at_risk':
       case 'needs_attention':
-        return 'bg-[#FFB701]'
+        return 'bg-[#FFB701] text-black'
       case 'inactive':
       case 'churned':
-        return 'bg-[#D03739]'
+        return 'bg-[#D03739] text-white'
       default:
-        return 'bg-[#666666]'
+        return 'bg-[#666666] text-white'
     }
   }
 
@@ -161,7 +162,7 @@ export default function MembersPage() {
           title="Members"
           subtitle={`${members.length} total members`}
         >
-          <div className="flex justify-center mt-4">
+          <div className="flex gap-2">
             <Button 
               variant="outline" 
               size="sm"
@@ -205,7 +206,8 @@ export default function MembersPage() {
               size="sm"
               onClick={() => setShowBulkModal(true)}
             >
-              📨 Send Message
+              <Send className="w-4 h-4 mr-1" />
+              Send Message
             </Button>
           </div>
         </div>
@@ -266,7 +268,7 @@ export default function MembersPage() {
                       {member.subscription_tier || 'Free'}
                     </td>
                     <td className="py-3 md:py-4 px-3 md:px-4">
-                      <Badge className={`${getStatusColor(member.engagement_status)} text-white px-2 py-1 text-xs`}>
+                      <Badge className={`${getStatusColor(member.engagement_status)} px-2 py-1 text-xs`}>
                         {member.engagement_status || 'New'}
                       </Badge>
                     </td>

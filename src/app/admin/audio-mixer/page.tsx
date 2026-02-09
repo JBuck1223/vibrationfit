@@ -953,7 +953,7 @@ export default function AudioMixerAdminPage() {
 
           <div className="flex gap-3 pt-4">
             <Button
-              variant="secondary"
+              variant="outline"
               className="flex-1"
               onClick={() => {
                 setShowTrackModal(false)
@@ -1075,7 +1075,7 @@ export default function AudioMixerAdminPage() {
 
           <div className="flex gap-3 pt-4">
             <Button
-              variant="secondary"
+              variant="outline"
               className="flex-1"
               onClick={() => {
                 setShowRatioModal(false)
@@ -1233,7 +1233,7 @@ export default function AudioMixerAdminPage() {
 
           <div className="flex gap-3 pt-4">
             <Button
-              variant="secondary"
+              variant="outline"
               className="flex-1"
               onClick={() => {
                 setShowComboModal(false)

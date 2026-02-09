@@ -199,6 +199,36 @@ export async function POST(request: NextRequest) {
 
 You can cancel anytime before the first billing to avoid charges.`
     
+    // Look up promotion code in Stripe if provided
+    let promoCodeDiscount: { discounts: Array<{ promotion_code: string }> } | null = null
+    if (promoCode) {
+      try {
+        const promoCodes = await stripe.promotionCodes.list({
+          code: promoCode,
+          active: true,
+          limit: 1,
+        })
+        if (promoCodes.data.length > 0) {
+          promoCodeDiscount = {
+            discounts: [{ promotion_code: promoCodes.data[0].id }],
+          }
+        } else {
+          // Fallback: try as a raw coupon ID
+          try {
+            await stripe.coupons.retrieve(promoCode)
+            promoCodeDiscount = {
+              discounts: [{ coupon: promoCode } as any],
+            }
+          } catch {
+            // Invalid code - proceed without discount, Stripe checkout will show full price
+            console.warn(`Promo code "${promoCode}" not found as promotion code or coupon`)
+          }
+        }
+      } catch (err) {
+        console.error('Error looking up promo code:', err)
+      }
+    }
+
     // Create checkout session
     const session = await stripe.checkout.sessions.create({
       mode: sessionMode as 'payment' | 'subscription',
@@ -237,11 +267,7 @@ You can cancel anytime before the first billing to avoid charges.`
       },
       
       // Apply promo code if provided, otherwise allow manual entry
-      ...(promoCode ? {
-        discounts: [{
-          coupon: promoCode, // Apply coupon directly (coupon ID must match the promo code string)
-        }],
-      } : {
+      ...(promoCodeDiscount || {
         allow_promotion_codes: true, // Allow customers to enter codes manually
       }),
       

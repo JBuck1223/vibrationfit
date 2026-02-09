@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdminClient, isUserAdmin } from '@/lib/supabase/admin'
 
 // Force dynamic rendering (no caching)
 export const dynamic = 'force-dynamic'
@@ -19,13 +19,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check if user is admin
-    const isAdmin =
-      user.email === 'buckinghambliss@gmail.com' ||
-      user.email === 'admin@vibrationfit.com' ||
-      user.user_metadata?.is_admin === true
-
-    if (!isAdmin) {
+    if (!isUserAdmin(user)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -34,60 +28,83 @@ export async function GET(request: NextRequest) {
     const engagementStatus = searchParams.get('engagement_status')
     const healthStatus = searchParams.get('health_status')
 
-    // Use admin client to list all users
+    // Use admin client for ALL queries to bypass RLS
     const adminClient = createAdminClient()
-    const { data: authUsersData, error: authError } = await adminClient.auth.admin.listUsers()
 
-    if (authError) {
-      console.error('❌ Error fetching auth users:', authError)
-      return NextResponse.json({ error: 'Failed to fetch members' }, { status: 500 })
+    // Paginate through all auth users (listUsers caps at ~1000 per page)
+    const allUsers: Array<{
+      id: string
+      email?: string
+      phone?: string
+      created_at: string
+      last_sign_in_at?: string | null
+    }> = []
+    let page = 1
+    const perPage = 1000
+
+    while (true) {
+      const { data: authUsersData, error: authError } = await adminClient.auth.admin.listUsers({
+        page,
+        perPage,
+      })
+
+      if (authError) {
+        console.error('Error fetching auth users:', authError)
+        return NextResponse.json({ error: 'Failed to fetch members' }, { status: 500 })
+      }
+
+      allUsers.push(...authUsersData.users)
+
+      // If we got fewer than perPage, we've reached the last page
+      if (authUsersData.users.length < perPage) break
+      page++
     }
 
-    const allUsers = authUsersData.users
     const userIds = allUsers.map(u => u.id)
 
-    // Get active profiles for display names
-    const { data: activeProfiles } = await supabase
-      .from('user_profiles')
-      .select('user_id, first_name, last_name, phone')
-      .in('user_id', userIds)
-      .eq('is_active', true)
-      .eq('is_draft', false)
-
-    // Get subscriptions with tier info (includes pricing)
-    const { data: subscriptions } = await supabase
-      .from('customer_subscriptions')
-      .select(`
-        user_id,
-        status,
-        stripe_customer_id,
-        stripe_subscription_id,
-        current_period_start,
-        created_at,
-        membership_tier_id,
-        membership_tiers (
-          name,
-          tier_type,
-          price_monthly,
-          price_yearly,
-          billing_interval
-        )
-      `)
-      .in('user_id', userIds)
-      .in('status', ['active', 'trialing'])
-
-    // Get activity metrics
-    const { data: activityMetrics } = await supabase
-      .from('user_activity_metrics')
-      .select('*')
-      .in('user_id', userIds)
-
-    // Get payment totals from payment_history
-    const { data: paymentTotals } = await supabase
-      .from('payment_history')
-      .select('user_id, amount, paid_at')
-      .in('user_id', userIds)
-      .eq('status', 'succeeded')
+    // Run independent queries in parallel using admin client
+    const [
+      { data: activeProfiles },
+      { data: subscriptions },
+      { data: activityMetrics },
+      { data: paymentTotals },
+    ] = await Promise.all([
+      adminClient
+        .from('user_profiles')
+        .select('user_id, first_name, last_name, phone')
+        .in('user_id', userIds)
+        .eq('is_active', true)
+        .eq('is_draft', false),
+      adminClient
+        .from('customer_subscriptions')
+        .select(`
+          user_id,
+          status,
+          stripe_customer_id,
+          stripe_subscription_id,
+          current_period_start,
+          created_at,
+          membership_tier_id,
+          membership_tiers (
+            name,
+            tier_type,
+            price_monthly,
+            price_yearly,
+            billing_interval
+          )
+        `)
+        .in('user_id', userIds)
+        .in('status', ['active', 'trialing']),
+      adminClient
+        .from('user_activity_metrics')
+        .select('*')
+        .in('user_id', userIds),
+      adminClient
+        .from('payment_history')
+        .select('user_id, amount, paid_at')
+        .in('user_id', userIds)
+        .eq('status', 'succeeded'),
+    ])
 
     // Combine the data - ONE entry per auth user
     const members = allUsers.map((authUser) => {
@@ -97,11 +114,18 @@ export async function GET(request: NextRequest) {
       
       // Calculate revenue metrics from payment_history
       const userPayments = paymentTotals?.filter((p) => p.user_id === authUser.id) || []
-      const totalSpent = userPayments.reduce((sum, p) => sum + (p.amount / 100), 0) // Stripe amounts in cents
+      const totalSpent = userPayments.reduce((sum, p) => sum + (p.amount / 100), 0)
       const ltv = totalSpent
       
       // Calculate MRR from subscription tier
-      const tier = subscription?.membership_tiers?.[0]
+      // membership_tiers is a single joined object (many-to-one), not an array
+      const tier = subscription?.membership_tiers as {
+        name?: string
+        tier_type?: string
+        price_monthly?: number
+        price_yearly?: number
+        billing_interval?: string
+      } | null
       let mrr = 0
       if (tier) {
         if (tier.billing_interval === 'month') {
@@ -126,13 +150,19 @@ export async function GET(request: NextRequest) {
         full_name: profile?.first_name && profile?.last_name 
           ? `${profile.first_name} ${profile.last_name}` 
           : profile?.first_name || profile?.last_name || authUser.email?.split('@')[0] || 'Unknown',
-        subscription_tier: subscription?.membership_tiers?.[0]?.name || 'Free',
+        subscription_tier: tier?.name || 'Free',
         subscription_status: subscription?.status || null,
         stripe_customer_id: subscription?.stripe_customer_id || null,
         created_at: authUser.created_at,
         last_sign_in_at: authUser.last_sign_in_at,
-        // Activity metrics
-        ...activity,
+        // Activity metrics (spread only known fields, not raw DB row)
+        engagement_status: (activity as Record<string, unknown>)?.engagement_status || null,
+        health_status: (activity as Record<string, unknown>)?.health_status || null,
+        custom_tags: (activity as Record<string, unknown>)?.custom_tags || [],
+        vision_count: (activity as Record<string, unknown>)?.vision_count || 0,
+        journal_entry_count: (activity as Record<string, unknown>)?.journal_entry_count || 0,
+        last_login_at: (activity as Record<string, unknown>)?.last_login_at || null,
+        days_since_last_login: (activity as Record<string, unknown>)?.days_since_last_login || null,
         // Revenue metrics (calculated)
         mrr,
         ltv,
@@ -155,8 +185,8 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ members: filteredMembers })
-  } catch (error: any) {
-    console.error('❌ Error in members API:', error)
+  } catch (error: unknown) {
+    console.error('Error in members API:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -329,7 +329,7 @@ export default function AudioGeneratorPage() {
             {/* Progress Bar */}
             <div className="w-full bg-neutral-800 rounded-full h-3 overflow-hidden mb-4">
               <div 
-                className="bg-gradient-to-r from-primary-500 to-secondary-500 h-full transition-all duration-300 ease-out"
+                className="bg-primary-500 h-full transition-all duration-300 ease-out"
                 style={{ width: `${job.progress}%` }}
               />
             </div>
@@ -530,7 +530,7 @@ export default function AudioGeneratorPage() {
           </div>
 
           <Button
-            variant="secondary"
+            variant="outline"
             className="w-full"
             onClick={() => startGeneration('noise')}
             disabled={job?.status === 'generating' || job?.status === 'uploading' || job?.status === 'inserting'}

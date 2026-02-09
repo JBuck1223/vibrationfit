@@ -5,12 +5,13 @@
  * 
  * YouTube-live style chat feed for video sessions.
  * Uses Supabase realtime for instant message updates.
+ * Host can highlight/pin a message to display it prominently.
  */
 
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Send, MessageCircle, X } from 'lucide-react'
-import { Button, Spinner } from '@/lib/design-system/components'
+import { Send, X, Pin, PinOff } from 'lucide-react'
+import { Spinner } from '@/lib/design-system/components'
 
 interface ChatMessage {
   id: string
@@ -29,6 +30,8 @@ interface SessionChatProps {
   currentUserName?: string
   isHost?: boolean
   onClose?: () => void
+  /** Callback when a message is highlighted — parent can display it prominently */
+  onHighlightChange?: (message: ChatMessage | null) => void
 }
 
 export function SessionChat({
@@ -37,6 +40,7 @@ export function SessionChat({
   currentUserName = 'You',
   isHost = false,
   onClose,
+  onHighlightChange,
 }: SessionChatProps) {
   const supabase = createClient()
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -44,6 +48,8 @@ export function SessionChat({
   const [isLoading, setIsLoading] = useState(true)
   const [isSending, setIsSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [highlightedId, setHighlightedId] = useState<string | null>(null)
+  const [highlightingId, setHighlightingId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -52,18 +58,26 @@ export function SessionChat({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [])
 
-  // Fetch initial messages
+  // Fetch initial messages + highlighted state
   useEffect(() => {
     const fetchMessages = async () => {
       try {
-        const response = await fetch(`/api/video/sessions/${sessionId}/messages`)
-        const data = await response.json()
+        const [messagesRes, highlightRes] = await Promise.all([
+          fetch(`/api/video/sessions/${sessionId}/messages`),
+          fetch(`/api/video/sessions/${sessionId}/highlight`),
+        ])
+        const messagesData = await messagesRes.json()
+        const highlightData = await highlightRes.json()
 
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to load messages')
+        if (!messagesRes.ok) {
+          throw new Error(messagesData.error || 'Failed to load messages')
         }
 
-        setMessages(data.messages || [])
+        setMessages(messagesData.messages || [])
+        if (highlightData.highlighted_message) {
+          setHighlightedId(highlightData.highlighted_message.id)
+          onHighlightChange?.(highlightData.highlighted_message)
+        }
         setError(null)
       } catch (err) {
         console.error('Error fetching messages:', err)
@@ -74,7 +88,7 @@ export function SessionChat({
     }
 
     fetchMessages()
-  }, [sessionId])
+  }, [sessionId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Subscribe to realtime updates
   useEffect(() => {
@@ -91,7 +105,6 @@ export function SessionChat({
         (payload) => {
           const newMsg = payload.new as ChatMessage
           setMessages((prev) => {
-            // Avoid duplicates
             if (prev.some((m) => m.id === newMsg.id)) {
               return prev
             }
@@ -110,6 +123,35 @@ export function SessionChat({
         (payload) => {
           const deletedId = (payload.old as { id: string }).id
           setMessages((prev) => prev.filter((m) => m.id !== deletedId))
+          // Clear highlight if deleted message was highlighted
+          if (deletedId === highlightedId) {
+            setHighlightedId(null)
+            onHighlightChange?.(null)
+          }
+        }
+      )
+      // Listen for highlight changes on the session itself
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'video_sessions',
+          filter: `id=eq.${sessionId}`,
+        },
+        (payload) => {
+          const updated = payload.new as { highlighted_message_id: string | null }
+          setHighlightedId(updated.highlighted_message_id)
+          if (updated.highlighted_message_id) {
+            // Find the message in our local state
+            setMessages((prev) => {
+              const msg = prev.find((m) => m.id === updated.highlighted_message_id)
+              if (msg) onHighlightChange?.(msg)
+              return prev
+            })
+          } else {
+            onHighlightChange?.(null)
+          }
         }
       )
       .subscribe()
@@ -117,12 +159,45 @@ export function SessionChat({
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [sessionId, supabase])
+  }, [sessionId, supabase, highlightedId, onHighlightChange])
 
   // Auto-scroll when messages change
   useEffect(() => {
     scrollToBottom()
   }, [messages, scrollToBottom])
+
+  // Highlight / unhighlight a message (host only)
+  const toggleHighlight = useCallback(async (messageId: string) => {
+    if (!isHost) return
+    setHighlightingId(messageId)
+
+    const newHighlightId = highlightedId === messageId ? null : messageId
+
+    try {
+      const response = await fetch(`/api/video/sessions/${sessionId}/highlight`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message_id: newHighlightId }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update highlight')
+      }
+
+      setHighlightedId(newHighlightId)
+
+      if (newHighlightId) {
+        const msg = messages.find((m) => m.id === newHighlightId)
+        onHighlightChange?.(msg || null)
+      } else {
+        onHighlightChange?.(null)
+      }
+    } catch (err) {
+      console.error('Error toggling highlight:', err)
+    } finally {
+      setHighlightingId(null)
+    }
+  }, [isHost, highlightedId, sessionId, messages, onHighlightChange])
 
   // Send message
   const handleSend = async (e?: React.FormEvent) => {
@@ -133,7 +208,6 @@ export function SessionChat({
 
     setIsSending(true)
 
-    // Optimistic update
     const optimisticId = `optimistic-${Date.now()}`
     const optimisticMessage: ChatMessage = {
       id: optimisticId,
@@ -159,15 +233,12 @@ export function SessionChat({
         throw new Error('Failed to send message')
       }
 
-      // Replace optimistic message with real one (realtime will handle this,
-      // but we remove the optimistic one to avoid brief duplicate)
       const data = await response.json()
       setMessages((prev) =>
         prev.map((m) => (m.id === optimisticId ? data.message : m))
       )
     } catch (err) {
       console.error('Error sending message:', err)
-      // Remove optimistic message on error
       setMessages((prev) => prev.filter((m) => m.id !== optimisticId))
       setError('Failed to send message')
     } finally {
@@ -176,139 +247,147 @@ export function SessionChat({
     }
   }
 
-  // Format time
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-    })
-  }
-
-  // Get initials for avatar
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
-  }
-
-  // Check if message is from current user
   const isOwnMessage = (msg: ChatMessage) => {
     return msg.user_id === currentUserId
   }
 
+  // Assign stable colors to usernames
+  const nameColors = [
+    'text-primary-400',
+    'text-secondary-400',
+    'text-accent-400',
+    'text-energy-400',
+    'text-blue-400',
+    'text-pink-400',
+    'text-orange-400',
+    'text-cyan-400',
+  ]
+
+  const getNameColor = (name: string) => {
+    let hash = 0
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash)
+    }
+    return nameColors[Math.abs(hash) % nameColors.length]
+  }
+
   return (
-    <div className="flex flex-col h-full bg-neutral-900/95 backdrop-blur rounded-2xl border border-neutral-700 overflow-hidden">
+    <div className="flex flex-col h-full bg-neutral-900 overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-700">
-        <h3 className="text-white font-medium flex items-center gap-2">
-          <MessageCircle className="w-4 h-4 text-primary-500" />
-          Live Chat
-          {messages.length > 0 && (
-            <span className="text-xs text-neutral-500">({messages.length})</span>
-          )}
-        </h3>
+      <div className="flex items-center justify-between px-3 py-2 border-b border-neutral-800">
+        <span className="text-sm text-neutral-300 font-medium">Live chat</span>
         {onClose && (
           <button
             onClick={onClose}
-            className="p-1 hover:bg-neutral-700 rounded-full transition-colors"
+            className="p-1 hover:bg-neutral-800 rounded transition-colors"
           >
             <X className="w-4 h-4 text-neutral-400" />
           </button>
         )}
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
+      {/* Pinned / Highlighted message */}
+      {highlightedId && (() => {
+        const hlMsg = messages.find((m) => m.id === highlightedId)
+        if (!hlMsg) return null
+        return (
+          <div className="px-3 py-2 bg-energy-500/10 border-b border-energy-500/30 flex items-center gap-2">
+            <Pin className="w-3 h-3 text-energy-500 flex-shrink-0" />
+            <p className="text-xs text-neutral-200 truncate flex-1">
+              <span className="text-energy-400 font-medium">{hlMsg.sender_name}</span>{' '}
+              {hlMsg.message}
+            </p>
+            {isHost && (
+              <button
+                onClick={() => toggleHighlight(highlightedId)}
+                className="p-0.5 hover:bg-neutral-800 rounded transition-colors flex-shrink-0"
+                title="Unpin"
+              >
+                <PinOff className="w-3 h-3 text-neutral-500" />
+              </button>
+            )}
+          </div>
+        )
+      })()}
+
+      {/* Messages — YouTube Live style feed */}
+      <div className="flex-1 overflow-y-auto px-3 py-1 min-h-0">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <Spinner size="sm" />
           </div>
         ) : error ? (
-          <div className="text-center text-red-400 text-sm py-4">{error}</div>
+          <div className="text-center text-red-400 text-xs py-4">{error}</div>
         ) : messages.length === 0 ? (
-          <div className="text-center text-neutral-500 text-sm py-8">
-            No messages yet. Start the conversation!
+          <div className="flex items-center justify-center h-full">
+            <p className="text-neutral-600 text-xs">No messages yet</p>
           </div>
         ) : (
-          messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex gap-2 ${
-                isOwnMessage(msg) ? 'flex-row-reverse' : ''
-              }`}
-            >
-              {/* Avatar */}
+          messages.map((msg) => {
+            const isHighlighted = msg.id === highlightedId
+            const own = isOwnMessage(msg)
+            return (
               <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-medium ${
-                  isOwnMessage(msg)
-                    ? 'bg-primary-500/20 text-primary-500'
-                    : 'bg-secondary-500/20 text-secondary-500'
+                key={msg.id}
+                className={`group flex items-start gap-1.5 py-[3px] hover:bg-neutral-800/50 px-1 -mx-1 rounded ${
+                  isHighlighted ? 'bg-energy-500/10' : ''
                 }`}
               >
-                {getInitials(msg.sender_name)}
-              </div>
+                {/* Compact message: @Name message */}
+                <p className="text-[13px] leading-5 flex-1 min-w-0 break-words">
+                  <span className={`font-medium ${
+                    isHighlighted ? 'text-energy-400' : own ? 'text-primary-400' : getNameColor(msg.sender_name)
+                  }`}>
+                    {own ? 'You' : msg.sender_name}
+                  </span>
+                  <span className="text-neutral-200 ml-1.5">{msg.message}</span>
+                </p>
 
-              {/* Message bubble */}
-              <div
-                className={`max-w-[75%] ${
-                  isOwnMessage(msg) ? 'text-right' : ''
-                }`}
-              >
-                <div className="flex items-baseline gap-2 mb-0.5">
-                  <span
-                    className={`text-xs font-medium ${
-                      isOwnMessage(msg) ? 'text-primary-400' : 'text-white'
+                {/* Host: pin button on hover */}
+                {isHost && !msg.id.startsWith('optimistic-') && (
+                  <button
+                    onClick={() => toggleHighlight(msg.id)}
+                    disabled={highlightingId === msg.id}
+                    className={`mt-0.5 opacity-0 group-hover:opacity-100 p-0.5 rounded transition-all flex-shrink-0 ${
+                      isHighlighted
+                        ? 'opacity-100 text-energy-500'
+                        : 'text-neutral-600 hover:text-white'
                     }`}
+                    title={isHighlighted ? 'Unpin' : 'Pin to feed'}
                   >
-                    {isOwnMessage(msg) ? 'You' : msg.sender_name}
-                  </span>
-                  <span className="text-[10px] text-neutral-500">
-                    {formatTime(msg.sent_at)}
-                  </span>
-                </div>
-                <div
-                  className={`inline-block px-3 py-1.5 rounded-2xl text-sm ${
-                    isOwnMessage(msg)
-                      ? 'bg-primary-500/20 text-white'
-                      : 'bg-neutral-800 text-neutral-200'
-                  }`}
-                >
-                  {msg.message}
-                </div>
+                    {isHighlighted ? (
+                      <PinOff className="w-3 h-3" />
+                    ) : (
+                      <Pin className="w-3 h-3" />
+                    )}
+                  </button>
+                )}
               </div>
-            </div>
-          ))
+            )
+          })
         )}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
-      <form onSubmit={handleSend} className="p-3 border-t border-neutral-700">
-        <div className="flex gap-2">
+      <form onSubmit={handleSend} className="px-3 py-2 border-t border-neutral-800">
+        <div className="flex gap-2 items-center">
           <input
             ref={inputRef}
             type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="Say something..."
-            className="flex-1 bg-neutral-800 border border-neutral-700 rounded-full px-4 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-primary-500 transition-colors"
+            className="flex-1 bg-transparent border-none text-sm text-white placeholder-neutral-600 focus:outline-none"
             disabled={isSending}
             maxLength={500}
           />
           <button
             type="submit"
             disabled={!newMessage.trim() || isSending}
-            className="w-10 h-10 rounded-full bg-primary-500 hover:bg-primary-600 disabled:bg-neutral-700 disabled:text-neutral-500 text-black flex items-center justify-center transition-colors"
+            className="p-1.5 text-primary-500 disabled:text-neutral-700 hover:text-primary-400 transition-colors flex-shrink-0"
           >
-            {isSending ? (
-              <Spinner size="sm" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
+            <Send className="w-4 h-4" />
           </button>
         </div>
       </form>

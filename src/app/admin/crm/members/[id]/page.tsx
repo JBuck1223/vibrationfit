@@ -7,7 +7,8 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { Button, Card, Badge, Container, Spinner, Input, Textarea, Stack, PageHero, TrackingMilestoneCard } from '@/lib/design-system/components'
 import { ConversationThread } from '@/components/crm/ConversationThread'
-import { RefreshCw, MessageSquare, Target, Activity, Clock, DollarSign } from 'lucide-react'
+import { RefreshCw, MessageSquare, Mail, Target, Activity, Clock, DollarSign } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface Member {
   user_id: string
@@ -152,11 +153,11 @@ export default function MemberDetailPage() {
 
       if (!response.ok) throw new Error('Failed to update member')
 
-      alert('Member updated successfully!')
+      toast.success('Member updated successfully')
       fetchMember()
     } catch (error: any) {
       console.error('Error updating member:', error)
-      alert('Failed to update member')
+      toast.error('Failed to update member')
     } finally {
       setUpdating(false)
     }
@@ -202,7 +203,7 @@ export default function MemberDetailPage() {
         await fetchMember()
       }, 1500)
     } catch (error: any) {
-      alert(error.message || 'Failed to send message')
+      toast.error('Failed to send message')
     } finally {
       setSending(false)
     }
@@ -238,9 +239,9 @@ export default function MemberDetailPage() {
         await fetchConversation()
       }, 1500)
       
-      alert('Email sent successfully!')
+      toast.success('Email sent successfully')
     } catch (error: any) {
-      alert(error.message || 'Failed to send email')
+      toast.error('Failed to send email')
     } finally {
       setSendingEmail(false)
     }
@@ -248,7 +249,7 @@ export default function MemberDetailPage() {
 
   async function handleSendSMS() {
     if (!member?.phone) {
-      alert('No phone number for this member')
+      toast.error('No phone number for this member')
       return
     }
 
@@ -268,11 +269,11 @@ export default function MemberDetailPage() {
 
       if (!response.ok) throw new Error('Failed to send SMS')
 
-      alert('SMS sent successfully!')
+      toast.success('SMS sent successfully')
       fetchMember()
     } catch (error: any) {
       console.error('Error sending SMS:', error)
-      alert('Failed to send SMS')
+      toast.error('Failed to send SMS')
     }
   }
 
@@ -675,7 +676,7 @@ export default function MemberDetailPage() {
             {/* SMS Composer */}
             <Card className="p-4 md:p-6">
               <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
-                💬 Send SMS
+                <MessageSquare className="w-4 h-4" /> Send SMS
               </h3>
               
               {!member?.phone ? (
@@ -718,7 +719,7 @@ export default function MemberDetailPage() {
             {/* Email Composer */}
             <Card className="p-4 md:p-6">
               <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
-                📧 Send Email
+                <Mail className="w-4 h-4" /> Send Email
               </h3>
               
               {!member?.email ? (

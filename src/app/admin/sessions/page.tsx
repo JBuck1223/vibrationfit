@@ -181,7 +181,7 @@ function AdminSessionsContent() {
           </Card>
 
           <Card 
-            className="bg-gradient-to-br from-primary-500/20 to-secondary-500/20 border-primary-500/30 p-4 cursor-pointer hover:border-primary-500/50 transition-colors"
+            className="bg-primary-500/10 border-primary-500/30 p-4 cursor-pointer hover:border-primary-500/50 transition-colors"
             onClick={() => router.push('/admin/sessions/new')}
           >
             <div className="flex items-center gap-3">
@@ -244,7 +244,7 @@ function AdminSessionsContent() {
         ) : error ? (
           <Card className="bg-red-500/10 border-red-500/30 p-6 text-center">
             <p className="text-red-400">{error}</p>
-            <Button variant="secondary" onClick={fetchSessions} className="mt-4">
+            <Button variant="outline" onClick={fetchSessions} className="mt-4">
               Try Again
             </Button>
           </Card>
@@ -262,7 +262,6 @@ function AdminSessionsContent() {
             <Button 
               variant="primary" 
               onClick={() => router.push('/admin/sessions/new')}
-              className="bg-gradient-to-r from-primary-500 to-secondary-500"
             >
               <Plus className="w-4 h-4 mr-2" />
               Create Session
@@ -351,15 +350,14 @@ function AdminSessionsContent() {
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-end gap-2">
                             {(joinable || session.status === 'live') && (
-                              <Button
-                                variant="primary"
-                                size="sm"
-                                onClick={() => router.push(`/session/${session.id}`)}
-                                className="bg-gradient-to-r from-primary-500 to-secondary-500"
-                              >
-                                <Play className="w-3 h-3 mr-1" />
-                                Join
-                              </Button>
+            <Button
+                variant="primary"
+                size="sm"
+                onClick={() => router.push(`/session/${session.id}`)}
+              >
+                <Play className="w-3 h-3 mr-1" />
+                Join
+              </Button>
                             )}
                             <button
                               onClick={() => router.push(`/admin/sessions/${session.id}`)}

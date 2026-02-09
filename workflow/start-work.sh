@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # VibrationFit Git Workflow: Start Work
-# This script helps you start work on either machine by pulling latest changes
+# This script helps you start work on any machine by pulling latest changes
 
 set -e  # Exit on error
 
@@ -10,8 +10,9 @@ echo ""
 echo "Which machine are you on?"
 echo "  1) Machine 1 (jordan branch)"
 echo "  2) Machine 2 (vanessa branch)"
+echo "  3) JV Mac Mini (jvmacmini branch)"
 echo ""
-read -p "Enter 1 or 2: " machine
+read -p "Enter 1, 2, or 3: " machine
 
 if [ "$machine" == "1" ]; then
     BRANCH="jordan"
@@ -19,8 +20,11 @@ if [ "$machine" == "1" ]; then
 elif [ "$machine" == "2" ]; then
     BRANCH="Vanessa"
     MACHINE_NAME="Machine 2"
+elif [ "$machine" == "3" ]; then
+    BRANCH="jvmacmini"
+    MACHINE_NAME="JV Mac Mini"
 else
-    echo "❌ Invalid selection. Please run again and choose 1 or 2."
+    echo "❌ Invalid selection. Please run again and choose 1, 2, or 3."
     exit 1
 fi
 

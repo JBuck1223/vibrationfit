@@ -91,7 +91,7 @@ function isPathAccessibleForIntensive(
     return intensive.first_journal_entry
   }
   
-  // Step 13: Activation Protocol & Calibration - accessible after call scheduled
+  // Step 13: My Activation Plan & Calibration - accessible after call scheduled
   if (pathname.startsWith('/map') || pathname.startsWith('/intensive/calibration')) {
     return intensive.call_scheduled
   }

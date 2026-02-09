@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Brain } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 import { cn } from '../shared-utils'
 
 interface VIVAButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -46,7 +46,7 @@ export const VIVAButton = React.forwardRef<HTMLButtonElement, VIVAButtonProps>(
         className={buttonClasses}
         {...props}
       >
-        <Brain className="w-5 h-5" />
+        <Sparkles className="w-5 h-5" />
         {children}
       </button>
     )

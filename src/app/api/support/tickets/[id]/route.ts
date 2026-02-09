@@ -1,12 +1,27 @@
 // /src/app/api/support/tickets/[id]/route.ts
-
-// Force dynamic rendering (no caching)
-export const dynamic = 'force-dynamic'
-import { createAdminClient } from '@/lib/supabase/admin'
 // Individual ticket operations
+
+export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient, isUserAdmin } from '@/lib/supabase/admin'
+
+// Allowed fields for ticket updates
+const TICKET_UPDATABLE_FIELDS = [
+  'status', 'priority', 'category', 'assigned_to',
+  'resolved_at', 'closed_at',
+] as const
+
+function pickAllowedFields(body: Record<string, unknown>, allowedFields: readonly string[]) {
+  const result: Record<string, unknown> = {}
+  for (const key of allowedFields) {
+    if (key in body) {
+      result[key] = body[key]
+    }
+  }
+  return result
+}
 
 export async function GET(
   request: NextRequest,
@@ -19,7 +34,6 @@ export async function GET(
       data: { user },
     } = await supabase.auth.getUser()
 
-    // Use admin client for database queries (bypasses RLS)
     const adminClient = createAdminClient()
 
     // Get ticket
@@ -30,16 +44,12 @@ export async function GET(
       .single()
 
     if (error) {
-      console.error('❌ Error fetching ticket:', error)
+      console.error('Error fetching ticket:', error)
       return NextResponse.json({ error: 'Ticket not found' }, { status: 404 })
     }
 
     // Check permissions
-    const isAdmin =
-      user?.email === 'buckinghambliss@gmail.com' ||
-      user?.email === 'admin@vibrationfit.com' ||
-      user?.user_metadata?.is_admin === true
-
+    const isAdmin = isUserAdmin(user)
     const isOwner = user?.id === ticket.user_id
 
     if (!isAdmin && !isOwner) {
@@ -57,8 +67,8 @@ export async function GET(
       ticket,
       replies: replies || [],
     })
-  } catch (error: any) {
-    console.error('❌ Error in get ticket API:', error)
+  } catch (error: unknown) {
+    console.error('Error in get ticket API:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -78,38 +88,34 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check if admin
-    const isAdmin =
-      user.email === 'buckinghambliss@gmail.com' ||
-      user.email === 'admin@vibrationfit.com' ||
-      user.user_metadata?.is_admin === true
-
-    if (!isAdmin) {
+    if (!isUserAdmin(user)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    // Use admin client for database queries (bypasses RLS)
     const adminClient = createAdminClient()
-
     const body = await request.json()
+    const updateData = pickAllowedFields(body, TICKET_UPDATABLE_FIELDS)
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
+    }
 
     // Update ticket
     const { data: ticket, error } = await adminClient
       .from('support_tickets')
-      .update(body)
+      .update(updateData)
       .eq('id', id)
       .select()
       .single()
 
     if (error) {
-      console.error('❌ Error updating ticket:', error)
+      console.error('Error updating ticket:', error)
       return NextResponse.json({ error: 'Failed to update ticket' }, { status: 500 })
     }
 
     return NextResponse.json({ ticket })
-  } catch (error: any) {
-    console.error('❌ Error in update ticket API:', error)
+  } catch (error: unknown) {
+    console.error('Error in update ticket API:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
-

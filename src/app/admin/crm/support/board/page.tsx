@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Card, Badge, Container, Spinner, Stack, PageHero } from '@/lib/design-system/components'
 import { Kanban, KanbanColumn, KanbanItem } from '@/components/crm/Kanban'
+import { toast } from 'sonner'
 
 interface Ticket {
   id: string
@@ -94,7 +95,7 @@ export default function SupportBoardPage() {
       // ✅ API succeeded, optimistic update is now confirmed
     } catch (error) {
       console.error('Error updating ticket:', error)
-      alert('Failed to update ticket status')
+      toast.error('Failed to update ticket status')
     }
   }
 
@@ -114,10 +115,10 @@ export default function SupportBoardPage() {
 
         <div className="flex items-center gap-2 mb-2 flex-wrap">
           <Badge className={`px-2 py-1 text-xs ${
-            ticket.priority === 'urgent' ? 'bg-[#D03739]' :
-            ticket.priority === 'high' ? 'bg-[#FFB701]' :
-            'bg-[#404040]'
-          } text-white`}>
+            ticket.priority === 'urgent' ? 'bg-[#D03739] text-white' :
+            ticket.priority === 'high' ? 'bg-[#FFB701] text-black' :
+            'bg-[#404040] text-white'
+          }`}>
             {ticket.priority}
           </Badge>
           <Badge className="bg-[#1F1F1F] text-neutral-400 px-2 py-1 text-xs truncate max-w-[100px]">

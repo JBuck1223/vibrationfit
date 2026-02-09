@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdminClient, isUserAdmin } from '@/lib/supabase/admin'
 import { sendEmail } from '@/lib/email/aws-ses'
 
 export async function POST(
@@ -21,13 +21,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check if user is admin
-    const isAdmin =
-      user.email === 'buckinghambliss@gmail.com' ||
-      user.email === 'admin@vibrationfit.com' ||
-      user.user_metadata?.is_admin === true
-
-    if (!isAdmin) {
+    if (!isUserAdmin(user)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -41,13 +35,19 @@ export async function POST(
       )
     }
 
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(to)) {
+      return NextResponse.json({ error: 'Invalid email address format' }, { status: 400 })
+    }
+
     // Send email via AWS SES
     await sendEmail({
       to,
       subject,
       htmlBody: htmlBody || `<p>${textBody}</p>`,
       textBody: textBody || htmlBody?.replace(/<[^>]*>/g, ''),
-      replyTo: 'team@vibrationfit.com', // Route replies to Google Workspace
+      replyTo: 'team@vibrationfit.com',
     })
 
     // Log to database for conversation history (use admin client to bypass RLS)
@@ -67,22 +67,19 @@ export async function POST(
       })
 
     if (logError) {
-      console.error('❌ Failed to log email:', logError)
+      console.error('Failed to log email:', logError)
       // Continue anyway - email was sent
-    } else {
-      console.log('✅ Email logged to database')
     }
 
     return NextResponse.json({
       success: true,
       message: 'Email sent successfully',
     })
-  } catch (error: any) {
-    console.error('❌ Error sending email:', error)
+  } catch (error: unknown) {
+    console.error('Error sending email:', error)
     return NextResponse.json(
-      { error: error.message || 'Failed to send email' },
+      { error: 'Failed to send email' },
       { status: 500 }
     )
   }
 }
-

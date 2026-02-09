@@ -13,6 +13,7 @@ import {
   Stack,
   PageHero,
   DatePicker,
+  TimePicker,
   Checkbox
 } from '@/lib/design-system/components'
 import { Calendar, Clock, Plus, X, Trash2, Users, CheckCircle, Repeat, CalendarRange, Edit2, MoreVertical, Target, MessageSquare, Video, GraduationCap, User } from 'lucide-react'
@@ -778,11 +779,11 @@ export default function AdminScheduleCallPage() {
                       onChange={(dateString: string) => setSingleSchedule({ ...singleSchedule, date: dateString })}
                       minDate={new Date().toISOString().split('T')[0]}
                     />
-                    <Input
+                    <TimePicker
                       label="Time"
-                      type="time"
                       value={singleSchedule.time}
-                      onChange={(e) => setSingleSchedule({ ...singleSchedule, time: e.target.value })}
+                      onChange={(time) => setSingleSchedule({ ...singleSchedule, time })}
+                      step={15}
                     />
                     <Input
                       label={meetingType === 'one_on_one' ? 'Max Bookings (1 for one-on-one)' : 'Max Attendees'}
@@ -832,17 +833,17 @@ export default function AdminScheduleCallPage() {
                       />
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                      <Input
+                      <TimePicker
                         label="Start Time"
-                        type="time"
                         value={rangeSchedule.startTime}
-                        onChange={(e) => setRangeSchedule({ ...rangeSchedule, startTime: e.target.value })}
+                        onChange={(time) => setRangeSchedule({ ...rangeSchedule, startTime: time })}
+                        step={15}
                       />
-                      <Input
+                      <TimePicker
                         label="End Time"
-                        type="time"
                         value={rangeSchedule.endTime}
-                        onChange={(e) => setRangeSchedule({ ...rangeSchedule, endTime: e.target.value })}
+                        onChange={(time) => setRangeSchedule({ ...rangeSchedule, endTime: time })}
+                        step={15}
                       />
                       <div>
                         <label className="block text-sm font-medium mb-2">Slot Length (minutes)</label>
@@ -904,17 +905,17 @@ export default function AdminScheduleCallPage() {
                       />
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                      <Input
+                      <TimePicker
                         label="Start Time"
-                        type="time"
                         value={recurringSchedule.startTime}
-                        onChange={(e) => setRecurringSchedule({ ...recurringSchedule, startTime: e.target.value })}
+                        onChange={(time) => setRecurringSchedule({ ...recurringSchedule, startTime: time })}
+                        step={15}
                       />
-                      <Input
+                      <TimePicker
                         label="End Time"
-                        type="time"
                         value={recurringSchedule.endTime}
-                        onChange={(e) => setRecurringSchedule({ ...recurringSchedule, endTime: e.target.value })}
+                        onChange={(time) => setRecurringSchedule({ ...recurringSchedule, endTime: time })}
+                        step={15}
                       />
                       <div>
                         <label className="block text-sm font-medium mb-2">Slot Length (minutes)</label>

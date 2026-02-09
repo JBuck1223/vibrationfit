@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createOneOnOneRoom, createGroupRoom, createHostToken, getRoomUrl } from '@/lib/video/daily'
+import { createOneOnOneRoom, createGroupRoom, createAlignmentGymRoom, createWebinarRoom, createHostToken, getRoomUrl } from '@/lib/video/daily'
 import { sendEmail } from '@/lib/email/aws-ses'
 import { generateSessionInvitationEmail } from '@/lib/email/templates'
 import type { CreateSessionRequest, CreateSessionResponse, VideoSession, VideoSessionType } from '@/lib/video/types'
@@ -38,13 +38,23 @@ export async function POST(request: NextRequest) {
 
     // Create Daily.co room based on session type
     let dailyRoom
+    let maxParticipants = 2
     try {
       if (sessionType === 'one_on_one') {
         dailyRoom = await createOneOnOneRoom(scheduledAt, durationMinutes)
+        maxParticipants = 2
       } else if (sessionType === 'group' || sessionType === 'workshop') {
         dailyRoom = await createGroupRoom(scheduledAt, 25, durationMinutes)
+        maxParticipants = 25
+      } else if (sessionType === 'alignment_gym') {
+        dailyRoom = await createAlignmentGymRoom(scheduledAt, durationMinutes)
+        maxParticipants = 0  // Unlimited — stored as 0 in DB
+      } else if (sessionType === 'webinar') {
+        dailyRoom = await createWebinarRoom(scheduledAt, durationMinutes)
+        maxParticipants = 0  // Unlimited — stored as 0 in DB
       } else {
         dailyRoom = await createOneOnOneRoom(scheduledAt, durationMinutes)
+        maxParticipants = 2
       }
     } catch (dailyError) {
       console.error('Daily.co API error:', dailyError)
@@ -80,8 +90,9 @@ export async function POST(request: NextRequest) {
         scheduled_duration_minutes: durationMinutes,
         host_user_id: user.id,
         enable_recording: body.enable_recording ?? true,
-        enable_waiting_room: body.enable_waiting_room ?? true,
-        max_participants: sessionType === 'one_on_one' ? 2 : 25,
+        enable_waiting_room: false,
+        max_participants: maxParticipants,
+        is_group_session: sessionType !== 'one_on_one',
         // Dynamic scheduling fields
         staff_id: body.staff_id || null,
         event_type: body.event_type || null,

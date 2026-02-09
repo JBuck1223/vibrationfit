@@ -186,7 +186,7 @@ export function PostCallSummary({
             <Button
               variant="primary"
               onClick={onClose}
-              className="col-span-2 md:col-span-1 bg-gradient-to-r from-primary-500 to-secondary-500"
+              className="col-span-2 md:col-span-1"
             >
               Done
             </Button>

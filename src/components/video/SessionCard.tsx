@@ -165,10 +165,6 @@ export function SessionCard({
               size="sm"
               onClick={onJoin}
               disabled={!isJoinable && session.status !== 'live'}
-              className={isJoinable || session.status === 'live' 
-                ? 'bg-gradient-to-r from-primary-500 to-secondary-500' 
-                : ''
-              }
             >
               <Play className="w-4 h-4 mr-2" />
               {session.status === 'live' ? 'Join Now' : 'Join Session'}

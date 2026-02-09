@@ -6,7 +6,7 @@
  * The main page for joining and participating in a video session.
  * Handles:
  * - Non-authenticated users: Shows session details + login prompt
- * - Authenticated users: Full flow: pre-call check → waiting room → in-call → post-call
+ * - Authenticated users: Full flow: pre-call check → in-call → post-call
  */
 
 import { useEffect, useState, useCallback } from 'react'
@@ -14,7 +14,6 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { PreCallCheck } from '@/components/video/PreCallCheck'
 import { VideoCall } from '@/components/video/VideoCall'
-import { WaitingRoom } from '@/components/video/WaitingRoom'
 import { PostCallSummary } from '@/components/video/PostCallSummary'
 import { 
   Container, 
@@ -26,9 +25,12 @@ import {
   Input
 } from '@/lib/design-system/components'
 import { AlertCircle, ArrowLeft, Video, Calendar, Clock, User, LogIn } from 'lucide-react'
-import type { VideoSession, CallSettings, JoinSessionResponse } from '@/lib/video/types'
+import type { VideoSession, VideoSessionParticipant, CallSettings, JoinSessionResponse } from '@/lib/video/types'
 
-type PageState = 'loading' | 'login-required' | 'error' | 'pre-call' | 'waiting' | 'in-call' | 'post-call'
+/** Extended session type returned by the API with joined participants */
+type SessionWithParticipants = VideoSession & { participants?: VideoSessionParticipant[] }
+
+type PageState = 'loading' | 'login-required' | 'error' | 'pre-call' | 'in-call' | 'post-call'
 
 interface PublicSessionInfo {
   id: string
@@ -52,7 +54,7 @@ export default function SessionPage() {
   // State
   const [pageState, setPageState] = useState<PageState>('loading')
   const [publicSession, setPublicSession] = useState<PublicSessionInfo | null>(null)
-  const [session, setSession] = useState<VideoSession | null>(null)
+  const [session, setSession] = useState<SessionWithParticipants | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [roomUrl, setRoomUrl] = useState<string | null>(null)
   const [isHost, setIsHost] = useState(false)
@@ -179,18 +181,14 @@ export default function SessionPage() {
       setSession(joinData.session)
       setIsHost(joinData.is_host)
 
-      // Skip waiting room for hosts
-      if (joinData.is_host || !session?.enable_waiting_room) {
-        setPageState('in-call')
-      } else {
-        setPageState('waiting')
-      }
+      // Go straight to the call — no waiting room
+      setPageState('in-call')
     } catch (err) {
       console.error('Error joining session:', err)
       setError(err instanceof Error ? err.message : 'Failed to join session')
       setPageState('error')
     }
-  }, [sessionId, session?.enable_waiting_room])
+  }, [sessionId])
 
   // Handle pre-call ready
   const handlePreCallReady = async (settings: CallSettings) => {
@@ -203,9 +201,13 @@ export default function SessionPage() {
     setPageState('post-call')
   }
 
-  // Handle post-call close
+  // Handle post-call close — route alignment gym sessions back to /alignment-gym
   const handlePostCallClose = () => {
-    router.push('/sessions')
+    if (session?.session_type === 'alignment_gym') {
+      router.push('/alignment-gym')
+    } else {
+      router.push('/sessions')
+    }
   }
 
   // Handle scheduling follow-up
@@ -240,12 +242,14 @@ export default function SessionPage() {
     setPageState('error')
   }
 
-  // Cancel/go back
+  // Cancel/go back — route alignment gym sessions back to /alignment-gym
   const handleCancel = () => {
-    if (isAuthenticated) {
-      router.push('/sessions')
-    } else {
+    if (!isAuthenticated) {
       router.push('/')
+    } else if (session?.session_type === 'alignment_gym') {
+      router.push('/alignment-gym')
+    } else {
+      router.push('/sessions')
     }
   }
 
@@ -473,18 +477,6 @@ export default function SessionPage() {
     )
   }
 
-  // Waiting room
-  if (pageState === 'waiting') {
-    return (
-      <WaitingRoom
-        sessionTitle={session?.title}
-        hostName={hostName || undefined}
-        scheduledTime={session?.scheduled_at ? new Date(session.scheduled_at) : undefined}
-        onCancel={handleCancel}
-      />
-    )
-  }
-
   // In call
   if (pageState === 'in-call' && token && roomUrl) {
     return (
@@ -495,10 +487,17 @@ export default function SessionPage() {
         userId={userId}
         sessionId={sessionId}
         sessionTitle={session?.title}
+        sessionType={session?.session_type}
         isHost={isHost}
         initialSettings={callSettings || undefined}
         onLeave={handleLeave}
         onError={handleCallError}
+        // For 1:1 sessions, pass the other participant's user_id so host can see their data
+        memberUserId={
+          isHost && session?.session_type === 'one_on_one'
+            ? session.participants?.find(p => !p.is_host)?.user_id
+            : undefined
+        }
       />
     )
   }

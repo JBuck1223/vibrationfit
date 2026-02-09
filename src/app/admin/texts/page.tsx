@@ -64,14 +64,13 @@ export default function SMSDashboardPage() {
                 onClick={() => router.push('/admin/texts/new')}
                 variant="primary"
                 size="sm"
-                className="bg-gradient-to-r from-primary-500 to-secondary-500"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 New Template
               </Button>
               <Button
                 onClick={() => router.push('/admin/texts/list')}
-                variant="secondary"
+                variant="outline"
                 size="sm"
               >
                 <MessageSquare className="w-4 h-4 mr-2" />

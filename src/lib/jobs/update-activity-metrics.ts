@@ -160,7 +160,7 @@ async function calculateMetricsForUser(userId: string) {
       .upsert(
         {
           ...metrics,
-          calculated_at: new Date().toISOString(),
+          last_calculated_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },
         { onConflict: 'user_id' }

@@ -23,7 +23,7 @@ export type IntensiveStepType =
   | 'first_journal_entry'        // Step 11: Journal
   | 'call_scheduled'             // Step 12: Book Calibration Call
   // Phase 6: Completion
-  | 'activation_protocol_completed' // Step 13: Activation Protocol
+  | 'activation_protocol_completed' // Step 13: My Activation Plan
   | 'unlock_completed'           // Step 14: Full Platform Unlock
 
 export async function markIntensiveStep(step: IntensiveStepType) {

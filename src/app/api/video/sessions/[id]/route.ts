@@ -34,27 +34,27 @@ export async function GET(
       .from('video_sessions')
       .select(`
         *,
-        participants:video_session_participants(*),
-        messages:video_session_messages(*),
-        recordings:video_session_recordings(*)
+        participants:video_session_participants(*)
       `)
       .eq('id', id)
       .single()
 
     if (error || !session) {
+      console.error('Error fetching session:', error?.message, 'id:', id)
       return NextResponse.json(
         { error: 'Session not found' },
         { status: 404 }
       )
     }
 
-    // Check access - must be host or participant
+    // Check access - must be host, participant, or alignment_gym (open to all)
     const isHost = session.host_user_id === user.id
     const isParticipant = session.participants?.some(
       (p: { user_id: string }) => p.user_id === user.id
     )
+    const isOpenSession = session.session_type === 'alignment_gym'
 
-    if (!isHost && !isParticipant) {
+    if (!isHost && !isParticipant && !isOpenSession) {
       return NextResponse.json(
         { error: 'Access denied' },
         { status: 403 }
@@ -117,6 +117,8 @@ export async function PATCH(
       updates.scheduled_duration_minutes = body.scheduled_duration_minutes
     }
     if (body.status !== undefined) updates.status = body.status
+    if (body.ended_at !== undefined) updates.ended_at = body.ended_at
+    if (body.actual_duration_seconds !== undefined) updates.actual_duration_seconds = body.actual_duration_seconds
     if (body.host_notes !== undefined) updates.host_notes = body.host_notes
     if (body.session_summary !== undefined) updates.session_summary = body.session_summary
 

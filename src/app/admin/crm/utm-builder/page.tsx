@@ -104,7 +104,7 @@ export default function UTMBuilderPage() {
           promo: 'INTENSIVE2025-HOUSEHOLD',
           referral: 'couples_coach',
         })
-        setBaseUrl('https://vibrationfit.com?plan=household')
+        setBaseUrl('https://vibrationfit.com')
         break
       case 'affiliate':
         setUtmParams({
@@ -151,12 +151,6 @@ export default function UTMBuilderPage() {
     <Container size="lg">
       <Stack gap="lg">
         <PageHero title="UTM Builder" subtitle="Build custom campaign URLs with UTM tracking parameters" />
-      <div className="mb-8 md:mb-12">
-        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2">UTM Builder</h1>
-        <p className="text-sm md:text-base text-neutral-400">
-          Create campaign tracking URLs with UTM parameters
-        </p>
-      </div>
 
       <Card className="p-4 md:p-6 mb-4 md:mb-6">
         <h2 className="text-lg md:text-xl font-semibold mb-4">Quick Examples</h2>
@@ -173,7 +167,7 @@ export default function UTMBuilderPage() {
               <Button variant="accent" size="sm" onClick={() => loadExample('household')}>
                 Household Intensive
               </Button>
-              <Button variant="secondary" size="sm" onClick={() => loadExample('affiliate')}>
+              <Button variant="outline" size="sm" onClick={() => loadExample('affiliate')}>
                 Affiliate Partner
               </Button>
             </div>
@@ -203,7 +197,7 @@ export default function UTMBuilderPage() {
           placeholder="https://vibrationfit.com"
         />
         <p className="text-xs text-neutral-500 mt-2">
-          💡 Tip: Add <code className="text-primary-500">?plan=household</code> to pre-select Household plan, or <code className="text-primary-500">?plan=solo</code> for Solo
+          Tip: Add <code className="text-primary-500">?plan=household</code> to the base URL to pre-select Household plan, or <code className="text-primary-500">?plan=solo</code> for Solo
         </p>
       </Card>
 
@@ -283,7 +277,7 @@ export default function UTMBuilderPage() {
 
           <div className="pt-4 border-t border-[#333]">
             <h3 className="text-base font-semibold mb-4 text-primary-500">
-              🎯 VibrationFit Tracking Parameters
+              VibrationFit Tracking Parameters
             </h3>
             <p className="text-xs text-neutral-400 mb-4">
               <strong>Important:</strong> Use <code className="text-primary-500">promo=</code> (not promo_code) and <code className="text-primary-500">ref=</code> (not referral_source) for proper tracking!<br/>
@@ -340,7 +334,7 @@ export default function UTMBuilderPage() {
             )}
           </Button>
           <Button
-            variant="secondary"
+            variant="outline"
             size="sm"
             onClick={() => window.open(finalURL, '_blank')}
             className="flex-1 sm:flex-none"

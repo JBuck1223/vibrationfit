@@ -872,7 +872,7 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                   },
                   {
                     label: 'Tune',
-                    description: 'Refine your vision, build your Vision Board, start the Activation Protocol',
+                    description: 'Refine your vision, build your Vision Board, start the My Activation Plan',
                     icon: Target,
                     iconColor: '#14B8A6'
                   },

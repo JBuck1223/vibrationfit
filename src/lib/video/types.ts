@@ -8,7 +8,7 @@
 // DATABASE TYPES (matching Supabase schema)
 // ============================================================================
 
-export type VideoSessionType = 'one_on_one' | 'group' | 'workshop' | 'webinar'
+export type VideoSessionType = 'one_on_one' | 'group' | 'workshop' | 'webinar' | 'alignment_gym'
 
 export type VideoSessionStatus = 
   | 'scheduled' 
@@ -51,6 +51,7 @@ export interface VideoSession {
   max_participants: number
   host_notes?: string
   session_summary?: string
+  highlighted_message_id?: string
   created_at: string
   updated_at: string
 }
@@ -152,6 +153,8 @@ export interface UpdateSessionRequest {
   scheduled_at?: string
   scheduled_duration_minutes?: number
   status?: VideoSessionStatus
+  ended_at?: string
+  actual_duration_seconds?: number
   host_notes?: string
   session_summary?: string
 }
@@ -226,6 +229,7 @@ export function getSessionTypeLabel(type: VideoSessionType): string {
     group: 'Group Session',
     workshop: 'Workshop',
     webinar: 'Live Event',
+    alignment_gym: 'Alignment Gym',
   }
   return labels[type]
 }
@@ -269,24 +273,7 @@ export function formatDuration(seconds: number): string {
 }
 
 export function isSessionJoinable(session: VideoSession): boolean {
-  const now = new Date()
-  const scheduledAt = new Date(session.scheduled_at)
-  
-  // Can join 10 minutes before scheduled time
-  const joinableFrom = new Date(scheduledAt)
-  joinableFrom.setMinutes(joinableFrom.getMinutes() - 10)
-  
-  // Can join until 30 minutes after scheduled end
-  const joinableUntil = new Date(scheduledAt)
-  joinableUntil.setMinutes(
-    joinableUntil.getMinutes() + session.scheduled_duration_minutes + 30
-  )
-  
-  return (
-    now >= joinableFrom &&
-    now <= joinableUntil &&
-    session.status !== 'completed' &&
-    session.status !== 'cancelled'
-  )
+  // Only completed or cancelled sessions are not joinable
+  return session.status !== 'completed' && session.status !== 'cancelled'
 }
 
