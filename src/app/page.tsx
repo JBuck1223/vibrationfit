@@ -445,7 +445,7 @@ export default function HomePage() {
                   </div>
                   
                   {/* Right column - Video */}
-                  <div className="relative bg-black rounded-xl overflow-hidden shadow-2xl max-w-3xl mx-auto w-full order-last lg:order-last lg:mt-4">
+                  <div className="relative bg-black rounded-xl overflow-hidden shadow-2xl max-w-3xl mx-auto w-full order-first lg:order-last lg:mt-4">
                     <Video
                       src="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-1080p.mp4"
                       poster="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-poster.jpg"

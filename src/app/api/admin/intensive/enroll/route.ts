@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { checkIsAdmin } from '@/middleware/admin'
 
 export async function POST(request: NextRequest) {
   try {
-    // Check if user is admin (you can add your own admin check here)
+    // Auth check with regular client
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     
@@ -11,8 +13,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    // For now, allow any authenticated user (you can restrict this)
-    // TODO: Add proper admin check (e.g., check user role in database)
+    // Admin check
+    if (!await checkIsAdmin(supabase, user)) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    }
 
     const { userId, paymentPlan = 'full' } = await request.json()
 
@@ -20,17 +24,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 })
     }
 
-    const { data: intensiveProduct, error: productError } = await supabase
+    // Use service role client for database operations (bypasses RLS)
+    const adminDb = createAdminClient()
+
+    const { data: intensiveProduct, error: productError } = await adminDb
       .from('products')
       .select('id')
       .eq('key', 'intensive')
       .maybeSingle()
 
     if (productError || !intensiveProduct) {
+      console.error('Error finding intensive product:', productError)
       return NextResponse.json({ error: 'Intensive product not found' }, { status: 500 })
     }
 
-    const { data: order, error: orderError } = await supabase
+    const { data: order, error: orderError } = await adminDb
       .from('orders')
       .insert({
         user_id: userId,
@@ -38,16 +46,17 @@ export async function POST(request: NextRequest) {
         currency: 'usd',
         status: 'paid',
         paid_at: new Date().toISOString(),
-        metadata: { source: 'admin_enroll' },
+        metadata: { source: 'admin_enroll', enrolled_by: user.id },
       })
       .select()
       .single()
 
     if (orderError || !order) {
+      console.error('Error creating order:', orderError)
       return NextResponse.json({ error: 'Failed to create order' }, { status: 500 })
     }
 
-    const { data: intensive, error: intensiveError } = await supabase
+    const { data: intensive, error: intensiveError } = await adminDb
       .from('order_items')
       .insert({
         order_id: order.id,
@@ -73,7 +82,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create checklist
-    const { error: checklistError } = await supabase
+    const { error: checklistError } = await adminDb
       .from('intensive_checklist')
       .insert({
         intensive_id: intensive.id,

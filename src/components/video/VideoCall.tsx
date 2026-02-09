@@ -36,10 +36,12 @@ import {
   X,
   MessageCircle,
   Sparkles,
-  Clock
+  Clock,
+  UserCircle,
 } from 'lucide-react'
 import { Button, Badge, Card } from '@/lib/design-system/components'
 import { SessionChat } from '@/components/video/SessionChat'
+import { MemberContextPanel } from '@/components/video/MemberContextPanel'
 import type { CallSettings } from '@/lib/video/types'
 
 interface VideoCallProps {
@@ -49,12 +51,14 @@ interface VideoCallProps {
   userId?: string // Current user's ID for chat
   sessionId?: string // For triggering host-joined notification
   sessionTitle?: string
+  sessionType?: string // 'one_on_one' | 'group' | 'alignment_gym' | 'webinar'
   isHost?: boolean
   initialSettings?: CallSettings
   onLeave?: () => void
   onError?: (error: Error) => void
   onRecordingStart?: () => void
   onRecordingStop?: () => void
+  memberUserId?: string // For 1:1: the other participant's user_id (host sees their data)
 }
 
 // Main wrapper that provides the Daily context
@@ -119,12 +123,14 @@ function VideoCallUI({
   userId,
   sessionId,
   sessionTitle,
+  sessionType,
   isHost = false,
   initialSettings,
   onLeave,
   onError,
   onRecordingStart,
   onRecordingStop,
+  memberUserId,
 }: VideoCallProps) {
   const daily = useDaily()
   const localParticipant = useLocalParticipant()
@@ -138,6 +144,7 @@ function VideoCallUI({
   const [isRecording, setIsRecording] = useState(false)
   const [showParticipants, setShowParticipants] = useState(false)
   const [showChat, setShowChat] = useState(false)
+  const [showMemberPanel, setShowMemberPanel] = useState(sessionType === 'one_on_one' && isHost && !!memberUserId)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [callDuration, setCallDuration] = useState(0)
   const [error, setError] = useState<string | null>(null)
@@ -285,13 +292,16 @@ function VideoCallUI({
     if (isRecording) {
       await daily.stopRecording()
     } else {
+      // For 1:1 sessions, use single-participant (shows the remote member)
+      // For group/alignment gym, use active-participant (shows whoever is speaking)
+      const layoutPreset = sessionType === 'one_on_one' ? 'single-participant' : 'active-participant'
       await daily.startRecording({
         layout: {
-          preset: 'active-participant',
+          preset: layoutPreset,
         },
       })
     }
-  }, [daily, isRecording, isHost])
+  }, [daily, isRecording, isHost, sessionType])
 
   // Leave call
   const handleLeave = useCallback(async () => {
@@ -589,6 +599,15 @@ function VideoCallUI({
           )}
         </div>
 
+        {/* Side Panel — context-aware by session type */}
+        
+        {/* 1:1 sessions: Member context panel for host */}
+        {showMemberPanel && memberUserId && isHost && (
+          <div className="hidden md:flex flex-col w-80 flex-shrink-0 border-l border-neutral-800">
+            <MemberContextPanel memberUserId={memberUserId} />
+          </div>
+        )}
+
         {/* Chat Side Panel — sits beside video on desktop, slides up on mobile */}
         {showChat && sessionId && (
           <>
@@ -688,10 +707,31 @@ function VideoCallUI({
             <Users className="w-5 h-5 md:w-6 md:h-6" />
           </button>
 
+          {/* Member context panel toggle (1:1 host only) */}
+          {sessionType === 'one_on_one' && isHost && memberUserId && (
+            <button
+              onClick={() => {
+                setShowMemberPanel(!showMemberPanel)
+                if (!showMemberPanel) setShowChat(false) // close chat when opening member panel
+              }}
+              className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-200 ${
+                showMemberPanel 
+                  ? 'bg-accent-500/20 text-accent-500' 
+                  : 'bg-neutral-700 hover:bg-neutral-600 text-white'
+              }`}
+              title="Member Info"
+            >
+              <UserCircle className="w-5 h-5 md:w-6 md:h-6" />
+            </button>
+          )}
+
           {/* Chat (only if sessionId is available) */}
           {sessionId && (
             <button
-              onClick={() => setShowChat(!showChat)}
+              onClick={() => {
+                setShowChat(!showChat)
+                if (!showChat) setShowMemberPanel(false) // close member panel when opening chat
+              }}
               className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-200 ${
                 showChat 
                   ? 'bg-primary-500/20 text-primary-500' 

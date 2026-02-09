@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict BzkTLecQyNiQWyY5193JIwrBiexk7z9c06JD6hkXvEAp4zd06jAUeXEZx2iFjGs
+\restrict 9VUpqP6b470sXO6PRb8aHR9kXuCrn0HBuTYiFLm4EEMDfcCvdpORE0tOz7J3Rdp
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Homebrew)
@@ -523,7 +523,8 @@ CREATE TYPE public.video_session_type AS ENUM (
     'one_on_one',
     'group',
     'workshop',
-    'webinar'
+    'webinar',
+    'alignment_gym'
 );
 
 
@@ -2233,6 +2234,9 @@ DECLARE
   next_num INTEGER;
   ticket_num TEXT;
 BEGIN
+  -- Use advisory lock to prevent concurrent ticket number generation
+  PERFORM pg_advisory_xact_lock(hashtext('ticket_number_gen'));
+  
   SELECT COALESCE(MAX(CAST(SUBSTRING(ticket_number FROM 6) AS INTEGER)), 0) + 1
   INTO next_num
   FROM support_tickets;
@@ -2269,7 +2273,9 @@ CREATE TABLE public.customer_subscriptions (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     promo_code text,
     referral_source text,
-    campaign_name text
+    campaign_name text,
+    order_id uuid,
+    order_item_id uuid
 );
 
 
@@ -2524,7 +2530,7 @@ Step 9: Audio Mix (audios_generated)
 Step 10: Vision Board (vision_board_completed)
 Step 11: Journal (first_journal_entry)
 Step 12: Book Call (call_scheduled)
-Step 13: My Activation Plan (activation_protocol_completed)
+Step 13: Activation Protocol (activation_protocol_completed)
 Step 14: Platform Unlock (unlock_completed)
 ';
 
@@ -2861,7 +2867,8 @@ CREATE TABLE public.membership_tiers (
     max_household_members integer,
     rollover_max_cycles integer,
     plan_category text DEFAULT 'subscription'::text,
-    is_household_plan boolean DEFAULT false
+    is_household_plan boolean DEFAULT false,
+    product_id uuid
 );
 
 
@@ -4474,6 +4481,7 @@ CREATE FUNCTION public.update_campaign_metrics() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
+  -- Update metrics for the NEW campaign (INSERT/UPDATE)
   IF TG_OP = 'INSERT' OR TG_OP = 'UPDATE' THEN
     IF NEW.campaign_id IS NOT NULL THEN
       UPDATE marketing_campaigns
@@ -4481,21 +4489,22 @@ BEGIN
         total_leads = (SELECT COUNT(*) FROM leads WHERE campaign_id = NEW.campaign_id),
         total_conversions = (SELECT COUNT(*) FROM leads WHERE campaign_id = NEW.campaign_id AND status = 'converted'),
         revenue_generated = (SELECT COALESCE(SUM(conversion_value), 0) FROM leads WHERE campaign_id = NEW.campaign_id AND status = 'converted'),
-        calculated_cpl = CASE 
-          WHEN (SELECT COUNT(*) FROM leads WHERE campaign_id = NEW.campaign_id) > 0 
-          THEN total_spent / (SELECT COUNT(*) FROM leads WHERE campaign_id = NEW.campaign_id)
-          ELSE 0 
-        END,
-        calculated_roi = CASE 
-          WHEN total_spent > 0 
-          THEN ((SELECT COALESCE(SUM(conversion_value), 0) FROM leads WHERE campaign_id = NEW.campaign_id AND status = 'converted') - total_spent) / total_spent
-          ELSE 0 
-        END,
         updated_at = NOW()
       WHERE id = NEW.campaign_id;
     END IF;
   END IF;
-  
+
+  -- Update metrics for the OLD campaign (UPDATE that changes campaign_id, or DELETE)
+  IF TG_OP = 'UPDATE' AND OLD.campaign_id IS NOT NULL AND OLD.campaign_id IS DISTINCT FROM NEW.campaign_id THEN
+    UPDATE marketing_campaigns
+    SET 
+      total_leads = (SELECT COUNT(*) FROM leads WHERE campaign_id = OLD.campaign_id),
+      total_conversions = (SELECT COUNT(*) FROM leads WHERE campaign_id = OLD.campaign_id AND status = 'converted'),
+      revenue_generated = (SELECT COALESCE(SUM(conversion_value), 0) FROM leads WHERE campaign_id = OLD.campaign_id AND status = 'converted'),
+      updated_at = NOW()
+    WHERE id = OLD.campaign_id;
+  END IF;
+
   IF TG_OP = 'DELETE' THEN
     IF OLD.campaign_id IS NOT NULL THEN
       UPDATE marketing_campaigns
@@ -4506,6 +4515,7 @@ BEGIN
         updated_at = NOW()
       WHERE id = OLD.campaign_id;
     END IF;
+    RETURN OLD;
   END IF;
   
   RETURN NEW;
@@ -5011,7 +5021,10 @@ subscriptions realtime.subscription[] = array_agg(subs)
     from
         realtime.subscription subs
     where
-        subs.entity = entity_;
+        subs.entity = entity_
+        -- Filter by action early - only get subscriptions interested in this action
+        -- action_filter column can be: '*' (all), 'INSERT', 'UPDATE', or 'DELETE'
+        and (subs.action_filter = '*' or subs.action_filter = action::text);
 
 -- Subscription vars
 roles regrole[] = array_agg(distinct us.claims_role::text)
@@ -6642,16 +6655,21 @@ COMMENT ON TABLE auth.audit_log_entries IS 'Auth: Audit trail for user actions.'
 CREATE TABLE auth.flow_state (
     id uuid NOT NULL,
     user_id uuid,
-    auth_code text NOT NULL,
-    code_challenge_method auth.code_challenge_method NOT NULL,
-    code_challenge text NOT NULL,
+    auth_code text,
+    code_challenge_method auth.code_challenge_method,
+    code_challenge text,
     provider_type text NOT NULL,
     provider_access_token text,
     provider_refresh_token text,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
     authentication_method text NOT NULL,
-    auth_code_issued_at timestamp with time zone
+    auth_code_issued_at timestamp with time zone,
+    invite_token text,
+    referrer text,
+    oauth_client_state_id uuid,
+    linking_target_id uuid,
+    email_optional boolean DEFAULT false NOT NULL
 );
 
 
@@ -6659,7 +6677,7 @@ CREATE TABLE auth.flow_state (
 -- Name: TABLE flow_state; Type: COMMENT; Schema: auth; Owner: -
 --
 
-COMMENT ON TABLE auth.flow_state IS 'stores metadata for pkce logins';
+COMMENT ON TABLE auth.flow_state IS 'Stores metadata for all OAuth/SSO login flows';
 
 
 --
@@ -6859,9 +6877,11 @@ CREATE TABLE auth.oauth_clients (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     deleted_at timestamp with time zone,
     client_type auth.oauth_client_type DEFAULT 'confidential'::auth.oauth_client_type NOT NULL,
+    token_endpoint_auth_method text NOT NULL,
     CONSTRAINT oauth_clients_client_name_length CHECK ((char_length(client_name) <= 1024)),
     CONSTRAINT oauth_clients_client_uri_length CHECK ((char_length(client_uri) <= 2048)),
-    CONSTRAINT oauth_clients_logo_uri_length CHECK ((char_length(logo_uri) <= 2048))
+    CONSTRAINT oauth_clients_logo_uri_length CHECK ((char_length(logo_uri) <= 2048)),
+    CONSTRAINT oauth_clients_token_endpoint_auth_method_check CHECK ((token_endpoint_auth_method = ANY (ARRAY['client_secret_basic'::text, 'client_secret_post'::text, 'none'::text])))
 );
 
 
@@ -8342,7 +8362,7 @@ CREATE TABLE public.email_messages (
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
     CONSTRAINT email_messages_direction_check CHECK ((direction = ANY (ARRAY['inbound'::text, 'outbound'::text]))),
-    CONSTRAINT email_messages_status_check CHECK ((status = ANY (ARRAY['sent'::text, 'delivered'::text, 'failed'::text, 'bounced'::text, 'opened'::text])))
+    CONSTRAINT email_messages_status_check CHECK ((status = ANY (ARRAY['sent'::text, 'delivered'::text, 'failed'::text, 'bounced'::text, 'opened'::text, 'received'::text])))
 );
 
 
@@ -8662,84 +8682,6 @@ COMMENT ON TABLE public.households IS 'Household subscription units - either sol
 
 
 --
--- Name: intensive_purchases; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.intensive_purchases (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    user_id uuid NOT NULL,
-    stripe_payment_intent_id text,
-    stripe_checkout_session_id text,
-    amount integer NOT NULL,
-    currency text DEFAULT 'usd'::text,
-    payment_plan text DEFAULT 'full'::text NOT NULL,
-    installments_total integer DEFAULT 1,
-    installments_paid integer DEFAULT 0,
-    next_installment_date timestamp without time zone,
-    completion_status text DEFAULT 'pending'::text NOT NULL,
-    activation_deadline timestamp without time zone,
-    created_at timestamp without time zone DEFAULT now(),
-    started_at timestamp without time zone,
-    completed_at timestamp without time zone,
-    refunded_at timestamp without time zone,
-    promo_code text,
-    referral_source text,
-    campaign_name text,
-    CONSTRAINT valid_completion_status CHECK ((completion_status = ANY (ARRAY['pending'::text, 'in_progress'::text, 'completed'::text, 'refunded'::text]))),
-    CONSTRAINT valid_payment_plan CHECK ((payment_plan = ANY (ARRAY['full'::text, '2pay'::text, '3pay'::text])))
-);
-
-
---
--- Name: TABLE intensive_purchases; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON TABLE public.intensive_purchases IS 'Payment records ONLY - intensive_checklist.status is source of truth for enrollment';
-
-
---
--- Name: COLUMN intensive_purchases.activation_deadline; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.intensive_purchases.activation_deadline IS '72 hours after started_at (NULL until started)';
-
-
---
--- Name: COLUMN intensive_purchases.created_at; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.intensive_purchases.created_at IS 'When purchase was made (may be hours/days before started_at)';
-
-
---
--- Name: COLUMN intensive_purchases.started_at; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.intensive_purchases.started_at IS 'When user clicked Start button (timer begins)';
-
-
---
--- Name: COLUMN intensive_purchases.promo_code; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.intensive_purchases.promo_code IS 'Promo/coupon code used for this purchase (e.g., FREEINTENSIVE, BETA2024)';
-
-
---
--- Name: COLUMN intensive_purchases.referral_source; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.intensive_purchases.referral_source IS 'Marketing source/affiliate identifier (e.g., partner_john, facebook_ad, email_campaign)';
-
-
---
--- Name: COLUMN intensive_purchases.campaign_name; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.intensive_purchases.campaign_name IS 'Campaign name for grouping (e.g., Beta Launch 2024, Holiday Sale)';
-
-
---
 -- Name: journal_entries; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8932,6 +8874,65 @@ COMMENT ON TABLE public.message_send_log IS 'Audit log of all sent messages';
 
 
 --
+-- Name: order_items; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.order_items (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    order_id uuid NOT NULL,
+    product_id uuid NOT NULL,
+    price_id uuid,
+    quantity integer DEFAULT 1 NOT NULL,
+    amount integer NOT NULL,
+    currency text DEFAULT 'usd'::text NOT NULL,
+    is_subscription boolean DEFAULT false NOT NULL,
+    subscription_id uuid,
+    intensive_purchase_id uuid,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    stripe_payment_intent_id text,
+    stripe_checkout_session_id text,
+    payment_plan text DEFAULT 'full'::text,
+    installments_total integer DEFAULT 1,
+    installments_paid integer DEFAULT 0,
+    next_installment_date timestamp without time zone,
+    completion_status text DEFAULT 'pending'::text,
+    activation_deadline timestamp without time zone,
+    started_at timestamp without time zone,
+    completed_at timestamp without time zone,
+    refunded_at timestamp without time zone,
+    promo_code text,
+    referral_source text,
+    campaign_name text,
+    CONSTRAINT order_items_valid_completion_status CHECK (((completion_status IS NULL) OR (completion_status = ANY (ARRAY['pending'::text, 'in_progress'::text, 'completed'::text, 'refunded'::text])))),
+    CONSTRAINT order_items_valid_payment_plan CHECK (((payment_plan IS NULL) OR (payment_plan = ANY (ARRAY['full'::text, '2pay'::text, '3pay'::text]))))
+);
+
+
+--
+-- Name: orders; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.orders (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    stripe_checkout_session_id text,
+    stripe_payment_intent_id text,
+    total_amount integer NOT NULL,
+    currency text DEFAULT 'usd'::text NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    paid_at timestamp with time zone,
+    promo_code text,
+    referral_source text,
+    campaign_name text,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT orders_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'paid'::text, 'canceled'::text, 'refunded'::text, 'failed'::text])))
+);
+
+
+--
 -- Name: payment_history; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8956,6 +8957,45 @@ CREATE TABLE public.payment_history (
 --
 
 COMMENT ON TABLE public.payment_history IS 'Records all payment transactions';
+
+
+--
+-- Name: product_prices; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.product_prices (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    product_id uuid NOT NULL,
+    stripe_price_id text,
+    currency text DEFAULT 'usd'::text NOT NULL,
+    unit_amount integer NOT NULL,
+    interval_unit text,
+    interval_count integer DEFAULT 1 NOT NULL,
+    is_active boolean DEFAULT true NOT NULL,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT product_prices_interval_check CHECK (((interval_unit IS NULL) OR (interval_unit = ANY (ARRAY['day'::text, 'week'::text, 'month'::text, 'year'::text]))))
+);
+
+
+--
+-- Name: products; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.products (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    key text NOT NULL,
+    name text NOT NULL,
+    description text,
+    product_type text DEFAULT 'other'::text NOT NULL,
+    is_subscription boolean DEFAULT false NOT NULL,
+    is_active boolean DEFAULT true NOT NULL,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT products_product_type_check CHECK ((product_type = ANY (ARRAY['membership'::text, 'intensive'::text, 'storage'::text, 'tokens'::text, 'coaching'::text, 'addon'::text, 'other'::text])))
+);
 
 
 --
@@ -9183,6 +9223,7 @@ CREATE TABLE public.stories (
     generation_count integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    display_order integer DEFAULT 0,
     CONSTRAINT stories_entity_type_check CHECK ((entity_type = ANY (ARRAY['life_vision'::text, 'vision_board_item'::text, 'goal'::text, 'schedule_block'::text, 'journal_entry'::text, 'custom'::text]))),
     CONSTRAINT stories_source_check CHECK ((source = ANY (ARRAY['ai_generated'::text, 'user_written'::text, 'ai_assisted'::text]))),
     CONSTRAINT stories_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'generating'::text, 'completed'::text, 'failed'::text])))
@@ -9545,6 +9586,48 @@ CREATE TABLE public.user_activity_metrics (
     last_calculated_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now()
 );
+
+
+--
+-- Name: user_badges; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.user_badges (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    badge_type text NOT NULL,
+    earned_at timestamp with time zone DEFAULT now() NOT NULL,
+    metadata jsonb DEFAULT '{}'::jsonb,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: TABLE user_badges; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.user_badges IS 'Stores earned badges/achievements for users';
+
+
+--
+-- Name: COLUMN user_badges.badge_type; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_badges.badge_type IS 'Badge identifier (e.g., gym_rookie, vibe_anchor)';
+
+
+--
+-- Name: COLUMN user_badges.earned_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_badges.earned_at IS 'When the badge was earned';
+
+
+--
+-- Name: COLUMN user_badges.metadata; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_badges.metadata IS 'Additional data about how badge was earned';
 
 
 --
@@ -10087,6 +10170,7 @@ CREATE TABLE public.vibe_comments (
     deleted_at timestamp with time zone,
     deleted_by uuid,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
+    parent_comment_id uuid,
     CONSTRAINT vibe_comments_content_not_empty CHECK ((content <> ''::text))
 );
 
@@ -10096,6 +10180,13 @@ CREATE TABLE public.vibe_comments (
 --
 
 COMMENT ON TABLE public.vibe_comments IS 'Comments on Vibe Tribe posts';
+
+
+--
+-- Name: COLUMN vibe_comments.parent_comment_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.vibe_comments.parent_comment_id IS 'Reference to parent comment for threaded replies. NULL means top-level comment on post.';
 
 
 --
@@ -10257,7 +10348,7 @@ CREATE TABLE public.video_session_messages (
 -- Name: TABLE video_session_messages; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON TABLE public.video_session_messages IS 'Chat messages during video sessions';
+COMMENT ON TABLE public.video_session_messages IS 'Chat messages during video sessions - YouTube-live style feed';
 
 
 --
@@ -10382,7 +10473,8 @@ CREATE TABLE public.video_sessions (
     booking_id uuid,
     is_group_session boolean DEFAULT false,
     rsvp_enabled boolean DEFAULT false,
-    rsvp_deadline timestamp with time zone
+    rsvp_deadline timestamp with time zone,
+    highlighted_message_id uuid
 );
 
 
@@ -10426,6 +10518,13 @@ COMMENT ON COLUMN public.video_sessions.is_group_session IS 'True for group sess
 --
 
 COMMENT ON COLUMN public.video_sessions.rsvp_enabled IS 'True if RSVP tracking is enabled';
+
+
+--
+-- Name: COLUMN video_sessions.highlighted_message_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.video_sessions.highlighted_message_id IS 'Currently highlighted/pinned chat message displayed to all participants';
 
 
 --
@@ -11041,6 +11140,86 @@ PARTITION BY RANGE (inserted_at);
 
 
 --
+-- Name: messages_2026_02_06; Type: TABLE; Schema: realtime; Owner: -
+--
+
+CREATE TABLE realtime.messages_2026_02_06 (
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL
+);
+
+
+--
+-- Name: messages_2026_02_07; Type: TABLE; Schema: realtime; Owner: -
+--
+
+CREATE TABLE realtime.messages_2026_02_07 (
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL
+);
+
+
+--
+-- Name: messages_2026_02_08; Type: TABLE; Schema: realtime; Owner: -
+--
+
+CREATE TABLE realtime.messages_2026_02_08 (
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL
+);
+
+
+--
+-- Name: messages_2026_02_09; Type: TABLE; Schema: realtime; Owner: -
+--
+
+CREATE TABLE realtime.messages_2026_02_09 (
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL
+);
+
+
+--
+-- Name: messages_2026_02_10; Type: TABLE; Schema: realtime; Owner: -
+--
+
+CREATE TABLE realtime.messages_2026_02_10 (
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL
+);
+
+
+--
 -- Name: schema_migrations; Type: TABLE; Schema: realtime; Owner: -
 --
 
@@ -11061,7 +11240,9 @@ CREATE TABLE realtime.subscription (
     filters realtime.user_defined_filter[] DEFAULT '{}'::realtime.user_defined_filter[] NOT NULL,
     claims jsonb NOT NULL,
     claims_role regrole GENERATED ALWAYS AS (realtime.to_regrole((claims ->> 'role'::text))) STORED NOT NULL,
-    created_at timestamp without time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+    created_at timestamp without time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    action_filter text DEFAULT '*'::text,
+    CONSTRAINT subscription_action_filter_check CHECK ((action_filter = ANY (ARRAY['*'::text, 'INSERT'::text, 'UPDATE'::text, 'DELETE'::text])))
 );
 
 
@@ -11256,6 +11437,41 @@ CREATE TABLE supabase_migrations.seed_files (
     path text NOT NULL,
     hash text NOT NULL
 );
+
+
+--
+-- Name: messages_2026_02_06; Type: TABLE ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_02_06 FOR VALUES FROM ('2026-02-06 00:00:00') TO ('2026-02-07 00:00:00');
+
+
+--
+-- Name: messages_2026_02_07; Type: TABLE ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_02_07 FOR VALUES FROM ('2026-02-07 00:00:00') TO ('2026-02-08 00:00:00');
+
+
+--
+-- Name: messages_2026_02_08; Type: TABLE ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_02_08 FOR VALUES FROM ('2026-02-08 00:00:00') TO ('2026-02-09 00:00:00');
+
+
+--
+-- Name: messages_2026_02_09; Type: TABLE ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_02_09 FOR VALUES FROM ('2026-02-09 00:00:00') TO ('2026-02-10 00:00:00');
+
+
+--
+-- Name: messages_2026_02_10; Type: TABLE ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_02_10 FOR VALUES FROM ('2026-02-10 00:00:00') TO ('2026-02-11 00:00:00');
 
 
 --
@@ -11842,14 +12058,6 @@ ALTER TABLE ONLY public.intensive_checklist
 
 
 --
--- Name: intensive_purchases intensive_purchases_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.intensive_purchases
-    ADD CONSTRAINT intensive_purchases_pkey PRIMARY KEY (id);
-
-
---
 -- Name: intensive_responses intensive_responses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -11954,6 +12162,30 @@ ALTER TABLE ONLY public.message_send_log
 
 
 --
+-- Name: order_items order_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.order_items
+    ADD CONSTRAINT order_items_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: orders orders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.orders
+    ADD CONSTRAINT orders_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: orders orders_stripe_checkout_session_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.orders
+    ADD CONSTRAINT orders_stripe_checkout_session_id_key UNIQUE (stripe_checkout_session_id);
+
+
+--
 -- Name: payment_history payment_history_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -11967,6 +12199,38 @@ ALTER TABLE ONLY public.payment_history
 
 ALTER TABLE ONLY public.payment_history
     ADD CONSTRAINT payment_history_stripe_payment_intent_id_key UNIQUE (stripe_payment_intent_id);
+
+
+--
+-- Name: product_prices product_prices_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.product_prices
+    ADD CONSTRAINT product_prices_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: product_prices product_prices_stripe_price_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.product_prices
+    ADD CONSTRAINT product_prices_stripe_price_id_key UNIQUE (stripe_price_id);
+
+
+--
+-- Name: products products_key_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.products
+    ADD CONSTRAINT products_key_key UNIQUE (key);
+
+
+--
+-- Name: products products_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.products
+    ADD CONSTRAINT products_pkey PRIMARY KEY (id);
 
 
 --
@@ -12090,11 +12354,11 @@ ALTER TABLE ONLY public.intensive_responses
 
 
 --
--- Name: stories unique_story_per_entity; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: user_badges unique_user_badge; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.stories
-    ADD CONSTRAINT unique_story_per_entity UNIQUE (entity_type, entity_id);
+ALTER TABLE ONLY public.user_badges
+    ADD CONSTRAINT unique_user_badge UNIQUE (user_id, badge_type);
 
 
 --
@@ -12111,6 +12375,14 @@ ALTER TABLE ONLY public.user_accounts
 
 ALTER TABLE ONLY public.user_activity_metrics
     ADD CONSTRAINT user_activity_metrics_pkey PRIMARY KEY (user_id);
+
+
+--
+-- Name: user_badges user_badges_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_badges
+    ADD CONSTRAINT user_badges_pkey PRIMARY KEY (id);
 
 
 --
@@ -12407,6 +12679,46 @@ ALTER TABLE ONLY public.voice_profiles
 
 ALTER TABLE ONLY realtime.messages
     ADD CONSTRAINT messages_pkey PRIMARY KEY (id, inserted_at);
+
+
+--
+-- Name: messages_2026_02_06 messages_2026_02_06_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages_2026_02_06
+    ADD CONSTRAINT messages_2026_02_06_pkey PRIMARY KEY (id, inserted_at);
+
+
+--
+-- Name: messages_2026_02_07 messages_2026_02_07_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages_2026_02_07
+    ADD CONSTRAINT messages_2026_02_07_pkey PRIMARY KEY (id, inserted_at);
+
+
+--
+-- Name: messages_2026_02_08 messages_2026_02_08_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages_2026_02_08
+    ADD CONSTRAINT messages_2026_02_08_pkey PRIMARY KEY (id, inserted_at);
+
+
+--
+-- Name: messages_2026_02_09 messages_2026_02_09_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages_2026_02_09
+    ADD CONSTRAINT messages_2026_02_09_pkey PRIMARY KEY (id, inserted_at);
+
+
+--
+-- Name: messages_2026_02_10 messages_2026_02_10_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages_2026_02_10
+    ADD CONSTRAINT messages_2026_02_10_pkey PRIMARY KEY (id, inserted_at);
 
 
 --
@@ -13320,6 +13632,13 @@ CREATE INDEX idx_calendar_events_staff_id ON public.calendar_events USING btree 
 
 
 --
+-- Name: idx_campaigns_campaign_type; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_campaigns_campaign_type ON public.marketing_campaigns USING btree (campaign_type);
+
+
+--
 -- Name: idx_campaigns_created_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -13460,6 +13779,13 @@ CREATE INDEX idx_email_imap_id ON public.email_messages USING btree (imap_messag
 
 
 --
+-- Name: idx_email_messages_from_email; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_email_messages_from_email ON public.email_messages USING btree (from_email);
+
+
+--
 -- Name: idx_email_messages_guest_email; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -13471,6 +13797,13 @@ CREATE INDEX idx_email_messages_guest_email ON public.email_messages USING btree
 --
 
 CREATE INDEX idx_email_messages_imap_message_id ON public.email_messages USING btree (imap_message_id);
+
+
+--
+-- Name: idx_email_messages_imap_message_id_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_email_messages_imap_message_id_unique ON public.email_messages USING btree (imap_message_id) WHERE (imap_message_id IS NOT NULL);
 
 
 --
@@ -13492,6 +13825,27 @@ CREATE INDEX idx_email_messages_is_reply ON public.email_messages USING btree (i
 --
 
 CREATE INDEX idx_email_messages_ses_message_id ON public.email_messages USING btree (ses_message_id);
+
+
+--
+-- Name: idx_email_messages_ses_message_id_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_email_messages_ses_message_id_unique ON public.email_messages USING btree (ses_message_id) WHERE (ses_message_id IS NOT NULL);
+
+
+--
+-- Name: idx_email_messages_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_email_messages_status ON public.email_messages USING btree (status);
+
+
+--
+-- Name: idx_email_messages_to_email; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_email_messages_to_email ON public.email_messages USING btree (to_email);
 
 
 --
@@ -13670,27 +14024,6 @@ CREATE INDEX idx_intensive_checklist_user_status ON public.intensive_checklist U
 
 
 --
--- Name: idx_intensive_payment_intent; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_intensive_payment_intent ON public.intensive_purchases USING btree (stripe_payment_intent_id);
-
-
---
--- Name: idx_intensive_purchases_promo_code; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_intensive_purchases_promo_code ON public.intensive_purchases USING btree (promo_code) WHERE (promo_code IS NOT NULL);
-
-
---
--- Name: idx_intensive_purchases_referral_source; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_intensive_purchases_referral_source ON public.intensive_purchases USING btree (referral_source) WHERE (referral_source IS NOT NULL);
-
-
---
 -- Name: idx_intensive_responses_created_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -13723,27 +14056,6 @@ CREATE INDEX idx_intensive_responses_soundbites ON public.intensive_responses US
 --
 
 CREATE INDEX idx_intensive_responses_user_id ON public.intensive_responses USING btree (user_id);
-
-
---
--- Name: idx_intensive_started_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_intensive_started_at ON public.intensive_purchases USING btree (started_at);
-
-
---
--- Name: idx_intensive_status; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_intensive_status ON public.intensive_purchases USING btree (completion_status);
-
-
---
--- Name: idx_intensive_user; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_intensive_user ON public.intensive_purchases USING btree (user_id);
 
 
 --
@@ -13894,6 +14206,48 @@ CREATE INDEX idx_message_send_log_type ON public.message_send_log USING btree (m
 
 
 --
+-- Name: idx_order_items_order_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_order_items_order_id ON public.order_items USING btree (order_id);
+
+
+--
+-- Name: idx_order_items_product_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_order_items_product_id ON public.order_items USING btree (product_id);
+
+
+--
+-- Name: idx_order_items_started_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_order_items_started_at ON public.order_items USING btree (started_at);
+
+
+--
+-- Name: idx_order_items_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_order_items_status ON public.order_items USING btree (completion_status);
+
+
+--
+-- Name: idx_orders_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_orders_status ON public.orders USING btree (status);
+
+
+--
+-- Name: idx_orders_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_orders_user_id ON public.orders USING btree (user_id);
+
+
+--
 -- Name: idx_payment_history_created_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -13912,6 +14266,34 @@ CREATE INDEX idx_payment_history_subscription_id ON public.payment_history USING
 --
 
 CREATE INDEX idx_payment_history_user_id ON public.payment_history USING btree (user_id);
+
+
+--
+-- Name: idx_product_prices_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_product_prices_active ON public.product_prices USING btree (is_active);
+
+
+--
+-- Name: idx_product_prices_product_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_product_prices_product_id ON public.product_prices USING btree (product_id);
+
+
+--
+-- Name: idx_products_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_products_active ON public.products USING btree (is_active);
+
+
+--
+-- Name: idx_products_type; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_products_type ON public.products USING btree (product_type);
 
 
 --
@@ -14006,6 +14388,13 @@ CREATE INDEX idx_sms_lead_id ON public.sms_messages USING btree (lead_id);
 
 
 --
+-- Name: idx_sms_messages_twilio_sid_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_sms_messages_twilio_sid_unique ON public.sms_messages USING btree (twilio_sid) WHERE (twilio_sid IS NOT NULL);
+
+
+--
 -- Name: idx_sms_templates_category; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -14087,6 +14476,20 @@ CREATE INDEX idx_stories_audio_set ON public.stories USING btree (audio_set_id) 
 --
 
 CREATE INDEX idx_stories_entity ON public.stories USING btree (entity_type, entity_id);
+
+
+--
+-- Name: idx_stories_entity_created; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_stories_entity_created ON public.stories USING btree (entity_type, entity_id, created_at DESC);
+
+
+--
+-- Name: idx_stories_entity_order; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_stories_entity_order ON public.stories USING btree (entity_type, entity_id, display_order);
 
 
 --
@@ -14370,6 +14773,27 @@ CREATE INDEX idx_user_accounts_sms_opt_in ON public.user_accounts USING btree (s
 
 
 --
+-- Name: idx_user_badges_badge_type; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_user_badges_badge_type ON public.user_badges USING btree (badge_type);
+
+
+--
+-- Name: idx_user_badges_earned_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_user_badges_earned_at ON public.user_badges USING btree (earned_at DESC);
+
+
+--
+-- Name: idx_user_badges_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_user_badges_user_id ON public.user_badges USING btree (user_id);
+
+
+--
 -- Name: idx_user_community_stats_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -14458,6 +14882,13 @@ CREATE INDEX idx_vibe_comments_created_at ON public.vibe_comments USING btree (c
 --
 
 CREATE INDEX idx_vibe_comments_not_deleted ON public.vibe_comments USING btree (is_deleted) WHERE (is_deleted = false);
+
+
+--
+-- Name: idx_vibe_comments_parent_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vibe_comments_parent_id ON public.vibe_comments USING btree (parent_comment_id);
 
 
 --
@@ -14668,6 +15099,13 @@ CREATE INDEX idx_video_sessions_booking_id ON public.video_sessions USING btree 
 --
 
 CREATE INDEX idx_video_sessions_daily_room ON public.video_sessions USING btree (daily_room_name);
+
+
+--
+-- Name: idx_video_sessions_highlighted_msg; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_video_sessions_highlighted_msg ON public.video_sessions USING btree (highlighted_message_id) WHERE (highlighted_message_id IS NOT NULL);
 
 
 --
@@ -15007,10 +15445,45 @@ CREATE INDEX messages_inserted_at_topic_index ON ONLY realtime.messages USING bt
 
 
 --
--- Name: subscription_subscription_id_entity_filters_key; Type: INDEX; Schema: realtime; Owner: -
+-- Name: messages_2026_02_06_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: -
 --
 
-CREATE UNIQUE INDEX subscription_subscription_id_entity_filters_key ON realtime.subscription USING btree (subscription_id, entity, filters);
+CREATE INDEX messages_2026_02_06_inserted_at_topic_idx ON realtime.messages_2026_02_06 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
+
+
+--
+-- Name: messages_2026_02_07_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: -
+--
+
+CREATE INDEX messages_2026_02_07_inserted_at_topic_idx ON realtime.messages_2026_02_07 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
+
+
+--
+-- Name: messages_2026_02_08_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: -
+--
+
+CREATE INDEX messages_2026_02_08_inserted_at_topic_idx ON realtime.messages_2026_02_08 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
+
+
+--
+-- Name: messages_2026_02_09_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: -
+--
+
+CREATE INDEX messages_2026_02_09_inserted_at_topic_idx ON realtime.messages_2026_02_09 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
+
+
+--
+-- Name: messages_2026_02_10_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: -
+--
+
+CREATE INDEX messages_2026_02_10_inserted_at_topic_idx ON realtime.messages_2026_02_10 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
+
+
+--
+-- Name: subscription_subscription_id_entity_filters_action_filter_key; Type: INDEX; Schema: realtime; Owner: -
+--
+
+CREATE UNIQUE INDEX subscription_subscription_id_entity_filters_action_filter_key ON realtime.subscription USING btree (subscription_id, entity, filters, action_filter);
 
 
 --
@@ -15088,6 +15561,76 @@ CREATE UNIQUE INDEX objects_bucket_id_level_idx ON storage.objects USING btree (
 --
 
 CREATE UNIQUE INDEX vector_indexes_name_bucket_id_idx ON storage.vector_indexes USING btree (name, bucket_id);
+
+
+--
+-- Name: messages_2026_02_06_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_inserted_at_topic_index ATTACH PARTITION realtime.messages_2026_02_06_inserted_at_topic_idx;
+
+
+--
+-- Name: messages_2026_02_06_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_02_06_pkey;
+
+
+--
+-- Name: messages_2026_02_07_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_inserted_at_topic_index ATTACH PARTITION realtime.messages_2026_02_07_inserted_at_topic_idx;
+
+
+--
+-- Name: messages_2026_02_07_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_02_07_pkey;
+
+
+--
+-- Name: messages_2026_02_08_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_inserted_at_topic_index ATTACH PARTITION realtime.messages_2026_02_08_inserted_at_topic_idx;
+
+
+--
+-- Name: messages_2026_02_08_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_02_08_pkey;
+
+
+--
+-- Name: messages_2026_02_09_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_inserted_at_topic_index ATTACH PARTITION realtime.messages_2026_02_09_inserted_at_topic_idx;
+
+
+--
+-- Name: messages_2026_02_09_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_02_09_pkey;
+
+
+--
+-- Name: messages_2026_02_10_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_inserted_at_topic_index ATTACH PARTITION realtime.messages_2026_02_10_inserted_at_topic_idx;
+
+
+--
+-- Name: messages_2026_02_10_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_02_10_pkey;
 
 
 --
@@ -15294,6 +15837,13 @@ CREATE TRIGGER trigger_update_membership_tiers_updated_at BEFORE UPDATE ON publi
 
 
 --
+-- Name: orders trigger_update_orders_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trigger_update_orders_updated_at BEFORE UPDATE ON public.orders FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
 -- Name: vibe_comments trigger_update_post_comments_count; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -15312,6 +15862,20 @@ CREATE TRIGGER trigger_update_post_hearts_count_delete AFTER DELETE ON public.vi
 --
 
 CREATE TRIGGER trigger_update_post_hearts_count_insert AFTER INSERT ON public.vibe_hearts FOR EACH ROW WHEN ((new.post_id IS NOT NULL)) EXECUTE FUNCTION public.update_post_hearts_count();
+
+
+--
+-- Name: product_prices trigger_update_product_prices_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trigger_update_product_prices_updated_at BEFORE UPDATE ON public.product_prices FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- Name: products trigger_update_products_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trigger_update_products_updated_at BEFORE UPDATE ON public.products FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 
 --
@@ -15941,6 +16505,22 @@ ALTER TABLE ONLY public.customer_subscriptions
 
 
 --
+-- Name: customer_subscriptions customer_subscriptions_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_subscriptions
+    ADD CONSTRAINT customer_subscriptions_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id) ON DELETE SET NULL;
+
+
+--
+-- Name: customer_subscriptions customer_subscriptions_order_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_subscriptions
+    ADD CONSTRAINT customer_subscriptions_order_item_id_fkey FOREIGN KEY (order_item_id) REFERENCES public.order_items(id) ON DELETE SET NULL;
+
+
+--
 -- Name: customer_subscriptions customer_subscriptions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -15961,7 +16541,7 @@ ALTER TABLE ONLY public.daily_papers
 --
 
 ALTER TABLE ONLY public.email_messages
-    ADD CONSTRAINT email_messages_reply_to_message_id_fkey FOREIGN KEY (reply_to_message_id) REFERENCES public.email_messages(id);
+    ADD CONSTRAINT email_messages_reply_to_message_id_fkey FOREIGN KEY (reply_to_message_id) REFERENCES public.email_messages(id) ON DELETE SET NULL;
 
 
 --
@@ -16081,7 +16661,7 @@ ALTER TABLE ONLY public.households
 --
 
 ALTER TABLE ONLY public.intensive_checklist
-    ADD CONSTRAINT intensive_checklist_intensive_id_fkey FOREIGN KEY (intensive_id) REFERENCES public.intensive_purchases(id) ON DELETE CASCADE;
+    ADD CONSTRAINT intensive_checklist_intensive_id_fkey FOREIGN KEY (intensive_id) REFERENCES public.order_items(id) ON DELETE CASCADE;
 
 
 --
@@ -16093,19 +16673,11 @@ ALTER TABLE ONLY public.intensive_checklist
 
 
 --
--- Name: intensive_purchases intensive_purchases_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.intensive_purchases
-    ADD CONSTRAINT intensive_purchases_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
---
 -- Name: intensive_responses intensive_responses_intensive_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.intensive_responses
-    ADD CONSTRAINT intensive_responses_intensive_id_fkey FOREIGN KEY (intensive_id) REFERENCES public.intensive_purchases(id) ON DELETE CASCADE;
+    ADD CONSTRAINT intensive_responses_intensive_id_fkey FOREIGN KEY (intensive_id) REFERENCES public.order_items(id) ON DELETE CASCADE;
 
 
 --
@@ -16145,7 +16717,7 @@ ALTER TABLE ONLY public.lead_tracking_events
 --
 
 ALTER TABLE ONLY public.leads
-    ADD CONSTRAINT leads_assigned_to_fkey FOREIGN KEY (assigned_to) REFERENCES auth.users(id);
+    ADD CONSTRAINT leads_assigned_to_fkey FOREIGN KEY (assigned_to) REFERENCES auth.users(id) ON DELETE SET NULL;
 
 
 --
@@ -16161,7 +16733,7 @@ ALTER TABLE ONLY public.leads
 --
 
 ALTER TABLE ONLY public.leads
-    ADD CONSTRAINT leads_converted_to_user_id_fkey FOREIGN KEY (converted_to_user_id) REFERENCES auth.users(id);
+    ADD CONSTRAINT leads_converted_to_user_id_fkey FOREIGN KEY (converted_to_user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
 
 
 --
@@ -16169,7 +16741,7 @@ ALTER TABLE ONLY public.leads
 --
 
 ALTER TABLE ONLY public.marketing_campaigns
-    ADD CONSTRAINT marketing_campaigns_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id);
+    ADD CONSTRAINT marketing_campaigns_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
 
 
 --
@@ -16178,6 +16750,54 @@ ALTER TABLE ONLY public.marketing_campaigns
 
 ALTER TABLE ONLY public.media_metadata
     ADD CONSTRAINT media_metadata_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: membership_tiers membership_tiers_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.membership_tiers
+    ADD CONSTRAINT membership_tiers_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE SET NULL;
+
+
+--
+-- Name: order_items order_items_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.order_items
+    ADD CONSTRAINT order_items_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id) ON DELETE CASCADE;
+
+
+--
+-- Name: order_items order_items_price_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.order_items
+    ADD CONSTRAINT order_items_price_id_fkey FOREIGN KEY (price_id) REFERENCES public.product_prices(id) ON DELETE SET NULL;
+
+
+--
+-- Name: order_items order_items_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.order_items
+    ADD CONSTRAINT order_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: order_items order_items_subscription_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.order_items
+    ADD CONSTRAINT order_items_subscription_id_fkey FOREIGN KEY (subscription_id) REFERENCES public.customer_subscriptions(id) ON DELETE SET NULL;
+
+
+--
+-- Name: orders orders_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.orders
+    ADD CONSTRAINT orders_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
 
 --
@@ -16194,6 +16814,14 @@ ALTER TABLE ONLY public.payment_history
 
 ALTER TABLE ONLY public.payment_history
     ADD CONSTRAINT payment_history_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: product_prices product_prices_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.product_prices
+    ADD CONSTRAINT product_prices_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE CASCADE;
 
 
 --
@@ -16329,7 +16957,7 @@ ALTER TABLE ONLY public.support_ticket_replies
 --
 
 ALTER TABLE ONLY public.support_tickets
-    ADD CONSTRAINT support_tickets_assigned_to_fkey FOREIGN KEY (assigned_to) REFERENCES auth.users(id);
+    ADD CONSTRAINT support_tickets_assigned_to_fkey FOREIGN KEY (assigned_to) REFERENCES auth.users(id) ON DELETE SET NULL;
 
 
 --
@@ -16405,6 +17033,14 @@ ALTER TABLE ONLY public.user_activity_metrics
 
 
 --
+-- Name: user_badges user_badges_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_badges
+    ADD CONSTRAINT user_badges_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: user_community_stats user_community_stats_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16477,6 +17113,14 @@ ALTER TABLE ONLY public.vibe_comments
 
 
 --
+-- Name: vibe_comments vibe_comments_parent_comment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vibe_comments
+    ADD CONSTRAINT vibe_comments_parent_comment_id_fkey FOREIGN KEY (parent_comment_id) REFERENCES public.vibe_comments(id) ON DELETE CASCADE;
+
+
+--
 -- Name: vibe_comments vibe_comments_post_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16490,6 +17134,21 @@ ALTER TABLE ONLY public.vibe_comments
 
 ALTER TABLE ONLY public.vibe_comments
     ADD CONSTRAINT vibe_comments_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: vibe_comments vibe_comments_user_id_user_accounts_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vibe_comments
+    ADD CONSTRAINT vibe_comments_user_id_user_accounts_fkey FOREIGN KEY (user_id) REFERENCES public.user_accounts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: CONSTRAINT vibe_comments_user_id_user_accounts_fkey ON vibe_comments; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON CONSTRAINT vibe_comments_user_id_user_accounts_fkey ON public.vibe_comments IS 'FK to user_accounts for PostgREST joins - enables fetching user profile with comments';
 
 
 --
@@ -16517,6 +17176,21 @@ ALTER TABLE ONLY public.vibe_hearts
 
 
 --
+-- Name: vibe_hearts vibe_hearts_user_id_user_accounts_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vibe_hearts
+    ADD CONSTRAINT vibe_hearts_user_id_user_accounts_fkey FOREIGN KEY (user_id) REFERENCES public.user_accounts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: CONSTRAINT vibe_hearts_user_id_user_accounts_fkey ON vibe_hearts; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON CONSTRAINT vibe_hearts_user_id_user_accounts_fkey ON public.vibe_hearts IS 'FK to user_accounts for PostgREST joins - enables fetching user profile with hearts';
+
+
+--
 -- Name: vibe_posts vibe_posts_deleted_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16530,6 +17204,21 @@ ALTER TABLE ONLY public.vibe_posts
 
 ALTER TABLE ONLY public.vibe_posts
     ADD CONSTRAINT vibe_posts_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: vibe_posts vibe_posts_user_id_user_accounts_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vibe_posts
+    ADD CONSTRAINT vibe_posts_user_id_user_accounts_fkey FOREIGN KEY (user_id) REFERENCES public.user_accounts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: CONSTRAINT vibe_posts_user_id_user_accounts_fkey ON vibe_posts; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON CONSTRAINT vibe_posts_user_id_user_accounts_fkey ON public.vibe_posts IS 'FK to user_accounts for PostgREST joins - enables fetching user profile with posts';
 
 
 --
@@ -16594,6 +17283,14 @@ ALTER TABLE ONLY public.video_session_recordings
 
 ALTER TABLE ONLY public.video_sessions
     ADD CONSTRAINT video_sessions_booking_id_fkey FOREIGN KEY (booking_id) REFERENCES public.bookings(id) ON DELETE SET NULL;
+
+
+--
+-- Name: video_sessions video_sessions_highlighted_message_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_sessions
+    ADD CONSTRAINT video_sessions_highlighted_message_id_fkey FOREIGN KEY (highlighted_message_id) REFERENCES public.video_session_messages(id) ON DELETE SET NULL;
 
 
 --
@@ -16908,6 +17605,20 @@ CREATE POLICY "Active membership tiers are viewable by everyone" ON public.membe
 
 
 --
+-- Name: product_prices Active product prices are viewable by everyone; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Active product prices are viewable by everyone" ON public.product_prices FOR SELECT USING ((is_active = true));
+
+
+--
+-- Name: products Active products are viewable by everyone; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Active products are viewable by everyone" ON public.products FOR SELECT USING ((is_active = true));
+
+
+--
 -- Name: households Admin can delete their household; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -17127,15 +17838,6 @@ CREATE POLICY "Admins can update all intensive responses" ON public.intensive_re
 --
 
 CREATE POLICY "Admins can update any comment" ON public.vibe_comments FOR UPDATE TO authenticated USING ((EXISTS ( SELECT 1
-   FROM public.user_accounts
-  WHERE ((user_accounts.id = auth.uid()) AND (user_accounts.role = ANY (ARRAY['admin'::public.user_role, 'super_admin'::public.user_role]))))));
-
-
---
--- Name: vibe_posts Admins can update any post; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Admins can update any post" ON public.vibe_posts FOR UPDATE TO authenticated USING ((EXISTS ( SELECT 1
    FROM public.user_accounts
   WHERE ((user_accounts.id = auth.uid()) AND (user_accounts.role = ANY (ARRAY['admin'::public.user_role, 'super_admin'::public.user_role]))))));
 
@@ -17390,6 +18092,20 @@ CREATE POLICY "Authenticated users can view ai_tools" ON public.ai_tools FOR SEL
 
 
 --
+-- Name: user_accounts Authenticated users can view basic profile info; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Authenticated users can view basic profile info" ON public.user_accounts FOR SELECT TO authenticated USING (true);
+
+
+--
+-- Name: POLICY "Authenticated users can view basic profile info" ON user_accounts; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON POLICY "Authenticated users can view basic profile info" ON public.user_accounts IS 'Allows authenticated users to view user accounts for community features like Vibe Tribe';
+
+
+--
 -- Name: household_invitations Invitees can view their invitations; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -17415,6 +18131,20 @@ CREATE POLICY "Only service role can modify membership tiers" ON public.membersh
 
 
 --
+-- Name: user_badges Service role can delete badges; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Service role can delete badges" ON public.user_badges FOR DELETE TO service_role USING (true);
+
+
+--
+-- Name: user_badges Service role can insert badges; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Service role can insert badges" ON public.user_badges FOR INSERT TO service_role WITH CHECK (true);
+
+
+--
 -- Name: token_transactions Service role can insert token transactions; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -17429,10 +18159,45 @@ CREATE POLICY "Service role can manage all refinements" ON public.refinements US
 
 
 --
+-- Name: order_items Service role can manage order items; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Service role can manage order items" ON public.order_items USING ((auth.role() = 'service_role'::text)) WITH CHECK ((auth.role() = 'service_role'::text));
+
+
+--
+-- Name: orders Service role can manage orders; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Service role can manage orders" ON public.orders USING ((auth.role() = 'service_role'::text)) WITH CHECK ((auth.role() = 'service_role'::text));
+
+
+--
+-- Name: product_prices Service role can manage product prices; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Service role can manage product prices" ON public.product_prices USING ((auth.role() = 'service_role'::text)) WITH CHECK ((auth.role() = 'service_role'::text));
+
+
+--
+-- Name: products Service role can manage products; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Service role can manage products" ON public.products USING ((auth.role() = 'service_role'::text)) WITH CHECK ((auth.role() = 'service_role'::text));
+
+
+--
 -- Name: audio_generation_batches Service role can update audio generation batches; Type: POLICY; Schema: public; Owner: -
 --
 
 CREATE POLICY "Service role can update audio generation batches" ON public.audio_generation_batches FOR UPDATE USING ((auth.role() = 'service_role'::text));
+
+
+--
+-- Name: user_badges Service role can update badges; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Service role can update badges" ON public.user_badges FOR UPDATE TO service_role USING (true) WITH CHECK (true);
 
 
 --
@@ -17503,6 +18268,22 @@ CREATE POLICY "System can insert token usage" ON public.token_usage FOR INSERT W
 --
 
 CREATE POLICY "System can update subscriptions" ON public.customer_subscriptions FOR UPDATE USING (true);
+
+
+--
+-- Name: vibe_posts Users and admins can update posts; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users and admins can update posts" ON public.vibe_posts FOR UPDATE TO authenticated USING (((auth.uid() = user_id) OR (EXISTS ( SELECT 1
+   FROM public.user_accounts
+  WHERE ((user_accounts.id = auth.uid()) AND (user_accounts.role = ANY (ARRAY['admin'::public.user_role, 'super_admin'::public.user_role]))))))) WITH CHECK (true);
+
+
+--
+-- Name: POLICY "Users and admins can update posts" ON vibe_posts; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON POLICY "Users and admins can update posts" ON public.vibe_posts IS 'Owners can update their posts, admins can update any post. Soft deletes are allowed.';
 
 
 --
@@ -18130,13 +18911,6 @@ CREATE POLICY "Users can update their own generated images" ON public.generated_
 
 
 --
--- Name: vibe_posts Users can update their own posts; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Users can update their own posts" ON public.vibe_posts FOR UPDATE TO authenticated USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
-
-
---
 -- Name: vision_progress Users can update their own progress; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -18211,6 +18985,13 @@ CREATE POLICY "Users can view household members" ON public.household_members FOR
 
 
 --
+-- Name: user_badges Users can view other users badges; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can view other users badges" ON public.user_badges FOR SELECT TO authenticated USING (true);
+
+
+--
 -- Name: user_accounts Users can view own account; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -18222,6 +19003,13 @@ CREATE POLICY "Users can view own account" ON public.user_accounts FOR SELECT US
 --
 
 CREATE POLICY "Users can view own audio generation batches" ON public.audio_generation_batches FOR SELECT USING ((auth.uid() = user_id));
+
+
+--
+-- Name: user_badges Users can view own badges; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can view own badges" ON public.user_badges FOR SELECT TO authenticated USING ((auth.uid() = user_id));
 
 
 --
@@ -18262,13 +19050,6 @@ CREATE POLICY "Users can view own intensive checklist" ON public.intensive_check
 
 
 --
--- Name: intensive_purchases Users can view own intensive purchases; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Users can view own intensive purchases" ON public.intensive_purchases FOR SELECT USING ((auth.uid() = user_id));
-
-
---
 -- Name: intensive_responses Users can view own intensive responses; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -18294,6 +19075,22 @@ CREATE POLICY "Users can view own media metadata" ON public.media_metadata FOR S
 --
 
 CREATE POLICY "Users can view own metrics" ON public.user_activity_metrics FOR SELECT USING ((auth.uid() = user_id));
+
+
+--
+-- Name: order_items Users can view own order items; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can view own order items" ON public.order_items FOR SELECT USING ((EXISTS ( SELECT 1
+   FROM public.orders o
+  WHERE ((o.id = order_items.order_id) AND (o.user_id = auth.uid())))));
+
+
+--
+-- Name: orders Users can view own orders; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can view own orders" ON public.orders FOR SELECT USING ((auth.uid() = user_id));
 
 
 --
@@ -18838,12 +19635,6 @@ ALTER TABLE public.households ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.intensive_checklist ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: intensive_purchases; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.intensive_purchases ENABLE ROW LEVEL SECURITY;
-
---
 -- Name: intensive_responses; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -18892,6 +19683,18 @@ ALTER TABLE public.membership_tiers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.message_send_log ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: order_items; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: orders; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: ai_action_token_overrides overrides_modify; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -18910,6 +19713,18 @@ CREATE POLICY overrides_select ON public.ai_action_token_overrides FOR SELECT TO
 --
 
 ALTER TABLE public.payment_history ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: product_prices; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.product_prices ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: products; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: refinements; Type: ROW SECURITY; Schema: public; Owner: -
@@ -18990,6 +19805,12 @@ ALTER TABLE public.user_accounts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_activity_metrics ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: user_badges; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.user_badges ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: user_community_stats; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -19050,12 +19871,77 @@ ALTER TABLE public.vibrational_links ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.video_mapping ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: video_session_messages video_messages_session_access; Type: POLICY; Schema: public; Owner: -
+-- Name: video_session_messages video_messages_alignment_gym_insert; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY video_messages_session_access ON public.video_session_messages USING ((EXISTS ( SELECT 1
+CREATE POLICY video_messages_alignment_gym_insert ON public.video_session_messages FOR INSERT WITH CHECK (((EXISTS ( SELECT 1
    FROM public.video_sessions vs
-  WHERE ((vs.id = video_session_messages.session_id) AND (vs.host_user_id = auth.uid())))));
+  WHERE ((vs.id = video_session_messages.session_id) AND (vs.session_type = 'alignment_gym'::public.video_session_type)))) AND ((user_id = auth.uid()) OR (user_id IS NULL))));
+
+
+--
+-- Name: video_session_messages video_messages_alignment_gym_view; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY video_messages_alignment_gym_view ON public.video_session_messages FOR SELECT USING (((EXISTS ( SELECT 1
+   FROM public.video_sessions vs
+  WHERE ((vs.id = video_session_messages.session_id) AND (vs.session_type = 'alignment_gym'::public.video_session_type)))) AND (auth.uid() IS NOT NULL)));
+
+
+--
+-- Name: video_session_messages video_messages_delete; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY video_messages_delete ON public.video_session_messages FOR DELETE USING (((user_id = auth.uid()) OR (EXISTS ( SELECT 1
+   FROM public.video_sessions vs
+  WHERE ((vs.id = video_session_messages.session_id) AND (vs.host_user_id = auth.uid()))))));
+
+
+--
+-- Name: video_session_messages video_messages_own_update; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY video_messages_own_update ON public.video_session_messages FOR UPDATE USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
+
+
+--
+-- Name: video_session_messages video_messages_participant_insert; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY video_messages_participant_insert ON public.video_session_messages FOR INSERT WITH CHECK ((((EXISTS ( SELECT 1
+   FROM public.video_session_participants vsp
+  WHERE ((vsp.session_id = video_session_messages.session_id) AND (vsp.user_id = auth.uid())))) OR (EXISTS ( SELECT 1
+   FROM public.video_sessions vs
+  WHERE ((vs.id = video_session_messages.session_id) AND (vs.host_user_id = auth.uid()))))) AND ((user_id = auth.uid()) OR (user_id IS NULL))));
+
+
+--
+-- Name: video_session_messages video_messages_participant_select; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY video_messages_participant_select ON public.video_session_messages FOR SELECT USING (((EXISTS ( SELECT 1
+   FROM public.video_session_participants vsp
+  WHERE ((vsp.session_id = video_session_messages.session_id) AND (vsp.user_id = auth.uid())))) OR (EXISTS ( SELECT 1
+   FROM public.video_sessions vs
+  WHERE ((vs.id = video_session_messages.session_id) AND (vs.host_user_id = auth.uid()))))));
+
+
+--
+-- Name: video_session_participants video_participants_alignment_gym_join; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY video_participants_alignment_gym_join ON public.video_session_participants FOR INSERT WITH CHECK (((EXISTS ( SELECT 1
+   FROM public.video_sessions vs
+  WHERE ((vs.id = video_session_participants.session_id) AND (vs.session_type = 'alignment_gym'::public.video_session_type)))) AND (user_id = auth.uid())));
+
+
+--
+-- Name: video_session_participants video_participants_alignment_gym_view; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY video_participants_alignment_gym_view ON public.video_session_participants FOR SELECT USING (((EXISTS ( SELECT 1
+   FROM public.video_sessions vs
+  WHERE ((vs.id = video_session_participants.session_id) AND (vs.session_type = 'alignment_gym'::public.video_session_type)))) AND (auth.uid() IS NOT NULL)));
 
 
 --
@@ -19125,6 +20011,13 @@ CREATE POLICY video_sessions_admin_all ON public.video_sessions USING ((EXISTS (
 CREATE POLICY video_sessions_admin_select ON public.video_sessions FOR SELECT USING ((EXISTS ( SELECT 1
    FROM public.user_accounts
   WHERE ((user_accounts.id = auth.uid()) AND (user_accounts.role = ANY (ARRAY['admin'::public.user_role, 'super_admin'::public.user_role]))))));
+
+
+--
+-- Name: video_sessions video_sessions_alignment_gym_view; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY video_sessions_alignment_gym_view ON public.video_sessions FOR SELECT USING (((session_type = 'alignment_gym'::public.video_session_type) AND (auth.uid() IS NOT NULL)));
 
 
 --
@@ -19452,6 +20345,20 @@ CREATE PUBLICATION supabase_realtime WITH (publish = 'insert, update, delete, tr
 
 
 --
+-- Name: supabase_realtime_messages_publication; Type: PUBLICATION; Schema: -; Owner: -
+--
+
+CREATE PUBLICATION supabase_realtime_messages_publication WITH (publish = 'insert, update, delete, truncate');
+
+
+--
+-- Name: supabase_realtime_messages_publication messages; Type: PUBLICATION TABLE; Schema: realtime; Owner: -
+--
+
+ALTER PUBLICATION supabase_realtime_messages_publication ADD TABLE ONLY realtime.messages;
+
+
+--
 -- Name: issue_graphql_placeholder; Type: EVENT TRIGGER; Schema: -; Owner: -
 --
 
@@ -19507,5 +20414,5 @@ CREATE EVENT TRIGGER pgrst_drop_watch ON sql_drop
 -- PostgreSQL database dump complete
 --
 
-\unrestrict BzkTLecQyNiQWyY5193JIwrBiexk7z9c06JD6hkXvEAp4zd06jAUeXEZx2iFjGs
+\unrestrict 9VUpqP6b470sXO6PRb8aHR9kXuCrn0HBuTYiFLm4EEMDfcCvdpORE0tOz7J3Rdp
 

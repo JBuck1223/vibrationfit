@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Container, Card, Button, Badge, Input, Stack, PageHero } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
 import { createClient } from '@/lib/supabase/client'
-import { Search, UserPlus, Shield, Mail, Calendar } from 'lucide-react'
+import { Search, UserPlus, Shield, Mail, Calendar, CheckCircle, Clock, RefreshCw, AlertCircle, Zap } from 'lucide-react'
 import Image from 'next/image'
 
 interface User {
@@ -18,9 +18,17 @@ interface User {
   tokens_used?: number
   storage_quota_gb?: number
   membership_tier?: string
-  intensive_enrolled?: boolean
+  intensive_active_status?: string | null  // 'pending' | 'in_progress' | null
+  intensive_active_id?: string | null
+  intensive_completed_count?: number
+  intensive_total_count?: number
   token_packs?: Array<{ name: string; purchased_at: string }>
   profile_photo_url?: string
+  profile_picture_url?: string
+  full_name?: string
+  first_name?: string
+  last_name?: string
+  role?: string
 }
 
 function UsersAdminContent() {
@@ -32,6 +40,8 @@ function UsersAdminContent() {
   const [adjustTokens, setAdjustTokens] = useState<Record<string, number>>({})
   const [adjustStorage, setAdjustStorage] = useState<Record<string, number>>({})
   const [showProductDropdown, setShowProductDropdown] = useState<Record<string, boolean>>({})
+  const [enrollingUser, setEnrollingUser] = useState<string | null>(null)
+  const [enrollFeedback, setEnrollFeedback] = useState<Record<string, { type: 'success' | 'error'; message: string }>>({})
 
   // Available products for enrollment
   const availableProducts = [
@@ -276,10 +286,10 @@ function UsersAdminContent() {
                 {/* Header Row */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:justify-between">
                   <div className="flex items-center gap-3 md:gap-4 w-full sm:w-auto">
-                    {user.profile_photo_url ? (
+                    {(user.profile_photo_url || user.profile_picture_url) ? (
                       <div className="w-12 h-12 md:w-16 md:h-16 rounded-full overflow-hidden flex-shrink-0 shadow-lg border-2 border-primary-500/30">
                         <Image
-                          src={user.profile_photo_url}
+                          src={user.profile_photo_url || user.profile_picture_url || ''}
                           alt={`${user.email} profile`}
                           width={64}
                           height={64}
@@ -293,13 +303,16 @@ function UsersAdminContent() {
                     )}
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <span className="font-bold text-white text-base md:text-xl truncate">{user.email}</span>
+                        <span className="font-bold text-white text-base md:text-xl truncate">{user.full_name || user.email}</span>
                         <Badge variant="success" className="text-xs flex-shrink-0">Admin</Badge>
                       </div>
+                      {user.full_name && (
+                        <div className="text-xs md:text-sm text-neutral-400 truncate mb-1">{user.email}</div>
+                      )}
                       <div className="flex flex-wrap items-center gap-3 md:gap-6 text-xs md:text-sm text-neutral-300">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3 md:w-4 md:h-4" />
-                          {new Date(user.created_at).toLocaleDateString()}
+                          {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
                         </span>
                         {user.last_sign_in_at && (
                           <span className="flex items-center gap-1">
@@ -333,13 +346,29 @@ function UsersAdminContent() {
                     {user.membership_tier && (
                       <Badge variant="premium" className="text-sm">{user.membership_tier}</Badge>
                     )}
-                    {user.intensive_enrolled && (
-                      <Badge variant="premium" className="text-sm">Activation Intensive</Badge>
+                    {/* Intensive enrollment status */}
+                    {user.intensive_active_status === 'in_progress' && (
+                      <Badge variant="success" className="text-sm flex items-center gap-1">
+                        <Zap className="w-3 h-3" />
+                        Intensive: In Progress
+                      </Badge>
+                    )}
+                    {user.intensive_active_status === 'pending' && (
+                      <Badge variant="warning" className="text-sm flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        Intensive: Pending
+                      </Badge>
+                    )}
+                    {!user.intensive_active_status && (user.intensive_completed_count || 0) > 0 && (
+                      <Badge variant="neutral" className="text-sm flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" />
+                        Intensive: Completed ({user.intensive_completed_count}x)
+                      </Badge>
                     )}
                     {user.token_packs?.map((pack, idx) => (
                       <Badge key={idx} variant="info" className="text-sm">{pack.name}</Badge>
                     ))}
-                    {(!user.membership_tier && !user.intensive_enrolled && (!user.token_packs || user.token_packs.length === 0)) && (
+                    {(!user.membership_tier && !user.intensive_active_status && !(user.intensive_completed_count) && (!user.token_packs || user.token_packs.length === 0)) && (
                       <span className="text-sm text-neutral-500 italic">No active products</span>
                     )}
                   </div>
@@ -451,10 +480,10 @@ function UsersAdminContent() {
                 {/* Header Row */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:justify-between">
                   <div className="flex items-center gap-3 md:gap-4 w-full sm:w-auto">
-                    {user.profile_photo_url ? (
+                    {(user.profile_photo_url || user.profile_picture_url) ? (
                       <div className="w-12 h-12 md:w-16 md:h-16 rounded-full overflow-hidden flex-shrink-0 shadow-lg border-2 border-neutral-500/30">
                         <Image
-                          src={user.profile_photo_url}
+                          src={user.profile_photo_url || user.profile_picture_url || ''}
                           alt={`${user.email} profile`}
                           width={64}
                           height={64}
@@ -468,12 +497,15 @@ function UsersAdminContent() {
                     )}
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <span className="font-bold text-white text-base md:text-xl truncate">{user.email}</span>
+                        <span className="font-bold text-white text-base md:text-xl truncate">{user.full_name || user.email}</span>
                       </div>
+                      {user.full_name && (
+                        <div className="text-xs md:text-sm text-neutral-400 truncate mb-1">{user.email}</div>
+                      )}
                       <div className="flex flex-wrap items-center gap-3 md:gap-6 text-xs md:text-sm text-neutral-300">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3 md:w-4 md:h-4" />
-                          {new Date(user.created_at).toLocaleDateString()}
+                          {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
                         </span>
                         {user.last_sign_in_at && (
                           <span className="flex items-center gap-1">
@@ -507,13 +539,29 @@ function UsersAdminContent() {
                     {user.membership_tier && (
                       <Badge variant="premium" className="text-sm">{user.membership_tier}</Badge>
                     )}
-                    {user.intensive_enrolled && (
-                      <Badge variant="premium" className="text-sm">Activation Intensive</Badge>
+                    {/* Intensive enrollment status */}
+                    {user.intensive_active_status === 'in_progress' && (
+                      <Badge variant="success" className="text-sm flex items-center gap-1">
+                        <Zap className="w-3 h-3" />
+                        Intensive: In Progress
+                      </Badge>
+                    )}
+                    {user.intensive_active_status === 'pending' && (
+                      <Badge variant="warning" className="text-sm flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        Intensive: Pending
+                      </Badge>
+                    )}
+                    {!user.intensive_active_status && (user.intensive_completed_count || 0) > 0 && (
+                      <Badge variant="neutral" className="text-sm flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" />
+                        Intensive: Completed ({user.intensive_completed_count}x)
+                      </Badge>
                     )}
                     {user.token_packs?.map((pack, idx) => (
                       <Badge key={idx} variant="info" className="text-sm">{pack.name}</Badge>
                     ))}
-                    {(!user.membership_tier && !user.intensive_enrolled && (!user.token_packs || user.token_packs.length === 0)) && (
+                    {(!user.membership_tier && !user.intensive_active_status && !(user.intensive_completed_count) && (!user.token_packs || user.token_packs.length === 0)) && (
                       <span className="text-sm text-neutral-500 italic">No active products</span>
                     )}
                   </div>
@@ -594,38 +642,131 @@ function UsersAdminContent() {
                     >Set Storage</Button>
                   </div>
 
+                  {/* Enrollment feedback */}
+                  {enrollFeedback[user.id] && (
+                    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
+                      enrollFeedback[user.id].type === 'success' 
+                        ? 'bg-green-500/10 border border-green-500/30 text-green-400' 
+                        : 'bg-red-500/10 border border-red-500/30 text-red-400'
+                    }`}>
+                      {enrollFeedback[user.id].type === 'success' 
+                        ? <CheckCircle className="w-4 h-4 flex-shrink-0" /> 
+                        : <AlertCircle className="w-4 h-4 flex-shrink-0" />}
+                      {enrollFeedback[user.id].message}
+                    </div>
+                  )}
+
                   <div className="relative w-full">
                     <Button
                       variant="accent"
                       size="sm"
                       className="w-full whitespace-nowrap"
+                      disabled={enrollingUser === user.id}
                       onClick={() => setShowProductDropdown(prev => ({ ...prev, [user.id]: !prev[user.id] }))}
                     >
-                      Enroll Product
+                      {enrollingUser === user.id ? (
+                        <span className="flex items-center gap-2">
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          Enrolling...
+                        </span>
+                      ) : 'Enroll Product'}
                     </Button>
                     {showProductDropdown[user.id] && (
                       <div className="absolute top-full left-0 mt-1 w-full bg-neutral-800 border border-neutral-600 rounded-lg shadow-lg z-10">
                         <div className="p-2">
-                          {availableProducts.map((product) => (
-                            <button
-                              key={product.id}
-                              className="w-full text-left px-3 py-2 text-sm text-white hover:bg-neutral-700 rounded flex items-center justify-between"
-                              onClick={async () => {
-                                if (product.id === 'intensive') {
-                                  await fetch('/api/admin/intensive/enroll', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ userId: user.id })
-                                  })
-                                }
-                                // Add other product enrollments here
-                                setShowProductDropdown(prev => ({ ...prev, [user.id]: false }))
-                              }}
-                            >
-                              <span>{product.name}</span>
-                              <span className="text-neutral-400">{product.price}</span>
-                            </button>
-                          ))}
+                          {availableProducts.map((product) => {
+                            // Show context for intensive enrollment
+                            const isIntensive = product.id === 'intensive'
+                            const hasActiveIntensive = !!user.intensive_active_status
+                            const completedCount = user.intensive_completed_count || 0
+
+                            return (
+                              <button
+                                key={product.id}
+                                className="w-full text-left px-3 py-2 text-sm text-white hover:bg-neutral-700 rounded flex flex-col gap-1"
+                                onClick={async () => {
+                                  if (isIntensive) {
+                                    // If user has an active intensive, confirm re-enrollment
+                                    if (hasActiveIntensive) {
+                                      const confirmed = window.confirm(
+                                        `This user already has an active intensive (${user.intensive_active_status}). Creating a new enrollment will not affect the existing one. Continue?`
+                                      )
+                                      if (!confirmed) {
+                                        setShowProductDropdown(prev => ({ ...prev, [user.id]: false }))
+                                        return
+                                      }
+                                    }
+
+                                    setEnrollingUser(user.id)
+                                    setEnrollFeedback(prev => {
+                                      const copy = { ...prev }
+                                      delete copy[user.id]
+                                      return copy
+                                    })
+                                    
+                                    try {
+                                      const res = await fetch('/api/admin/intensive/enroll', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ userId: user.id })
+                                      })
+
+                                      if (res.ok) {
+                                        const data = await res.json()
+                                        setEnrollFeedback(prev => ({
+                                          ...prev,
+                                          [user.id]: {
+                                            type: 'success',
+                                            message: completedCount > 0
+                                              ? `New Activation Intensive created (enrollment #${completedCount + 1 + (hasActiveIntensive ? 1 : 0)})`
+                                              : 'Enrolled in Activation Intensive successfully'
+                                          }
+                                        }))
+                                        // Refresh user list to show updated status
+                                        fetchUsers()
+                                      } else {
+                                        const errorData = await res.json().catch(() => ({ error: 'Unknown error' }))
+                                        setEnrollFeedback(prev => ({
+                                          ...prev,
+                                          [user.id]: {
+                                            type: 'error',
+                                            message: `Failed: ${errorData.error || 'Unknown error'}`
+                                          }
+                                        }))
+                                      }
+                                    } catch (err: any) {
+                                      setEnrollFeedback(prev => ({
+                                        ...prev,
+                                        [user.id]: {
+                                          type: 'error',
+                                          message: `Error: ${err.message || 'Network error'}`
+                                        }
+                                      }))
+                                    } finally {
+                                      setEnrollingUser(null)
+                                    }
+                                  }
+                                  // Add other product enrollments here
+                                  setShowProductDropdown(prev => ({ ...prev, [user.id]: false }))
+                                }}
+                              >
+                                <div className="flex items-center justify-between w-full">
+                                  <span>{product.name}</span>
+                                  <span className="text-neutral-400">{product.price}</span>
+                                </div>
+                                {isIntensive && completedCount > 0 && (
+                                  <span className="text-xs text-neutral-400">
+                                    {completedCount} completed{hasActiveIntensive ? `, 1 ${user.intensive_active_status}` : ''}
+                                  </span>
+                                )}
+                                {isIntensive && hasActiveIntensive && completedCount === 0 && (
+                                  <span className="text-xs text-yellow-400">
+                                    Has active intensive ({user.intensive_active_status})
+                                  </span>
+                                )}
+                              </button>
+                            )
+                          })}
                         </div>
                       </div>
                     )}

@@ -484,10 +484,17 @@ export default function SessionPage() {
         userId={userId}
         sessionId={sessionId}
         sessionTitle={session?.title}
+        sessionType={session?.session_type}
         isHost={isHost}
         initialSettings={callSettings || undefined}
         onLeave={handleLeave}
         onError={handleCallError}
+        // For 1:1 sessions, pass the other participant's user_id so host can see their data
+        memberUserId={
+          isHost && session?.session_type === 'one_on_one'
+            ? session.participants?.find((p: { is_host: boolean; user_id: string }) => !p.is_host)?.user_id
+            : undefined
+        }
       />
     )
   }
