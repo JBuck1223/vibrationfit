@@ -292,13 +292,9 @@ function VideoCallUI({
     if (isRecording) {
       await daily.stopRecording()
     } else {
-      // For 1:1 sessions, use single-participant (shows the remote member)
-      // For group/alignment gym, use active-participant (shows whoever is speaking)
-      const layoutPreset = sessionType === 'one_on_one' ? 'single-participant' : 'active-participant'
+      // Use active-participant layout (shows whoever is speaking) for all session types
       await daily.startRecording({
-        layout: {
-          preset: layoutPreset,
-        },
+        layout: { preset: 'active-participant' },
       })
     }
   }, [daily, isRecording, isHost, sessionType])

@@ -97,7 +97,11 @@ export async function GET(request: NextRequest) {
       }
 
       userAccount = newAccount
-      console.log('Created user_accounts row for:', userAccount.id)
+      console.log('Created user_accounts row for:', userAccount?.id)
+    }
+
+    if (!userAccount) {
+      return NextResponse.json({ error: 'Failed to resolve user account' }, { status: 500 })
     }
 
     // Check if they have a checklist

@@ -25,7 +25,10 @@ import {
   Input
 } from '@/lib/design-system/components'
 import { AlertCircle, ArrowLeft, Video, Calendar, Clock, User, LogIn } from 'lucide-react'
-import type { VideoSession, CallSettings, JoinSessionResponse } from '@/lib/video/types'
+import type { VideoSession, VideoSessionParticipant, CallSettings, JoinSessionResponse } from '@/lib/video/types'
+
+/** Extended session type returned by the API with joined participants */
+type SessionWithParticipants = VideoSession & { participants?: VideoSessionParticipant[] }
 
 type PageState = 'loading' | 'login-required' | 'error' | 'pre-call' | 'in-call' | 'post-call'
 
@@ -51,7 +54,7 @@ export default function SessionPage() {
   // State
   const [pageState, setPageState] = useState<PageState>('loading')
   const [publicSession, setPublicSession] = useState<PublicSessionInfo | null>(null)
-  const [session, setSession] = useState<VideoSession | null>(null)
+  const [session, setSession] = useState<SessionWithParticipants | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [roomUrl, setRoomUrl] = useState<string | null>(null)
   const [isHost, setIsHost] = useState(false)
@@ -492,7 +495,7 @@ export default function SessionPage() {
         // For 1:1 sessions, pass the other participant's user_id so host can see their data
         memberUserId={
           isHost && session?.session_type === 'one_on_one'
-            ? session.participants?.find((p: { is_host: boolean; user_id: string }) => !p.is_host)?.user_id
+            ? session.participants?.find(p => !p.is_host)?.user_id
             : undefined
         }
       />
