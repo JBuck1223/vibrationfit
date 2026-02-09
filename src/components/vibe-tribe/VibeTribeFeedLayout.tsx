@@ -265,13 +265,16 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
                 
                 {/* Title and User Name */}
                 <div className="flex flex-col">
-                  <h1 className="text-base font-bold text-white leading-tight">Vibe Tribe</h1>
+                  {/* Vibe Tribe title - hidden on mobile */}
+                  <h1 className="hidden md:block text-base font-bold text-white leading-tight">Vibe Tribe</h1>
                   {userProfile?.full_name && (
                     <Link 
                       href={`/snapshot/${userProfile.id}`}
-                      className="text-xs font-medium text-[#39FF14] leading-tight hover:underline"
+                      className="text-sm md:text-xs font-bold text-[#39FF14] leading-tight hover:underline"
                     >
-                      {userProfile.full_name}
+                      {/* First name on mobile, full name on desktop */}
+                      <span className="md:hidden">{userProfile.full_name.split(' ')[0]}</span>
+                      <span className="hidden md:inline">{userProfile.full_name}</span>
                     </Link>
                   )}
                 </div>
@@ -436,7 +439,7 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
         <div className="max-w-2xl mx-auto px-4 py-4">
           {/* How to Vibe Guide - only show for users who have posted */}
           {hasPostedBefore && (
-            <div className="mb-4">
+            <div className="mb-2">
               <HowToVibeCard />
             </div>
           )}
@@ -447,16 +450,11 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
           ) : posts.length > 0 ? (
             <div className="space-y-4">
               {/* Load Older Posts Trigger - at top */}
-              <div ref={loadMoreRef} className="py-2">
+              <div ref={loadMoreRef}>
                 {loadingMore && (
-                  <div className="flex justify-center">
+                  <div className="flex justify-center py-2">
                     <Spinner size="md" />
                   </div>
-                )}
-                {!hasMore && posts.length > 0 && (
-                  <p className="text-center text-neutral-500 text-sm">
-                    Beginning of feed
-                  </p>
                 )}
               </div>
 
