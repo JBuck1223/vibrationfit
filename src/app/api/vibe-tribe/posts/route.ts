@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
     const filterUserId = searchParams.get('user_id') // Filter to show only specific user's posts
     const filterHearted = searchParams.get('hearted') === 'true' // Filter to posts user has hearted
     const filterCommented = searchParams.get('commented') === 'true' // Filter to posts user has commented on
+    const filterPinned = searchParams.get('pinned') === 'true' // Filter to only pinned posts
     const limit = parseInt(searchParams.get('limit') || '20', 10)
     const offset = parseInt(searchParams.get('offset') || '0', 10)
 
@@ -57,12 +58,19 @@ export async function GET(request: NextRequest) {
     }
 
     // Build query - fetch posts (newest first, frontend reverses for chat-like display)
+    // Note: Once the pinned posts migration is run, pinned posts will appear first
     let query = supabase
       .from('vibe_posts')
       .select('*', { count: 'exact' })
       .eq('is_deleted', false)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
+
+    // Apply pinned filter if requested (show ONLY pinned posts)
+    // This will only work after the migration adds the is_pinned column
+    if (filterPinned) {
+      query = query.eq('is_pinned', true)
+    }
 
     // Apply tag filter if provided
     if (tag) {

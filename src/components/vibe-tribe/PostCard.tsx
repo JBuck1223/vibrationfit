@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Card, Button, DeleteConfirmationDialog } from '@/lib/design-system'
-import { Heart, MessageCircle, Trash2, MoreHorizontal, Play, Pencil } from 'lucide-react'
+import { Heart, MessageCircle, Trash2, MoreHorizontal, Play, Pencil, Pin } from 'lucide-react'
 import { VibePost, VIBE_TAG_CONFIG } from '@/lib/vibe-tribe/types'
 import { UserBadgeIndicator } from '@/components/badges'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
@@ -38,10 +38,13 @@ export function PostCard({
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState(post.content || '')
   const [isSavingEdit, setIsSavingEdit] = useState(false)
+  const [isPinned, setIsPinned] = useState(post.is_pinned ?? false)
+  const [isPinning, setIsPinning] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   const canDelete = currentUserId === post.user_id || isAdmin
   const canEdit = currentUserId === post.user_id
+  const canPin = isAdmin
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -159,6 +162,30 @@ export function PostCard({
     setCommentsCount(prev => prev + 1)
   }
 
+  const handlePinToggle = async () => {
+    if (isPinning || !isAdmin) return
+    
+    setIsPinning(true)
+    const method = isPinned ? 'DELETE' : 'POST'
+    
+    try {
+      const response = await fetch(`/api/vibe-tribe/posts/${post.id}/pin`, {
+        method,
+      })
+      
+      if (response.ok) {
+        setIsPinned(!isPinned)
+      } else {
+        console.error('Pin toggle failed:', await response.text())
+      }
+    } catch (error) {
+      console.error('Error toggling pin:', error)
+    } finally {
+      setIsPinning(false)
+      setShowMenu(false)
+    }
+  }
+
   // Format time: show time for today, "Yesterday" for yesterday, or date for older
   const postDate = new Date(post.created_at)
   const timeDisplay = isToday(postDate) 
@@ -262,10 +289,16 @@ export function PostCard({
               {post.user?.full_name || 'Anonymous'}
             </Link>
             <VibeTagBadge tag={post.vibe_tag} size="sm" />
+            {isPinned && (
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#BF00FF]/20 text-[#BF00FF]">
+                <Pin className="w-3 h-3" />
+                <span className="text-xs font-medium">Pinned</span>
+              </div>
+            )}
             <span className="text-sm text-neutral-500 leading-none">{timeDisplay}</span>
             
             {/* Menu - always in same position */}
-            {(canEdit || canDelete) && (
+            {(canEdit || canDelete || canPin) && (
               <div ref={menuRef} className="relative ml-auto -mr-1">
                 <button
                   onClick={() => setShowMenu(!showMenu)}
@@ -276,6 +309,16 @@ export function PostCard({
                 
                 {showMenu && (
                   <div className="absolute right-0 top-full mt-1 bg-neutral-800 rounded-lg shadow-lg border border-neutral-700 py-1 z-10 min-w-[100px]">
+                    {canPin && (
+                      <button
+                        onClick={handlePinToggle}
+                        disabled={isPinning}
+                        className="flex items-center gap-2 px-4 py-2 text-[#BF00FF] hover:bg-neutral-700 w-full text-left disabled:opacity-50"
+                      >
+                        <Pin className="w-4 h-4" />
+                        {isPinning ? 'Loading...' : isPinned ? 'Unpin' : 'Pin'}
+                      </button>
+                    )}
                     {canEdit && (
                       <button
                         onClick={handleEditClick}

@@ -3,10 +3,11 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { Spinner } from '@/lib/design-system'
-import { Search, Pin, ChevronDown, Image as ImageIcon, ArrowUp, X, Trophy, Heart, Sparkles, Lightbulb, Send, User, FileText, MessageCircle } from 'lucide-react'
+import { Search, Pin, ChevronDown, Image as ImageIcon, ArrowUp, ArrowRight, X, Trophy, Heart, Sparkles, Lightbulb, Send, User, FileText, MessageCircle } from 'lucide-react'
 import { VibeTag, VIBE_TAG_CONFIG, VibePost, VIBE_TAGS } from '@/lib/vibe-tribe/types'
 import { PostCard } from './PostCard'
 import { StickyPostComposer } from './StickyPostComposer'
+import { HowToVibeCard } from './HowToVibeCard'
 import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
 
 const ICON_MAP: Record<VibeTag, any> = {
@@ -27,9 +28,10 @@ interface VibeTribeFeedLayoutProps {
   isAdmin?: boolean
   initialFilter?: VibeTag | 'all'
   userProfile?: UserProfile | null
+  hasPostedBefore?: boolean
 }
 
-export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = 'all', userProfile }: VibeTribeFeedLayoutProps) {
+export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = 'all', userProfile, hasPostedBefore = true }: VibeTribeFeedLayoutProps) {
   const [posts, setPosts] = useState<VibePost[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -408,9 +410,36 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
         </div>
       )}
 
+      {/* Onboarding Banner - shows when user hasn't posted yet */}
+      {!hasPostedBefore && (
+        <div className="bg-gradient-to-r from-[#39FF14]/10 to-[#BF00FF]/10 border-b border-neutral-800">
+          <div className="max-w-2xl mx-auto px-4 py-4">
+            <Link 
+              href="/vibe-tribe/new"
+              className="flex items-center justify-between gap-4 group"
+            >
+              <div>
+                <p className="text-white font-medium">Welcome to Vibe Tribe</p>
+                <p className="text-sm text-neutral-400">Make your first post to unlock the full experience</p>
+              </div>
+              <div className="flex items-center gap-2 text-[#39FF14] group-hover:gap-3 transition-all">
+                <span className="text-sm font-medium">Start Here</span>
+                <ArrowRight className="w-4 h-4" />
+              </div>
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Feed */}
-      <div className="flex-1 overflow-y-auto pb-40 md:pb-24">
+      <div className={`flex-1 overflow-y-auto ${hasPostedBefore ? 'pb-40 md:pb-24' : 'pb-8'}`}>
         <div className="max-w-2xl mx-auto px-4 py-4">
+          {/* How to Vibe Guide - only show for users who have posted */}
+          {hasPostedBefore && (
+            <div className="mb-4">
+              <HowToVibeCard />
+            </div>
+          )}
           {(loading || refreshing) ? (
             <div className="flex justify-center py-12">
               <Spinner size="lg" />
@@ -496,11 +525,13 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
         </div>
       </div>
 
-      {/* Sticky Bottom Composer */}
-      <StickyPostComposer 
-        userId={userId} 
-        onPostCreated={handlePostCreated} 
-      />
+      {/* Sticky Bottom Composer - only show if user has posted before */}
+      {hasPostedBefore && (
+        <StickyPostComposer 
+          userId={userId} 
+          onPostCreated={handlePostCreated} 
+        />
+      )}
     </div>
   )
 }
