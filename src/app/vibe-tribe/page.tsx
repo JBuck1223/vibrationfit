@@ -20,6 +20,7 @@ export default function VibeTribePage() {
   const [user, setUser] = useState<{ id: string } | null>(null)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [hasPostedBefore, setHasPostedBefore] = useState(true) // Default to true to avoid flash
 
   // Get initial filter from URL
   const filterParam = searchParams.get('filter')
@@ -38,6 +39,23 @@ export default function VibeTribePage() {
       }
       
       setUser(user)
+
+      // Check if user has made any posts
+      const { data: posts } = await supabase
+        .from('vibe_posts')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_deleted', false)
+        .limit(1)
+      
+      const userHasPosted = posts && posts.length > 0
+      setHasPostedBefore(userHasPosted)
+
+      // If user hasn't posted, redirect to onboarding
+      if (!userHasPosted) {
+        router.push('/vibe-tribe/new')
+        return
+      }
 
       // Get user account data including profile picture and name
       const { data: account } = await supabase
@@ -74,6 +92,7 @@ export default function VibeTribePage() {
       isAdmin={isAdmin} 
       initialFilter={initialFilter}
       userProfile={userProfile}
+      hasPostedBefore={hasPostedBefore}
     />
   )
 }
