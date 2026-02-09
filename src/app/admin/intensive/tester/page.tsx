@@ -48,6 +48,7 @@ interface IntensiveUser {
   status: string
   startedAt: string | null
   createdAt: string
+  isOrphaned?: boolean
 }
 
 interface StepDefinition {
@@ -112,9 +113,13 @@ export default function IntensiveTesterPage() {
   const [actionLoading, setActionLoading] = useState<number | null>(null)
   const [resetLoading, setResetLoading] = useState(false)
   const [createUserLoading, setCreateUserLoading] = useState(false)
+  const [reenrollLoading, setReenrollLoading] = useState(false)
   
   const [newUserEmail, setNewUserEmail] = useState('')
   const [showCreateUser, setShowCreateUser] = useState(false)
+  const [findUserEmail, setFindUserEmail] = useState('')
+  const [showFindUser, setShowFindUser] = useState(false)
+  const [findUserLoading, setFindUserLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
@@ -132,11 +137,17 @@ export default function IntensiveTesterPage() {
 
   useEffect(() => {
     if (selectedUserId) {
-      loadUserProgress(selectedUserId)
+      // Check if user is orphaned - if so, don't try to load progress
+      const user = users.find(u => u.userId === selectedUserId)
+      if (user?.isOrphaned) {
+        setProgress(null)
+      } else {
+        loadUserProgress(selectedUserId)
+      }
     } else {
       setProgress(null)
     }
-  }, [selectedUserId])
+  }, [selectedUserId, users])
 
   const loadUsers = async () => {
     try {
@@ -273,6 +284,88 @@ export default function IntensiveTesterPage() {
     }
   }
 
+  const handleReenrollUser = async () => {
+    if (!selectedUserId) return
+    
+    setReenrollLoading(true)
+    setError(null)
+    setSuccessMessage(null)
+    
+    try {
+      const response = await fetch('/api/admin/intensive/enroll', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: selectedUserId })
+      })
+      
+      if (!response.ok) {
+        const errData = await response.json()
+        throw new Error(errData.error || 'Failed to re-enroll user')
+      }
+      
+      setSuccessMessage('User re-enrolled in intensive successfully')
+      
+      // Reload users and progress
+      await loadUsers()
+      await loadUserProgress(selectedUserId)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to re-enroll user')
+    } finally {
+      setReenrollLoading(false)
+    }
+  }
+
+  const handleFindAndEnrollUser = async () => {
+    if (!findUserEmail.trim()) {
+      setError('Please enter an email address')
+      return
+    }
+    
+    setFindUserLoading(true)
+    setError(null)
+    setSuccessMessage(null)
+    
+    try {
+      // First, find the user by email
+      const findResponse = await fetch(`/api/admin/intensive/find-user?email=${encodeURIComponent(findUserEmail.trim())}`)
+      
+      if (!findResponse.ok) {
+        const errData = await findResponse.json()
+        throw new Error(errData.error || 'User not found')
+      }
+      
+      const { userId } = await findResponse.json()
+      
+      // Now enroll them
+      const enrollResponse = await fetch('/api/admin/intensive/enroll', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId })
+      })
+      
+      const enrollData = await enrollResponse.json()
+      
+      if (!enrollResponse.ok) {
+        console.error('Enroll error details:', enrollData)
+        throw new Error(enrollData.error || 'Failed to enroll user')
+      }
+      
+      setSuccessMessage(`Found and enrolled user: ${findUserEmail.trim()}`)
+      setFindUserEmail('')
+      setShowFindUser(false)
+      
+      // Reload users and select the found user
+      await loadUsers()
+      setSelectedUserId(userId)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to find/enroll user')
+    } finally {
+      setFindUserLoading(false)
+    }
+  }
+
+  const selectedUser = users.find(u => u.userId === selectedUserId)
+
   const isStepLocked = (stepNumber: number): boolean => {
     if (!progress) return true
     if (stepNumber === 0) return false
@@ -363,7 +456,9 @@ export default function IntensiveTesterPage() {
                   placeholder="-- Select a user --"
                   options={users.map((user) => ({
                     value: user.userId,
-                    label: `${user.displayName} (${user.status})`
+                    label: user.isOrphaned 
+                      ? `${user.displayName} (ORPHANED - needs re-enroll)`
+                      : `${user.displayName} (${user.status})`
                   }))}
                   className="w-full"
                 />
@@ -372,12 +467,61 @@ export default function IntensiveTesterPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setShowCreateUser(!showCreateUser)}
+                onClick={() => {
+                  setShowCreateUser(!showCreateUser)
+                  setShowFindUser(false)
+                }}
               >
                 <UserPlus className="w-4 h-4 mr-2" />
                 Create Test User
               </Button>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setShowFindUser(!showFindUser)
+                  setShowCreateUser(false)
+                }}
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Find & Enroll
+              </Button>
             </div>
+
+            {/* Find & Enroll User Form */}
+            {showFindUser && (
+              <Card className="p-4 bg-yellow-500/10 border-yellow-500/30">
+                <Stack gap="sm">
+                  <label className="text-sm text-yellow-400">Find Existing User by Email</label>
+                  <p className="text-xs text-neutral-400">
+                    Use this to recover an orphaned user or enroll an existing user in the intensive.
+                  </p>
+                  <div className="flex flex-col md:flex-row gap-2">
+                    <Input
+                      type="email"
+                      placeholder="user@example.com"
+                      value={findUserEmail}
+                      onChange={(e) => setFindUserEmail(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={handleFindAndEnrollUser}
+                      disabled={findUserLoading}
+                    >
+                      {findUserLoading ? (
+                        <Spinner size="sm" className="mr-2" />
+                      ) : (
+                        <Rocket className="w-4 h-4 mr-2" />
+                      )}
+                      Find & Enroll
+                    </Button>
+                  </div>
+                </Stack>
+              </Card>
+            )}
 
             {/* Create User Form */}
             {showCreateUser && (
@@ -416,7 +560,7 @@ export default function IntensiveTesterPage() {
         </Card>
 
         {/* Progress Overview */}
-        {selectedUserId && progress && (
+        {selectedUserId && progress && !selectedUser?.isOrphaned && (
           <>
             <Card className="p-4 md:p-6 bg-primary-500/10 border-primary-500/30">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
@@ -569,6 +713,30 @@ export default function IntensiveTesterPage() {
               </div>
             </Card>
           </>
+        )}
+
+        {/* Orphaned user - needs re-enrollment */}
+        {selectedUserId && selectedUser?.isOrphaned && (
+          <Card className="p-8 text-center bg-yellow-500/10 border-yellow-500/30">
+            <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Orphaned User</h3>
+            <p className="text-neutral-400 text-sm mb-6">
+              This user exists but their intensive enrollment was deleted (possibly from a failed reset). 
+              Re-enroll them to restore access.
+            </p>
+            <Button
+              variant="primary"
+              onClick={handleReenrollUser}
+              disabled={reenrollLoading}
+            >
+              {reenrollLoading ? (
+                <Spinner size="sm" className="mr-2" />
+              ) : (
+                <Rocket className="w-4 h-4 mr-2" />
+              )}
+              Re-enroll in Intensive
+            </Button>
+          </Card>
         )}
 
         {/* No user selected */}

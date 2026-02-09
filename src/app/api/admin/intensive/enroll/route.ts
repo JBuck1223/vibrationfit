@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
+
+// Create admin client that bypasses RLS
+function getAdminClient() {
+  return createSupabaseAdmin(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+}
 
 export async function POST(request: NextRequest) {
   try {
-    // Check if user is admin (you can add your own admin check here)
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     
@@ -11,8 +20,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    // For now, allow any authenticated user (you can restrict this)
-    // TODO: Add proper admin check (e.g., check user role in database)
+    // Verify super_admin role
+    const { data: adminAccount } = await supabase
+      .from('user_accounts')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (adminAccount?.role !== 'super_admin') {
+      return NextResponse.json({ error: 'Super admin access required' }, { status: 403 })
+    }
 
     const { userId, paymentPlan = 'full' } = await request.json()
 
@@ -20,17 +37,54 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 })
     }
 
-    const { data: intensiveProduct, error: productError } = await supabase
+    // Use admin client to bypass RLS
+    const adminClient = getAdminClient()
+
+    // First, verify the user exists
+    const { data: userAccount, error: userError } = await adminClient
+      .from('user_accounts')
+      .select('id, email')
+      .eq('id', userId)
+      .maybeSingle()
+
+    if (userError || !userAccount) {
+      return NextResponse.json({ 
+        error: `User not found: ${userError?.message || 'No user with this ID'}`,
+        userId 
+      }, { status: 404 })
+    }
+
+    console.log('Enrolling user:', userAccount.email, userId)
+
+    // Check if user already has an active checklist
+    const { data: existingChecklist } = await adminClient
+      .from('intensive_checklist')
+      .select('id, status')
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (existingChecklist) {
+      return NextResponse.json({ 
+        error: `User already has an intensive checklist (status: ${existingChecklist.status}). Use Reset User instead.`,
+        existingChecklistId: existingChecklist.id
+      }, { status: 409 })
+    }
+
+    const { data: intensiveProduct, error: productError } = await adminClient
       .from('products')
       .select('id')
       .eq('key', 'intensive')
       .maybeSingle()
 
     if (productError || !intensiveProduct) {
-      return NextResponse.json({ error: 'Intensive product not found' }, { status: 500 })
+      return NextResponse.json({ 
+        error: `Intensive product not found: ${productError?.message || 'No product with key=intensive'}` 
+      }, { status: 500 })
     }
 
-    const { data: order, error: orderError } = await supabase
+    console.log('Found intensive product:', intensiveProduct.id)
+
+    const { data: order, error: orderError } = await adminClient
       .from('orders')
       .insert({
         user_id: userId,
@@ -44,10 +98,14 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (orderError || !order) {
-      return NextResponse.json({ error: 'Failed to create order' }, { status: 500 })
+      console.error('Error creating order:', orderError)
+      return NextResponse.json({ 
+        error: `Failed to create order: ${orderError?.message || 'Unknown error'}`,
+        details: orderError
+      }, { status: 500 })
     }
 
-    const { data: intensive, error: intensiveError } = await supabase
+    const { data: intensive, error: intensiveError } = await adminClient
       .from('order_items')
       .insert({
         order_id: order.id,
@@ -73,7 +131,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create checklist
-    const { error: checklistError } = await supabase
+    const { error: checklistError } = await adminClient
       .from('intensive_checklist')
       .insert({
         intensive_id: intensive.id,

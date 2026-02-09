@@ -41,6 +41,33 @@ export async function POST(request: NextRequest) {
     const adminClient = getAdminClient()
     const now = new Date().toISOString()
 
+    // CRITICAL: Verify prerequisites BEFORE deleting anything
+    // This prevents orphaning users if recreation would fail
+    const { data: intensiveProduct, error: productError } = await adminClient
+      .from('products')
+      .select('id')
+      .eq('key', 'intensive')
+      .maybeSingle()
+
+    if (productError || !intensiveProduct) {
+      return NextResponse.json({
+        error: 'Cannot reset: Intensive product not found in database. Please add it first.'
+      }, { status: 500 })
+    }
+
+    // Verify user exists
+    const { data: userAccount, error: userError } = await adminClient
+      .from('user_accounts')
+      .select('id, email')
+      .eq('id', userId)
+      .maybeSingle()
+
+    if (userError || !userAccount) {
+      return NextResponse.json({
+        error: 'User not found'
+      }, { status: 404 })
+    }
+
     // Delete related data in order (to avoid foreign key issues)
     
     // 1. Delete journal entries
@@ -143,18 +170,7 @@ export async function POST(request: NextRequest) {
       .eq('id', userId)
 
     // 14. Create fresh order and intensive order item
-    const { data: intensiveProduct, error: productError } = await adminClient
-      .from('products')
-      .select('id')
-      .eq('key', 'intensive')
-      .maybeSingle()
-
-    if (productError || !intensiveProduct) {
-      return NextResponse.json({
-        error: 'Intensive product not found'
-      }, { status: 500 })
-    }
-
+    // (intensiveProduct was already verified at the start)
     const { data: order, error: orderError } = await adminClient
       .from('orders')
       .insert({

@@ -1689,12 +1689,12 @@ export default function HomePage() {
                 
                 {/* PLAN TYPE TOGGLE */}
                 <div className="flex justify-center">
-                  <div className="flex md:inline-flex w-full md:w-auto items-center gap-2 p-2 bg-neutral-800/80 backdrop-blur-sm rounded-full border border-neutral-700">
+                  <div className="inline-flex w-auto items-center gap-1.5 p-1.5 bg-neutral-800/80 backdrop-blur-sm rounded-full border border-neutral-700">
                     <button
                       onClick={() => setPlanType('solo')}
-                      className={`flex-1 md:flex-none px-6 py-3.5 rounded-full font-semibold transition-all duration-300 ${
+                      className={`px-5 md:px-6 py-3 md:py-3.5 rounded-full font-semibold transition-all duration-300 ${
                         planType === 'solo'
-                          ? 'bg-[#39FF14] text-black shadow-lg shadow-[#39FF14]/30 scale-105'
+                          ? 'bg-[#39FF14] text-black shadow-lg shadow-[#39FF14]/30'
                           : 'text-neutral-400 hover:text-white hover:bg-neutral-700/50'
                       }`}
                     >
@@ -1710,9 +1710,9 @@ export default function HomePage() {
                     </button>
                     <button
                       onClick={() => setPlanType('household')}
-                      className={`flex-1 md:flex-none px-6 py-3.5 rounded-full font-semibold transition-all duration-300 ${
+                      className={`px-5 md:px-6 py-3 md:py-3.5 rounded-full font-semibold transition-all duration-300 ${
                         planType === 'household'
-                          ? 'bg-[#8B5CF6] text-white shadow-lg shadow-[#8B5CF6]/30 scale-105'
+                          ? 'bg-[#8B5CF6] text-white shadow-lg shadow-[#8B5CF6]/30'
                           : 'text-neutral-400 hover:text-white hover:bg-neutral-700/50'
                       }`}
                     >
