@@ -311,17 +311,17 @@ export default function ResultsSummary({ assessment, responses = [] }: ResultsSu
                     </p>
                   </div>
                 )}
-                {belowCategories.length > 0 && (
-                  <div className="p-4 bg-[#FF0040]/10 border border-[#FF0040]/30 rounded-lg">
-                    <p className="text-sm text-white">
-                      <strong className="text-[#FF0040]">Focus Areas:</strong> {belowCategories.map(c => c.name).join(', ')} {belowCategories.length === 1 ? 'needs' : 'need'} attention to move above the Green Line.
-                    </p>
-                  </div>
-                )}
                 {transitionCategories.length > 0 && (
                   <div className="p-4 bg-[#FFB701]/10 border border-[#FFB701]/30 rounded-lg">
                     <p className="text-sm text-white">
                       <strong className="text-[#FFB701]">In Transition:</strong> {transitionCategories.map(c => c.name).join(', ')} {transitionCategories.length === 1 ? 'is' : 'are'} in transition - keep building momentum.
+                    </p>
+                  </div>
+                )}
+                {belowCategories.length > 0 && (
+                  <div className="p-4 bg-[#FF0040]/10 border border-[#FF0040]/30 rounded-lg">
+                    <p className="text-sm text-white">
+                      <strong className="text-[#FF0040]">Focus Areas:</strong> {belowCategories.map(c => c.name).join(', ')} {belowCategories.length === 1 ? 'needs' : 'need'} attention to move above the Green Line.
                     </p>
                   </div>
                 )}
