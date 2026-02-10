@@ -177,11 +177,11 @@ export default function AudioRecordNewPage() {
           subtitle="Add the power of your own voice to your vision audio - the most personal and impactful way to program your subconscious."
         >
 
-          <div>
+          <div className="mx-auto w-full max-w-3xl">
             <OptimizedVideo
               url={AUDIO_RECORD_VIDEO}
               context="single"
-              className="mx-auto w-full max-w-3xl"
+              className="w-full"
             />
           </div>
 
@@ -296,27 +296,62 @@ export default function AudioRecordNewPage() {
         </Card>
 
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
-          <Stack gap="md">
+          <Stack gap="lg">
             <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
               How It Works
             </Text>
-            <Stack gap="sm" className="text-sm text-neutral-300 leading-relaxed">
-              <p>
-                <span className="text-white font-semibold">1. Choose Sections</span> - Record one category 
-                at a time, or do your entire vision in one session.
-              </p>
-              <p>
-                <span className="text-white font-semibold">2. Read & Record</span> - See your vision text 
-                on screen while you record. Take your time, speak with feeling.
-              </p>
-              <p>
-                <span className="text-white font-semibold">3. Review & Redo</span> - Listen back and 
-                re-record any sections until they feel right.
-              </p>
-              <p>
-                <span className="text-white font-semibold">4. Mix It Up</span> - In the next step, blend 
-                your voice with AI voices, music, and frequencies.
-              </p>
+            <Stack gap="xl">
+              {/* Step 1 */}
+              <Stack gap="sm">
+                <Inline gap="sm" className="items-start">
+                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-500 text-black flex items-center justify-center font-bold text-sm">1</div>
+                  <Text size="sm" className="text-white font-semibold">
+                    Choose Sections
+                  </Text>
+                </Inline>
+                <p className="text-sm text-neutral-300 leading-relaxed pl-8">
+                  Record one section at a time – Forward, each life category, and your Conclusion – at your own pace.
+                </p>
+              </Stack>
+
+              {/* Step 2 */}
+              <Stack gap="sm">
+                <Inline gap="sm" className="items-start">
+                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-500 text-black flex items-center justify-center font-bold text-sm">2</div>
+                  <Text size="sm" className="text-white font-semibold">
+                    Read & Record
+                  </Text>
+                </Inline>
+                <p className="text-sm text-neutral-300 leading-relaxed pl-8">
+                  Your written vision appears on screen as your script. Hit "Start Recording," speak naturally, and let yourself feel it.
+                </p>
+              </Stack>
+
+              {/* Step 3 */}
+              <Stack gap="sm">
+                <Inline gap="sm" className="items-start">
+                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-500 text-black flex items-center justify-center font-bold text-sm">3</div>
+                  <Text size="sm" className="text-white font-semibold">
+                    Fix Mistakes Without Starting Over
+                  </Text>
+                </Inline>
+                <p className="text-sm text-neutral-300 leading-relaxed pl-8">
+                  After recording, you can trim out parts you don't like – false starts, restarts, awkward pauses – without re-doing the whole thing. Save it when it feels good enough.
+                </p>
+              </Stack>
+
+              {/* Step 4 */}
+              <Stack gap="sm">
+                <Inline gap="sm" className="items-start">
+                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-500 text-black flex items-center justify-center font-bold text-sm">4</div>
+                  <Text size="sm" className="text-white font-semibold">
+                    Use It in Your Mixes
+                  </Text>
+                </Inline>
+                <p className="text-sm text-neutral-300 leading-relaxed pl-8">
+                  In the next step, you'll be able to create Audio Mixes using your voice recordings with background music. After you complete the Intensive and unlock the full platform, you can also add frequencies for deeper activation.
+                </p>
+              </Stack>
             </Stack>
           </Stack>
         </Card>

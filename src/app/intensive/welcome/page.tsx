@@ -103,11 +103,11 @@ export default function IntensiveWelcomePage() {
           subtitle="Your 14-step journey to creating and activating the life you truly desire."
         >
           {/* Video */}
-          <div>
+          <div className="mx-auto w-full max-w-3xl">
             <OptimizedVideo
               url={INTENSIVE_INTRO_VIDEO}
               context="single"
-              className="mx-auto w-full max-w-3xl"
+              className="w-full"
             />
           </div>
 

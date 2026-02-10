@@ -119,7 +119,7 @@ export default function ResultsSummary({ assessment, responses = [] }: ResultsSu
     <div className="space-y-6">
       {/* Overall Score */}
       <Card className="p-4 md:p-6 lg:p-8">
-        <h3 className="text-xl font-semibold text-white mb-6 text-center">Vibrational Score</h3>
+        <h3 className="text-xl font-semibold text-white mb-6 text-center">Vibration Score</h3>
         
         <div className="text-center space-y-6">
           {/* Large Percentage */}

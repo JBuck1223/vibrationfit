@@ -490,7 +490,7 @@ function IntensiveDashboardContent() {
         completed: checklist.assessment_completed,
         completedAt: checklist.assessment_completed_at,
         href: '/assessment/new',
-        viewHref: '/assessment',
+        viewHref: '/assessment/new',
         locked: !checklist.profile_completed
       },
       

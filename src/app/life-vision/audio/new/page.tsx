@@ -70,11 +70,11 @@ export default function AudioNewPage() {
           subtitle="Transform your Life Vision into powerful audio that rewires your subconscious mind."
         >
           {/* Video */}
-          <div>
+          <div className="mx-auto w-full max-w-3xl">
             <OptimizedVideo
               url={AUDIO_INTRO_VIDEO}
               context="single"
-              className="mx-auto w-full max-w-3xl"
+              className="w-full"
             />
           </div>
 
