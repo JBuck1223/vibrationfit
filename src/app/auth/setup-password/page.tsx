@@ -35,7 +35,7 @@ export default function SetupPasswordPage() {
         // If user already has a password, skip this page
         if (user.user_metadata?.has_password === true) {
           if (isIntensive) {
-            window.location.href = '/intensive/dashboard'
+            window.location.href = '/intensive/start'
           } else {
             window.location.href = '/dashboard'
           }
@@ -87,7 +87,7 @@ export default function SetupPasswordPage() {
       // Redirect after brief success state
       setTimeout(() => {
         if (isIntensive) {
-          window.location.href = '/intensive/dashboard'
+          window.location.href = '/intensive/start'
         } else {
           window.location.href = '/dashboard'
         }
@@ -131,7 +131,7 @@ export default function SetupPasswordPage() {
             </div>
             <h2 className="text-2xl font-bold mb-2">Password Set</h2>
             <p className="text-neutral-300">
-              Redirecting to your {isIntensive ? 'intensive dashboard' : 'dashboard'}...
+              Redirecting to your {isIntensive ? 'intensive' : 'dashboard'}...
             </p>
           </div>
         ) : (
