@@ -527,7 +527,7 @@ export default function HomePage() {
                     </div>
                     <div className="flex items-center gap-3">
                       <Check className="w-4 h-4 flex-shrink-0 text-[#39FF14]" />
-                      <Text size="sm" className="text-neutral-200 text-left">3 journal entries logged (one written, one voice, one video)</Text>
+                      <Text size="sm" className="text-neutral-200 text-left">1 journal entry logged</Text>
                     </div>
                     <div className="flex items-center gap-3">
                       <Check className="w-4 h-4 flex-shrink-0 text-[#39FF14]" />
@@ -664,7 +664,7 @@ export default function HomePage() {
                             </div>
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <Text size="sm" className="text-neutral-400">Journal x3 — written, voice & video entries logged</Text>
+                              <Text size="sm" className="text-neutral-400">Journal — first written, voice or video entry logged</Text>
                             </div>
                           </div>
                         </div>
@@ -759,7 +759,7 @@ export default function HomePage() {
                             </div>
                             <div className="flex items-start gap-2">
                               <div className="w-4 h-4 border border-neutral-500 rounded flex-shrink-0 mt-0.5"></div>
-                              <Text size="sm" className="text-neutral-400">Journal x3 — written, voice & video entries logged</Text>
+                              <Text size="sm" className="text-neutral-400">Journal — first written, voice or video entry logged</Text>
                             </div>
                             </div>
                           </div>
@@ -1401,7 +1401,7 @@ export default function HomePage() {
                     variant="elevated"
                     className="!bg-[#39FF14]/10 !border-[#39FF14]/30"
                   >
-                    Activate your Life Vision in 72 hours. You leave the Intensive with a complete 12‑category Life Vision, AM/PM Vision Audios, a 12‑image Vision Board, 3 journal entries, your Calibration Call booked, and your My Activation Plan scheduled.
+                    Activate your Life Vision in 72 hours. You leave the Intensive with a complete 12‑category Life Vision, AM/PM Vision Audios, a 12‑image Vision Board, 1 journal entry, your Calibration Call booked, and your My Activation Plan scheduled.
                   </FeatureCard>
 
                   <FeatureCard 
@@ -1528,7 +1528,7 @@ export default function HomePage() {
                     {
                       id: 'journal',
                       title: 'Conscious Creation Journal',
-                      description: 'What it is: Multi‑format journal (written, voice, video).\nOutcome: See your progress and patterns as you reflect.\nDone when: 3 entries are logged—one written, one voice, one video—so you know your preferred mode.',
+                      description: 'What it is: Multi‑format journal (written, voice, video).\nOutcome: See your progress and patterns as you reflect.\nDone when: 1 entry is logged—so you start your evidence log.',
                       icon: BookOpen,
                       included: true,
                       locked: true
@@ -1636,7 +1636,7 @@ export default function HomePage() {
                   </FeatureCard>
                 </Grid>
                 <Text size="base" className="text-neutral-300 text-center w-full">
-                  VIVA now walks you through this 4-Layer Architecture across all 12 life categories—so in 72 hours you finish "active" with your complete vision, AM/PM vision audios, vision board built, 3 journal entries logged, calibration call booked, and your My Activation Plan scheduled.
+                  VIVA now walks you through this 4-Layer Architecture across all 12 life categories—so in 72 hours you finish "active" with your complete vision, AM/PM vision audios, vision board built, 1 journal entry logged, calibration call booked, and your My Activation Plan scheduled.
                 </Text>
                 <Button variant="primary" size="lg">
                   Start the Activation Intensive
@@ -1682,7 +1682,7 @@ export default function HomePage() {
                       Complete your Activation Checklist in 72 hours. Not satisfied? Full refund of your $499 Intensive fee. No questions asked.
                     </Text>
                       <Text size="xs" className="md:text-sm text-neutral-300 text-center">
-                      Completion = all of this done within 72 hours:<br />Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), First refinement done, AM/PM Vision Audios generated, Vision Board built (12 images), 3 journal entries logged (written, voice, video), Calibration Call booked, My Activation Plan scheduled
+                      Completion = all of this done within 72 hours:<br />Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), First refinement done, AM/PM Vision Audios generated, Vision Board built (12 images), 1 journal entry logged, Calibration Call booked, My Activation Plan scheduled
                     </Text>
                   </Stack>
                   </Card>
@@ -2231,7 +2231,7 @@ export default function HomePage() {
                               <h5 className="text-white font-semibold">What qualifies for the 72‑Hour Activation Guarantee?</h5>
                             </div>
                             <div className="ml-4 mb-0 text-justify">
-                              <p className="text-neutral-300 text-sm">Complete your Activation Checklist within 72 hours (profile, assessment, vision, audios, board, journals, Calibration Call, and MAP). If you do that and aren&apos;t satisfied, you get a full refund.</p>
+                              <p className="text-neutral-300 text-sm">Complete your Activation Checklist within 72 hours (profile, assessment, vision, audios, board, journal, Calibration Call, and MAP). If you do that and aren&apos;t satisfied, you get a full refund.</p>
                             </div>
                           </div>
                           <div>
@@ -2470,7 +2470,7 @@ export default function HomePage() {
                           <ListItem variant="success" icon={Check}>Draft your 12‑category Life Vision with VIVA</ListItem>
                           <ListItem variant="success" icon={Check}>Build your first Vision Board (12 images)</ListItem>
                           <ListItem variant="success" icon={Check}>Generate your AM/PM Vision Audios</ListItem>
-                          <ListItem variant="success" icon={Check}>Log your first 3 journal entries (written, voice, or video)</ListItem>
+                          <ListItem variant="success" icon={Check}>Log your first journal entry (written, voice, or video)</ListItem>
                         </BulletedList>
                         <Text size="sm" className="text-neutral-200 text-center">
                           <strong className="text-[#39FF14]">Done when:</strong> your Vision, board, and audios are created inside Vibration Fit.
@@ -2598,7 +2598,7 @@ export default function HomePage() {
                       <Stack gap="sm">
                         <Icon icon={Target} size="lg" color="#BF00FF" className="mx-auto" />
                         <Text size="sm" className="font-semibold text-white">Lock It In</Text>
-                        <Text size="sm" className="text-neutral-400">Vision Board built, 3 journals logged, dashboard tracking your streaks</Text>
+                        <Text size="sm" className="text-neutral-400">Vision Board built, 1 journal logged (written, voice, or video), dashboard tracking your streaks</Text>
                       </Stack>
                     </Card>
                   </Grid>
@@ -2667,7 +2667,7 @@ export default function HomePage() {
                 {
                   id: 'how-fast',
                   title: 'How fast is "fast"?',
-                  description: '"Active" in 72 hours means: Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), first refinement done, AM/PM Vision Audios generated, Vision Board built (12 images), 3 journal entries logged (written, voice, video), Calibration Call booked, My Activation Plan scheduled.'
+                  description: '"Active" in 72 hours means: Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), first refinement done, AM/PM Vision Audios generated, Vision Board built (12 images), 1 journal entry logged, Calibration Call booked, My Activation Plan scheduled.'
                 },
                 {
                   id: 'tried-loa',
@@ -2692,7 +2692,7 @@ export default function HomePage() {
                 {
                   id: 'guarantee-qualify',
                   title: 'What qualifies for the 72‑Hour Activation Guarantee?',
-                  description: 'Complete your Activation Checklist in 72 hours. Completion = Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), first refinement done, AM/PM Vision Audios generated, Vision Board built (12 images), 3 journal entries logged (written, voice, video), Calibration Call booked, My Activation Plan scheduled. If you complete your Activation Checklist in 72 hours and are not satisfied, you\'ll get a full refund of your $499 Intensive fee. No questions asked.'
+                  description: 'Complete your Activation Checklist in 72 hours. Completion = Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), first refinement done, AM/PM Vision Audios generated, Vision Board built (12 images), 1 journal entry logged, Calibration Call booked, My Activation Plan scheduled. If you complete your Activation Checklist in 72 hours and are not satisfied, you\'ll get a full refund of your $499 Intensive fee. No questions asked.'
                 },
                 {
                   id: 'refunds',
@@ -2703,7 +2703,7 @@ export default function HomePage() {
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">What's covered</p>
                         <ul className="list-disc marker:text-[#39FF14] pl-5 space-y-1 text-sm text-neutral-300">
                           <li>
-                            72‑Hour Activation Guarantee: if you complete your Activation Checklist in 72 hours and aren't satisfied, we refund the $499 Intensive fee. (Completion = Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), First refinement done, AM/PM Vision Audios generated, Vision Board built (12 images), 3 journal entries logged (written, voice, video), Calibration Call booked, My Activation Plan scheduled.)
+                            72‑Hour Activation Guarantee: if you complete your Activation Checklist in 72 hours and aren't satisfied, we refund the $499 Intensive fee. (Completion = Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), First refinement done, AM/PM Vision Audios generated, Vision Board built (12 images), 1 journal entry logged, Calibration Call booked, My Activation Plan scheduled.)
                           </li>
                           <li>
                             Membership Satisfaction Guarantee: From your checkout date, you have 16 weeks, no matter which plan you choose (Every 28 Days or Annual).

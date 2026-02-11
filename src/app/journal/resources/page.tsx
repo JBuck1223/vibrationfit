@@ -111,11 +111,14 @@ export default function JournalResourcesPage() {
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
               Your Journal is your conscious creation log. It's where you:
             </p>
-            <Stack gap="xs" className="text-sm text-neutral-300 leading-relaxed">
+            <Stack gap="xs" className="text-sm text-neutral-300 leading-relaxed pl-4">
               <p>• Process experiences and emotions</p>
               <p>• Capture insights and synchronicities</p>
               <p>• Document wins and manifestations</p>
             </Stack>
+            <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
+              Over time, your Journal becomes a record of evidence that your inner work is changing your outer world.
+            </p>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
               This isn't "Dear Diary." It's a private place to track your vibration over time so you can see how your inner world is shaping your outer world.
             </p>
@@ -257,7 +260,7 @@ export default function JournalResourcesPage() {
               Why This Step Matters in the Intensive
             </Text>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-              For the Intensive, you only need one entry to complete this step. That's your first rep.
+              For the Intensive, you only need one entry to complete this step. That's your first rep and the start of your evidence log.
             </p>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
               After you graduate into your 28‑day My Activation Plan, journaling becomes part of your regular practice – capturing intentions, evidence, and upgrades as they happen. The earlier you start, the more proof you'll have to look back on.
