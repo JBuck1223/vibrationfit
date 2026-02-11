@@ -23,6 +23,7 @@ import {
   HeadphonesIcon,
   Link2,
   Award,
+  Layers,
 } from 'lucide-react'
 
 interface AdminSection {
@@ -161,6 +162,13 @@ const systemSections: AdminSection[] = [
     href: '/admin/token-usage',
     icon: Coins,
     color: 'text-[#FFB701]',
+  },
+  {
+    title: 'Membership Tiers',
+    description: 'Token grants & storage quotas',
+    href: '/admin/membership-tiers',
+    icon: Layers,
+    color: 'text-primary-500',
   },
   {
     title: 'VIVA Models',

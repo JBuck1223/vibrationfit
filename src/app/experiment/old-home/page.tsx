@@ -1612,7 +1612,7 @@ export default function HomePage() {
 
                 <Inline gap="md" className="mt-8">
                   <Button variant="primary" size="xl" asChild>
-                    <a href="/auth/signup">
+                    <a href="/#pricing">
                       Join the Vibe Tribe
                       <Icon icon={ArrowRight} size="sm" />
                     </a>

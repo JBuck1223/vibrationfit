@@ -266,9 +266,9 @@ Visit any page and verify:
 ---
 
 ### 🔒 Token System (Creation Credits)
-**Version:** `v2.3.1`  
+**Version:** `v2.5.0`  
 **Status:** 🔒 LOCKED (Financial system)  
-**Last Modified:** November 15, 2024  
+**Last Modified:** February 11, 2026  
 **Doc:** `docs/architecture/TOKEN_SYSTEM_SIMPLIFIED.md`  
 **Schema:** `token_transactions`, `token_usage`, `ai_model_pricing`  
 **API:** `/api/tokens/balance`, `/api/tokens/grant`, `/api/admin/ai-pricing`
@@ -278,6 +278,7 @@ Visit any page and verify:
 - Log AI usage and costs
 - Admin can adjust balances
 - Configurable AI model pricing
+- Supports flexible token pack purchases from database pricing
 
 **Verification:**
 ```bash
@@ -475,6 +476,8 @@ Verification:
 | Life Vision | v3.2.0 → v3.2.1 | Nov 17 | Added ideal_state_prompts to category_state |
 | Life Vision | v3.1.0 → v3.2.0 | Nov 17 | Profile-aware imagination prompts |
 | Token System | v2.3.0 → v2.3.1 | Nov 15 | Added audio_seconds tracking |
+| Token System | v2.4.0 → v2.5.0 | Feb 11 2026 | Updated token grants, storage quotas, and expiration logic |
+| Token System | v2.3.1 → v2.4.0 | Feb 9 2026 | Flexible pack checkout + grants |
 | AI Model Pricing | v0.0.0 → v1.0.0 | Nov 15 | Initial release |
 | Database Schema | v4.11.0 → v4.12.0 | Nov 17 | Added ideal_state_prompts column |
 

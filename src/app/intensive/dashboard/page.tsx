@@ -207,10 +207,15 @@ function IntensiveDashboardContent() {
         return
       }
 
-      console.log('👤 User ID:', user.id)
-
-      // Check for super_admin access
+      // Guard: ensure user has set a password before accessing intensive
+      // Super admins bypass this check
       const { isSuperAdmin } = await checkSuperAdminAccess(supabase)
+      if (!isSuperAdmin && user.user_metadata?.has_password !== true) {
+        window.location.href = '/auth/setup-password?intensive=true'
+        return
+      }
+
+      console.log('User ID:', user.id)
 
       // Check Step 1 (Settings) completion from user_accounts
       const { data: accountData } = await supabase

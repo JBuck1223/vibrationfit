@@ -61,6 +61,12 @@ export default function IntensiveStartPage() {
         return
       }
 
+      // Guard: ensure user has set a password before accessing intensive
+      if (user.user_metadata?.has_password !== true) {
+        window.location.href = '/auth/setup-password?intensive=true'
+        return
+      }
+
       // Check for active intensive
       const { data: checklist } = await supabase
         .from('intensive_checklist')

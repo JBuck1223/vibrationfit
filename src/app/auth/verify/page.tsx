@@ -42,11 +42,21 @@ export default function VerifyPage() {
         console.log('✅ Session established:', !!data.session)
 
         // Small delay to ensure session is fully established
-        setTimeout(() => {
+        setTimeout(async () => {
           if (intensive === 'true') {
-            // Skip password setup for now - go straight to intensive dashboard
-            // User can set password later from their profile
-            window.location.href = '/intensive/dashboard'
+            // Check if user already has a password set (returning user via magic link)
+            // New users created via admin.createUser() have no password identities
+            const hasPassword = data.user?.identities?.some(
+              (identity) => identity.provider === 'email'
+            ) && data.user?.user_metadata?.has_password === true
+
+            if (hasPassword) {
+              // Returning user - go straight to intensive dashboard
+              window.location.href = '/intensive/dashboard'
+            } else {
+              // New user - must set password first
+              window.location.href = '/auth/setup-password?intensive=true'
+            }
           } else {
             router.push('/dashboard')
           }

@@ -2,6 +2,7 @@
 // Stripe customer management utilities
 
 import { stripe } from './config'
+import Stripe from 'stripe'
 import { createClient } from '@/lib/supabase/server'
 
 /**
@@ -202,6 +203,87 @@ export async function createTokenPackCheckoutSession({
       pack_id: packId,
       tokens_amount: tokensAmount.toString(),
       purchase_type: 'token_pack',
+    },
+  })
+
+  return session
+}
+
+/**
+ * Create a checkout session for a flexible one-time pack purchase
+ */
+export async function createFlexiblePackCheckoutSession({
+  userId,
+  email,
+  productKey,
+  packKey,
+  packName,
+  packDescription,
+  unitAmount,
+  currency,
+  quantity,
+  stripeProductId,
+  grantAmount,
+  grantUnit,
+  successUrl,
+  cancelUrl,
+}: {
+  userId: string
+  email: string
+  productKey: string
+  packKey: string
+  packName: string
+  packDescription?: string | null
+  unitAmount: number
+  currency: string
+  quantity: number
+  stripeProductId?: string
+  grantAmount: number
+  grantUnit: string
+  successUrl: string
+  cancelUrl: string
+}) {
+  if (!stripe) {
+    throw new Error('Stripe not configured - missing STRIPE_SECRET_KEY')
+  }
+
+  const customerId = await getOrCreateStripeCustomer(userId, email)
+
+  const priceData: Stripe.Checkout.SessionCreateParams.LineItem.PriceData = stripeProductId
+    ? {
+        currency,
+        unit_amount: unitAmount,
+        product: stripeProductId,
+      }
+    : {
+        currency,
+        unit_amount: unitAmount,
+        product_data: {
+          name: packName,
+          description: packDescription || undefined,
+        },
+      }
+
+  const session = await stripe.checkout.sessions.create({
+    customer: customerId,
+    mode: 'payment',
+    payment_method_types: ['card'],
+    line_items: [
+      {
+        price_data: priceData,
+        quantity,
+      },
+    ],
+    success_url: successUrl,
+    cancel_url: cancelUrl,
+    metadata: {
+      user_id: userId,
+      purchase_type: 'flex_pack',
+      product_key: productKey,
+      pack_key: packKey,
+      quantity: quantity.toString(),
+      grant_amount: grantAmount.toString(),
+      grant_unit: grantUnit,
     },
   })
 
