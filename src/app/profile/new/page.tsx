@@ -194,11 +194,11 @@ export default function ProfileNewPage() {
           subtitle="Your profile is the foundation of your journey with VibrationFit."
         >
           {/* Video */}
-          <div>
+          <div className="mx-auto w-full max-w-3xl">
             <OptimizedVideo
               url={PROFILE_INTRO_VIDEO}
               context="single"
-              className="mx-auto w-full max-w-3xl"
+              className="w-full"
             />
           </div>
 
@@ -272,13 +272,13 @@ export default function ProfileNewPage() {
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
           <Stack gap="md">
             <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-              What is Your Profile?
+              What Is Your Profile?
             </Text>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-              Your VibrationFit Profile is a comprehensive snapshot of where you are right now across all 12 categories of your life. It helps you understand your current state so you can intentionally create the life you desire.
+              Your VibrationFit Profile is a clear snapshot of where you are right now across all 12 categories of your life. It's how we anchor your starting point so you can intentionally create the life you actually desire, not a vague idea you can't measure.
             </p>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-              Think of it as your personal GPS coordinates - you need to know where you are before you can map out where you're going. Your profile isn't about judgment; it's about clarity and self-awareness.
+              Think of it as your personal GPS coordinates: you need to know where you are before you can map where you're going. This isn't about judgment. It's about clarity and self-awareness.
             </p>
           </Stack>
         </Card>
@@ -298,7 +298,7 @@ export default function ProfileNewPage() {
                   </Text>
                 </Inline>
                 <p className="text-sm text-neutral-300 leading-relaxed">
-                  Basic details about you - your name, contact information, and demographic information. This helps us personalize your experience and understand your unique context.
+                  Basic details about you – your name, contact info, and a few demographics. This helps us personalize your experience and understand your unique context.
                 </p>
               </Stack>
 
@@ -310,7 +310,14 @@ export default function ProfileNewPage() {
                   </Text>
                 </Inline>
                 <p className="text-sm text-neutral-300 leading-relaxed">
-                  Your current reality across 12 key life areas: Love, Family, Health, Home, Work, Money, Fun, Travel, Social, Stuff, Spirituality, and Giving. For each category, you'll share what's going well, what's not working, your dreams, and your worries.
+                  Your current reality across 12 key areas: Love, Family, Health, Home, Work, Money, Fun, Travel, Social, Stuff, Spirituality, and Giving. For each category, you'll name:
+                </p>
+                <ul className="text-sm text-neutral-300 leading-relaxed list-disc list-inside ml-1">
+                  <li>What's going well (your clarity)</li>
+                  <li>What's not going well (your contrast)</li>
+                </ul>
+                <p className="text-sm text-neutral-300 leading-relaxed">
+                  You are not asked to describe the future here. This step is purely about your current state.
                 </p>
               </Stack>
 
@@ -322,7 +329,7 @@ export default function ProfileNewPage() {
                   </Text>
                 </Inline>
                 <p className="text-sm text-neutral-300 leading-relaxed">
-                  Lifestyle details like your daily routines, habits, and preferences. This helps us understand the patterns that shape your current experience and identify opportunities for positive change.
+                  Lifestyle details like daily routines, habits, and preferences. This shows us the patterns shaping your current experience and where your energy and time are actually going.
                 </p>
               </Stack>
 
@@ -334,7 +341,7 @@ export default function ProfileNewPage() {
                   </Text>
                 </Inline>
                 <p className="text-sm text-neutral-300 leading-relaxed">
-                  The honest assessment of where you are. Remember, this is a judgment-free zone. The more honest you are, the more powerful your transformation will be. Your profile is private and for your eyes only.
+                  An honest assessment of where you are on average, not just on a really bad or really great day. This is a judgment-free zone. The more real you are, the more powerful your transformation will be. Your profile is private and for your eyes (and VIVA's) only.
                 </p>
               </Stack>
             </Stack>
@@ -348,20 +355,20 @@ export default function ProfileNewPage() {
               Why Your Profile Matters
             </Text>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-              Your profile is the foundation for everything that follows - your Life Vision, your daily practices, and your transformation journey. Here's why it's so powerful:
+              Your profile is the foundation for everything that follows – your Life Vision, your audios, your daily practices, and your overall transformation.
             </p>
             <Stack gap="sm" className="text-sm text-neutral-300 leading-relaxed">
               <p>
-                • <span className="text-white font-semibold">Clarity</span> - Get crystal clear on where you actually are right now, not where you think you should be or where you were yesterday.
+                • <span className="text-white font-semibold">Clarity</span> – Get crystal clear on where you actually are right now, not where you think you "should" be.
               </p>
               <p>
-                • <span className="text-white font-semibold">Context for VIVA</span> - Your AI guide uses your profile to provide personalized guidance that's specifically tailored to your unique situation.
+                • <span className="text-white font-semibold">Context for VIVA</span> – Your guide uses this data to give you guidance that's specific to your life, not generic advice.
               </p>
               <p>
-                • <span className="text-white font-semibold">Progress Tracking</span> - Create multiple profile versions over time to see how far you've come and celebrate your growth.
+                • <span className="text-white font-semibold">Progress Tracking</span> – Over time, you'll be able to see how far you've come and celebrate real shifts.
               </p>
               <p>
-                • <span className="text-white font-semibold">Authentic Visioning</span> - When you create your Life Vision, it will be grounded in your real, current reality - making it more powerful and achievable.
+                • <span className="text-white font-semibold">Authentic Visioning</span> – When you later build your Life Vision, it will be grounded in your real current reality, which makes it more believable, more powerful, and easier to activate.
               </p>
             </Stack>
           </Stack>

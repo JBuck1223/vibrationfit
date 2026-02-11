@@ -87,13 +87,13 @@ export async function recordTokenTransaction(
       } else if (transaction.action_type === 'admin_grant') {
         expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() // 365 days
       } else if (transaction.action_type === 'subscription_grant') {
-        // Check metadata to determine if annual (5M tokens) or 28-day (375k)
-        const isAnnual = tokensUsed >= 5000000 || transaction.metadata?.plan === 'vision_pro_annual'
+        // Check metadata to determine if annual or 28-day
+        const isAnnual = transaction.metadata?.grant_type === 'year' || transaction.metadata?.plan === 'vision_pro_annual'
         expiresAt = isAnnual 
-          ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() // 365 days
-          : new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString()  // 90 days (3 cycles)
+          ? new Date(Date.now() + 364 * 24 * 60 * 60 * 1000).toISOString() // 364 days
+          : new Date(Date.now() + 84 * 24 * 60 * 60 * 1000).toISOString()  // 84 days (3 cycles)
       } else if (transaction.action_type === 'trial_grant') {
-        expiresAt = new Date(Date.now() + 56 * 24 * 60 * 60 * 1000).toISOString() // 56 days
+        expiresAt = null // Intensive tokens never expire
       }
     }
     

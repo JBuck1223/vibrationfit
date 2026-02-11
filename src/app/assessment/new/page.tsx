@@ -14,7 +14,7 @@ import {
   IntensiveCompletionBanner,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
-import { ArrowRight, Target, BarChart, TrendingUp, Sparkles } from 'lucide-react'
+import { ArrowRight, Target, BarChart, TrendingUp } from 'lucide-react'
 import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
 
 // Placeholder video URL - user will replace this later
@@ -131,11 +131,11 @@ export default function AssessmentNewPage() {
           subtitle="Discover where you stand in each area of your life and unlock personalized insights."
         >
           {/* Video */}
-          <div>
+          <div className="mx-auto w-full max-w-3xl">
             <OptimizedVideo
               url={ASSESSMENT_INTRO_VIDEO}
               context="single"
-              className="mx-auto w-full max-w-3xl"
+              className="w-full"
             />
           </div>
 
@@ -187,42 +187,50 @@ export default function AssessmentNewPage() {
               What is the Assessment?
             </Text>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-              The Vibration Assessment is a comprehensive evaluation that measures your current state across all 12 life categories. It provides you with detailed insights into your strengths, growth areas, and alignment levels.
+              The Vibration Fit Assessment is a comprehensive evaluation of your current state across all 12 life categories.
             </p>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-              Unlike a simple quiz, this assessment dives deep into each area of your life to give you actionable data and personalized recommendations for your transformation journey.
+              In about 15-20 minutes and 84 questions, you'll get a clear read on where you're already above the Green Line (aligned and thriving) and where you have growth opportunities.
+            </p>
+            <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
+              This isn't a fluffy quiz. It's structured data that powers the rest of your 72-Hour Activation.
             </p>
           </Stack>
         </Card>
 
-        {/* What You'll Discover */}
+        {/* What You'll See */}
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
           <Stack gap="lg">
             <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-              What You'll Discover
+              What You'll See
             </Text>
             <Stack gap="lg">
               <Stack gap="sm">
                 <Inline gap="sm" className="items-start">
                   <Target className="h-5 w-5 text-[#5EC49A]" />
                   <Text size="sm" className="text-white font-semibold">
-                    Your Alignment Score
+                    Your Vibration Scores
                   </Text>
                 </Inline>
                 <p className="text-sm text-neutral-300 leading-relaxed">
-                  Get a comprehensive score for each of the 12 life categories, showing where you're thriving and where there's room for growth. See exactly where you stand on the "Green Line" of alignment.
+                  Every question is scored 1-5 and rolled up into a score for each of the 12 categories. You'll see:
                 </p>
+                <Stack gap="xs" className="text-sm text-neutral-300 leading-relaxed pl-6">
+                  <p>• Which areas are <span className="text-[#39FF14] font-medium">Above the Green Line</span> (aligned / thriving)</p>
+                  <p>• Which are <span className="text-[#FFB701] font-medium">In Transition</span> (shifting / neutral)</p>
+                  <p>• Which are <span className="text-[#FF0040] font-medium">Below the Green Line</span> (growth opportunities)</p>
+                </Stack>
               </Stack>
 
               <Stack gap="sm">
                 <Inline gap="sm" className="items-start">
                   <BarChart className="h-5 w-5 text-[#2DD4BF]" />
                   <Text size="sm" className="text-white font-semibold">
-                    Detailed Insights
+                    Category Breakdown
                   </Text>
                 </Inline>
                 <p className="text-sm text-neutral-300 leading-relaxed">
-                  Receive personalized insights for each category, highlighting patterns, strengths, and opportunities. Understand not just your score, but what it means and how to improve.
+                  You'll get a ranked breakdown of all 12 categories, plus a visual chart so you can see your alignment pattern at a glance.
                 </p>
               </Stack>
 
@@ -230,50 +238,67 @@ export default function AssessmentNewPage() {
                 <Inline gap="sm" className="items-start">
                   <TrendingUp className="h-5 w-5 text-[#8B5CF6]" />
                   <Text size="sm" className="text-white font-semibold">
-                    Growth Recommendations
+                    Overall Vibration Score
                   </Text>
                 </Inline>
                 <p className="text-sm text-neutral-300 leading-relaxed">
-                  Get specific, actionable recommendations for each area of your life. Know exactly what steps to take to move from where you are to where you want to be.
-                </p>
-              </Stack>
-
-              <Stack gap="sm">
-                <Inline gap="sm" className="items-start">
-                  <Sparkles className="h-5 w-5 text-[#FFB701]" />
-                  <Text size="sm" className="text-white font-semibold">
-                    Your Unique Blueprint
-                  </Text>
-                </Inline>
-                <p className="text-sm text-neutral-300 leading-relaxed">
-                  Your assessment results become the foundation for your personalized Life Vision. VIVA uses these insights to guide you toward the life you truly desire.
+                  All 12 categories combine into one overall percentage that reflects your current "big picture" vibration.
                 </p>
               </Stack>
             </Stack>
           </Stack>
         </Card>
 
-        {/* Why Take the Assessment? */}
+        {/* How the Questions Work */}
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
           <Stack gap="md">
             <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-              Why Take the Assessment?
+              How the Questions Work
             </Text>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-              The assessment is your starting point for transformation. It provides the clarity and data you need to create meaningful change. Here's why it's essential:
+              Questions are designed to reveal your real, lived experience, not your ideal:
             </p>
-            <Stack gap="sm" className="text-sm text-neutral-300 leading-relaxed">
+            <Stack gap="sm" className="text-sm text-neutral-300 leading-relaxed pl-4">
               <p>
-                • <span className="text-white font-semibold">Baseline Measurement</span> - Establish where you are right now so you can track your progress over time.
+                • <span className="text-white font-semibold">Gut reactions</span> - "What's your first thought?"
               </p>
               <p>
-                • <span className="text-white font-semibold">Personalized Insights</span> - VIVA uses your assessment to provide guidance that's specifically tailored to your unique situation and goals.
+                • <span className="text-white font-semibold">Body sensations</span> - "What happens in your body?"
               </p>
               <p>
-                • <span className="text-white font-semibold">Identify Blind Spots</span> - Discover areas of your life that may need attention but weren't on your radar.
+                • <span className="text-white font-semibold">Honest feelings</span> - "Where are you NOW, not where you want to be?"
+              </p>
+            </Stack>
+            <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
+              Some questions adapt based on your profile (for example, parents vs non-parents, single vs partnered, business owner vs employee) so what you see actually fits your life.
+            </p>
+            <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
+              Answer based on your average experience over the last few weeks, not a random bad day or a highlight weekend.
+            </p>
+          </Stack>
+        </Card>
+
+        {/* Why This Step Matters */}
+        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+          <Stack gap="md">
+            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+              Why This Step Matters
+            </Text>
+            <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
+              The assessment is a key part of your 72-Hour Activation because it gives you:
+            </p>
+            <Stack gap="sm" className="text-sm text-neutral-300 leading-relaxed pl-4">
+              <p>
+                • <span className="text-white font-semibold">Baseline Awareness</span> - A clear "before" picture of where you're currently aligned and where you're not.
               </p>
               <p>
-                • <span className="text-white font-semibold">Prioritize Growth</span> - Know which areas to focus on first for maximum impact on your overall alignment and happiness.
+                • <span className="text-white font-semibold">Clarity Without Judgment</span> - "Below Green Line" simply means growth opportunity, not failure.
+              </p>
+              <p>
+                • <span className="text-white font-semibold">Focus</span> - You'll know exactly which areas are strongest, which are in transition, and which are asking for more attention.
+              </p>
+              <p>
+                • <span className="text-white font-semibold">Fuel for Your Vision</span> - These scores and patterns feed directly into how VIVA helps you craft your personalized Life Vision in the next step.
               </p>
             </Stack>
           </Stack>

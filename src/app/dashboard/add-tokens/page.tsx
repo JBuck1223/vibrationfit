@@ -3,72 +3,78 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Container, Card, Button, Stack, PageHero } from '@/lib/design-system/components'
 import { Zap, Check, Sparkles, TrendingUp } from 'lucide-react'
 import { toast } from 'sonner'
 
-const TOKEN_PACKS = [
-  {
-    id: 'power',
-    name: 'Power Pack',
-    tokens: 2_000_000,
-    price: 99,
-    popular: false,
-    description: 'Perfect for active creators',
-    features: [
-      '2 million tokens',
-      '~40 vision refinements',
-      '~10 audio generations',
-      'Never expires',
-    ],
-  },
-  {
-    id: 'mega',
-    name: 'Mega Pack',
-    tokens: 5_000_000,
-    price: 199,
-    popular: true,
-    description: 'Best value for power users',
-    features: [
-      '5 million tokens',
-      '~100 vision refinements',
-      '~25 audio generations',
-      'Never expires',
-      'Priority support',
-    ],
-  },
-  {
-    id: 'ultra',
-    name: 'Ultra Pack',
-    tokens: 12_000_000,
-    price: 399,
-    popular: false,
-    description: 'Ultimate creative freedom',
-    features: [
-      '12 million tokens',
-      '~240 vision refinements',
-      '~60 audio generations',
-      'Never expires',
-      'Priority support',
-      'Early access to new features',
-    ],
-  },
-]
+type TokenPack = {
+  packKey: string
+  name: string
+  description?: string | null
+  unitAmount: number
+  currency: string
+  grantAmount: number
+  highlights: string[]
+  isPopular: boolean
+}
+
+function formatPrice(cents: number): string {
+  return `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`
+}
+
+function formatTokensShort(amount: number): string {
+  if (amount >= 1_000_000) {
+    return `${(amount / 1_000_000).toFixed(amount % 1_000_000 === 0 ? 0 : 1)}M`
+  }
+  if (amount >= 1_000) {
+    return `${(amount / 1_000).toFixed(amount % 1_000 === 0 ? 0 : 1)}k`
+  }
+  return amount.toString()
+}
 
 export default function AddTokensPage() {
   const [loading, setLoading] = useState(false)
   const [selectedPack, setSelectedPack] = useState<string | null>(null)
+  const [packs, setPacks] = useState<TokenPack[]>([])
+  const [packsLoading, setPacksLoading] = useState(true)
 
-  const handlePurchase = async (packId: string) => {
+  useEffect(() => {
+    const loadPacks = async () => {
+      try {
+        setPacksLoading(true)
+        const response = await fetch('/api/billing/packs?product=tokens')
+        if (!response.ok) {
+          const data = await response.json()
+          throw new Error(data.error || 'Failed to load packs')
+        }
+        const data = await response.json()
+        const fetchedPacks = (data.packs || []) as TokenPack[]
+        setPacks(fetchedPacks)
+      } catch (error) {
+        console.error('Pack load error:', error)
+        toast.error(error instanceof Error ? error.message : 'Failed to load packs')
+      } finally {
+        setPacksLoading(false)
+      }
+    }
+
+    loadPacks()
+  }, [])
+
+  const handlePurchase = async (packKey: string) => {
     setLoading(true)
-    setSelectedPack(packId)
+    setSelectedPack(packKey)
 
     try {
-      const response = await fetch('/api/stripe/checkout-token-pack', {
+      const response = await fetch('/api/stripe/checkout-flex-pack', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ packId }),
+        body: JSON.stringify({
+          productKey: 'tokens',
+          packKey,
+          quantity: 1,
+        }),
       })
 
       if (!response.ok) {
@@ -100,16 +106,30 @@ export default function AddTokensPage() {
 
         {/* Token Packs */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:items-stretch">
-          {TOKEN_PACKS.map((pack) => (
+          {packsLoading && (
+            <Card className="p-8">
+              <div className="text-center text-neutral-400 text-sm">
+                Loading packs...
+              </div>
+            </Card>
+          )}
+          {!packsLoading && packs.length === 0 && (
+            <Card className="p-8">
+              <div className="text-center text-neutral-400 text-sm">
+                Packs are unavailable right now.
+              </div>
+            </Card>
+          )}
+          {packs.map((pack) => (
             <Card
-              key={pack.id}
+              key={pack.packKey}
               className={`p-8 relative flex flex-col ${
-                pack.popular
+                pack.isPopular
                   ? 'border-2 border-primary-500 bg-gradient-to-br from-primary-500/5 to-secondary-500/5'
                   : ''
               }`}
             >
-              {pack.popular && (
+              {pack.isPopular && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
                   <span className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-gradient-to-r from-primary-500 to-secondary-500 text-black font-bold text-sm rounded-full shadow-lg shadow-primary-500/30">
                     <Sparkles className="w-3.5 h-3.5" />
@@ -121,20 +141,22 @@ export default function AddTokensPage() {
               {/* Pack Header */}
               <div className="text-center mb-6">
                 <h3 className="text-lg md:text-xl lg:text-2xl font-bold text-white mb-2">{pack.name}</h3>
-                <p className="text-sm text-neutral-400 mb-4">{pack.description}</p>
+                {pack.description && (
+                  <p className="text-sm text-neutral-400 mb-4">{pack.description}</p>
+                )}
                 
                 {/* Token Amount */}
                 <div className="inline-flex items-baseline gap-2 px-4 py-2 bg-neutral-900 rounded-full border border-neutral-700 mb-2">
                   <Sparkles className="w-4 h-4 text-energy-500" />
                   <span className="text-2xl md:text-3xl font-bold text-white">
-                    {(pack.tokens / 1_000_000).toFixed(0)}M
+                    {formatTokensShort(pack.grantAmount)}
                   </span>
                   <span className="text-sm text-neutral-500">tokens</span>
                 </div>
                 
                 {/* Price */}
                 <div className="text-2xl md:text-3xl lg:text-4xl font-bold text-primary-500 mb-1">
-                  ${pack.price}
+                  {formatPrice(pack.unitAmount)}
                 </div>
                 <div className="text-sm text-neutral-500">
                   One-time purchase
@@ -143,7 +165,10 @@ export default function AddTokensPage() {
 
               {/* Features - flex-grow pushes button to bottom */}
               <ul className="space-y-3 mb-6 flex-grow">
-                {pack.features.map((feature, idx) => (
+                {(pack.highlights.length > 0 ? pack.highlights : [
+                  `${formatTokensShort(pack.grantAmount)} tokens`,
+                  'Never expires',
+                ]).map((feature, idx) => (
                   <li key={idx} className="flex items-start gap-2 text-sm">
                     <Check className="w-4 h-4 text-primary-500 mt-0.5 flex-shrink-0" />
                     <span className="text-neutral-300">{feature}</span>
@@ -153,13 +178,13 @@ export default function AddTokensPage() {
 
               {/* CTA - mt-auto ensures alignment at bottom */}
               <Button
-                variant={pack.popular ? 'primary' : 'secondary'}
+                variant={pack.isPopular ? 'primary' : 'secondary'}
                 size="lg"
                 className="w-full mt-auto"
-                onClick={() => handlePurchase(pack.id)}
+                onClick={() => handlePurchase(pack.packKey)}
                 disabled={loading}
               >
-                {loading && selectedPack === pack.id ? 'Processing...' : 'Purchase'}
+                {loading && selectedPack === pack.packKey ? 'Processing...' : 'Purchase'}
               </Button>
             </Card>
           ))}
@@ -175,7 +200,7 @@ export default function AddTokensPage() {
                 What are tokens?
               </h3>
               <p className="text-neutral-400 text-sm">
-                Tokens power all AI features: VIVA refinements, chats, audio generation, transcription, and image creation. Each action uses tokens based on its complexity and length.
+                Tokens power all VIVA features: VIVA refinements, chats, audio generation, transcription, and image creation. Each action uses tokens based on its complexity and length.
               </p>
             </div>
             

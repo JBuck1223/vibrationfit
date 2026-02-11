@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Button, Card, Container} from '@/lib/design-system/components'
+import { Button, Card, Container, Input } from '@/lib/design-system/components'
+import { Lock, CheckCircle, Eye, EyeOff, Clock } from 'lucide-react'
 
 export default function SetupPasswordPage() {
   const router = useRouter()
@@ -12,12 +13,14 @@ export default function SetupPasswordPage() {
   
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
 
   useEffect(() => {
-    // Check if user is already logged in
     const checkUser = async () => {
       const supabase = createClient()
       
@@ -26,24 +29,31 @@ export default function SetupPasswordPage() {
       
       const { data: { user } } = await supabase.auth.getUser()
       
-      console.log('Password setup page - User check:', !!user)
-      console.log('Password setup page - User:', user?.email)
-      
-      if (!user) {
-        console.error('No user found on password setup page')
-        // Don't show error immediately - auth might still be loading
+      if (user) {
+        setUserEmail(user.email || null)
+
+        // If user already has a password, skip this page
+        if (user.user_metadata?.has_password === true) {
+          if (isIntensive) {
+            window.location.href = '/intensive/dashboard'
+          } else {
+            window.location.href = '/dashboard'
+          }
+        }
+      } else {
+        // No session - redirect to login
+        router.push('/auth/login')
       }
     }
     
     checkUser()
-  }, [])
+  }, [isIntensive, router])
 
   const handleSetupPassword = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setLoading(true)
 
-    // Validation
     if (password.length < 8) {
       setError('Password must be at least 8 characters')
       setLoading(false)
@@ -59,30 +69,29 @@ export default function SetupPasswordPage() {
     try {
       const supabase = createClient()
       
-      // Update user password
+      // Update user password and mark as having a password
       const { data, error: updateError } = await supabase.auth.updateUser({
         password: password,
+        data: {
+          has_password: true,
+        },
       })
 
       if (updateError) {
         throw updateError
       }
 
-      console.log('Password updated successfully for:', data.user?.email)
-      console.log('User session:', data.user?.id)
-      
+      console.log('Password set for:', data.user?.email)
       setSuccess(true)
 
-      // Wait a moment for the session to fully persist, then redirect
+      // Redirect after brief success state
       setTimeout(() => {
         if (isIntensive) {
-          console.log('Redirecting to intensive dashboard...')
-          window.location.href = '/intensive/dashboard' // Force full page reload to ensure session is picked up
+          window.location.href = '/intensive/dashboard'
         } else {
-          console.log('Redirecting to dashboard...')
           window.location.href = '/dashboard'
         }
-      }, 1000) // 1 second delay to let session persist
+      }, 1500)
 
     } catch (err: any) {
       console.error('Password setup error:', err)
@@ -93,107 +102,121 @@ export default function SetupPasswordPage() {
   }
 
   return (
-    <>
-      <Container size="sm" className="py-16">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-4">
-            {isIntensive ? '🎉 Welcome to Your Intensive!' : '🎉 Welcome to VibrationFit!'}
-          </h1>
-          <p className="text-xl text-neutral-300">
-            {isIntensive 
-              ? 'Set your password to access your 72-hour Vision Activation Intensive'
-              : 'Set your password to secure your account'
-            }
-          </p>
+    <Container size="sm" className="py-16">
+      <div className="text-center mb-8">
+        <div className="w-16 h-16 bg-primary-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+          <Lock className="w-8 h-8 text-primary-500" />
         </div>
+        <h1 className="text-4xl font-bold mb-3">
+          {isIntensive ? 'Welcome to Your Intensive' : 'Welcome to VibrationFit'}
+        </h1>
+        <p className="text-lg text-neutral-300">
+          {isIntensive 
+            ? 'Secure your account to access your Vision Activation Intensive'
+            : 'Set your password to secure your account'
+          }
+        </p>
+        {userEmail && (
+          <p className="text-sm text-neutral-500 mt-2">
+            Setting password for {userEmail}
+          </p>
+        )}
+      </div>
 
-        <Card variant="elevated" className="max-w-md mx-auto">
-          {success ? (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 bg-primary-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-white text-2xl">✓</span>
-              </div>
-              <h2 className="text-2xl font-bold mb-2">Password Set!</h2>
-              <p className="text-neutral-300">
-                Redirecting to your {isIntensive ? 'intensive dashboard' : 'dashboard'}...
-              </p>
+      <Card variant="elevated" className="max-w-md mx-auto">
+        {success ? (
+          <div className="text-center py-8">
+            <div className="w-16 h-16 bg-primary-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-8 h-8 text-white" />
             </div>
-          ) : (
-            <form onSubmit={handleSetupPassword} className="space-y-6">
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium mb-2">
-                  Create Password
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  className="w-full px-4 py-3 bg-[#1F1F1F] border-2 border-[#333] rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-primary-500 transition-colors"
-                  required
-                  minLength={8}
-                  disabled={loading}
-                />
-                <p className="text-xs text-neutral-500 mt-1">
-                  Must be at least 8 characters
+            <h2 className="text-2xl font-bold mb-2">Password Set</h2>
+            <p className="text-neutral-300">
+              Redirecting to your {isIntensive ? 'intensive dashboard' : 'dashboard'}...
+            </p>
+          </div>
+        ) : (
+          <form onSubmit={handleSetupPassword} className="space-y-6">
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                label="Create Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                helperText="Must be at least 8 characters"
+                required
+                disabled={loading}
+                className="pr-12"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-10 text-neutral-400 hover:text-neutral-300 transition-colors"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+
+            <div className="relative">
+              <Input
+                id="confirmPassword"
+                type={showConfirm ? 'text' : 'password'}
+                label="Confirm Password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm your password"
+                required
+                disabled={loading}
+                className="pr-12"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm(!showConfirm)}
+                className="absolute right-3 top-10 text-neutral-400 hover:text-neutral-300 transition-colors"
+                aria-label={showConfirm ? 'Hide password' : 'Show password'}
+              >
+                {showConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+
+            {error && (
+              <div className="bg-red-500/10 border-2 border-red-500 text-red-400 px-4 py-3 rounded-xl text-sm">
+                {error}
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              className="w-full"
+              loading={loading}
+            >
+              {loading ? 'Setting Password...' : 'Set Password & Continue'}
+            </Button>
+
+            {isIntensive && (
+              <div className="bg-primary-500/10 border-2 border-primary-500/30 px-4 py-3 rounded-xl flex items-start gap-3">
+                <Clock className="w-5 h-5 text-primary-500 mt-0.5 flex-shrink-0" />
+                <p className="text-primary-500 text-sm">
+                  Your 72-hour activation window begins when you start your intensive on the next page.
                 </p>
               </div>
+            )}
+          </form>
+        )}
+      </Card>
 
-              <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium mb-2">
-                  Confirm Password
-                </label>
-                <input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm your password"
-                  className="w-full px-4 py-3 bg-[#1F1F1F] border-2 border-[#333] rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-primary-500 transition-colors"
-                  required
-                  minLength={8}
-                  disabled={loading}
-                />
-              </div>
-
-              {error && (
-                <div className="bg-red-500/10 border-l-4 border-red-500 p-4 rounded">
-                  <p className="text-red-500 text-sm">{error}</p>
-                </div>
-              )}
-
-              <Button
-                type="submit"
-                variant="primary"
-                size="lg"
-                className="w-full"
-                disabled={loading}
-              >
-                {loading ? 'Setting Password...' : 'Set Password & Continue'}
-              </Button>
-
-              {isIntensive && (
-                <div className="bg-primary-500/10 border-l-4 border-primary-500 p-4 rounded">
-                  <p className="text-primary-500 text-sm">
-                    ⏰ Your 72-hour activation window starts now!
-                  </p>
-                </div>
-              )}
-            </form>
-          )}
-        </Card>
-
-        <div className="text-center mt-6">
-          <p className="text-sm text-neutral-400">
-            Need help? Contact{' '}
-            <a href="mailto:support@vibrationfit.com" className="text-primary-500 hover:underline">
-              support@vibrationfit.com
-            </a>
-          </p>
-        </div>
-      </Container>
-    </>
+      <div className="text-center mt-6">
+        <p className="text-sm text-neutral-400">
+          Need help? Contact{' '}
+          <a href="mailto:support@vibrationfit.com" className="text-primary-500 hover:underline">
+            support@vibrationfit.com
+          </a>
+        </p>
+      </div>
+    </Container>
   )
 }
-

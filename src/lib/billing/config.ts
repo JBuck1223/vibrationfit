@@ -17,18 +17,19 @@
 // ============================================================================
 
 export const TOKEN_GRANTS = {
-  // Intensive Purchase - Trial tokens during 72-hour activation
-  INTENSIVE_TRIAL: 1_000_000,
+  // Intensive Purchase - 5M tokens, no expiration
+  INTENSIVE_TRIAL: 5_000_000,
   
-  // Annual Plan - 5M tokens granted immediately on subscription
-  ANNUAL: 5_000_000,
+  // Annual Plan - 20M tokens granted immediately on subscription
+  ANNUAL: 20_000_000,
   
-  // 28-Day Plan - 375k tokens dripped every 28 days
-  MONTHLY_28DAY: 375_000,
+  // 28-Day Plan - 1M tokens dripped every 28 days
+  MONTHLY_28DAY: 1_000_000,
   
   // Household Plans - Token allocation for 2-person households
-  HOUSEHOLD_28DAY: 750_000,      // 375k × 2 seats
-  HOUSEHOLD_ANNUAL: 5_000_000,   // 5M total (shared or split)
+  HOUSEHOLD_28DAY: 1_500_000,      // 1.5M per 28-day cycle
+  HOUSEHOLD_ANNUAL: 30_000_000,    // 30M total (shared or split)
+  HOUSEHOLD_INTENSIVE: 7_500_000,  // 7.5M tokens, no expiration
   
   // Add-on Members - Individual token allocation
   ADDON_MEMBER_MONTHLY: 100_000, // 100k per add-on member per month
@@ -39,15 +40,18 @@ export const TOKEN_GRANTS = {
 // ============================================================================
 
 export const STORAGE_QUOTAS = {
-  // Trial & 28-Day Plans
-  TRIAL: 25,
-  MONTHLY_28DAY: 25,
+  // Trial (Intensive) - no specific storage quota (uses default)
+  TRIAL: 100,
+  
+  // 28-Day Plans
+  MONTHLY_28DAY: 250,
   
   // Annual Plan
-  ANNUAL: 100,
+  ANNUAL: 500,
   
   // Household Plans
-  HOUSEHOLD: 100, // Shared across all household members
+  HOUSEHOLD_28DAY: 250,   // Shared across all household members
+  HOUSEHOLD_ANNUAL: 500,  // Shared across all household members
   
   // Default fallback
   DEFAULT: 100,
@@ -186,14 +190,14 @@ export const PLAN_METADATA = {
   household_28day: {
     name: 'Vision Pro Household 28-Day',
     tokens: TOKEN_GRANTS.HOUSEHOLD_28DAY,
-    storage: STORAGE_QUOTAS.HOUSEHOLD,
+    storage: STORAGE_QUOTAS.HOUSEHOLD_28DAY,
     price: PRICING.HOUSEHOLD_28DAY,
     interval: '28 days',
     seats: ROLLOVER_LIMITS.HOUSEHOLD_INCLUDED_SEATS,
     maxSeats: ROLLOVER_LIMITS.HOUSEHOLD_MAX_MEMBERS,
     features: [
       'Full platform access for 2 people',
-      `${formatTokensShort(TOKEN_GRANTS.HOUSEHOLD_28DAY)} AI tokens/28-days`,
+      `${formatTokensShort(TOKEN_GRANTS.HOUSEHOLD_28DAY)} tokens/28-days`,
       'All Vision Pro features',
       'Optional token sharing',
       'Add up to 4 more members',
@@ -203,14 +207,14 @@ export const PLAN_METADATA = {
   household_annual: {
     name: 'Vision Pro Household Annual',
     tokens: TOKEN_GRANTS.HOUSEHOLD_ANNUAL,
-    storage: STORAGE_QUOTAS.HOUSEHOLD,
+    storage: STORAGE_QUOTAS.HOUSEHOLD_ANNUAL,
     price: PRICING.HOUSEHOLD_ANNUAL,
     interval: 'year',
     seats: ROLLOVER_LIMITS.HOUSEHOLD_INCLUDED_SEATS,
     maxSeats: ROLLOVER_LIMITS.HOUSEHOLD_MAX_MEMBERS,
     features: [
       'Full platform access for 2 people',
-      `${formatTokensShort(TOKEN_GRANTS.HOUSEHOLD_ANNUAL)} AI tokens/year`,
+      `${formatTokensShort(TOKEN_GRANTS.HOUSEHOLD_ANNUAL)} tokens/year`,
       'All Vision Pro features',
       'Optional token sharing',
       'Add up to 4 more members',

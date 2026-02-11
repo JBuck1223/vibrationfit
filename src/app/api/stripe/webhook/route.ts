@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { stripe, STRIPE_CONFIG } from '@/lib/stripe/config'
+import { getActivePackByKey } from '@/lib/billing/packs'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
@@ -70,6 +71,7 @@ type OrderItemParams = {
   currency: string
   isSubscription: boolean
   subscriptionId?: string | null
+  quantity?: number
   extraFields?: Record<string, unknown>
   metadata?: Record<string, unknown>
   supabaseAdmin: any
@@ -82,6 +84,7 @@ async function createOrderItemByPriceId({
   currency,
   isSubscription,
   subscriptionId,
+  quantity,
   extraFields,
   metadata,
   supabaseAdmin,
@@ -117,7 +120,7 @@ async function createOrderItemByPriceId({
       order_id: orderId,
       product_id: price.product_id,
       price_id: price.id,
-      quantity: 1,
+      quantity: quantity || 1,
       amount,
       currency,
       is_subscription: isSubscription,
@@ -138,9 +141,57 @@ type OrderItemByProductKeyParams = {
   currency: string
   isSubscription: boolean
   subscriptionId?: string | null
+  quantity?: number
   extraFields?: Record<string, unknown>
   metadata?: Record<string, unknown>
   supabaseAdmin: any
+}
+
+type StorageAddonPrice = {
+  stripePriceId: string
+  grantAmount: number
+  grantUnit: 'storage_gb'
+  packKey?: string | null
+}
+
+async function getStorageAddonPrices(
+  stripePriceIds: string[],
+  supabaseAdmin: any
+): Promise<StorageAddonPrice[]> {
+  if (!stripePriceIds.length) {
+    return []
+  }
+
+  const { data: rows } = await (supabaseAdmin as any)
+    .from('product_prices')
+    .select('stripe_price_id, metadata, products (key)')
+    .in('stripe_price_id', stripePriceIds)
+
+  if (!rows) {
+    return []
+  }
+
+  return rows
+    .filter((row: any) => row?.products?.key === 'storage')
+    .map((row: any) => {
+      const metadata = (row.metadata || {}) as Record<string, any>
+      const grantAmountRaw =
+        metadata.grant_amount ?? metadata.storage_gb
+      const grantAmount =
+        typeof grantAmountRaw === 'number' ? grantAmountRaw : Number(grantAmountRaw)
+
+      if (!grantAmount || grantAmount <= 0) {
+        return null
+      }
+
+      return {
+        stripePriceId: row.stripe_price_id,
+        grantAmount,
+        grantUnit: 'storage_gb',
+        packKey: typeof metadata.pack_key === 'string' ? metadata.pack_key : null,
+      } as StorageAddonPrice
+    })
+    .filter((row: StorageAddonPrice | null): row is StorageAddonPrice => Boolean(row))
 }
 
 async function createOrderItemByProductKey({
@@ -150,6 +201,7 @@ async function createOrderItemByProductKey({
   currency,
   isSubscription,
   subscriptionId,
+  quantity,
   extraFields,
   metadata,
   supabaseAdmin,
@@ -181,7 +233,7 @@ async function createOrderItemByProductKey({
       order_id: orderId,
       product_id: product.id,
       price_id: null,
-      quantity: 1,
+      quantity: quantity || 1,
       amount,
       currency,
       is_subscription: isSubscription,
@@ -349,6 +401,123 @@ export async function POST(request: NextRequest) {
             userId,
             packId,
             tokens: tokensAmount
+          })
+        }
+        
+        // Handle flexible pack purchases (tokens or storage)
+        else if (session.mode === 'payment' && session.metadata?.purchase_type === 'flex_pack') {
+          const userId = session.metadata.user_id
+          const productKey = session.metadata.product_key
+          const packKey = session.metadata.pack_key
+          const quantity = parseInt(session.metadata.quantity || '1', 10)
+
+          if (!userId || !productKey || !packKey || !Number.isFinite(quantity)) {
+            console.error('Missing metadata in flexible pack checkout session')
+            break
+          }
+
+          const pack = await getActivePackByKey(
+            productKey as any,
+            packKey,
+            supabaseAdmin
+          )
+
+          if (!pack) {
+            console.error('Pack not found for flexible checkout:', { productKey, packKey })
+            break
+          }
+
+          const paymentIntentId = session.payment_intent as string | null
+          const orderTotal = session.amount_total || pack.unitAmount * quantity
+          const order = await ensureOrder({
+            userId,
+            session,
+            totalAmount: orderTotal,
+            paymentIntentId,
+            promoCode: session.metadata.promo_code || null,
+            referralSource: session.metadata.referral_source || session.metadata.source || null,
+            campaignName: session.metadata.campaign_name || null,
+            supabaseAdmin,
+          })
+
+          const orderItem = await createOrderItemByProductKey({
+            orderId: order.id,
+            productKey,
+            amount: orderTotal,
+            currency: session.currency || pack.currency,
+            isSubscription: false,
+            quantity,
+            metadata: {
+              pack_key: packKey,
+              grant_unit: pack.grantUnit,
+              grant_amount: pack.grantAmount,
+              unit_amount: pack.unitAmount,
+              quantity,
+            },
+            extraFields: {
+              stripe_payment_intent_id: paymentIntentId,
+              stripe_checkout_session_id: session.id,
+            },
+            supabaseAdmin,
+          })
+
+          if (!orderItem?.id) {
+            console.error('Failed to create flexible pack order item')
+            break
+          }
+
+          if (pack.grantUnit === 'tokens') {
+            const { recordTokenPackPurchase } = await import('@/lib/tokens/transactions')
+            await recordTokenPackPurchase(
+              userId,
+              packKey,
+              pack.grantAmount * quantity,
+              session.amount_total || 0,
+              session.payment_intent as string,
+              session.id,
+              {
+                purchase_amount: session.amount_total,
+                purchase_currency: session.currency,
+                product_key: productKey,
+                pack_key: packKey,
+                unit_amount: pack.unitAmount,
+                quantity,
+              },
+              supabase
+            )
+          } else if (pack.grantUnit === 'storage_gb') {
+            const storageAmount = pack.grantAmount * quantity
+            const { error: storageError } = await supabaseAdmin
+              .from('user_storage')
+              .insert({
+                user_id: userId,
+                quota_gb: storageAmount,
+                metadata: {
+                  purchase_amount: session.amount_total,
+                  purchase_currency: session.currency,
+                  product_key: productKey,
+                  pack_key: packKey,
+                  unit_amount: pack.unitAmount,
+                  quantity,
+                  stripe_payment_intent_id: paymentIntentId,
+                  stripe_checkout_session_id: session.id,
+                },
+              })
+
+            if (storageError) {
+              console.error('Failed to grant storage:', storageError)
+              break
+            }
+          } else {
+            console.error('Unknown grant unit for flexible pack:', pack.grantUnit)
+            break
+          }
+
+          console.log('Flexible pack granted:', {
+            userId,
+            productKey,
+            packKey,
+            quantity,
           })
         }
         
@@ -1107,6 +1276,38 @@ export async function POST(request: NextRequest) {
           })
           .eq('stripe_subscription_id', subscription.id)
 
+        const { data: subscriptionRow } = await supabase
+          .from('customer_subscriptions')
+          .select('id, user_id')
+          .eq('stripe_subscription_id', subscription.id)
+          .maybeSingle()
+
+        if (subscriptionRow?.id) {
+          const priceIds = (subscription.items?.data || [])
+            .map((item) => item.price?.id)
+            .filter((id): id is string => Boolean(id))
+
+          const storagePrices = await getStorageAddonPrices(priceIds, supabaseAdmin)
+          const allowedPriceIds = new Set(storagePrices.map((price) => price.stripePriceId))
+
+          const { data: existingStorage } = await supabaseAdmin
+            .from('user_storage')
+            .select('id, metadata')
+            .eq('subscription_id', subscriptionRow.id)
+
+          const staleIds = (existingStorage || [])
+            .filter((row: any) => row?.metadata?.storage_addon === true)
+            .filter((row: any) => !allowedPriceIds.has(row?.metadata?.stripe_price_id))
+            .map((row: any) => row.id)
+
+          if (staleIds.length > 0) {
+            await supabaseAdmin
+              .from('user_storage')
+              .delete()
+              .in('id', staleIds)
+          }
+        }
+
         console.log('✅ Subscription updated:', subscription.id)
         break
       }
@@ -1124,6 +1325,30 @@ export async function POST(request: NextRequest) {
             canceled_at: new Date().toISOString(),
           })
           .eq('stripe_subscription_id', subscription.id)
+
+        const { data: subscriptionRow } = await supabase
+          .from('customer_subscriptions')
+          .select('id')
+          .eq('stripe_subscription_id', subscription.id)
+          .maybeSingle()
+
+        if (subscriptionRow?.id) {
+          const { data: existingStorage } = await supabaseAdmin
+            .from('user_storage')
+            .select('id, metadata')
+            .eq('subscription_id', subscriptionRow.id)
+
+          const addonIds = (existingStorage || [])
+            .filter((row: any) => row?.metadata?.storage_addon === true)
+            .map((row: any) => row.id)
+
+          if (addonIds.length > 0) {
+            await supabaseAdmin
+              .from('user_storage')
+              .delete()
+              .in('id', addonIds)
+          }
+        }
 
         console.log('✅ Subscription canceled:', subscription.id)
         break
@@ -1197,6 +1422,63 @@ export async function POST(request: NextRequest) {
                 console.error('❌ Failed to grant tokens on renewal:', grantError)
               } else {
                 console.log('✅ Renewal tokens granted:', result)
+              }
+            }
+
+            const invoiceLines = (invoice as any).lines?.data || []
+            const linePriceIds = invoiceLines
+              .map((line: any) => line?.price?.id)
+              .filter((id: any): id is string => Boolean(id))
+
+            const storagePrices = await getStorageAddonPrices(linePriceIds, supabaseAdmin)
+            if (storagePrices.length > 0) {
+              const { data: existingStorage } = await supabaseAdmin
+                .from('user_storage')
+                .select('id, metadata')
+                .eq('subscription_id', subscription.id)
+
+              for (const line of invoiceLines) {
+                const priceId = line?.price?.id
+                if (!priceId) {
+                  continue
+                }
+
+                const storagePrice = storagePrices.find((price) => price.stripePriceId === priceId)
+                if (!storagePrice) {
+                  continue
+                }
+
+                const alreadyGranted = (existingStorage || []).some(
+                  (row: any) =>
+                    row?.metadata?.storage_addon === true &&
+                    row?.metadata?.stripe_price_id === priceId
+                )
+
+                if (alreadyGranted) {
+                  continue
+                }
+
+                const quantity = Number.isFinite(line?.quantity) ? line.quantity : 1
+                const storageAmount = storagePrice.grantAmount * quantity
+
+                const { error: storageError } = await supabaseAdmin
+                  .from('user_storage')
+                  .insert({
+                    user_id: subscription.user_id,
+                    quota_gb: storageAmount,
+                    subscription_id: subscription.id,
+                    metadata: {
+                      storage_addon: true,
+                      stripe_price_id: priceId,
+                      pack_key: storagePrice.packKey,
+                      quantity,
+                      invoice_id: invoice.id,
+                    },
+                  })
+
+                if (storageError) {
+                  console.error('Failed to grant storage add-on:', storageError)
+                }
               }
             }
           }

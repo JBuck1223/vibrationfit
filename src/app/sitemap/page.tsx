@@ -235,7 +235,7 @@ export default function SitemapPage() {
 
         // Authentication
         { href: '/auth/login', label: 'Login', icon: User, description: 'User login' },
-        { href: '/auth/signup', label: 'Signup', icon: User, description: 'User registration' },
+        { href: '/auth/signup', label: 'Signup (Redirects Home)', icon: User, description: 'Redirects to homepage - signup via purchase only', badge: 'REDIRECT' },
         { href: '/auth/verify', label: 'Verify Email', icon: CheckCircle, description: 'Email verification' },
         { href: '/auth/setup-password', label: 'Setup Password', icon: Settings, description: 'Password setup' },
         { href: '/auth/logout', label: 'Logout', icon: User, description: 'User logout' },

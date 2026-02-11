@@ -279,7 +279,7 @@ export function IntensiveSidebar() {
           id: 'assessment', 
           stepNumber: 4,
           title: 'Assessment', 
-          href: '/assessment',
+          href: '/assessment/new',
           icon: ClipboardCheck,
           phase: 'Foundation',
           completed: !!checklist.assessment_completed,

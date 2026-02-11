@@ -121,11 +121,11 @@ export default function AudioMixNewPage() {
           subtitle="Blend your vision audio with ambient soundscapes and healing frequencies for the ultimate manifestation experience."
         >
 
-          <div>
+          <div className="mx-auto w-full max-w-3xl">
             <OptimizedVideo
               url={AUDIO_MIX_VIDEO}
               context="single"
-              className="mx-auto w-full max-w-3xl"
+              className="w-full"
             />
           </div>
 
