@@ -87,6 +87,8 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
   const [binauralVolume, setBinauralVolume] = useState<number>(0)
   const [binauralFilter, setBinauralFilter] = useState<string>('all')
   
+  // Intensive mode: hide Binaural Enhancement until user completes intensive (graduate unlock)
+  const [isIntensiveMode, setIsIntensiveMode] = useState(false)
   // Section visibility toggles (all expanded by default)
   const [showBackgroundSection, setShowBackgroundSection] = useState(true)
   const [showMixRatioSection, setShowMixRatioSection] = useState(true)
@@ -196,6 +198,20 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
 
   async function loadData() {
     const supabase = createClient()
+
+    // Check if user is in active intensive (hide Binaural until they graduate)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const { data: checklist } = await supabase
+        .from('intensive_checklist')
+        .select('id')
+        .eq('user_id', user.id)
+        .in('status', ['pending', 'in_progress'])
+        .maybeSingle()
+      setIsIntensiveMode(!!checklist)
+    } else {
+      setIsIntensiveMode(false)
+    }
 
     // Load vision
     const { data: v } = await supabase
@@ -1205,8 +1221,8 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
                 )}
               </Card>
 
-              {/* Optional Binaural Enhancement */}
-              {binauralTracks.length > 0 && (
+              {/* Optional Binaural Enhancement (hidden during intensive; graduate unlock) */}
+              {binauralTracks.length > 0 && !isIntensiveMode && (
                 <Card variant="glass" className="p-4 md:p-6 mb-6 relative z-10">
                   <button 
                     onClick={() => setShowBinauralSection(!showBinauralSection)}

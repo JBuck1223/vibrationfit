@@ -1710,13 +1710,12 @@ export default function HomePage() {
                       </p>
                     </div>
                       <div className="text-sm md:text-base text-white text-center space-y-1">
-                        <p><span className="font-semibold">28‑Day Plan:</span> 12‑week satisfaction guarantee from today.</p>
-                        <p><span className="font-semibold">Annual Plan:</span> 16‑week satisfaction guarantee from today.</p>
+                        <p>You have a 16‑week satisfaction guarantee from your checkout date, no matter which plan you choose (Every 28 Days or Annual).</p>
                       </div>
                       <div className="text-xs md:text-sm text-neutral-300 text-center space-y-2">
-                        <p className="font-semibold">Not satisfied within your window?</p>
-                        <p>If your plan <strong className="font-semibold">hasn't billed yet</strong> (first charge is Day 56), we cancel the upcoming charge.</p>
-                        <p>If it <strong className="font-semibold">has billed</strong> inside your window, we refund that plan charge and cancel future renewals.</p>
+                        <p className="font-semibold">Not satisfied within your 16‑week window?</p>
+                        <p>If your plan <strong className="font-semibold">hasn't billed yet</strong> (first charge is Day 56), we cancel the upcoming charge and end your membership at the end of the current paid period.</p>
+                        <p>If it <strong className="font-semibold">has billed</strong> inside your 16-week window, we refund that charge and cancel all future renewals.</p>
                       </div>
                 </Stack>
                   </Card>
@@ -1980,7 +1979,7 @@ export default function HomePage() {
                               'Platform access: same as Annual',
                               `Capacity: ${formatTokensShort(TOKEN_GRANTS.MONTHLY_28DAY)} VIVA tokens per 28 days + ${STORAGE_QUOTAS.MONTHLY_28DAY}GB storage; unused tokens roll over (max ${ROLLOVER_LIMITS.MONTHLY_28DAY_MAX_CYCLES} cycles)`,
                               'Standard support queue',
-                              '12‑week satisfaction guarantee from today',
+                              '16‑week satisfaction guarantee from today',
                               'Flexible — cancel any cycle',
                         ].map((feature, idx) => (
                           <div key={idx} className="flex items-start gap-3">
@@ -2078,7 +2077,7 @@ export default function HomePage() {
                               'Platform access: same as Annual',
                               'Capacity: 375k VIVA tokens per 28 days + 25GB storage; unused tokens roll over (max 3 cycles)',
                               'Standard support queue',
-                              '12‑week satisfaction guarantee from today',
+                              '16‑week satisfaction guarantee from today',
                               'Flexible — cancel any cycle',
                             ].map((feature, idx) => (
                               <div key={idx} className="flex items-start gap-3">
@@ -2138,10 +2137,7 @@ export default function HomePage() {
                           </div>
                           <div className="flex items-center justify-center gap-2 text-neutral-400 text-xs">
                             <Shield className="w-3 h-3 text-[#FFFF00]" />
-                            <span>{billingPeriod === 'annual' 
-                              ? '16‑week Membership Satisfaction Guarantee from today.'
-                              : '12‑week Membership Satisfaction Guarantee from today.'
-                            }</span>
+                            <span>16‑week Membership Satisfaction Guarantee from today.</span>
                           </div>
                           <div className="text-white text-center text-sm md:text-base">
                             <strong>You can switch or cancel any time before Day 56.</strong>
@@ -2226,7 +2222,7 @@ export default function HomePage() {
                               <h5 className="text-white font-semibold">When do guarantees start?</h5>
                             </div>
                             <div className="ml-4 mb-0 text-justify">
-                              <p className="text-neutral-300 text-sm">All guarantee periods start from your checkout date. Your 72‑hour window begins the moment you enroll in the Intensive. Membership Satisfaction Guarantee windows (16 weeks Annual, 12 weeks 28‑Day) also start from checkout.</p>
+                              <p className="text-neutral-300 text-sm">All guarantees start from your checkout date. Your 72‑hour window begins the moment you enroll in the Intensive, and your Membership Satisfaction Guarantee runs for 16 weeks from that same checkout date, no matter which plan you choose.</p>
                             </div>
                           </div>
                           <div>
@@ -2244,7 +2240,7 @@ export default function HomePage() {
                               <h5 className="text-white font-semibold">What if I'm not satisfied with the membership?</h5>
                             </div>
                             <div className="ml-4 mb-0 text-justify">
-                              <p className="text-neutral-300 text-sm">Annual: 16‑week satisfaction guarantee from today. 28‑Day: 12‑week satisfaction guarantee. We'll refund the plan and cancel future renewals.</p>
+                              <p className="text-neutral-300 text-sm">You have a 16‑week satisfaction guarantee from your checkout date, no matter which plan you choose (Every 28 Days or Annual). If you're not satisfied within those 16 weeks, we'll refund your most recent membership charge (if it was billed inside the window) and cancel all future renewals.</p>
                             </div>
                           </div>
                           <div>
@@ -2634,7 +2630,7 @@ export default function HomePage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Icon icon={Award} size="sm" className="text-[#00FFFF] flex-shrink-0" />
-                      <span className="leading-tight">Membership Guarantee: 16 weeks (Annual) • 12 weeks (Every 28 Days)</span>
+                      <span className="leading-tight">16‑week Membership Satisfaction Guarantee</span>
                     </div>
                   </div>
                 </div>
@@ -2686,12 +2682,12 @@ export default function HomePage() {
                 {
                   id: 'doesnt-work',
                   title: 'What if it doesn\'t work for me?',
-                  description: 'You have two layers of protection: a 72‑Hour Activation Guarantee (complete your Activation Checklist in 72 hours; not satisfied → full refund) and a Membership Satisfaction Guarantee (16 weeks for Annual, 12 weeks for 28‑Day) from checkout.'
+                  description: 'You have two layers of protection: a 72‑Hour Activation Guarantee (complete your Activation Checklist in 72 hours; if you\'re not satisfied, you get a full refund of your Intensive fee) and a Membership Satisfaction Guarantee (16 weeks from your checkout date, no matter which plan you choose).'
                 },
                 {
                   id: 'guarantee-start',
                   title: 'When do guarantees start?',
-                  description: 'All guarantee periods start from your checkout date. Your 72‑hour window begins the moment you enroll in the Intensive. Membership Satisfaction Guarantee windows (16 weeks Annual, 12 weeks 28‑Day) also start from checkout.'
+                  description: 'All guarantees start from your checkout date. Your 72‑hour window begins the moment you enroll in the Intensive, and your Membership Satisfaction Guarantee runs for 16 weeks from that same checkout date, no matter which plan you choose.'
                 },
                 {
                   id: 'guarantee-qualify',
@@ -2710,7 +2706,11 @@ export default function HomePage() {
                             72‑Hour Activation Guarantee: if you complete your Activation Checklist in 72 hours and aren't satisfied, we refund the $499 Intensive fee. (Completion = Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), First refinement done, AM/PM Vision Audios generated, Vision Board built (12 images), 3 journal entries logged (written, voice, video), Calibration Call booked, My Activation Plan scheduled.)
                           </li>
                           <li>
-                            Membership Satisfaction Guarantee: from checkout date—16 weeks (Annual) or 12 weeks (28‑Day). If your plan hasn't billed yet (first charge is Day 56), we cancel the upcoming charge. If a plan charge occurred within your window, we refund that charge in full.
+                            Membership Satisfaction Guarantee: From your checkout date, you have 16 weeks, no matter which plan you choose (Every 28 Days or Annual).
+                            <br /><br />
+                            If your next plan charge hasn't billed yet (first charge is Day 56), we cancel the upcoming charge and end your membership at the end of the current paid period.
+                            <br />
+                            If a plan charge occurred within your 16‑week window, we refund that charge in full and cancel all future renewals.
                           </li>
                         </ul>
                       </div>
@@ -2774,7 +2774,7 @@ export default function HomePage() {
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">After billing starts (Day 56 and beyond)</p>
                         <ul className="list-disc marker:text-[#39FF14] pl-5 space-y-1">
                           <li>
-                            <span className="font-semibold text-white">Every 28 Days → Annual:</span> Switch anytime; your annual prepay starts on your next renewal date. If you want to prepay now (to lock the rate and savings immediately), you can start Annual today and we'll end your current 28-day cycle early with no penalty.
+                            <span className="font-semibold text-white">Every 28 Days → Annual:</span> Want to lock in the Annual savings immediately and get access to more tokens and storage? Start your Annual plan today and we'll credit any unused time from your current 28‑day cycle toward your Annual payment. No penalties or extra fees.
                           </li>
                           <li>
                             <span className="font-semibold text-white">Annual → Every 28 Days:</span> Switch effective at your annual renewal. Annual prepay is not split into partial refunds; you keep access through your paid year, then move to 28-day.
@@ -2796,7 +2796,7 @@ export default function HomePage() {
                       <div>
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Guarantees stay intact when you switch</p>
                         <p>
-                          Your Membership Satisfaction Guarantee window starts at checkout (today): 16 weeks (Annual) or 12 weeks (Every 28 Days). Switching plans doesn't reset the clock; it just changes what you'll be billed at the next renewal.
+                          Your Membership Satisfaction Guarantee window starts at checkout (today) and runs for 16 weeks, no matter which plan you're on (Every 28 Days or Annual). Switching plans doesn't reset or extend the clock; it only changes what you'll be billed at your next renewal.
                         </p>
                       </div>
                       <div>

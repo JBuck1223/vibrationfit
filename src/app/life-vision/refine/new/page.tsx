@@ -171,11 +171,11 @@ export default function LifeVisionRefineNewPage() {
           subtitle="Create a new draft based on your active vision, then refine and commit when ready."
         >
           {/* Video */}
-          <div>
+          <div className="mx-auto w-full max-w-3xl">
             <OptimizedVideo
               url={VISION_INTRO_VIDEO}
               context="single"
-              className="mx-auto w-full max-w-3xl"
+              className="w-full"
             />
           </div>
 

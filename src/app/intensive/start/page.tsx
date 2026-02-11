@@ -290,8 +290,7 @@ export default function IntensiveStartPage() {
                   </Text>
                 </Inline>
                 <p className="text-sm text-neutral-300 leading-relaxed">
-                  When you click "Start", your 72-hour timer begins. Most people complete in this window, 
-                  but take the time you need. The timer is for motivation, not pressure.
+                  When you click "Start," your 72-hour focus window begins. Most people complete their 14 steps inside this window because focused energy is powerful. If life happens and you need more time, take it. The timer is for motivation, not pressure.
                 </p>
               </Stack>
 
@@ -303,8 +302,7 @@ export default function IntensiveStartPage() {
                   </Text>
                 </Inline>
                 <p className="text-sm text-neutral-300 leading-relaxed">
-                  Each step unlocks the next. Complete them in order to build a solid foundation 
-                  for your transformation. VIVA will guide you every step of the way.
+                  You'll always see exactly where you are and what's next. Each time you complete a step, the next one unlocks automatically. Move through the steps in order to build a solid energetic and practical foundation. VIVA will guide you through every phase of the journey.
                 </p>
               </Stack>
 
@@ -315,10 +313,15 @@ export default function IntensiveStartPage() {
                     Full Platform Access
                   </Text>
                 </Inline>
-                <p className="text-sm text-neutral-300 leading-relaxed">
-                  Once you complete all 14 steps, the full VibrationFit platform unlocks. 
-                  Continue growing with unlimited access to all features.
-                </p>
+                <div className="text-sm text-neutral-300 leading-relaxed space-y-2">
+                  <p>When you complete all 14 steps, you graduate from the Intensive. That graduation unlocks the full VibrationFit platform, including:</p>
+                  <ul className="list-none space-y-1 pl-0">
+                    <li>– Advanced Audio Suite</li>
+                    <li>– The Alignment Gym (weekly live coaching)</li>
+                    <li>– Vibe Tribe community</li>
+                  </ul>
+                  <p>Plus all the tools you'll use to keep activating your vision long after these first 72 hours.</p>
+                </div>
               </Stack>
             </Stack>
           </Stack>

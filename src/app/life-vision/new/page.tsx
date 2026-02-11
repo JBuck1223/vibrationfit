@@ -198,11 +198,11 @@ export default function VIVALifeVisionLandingPage() {
           subtitle="Your Life Vision is the blueprint for the life you choose to create."
         >
           {/* Video */}
-          <div>
+          <div className="mx-auto w-full max-w-3xl">
             <OptimizedVideo
               url={VISION_INTRO_VIDEO}
               context="single"
-              className="mx-auto w-full max-w-3xl"
+              className="w-full"
             />
           </div>
 
