@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const requestedQuantity = Number.isInteger(quantity) ? quantity : 1
+    const requestedQuantity = (Number.isInteger(quantity) && quantity != null) ? quantity : 1
     if (requestedQuantity < 1 || requestedQuantity > MAX_QUANTITY) {
       return NextResponse.json(
         { error: 'Invalid quantity' },

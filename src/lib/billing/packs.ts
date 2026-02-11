@@ -124,9 +124,10 @@ export async function listActivePacks(
   }
 
   return prices
-    .map((price) => mapPriceToPack(product, price))
-    .filter((pack): pack is BillingPack => Boolean(pack))
-    .sort((a, b) => a.sortOrder - b.sortOrder)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((price: any) => mapPriceToPack(product, price))
+    .filter((pack: BillingPack | null): pack is BillingPack => Boolean(pack))
+    .sort((a: BillingPack, b: BillingPack) => a.sortOrder - b.sortOrder)
 }
 
 export async function getActivePackByKey(
