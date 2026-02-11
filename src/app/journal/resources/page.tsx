@@ -14,7 +14,7 @@ import {
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { createClient } from '@/lib/supabase/client'
-import { BookOpen, Heart, Sparkles, Plus, Eye } from 'lucide-react'
+import { BookOpen, Heart, Sparkles, Plus, Eye, Mic, Video, Tag, TrendingUp, Lightbulb } from 'lucide-react'
 
 const JOURNAL_VIDEO =
   'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
@@ -106,13 +106,21 @@ export default function JournalResourcesPage() {
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
           <Stack gap="md">
             <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-              What is Vibrational Journaling?
+              What Is Vibrational Journaling?
             </Text>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-              Your Journal is a sacred space for processing, celebrating, and deliberately creating your life experiences. It's where you document your vibrational journey, capture insights, process contrast, and celebrate wins - all while maintaining conscious awareness of your alignment.
+              Your Journal is your conscious creation log. It's where you:
+            </p>
+            <Stack gap="xs" className="text-sm text-neutral-300 leading-relaxed">
+              <p>• Process experiences and emotions</p>
+              <p>• Capture insights and synchronicities</p>
+              <p>• Document wins and manifestations</p>
+            </Stack>
+            <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
+              This isn't "Dear Diary." It's a private place to track your vibration over time so you can see how your inner world is shaping your outer world.
             </p>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-              Unlike traditional journaling, vibrational journaling focuses on your emotional guidance system. Each entry is an opportunity to understand your vibration, shift into alignment, and create momentum toward your desires. Read below to learn how to use your Journal effectively.
+              Each entry is an opportunity to understand where you are, shift toward alignment, and build momentum toward your desires.
             </p>
           </Stack>
         </Card>
@@ -123,41 +131,35 @@ export default function JournalResourcesPage() {
               How Your Journal Works
             </Text>
             <Stack gap="lg">
-              <Stack gap="sm">
-                <Inline gap="sm" className="items-start">
-                  <BookOpen className="h-5 w-5 text-[#5EC49A]" />
-                  <Text size="sm" className="text-white font-semibold">
-                    Component 1: Written Expression
-                  </Text>
-                </Inline>
-                <p className="text-sm text-neutral-300 leading-relaxed">
-                  Writing is a powerful tool for processing emotions and gaining clarity. By putting your thoughts and experiences into words, you create distance from reactive patterns and can consciously choose your perspective. Your journal entries help you understand what you're feeling, why you're feeling it, and how to shift into better-feeling thoughts.
-                </p>
-              </Stack>
+              <Inline gap="sm" className="items-start flex-nowrap">
+                <BookOpen className="h-5 w-5 text-[#5EC49A] flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <Text size="sm" className="text-white font-semibold">Written Expression</Text>
+                  <p className="text-sm text-neutral-300 leading-relaxed mt-1">
+                    Typing your thoughts out gets them out of your head and into a form you can actually work with. Writing helps you see what you're feeling, why you're feeling it, and what perspective would feel even slightly better.
+                  </p>
+                </div>
+              </Inline>
 
-              <Stack gap="sm">
-                <Inline gap="sm" className="items-start">
-                  <Heart className="h-5 w-5 text-[#2DD4BF]" />
-                  <Text size="sm" className="text-white font-semibold">
-                    Component 2: Mood Tracking
-                  </Text>
-                </Inline>
-                <p className="text-sm text-neutral-300 leading-relaxed">
-                  Each entry includes your emotional state, allowing you to see patterns in your vibration over time. This awareness is powerful - you'll notice what thoughts, activities, and experiences consistently feel good, helping you make more aligned choices. Track your mood before and after journaling to witness the immediate benefit of processing and reframing.
-                </p>
-              </Stack>
+              <Inline gap="sm" className="items-start flex-nowrap">
+                <Mic className="h-5 w-5 text-[#2DD4BF] flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <Text size="sm" className="text-white font-semibold">Voice, Video, and Images</Text>
+                  <p className="text-sm text-neutral-300 leading-relaxed mt-1">
+                    If you don't feel like typing, you can record audio or video, and we'll transcribe it for you. You can also add photos or AI‑generated images. Multimedia entries make it powerful to look back later and feel how far you've come.
+                  </p>
+                </div>
+              </Inline>
 
-              <Stack gap="sm">
-                <Inline gap="sm" className="items-start">
-                  <Sparkles className="h-5 w-5 text-[#8B5CF6]" />
-                  <Text size="sm" className="text-white font-semibold">
-                    Component 3: Multimedia Memories
-                  </Text>
-                </Inline>
-                <p className="text-sm text-neutral-300 leading-relaxed">
-                  Enhance your entries with photos, videos, and voice recordings. These multimedia elements bring your memories to life and make revisiting past experiences more vivid and emotional. Looking back at moments of joy, growth, and manifestation reinforces your belief in your manifesting power and creates positive momentum.
-                </p>
-              </Stack>
+              <Inline gap="sm" className="items-start flex-nowrap">
+                <Tag className="h-5 w-5 text-[#8B5CF6] flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <Text size="sm" className="text-white font-semibold">Category Tags</Text>
+                  <p className="text-sm text-neutral-300 leading-relaxed mt-1">
+                    You can tag entries with the same life categories as your Life Vision (Love, Money, Health, etc.). Over time, you'll start to see where you're growing the most, and which areas you tend to process or celebrate the most.
+                  </p>
+                </div>
+              </Inline>
             </Stack>
           </Stack>
         </Card>
@@ -168,24 +170,83 @@ export default function JournalResourcesPage() {
               What to Journal About
             </Text>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-              Your journal is versatile - use it for whatever serves your alignment. Here are powerful ways to use it:
+              Use your Journal for whatever serves your alignment. Some powerful use cases:
             </p>
             <Stack gap="sm" className="text-sm text-neutral-300 leading-relaxed">
               <p>
-                • <span className="text-white font-semibold">Celebrate Wins</span> - Big or small, write about what went right. This trains your brain to look for evidence of things working out.
+                • <span className="text-white font-semibold">Celebrate Wins</span> – Big or small, write what went right. This trains your brain to look for evidence that things are working out.
               </p>
               <p>
-                • <span className="text-white font-semibold">Process Contrast</span> - When something feels off, write about it without judgment. Often the act of writing reveals the lesson or reframe.
+                • <span className="text-white font-semibold">Process Contrast</span> – When something feels off, write it out without judgment. Often the act of writing reveals the lesson and a softer perspective.
               </p>
               <p>
-                • <span className="text-white font-semibold">Document Manifestations</span> - Keep a record of desires that have manifested. This builds unshakeable belief in your manifesting power.
+                • <span className="text-white font-semibold">Document Manifestations</span> – Record the "I wanted X, and now I have X" moments. This builds unshakeable belief in your manifesting power.
               </p>
               <p>
-                • <span className="text-white font-semibold">Capture Insights</span> - Record aha moments, synchronicities, and inspired ideas before they fade.
+                • <span className="text-white font-semibold">Capture Insights</span> – Aha moments, guidance, patterns, synchronicities – get them down before they fade.
               </p>
               <p>
-                • <span className="text-white font-semibold">Appreciate & Rampage</span> - List things you appreciate, feel grateful for, or love about your life. Let the good feelings flow!
+                • <span className="text-white font-semibold">Appreciation & Gratitude</span> – List what you love about your life right now. Let good feelings stack.
               </p>
+            </Stack>
+          </Stack>
+        </Card>
+
+        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+          <Stack gap="lg">
+            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+              Best Practices for Vibrational Journaling
+            </Text>
+            <Stack gap="lg">
+              <Inline gap="sm" className="items-start flex-nowrap">
+                <Heart className="h-5 w-5 text-[#5EC49A] flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <Text size="sm" className="text-white font-semibold">Write How You Feel</Text>
+                  <p className="text-sm text-neutral-300 leading-relaxed mt-1">
+                    Don't edit yourself. This is private and judgment‑free. Raw honesty is fuel.
+                  </p>
+                </div>
+              </Inline>
+
+              <Inline gap="sm" className="items-start flex-nowrap">
+                <TrendingUp className="h-5 w-5 text-[#2DD4BF] flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <Text size="sm" className="text-white font-semibold">Reach for Relief</Text>
+                  <p className="text-sm text-neutral-300 leading-relaxed mt-1">
+                    When you're processing something hard, aim for a thought that feels a bit better, not instant perfection.
+                  </p>
+                </div>
+              </Inline>
+
+              <Inline gap="sm" className="items-start flex-nowrap">
+                <Sparkles className="h-5 w-5 text-[#FFB701] flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <Text size="sm" className="text-white font-semibold">End on a High Note</Text>
+                  <p className="text-sm text-neutral-300 leading-relaxed mt-1">
+                    Before you close an entry, add at least one thing you appreciate. Even a tiny shift upward matters.
+                  </p>
+                </div>
+              </Inline>
+
+              <Inline gap="sm" className="items-start flex-nowrap">
+                <Eye className="h-5 w-5 text-[#8B5CF6] flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <Text size="sm" className="text-white font-semibold">Review Regularly</Text>
+                  <p className="text-sm text-neutral-300 leading-relaxed mt-1">
+                    Revisit past entries monthly. See your growth, remember manifestations, and appreciate how far you've come.
+                  </p>
+                </div>
+              </Inline>
+
+              <Inline gap="sm" className="items-start flex-nowrap">
+                <Lightbulb className="h-5 w-5 text-[#FF0040] flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <Text size="sm" className="text-white font-semibold">Use Prompts if You're Stuck</Text>
+                  <p className="text-sm text-neutral-300 leading-relaxed mt-1">
+                    If you don't know where to start, use prompts or simple questions like "What feels alive for me right now?" or "What's one thing that went right today?"
+                  </p>
+                </div>
+              </Inline>
             </Stack>
           </Stack>
         </Card>
@@ -193,28 +254,14 @@ export default function JournalResourcesPage() {
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
           <Stack gap="md">
             <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-              Best Practices for Vibrational Journaling
+              Why This Step Matters in the Intensive
             </Text>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-              Get the most from your journal with these alignment-focused practices:
+              For the Intensive, you only need one entry to complete this step. That's your first rep.
             </p>
-            <Stack gap="sm" className="text-sm text-neutral-300 leading-relaxed">
-              <p>
-                • <span className="text-white font-semibold">Write How You Feel</span> - Don't edit yourself. Your journal is private and judgement-free. Raw honesty is powerful.
-              </p>
-              <p>
-                • <span className="text-white font-semibold">Reach for Relief</span> - If you're processing contrast, aim for a thought that feels even slightly better, not for instant positivity.
-              </p>
-              <p>
-                • <span className="text-white font-semibold">End on a High Note</span> - Before finishing, write at least one thing you appreciate or feel good about to shift your vibration upward.
-              </p>
-              <p>
-                • <span className="text-white font-semibold">Review Regularly</span> - Revisit past entries monthly to see your growth, remember manifestations, and appreciate how far you've come.
-              </p>
-              <p>
-                • <span className="text-white font-semibold">Use Prompts When Stuck</span> - If you don't know what to write, use the built-in prompts to get started and let it flow from there.
-              </p>
-            </Stack>
+            <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
+              After you graduate into your 28‑day My Activation Plan, journaling becomes part of your regular practice – capturing intentions, evidence, and upgrades as they happen. The earlier you start, the more proof you'll have to look back on.
+            </p>
           </Stack>
         </Card>
 
@@ -224,19 +271,27 @@ export default function JournalResourcesPage() {
               Ready to Journal?
             </Text>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed max-w-2xl mx-auto">
-              Start documenting your vibrational journey today. There's no wrong way to journal - let your intuition guide you. Whether you're celebrating a win, processing an experience, or just checking in with yourself, each entry brings clarity and alignment.
+              You can't do this wrong. Start with one honest entry:
+            </p>
+            <Stack gap="xs" className="text-sm text-neutral-300 leading-relaxed max-w-2xl mx-auto">
+              <p>• Celebrate a win</p>
+              <p>• Process something that feels heavy</p>
+              <p>• Capture an insight from this 72‑hour journey</p>
+            </Stack>
+            <p className="text-sm md:text-base text-neutral-300 leading-relaxed max-w-2xl mx-auto">
+              Click "Add Entry" to create your first Journal entry, or "See All Entries" to review what you've already captured.
             </p>
             <Inline gap="sm" justify="center" className="flex-wrap">
               <Button variant="primary" size="sm" className="justify-center" asChild>
                 <Link href="/journal/new">
                   <Plus className="mr-2 h-4 w-4" />
-                  Create Your First Entry
+                  Add Entry
                 </Link>
               </Button>
               <Button variant="outline" size="sm" className="justify-center" asChild>
                 <Link href="/journal">
                   <BookOpen className="mr-2 h-4 w-4" />
-                  View All Entries
+                  See All Entries
                 </Link>
               </Button>
             </Inline>

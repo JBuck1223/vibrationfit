@@ -504,24 +504,13 @@ export default function VisionBoardIdeasPage() {
           
           <Card className="p-6">
             <Stack gap="md">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-lg font-semibold text-white">
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-white mb-2">
                   Select Categories to Generate
                 </h3>
-                <div className="flex items-center gap-3">
-                  {categoriesWithoutSuggestions.length > 0 && (
-                    <Button
-                      onClick={() => setSelectedCategories(categoriesWithoutSuggestions.map(c => c.key))}
-                      variant="ghost"
-                      size="sm"
-                    >
-                      Select New Only
-                    </Button>
-                  )}
-                  <Badge variant="info" className="text-sm">
-                    {selectedCategories.length} selected
-                  </Badge>
-                </div>
+                <Badge variant="info" className="text-sm">
+                  {selectedCategories.length} selected
+                </Badge>
               </div>
 
               <CategoryGrid
@@ -529,7 +518,7 @@ export default function VisionBoardIdeasPage() {
                 selectedCategories={selectedCategories}
                 onCategoryClick={handleCategoryToggle}
                 mode="selection"
-                showSelectAll
+                showSelectAll={true}
                 onSelectAll={handleSelectAll}
                 layout="12-column"
               />
