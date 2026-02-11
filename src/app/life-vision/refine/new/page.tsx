@@ -15,7 +15,7 @@ import {
   IntensiveCompletionBanner,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
-import { ArrowRight, Sparkles, Target, Heart, Zap, Eye } from 'lucide-react'
+import { ArrowRight, Sparkles, Target, Heart, Zap, Eye, TrendingUp, RefreshCw, Layers, Activity, FlaskConical } from 'lucide-react'
 
 // Placeholder video URL - user will replace this later
 const VISION_INTRO_VIDEO =
@@ -168,7 +168,7 @@ export default function LifeVisionRefineNewPage() {
         <PageHero
           eyebrow={isIntensiveMode ? "ACTIVATION INTENSIVE • STEP 6 OF 14" : undefined}
           title="Refine Your Life Vision"
-          subtitle="Create a new draft based on your active vision, then refine and commit when ready."
+          subtitle="Create a draft from your active vision, then refine and commit when it feels right."
         >
           {/* Video */}
           <div className="mx-auto w-full max-w-3xl">
@@ -222,13 +222,16 @@ export default function LifeVisionRefineNewPage() {
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
           <Stack gap="md">
             <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-              What is Vision Refinement?
+              What Is Vision Refinement?
             </Text>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-              Refinement allows you to evolve your Life Vision without losing what you've already created. We'll create a draft copy of your active vision, where you can edit, enhance, and perfect any category using our powerful refinement interface.
+              Refinement lets you evolve your Life Vision without touching your live version.
             </p>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-              Your active vision stays untouched until you're ready. When you commit your refined draft, it becomes your new active vision - seamlessly updating your daily practice, audio versions, and VIVA's understanding of your desired reality.
+              We create a draft copy of your active vision where you can edit, enhance, and upgrade any section using the refinement tools and VIVA. Your active vision stays exactly as it is until you choose to commit the draft.
+            </p>
+            <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
+              When you commit, your refined draft becomes your new active vision and automatically updates your daily practice, audio, and how VIVA understands your desired reality.
             </p>
           </Stack>
         </Card>
@@ -239,52 +242,60 @@ export default function LifeVisionRefineNewPage() {
             <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
               How Refinement Works
             </Text>
-            <Stack gap="lg">
+            <Stack gap="xl">
               <Stack gap="sm">
                 <Inline gap="sm" className="items-start">
-                  <Target className="h-5 w-5 text-[#5EC49A]" />
+                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-500 text-black flex items-center justify-center font-bold text-sm">1</div>
                   <Text size="sm" className="text-white font-semibold">
                     Clone Your Active Vision
                   </Text>
                 </Inline>
-                <p className="text-sm text-neutral-300 leading-relaxed">
-                  We'll create a draft copy of your active vision. This keeps your original safe while you experiment and refine. Only one draft exists at a time to keep things clean.
+                <p className="text-sm text-neutral-300 leading-relaxed pl-8">
+                  We'll create a draft copy of your current vision. This keeps your original safe while you experiment. Only one draft exists at a time to keep things clean.
                 </p>
               </Stack>
 
               <Stack gap="sm">
                 <Inline gap="sm" className="items-start">
-                  <Heart className="h-5 w-5 text-[#2DD4BF]" />
+                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-500 text-black flex items-center justify-center font-bold text-sm">2</div>
                   <Text size="sm" className="text-white font-semibold">
                     Refine with VIVA
                   </Text>
                 </Inline>
-                <p className="text-sm text-neutral-300 leading-relaxed">
-                  Use the refinement interface to edit any category. Chat with VIVA to explore new ideas, enhance clarity, add sensory details, or completely reimagine sections as you evolve.
+                <p className="text-sm text-neutral-300 leading-relaxed pl-8">
+                  Open any section (Forward, each of the 12 categories, Conclusion) and tell VIVA what to add, remove, or adjust. Use the Refine tools to:
+                </p>
+                <Stack gap="sm" className="text-sm text-neutral-300 leading-relaxed pl-8">
+                  <p>• Add new desires or details</p>
+                  <p>• Remove what no longer fits</p>
+                  <p>• Soften or amplify language</p>
+                </Stack>
+                <p className="text-sm text-neutral-300 leading-relaxed pl-8">
+                  And turn on Weave if you want VIVA to connect this category to other areas of your life, so your vision reads like one integrated story instead of 12 separate silos.
                 </p>
               </Stack>
 
               <Stack gap="sm">
                 <Inline gap="sm" className="items-start">
-                  <Zap className="h-5 w-5 text-[#8B5CF6]" />
+                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-500 text-black flex items-center justify-center font-bold text-sm">3</div>
                   <Text size="sm" className="text-white font-semibold">
                     Track Your Changes
                   </Text>
                 </Inline>
-                <p className="text-sm text-neutral-300 leading-relaxed">
-                  Your draft tracks which categories you've refined. Take your time - refine one category or all 12. Save your progress and come back anytime before committing.
+                <p className="text-sm text-neutral-300 leading-relaxed pl-8">
+                  Your draft automatically tracks which categories have been refined. You can refine one section or all 12. Save as you go and come back anytime before committing.
                 </p>
               </Stack>
 
               <Stack gap="sm">
                 <Inline gap="sm" className="items-start">
-                  <Sparkles className="h-5 w-5 text-[#FFB701]" />
+                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-500 text-black flex items-center justify-center font-bold text-sm">4</div>
                   <Text size="sm" className="text-white font-semibold">
                     Commit When Ready
                   </Text>
                 </Inline>
-                <p className="text-sm text-neutral-300 leading-relaxed">
-                  When your refined vision feels aligned, commit it as your new active vision. Your old version stays in your version history, so you never lose what you've created.
+                <p className="text-sm text-neutral-300 leading-relaxed pl-8">
+                  When your refined vision feels aligned, review it and commit it as your new active vision. Your old version moves into your history, so you never lose what you've created.
                 </p>
               </Stack>
             </Stack>
@@ -298,24 +309,58 @@ export default function LifeVisionRefineNewPage() {
               Why Refine Your Vision?
             </Text>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-              Your vision should evolve as you do. Here's why regular refinement is powerful:
+              Your vision should grow as you do. Regular refinement helps you:
             </p>
-            <Stack gap="sm" className="text-sm text-neutral-300 leading-relaxed">
-              <p>
-                • <span className="text-white font-semibold">Align with Growth</span> - As you actualize parts of your vision, refine it to reflect your next level of expansion.
-              </p>
-              <p>
-                • <span className="text-white font-semibold">Clarify What's Changed</span> - Your desires evolve. Refinement lets you honor what's shifted in your heart without starting over.
-              </p>
-              <p>
-                • <span className="text-white font-semibold">Add Richness</span> - Return to categories with fresh eyes and add sensory details, emotional depth, or new dimensions you've discovered.
-              </p>
-              <p>
-                • <span className="text-white font-semibold">Maintain Momentum</span> - Keep your vision alive and current. A static vision loses its activating power over time.
-              </p>
-              <p>
-                • <span className="text-white font-semibold">Safe Experimentation</span> - Try new approaches in draft mode. If it doesn't resonate, simply discard the draft and your active vision remains unchanged.
-              </p>
+            <Stack gap="lg">
+              <Inline gap="sm" className="items-start flex-nowrap">
+                <TrendingUp className="h-5 w-5 text-[#5EC49A] flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <Text size="sm" className="text-white font-semibold">Align with Growth</Text>
+                  <p className="text-sm text-neutral-300 leading-relaxed mt-1">
+                    As parts of your vision become real, update it to reflect your next level.
+                  </p>
+                </div>
+              </Inline>
+
+              <Inline gap="sm" className="items-start flex-nowrap">
+                <RefreshCw className="h-5 w-5 text-[#2DD4BF] flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <Text size="sm" className="text-white font-semibold">Clarify What's Changed</Text>
+                  <p className="text-sm text-neutral-300 leading-relaxed mt-1">
+                    Let your vision match who you are now, not who you were when you first wrote it.
+                  </p>
+                </div>
+              </Inline>
+
+              <Inline gap="sm" className="items-start flex-nowrap">
+                <Layers className="h-5 w-5 text-[#8B5CF6] flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <Text size="sm" className="text-white font-semibold">Add Richness</Text>
+                  <p className="text-sm text-neutral-300 leading-relaxed mt-1">
+                    Come back with fresh eyes and add sensory detail, emotional depth, and nuance.
+                  </p>
+                </div>
+              </Inline>
+
+              <Inline gap="sm" className="items-start flex-nowrap">
+                <Activity className="h-5 w-5 text-[#FFB701] flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <Text size="sm" className="text-white font-semibold">Maintain Momentum</Text>
+                  <p className="text-sm text-neutral-300 leading-relaxed mt-1">
+                    A current vision stays activating. A stale one becomes wallpaper.
+                  </p>
+                </div>
+              </Inline>
+
+              <Inline gap="sm" className="items-start flex-nowrap">
+                <FlaskConical className="h-5 w-5 text-[#FF0040] flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <Text size="sm" className="text-white font-semibold">Experiment Safely</Text>
+                  <p className="text-sm text-neutral-300 leading-relaxed mt-1">
+                    Try new language or ideas in draft mode. If it doesn't land, discard the draft and your active vision stays untouched.
+                  </p>
+                </div>
+              </Inline>
             </Stack>
           </Stack>
         </Card>
@@ -327,7 +372,7 @@ export default function LifeVisionRefineNewPage() {
               Ready to Refine?
             </Text>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed max-w-2xl mx-auto">
-              Your vision is alive, just like you. Click below to create a refinement draft and give your vision the evolution it deserves. Take your time, play, experiment - and commit only when it feels aligned.
+              Your vision is a living document. Click below to create a refinement draft and give it an upgrade. Take your time, play, experiment – and only commit when it feels like a full‑body yes.
             </p>
             <div className="flex flex-col gap-2 md:gap-4 justify-center items-center">
               {isAlreadyCompleted ? (

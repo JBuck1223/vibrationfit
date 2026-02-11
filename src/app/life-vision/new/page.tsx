@@ -280,10 +280,10 @@ export default function VIVALifeVisionLandingPage() {
               What is Your Life Vision?
             </Text>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-              Your Life Vision is a comprehensive articulation of the life you choose to create across all 12 categories. It's not just a list of goals - it's a living, breathing declaration of who you are becoming and the life you are actively manifesting.
+              Your Life Vision is the blueprint for the life you choose to create across all 12 life categories. It's not just a list of goals. It's a living declaration of who you are becoming and the reality you're actively calling in.
             </p>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-              Think of it as your personal compass - guiding every decision, every action, and every moment toward the life you truly desire. Your vision isn't about what you think you should want; it's about what genuinely lights you up.
+              Think of it as your personal compass – it tells you where you're headed so your choices, actions, and focus can all line up with the life you actually want, not the one you think you "should" want.
             </p>
           </Stack>
         </Card>
@@ -299,11 +299,11 @@ export default function VIVALifeVisionLandingPage() {
                 <Inline gap="sm" className="items-start">
                   <Target className="h-5 w-5 text-[#5EC49A]" />
                   <Text size="sm" className="text-white font-semibold">
-                    Clarity in Each Life Area
+                    Clarity in Every Life Area
                   </Text>
                 </Inline>
                 <p className="text-sm text-neutral-300 leading-relaxed">
-                  Get crystal clear on what you truly want in each of the 12 life categories: Love, Family, Health, Home, Work, Money, Fun, Travel, Social, Stuff, Spirituality, and Giving.
+                  You'll get specific about what you want in each of the 12 categories: Love, Family, Health, Home, Work, Money, Fun, Travel, Social, Stuff, Spirituality, and Giving.
                 </p>
               </Stack>
 
@@ -311,11 +311,11 @@ export default function VIVALifeVisionLandingPage() {
                 <Inline gap="sm" className="items-start">
                   <Lightbulb className="h-5 w-5 text-[#2DD4BF]" />
                   <Text size="sm" className="text-white font-semibold">
-                    Your Ideal State
+                    Your Ideal State (In Your Own Words)
                   </Text>
                 </Inline>
                 <p className="text-sm text-neutral-300 leading-relaxed">
-                  Dream freely and articulate your ideal life without limitations. This is where you unleash your imagination and connect with what genuinely excites you.
+                  You'll describe your ideal reality in each area as if it already exists – how it looks, feels, sounds, and functions in your day‑to‑day life.
                 </p>
               </Stack>
 
@@ -323,11 +323,11 @@ export default function VIVALifeVisionLandingPage() {
                 <Inline gap="sm" className="items-start">
                   <Compass className="h-5 w-5 text-[#8B5CF6]" />
                   <Text size="sm" className="text-white font-semibold">
-                    Your Personal Blueprint
+                    A Unified Blueprint
                   </Text>
                 </Inline>
                 <p className="text-sm text-neutral-300 leading-relaxed">
-                  VIVA synthesizes your clarity and imagination into actionable Being/Doing/Receiving loops - a framework for living your vision every day.
+                  VIVA takes what you write for each category and assembles it into one cohesive Life Vision – Forward, all 12 categories, and a Conclusion – expressed in language that still feels like you.
                 </p>
               </Stack>
 
@@ -335,11 +335,11 @@ export default function VIVALifeVisionLandingPage() {
                 <Inline gap="sm" className="items-start">
                   <Sparkles className="h-5 w-5 text-[#FFB701]" />
                   <Text size="sm" className="text-white font-semibold">
-                    A Unified Vision
+                    Activation‑Ready Content
                   </Text>
                 </Inline>
                 <p className="text-sm text-neutral-300 leading-relaxed">
-                  All 12 category visions are assembled into one cohesive Life Vision - a complete picture of the life you are creating, expressed in your own voice and energy.
+                  This written vision becomes the source for your audio tracks, vision board images, and daily activation protocol, so everything you do is built from the same clear picture.
                 </p>
               </Stack>
             </Stack>
@@ -353,22 +353,25 @@ export default function VIVALifeVisionLandingPage() {
               Why Your Life Vision Matters
             </Text>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-              Your Life Vision is the foundation for intentional living. Here's why it's so transformative:
+              Your Life Vision is the foundation for intentional living inside VibrationFit:
             </p>
             <Stack gap="sm" className="text-sm text-neutral-300 leading-relaxed">
               <p>
-                • <span className="text-white font-semibold">Direction</span> - Know exactly where you're heading, so every choice moves you toward the life you want.
+                • <span className="text-white font-semibold">Direction</span> – You know exactly where you're going, so decisions get simpler: "Does this move me closer to my vision or not?"
               </p>
               <p>
-                • <span className="text-white font-semibold">Alignment</span> - Your daily actions become aligned with your deepest desires, creating momentum and flow.
+                • <span className="text-white font-semibold">Alignment</span> – Your daily actions, habits, and choices can finally match what you say you want.
               </p>
               <p>
-                • <span className="text-white font-semibold">Context for VIVA</span> - Your vision gives VIVA the context to provide personalized guidance tailored to your unique aspirations.
+                • <span className="text-white font-semibold">Context for VIVA</span> – Your vision gives VIVA the context it needs to personalize prompts, ideas, and guidance to your future, not someone else's.
               </p>
               <p>
-                • <span className="text-white font-semibold">Manifestation Power</span> - A clear vision, felt deeply, activates the vibrational alignment that draws your desires to you.
+                • <span className="text-white font-semibold">Manifestation Power</span> – A clear, felt, written vision gives your nervous system something specific to believe in, which makes it far easier to become a vibrational match to the life you're creating.
               </p>
             </Stack>
+            <p className="text-sm md:text-base text-neutral-300 leading-relaxed mt-4">
+              This is the document everything else in VibrationFit plugs into – your audio, your vision board, your Journal, and your 28‑day Activation Plan all start here.
+            </p>
           </Stack>
         </Card>
 
