@@ -9,6 +9,7 @@ import {
   Spinner,
   Textarea,
   CategoryCard,
+  PageHero,
 } from '@/lib/design-system/components'
 import { 
   ArrowRight, 
@@ -101,6 +102,34 @@ export default function VibeTribeNewPage() {
   }, [router])
 
   const canSubmit = selectedTag && (content.trim() || files.length > 0)
+
+  const scrollToStep1 = () => {
+    // Find the Step 1 card element
+    const step1Card = document.getElementById('step-1-card')
+    if (step1Card) {
+      // Find the scrollable parent container (main element from GlobalLayout)
+      const scrollableContainer = document.querySelector('main.flex-1.flex.flex-col.overflow-y-auto')
+      if (scrollableContainer) {
+        // Calculate the position relative to the scrollable container
+        const containerRect = scrollableContainer.getBoundingClientRect()
+        const cardRect = step1Card.getBoundingClientRect()
+        const scrollTop = scrollableContainer.scrollTop
+        const targetPosition = scrollTop + cardRect.top - containerRect.top - 20 // 20px offset from top
+        scrollableContainer.scrollTo({ top: targetPosition, behavior: 'smooth' })
+      } else {
+        // Fallback to window scroll
+        step1Card.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    } else {
+      // Fallback to top if card not found
+      const scrollableContainer = document.querySelector('main.flex-1.flex.flex-col.overflow-y-auto')
+      if (scrollableContainer) {
+        scrollableContainer.scrollTo({ top: 0, behavior: 'smooth' })
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+    }
+  }
 
   const handleCategoryToggle = (categoryKey: string) => {
     setSelectedCategories(prev => 
@@ -199,7 +228,7 @@ export default function VibeTribeNewPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black pb-8">
+    <div className="min-h-full bg-black pb-8">
       {/* Upload Progress Overlay */}
       {uploadProgress.isVisible && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
@@ -219,14 +248,10 @@ export default function VibeTribeNewPage() {
         <div className="space-y-8 py-8">
           
           {/* Hero Section */}
-          <div className="text-center space-y-4">
-            <h1 className="text-3xl md:text-4xl font-bold text-white">
-              Welcome to Vibe Tribe
-            </h1>
-            <p className="text-lg text-neutral-400">
-              Start Here
-            </p>
-          </div>
+          <PageHero
+            title="Welcome to Vibe Tribe"
+            subtitle="Start Here"
+          />
 
           {/* Intro Card */}
           <Card className="p-6 md:p-8 bg-neutral-900/50 border-neutral-800">
@@ -242,15 +267,14 @@ export default function VibeTribeNewPage() {
           </Card>
 
           {/* Step 1: Post Your First Share */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-[#39FF14] flex items-center justify-center text-black font-bold text-sm">
-                1
-              </div>
-              <h2 className="text-xl font-semibold text-white">Post Your First Share</h2>
-            </div>
-
+          <div className="space-y-4" id="step-1-card">
             <Card className="p-6 bg-neutral-900/50 border-neutral-800">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-8 h-8 rounded-full bg-[#39FF14] flex items-center justify-center text-black font-bold text-sm">
+                  1
+                </div>
+                <h2 className="text-xl font-semibold text-white">Post Your First Share</h2>
+              </div>
               {/* Tag Selector */}
               <div className="mb-5">
                 <p className="text-sm text-neutral-400 mb-3">Select a vibe:</p>
@@ -326,13 +350,27 @@ export default function VibeTribeNewPage() {
                   <p>- One sentence that captures your Life Vision vibe</p>
                   <p>- Why you joined VibrationFit now (not "someday")</p>
                 </div>
-                <Textarea
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder="Share your first post with the Vibe Tribe..."
-                  rows={5}
-                  className="resize-none"
-                />
+                <div className="relative">
+                  <Textarea
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    placeholder="Share your first post with the Vibe Tribe..."
+                    rows={5}
+                    className="resize-none pb-12"
+                  />
+                  {/* Image upload icon positioned at bottom right of textarea */}
+                  <div className="absolute bottom-5 right-4 flex items-center gap-2">
+                    {files.length > 0 && (
+                      <span className="text-xs text-neutral-400">
+                        {files.length} file{files.length > 1 ? 's' : ''}
+                      </span>
+                    )}
+                    <ImageIcon 
+                      className="w-5 h-5 cursor-pointer transition-opacity text-[#39FF14] hover:opacity-70"
+                      onClick={() => setShowMediaUpload(!showMediaUpload)}
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Media Upload */}
@@ -386,18 +424,19 @@ export default function VibeTribeNewPage() {
 
           {/* Step 2: Use Tags Like a Pro */}
           <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-neutral-700 flex items-center justify-center text-white font-bold text-sm">
-                2
+            <Card className="p-6 bg-neutral-900/50 border-neutral-800">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 rounded-full bg-neutral-700 flex items-center justify-center text-white font-bold text-sm">
+                  2
+                </div>
+                <h2 className="text-xl font-semibold text-white">Use Tags Like a Pro</h2>
               </div>
-              <h2 className="text-xl font-semibold text-white">Use Tags Like a Pro</h2>
-            </div>
 
-            <p className="text-neutral-400 text-sm">
-              When you post, tag it so others can find and support you:
-            </p>
+              <p className="text-neutral-400 text-sm mb-4">
+                When you post, tag it so others can find and support you:
+              </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
               {VIBE_TAGS.map((tag) => {
                 const config = VIBE_TAG_CONFIG[tag]
                 const Icon = ICON_MAP[tag]
@@ -428,21 +467,21 @@ export default function VibeTribeNewPage() {
               })}
             </div>
 
-            <p className="text-neutral-400 text-sm">
-              Always add the <span className="text-white">Life Categories</span> your post touches (money, love, health, etc.), and add a photo or video when you can. More signal, less noise.
-            </p>
+              <p className="text-neutral-400 text-sm mt-4">
+                Always add the <span className="text-white">Life Categories</span> your post touches (money, love, health, etc.), and add a photo or video when you can. More signal, less noise.
+              </p>
+            </Card>
           </div>
 
           {/* Step 3: Connect */}
           <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-neutral-700 flex items-center justify-center text-white font-bold text-sm">
-                3
-              </div>
-              <h2 className="text-xl font-semibold text-white">Connect (2-minute practice)</h2>
-            </div>
-
             <Card className="p-6 bg-neutral-900/50 border-neutral-800">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-8 h-8 rounded-full bg-neutral-700 flex items-center justify-center text-white font-bold text-sm">
+                  3
+                </div>
+                <h2 className="text-xl font-semibold text-white">Connect (2-minute practice)</h2>
+              </div>
               <p className="text-neutral-300 mb-4">After your first post:</p>
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
@@ -472,9 +511,8 @@ export default function VibeTribeNewPage() {
 
           {/* How to Use Going Forward */}
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-white">How to Use Vibe Tribe Going Forward</h2>
-
             <Card className="p-6 bg-neutral-900/50 border-neutral-800">
+              <h2 className="text-xl font-semibold text-white mb-6">How to Use Vibe Tribe Going Forward</h2>
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
                   <Trophy className="w-5 h-5 text-[#39FF14] flex-shrink-0 mt-0.5" />
@@ -518,7 +556,7 @@ export default function VibeTribeNewPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              onClick={scrollToStep1}
             >
               <ArrowRight className="w-4 h-4 mr-2 -rotate-90" />
               Back to Step 1
