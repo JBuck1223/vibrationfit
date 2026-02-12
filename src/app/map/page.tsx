@@ -296,7 +296,7 @@ export default function MAPPage() {
             </div>
             
             <p className="text-sm text-neutral-300 leading-relaxed">
-              Do this every day for 28 days. Miss a day? Just restart your streak. The power is in the reps.
+              Do this every day for 28 days. Miss a day? Don&apos;t restart the whole 28 days, just your streak. The power is in the reps, not perfection.
             </p>
 
             {/* Step 1: Morning */}
@@ -507,7 +507,7 @@ export default function MAPPage() {
               <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
                 Weekly Alignment
               </Text>
-              <p className="text-sm text-neutral-500 mt-2">Sessions & Connections</p>
+              <p className="text-sm text-neutral-500 mt-2">These weekly touch points are how you keep your MAP alive beyond the first 28 days.</p>
             </div>
 
             <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">

@@ -14,7 +14,7 @@ const GRADUATION_UNLOCKS = [
   {
     icon: Music,
     title: 'Advanced Audio Suite',
-    description: 'Sleep immersion, category mixes, and custom soundscapes',
+    description: 'Frequency Enhancements – binaural beats and solfeggio‑backed layers you can add on top of any Vision Audio for healing, deeper sleep, focus, and meditation.',
     color: 'text-purple-400',
     bgColor: 'bg-purple-500/20',
     borderColor: 'border-purple-500/30'
@@ -22,7 +22,7 @@ const GRADUATION_UNLOCKS = [
   {
     icon: Dumbbell,
     title: 'The Alignment Gym',
-    description: 'Weekly live coaching sessions with Jordan and Vanessa',
+    description: 'Weekly live coaching sessions with Jordan and Vanessa to calibrate, get unstuck, and keep your 28‑Day MAP (and beyond) on track.',
     color: 'text-teal-400',
     bgColor: 'bg-teal-500/20',
     borderColor: 'border-teal-500/30'
@@ -30,7 +30,7 @@ const GRADUATION_UNLOCKS = [
   {
     icon: Users,
     title: 'Vibe Tribe Community',
-    description: 'Connect with conscious creators on the same journey',
+    description: 'A private space to connect with conscious creators on the same journey – share your wins, struggles, and practices as you keep activating The Life You Choose.',
     color: 'text-primary-400',
     bgColor: 'bg-primary-500/20',
     borderColor: 'border-primary-500/30'
@@ -108,11 +108,14 @@ export function UnlockCelebrationModal({ isOpen, onClose }: UnlockCelebrationMod
 
           {/* Header */}
           <div className="text-center pt-8 pb-6 px-6">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
               Welcome to Your Vibration Fit Membership
             </h2>
-            <p className="text-neutral-400">
-              As promised, here are your graduation unlocks!
+            <p className="text-neutral-300 mb-1">
+              You&apos;ve completed your 72‑Hour Activation Intensive. You are now a Graduate. Congratulations!
+            </p>
+            <p className="text-neutral-400 text-sm mt-3">
+              As promised, here are your Graduation Unlocks:
             </p>
           </div>
 
@@ -140,13 +143,16 @@ export function UnlockCelebrationModal({ isOpen, onClose }: UnlockCelebrationMod
 
           {/* CTA */}
           <div className="px-6 pb-8 text-center">
+            <p className="text-sm text-neutral-400 mb-4 leading-relaxed">
+              Your next move: open your Dashboard, start Day 1 of your 28‑Day MAP, and go earn your first activation badge.
+            </p>
             <Button
               variant="primary"
               size="lg"
               onClick={onClose}
               className="w-full sm:w-auto px-8"
             >
-              Enter Your Dashboard
+              Enter My Dashboard
             </Button>
           </div>
         </Card>

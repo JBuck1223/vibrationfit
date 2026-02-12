@@ -683,7 +683,9 @@ export function MediaRecorderComponent({
       let errorMessage = 'Failed to access camera/microphone.'
       
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        errorMessage = 'Permission denied. Please allow camera/microphone access in your browser settings.'
+        errorMessage = mode === 'video'
+          ? 'Camera permission denied. Click the lock icon in your browser\'s address bar and allow camera access, then try again.'
+          : 'Microphone permission denied. Click the lock icon in your browser\'s address bar and allow microphone access, then try again.'
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
         errorMessage = mode === 'video' 
           ? 'No camera found. Please connect a camera and try again.'
