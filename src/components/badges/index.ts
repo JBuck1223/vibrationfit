@@ -6,6 +6,7 @@
 
 export { default as BadgeWithProgress } from './BadgeWithProgress'
 export { default as BadgeDisplay } from './BadgeDisplay'
+export { default as BadgeDetailModal } from './BadgeDetailModal'
 export { default as BadgeIcon, BadgeIcons } from './BadgeIcon'
 export { default as UserBadgeIndicator, clearBadgeCache } from './UserBadgeIndicator'
 

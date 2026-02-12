@@ -21,15 +21,13 @@ function getRequirementText(definition: typeof BADGE_DEFINITIONS[keyof typeof BA
   if (definition.threshold) {
     return `${definition.threshold} required`
   }
-  if (definition.streakDays) {
-    return `${definition.streakDays}-day streak`
+  if (definition.activationDays) {
+    return `${definition.activationDays} activation days`
   }
   if (definition.special) {
     switch (definition.special) {
       case 'checklist_72h':
         return 'Complete checklist in 72h'
-      case 'challenge_28d':
-        return 'Complete 28-day challenge'
       case 'full_12_vision':
         return 'All 12 vision categories'
     }
@@ -46,8 +44,8 @@ function getRequirementType(definition: typeof BADGE_DEFINITIONS[keyof typeof BA
   if (definition.threshold) {
     return { icon: Target, label: 'Threshold', color: 'text-blue-400' }
   }
-  if (definition.streakDays) {
-    return { icon: Flame, label: 'Streak', color: 'text-orange-400' }
+  if (definition.activationDays) {
+    return { icon: Flame, label: 'Activation Days', color: 'text-orange-400' }
   }
   if (definition.special) {
     return { icon: Sparkles, label: 'Special', color: 'text-purple-400' }
@@ -450,10 +448,10 @@ function BadgesAdminContent() {
                                         <span className="ml-2 text-white">{definition.threshold}</span>
                                       </div>
                                     )}
-                                    {definition.streakDays && (
+                                    {definition.activationDays && (
                                       <div>
-                                        <span className="text-neutral-500">Streak Days:</span>
-                                        <span className="ml-2 text-white">{definition.streakDays}</span>
+                                        <span className="text-neutral-500">Activation Days:</span>
+                                        <span className="ml-2 text-white">{definition.activationDays}</span>
                                       </div>
                                     )}
                                     {definition.special && (

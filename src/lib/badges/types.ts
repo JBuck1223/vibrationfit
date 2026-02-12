@@ -62,10 +62,15 @@ export interface BadgeDefinition {
   description: string
   icon: LucideIcon
   threshold?: number
-  streakDays?: number
-  special?: 'checklist_72h' | 'challenge_28d' | 'full_12_vision'
+  /** Number of distinct calendar days with at least one Activation event */
+  activationDays?: number
+  special?: 'checklist_72h' | 'full_12_vision'
   /** If true, shows next to user name in Vibe Tribe */
   showInline?: boolean
+  /** 1-2 sentence "story" explaining what earning this badge means */
+  meaning?: string
+  /** Short guidance on the next badge to work toward (null if this is the final badge in its track) */
+  nextBadge?: string | null
 }
 
 // Category colors matching tile colors
@@ -113,6 +118,8 @@ export const BADGE_DEFINITIONS: Record<BadgeType, BadgeDefinition> = {
     description: 'Attended 3 Alignment Gym sessions',
     icon: Dumbbell,
     threshold: 3,
+    meaning: 'You walked through the door. Most people never do. Three sessions in and you are already building the muscle of showing up.',
+    nextBadge: 'Attend 12 sessions to earn the Consistent Practice badge.',
   },
   gym_regular: {
     type: 'gym_regular',
@@ -121,6 +128,8 @@ export const BADGE_DEFINITIONS: Record<BadgeType, BadgeDefinition> = {
     description: 'Attended 12 Alignment Gym sessions',
     icon: Users,
     threshold: 12,
+    meaning: 'Twelve sessions deep. The Alignment Gym is no longer something you try -- it is part of your rhythm.',
+    nextBadge: 'Keep showing up to 50 sessions for the ultimate Vibration Fit badge.',
   },
   gym_og: {
     type: 'gym_og',
@@ -129,6 +138,8 @@ export const BADGE_DEFINITIONS: Record<BadgeType, BadgeDefinition> = {
     description: 'Attended 50+ Alignment Gym sessions',
     icon: Crown,
     threshold: 50,
+    meaning: 'Fifty sessions. You are the standard. Your commitment to alignment is undeniable proof of who you are becoming.',
+    nextBadge: null,
   },
 
   // ============================================
@@ -141,6 +152,8 @@ export const BADGE_DEFINITIONS: Record<BadgeType, BadgeDefinition> = {
     description: 'Made your first Vibe Tribe post',
     icon: MessageCircle,
     threshold: 1,
+    meaning: 'You put yourself out there. Your first signal to the tribe says you are willing to be seen on this journey.',
+    nextBadge: 'Reach 25 interactions (posts, comments, hearts) to become a Conscious Connector.',
   },
   vibe_contributor: {
     type: 'vibe_contributor',
@@ -149,6 +162,8 @@ export const BADGE_DEFINITIONS: Record<BadgeType, BadgeDefinition> = {
     description: '25 Vibe Tribe interactions',
     icon: Heart,
     threshold: 25,
+    meaning: 'Twenty-five interactions. You are not just observing -- you are actively lifting the vibration of the community.',
+    nextBadge: 'Hit 100 interactions to earn the Vibe Anchor badge and a special icon next to your name.',
   },
   vibe_anchor: {
     type: 'vibe_anchor',
@@ -158,6 +173,8 @@ export const BADGE_DEFINITIONS: Record<BadgeType, BadgeDefinition> = {
     icon: Anchor,
     threshold: 100,
     showInline: true, // Show next to name in Vibe Tribe
+    meaning: 'One hundred interactions. You are an anchor for this community -- people feel your presence and are lifted by it.',
+    nextBadge: null,
   },
 
   // ============================================
@@ -170,46 +187,58 @@ export const BADGE_DEFINITIONS: Record<BadgeType, BadgeDefinition> = {
     description: 'Completed Activation Checklist in 72 hours',
     icon: GraduationCap,
     special: 'checklist_72h',
+    meaning: 'You completed the full Activation Checklist within 72 hours. That kind of momentum sets the tone for everything that follows.',
+    nextBadge: 'Keep running your Daily Activations to earn your 3-Day Activated badge.',
   },
   activated_3d: {
     type: 'activated_3d',
     category: 'activations',
     label: '3-Day Activated',
-    description: "You've started. You're officially someone who shows up for The Life I Choose.",
+    description: "You've shown up 3 days. You're officially someone who shows up for The Life I Choose.",
     icon: Sparkles,
-    streakDays: 3,
+    activationDays: 3,
+    meaning: "You've started. Three days of choosing to show up for The Life I Choose. That first streak is everything.",
+    nextBadge: 'Keep running at least one Daily Activation per day to work toward your 7-Day badge.',
   },
   activated_7d: {
     type: 'activated_7d',
     category: 'activations',
     label: '7-Day Activated',
-    description: 'You stayed with it past the novelty. Consistency is now part of your story.',
+    description: '7 days of practice. Consistency is now part of your story.',
     icon: Zap,
-    streakDays: 7,
+    activationDays: 7,
+    meaning: 'You stayed with your MAP past the novelty. Consistency is now part of your story.',
+    nextBadge: 'Keep showing up daily to work toward your 14-Day Activated badge.',
   },
   activated_14d: {
     type: 'activated_14d',
     category: 'activations',
     label: '14-Day Activated',
-    description: "You're building a new normal. Returning to alignment is what you do.",
+    description: "14 days of showing up. Returning to alignment is what you do.",
     icon: Target,
-    streakDays: 14,
+    activationDays: 14,
+    meaning: 'Two weeks in. Returning to alignment is no longer a decision -- it is what you do.',
+    nextBadge: 'Keep your streak alive to reach 21 days and break through old patterns.',
   },
   activated_21d: {
     type: 'activated_21d',
     category: 'activations',
     label: '21-Day Activated',
-    description: 'Old patterns are losing their grip. This version of you is sticking.',
+    description: '21 days of activation. Old patterns are losing their grip.',
     icon: Star,
-    streakDays: 21,
+    activationDays: 21,
+    meaning: 'Twenty-one days of activation. Old patterns are losing their grip. The new version of you is taking hold.',
+    nextBadge: 'One more week to the full 28-Day Activated badge -- the ultimate proof of practice.',
   },
   activated_28d: {
     type: 'activated_28d',
     category: 'activations',
     label: '28-Day Activated',
-    description: 'You completed 28 days. You have proof: you are a conscious creator in action.',
+    description: '28 days activated. You have proof: you are a conscious creator in action.',
     icon: Award,
-    streakDays: 28,
+    activationDays: 28,
+    meaning: 'Twenty-eight days activated. You have proof: you are a conscious creator in action. This is who you are now.',
+    nextBadge: null,
   },
 
   // ============================================
@@ -222,6 +251,8 @@ export const BADGE_DEFINITIONS: Record<BadgeType, BadgeDefinition> = {
     description: 'Completed a full 12-category Life Vision',
     icon: BookOpen,
     special: 'full_12_vision',
+    meaning: 'You wrote your full Life I Choose across all 12 categories. Most people never get this specific about what they want. You did.',
+    nextBadge: 'Refine and evolve your vision over time to earn the Vision Weaver badge.',
   },
   vision_weaver: {
     type: 'vision_weaver',
@@ -230,6 +261,8 @@ export const BADGE_DEFINITIONS: Record<BadgeType, BadgeDefinition> = {
     description: '3+ vision versions over time',
     icon: Layers,
     threshold: 3,
+    meaning: 'Three versions of your vision. You are not set-and-forget -- you are refining, growing, and getting clearer every iteration.',
+    nextBadge: 'Create 10 unique vision audios to earn the Audio Architect badge.',
   },
   audio_architect: {
     type: 'audio_architect',
@@ -238,6 +271,8 @@ export const BADGE_DEFINITIONS: Record<BadgeType, BadgeDefinition> = {
     description: '10+ unique vision audios created',
     icon: Headphones,
     threshold: 10,
+    meaning: 'Ten unique audios created. You have built a library of immersive tracks that wire your vision into your nervous system.',
+    nextBadge: 'Fill your Vision Board with 24 tiles to earn the Board Builder badge.',
   },
   board_builder: {
     type: 'board_builder',
@@ -246,6 +281,8 @@ export const BADGE_DEFINITIONS: Record<BadgeType, BadgeDefinition> = {
     description: '24+ Vision Board tiles created',
     icon: LayoutGrid,
     threshold: 24,
+    meaning: 'Twenty-four Vision Board tiles. Every tile is a conscious intention you have placed into the world. Your board is alive.',
+    nextBadge: null,
   },
 }
 

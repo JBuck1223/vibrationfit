@@ -6,15 +6,19 @@ import { RetentionMetrics } from '@/lib/retention/types'
  * GET /api/retention-metrics
  * 
  * Returns the 4 retention metrics for a user:
- * 1. Sessions - Alignment Gym attendance
- * 2. Connections - Vibe Tribe interactions  
- * 3. Activations - Daily use (audio plays, vision views)
- * 4. Creations - Asset building activity
+ * 1. Creations - "What have I built?" (objects: visions, audios, board items, journals, daily papers, abundance events)
+ * 2. Activations - "How many times did I run my practice?" (total qualifying events)
+ * 3. Connections - "How much am I engaging with the community?" (Vibe Tribe interactions)
+ * 4. Sessions - "How often am I showing up to live coaching?" (Alignment Gym attendance)
  * 
  * Query params:
  * - userId (optional): Fetch metrics for another user (requires authentication)
  * 
  * All metrics are calculated real-time from existing tables.
+ * 
+ * Note: Some activities increment multiple metrics by design (e.g., attending Alignment Gym
+ * adds +1 Session AND +1 Activation; creating a journal entry adds +1 Creation AND +1 Activation).
+ * Each metric measures a different dimension of practice.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -30,7 +34,8 @@ export async function GET(request: NextRequest) {
     const targetUserId = searchParams.get('userId')
     
     // Use the target user ID if provided, otherwise use the authenticated user
-    const userId = targetUserId || user.id
+    // Resolve "me" alias to the authenticated user's own ID
+    const userId = (!targetUserId || targetUserId === 'me') ? user.id : targetUserId
     const now = new Date()
     const fourWeeksAgo = new Date(now.getTime() - 28 * 24 * 60 * 60 * 1000)
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
@@ -72,7 +77,11 @@ export async function GET(request: NextRequest) {
         nextEvent: nextSession,
       },
       connections: connectionsData,
-      activations: activationsData,
+      activations: {
+        recent: activationsData.recent,
+        lifetime: activationsData.lifetime,
+        totalAudioPlays: activationsData.totalAudioPlays,
+      },
       creations: creationsData,
       calculatedAt: now.toISOString(),
     }
@@ -275,8 +284,16 @@ async function getConnectionsMetrics(
 }
 
 /**
- * Get activation metrics (audio plays, vision views)
- * Uses audio_tracks.play_count and login data
+ * Get activation metrics - total count of qualifying practice events
+ * 
+ * Each qualifying activity counts as +1 activation:
+ * - Play a Vision Audio (80%+ completion)
+ * - Create Journal entry
+ * - Create Daily Paper entry
+ * - Create Abundance Tracker entry
+ * - Create / Actualize Vision Board item
+ * - Attend Alignment Gym
+ * - Post in Vibe Tribe
  */
 async function getActivationsMetrics(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -284,52 +301,149 @@ async function getActivationsMetrics(
   thirtyDaysAgo: Date
 ): Promise<{
   recent: number
-  target: number
   lifetime: number
   totalAudioPlays: number
 }> {
-  // Get total audio plays using the existing function
-  const { data: totalPlays, error: playsError } = await supabase
-    .rpc('get_user_total_audio_plays', { p_user_id: userId })
+  const [
+    audioPlaysRecentData,
+    audioPlaysLifetime,
+    journalRecent,
+    journalLifetime,
+    dailyPaperRecent,
+    dailyPaperLifetime,
+    abundanceRecent,
+    abundanceLifetime,
+    boardRecent,
+    boardLifetime,
+    gymRecent,
+    gymLifetime,
+    postsRecent,
+    postsLifetime,
+  ] = await Promise.all([
+    // Audio plays recent - tracks with play_count updated in last 30 days
+    supabase
+      .from('audio_tracks')
+      .select('play_count')
+      .eq('user_id', userId)
+      .gt('play_count', 0)
+      .gte('updated_at', thirtyDaysAgo.toISOString())
+      .then(r => r.data?.reduce((sum, track) => sum + (track.play_count || 0), 0) || 0),
+    
+    // Audio plays lifetime
+    supabase
+      .rpc('get_user_total_audio_plays', { p_user_id: userId })
+      .then(r => r.data || 0),
+    
+    // Journal entries recent
+    supabase
+      .from('journal_entries')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('created_at', thirtyDaysAgo.toISOString())
+      .then(r => r.count || 0),
+    
+    // Journal entries lifetime
+    supabase
+      .from('journal_entries')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .then(r => r.count || 0),
+    
+    // Daily papers recent
+    supabase
+      .from('daily_papers')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('created_at', thirtyDaysAgo.toISOString())
+      .then(r => r.count || 0),
+    
+    // Daily papers lifetime
+    supabase
+      .from('daily_papers')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .then(r => r.count || 0),
+    
+    // Abundance events recent
+    supabase
+      .from('abundance_events')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('created_at', thirtyDaysAgo.toISOString())
+      .then(r => r.count || 0),
+    
+    // Abundance events lifetime
+    supabase
+      .from('abundance_events')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .then(r => r.count || 0),
+    
+    // Vision board items recent
+    supabase
+      .from('vision_board_items')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('created_at', thirtyDaysAgo.toISOString())
+      .then(r => r.count || 0),
+    
+    // Vision board items lifetime
+    supabase
+      .from('vision_board_items')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .then(r => r.count || 0),
+    
+    // Alignment gym sessions recent
+    supabase
+      .from('video_session_participants')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('attended', true)
+      .gte('joined_at', thirtyDaysAgo.toISOString())
+      .then(r => r.count || 0),
+    
+    // Alignment gym sessions lifetime
+    supabase
+      .from('video_session_participants')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('attended', true)
+      .then(r => r.count || 0),
+    
+    // Vibe Tribe posts recent
+    supabase
+      .from('vibe_posts')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('is_deleted', false)
+      .gte('created_at', thirtyDaysAgo.toISOString())
+      .then(r => r.error ? 0 : (r.count || 0)),
+    
+    // Vibe Tribe posts lifetime
+    supabase
+      .from('vibe_posts')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('is_deleted', false)
+      .then(r => r.error ? 0 : (r.count || 0)),
+  ])
 
-  if (playsError) {
-    console.error('Error getting total audio plays:', playsError)
-  }
-
-  const totalAudioPlays = totalPlays || 0
-
-  // Get user activity metrics for login tracking
-  const { data: activityData } = await supabase
-    .from('user_activity_metrics')
-    .select('total_logins, last_login_at')
-    .eq('user_id', userId)
-    .maybeSingle()
-
-  // For activation days, we need to count distinct days with activity
-  // Currently we only have cumulative play_count, not individual play events with timestamps
-  // As a proxy, we'll estimate based on audio plays and logins
-  // TODO: Add audio_play_events table for accurate daily tracking
+  const recent = audioPlaysRecentData + journalRecent + dailyPaperRecent +
+                 abundanceRecent + boardRecent + gymRecent + postsRecent
   
-  // Rough estimation: 
-  // - If user has audio plays, assume they've been active
-  // - Use total_logins as a rough indicator of distinct active days
-  const estimatedRecentDays = Math.min(
-    Math.ceil(totalAudioPlays / 2), // Assume ~2 plays per active day
-    30
-  )
-  
-  const estimatedLifetimeDays = activityData?.total_logins || Math.ceil(totalAudioPlays / 2)
+  const lifetime = audioPlaysLifetime + journalLifetime + dailyPaperLifetime +
+                   abundanceLifetime + boardLifetime + gymLifetime + postsLifetime
 
   return {
-    recent: estimatedRecentDays,
-    target: 30,
-    lifetime: estimatedLifetimeDays,
-    totalAudioPlays,
+    recent,
+    lifetime,
+    totalAudioPlays: audioPlaysLifetime,
   }
 }
 
 /**
- * Get creation metrics (visions, audios, board items, journal entries)
+ * Get creation metrics (visions, audios, board items, journal entries, daily papers, abundance events)
  */
 async function getCreationsMetrics(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -338,7 +452,7 @@ async function getCreationsMetrics(
 ): Promise<{
   recent: number
   lifetime: number
-  lastCreation?: { type: 'vision' | 'audio' | 'board' | 'journal'; title: string; createdAt: string }
+  lastCreation?: { type: 'vision' | 'audio' | 'board' | 'journal' | 'daily_paper' | 'abundance'; title: string; createdAt: string }
 }> {
   // Execute all creation queries in parallel
   const [
@@ -350,6 +464,10 @@ async function getCreationsMetrics(
     boardLifetime,
     journalRecent,
     journalLifetime,
+    dailyPapersRecent,
+    dailyPapersLifetime,
+    abundanceRecent,
+    abundanceLifetime,
   ] = await Promise.all([
     // Visions recent
     supabase
@@ -410,13 +528,43 @@ async function getCreationsMetrics(
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .then(r => r.count || 0),
+    
+    // Daily Papers recent
+    supabase
+      .from('daily_papers')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('created_at', thirtyDaysAgo.toISOString())
+      .then(r => r.count || 0),
+    
+    // Daily Papers lifetime
+    supabase
+      .from('daily_papers')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .then(r => r.count || 0),
+    
+    // Abundance events recent
+    supabase
+      .from('abundance_events')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('created_at', thirtyDaysAgo.toISOString())
+      .then(r => r.count || 0),
+    
+    // Abundance events lifetime
+    supabase
+      .from('abundance_events')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .then(r => r.count || 0),
   ])
 
-  const recent = visionsRecent + audiosRecent + boardRecent + journalRecent
-  const lifetime = visionsLifetime + audiosLifetime + boardLifetime + journalLifetime
+  const recent = visionsRecent + audiosRecent + boardRecent + journalRecent + dailyPapersRecent + abundanceRecent
+  const lifetime = visionsLifetime + audiosLifetime + boardLifetime + journalLifetime + dailyPapersLifetime + abundanceLifetime
 
   // Get the most recent creation across all types
-  const [lastVision, lastAudio, lastBoard, lastJournal] = await Promise.all([
+  const [lastVision, lastAudio, lastBoard, lastJournal, lastDailyPaper, lastAbundance] = await Promise.all([
     supabase
       .from('vision_versions')
       .select('title, created_at')
@@ -452,11 +600,29 @@ async function getCreationsMetrics(
       .limit(1)
       .maybeSingle()
       .then(r => r.data ? { type: 'journal' as const, title: r.data.title || 'Journal Entry', createdAt: r.data.created_at } : null),
+    
+    supabase
+      .from('daily_papers')
+      .select('entry_date, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(r => r.data ? { type: 'daily_paper' as const, title: `Daily Paper - ${r.data.entry_date}`, createdAt: r.data.created_at } : null),
+    
+    supabase
+      .from('abundance_events')
+      .select('note, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(r => r.data ? { type: 'abundance' as const, title: r.data.note.substring(0, 50) + (r.data.note.length > 50 ? '...' : ''), createdAt: r.data.created_at } : null),
   ])
 
   // Find the most recent creation
-  const allCreations = [lastVision, lastAudio, lastBoard, lastJournal].filter(Boolean) as Array<{
-    type: 'vision' | 'audio' | 'board' | 'journal'
+  const allCreations = [lastVision, lastAudio, lastBoard, lastJournal, lastDailyPaper, lastAbundance].filter(Boolean) as Array<{
+    type: 'vision' | 'audio' | 'board' | 'journal' | 'daily_paper' | 'abundance'
     title: string
     createdAt: string
   }>

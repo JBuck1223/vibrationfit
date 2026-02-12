@@ -1,11 +1,28 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { X } from 'lucide-react'
+import { 
+  X, 
+  Home, 
+  UsersRound, 
+  Video, 
+  Map, 
+  User, 
+  Brain, 
+  TrendingUp, 
+  Activity, 
+  DollarSign,
+  Award,
+  Zap, 
+  HardDrive, 
+  Headset, 
+  Settings 
+} from 'lucide-react'
 import { cn } from '../shared-utils'
-import { userNavigation, adminNavigation as centralAdminNav, mobileNavigation as centralMobileNav, isNavItemActive, type NavItem as CentralNavItem, type NavItem } from '@/lib/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { userNavigation, adminNavigation as centralAdminNav, mobileNavigation as centralMobileNav, isNavItemActive, type NavItem as CentralNavItem, type NavItem, type NavGroup } from '@/lib/navigation'
 
 // Mobile Bottom Navigation Component
 interface MobileBottomNavProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -19,28 +36,95 @@ export const MobileBottomNav = React.forwardRef<HTMLDivElement, MobileBottomNavP
     const pathname = usePathname()
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+    const [activeVisionId, setActiveVisionId] = useState<string | null>(null)
     
     // Use admin navigation if isAdmin is true, otherwise use provided navigation or centralized userNavigation
-    const navItems = isAdmin ? centralAdminNav : (navigation || userNavigation)
+    // Filter to only NavItems (exclude NavGroups)
+    const navItems = isAdmin ? centralAdminNav : (navigation || (userNavigation.filter((item): item is NavItem => 'href' in item)))
     
-    // Use centralized mobile navigation
-    const mobileNavItems = centralMobileNav.map((item: CentralNavItem) => ({
-      ...item,
-      isAction: item.href === '#', // "More" button is an action
-    }))
+    // Fetch active vision ID for dynamic Audio link
+    useEffect(() => {
+      const fetchActiveVision = async () => {
+        try {
+          const supabase = createClient()
+          const { data: { user } } = await supabase.auth.getUser()
+          
+          if (!user) return
+          
+          const { data: activeVision } = await supabase
+            .from('vision_versions')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('is_active', true)
+            .eq('is_draft', false)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+          
+          if (activeVision) {
+            setActiveVisionId(activeVision.id)
+          }
+        } catch (error) {
+          console.error('Error fetching active vision:', error)
+        }
+      }
+      
+      fetchActiveVision()
+    }, [])
+    
+    // Use centralized mobile navigation and resolve dynamic Audio link
+    const mobileNavItems = centralMobileNav.map((item: CentralNavItem) => {
+      // Dynamically resolve Audio link to active vision's audio sets page
+      if (item.name === 'Audio' && activeVisionId) {
+        return {
+          ...item,
+          href: `/life-vision/${activeVisionId}/audio/sets`,
+          isAction: false,
+        }
+      }
+      
+      return {
+        ...item,
+        isAction: item.href === '#', // "Align" button is an action
+      }
+    })
 
-    // Get all sidebar items for the drawer (exclude main nav items)
-    const allSidebarItems = navItems.filter((item: NavItem) => 
-      !mobileNavItems.some((mobileItem: NavItem & { isAction?: boolean }) => 
-        mobileItem.href === item.href || 
-        (mobileItem.href === '/life-vision' && item.href === '/life-vision') ||
-        (mobileItem.href === '/vision-board' && item.href === '/vision-board') ||
-        (mobileItem.href === '/journal' && item.href === '/journal') ||
-        (mobileItem.href === '/admin/users' && item.href === '/admin/users') ||
-        (mobileItem.href === '/admin/ai-models' && item.href === '/admin/ai-models') ||
-        (mobileItem.href === '/admin/token-usage' && item.href === '/admin/token-usage')
-      )
-    )
+    // Define drawer sections with categorized navigation
+    const drawerSections = [
+      {
+        title: 'Align',
+        items: [
+          { name: 'Vibe Tribe', href: '/vibe-tribe', icon: UsersRound },
+          { name: 'Alignment Gym', href: '/alignment-gym', icon: Video },
+          { name: 'Dashboard', href: '/dashboard', icon: Home },
+        ]
+      },
+      {
+        title: 'You',
+        items: [
+          { name: 'Profile', href: '/profile', icon: User },
+          { name: 'Assessment', href: '/assessment', icon: Brain },
+        ]
+      },
+      {
+        title: 'Tracking',
+        items: [
+          { name: 'Tracking', href: '/tracking', icon: TrendingUp },
+          { name: 'Activity', href: '/dashboard/activity', icon: Activity },
+          { name: 'Abundance Tracker', href: '/abundance-tracker', icon: DollarSign },
+          { name: 'Badges', href: '/snapshot/me', icon: Award },
+        ]
+      },
+      {
+        title: 'System',
+        items: [
+          { name: 'Tokens', href: '/dashboard/tokens', icon: Zap },
+          { name: 'Storage', href: '/dashboard/storage', icon: HardDrive },
+          { name: 'Support', href: '/support', icon: Headset },
+          { name: 'Settings', href: '/account/settings', icon: Settings },
+        ]
+      }
+    ]
 
     const handleItemClick = (item: any) => {
       if (item.hasDropdown && item.children) {
@@ -128,11 +212,11 @@ export const MobileBottomNav = React.forwardRef<HTMLDivElement, MobileBottomNavP
             isDrawerOpen ? 'translate-y-0' : 'translate-y-full',
             'bottom-16' // Position above the bottom bar (assuming bottom bar is ~64px tall)
           )}>
-            <div className="p-4">
+            <div className="p-4 max-h-[70vh] overflow-y-auto">
               {/* Header */}
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-white">
-                  {selectedCategory ? `${selectedCategory} Options` : 'More Options'}
+                  More Options
                 </h3>
                 <button
                   onClick={closeDrawer}
@@ -142,36 +226,41 @@ export const MobileBottomNav = React.forwardRef<HTMLDivElement, MobileBottomNavP
                 </button>
               </div>
 
-              {/* Grid of Items */}
-              <div className="grid grid-cols-2 gap-3">
-                {allSidebarItems.map((item: NavItem) => {
-                  const Icon = item.icon
-                  const isActive = isNavItemActive(item, pathname)
-                  
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      onClick={closeDrawer}
-                      className={cn(
-                        'flex flex-col items-center justify-center p-4 rounded-xl transition-all duration-200',
-                        'border-2 border-neutral-700 hover:border-neutral-600',
-                        isActive
-                          ? 'bg-[#39FF14]/20 border-[#39FF14]/50 text-[#39FF14]'
-                          : 'bg-neutral-800/50 text-neutral-300 hover:bg-neutral-800 hover:text-white'
-                      )}
-                    >
-                      <Icon className="w-6 h-6 mb-2" />
-                      <span className="text-sm font-medium text-center">{item.name}</span>
-                      {item.badge && (
-                        <span className="mt-1 px-2 py-0.5 text-xs bg-[#39FF14] text-black rounded-full">
-                          {item.badge}
-                        </span>
-                      )}
-                    </Link>
-                  )
-                })}
-              </div>
+              {/* Categorized Sections */}
+              {drawerSections.map((section, idx) => (
+                <div key={section.title}>
+                  <h4 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">
+                    {section.title}
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3 mb-6">
+                    {section.items.map((item) => {
+                      const Icon = item.icon
+                      const isActive = isNavItemActive(item, pathname)
+                      
+                      return (
+                        <Link
+                          key={item.name}
+                          href={item.href}
+                          onClick={closeDrawer}
+                          className={cn(
+                            'flex flex-col items-center justify-center p-4 rounded-xl transition-all duration-200',
+                            'border-2 border-neutral-700 hover:border-neutral-600',
+                            isActive
+                              ? 'bg-[#39FF14]/20 border-[#39FF14]/50 text-[#39FF14]'
+                              : 'bg-neutral-800/50 text-neutral-300 hover:bg-neutral-800 hover:text-white'
+                          )}
+                        >
+                          <Icon className="w-6 h-6 mb-2" />
+                          <span className="text-sm font-medium text-center">{item.name}</span>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                  {idx < drawerSections.length - 1 && (
+                    <div className="border-t border-neutral-800 mb-6" />
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         </div>

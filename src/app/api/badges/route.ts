@@ -31,7 +31,14 @@ export async function GET(request: NextRequest) {
     const targetUserId = searchParams.get('userId')
     
     // Use the target user ID if provided, otherwise use the authenticated user
-    const userId = targetUserId || user.id
+    // Resolve "me" alias to the authenticated user's own ID
+    const userId = (!targetUserId || targetUserId === 'me') ? user.id : targetUserId
+
+    // When viewing own badges, auto-evaluate and award any newly qualified badges
+    const isOwnBadges = userId === user.id
+    if (isOwnBadges) {
+      await evaluateAndAwardBadges(supabase, userId)
+    }
 
     // Get complete badge status with progress
     const badgeStatus = await getUserBadgeStatus(supabase, userId)

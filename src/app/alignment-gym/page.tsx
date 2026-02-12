@@ -18,7 +18,9 @@ import {
   Trophy,
   Sparkles,
   CheckCircle,
-  PlayCircle
+  PlayCircle,
+  HelpCircle,
+  Zap
 } from 'lucide-react'
 import { 
   PageHero, 
@@ -216,72 +218,61 @@ export default function AlignmentGymPage() {
           subtitle="Weekly live group coaching to keep you calibrated and moving toward your vision"
         />
 
-        {/* Stats Row */}
+        {/* Stats Row - Design system TrackingMilestoneCard (no custom icons) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <TrackingMilestoneCard
             label="Sessions Attended"
             mobileLabel="Attended"
             value={attendanceStats.totalAttended}
             theme="primary"
-            icon={<Trophy className="w-6 h-6" />}
           />
-
           <TrackingMilestoneCard
             label="Week Streak"
             mobileLabel="Streak"
             value={attendanceStats.currentStreak}
             theme="secondary"
-            icon={<Sparkles className="w-6 h-6" />}
           />
-
           <TrackingMilestoneCard
             label="Replays Available"
             mobileLabel="Replays"
             value={pastSessions.length}
-            theme="neutral"
-            icon={<Video className="w-6 h-6" />}
+            theme="accent"
           />
         </div>
 
-        {/* What is Alignment Gym */}
-        <Card className="p-6 md:p-8 bg-gradient-to-br from-neutral-900 to-neutral-800/50">
-          <h3 className="text-lg md:text-xl font-bold text-white mb-8 text-center">
-            What is The Alignment Gym?
+        {/* What is Alignment Gym - parent card with heading + 3 point cards inside */}
+        <Card className="p-6 md:p-8">
+          <h3 className="text-lg md:text-xl font-bold text-white mb-6 text-center">
+            What's The Alignment Gym?
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary-500/20 flex items-center justify-center flex-shrink-0">
-                <Users className="w-5 h-5 text-primary-500" />
+            <Card variant="outlined" className="p-6 flex flex-col items-center text-center">
+              <div className="w-12 h-12 rounded-xl bg-primary-500/20 flex items-center justify-center flex-shrink-0 mb-4">
+                <Users className="w-6 h-6 text-primary-500" />
               </div>
-              <div>
-                <h4 className="font-medium text-white mb-1">Weekly Group Coaching</h4>
-                <p className="text-sm text-neutral-400">
-                  Live sessions with your guide and fellow graduates. Practice tools, get feedback, and stay calibrated.
-                </p>
+              <h4 className="font-medium text-white mb-2">Weekly Group Coaching</h4>
+              <p className="text-sm text-neutral-400">
+                Live sessions with your guide and fellow graduates. Practice tools, get feedback, and stay calibrated.
+              </p>
+            </Card>
+            <Card variant="outlined" className="p-6 flex flex-col items-center text-center">
+              <div className="w-12 h-12 rounded-xl bg-secondary-500/20 flex items-center justify-center flex-shrink-0 mb-4">
+                <HelpCircle className="w-6 h-6 text-secondary-500" />
               </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-secondary-500/20 flex items-center justify-center flex-shrink-0">
-                <Sparkles className="w-5 h-5 text-secondary-500" />
+              <h4 className="font-medium text-white mb-2">Ask Anything</h4>
+              <p className="text-sm text-neutral-400">
+                Bring your questions, challenges, or wins. Get real-time guidance on applying conscious creation to your life.
+              </p>
+            </Card>
+            <Card variant="outlined" className="p-6 flex flex-col items-center text-center">
+              <div className="w-12 h-12 rounded-xl bg-accent-500/20 flex items-center justify-center flex-shrink-0 mb-4">
+                <Zap className="w-6 h-6 text-accent-500" />
               </div>
-              <div>
-                <h4 className="font-medium text-white mb-1">Ask Anything</h4>
-                <p className="text-sm text-neutral-400">
-                  Bring your questions, challenges, or wins. Get real-time guidance on applying conscious creation to your life.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-accent-500/20 flex items-center justify-center flex-shrink-0">
-                <Trophy className="w-5 h-5 text-accent-500" />
-              </div>
-              <div>
-                <h4 className="font-medium text-white mb-1">Build Your Streak</h4>
-                <p className="text-sm text-neutral-400">
-                  Attend regularly to maintain momentum and earn badges for 3, 12, and 50+ sessions.
-                </p>
-              </div>
-            </div>
+              <h4 className="font-medium text-white mb-2">Build Your Streak</h4>
+              <p className="text-sm text-neutral-400">
+                Attend regularly to maintain momentum and earn badges for 3, 12, and 50+ sessions.
+              </p>
+            </Card>
           </div>
         </Card>
 

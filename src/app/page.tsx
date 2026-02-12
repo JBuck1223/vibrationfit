@@ -311,10 +311,10 @@ export default function HomePage() {
       : { full: 699, twoPayment: 349.50, threePayment: 233 }
     
     switch (paymentPlan) {
-      case 'full': return prices.full.toString()
-      case '2pay': return prices.twoPayment.toString()
-      case '3pay': return prices.threePayment.toString()
-      default: return prices.full.toString()
+      case 'full': return prices.full.toFixed(2).replace('.00', '')
+      case '2pay': return prices.twoPayment.toFixed(2)
+      case '3pay': return prices.threePayment.toFixed(2)
+      default: return prices.full.toFixed(2).replace('.00', '')
     }
   }
   

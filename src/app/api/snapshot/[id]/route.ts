@@ -12,7 +12,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params
+    const { id: rawId } = await params
     const supabase = await createClient()
     
     // Verify the requesting user is authenticated
@@ -21,6 +21,9 @@ export async function GET(
     if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    // Resolve "me" alias to the authenticated user's own ID
+    const id = rawId === 'me' ? user.id : rawId
 
     // Fetch the member's public profile
     const { data: member, error: memberError } = await supabase

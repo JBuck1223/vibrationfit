@@ -19,6 +19,7 @@ export {
 // Menu Definitions
 export {
   userNavigation,
+  userNavigationGroups,
   adminNavigation,
   mobileNavigation,
   headerAccountMenu,
@@ -26,5 +27,6 @@ export {
   findNavItemByHref,
   isNavItemActive,
   type NavItem,
+  type NavGroup,
 } from './menu-definitions'
 

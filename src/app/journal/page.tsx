@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import {  Card, Button, Video, CategoryCard, PageHero, Container, Stack, Spinner } from '@/lib/design-system'
+import {  Card, Button, Video, CategoryCard, PageHero, Container, Stack, Spinner, TrackingMilestoneCard } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import Link from 'next/link'
@@ -286,51 +286,27 @@ export default function JournalPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <Card variant="glass" className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-primary-500/20 rounded-full flex items-center justify-center">
-                <FileText className="w-6 h-6 text-primary-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-white">{entryCount}</p>
-                <p className="text-xs text-neutral-400">Total Entries</p>
-              </div>
-            </div>
-          </Card>
+          <TrackingMilestoneCard
+            label="Total Entries"
+            value={entryCount}
+            theme="primary"
+          />
           
-          <Card variant="glass" className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-secondary-500/20 rounded-full flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-secondary-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-white">
-                  {entries.filter(entry => {
-                    const today = new Date()
-                    const entryDate = new Date(entry.created_at)
-                    return entryDate.toDateString() === today.toDateString()
-                  }).length}
-                </p>
-                <p className="text-xs text-neutral-400">Today</p>
-              </div>
-            </div>
-          </Card>
+          <TrackingMilestoneCard
+            label="Today"
+            value={entries.filter(entry => {
+              const today = new Date()
+              const entryDate = new Date(entry.created_at)
+              return entryDate.toDateString() === today.toDateString()
+            }).length}
+            theme="secondary"
+          />
           
-          <Card variant="glass" className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-accent-500/20 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-accent-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-white">
-                  {entries.reduce((total, entry) => total + (entry.image_urls?.length || 0), 0)}
-                </p>
-                <p className="text-xs text-neutral-400">Media Files</p>
-              </div>
-            </div>
-          </Card>
+          <TrackingMilestoneCard
+            label="Media Files"
+            value={entries.reduce((total, entry) => total + (entry.image_urls?.length || 0), 0)}
+            theme="accent"
+          />
         </div>
 
         {/* Action Bar */}

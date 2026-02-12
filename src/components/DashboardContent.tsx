@@ -44,7 +44,10 @@ import {
   Trophy,
   User,
   CalendarDays,
-  HardDrive
+  HardDrive,
+  Video,
+  UsersRound,
+  Award,
 } from 'lucide-react'
 
 interface DashboardContentProps {
@@ -66,6 +69,9 @@ export default function DashboardContent({ user, profileData, visionData, vision
   const [storageUsed, setStorageUsed] = useState(0)
   const [mounted, setMounted] = useState(false)
   const [showCelebration, setShowCelebration] = useState(false)
+  const [mapStarted, setMapStarted] = useState(false)
+  const [earnedActivationBadges, setEarnedActivationBadges] = useState<Set<string>>(new Set())
+  const [activationDays, setActivationDays] = useState(0)
   
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -97,6 +103,44 @@ export default function DashboardContent({ user, profileData, visionData, vision
       }
     }
     fetchStorageUsage()
+  }, [])
+
+  // Fetch MAP status + badge data in parallel
+  useEffect(() => {
+    async function fetchMapAndBadges() {
+      try {
+        const [mapRes, badgesRes] = await Promise.all([
+          fetch('/api/map/status'),
+          fetch('/api/badges'),
+        ])
+        
+        if (mapRes.ok) {
+          const mapData = await mapRes.json()
+          setMapStarted(mapData.mapStarted || false)
+        }
+        
+        if (badgesRes.ok) {
+          const badgesData = await badgesRes.json()
+          // Extract earned activation badges and activation day progress
+          const earned = new Set<string>()
+          let days = 0
+          for (const badge of (badgesData.badges || [])) {
+            if (badge.earned && badge.definition?.type?.startsWith('activated_')) {
+              earned.add(badge.definition.type)
+            }
+            // Get the activation days progress from any activation day badge
+            if (badge.definition?.activationDays && badge.progress) {
+              days = Math.max(days, badge.progress.current)
+            }
+          }
+          setEarnedActivationBadges(earned)
+          setActivationDays(days)
+        }
+      } catch (error) {
+        console.error('Error fetching MAP/badge status:', error)
+      }
+    }
+    fetchMapAndBadges()
   }, [])
   // Calculate completion percentage manually (same logic as profile API)
   const calculateCompletionManually = (profileData: any): number => {
@@ -200,506 +244,182 @@ export default function DashboardContent({ user, profileData, visionData, vision
           {/* PageHero */}
           <PageHero
             title="Dashboard"
-            subtitle="Track your Conscious Creation progress below."
+            subtitle="Run your MAP and stay connected."
           />
 
-        {/* Retention Metrics - The 4 Core Tiles */}
-        <RetentionDashboard />
-
-        {/* Detailed Data Views */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Profile Details */}
-          <Card className="p-6">
-            <div className="flex flex-col md:flex-row items-center md:justify-between gap-4 mb-6 text-center md:text-left">
-              <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-                <div className="w-12 h-12 bg-[#39FF14]/20 rounded-xl flex items-center justify-center">
-                  <User className="w-6 h-6 text-[#39FF14]" />
-                </div>
-                <div className="flex flex-col items-center md:items-start">
-                  <h3 className="text-lg font-bold text-white">Profile</h3>
-                  {profileData?.updated_at && mounted && (
-                    <p className="text-xs text-neutral-400">
-                      Last Updated: {formatDate(profileData.updated_at)}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="flex gap-2 w-full md:w-auto justify-center">
-                <Button variant="ghost" size="sm" asChild className="w-full md:w-auto">
-                  <Link href="/profile/active">View</Link>
-                </Button>
-              </div>
-            </div>
-            
-            {profileData ? (
-              <div className="space-y-4">
-                {/* Tracking Cards */}
-                <div className="grid grid-cols-2 gap-4">
-                  <TrackingMilestoneCard
-                    label="Profiles"
-                    value={profileCount}
-                    theme="primary"
-                    className="!p-3 md:!p-4"
-                  />
-                  <TrackingMilestoneCard
-                    label="Completion"
-                    value={`${profileCompletePercentage}%`}
-                    theme="secondary"
-                    className="!p-3 md:!p-4"
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="bg-neutral-800/50 rounded-lg p-4">
-                <div className="text-center text-neutral-400">
-                  <p className="text-sm">Profile not found</p>
-                  <Button variant="ghost" size="sm" className="mt-2" asChild>
-                    <Link href="/profile">Create Profile</Link>
-                  </Button>
-                </div>
-              </div>
-            )}
-          </Card>
-
-          {/* Life Vision Details */}
-          <Card className="p-6">
-            <div className="flex flex-col md:flex-row items-center md:justify-between gap-4 mb-6 text-center md:text-left">
-              <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-                <div className="w-12 h-12 bg-[#39FF14]/20 rounded-xl flex items-center justify-center">
-                  <Target className="w-6 h-6 text-[#39FF14]" />
-                </div>
-                <div className="flex flex-col items-center md:items-start">
-                  <h3 className="text-lg font-bold text-white">Life Vision</h3>
-                  <p className="text-xs text-neutral-400">
-                    Last Updated: {visionData.find(v => v.is_active)?.updated_at ? (mounted ? formatDate(visionData.find(v => v.is_active).updated_at) : '') : 'N/A'}
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-2 w-full md:w-auto justify-center">
-                <Button variant="ghost" size="sm" asChild className="w-full md:w-auto">
-                  <Link href="/life-vision">View</Link>
-                </Button>
-              </div>
-            </div>
-            
-            {(() => {
-              const activeVision = visionData.find(v => v.is_active)
-              return activeVision ? (
-                <div className="space-y-4">
-                  {/* Tracking Cards */}
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <TrackingMilestoneCard
-                      label="Versions"
-                      value={visionData.length}
-                      theme="primary"
-                      className="!p-3 md:!p-4"
-                    />
-                    <TrackingMilestoneCard
-                      label="Refinements"
-                      value={refinementsCount}
-                      theme="secondary"
-                      className="!p-3 md:!p-4"
-                    />
-                    <TrackingMilestoneCard
-                      label="Audio Tracks"
-                      mobileLabel="Audios"
-                      value={audioSetsCount}
-                      theme="accent"
-                      className="!p-3 md:!p-4"
-                    />
-                  </div>
-                </div>
-              ) : visionData.length > 0 ? (
-                <div className="bg-neutral-800/50 rounded-lg p-4">
-                  <div className="text-center text-neutral-400">
-                    <p className="text-sm">No active vision. Please activate a vision version.</p>
-                    <Button variant="ghost" size="sm" className="mt-2" asChild>
-                      <Link href="/life-vision">View Visions</Link>
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-neutral-800/50 rounded-lg p-4">
-                  <div className="text-center text-neutral-400">
-                    <p className="text-sm">No vision versions created yet</p>
-                    <Button variant="ghost" size="sm" className="mt-2" asChild>
-                      <Link href="/life-vision/new">Create Your First Vision</Link>
-                    </Button>
-                  </div>
-                </div>
-              )
-            })()}
-          </Card>
-
-          {/* Assessment Details */}
-          <Card className="p-6">
-            <div className="flex flex-col md:flex-row items-center md:justify-between gap-4 mb-6 text-center md:text-left">
-              <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-                <div className="w-12 h-12 bg-[#39FF14]/20 rounded-xl flex items-center justify-center">
-                  <Brain className="w-6 h-6 text-[#39FF14]" />
-                </div>
-                <div className="flex flex-col items-center md:items-start">
-                  <h3 className="text-lg font-bold text-white">Assessment</h3>
-                  {assessmentData.length > 0 && assessmentData[0]?.updated_at && mounted && (
-                    <p className="text-xs text-neutral-400">
-                      Last Updated: {formatDate(assessmentData[0].updated_at)}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="flex gap-2 w-full md:w-auto justify-center">
-                <Button variant="ghost" size="sm" asChild className="w-full md:w-auto">
-                  <Link href="/assessment">View</Link>
-                </Button>
-              </div>
-            </div>
-            
-            {assessmentData.length > 0 ? (
-              <div className="space-y-4">
-                {/* Tracking Cards */}
-                <div className="grid grid-cols-2 gap-4">
-                  <TrackingMilestoneCard
-                    label="Completed"
-                    value={assessmentData.filter(a => a.status === 'completed').length}
-                    theme="primary"
-                    className="!p-3 md:!p-4"
-                  />
-                  <TrackingMilestoneCard
-                    label="Active Score"
-                    mobileLabel="Score"
-                    value={(() => {
-                      const activeAssessment = assessmentData.find(a => a.status === 'completed')
-                      return activeAssessment?.overall_percentage ? `${activeAssessment.overall_percentage}%` : 'N/A'
-                    })()}
-                    theme="secondary"
-                    className="!p-3 md:!p-4"
-                  />
-                </div>
+        {/* MAP Card - My Activation Plan */}
+        {mapStarted && (
+          <Card className="relative overflow-hidden p-0">
+            {/* Background map pattern */}
+            <div className="absolute inset-0 opacity-10">
+              <svg className="w-full h-full" viewBox="0 0 400 200" preserveAspectRatio="none">
+                {/* Grid lines */}
+                <pattern id="map-grid" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-[#39FF14]" />
+                </pattern>
+                <rect width="400" height="200" fill="url(#map-grid)" />
                 
-                {/* Green Line Status Chart */}
-                {(() => {
-                  const activeAssessment = assessmentData.find(a => a.status === 'completed')
-                  return activeAssessment ? (
-                    <Card className="p-4 md:p-6 lg:p-8 pb-2 md:pb-3 lg:pb-4">
-                      <AssessmentBarChart assessment={activeAssessment} compact={true} />
-                    </Card>
-                  ) : null
-                })()}
-              </div>
-            ) : (
-              <div className="bg-gradient-to-r from-[#D03739]/10 to-[#EF4444]/10 border border-[#D03739]/30 rounded-lg p-4">
-                <p className="text-sm text-neutral-300">
-                  Take your first vibrational assessment to discover your current alignment across 12 key life areas.
-                </p>
-              </div>
-            )}
-          </Card>
-
-          {/* Vision Board Details */}
-          <Card className="p-6">
-            <div className="flex flex-col md:flex-row items-center md:justify-between gap-4 mb-6 text-center md:text-left">
-              <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-                <div className="w-12 h-12 bg-[#39FF14]/20 rounded-xl flex items-center justify-center">
-                  <Image className="w-6 h-6 text-[#39FF14]" />
-                </div>
-                <div className="flex flex-col items-center md:items-start">
-                  <h3 className="text-lg font-bold text-white">Vision Board</h3>
-                  {visionBoardData.length > 0 && visionBoardData[0]?.updated_at && mounted && (
-                    <p className="text-xs text-neutral-400">
-                      Last Updated: {formatDate(visionBoardData[0].updated_at)}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="flex gap-2 items-center w-full md:w-auto justify-center">
-                <Button variant="ghost" size="sm" asChild className="flex-1 md:flex-initial">
-                  <Link href="/vision-board">View</Link>
-                </Button>
-                <Button variant="ghost" size="sm" asChild className="flex-1 md:flex-initial">
-                  <Link href="/vision-board/new" className="flex items-center gap-2">
-                    <Plus className="w-4 h-4" />
-                    <span>Add Item</span>
-                  </Link>
-                </Button>
-              </div>
-            </div>
-            
-            {visionBoardData.length > 0 ? (
-              <div className="space-y-4">
-                {/* Tracking Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <TrackingMilestoneCard
-                    label="Total"
-                    value={visionBoardData.length}
-                    theme="primary"
-                    className="!p-3 md:!p-4"
-                  />
-                  <TrackingMilestoneCard
-                    label="In Progress"
-                    value={visionBoardData.filter(item => item.status === 'active').length}
-                    theme="secondary"
-                    className="!p-3 md:!p-4"
-                  />
-                  <TrackingMilestoneCard
-                    label="Actualized"
-                    value={visionBoardData.filter(item => item.status === 'actualized').length}
-                    theme="accent"
-                    className="!p-3 md:!p-4"
-                  />
-                </div>
+                {/* Curved path line representing journey */}
+                <path 
+                  d="M 20 100 Q 100 50 150 100 T 280 100 Q 340 80 380 100" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2" 
+                  className="text-[#39FF14]"
+                  strokeDasharray="8 4"
+                />
                 
-                {/* Recent Items */}
-                <div className="space-y-2">
-                  {visionBoardData.slice(0, 4).map((item) => (
-                    <Link 
-                      key={item.id} 
-                      href={`/vision-board/${item.id}`}
-                      className="block"
+                {/* Location markers along the path */}
+                <circle cx="20" cy="100" r="4" fill="currentColor" className="text-[#39FF14]" />
+                <circle cx="150" cy="100" r="4" fill="currentColor" className="text-[#00FFFF]" />
+                <circle cx="280" cy="100" r="4" fill="currentColor" className="text-[#BF00FF]" />
+                <circle cx="380" cy="100" r="6" fill="currentColor" className="text-[#39FF14]" />
+              </svg>
+            </div>
+
+            {/* Content */}
+            <div className="relative z-10 p-6 md:p-8">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                {/* Text content */}
+                <div className="text-center md:text-left">
+                  <h2 className="text-2xl font-bold text-white mb-2">
+                    <span className="text-[#39FF14] font-mono tracking-wider">MAP</span>
+                    <span className="text-neutral-400 mx-2 hidden md:inline">·</span>
+                    <span className="block md:inline">My Activation Plan</span>
+                  </h2>
+                  <p className="text-neutral-300 text-sm">Your daily rhythm for living The Life I Choose.</p>
+                </div>
+
+                {/* Action Button with Compass Icon */}
+                <Button variant="primary" asChild className="w-full md:w-auto whitespace-nowrap">
+                  <Link href="/map" className="flex items-center gap-2">
+                    <svg 
+                      className="w-5 h-5" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="2"
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
                     >
-                      <div className="flex items-center gap-3 p-3 rounded-lg bg-neutral-800/50 hover:bg-neutral-800 transition-colors">
-                        <div className="flex-shrink-0 w-2 h-2 rounded-full bg-[#39FF14]" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-white truncate">
-                            {item.name || 'Untitled Item'}
-                          </p>
-                          <p className="text-xs text-neutral-400">
-                            {item.status === 'actualized' ? 'Actualized' : item.status === 'active' ? 'In Progress' : 'Paused'}{mounted && ` • ${formatDate(item.created_at)}`}
-                          </p>
-                        </div>
-                        <ArrowRight className="w-4 h-4 text-neutral-500 flex-shrink-0" />
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-                
-                {/* Summary */}
-                {visionBoardData.length > 4 && (
-                  <Link href="/vision-board" className="block">
-                    <p className="text-xs text-neutral-400 text-center hover:text-primary-500 transition-colors cursor-pointer">
-                      +{visionBoardData.length - 4} more items
-                    </p>
-                  </Link>
-                )}
-              </div>
-            ) : (
-              <div className="bg-gradient-to-r from-[#D03739]/10 to-[#EF4444]/10 border border-[#D03739]/30 rounded-lg p-4">
-                <p className="text-sm text-neutral-300">
-                  Start adding items to your vision board to visualize and track your conscious creations.
-                </p>
-              </div>
-            )}
-          </Card>
-
-          {/* Journal Details */}
-          <Card className="p-6">
-            <div className="flex flex-col md:flex-row items-center md:justify-between gap-4 mb-6 text-center md:text-left">
-              <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-                <div className="w-12 h-12 bg-[#39FF14]/20 rounded-xl flex items-center justify-center">
-                  <BookOpen className="w-6 h-6 text-[#39FF14]" />
-                </div>
-                <div className="flex flex-col items-center md:items-start">
-                  <h3 className="text-lg font-bold text-white">Journal</h3>
-                  {journalData.length > 0 && journalData[0]?.updated_at && mounted && (
-                    <p className="text-xs text-neutral-400">
-                      Last Updated: {formatDate(journalData[0].updated_at)}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="flex gap-2 items-center w-full md:w-auto justify-center">
-                <Button variant="ghost" size="sm" asChild className="flex-1 md:flex-initial">
-                  <Link href="/journal">View</Link>
-                </Button>
-                <Button variant="ghost" size="sm" asChild className="flex-1 md:flex-initial">
-                  <Link href="/journal/new" className="flex items-center gap-2">
-                    <Plus className="w-4 h-4" />
-                    <span>Add Entry</span>
+                      <circle cx="12" cy="12" r="10" />
+                      <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="currentColor" fillOpacity="0.3" />
+                    </svg>
+                    View My MAP
                   </Link>
                 </Button>
               </div>
             </div>
-              
-              {journalData.length > 0 ? (
-                <div className="space-y-4">
-                  {/* Tracking Cards */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <TrackingMilestoneCard
-                      label="Total Entries"
-                      mobileLabel="Entries"
-                      value={journalData.length}
-                      theme="primary"
-                      className="!p-3 md:!p-4"
-                    />
-                    
-                    <TrackingMilestoneCard
-                      label="Media Files"
-                      value={journalData.reduce((total, entry) => total + (entry.image_urls?.length || 0), 0)}
-                      theme="accent"
-                      className="!p-3 md:!p-4"
-                    />
-                  </div>
-                  
-                  {/* Recent Entries */}
-                  <div className="space-y-2">
-                    {journalData.slice(0, 3).map((entry, index) => (
-                      <Link 
-                        key={entry.id} 
-                        href={`/journal/${entry.id}`}
-                        className="block"
-                      >
-                        <div className="flex items-center gap-3 p-3 rounded-lg bg-neutral-800/50 hover:bg-neutral-800 transition-colors">
-                          <div className="flex-shrink-0 w-2 h-2 rounded-full bg-[#39FF14]" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-white truncate">
-                              {entry.title || 'Untitled Entry'}
-                            </p>
-                            <p className="text-xs text-neutral-400">
-                              {mounted && formatDate(entry.created_at)}
-                            </p>
-                          </div>
-                          <ArrowRight className="w-4 h-4 text-neutral-500 flex-shrink-0" />
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                  
-                  {/* Summary */}
-                  {journalData.length > 3 && (
-                    <Link href="/journal" className="block">
-                      <p className="text-xs text-neutral-400 text-center hover:text-primary-500 transition-colors cursor-pointer">
-                        +{journalData.length - 3} more entries
-                      </p>
-                    </Link>
-                  )}
-                </div>
-              ) : (
-                <div className="bg-gradient-to-r from-[#D03739]/10 to-[#EF4444]/10 border border-[#D03739]/30 rounded-lg p-4">
-                  <p className="text-sm text-neutral-300">
-                    Start capturing evidence of actualization with rich multimedia journal entries.
-                  </p>
-                </div>
-              )}
           </Card>
+        )}
 
-          {/* Recent Activity */}
+        {/* Activation Badges Strip */}
+        {mapStarted && (
           <Card className="p-6">
-            <div className="flex flex-col md:flex-row items-center md:justify-between gap-4 mb-6 text-center md:text-left">
-              <h2 className="text-2xl font-bold text-white">Recent Activity</h2>
-              <Link href="/dashboard/activity" className="w-full md:w-auto">
-                <Button variant="ghost" size="sm" className="w-full md:w-auto">
-                  View All
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </Link>
+            <div className="text-center mb-4">
+              <h3 className="text-lg font-bold text-white mb-1">Activation Badges</h3>
+              <p className="text-xs text-neutral-500">
+                {activationDays > 0
+                  ? `${activationDays} activation ${activationDays === 1 ? 'day' : 'days'} logged`
+                  : 'Earn badges by logging activations on different days'}
+              </p>
             </div>
-            <div className="space-y-3">
-              {recentActivity.length === 0 ? (
-                <div className="text-center py-8">
-                  <Activity className="w-8 h-8 text-neutral-600 mx-auto mb-2" />
-                  <p className="text-neutral-400 text-sm">No recent activity</p>
-                  <p className="text-neutral-500 text-xs">Start building your vision!</p>
-                </div>
-              ) : (
-                recentActivity.map((activity, index) => {
-                  const IconComponent = activity.icon
-                  return (
-                    <div key={index} className="flex items-center gap-4 p-3 rounded-lg bg-neutral-800/50">
-                      <div className="p-2 bg-[#39FF14]/20 rounded-lg">
-                        <IconComponent className="w-4 h-4 text-[#39FF14]" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium text-white">{activity.title}</h4>
-                        <p className="text-sm text-neutral-400">{activity.description}</p>
-                      </div>
-                      <span className="text-xs text-neutral-500">
-                        {mounted && formatDate(activity.date)}
-                      </span>
+            <div className="flex items-center justify-center gap-3 sm:gap-5 mb-5">
+              {[
+                { day: 3, type: 'activated_3d' },
+                { day: 7, type: 'activated_7d' },
+                { day: 14, type: 'activated_14d' },
+                { day: 21, type: 'activated_21d' },
+                { day: 28, type: 'activated_28d' },
+              ].map(({ day, type }) => {
+                const earned = earnedActivationBadges.has(type)
+                return (
+                  <div key={day} className="flex flex-col items-center gap-1.5">
+                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center border-2 transition-all ${
+                      earned 
+                        ? 'bg-[#39FF14]/20 border-[#39FF14] text-[#39FF14]' 
+                        : 'bg-neutral-800/50 border-neutral-700 text-neutral-600'
+                    }`}>
+                      <Award className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
-                  )
-                })
-              )}
+                    <span className={`text-xs font-medium ${earned ? 'text-[#39FF14]' : 'text-neutral-600'}`}>
+                      {day}-Day
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+            <div className="text-center">
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/snapshot/me" className="inline-flex items-center gap-2">
+                  <Award className="w-4 h-4" />
+                  View All Badges
+                </Link>
+              </Button>
             </div>
           </Card>
+        )}
 
-          {/* Billing Details */}
+        {/* What's New Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Alignment Gym - Next Session */}
           <Card className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#39FF14]/20 rounded-xl flex items-center justify-center">
-                  <CreditCard className="w-6 h-6 text-[#39FF14]" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-white">Billing</h3>
-                  <p className="text-sm text-neutral-400">VibrationFit Pro</p>
-                </div>
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-12 h-12 bg-[#BF00FF]/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Video className="w-6 h-6 text-[#BF00FF]" />
               </div>
-              <div className="flex gap-2">
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href="/billing">Manage</Link>
-                </Button>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg font-bold text-white mb-1">Alignment Gym</h3>
+                <p className="text-sm text-neutral-400">Weekly live group coaching</p>
               </div>
             </div>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-neutral-400">Subscription</span>
-                <span className="text-sm text-[#39FF14]">Active</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-neutral-400">Next Billing</span>
-                <span className="text-sm text-neutral-300">Jan 1, 2025</span>
-              </div>
+            <div className="bg-neutral-800/50 rounded-lg p-4 mb-4">
+              <p className="text-sm text-neutral-300 mb-2">Next session coming soon</p>
+              <p className="text-xs text-neutral-500">Check back for upcoming schedule</p>
             </div>
+            <Button variant="outline" size="sm" asChild className="w-full">
+              <Link href="/alignment-gym">View Schedule</Link>
+            </Button>
           </Card>
 
-          {/* Support Details */}
+          {/* Vibe Tribe - Latest Activity */}
           <Card className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#39FF14]/20 rounded-xl flex items-center justify-center">
-                  <Users className="w-6 h-6 text-[#39FF14]" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-white">Support</h3>
-                  <p className="text-sm text-neutral-400">Get Help</p>
-                </div>
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-12 h-12 bg-[#00FFFF]/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                <UsersRound className="w-6 h-6 text-[#00FFFF]" />
               </div>
-              <div className="flex gap-2">
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href="/support">Contact Us</Link>
-                </Button>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg font-bold text-white mb-1">Vibe Tribe</h3>
+                <p className="text-sm text-neutral-400">Community connection</p>
               </div>
             </div>
-            <div className="bg-gradient-to-r from-[#00FFFF]/10 to-[#06B6D4]/10 border border-[#00FFFF]/30 rounded-lg p-4">
-              <p className="text-sm text-neutral-300">
-                Need help? Our support team is here to assist you with any questions or issues.
-              </p>
+            <div className="bg-neutral-800/50 rounded-lg p-4 mb-4">
+              <p className="text-sm text-neutral-300 mb-2">Connect with the community</p>
+              <p className="text-xs text-neutral-500">Share your journey and support others</p>
             </div>
-          </Card>
-
-          {/* Creation Tokens and Storage Section */}
-          <HouseholdTokenBalance />
-          
-          {/* Storage Usage Card */}
-          <Card variant="elevated" className="bg-black">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-[#14B8A6]/20 rounded-xl flex items-center justify-center">
-                <HardDrive className="w-8 h-8 text-[#14B8A6]" />
-              </div>
-              <h3 className="text-lg font-semibold mt-4">Storage Usage</h3>
-              <p className="text-3xl font-bold text-secondary-500 mt-4">
-                {(storageUsed / (1024 * 1024 * 1024)).toFixed(2)} GB
-              </p>
-              <p className="text-sm text-neutral-400 mt-2">
-                of {storageQuotaGB} GB total
-              </p>
-              <Link href="/dashboard/storage" className="mt-6">
-                <Button variant="secondary" size="sm">
-                  Storage Dashboard
-                </Button>
-              </Link>
-            </div>
+            <Button variant="outline" size="sm" asChild className="w-full">
+              <Link href="/vibe-tribe">Visit Vibe Tribe</Link>
+            </Button>
           </Card>
         </div>
+
+        {/* Quick Stats - Link to Tracking */}
+        <Card className="p-6 bg-gradient-to-r from-[#39FF14]/10 to-[#00FFFF]/10 border-[#39FF14]/30">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-white mb-2">Your Progress</h3>
+              <p className="text-sm text-neutral-300">
+                View detailed analytics, streaks, and performance metrics.
+              </p>
+            </div>
+            <Button variant="primary" asChild>
+              <Link href="/tracking" className="flex items-center gap-2">
+                <TrendingUp className="w-4 h-4" />
+                View Tracking
+              </Link>
+            </Button>
+          </div>
+        </Card>
       </Stack>
     </Container>
     </>
