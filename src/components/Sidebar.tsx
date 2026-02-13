@@ -98,13 +98,15 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
           .catch(err => console.error('Sidebar: Error fetching profile:', err))
         
         // Fetch active vision ID (non-blocking)
-        supabase
-          .from('vision_versions')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('is_active', true)
-          .eq('is_draft', false)
-          .maybeSingle()
+        Promise.resolve(
+          supabase
+            .from('vision_versions')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('is_active', true)
+            .eq('is_draft', false)
+            .maybeSingle()
+        )
           .then(({ data }) => {
             if (data?.id) {
               setActiveVisionId(data.id)
@@ -129,13 +131,15 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
           .catch(err => console.error('Sidebar: Error fetching profile:', err))
         
         // Refetch active vision ID
-        supabase
-          .from('vision_versions')
-          .select('id')
-          .eq('user_id', session.user.id)
-          .eq('is_active', true)
-          .eq('is_draft', false)
-          .maybeSingle()
+        Promise.resolve(
+          supabase
+            .from('vision_versions')
+            .select('id')
+            .eq('user_id', session.user.id)
+            .eq('is_active', true)
+            .eq('is_draft', false)
+            .maybeSingle()
+        )
           .then(({ data }) => {
             if (data?.id) {
               setActiveVisionId(data.id)
@@ -668,7 +672,7 @@ export function MobileBottomNav({ className }: MobileBottomNavProps) {
                 <div className="grid grid-cols-2 gap-3 mb-6">
                   {section.items.map((item) => {
                     const Icon = item.icon
-                    const isActive = isNavItemActive(item, pathname)
+                    const isActive = isNavItemActive(item as NavItem, pathname)
                     
                     return (
                       <Link
