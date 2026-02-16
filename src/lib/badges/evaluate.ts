@@ -26,10 +26,9 @@ interface BadgeProgressData {
   visionVersions: number
   audioSets: number
   boardTiles: number
-  // These require additional tracking (Phase 2)
   checklist72h: boolean
-  challenge28d: boolean
-  streakDays: number
+  /** Total distinct calendar days with at least one Activation event */
+  activationDays: number
 }
 
 /**
@@ -48,6 +47,7 @@ export async function getUserBadgeProgress(
     visionVersionsResult,
     audioSetsResult,
     boardTilesResult,
+    activationDays,
   ] = await Promise.all([
     // Sessions attended (Alignment Gym)
     supabase
@@ -93,6 +93,9 @@ export async function getUserBadgeProgress(
       .from('vision_board_items')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId),
+
+    // Distinct activation days (counts unique calendar days with any qualifying activity)
+    getDistinctActivationDays(supabase, userId),
   ])
 
   const posts = postsResult.count || 0
@@ -106,10 +109,115 @@ export async function getUserBadgeProgress(
     visionVersions: visionVersionsResult.count || 0,
     audioSets: audioSetsResult.count || 0,
     boardTiles: boardTilesResult.count || 0,
-    // Phase 2: These need additional tracking
     checklist72h: false,
-    challenge28d: false,
-    streakDays: 0,
+    activationDays,
+  }
+}
+
+/**
+ * Count distinct calendar days on which the user had at least one Activation event.
+ * 
+ * Qualifying activities (same as the Activations retention metric):
+ * - Journal entry created
+ * - Daily Paper created
+ * - Abundance Tracker entry created
+ * - Vision Board item created
+ * - Alignment Gym session attended
+ * - Vibe Tribe post created
+ * - Audio track played (uses updated_at as proxy for last play date)
+ */
+async function getDistinctActivationDays(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<number> {
+  try {
+    // Fetch timestamps from all activation sources in parallel
+    const [
+      journalDates,
+      dailyPaperDates,
+      abundanceDates,
+      boardDates,
+      gymDates,
+      postDates,
+      audioDates,
+    ] = await Promise.all([
+      // Journal entries
+      supabase
+        .from('journal_entries')
+        .select('created_at')
+        .eq('user_id', userId)
+        .then(r => r.data?.map(d => d.created_at) || []),
+
+      // Daily papers
+      supabase
+        .from('daily_papers')
+        .select('created_at')
+        .eq('user_id', userId)
+        .then(r => r.data?.map(d => d.created_at) || []),
+
+      // Abundance events
+      supabase
+        .from('abundance_events')
+        .select('created_at')
+        .eq('user_id', userId)
+        .then(r => r.data?.map(d => d.created_at) || []),
+
+      // Vision board items
+      supabase
+        .from('vision_board_items')
+        .select('created_at')
+        .eq('user_id', userId)
+        .then(r => r.data?.map(d => d.created_at) || []),
+
+      // Alignment Gym sessions (attended)
+      supabase
+        .from('video_session_participants')
+        .select('joined_at')
+        .eq('user_id', userId)
+        .eq('attended', true)
+        .then(r => r.data?.map(d => d.joined_at) || []),
+
+      // Vibe Tribe posts
+      supabase
+        .from('vibe_posts')
+        .select('created_at')
+        .eq('user_id', userId)
+        .eq('is_deleted', false)
+        .then(r => r.error ? [] : (r.data?.map(d => d.created_at) || [])),
+
+      // Audio tracks with plays (updated_at is proxy for last play date)
+      supabase
+        .from('audio_tracks')
+        .select('updated_at')
+        .eq('user_id', userId)
+        .gt('play_count', 0)
+        .then(r => r.data?.map(d => d.updated_at) || []),
+    ])
+
+    // Collect all timestamps and extract unique calendar dates (YYYY-MM-DD)
+    const allTimestamps = [
+      ...journalDates,
+      ...dailyPaperDates,
+      ...abundanceDates,
+      ...boardDates,
+      ...gymDates,
+      ...postDates,
+      ...audioDates,
+    ]
+
+    const uniqueDays = new Set<string>()
+    for (const ts of allTimestamps) {
+      if (ts) {
+        // Extract YYYY-MM-DD from the ISO timestamp
+        const day = ts.substring(0, 10)
+        uniqueDays.add(day)
+      }
+    }
+
+    return uniqueDays.size
+  } catch (error) {
+    console.error('Error counting distinct activation days:', error)
+    return 0
   }
 }
 
@@ -120,15 +228,13 @@ export function checkBadgeQualification(
   badge: BadgeDefinition,
   progress: BadgeProgressData
 ): { qualifies: boolean; current: number; target: number } {
-  const { type, threshold, streakDays, special } = badge
+  const { type, threshold, activationDays, special } = badge
 
-  // Handle special badges (Phase 2)
+  // Handle special badges
   if (special) {
     switch (special) {
       case 'checklist_72h':
         return { qualifies: progress.checklist72h, current: progress.checklist72h ? 1 : 0, target: 1 }
-      case 'challenge_28d':
-        return { qualifies: progress.challenge28d, current: progress.challenge28d ? 1 : 0, target: 1 }
       case 'full_12_vision':
         // Check if user has a vision with all 12 categories
         // For now, use vision versions as proxy (needs refinement)
@@ -136,12 +242,12 @@ export function checkBadgeQualification(
     }
   }
 
-  // Handle streak badges (Phase 2)
-  if (streakDays) {
+  // Handle activation day badges (distinct calendar days with any Activation event)
+  if (activationDays) {
     return {
-      qualifies: progress.streakDays >= streakDays,
-      current: progress.streakDays,
-      target: streakDays,
+      qualifies: progress.activationDays >= activationDays,
+      current: progress.activationDays,
+      target: activationDays,
     }
   }
 

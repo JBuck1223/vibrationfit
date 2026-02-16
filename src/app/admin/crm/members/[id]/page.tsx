@@ -7,7 +7,8 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { Button, Card, Badge, Container, Spinner, Input, Textarea, Stack, PageHero, TrackingMilestoneCard } from '@/lib/design-system/components'
 import { ConversationThread } from '@/components/crm/ConversationThread'
-import { RefreshCw, MessageSquare, Mail, Target, Activity, Clock, DollarSign } from 'lucide-react'
+import { RefreshCw, MessageSquare, Mail, Target, Activity, Clock, DollarSign, BarChart3 } from 'lucide-react'
+import RetentionMetricsBreakdown from '@/components/admin/RetentionMetricsBreakdown'
 import { toast } from 'sonner'
 
 interface Member {
@@ -342,7 +343,7 @@ export default function MemberDetailPage() {
 
       {/* Tabs */}
       <div className="flex flex-wrap gap-2 border-b border-[#333] pb-4">
-        {['overview', 'activity', 'features', 'revenue', 'conversation', 'support'].map((tab) => (
+        {['overview', 'retention', 'activity', 'features', 'revenue', 'conversation', 'support'].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -463,6 +464,23 @@ export default function MemberDetailPage() {
                 {updating ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
+          </Card>
+        </div>
+      )}
+
+      {activeTab === 'retention' && (
+        <div className="space-y-4">
+          <Card className="p-4 md:p-6 lg:p-8">
+            <div className="flex items-center gap-3 mb-6">
+              <BarChart3 className="w-5 h-5 text-primary-500" />
+              <div>
+                <h2 className="text-lg md:text-xl font-semibold">Retention Metrics</h2>
+                <p className="text-xs text-neutral-500">
+                  Detailed breakdown of what activities are feeding each metric
+                </p>
+              </div>
+            </div>
+            <RetentionMetricsBreakdown userId={member.user_id} />
           </Card>
         </div>
       )}

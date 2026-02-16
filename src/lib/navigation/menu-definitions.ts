@@ -62,6 +62,7 @@ import {
   Star,
   Music,
   Map,
+  Award,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -81,74 +82,67 @@ export interface NavItem {
 }
 
 /**
+ * Navigation group structure for collapsible sidebar sections
+ */
+export interface NavGroup {
+  name: string
+  items: NavItem[]
+  isCollapsible: boolean
+  defaultCollapsed: boolean
+  icon?: LucideIcon
+}
+
+/**
  * USER NAVIGATION - Main sidebar navigation for logged-in users
  * Used in: Sidebar component, MobileBottomNav
+ * 
+ * Structure: Top-level items (always visible) + Collapsible groups
  */
-export const userNavigation: NavItem[] = [
+export const userNavigation: (NavItem | NavGroup)[] = [
+  // =================================================================
+  // TOP LEVEL - Always Visible (Spiritual Work & Daily Practice)
+  // =================================================================
   {
     name: 'Dashboard',
     href: '/dashboard',
     icon: Home,
-    description: 'Main dashboard overview',
+    description: 'Run your MAP and stay connected',
   },
   {
-    name: 'Profile',
-    href: '/profile',
-    icon: User,
-    hasDropdown: true,
-    description: 'Manage your profile',
-    children: [
-      { name: 'My Active Profile', href: '/profile/active', icon: CheckCircle },
-      { name: 'All Profiles', href: '/profile', icon: Eye },
-      // { name: 'Voice Profile', href: '/voice-profile', icon: Palette }, // Hidden for now - feature preserved for future use
-    ]
+    name: 'MAP',
+    href: '/map',
+    icon: Map,
+    description: 'My Activation Plan - Your 28-day roadmap',
   },
   {
     name: 'Life Vision',
-    href: '/life-vision',
+    href: '/life-vision/active',
     icon: Target,
-    hasDropdown: true,
-    description: 'Create and manage your life vision',
-    children: [
-      { name: 'My Active Vision', href: '/life-vision/active', icon: CheckCircle },
-      { name: 'All Visions', href: '/life-vision', icon: Eye },
-      { name: 'Household Visions', href: '/life-vision/household', icon: Users, description: 'Shared household visions' },
-      { name: 'All Vision Audios', href: '/life-vision/audio', icon: Headphones },
-    ]
+    description: 'My Active Vision',
   },
   {
-    name: 'Assessment',
-    href: '/assessment',
-    icon: Brain,
-    description: 'Vibration assessment',
+    name: 'Audio',
+    href: '/life-vision/audio',
+    icon: Headphones,
+    description: 'Key AM/PM/Sleep audio sets',
   },
   {
     name: 'Vision Board',
     href: '/vision-board',
     icon: Image,
-    hasDropdown: true,
-    description: 'Visual vision board',
-    children: [
-      { name: 'My Vision Board', href: '/vision-board', icon: Image },
-      { name: 'New Item', href: '/vision-board/new', icon: Plus },
-    ]
+    description: 'My Vision Board',
   },
   {
     name: 'Journal',
     href: '/journal',
     icon: BookOpen,
-    hasDropdown: true,
-    description: 'Conscious creation journal',
-    children: [
-      { name: 'My Journal', href: '/journal', icon: Zap },
-      { name: 'New Entry', href: '/journal/new', icon: Plus },
-    ]
+    description: 'My Journal',
   },
   {
-    name: 'Vibe Tribe',
-    href: '/vibe-tribe',
-    icon: UsersRound,
-    description: 'Connect with the VibrationFit community',
+    name: 'Daily Paper',
+    href: '/daily-paper',
+    icon: FileText,
+    description: 'Daily activations tracking',
   },
   {
     name: 'Alignment Gym',
@@ -157,69 +151,157 @@ export const userNavigation: NavItem[] = [
     description: 'Weekly live group coaching sessions',
   },
   {
-    name: 'MAP',
-    href: '/map',
-    icon: Map,
-    description: 'My Activation Plan - Your 28-Day roadmap',
+    name: 'Vibe Tribe',
+    href: '/vibe-tribe',
+    icon: UsersRound,
+    description: 'Connect with the VibrationFit community',
   },
+]
+
+/**
+ * USER NAVIGATION GROUPS - Collapsible groups for power users
+ * These appear below the top-level items in a collapsed state by default
+ */
+export const userNavigationGroups: NavGroup[] = [
+  // =================================================================
+  // GROUP 1: Tracking & Activity (Rearview Mirror)
+  // =================================================================
   {
-    name: 'Tracking',
-    href: '/daily-paper',
-    icon: TrendingUp,
-    hasDropdown: true,
-    description: 'Track your daily progress and abundance',
-    children: [
-      { name: 'Daily Paper', href: '/daily-paper', icon: FileText },
-      { name: 'Abundance Tracker', href: '/abundance-tracker', icon: DollarSign },
-    ]
+    name: 'Tracking & Activity',
+    isCollapsible: true,
+    defaultCollapsed: true,
+    items: [
+      {
+        name: 'Tracking',
+        href: '/tracking',
+        icon: TrendingUp,
+        description: 'Streaks, badges, and performance metrics',
+      },
+      {
+        name: 'Activity',
+        href: '/dashboard/activity',
+        icon: BarChart3,
+        description: 'Activity feed and timeline',
+      },
+      {
+        name: 'Abundance Tracker',
+        href: '/abundance-tracker',
+        icon: DollarSign,
+        description: 'Track abundance and prosperity',
+      },
+      {
+        name: 'Badges',
+        href: '/snapshot/me',
+        icon: Award,
+        description: 'Your activation badges',
+      },
+    ],
   },
+  // =================================================================
+  // GROUP 2: Creations & Updates (Power User Tools)
+  // =================================================================
   {
-    name: 'Activity',
-    href: '/dashboard/activity',
-    icon: BarChart3,
-    description: 'Activity feed and timeline',
+    name: 'Creations & Updates',
+    isCollapsible: true,
+    defaultCollapsed: true,
+    items: [
+      {
+        name: 'Profile & Assessment',
+        href: '/profile',
+        icon: User,
+        hasDropdown: true,
+        children: [
+          { name: 'My Active Profile', href: '/profile/active', icon: CheckCircle },
+          { name: 'Assessment', href: '/assessment', icon: Brain },
+        ],
+      },
+      {
+        name: 'Life Vision Studio',
+        href: '/life-vision',
+        icon: Target,
+        hasDropdown: true,
+        children: [
+          { name: 'All Visions', href: '/life-vision', icon: Eye },
+          { name: 'Household Visions', href: '/life-vision/household', icon: Users },
+          { name: 'New Vision', href: '/life-vision/new', icon: Plus },
+        ],
+      },
+      {
+        name: 'Audio Studio',
+        href: '/life-vision/audio',
+        icon: Headphones,
+        hasDropdown: true,
+        children: [
+          { name: 'All Vision Audios', href: '/life-vision/audio', icon: Music },
+        ],
+      },
+      {
+        name: 'Vision Board Builder',
+        href: '/vision-board',
+        icon: Image,
+        hasDropdown: true,
+        children: [
+          { name: 'New Item', href: '/vision-board/new', icon: Plus },
+        ],
+      },
+    ],
   },
+  // =================================================================
+  // GROUP 3: System & Billing (Administrative)
+  // =================================================================
   {
-    name: 'Tokens',
-    href: '/dashboard/tokens',
-    icon: Zap,
-    hasDropdown: true,
-    description: 'Manage Creation Credits',
-    children: [
-      { name: 'Token Dashboard', href: '/dashboard/tokens', icon: Zap },
-      { name: 'Token History', href: '/dashboard/token-history', icon: BarChart3 },
-      { name: 'Buy Tokens', href: '/dashboard/add-tokens', icon: ShoppingCart },
-    ]
-  },
-  {
-    name: 'Storage',
-    href: '/dashboard/storage',
-    icon: HardDrive,
-    hasDropdown: true,
-    description: 'File storage management',
-    children: [
-      { name: 'Storage Dashboard', href: '/dashboard/storage', icon: HardDrive },
-      { name: 'Storage History', href: '/dashboard/storage-history', icon: BarChart3 },
-      { name: 'Buy Storage', href: '/dashboard/add-storage', icon: ShoppingCart },
-    ]
-  },
-  {
-    name: 'Support',
-    href: '/support',
-    icon: Users,
-    description: 'Get help and support',
-  },
-  {
-    name: 'Settings',
-    href: '/account/settings',
-    icon: Settings,
-    hasDropdown: true,
-    description: 'Account and preferences',
-    children: [
-      { name: 'Account Settings', href: '/account/settings', icon: User, description: 'Email, password, notifications' },
-      { name: 'Household Settings', href: '/household/settings', icon: Users, description: 'Manage household members' },
-      { name: 'Billing & Subscription', href: '/billing', icon: CreditCard, description: 'Payment and subscription' },
-    ]
+    name: 'System & Billing',
+    isCollapsible: true,
+    defaultCollapsed: true,
+    items: [
+      {
+        name: 'Billing & Subscription',
+        href: '/billing',
+        icon: CreditCard,
+        description: 'Payment and subscription',
+      },
+      {
+        name: 'Tokens',
+        href: '/dashboard/tokens',
+        icon: Zap,
+        hasDropdown: true,
+        description: 'Manage Creation Credits',
+        children: [
+          { name: 'Token Dashboard', href: '/dashboard/tokens', icon: Zap },
+          { name: 'Token History', href: '/dashboard/token-history', icon: BarChart3 },
+          { name: 'Buy Tokens', href: '/dashboard/add-tokens', icon: ShoppingCart },
+        ],
+      },
+      {
+        name: 'Storage',
+        href: '/dashboard/storage',
+        icon: HardDrive,
+        hasDropdown: true,
+        description: 'File storage management',
+        children: [
+          { name: 'Storage Dashboard', href: '/dashboard/storage', icon: HardDrive },
+          { name: 'Storage History', href: '/dashboard/storage-history', icon: BarChart3 },
+          { name: 'Buy Storage', href: '/dashboard/add-storage', icon: ShoppingCart },
+        ],
+      },
+      {
+        name: 'Support',
+        href: '/dashboard/support',
+        icon: Users,
+        description: 'Get help and support',
+      },
+      {
+        name: 'Settings',
+        href: '/account/settings',
+        icon: Settings,
+        hasDropdown: true,
+        description: 'Account and preferences',
+        children: [
+          { name: 'Account Settings', href: '/account/settings', icon: User },
+          { name: 'Household Settings', href: '/household/settings', icon: Users },
+        ],
+      },
+    ],
   },
 ]
 
@@ -397,19 +479,21 @@ export const adminNavigation: NavItem[] = [
 /**
  * MOBILE NAVIGATION - Key navigation items for mobile bottom bar
  * Used in: MobileBottomNav component
+ * 
+ * MAP-aligned navigation: Prioritizes daily and weekly MAP reps
  */
 export const mobileNavigation: NavItem[] = [
   {
-    name: 'Dashboard',
-    href: '/dashboard',
-    icon: Home,
-    description: 'Dashboard',
+    name: 'MAP',
+    href: '/map',
+    icon: Map,
+    description: 'My Activation Plan',
   },
   {
-    name: 'Vision',
-    href: '/life-vision',
-    icon: Target,
-    description: 'Life Vision',
+    name: 'Audio',
+    href: '/life-vision/active/audio/sets',
+    icon: Headphones,
+    description: 'Vision Audio Sets',
   },
   {
     name: 'Board',
@@ -428,7 +512,7 @@ export const mobileNavigation: NavItem[] = [
     href: '#',
     icon: Settings,
     description: 'More options',
-    // This is the "More" button that opens drawer
+    // This is the "More" button that opens drawer with Align tools at top
   },
 ]
 
@@ -607,6 +691,20 @@ export function isNavItemActive(
     
     if (item.href === '/dashboard') {
       // Dashboard is exact match only, don't match /dashboard/tokens etc.
+      return false
+    }
+    
+    // Special handling for dynamic Audio link (mobile nav)
+    // Match /life-vision/[uuid]/audio/sets or /life-vision/[uuid]/audio/*
+    if (item.href.match(/^\/life-vision\/[a-f0-9-]{36}\/audio\/sets$/)) {
+      if (pathname.match(/^\/life-vision\/[a-f0-9-]{36}\/audio/)) {
+        return true
+      }
+    }
+    
+    // Special handling for /map
+    if (item.href === '/map') {
+      // Exact match only
       return false
     }
   }

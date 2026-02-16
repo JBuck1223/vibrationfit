@@ -17,6 +17,7 @@ import {
   IntensiveCompletionBanner
 } from '@/lib/design-system/components'
 import { MediaRecorderComponent } from '@/components/MediaRecorder'
+import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { 
   TrendingUp, 
   CheckCircle, 
@@ -26,7 +27,19 @@ import {
   Headphones,
   Layout,
   Sparkles,
-  Keyboard
+  Keyboard,
+  Settings,
+  User,
+  ClipboardCheck,
+  Wand2,
+  Music,
+  Mic,
+  Sliders,
+  Image as ImageIcon,
+  BookOpen,
+  Calendar,
+  Rocket,
+  Unlock
 } from 'lucide-react'
 
 import { 
@@ -35,6 +48,9 @@ import {
   type IntakeQuestion 
 } from '@/lib/constants/intensive-intake-questions'
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
+
+const UNLOCK_VIDEO =
+  'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
 
 // Types
 interface IntensiveStats {
@@ -650,25 +666,194 @@ export default function IntensiveUnlockPage() {
           eyebrow="ACTIVATION INTENSIVE • STEP 14 OF 14"
           title="Unlock Platform"
           subtitle="Let's capture your journey and unlock your full membership"
-        />
+        >
+          <div className="mx-auto w-full max-w-3xl">
+            <OptimizedVideo
+              url={UNLOCK_VIDEO}
+              context="single"
+              className="w-full"
+            />
+          </div>
+        </PageHero>
 
-        {/* Engagement Score Banner */}
-        {stats && (
-          <Card className="p-6 bg-gradient-to-r from-primary-500/10 to-secondary-500/10 border-primary-500/30">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-              <div>
-                <div className="text-sm text-neutral-400 mb-1">Your Engagement Score</div>
-                <div className="text-4xl font-bold text-primary-500">{stats.engagement_score}/100</div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <StatBadge icon={Target} label="Visions" value={stats.visions_count} />
-                <StatBadge icon={Headphones} label="Audio Sets" value={stats.audio_sets_count} />
-                <StatBadge icon={Layout} label="Board Items" value={stats.vision_board_items_count} />
-                <StatBadge icon={FileText} label="Journal" value={stats.journal_entries_count} />
+        {/* 14-Step Journey Completed */}
+        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+          <Stack gap="md">
+            <div className="text-center">
+              <h3 className="text-lg font-bold text-white mb-1">Your 14-Step Journey Complete</h3>
+              <div className="text-sm text-neutral-400 space-y-2 max-w-2xl mx-auto">
+                <p>You&apos;ve completed all 14 steps. This page does two things:</p>
+                <ol className="list-decimal list-inside space-y-1">
+                  <li>Captures your before/after results and experience,</li>
+                  <li>Unlocks your full VibrationFit platform access as a Graduate.</li>
+                </ol>
               </div>
             </div>
-          </Card>
-        )}
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Setup */}
+              <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
+                <div className="flex items-center gap-2 mb-3">
+                  <Settings className="w-5 h-5 text-neutral-400" />
+                  <span className="font-semibold text-white">Setup</span>
+                  <Badge variant="success" className="ml-auto text-xs">Complete</Badge>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-neutral-400">
+                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                    <span className="text-xs font-mono text-neutral-600 w-4">1</span>
+                    <Settings className="w-3.5 h-3.5" />
+                    <span>Account Settings</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-neutral-400">
+                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                    <span className="text-xs font-mono text-neutral-600 w-4">2</span>
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>Baseline Intake</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Foundation */}
+              <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
+                <div className="flex items-center gap-2 mb-3">
+                  <User className="w-5 h-5 text-[#5EC49A]" />
+                  <span className="font-semibold text-white">Foundation</span>
+                  <Badge variant="success" className="ml-auto text-xs">Complete</Badge>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-neutral-400">
+                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                    <span className="text-xs font-mono text-neutral-600 w-4">3</span>
+                    <User className="w-3.5 h-3.5" />
+                    <span>Create Profile</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-neutral-400">
+                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                    <span className="text-xs font-mono text-neutral-600 w-4">4</span>
+                    <ClipboardCheck className="w-3.5 h-3.5" />
+                    <span>Vibration Assessment</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Vision Creation */}
+              <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles className="w-5 h-5 text-[#2DD4BF]" />
+                  <span className="font-semibold text-white">Vision Creation</span>
+                  <Badge variant="success" className="ml-auto text-xs">Complete</Badge>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-neutral-400">
+                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                    <span className="text-xs font-mono text-neutral-600 w-4">5</span>
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Build Life Vision</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-neutral-400">
+                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                    <span className="text-xs font-mono text-neutral-600 w-4">6</span>
+                    <Wand2 className="w-3.5 h-3.5" />
+                    <span>Refine with VIVA</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Audio */}
+              <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
+                <div className="flex items-center gap-2 mb-3">
+                  <Music className="w-5 h-5 text-[#8B5CF6]" />
+                  <span className="font-semibold text-white">Audio</span>
+                  <Badge variant="success" className="ml-auto text-xs">Complete</Badge>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-neutral-400">
+                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                    <span className="text-xs font-mono text-neutral-600 w-4">7</span>
+                    <Music className="w-3.5 h-3.5" />
+                    <span>Generate Audio</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-neutral-400">
+                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                    <span className="text-xs font-mono text-neutral-600 w-4">8</span>
+                    <Mic className="w-3.5 h-3.5" />
+                    <span>Record Voice (Optional)</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-neutral-400">
+                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                    <span className="text-xs font-mono text-neutral-600 w-4">9</span>
+                    <Sliders className="w-3.5 h-3.5" />
+                    <span>Create Audio Mix</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Activation */}
+              <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
+                <div className="flex items-center gap-2 mb-3">
+                  <ImageIcon className="w-5 h-5 text-[#FFB701]" />
+                  <span className="font-semibold text-white">Activation</span>
+                  <Badge variant="success" className="ml-auto text-xs">Complete</Badge>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-neutral-400">
+                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                    <span className="text-xs font-mono text-neutral-600 w-4">10</span>
+                    <ImageIcon className="w-3.5 h-3.5" />
+                    <span>Vision Board</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-neutral-400">
+                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                    <span className="text-xs font-mono text-neutral-600 w-4">11</span>
+                    <BookOpen className="w-3.5 h-3.5" />
+                    <span>Journal Entry</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-neutral-400">
+                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                    <span className="text-xs font-mono text-neutral-600 w-4">12</span>
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>Book Calibration Call</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Completion */}
+              <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
+                <div className="flex items-center gap-2 mb-3">
+                  <Rocket className="w-5 h-5 text-primary-500" />
+                  <span className="font-semibold text-white">Completion</span>
+                  <Badge variant="success" className="ml-auto text-xs">Complete</Badge>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-neutral-400">
+                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                    <span className="text-xs font-mono text-neutral-600 w-4">13</span>
+                    <Rocket className="w-3.5 h-3.5" />
+                    <span>My Activation Plan</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-neutral-400">
+                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                    <span className="text-xs font-mono text-neutral-600 w-4">14</span>
+                    <Unlock className="w-3.5 h-3.5" />
+                    <span>Unlock Platform</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Stack>
+        </Card>
+
+        {/* Activation Snapshot Header */}
+        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+          <Stack gap="sm" className="text-center items-center">
+            <h3 className="text-lg font-bold text-white">Your Activation Snapshot</h3>
+            <p className="text-sm text-neutral-300 leading-relaxed">
+              Below you&apos;ll see your original baseline scores, what you&apos;ve built, and a chance to rate where you are now.
+              Take 1–2 minutes to answer honestly – this helps you see your own growth and helps us keep improving the Intensive.
+            </p>
+          </Stack>
+        </Card>
 
         <form onSubmit={(e) => { e.preventDefault(); submitForm(); }} className="space-y-6">
           {/* Render all questions from constants in order */}
@@ -777,25 +962,36 @@ export default function IntensiveUnlockPage() {
             </div>
           </div>
 
-          {/* Submit Button */}
-          <div className="flex justify-center pt-6">
-            <Button 
-              type="submit"
-              variant="primary"
-              size="md"
-              disabled={submitting}
-              className="min-w-[200px]"
-            >
-              {submitting ? (
-                <>
-                  <Spinner size="sm" className="mr-2" />
-                  Unlocking...
-                </>
-              ) : (
-                'Unlock Platform'
-              )}
-            </Button>
-          </div>
+          {/* Ready to Graduate Section */}
+          <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+            <Stack gap="sm" className="text-center items-center">
+              <h3 className="text-lg font-bold text-white">Ready to Graduate?</h3>
+              <p className="text-sm text-neutral-300 leading-relaxed">
+                When you&apos;re done, click Unlock Platform to activate your full membership, access your Graduate unlocks, and start running your 28‑Day MAP.
+              </p>
+              <div className="pt-4">
+                <Button 
+                  type="submit"
+                  variant="primary"
+                  size="lg"
+                  disabled={submitting}
+                  className="w-full sm:w-auto px-8"
+                >
+                  {submitting ? (
+                    <>
+                      <Spinner size="sm" className="mr-2" />
+                      Unlocking...
+                    </>
+                  ) : (
+                    <>
+                      <Unlock className="w-5 h-5 mr-2" />
+                      Unlock Platform
+                    </>
+                  )}
+                </Button>
+              </div>
+            </Stack>
+          </Card>
         </form>
       </Stack>
     </Container>

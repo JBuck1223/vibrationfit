@@ -8,6 +8,7 @@ import { Calendar, CheckCircle, Video, Loader2 } from 'lucide-react'
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
 import { ReadOnlySection } from '@/components/IntensiveStepCompletedBanner'
 import { IntensiveCompletionBanner } from '@/lib/design-system/components'
+import { OptimizedVideo } from '@/components/OptimizedVideo'
 
 import { 
   Container, 
@@ -18,6 +19,9 @@ import {
   Stack,
   PageHero
 } from '@/lib/design-system/components'
+
+const CALIBRATION_CALL_VIDEO =
+  'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
 
 // Types
 interface AvailableSlot {
@@ -460,15 +464,23 @@ export default function ScheduleCallPage() {
       <Container size="lg">
         <Stack gap="lg">
           <IntensiveCompletionBanner 
-            stepTitle="Book Calibration Call"
+            stepTitle="Schedule Your Calibration Call"
             completedAt={scheduledAt}
           />
 
           <PageHero
             eyebrow="ACTIVATION INTENSIVE • STEP 12 OF 14"
-            title="Book Calibration Call"
-            subtitle="Schedule your 1-on-1 vision calibration session"
-          />
+            title="Schedule Your Calibration Call"
+            subtitle="Book your 1‑on‑1 Graduate session to lock in your gains and design your next 28 days with MAP."
+          >
+            <div className="mx-auto w-full max-w-3xl mb-6">
+              <OptimizedVideo
+                url={CALIBRATION_CALL_VIDEO}
+                context="single"
+                className="w-full"
+              />
+            </div>
+          </PageHero>
           
           <ReadOnlySection
             title="Your Scheduled Call"
@@ -507,48 +519,57 @@ export default function ScheduleCallPage() {
     <Container size="lg">
       <Stack gap="lg">
         <PageHero
+          eyebrow="ACTIVATION INTENSIVE • STEP 12 OF 14"
           title="Schedule Your Calibration Call"
-          subtitle="Book your personalized 1-on-1 session to activate your transformation"
-        />
+          subtitle="Book your 1‑on‑1 Graduate session to lock in your gains and design your next 28 days with MAP."
+        >
+          <div className="mx-auto w-full max-w-3xl mb-6">
+            <OptimizedVideo
+              url={CALIBRATION_CALL_VIDEO}
+              context="single"
+              className="w-full"
+            />
+          </div>
+        </PageHero>
 
         {/* What to Expect */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
           <div className="flex items-start gap-3 p-4 bg-neutral-900/50 border border-neutral-800 rounded-xl">
             <CheckCircle className="w-5 h-5 text-primary-500 mt-0.5 flex-shrink-0" />
             <div>
-              <h3 className="text-sm md:text-base font-semibold mb-1">{SLOT_DURATION}-Minute Deep Dive</h3>
-              <p className="text-xs md:text-sm text-neutral-400">
-                Review your profile, assessment results, and vision in detail
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3 p-4 bg-neutral-900/50 border border-neutral-800 rounded-xl">
-            <CheckCircle className="w-5 h-5 text-primary-500 mt-0.5 flex-shrink-0" />
-            <div>
-              <h3 className="text-sm md:text-base font-semibold mb-1">Personalized Guidance</h3>
-              <p className="text-xs md:text-sm text-neutral-400">
-                Expert insights on how to refine and actualize your vision
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3 p-4 bg-neutral-900/50 border border-neutral-800 rounded-xl">
-            <CheckCircle className="w-5 h-5 text-primary-500 mt-0.5 flex-shrink-0" />
-            <div>
-              <h3 className="text-sm md:text-base font-semibold mb-1">Custom Action Plan</h3>
-              <p className="text-xs md:text-sm text-neutral-400">
-                Leave with a clear roadmap for the next phase of your journey
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3 p-4 bg-neutral-900/50 border border-neutral-800 rounded-xl">
-            <CheckCircle className="w-5 h-5 text-primary-500 mt-0.5 flex-shrink-0" />
-            <div>
-              <h3 className="text-sm md:text-base font-semibold mb-1">Private Video Call</h3>
+              <h3 className="text-sm md:text-base font-semibold mb-1">45-Minute Private Video Call</h3>
               <p className="text-xs md:text-sm text-neutral-400">
                 Join directly from your dashboard when it&apos;s time
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3 p-4 bg-neutral-900/50 border border-neutral-800 rounded-xl">
+            <CheckCircle className="w-5 h-5 text-primary-500 mt-0.5 flex-shrink-0" />
+            <div>
+              <h3 className="text-sm md:text-base font-semibold mb-1">Graduate Review</h3>
+              <p className="text-xs md:text-sm text-neutral-400">
+                Reflect on your 72‑hour journey and biggest shifts.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3 p-4 bg-neutral-900/50 border border-neutral-800 rounded-xl">
+            <CheckCircle className="w-5 h-5 text-primary-500 mt-0.5 flex-shrink-0" />
+            <div>
+              <h3 className="text-sm md:text-base font-semibold mb-1">MAP Setup</h3>
+              <p className="text-xs md:text-sm text-neutral-400">
+                Customize your 28‑Day My Activation Plan so it fits your real life.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3 p-4 bg-neutral-900/50 border border-neutral-800 rounded-xl">
+            <CheckCircle className="w-5 h-5 text-primary-500 mt-0.5 flex-shrink-0" />
+            <div>
+              <h3 className="text-sm md:text-base font-semibold mb-1">Badge Roadmap</h3>
+              <p className="text-xs md:text-sm text-neutral-400">
+                See exactly which milestones you can hit and how to earn them.
               </p>
             </div>
           </div>
@@ -556,7 +577,10 @@ export default function ScheduleCallPage() {
 
         {/* Scheduling Card */}
         <Card>
-          <h2 className="text-lg md:text-xl lg:text-2xl font-bold mb-4 md:mb-6">Select Date & Time</h2>
+          <h2 className="text-lg md:text-xl lg:text-2xl font-bold mb-2 text-center">Select Date & Time</h2>
+          <p className="text-sm text-neutral-400 mb-6 text-center">
+            Within 7 days is ideal. Pick a date and time that you can fully protect, like you would a meeting with your future self.
+          </p>
 
           {availableStaff.length === 0 ? (
             <div className="text-center py-8 text-neutral-400">

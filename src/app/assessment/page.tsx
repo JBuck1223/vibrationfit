@@ -105,10 +105,24 @@ export default function AssessmentHub() {
 
   const loadAssessments = async () => {
     try {
+      // Check if user is authenticated first
+      const supabase = createClient()
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      
+      if (authError || !user) {
+        console.log('User not authenticated, redirecting to login')
+        router.push('/login?redirect=/assessment')
+        return
+      }
+
       const { assessments } = await fetchAssessments()
       setAssessments(assessments)
     } catch (error) {
       console.error('Failed to load assessments:', error)
+      // If it's an auth error, redirect to login
+      if (error instanceof Error && error.message.includes('Unauthorized')) {
+        router.push('/login?redirect=/assessment')
+      }
     } finally {
       setIsLoading(false)
     }

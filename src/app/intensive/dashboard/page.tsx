@@ -548,7 +548,7 @@ function IntensiveDashboardContent() {
         description: 'Optionally record sections in your own voice',
         icon: Mic,
         phase: 'Audio',
-        completed: hasVoiceRecordings || checklist.voice_recording_skipped, // Complete if recorded OR skipped
+        completed: hasVoiceRecordings || checklist.voice_recording_skipped || checklist.audios_generated, // Complete if recorded OR explicitly skipped OR moved past (Step 9 complete)
         completedAt: hasVoiceRecordings ? checklist.audio_generated_at : checklist.voice_recording_skipped_at,
         href: '/life-vision/audio/record/new',
         viewHref: '/life-vision',

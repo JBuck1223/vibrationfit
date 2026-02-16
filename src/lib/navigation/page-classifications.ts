@@ -28,6 +28,7 @@ export const PAGE_CLASSIFICATIONS = {
       '/dashboard/storage',
       '/dashboard/token-history',
       '/dashboard/tokens',
+      '/tracking',
       '/viva',
     
     // Life Vision System

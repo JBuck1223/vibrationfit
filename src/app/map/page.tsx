@@ -37,47 +37,80 @@ import {
   Layers,
   Unlock,
   Video,
-  UsersRound
+  UsersRound,
+  Award,
+  Info,
 } from 'lucide-react'
+import { BadgeDetailModal } from '@/components/badges'
+import {
+  BADGE_DEFINITIONS,
+  type BadgeType,
+  type BadgeWithProgress as BadgeWithProgressType,
+} from '@/lib/badges/types'
 
 // Placeholder video URL - replace with actual MAP video
 const MAP_VIDEO =
   'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
 
-// Milestone data for the 28-day challenge
-const MILESTONES = [
+// Milestone data for activation badges
+const MILESTONES: Array<{
+  day: number
+  label: string
+  message: string
+  badgeType: BadgeType
+}> = [
   {
     day: 3,
     label: '3-Day Activated',
-    message: "You've started. You're officially someone who shows up for The Life I Choose."
+    message: "You've shown up 3 days. You're officially someone who shows up for The Life I Choose.",
+    badgeType: 'activated_3d',
   },
   {
     day: 7,
     label: '7-Day Activated',
-    message: "You stayed with it past the novelty. Consistency is now part of your story."
+    message: "7 days of practice. Consistency is now part of your story.",
+    badgeType: 'activated_7d',
   },
   {
     day: 14,
     label: '14-Day Activated',
-    message: "You're building a new normal. Returning to alignment is what you do."
+    message: "14 days of showing up. Returning to alignment is what you do.",
+    badgeType: 'activated_14d',
   },
   {
     day: 21,
     label: '21-Day Activated',
-    message: "Old patterns are losing their grip. This version of you is sticking."
+    message: "21 days of activation. Old patterns are losing their grip.",
+    badgeType: 'activated_21d',
   },
   {
     day: 28,
     label: '28-Day Activated',
-    message: "You completed 28 days. You have proof: you are a conscious creator in action."
-  }
+    message: "28 days activated. You have proof: you are a conscious creator in action.",
+    badgeType: 'activated_28d',
+  },
 ]
+
+// Helper to create a stub BadgeWithProgress for the modal from a badge type
+function makeBadgeStub(badgeType: BadgeType): BadgeWithProgressType {
+  const definition = BADGE_DEFINITIONS[badgeType]
+  return {
+    definition,
+    earned: false,
+    progress: {
+      current: 0,
+      target: definition.activationDays || definition.threshold || 1,
+      percentage: 0,
+    },
+  }
+}
 
 export default function MAPPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   
   const [loading, setLoading] = useState(true)
+  const [selectedMilestoneBadge, setSelectedMilestoneBadge] = useState<BadgeWithProgressType | null>(null)
   const [completing, setCompleting] = useState(false)
   const [activeVisionId, setActiveVisionId] = useState<string | null>(null)
   
@@ -205,8 +238,8 @@ export default function MAPPage() {
         {/* HERO SECTION */}
         {/* ============================================ */}
         <PageHero
-          eyebrow={isIntensiveFlow ? "ACTIVATION INTENSIVE • STEP 13 OF 14" : "MY ACTIVATION PLAN"}
-          title="Your 28‑Day Activation MAP"
+          eyebrow={isIntensiveFlow ? "ACTIVATION INTENSIVE • STEP 13 OF 14" : "MAP"}
+          title="My Activation Plan"
           subtitle="Your personal roadmap to make The Life I Choose your new normal."
         >
           <div className="mx-auto w-full max-w-3xl">
@@ -275,10 +308,10 @@ export default function MAPPage() {
               About Your MAP
             </Text>
             <p className="text-sm text-neutral-300 leading-relaxed">
-              You&apos;ve completed your Creations. Your profile, assessment, Life Vision, audios, Vision Board, and first journals are complete.
+              You&apos;ve completed your first Creations. Your profile, assessment, Life Vision, audios, Vision Board, and journal entry are complete.
             </p>
             <p className="text-sm text-neutral-300 leading-relaxed">
-              Now your 28‑Day MAP shows you exactly how to run your Daily Activations, Connections, and Sessions so The Life I Choose becomes your new normal.
+              Now your daily MAP shows you exactly how to run your Daily Activations, Connections and Sessions so The Life I Choose becomes your new normal.
             </p>
           </Stack>
         </Card>
@@ -294,10 +327,6 @@ export default function MAPPage() {
               </Text>
               <p className="text-sm text-neutral-500 mt-2">Your 10–20 Minute Ritual</p>
             </div>
-            
-            <p className="text-sm text-neutral-300 leading-relaxed">
-              Do this every day for 28 days. Miss a day? Just restart your streak. The power is in the reps.
-            </p>
 
             {/* Step 1: Morning */}
             <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
@@ -507,7 +536,6 @@ export default function MAPPage() {
               <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
                 Weekly Alignment
               </Text>
-              <p className="text-sm text-neutral-500 mt-2">Sessions & Connections</p>
             </div>
 
             <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
@@ -580,9 +608,9 @@ export default function MAPPage() {
           <Stack gap="lg">
             <div>
               <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-                Your 28‑Day Activation Milestones
+                Activation Milestones
               </Text>
-              <p className="text-sm text-neutral-500 mt-2">We&apos;ll remind you of these inside VibrationFit. Here&apos;s what to look for:</p>
+              <p className="text-sm text-neutral-500 mt-2">Earn badges by logging activations on different days. They don&apos;t have to be consecutive:</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -595,15 +623,31 @@ export default function MAPPage() {
                     <div className="w-10 h-10 bg-primary-500/20 rounded-full flex items-center justify-center">
                       <span className="text-primary-400 font-bold">{milestone.day}</span>
                     </div>
-                    <Badge variant="neutral" className="text-primary-400 border-primary-500/30">
+                    <Badge variant="neutral" className="text-primary-400 border-primary-500/30 flex-1">
                       {milestone.label}
                     </Badge>
+                    <button
+                      onClick={() => setSelectedMilestoneBadge(makeBadgeStub(milestone.badgeType))}
+                      className="p-1 rounded-md hover:bg-white/10 transition-colors text-neutral-400 hover:text-primary-400"
+                      aria-label={`Learn more about ${milestone.label}`}
+                    >
+                      <Info className="w-4 h-4" />
+                    </button>
                   </div>
                   <p className="text-neutral-300 text-sm leading-relaxed">
                     &quot;{milestone.message}&quot;
                   </p>
                 </div>
               ))}
+            </div>
+
+            <div className="text-center pt-2">
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/snapshot/me" className="inline-flex items-center gap-2">
+                  <Award className="w-4 h-4" />
+                  View my badges
+                </Link>
+              </Button>
             </div>
           </Stack>
         </Card>
@@ -709,6 +753,13 @@ export default function MAPPage() {
           </div>
         </Card>
       </Stack>
+
+      {/* Badge detail modal for milestones */}
+      <BadgeDetailModal
+        badge={selectedMilestoneBadge}
+        isOpen={!!selectedMilestoneBadge}
+        onClose={() => setSelectedMilestoneBadge(null)}
+      />
     </Container>
   )
 }

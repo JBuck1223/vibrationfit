@@ -127,16 +127,15 @@ export default function RetentionDashboard({
         subtext=""
         lifetimeLabel="assets created"
         lifetimeValue={metrics.creations.lifetime}
-        ctaText={getCreationContext()}
         readonly={readonly}
       />
 
       {/* Activations Tile */}
       <RetentionMetricTile
         type="activations"
-        headline={`${metrics.activations.recent} / ${metrics.activations.target} days`}
+        headline={`${metrics.activations.recent} in last 30 days`}
         subtext=""
-        lifetimeLabel="activation days"
+        lifetimeLabel="total activations"
         lifetimeValue={metrics.activations.lifetime}
         readonly={readonly}
       />
@@ -148,7 +147,6 @@ export default function RetentionDashboard({
         subtext=""
         lifetimeLabel="interactions"
         lifetimeValue={metrics.connections.lifetime}
-        ctaText={getConnectionContext()}
         ctaHref="/vibe-tribe"
         nudgeMessage={metrics.connections.needsNudge ? "Share one win or wobble with the Vibe Tribe today." : undefined}
         readonly={readonly}

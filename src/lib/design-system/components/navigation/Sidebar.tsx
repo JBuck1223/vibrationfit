@@ -8,7 +8,7 @@ import { cn } from '../shared-utils'
 import { createClient } from '@/lib/supabase/client'
 import { getActiveProfileClient } from '@/lib/supabase/profile-client'
 import { useStorageData } from '@/hooks/useStorageData'
-import { userNavigation, adminNavigation as centralAdminNav, isNavItemActive, type NavItem } from '@/lib/navigation'
+import { userNavigation, adminNavigation as centralAdminNav, isNavItemActive, type NavItem, type NavGroup } from '@/lib/navigation'
 
 // Sidebar Component
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -23,7 +23,8 @@ const SIDEBAR_COLLAPSED_KEY = 'vibrationfit-sidebar-collapsed'
 export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
   ({ className, navigation, isAdmin = false, ...props }, ref) => {
     // Use admin navigation if isAdmin is true, otherwise use provided navigation or centralized userNavigation
-    const navItems = isAdmin ? centralAdminNav : (navigation || userNavigation)
+    // Filter to only NavItems (exclude NavGroups)
+    const navItems = isAdmin ? centralAdminNav : (navigation || (userNavigation.filter((item): item is NavItem => 'href' in item)))
     // Initialize from localStorage, default to expanded (false)
     const [collapsed, setCollapsed] = useState(() => {
       if (typeof window !== 'undefined') {

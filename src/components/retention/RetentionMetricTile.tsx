@@ -1,8 +1,10 @@
 'use client'
 
+import { useState } from 'react'
 import { Card } from '@/lib/design-system/components'
-import { Users, Heart, Play, Sparkles, Calendar, ArrowRight } from 'lucide-react'
+import { Users, Heart, Play, Sparkles, Calendar, ArrowRight, Info } from 'lucide-react'
 import Link from 'next/link'
+import MetricInfoModal, { METRIC_EXPLAINERS } from './MetricInfoModal'
 
 export type MetricType = 'sessions' | 'connections' | 'activations' | 'creations'
 
@@ -70,18 +72,31 @@ export default function RetentionMetricTile({
   nudgeMessage,
   readonly = false,
 }: RetentionMetricTileProps) {
+  const [showInfoModal, setShowInfoModal] = useState(false)
   const config = METRIC_CONFIG[type]
   const Icon = config.icon
+  const explainer = METRIC_EXPLAINERS[type]
 
   return (
+    <>
     <Card className={`p-4 md:p-5 ${config.bgColor} border ${config.borderColor} transition-all hover:scale-[1.02]`}>
-      {/* Header with icon and label */}
-      <div className="flex items-center gap-2 mb-3">
+      {/* Header with icon, label, and info button */}
+      <div className="flex items-center gap-2 mb-1">
         <div className={`p-1.5 rounded-lg ${config.bgColor}`}>
           <Icon className={`w-4 h-4 ${config.color}`} />
         </div>
-        <span className={`text-sm font-medium ${config.color}`}>{config.label}</span>
+        <span className={`text-sm font-medium ${config.color} flex-1`}>{config.label}</span>
+        <button
+          onClick={() => setShowInfoModal(true)}
+          className={`p-1 rounded-md hover:bg-white/10 transition-colors ${config.color}`}
+          aria-label={`What counts as ${config.label}`}
+        >
+          <Info className="w-3.5 h-3.5" />
+        </button>
       </div>
+
+      {/* Subtitle micro-copy */}
+      <p className="text-[11px] text-neutral-500 mb-3 leading-tight">{explainer.subtitle}</p>
 
       {/* Big headline metric */}
       <div className="mb-1">
@@ -122,5 +137,13 @@ export default function RetentionMetricTile({
         </div>
       )}
     </Card>
+
+    {/* Info modal */}
+    <MetricInfoModal
+      type={type}
+      isOpen={showInfoModal}
+      onClose={() => setShowInfoModal(false)}
+    />
+    </>
   )
 }

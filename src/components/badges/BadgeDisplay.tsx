@@ -3,11 +3,13 @@
 import { useState, useEffect } from 'react'
 import { Card, Spinner } from '@/lib/design-system/components'
 import BadgeWithProgress from './BadgeWithProgress'
+import BadgeDetailModal from './BadgeDetailModal'
 import {
   UserBadgeStatus,
   BadgeCategory,
   BADGE_CATEGORY_INFO,
   BADGE_CATEGORY_COLORS,
+  type BadgeWithProgress as BadgeWithProgressType,
 } from '@/lib/badges/types'
 import { Users, Heart, Play, Sparkles } from 'lucide-react'
 
@@ -45,6 +47,7 @@ export default function BadgeDisplay({
   const [badgeStatus, setBadgeStatus] = useState<UserBadgeStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedBadge, setSelectedBadge] = useState<BadgeWithProgressType | null>(null)
 
   useEffect(() => {
     async function fetchBadges() {
@@ -152,12 +155,20 @@ export default function BadgeDisplay({
                   showProgress={true}
                   locked={lockUntilEarned}
                   variant={variant}
+                  onClick={() => setSelectedBadge(badge)}
                 />
               ))}
             </div>
           </Card>
         )
       })}
+
+      {/* Badge detail modal */}
+      <BadgeDetailModal
+        badge={selectedBadge}
+        isOpen={!!selectedBadge}
+        onClose={() => setSelectedBadge(null)}
+      />
     </div>
   )
 }

@@ -13,8 +13,9 @@ import {
   ChevronDown,
   X,
   LogOut,
+  Award,
 } from 'lucide-react'
-import { userNavigation, adminNavigation, mobileNavigation, isNavItemActive, type NavItem } from '@/lib/navigation'
+import { userNavigation, userNavigationGroups, adminNavigation, mobileNavigation, isNavItemActive, type NavItem, type NavGroup } from '@/lib/navigation'
 import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
 
 interface SidebarProps {
@@ -22,17 +23,20 @@ interface SidebarProps {
   isAdmin?: boolean
 }
 
-// LocalStorage key for sidebar state
+// LocalStorage keys for sidebar state
 const SIDEBAR_COLLAPSED_KEY = 'vibrationfit-sidebar-collapsed'
+const SIDEBAR_GROUPS_KEY = 'vibrationfit-sidebar-groups'
 
 // Shared Sidebar Base Component
-function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & { navigation: NavItem[] }) {
+function SidebarBase({ className, navigation, groups = [], isAdmin = false }: SidebarProps & { navigation: NavItem[], groups?: NavGroup[] }) {
   // Initialize with default value for SSR consistency, then sync with localStorage
   const [collapsed, setCollapsed] = useState(false) // Default: expanded
   const [hasMounted, setHasMounted] = useState(false)
   const [expandedItems, setExpandedItems] = useState<string[]>([])
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([]) // For collapsible groups
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [profile, setProfile] = useState<any>(null)
+  const [activeVisionId, setActiveVisionId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const pathname = usePathname()
   
@@ -42,6 +46,17 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
     if (saved !== null) {
       setCollapsed(saved === 'true')
     }
+    
+    // Load expanded groups state
+    const savedGroups = localStorage.getItem(SIDEBAR_GROUPS_KEY)
+    if (savedGroups) {
+      try {
+        setExpandedGroups(JSON.parse(savedGroups))
+      } catch (e) {
+        console.error('Error parsing saved groups:', e)
+      }
+    }
+    
     setHasMounted(true)
   }, [])
   
@@ -51,6 +66,13 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
       localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed))
     }
   }, [collapsed, hasMounted])
+  
+  // Persist expanded groups to localStorage
+  useEffect(() => {
+    if (hasMounted) {
+      localStorage.setItem(SIDEBAR_GROUPS_KEY, JSON.stringify(expandedGroups))
+    }
+  }, [expandedGroups, hasMounted])
   // Memoize supabase client to prevent dependency array issues
   const supabase = useMemo(() => createClient(), [])
 
@@ -74,9 +96,27 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
         getActiveProfileClient(user.id)
           .then(profileData => setProfile(profileData))
           .catch(err => console.error('Sidebar: Error fetching profile:', err))
+        
+        // Fetch active vision ID (non-blocking)
+        Promise.resolve(
+          supabase
+            .from('vision_versions')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('is_active', true)
+            .eq('is_draft', false)
+            .maybeSingle()
+        )
+          .then(({ data }) => {
+            if (data?.id) {
+              setActiveVisionId(data.id)
+            }
+          })
+          .catch(err => console.error('Sidebar: Error fetching active vision:', err))
       } else {
         setUser(null)
         setProfile(null)
+        setActiveVisionId(null)
       }
     }
 
@@ -89,8 +129,26 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
         getActiveProfileClient(session.user.id)
           .then(profileData => setProfile(profileData))
           .catch(err => console.error('Sidebar: Error fetching profile:', err))
+        
+        // Refetch active vision ID
+        Promise.resolve(
+          supabase
+            .from('vision_versions')
+            .select('id')
+            .eq('user_id', session.user.id)
+            .eq('is_active', true)
+            .eq('is_draft', false)
+            .maybeSingle()
+        )
+          .then(({ data }) => {
+            if (data?.id) {
+              setActiveVisionId(data.id)
+            }
+          })
+          .catch(err => console.error('Sidebar: Error fetching active vision:', err))
       } else {
         setProfile(null)
+        setActiveVisionId(null)
       }
     })
 
@@ -130,6 +188,14 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
       prev.includes(itemName) 
         ? prev.filter(name => name !== itemName)
         : [...prev, itemName]
+    )
+  }
+
+  const toggleGroup = (groupName: string) => {
+    setExpandedGroups(prev =>
+      prev.includes(groupName)
+        ? prev.filter(name => name !== groupName)
+        : [...prev, groupName]
     )
   }
 
@@ -181,7 +247,13 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+        {/* Top-level navigation items */}
         {navigation.map((item) => {
+          // Dynamically update Audio link if we have active vision
+          const itemHref = item.name === 'Audio' && activeVisionId 
+            ? `/life-vision/${activeVisionId}/audio/sets`
+            : item.href
+          
           const isActive = isNavItemActive(item, pathname, profile?.id)
           const isExpanded = expandedItems.includes(item.name)
           const Icon = item.icon
@@ -219,9 +291,6 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
                         const ChildIcon = child.icon
                         const isChildActive = isNavItemActive(child, pathname, profile?.id, true) // true = isChildOfDropdown
                         
-                        // Add extra indent for "New Item" and "New Entry" items
-                        const isNestedItem = child.name === 'New Item' || child.name === 'New Entry'
-                        
                         return (
                           <Link
                             key={child.name}
@@ -230,8 +299,7 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
                               'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200',
                               isChildActive
                                 ? 'bg-[#39FF14]/20 text-[#39FF14] border border-[#39FF14]/30'
-                                : 'text-neutral-400 hover:text-white hover:bg-neutral-800',
-                              isNestedItem ? 'ml-6' : ''
+                                : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
                             )}
                           >
                             <ChildIcon className="w-4 h-4 flex-shrink-0" />
@@ -244,7 +312,7 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
                 </div>
               ) : (
                 <Link
-                  href={item.href}
+                  href={itemHref}
                   className={cn(
                     'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
                     isActive
@@ -265,6 +333,108 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
                     </>
                   )}
                 </Link>
+              )}
+            </div>
+          )
+        })}
+        
+        {/* Collapsible Groups */}
+        {!collapsed && groups.map((group) => {
+          const isGroupExpanded = expandedGroups.includes(group.name)
+          
+          return (
+            <div key={group.name} className="mt-4">
+              {/* Group Header */}
+              <button
+                onClick={() => toggleGroup(group.name)}
+                className="flex items-center gap-2 px-3 py-2 w-full text-left rounded-lg hover:bg-neutral-800/50 transition-colors"
+              >
+                <span className="text-xs font-semibold tracking-wider text-neutral-500 uppercase flex-1">
+                  {group.name}
+                </span>
+                <ChevronDown className={cn(
+                  'w-4 h-4 text-neutral-500 transition-transform duration-200',
+                  isGroupExpanded ? 'rotate-180' : ''
+                )} />
+              </button>
+              
+              {/* Group Items */}
+              {isGroupExpanded && (
+                <div className="mt-2 space-y-1">
+                  {group.items.map((item) => {
+                    const isActive = isNavItemActive(item, pathname, profile?.id)
+                    const isExpanded = expandedItems.includes(item.name)
+                    const Icon = item.icon
+                    
+                    const hasActiveChild = item.children?.some(child => 
+                      isNavItemActive(child, pathname, profile?.id, true)
+                    )
+                    const shouldHighlightParent = isActive && !hasActiveChild
+
+                    return (
+                      <div key={item.name}>
+                        {item.hasDropdown ? (
+                          <div>
+                            <button
+                              onClick={() => toggleExpanded(item.name)}
+                              className={cn(
+                                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 w-full text-left',
+                                shouldHighlightParent
+                                  ? 'bg-[#39FF14]/20 text-[#39FF14] border border-[#39FF14]/30'
+                                  : 'text-neutral-300 hover:text-white hover:bg-neutral-800'
+                              )}
+                            >
+                              <Icon className="w-4 h-4 flex-shrink-0" />
+                              <span className="flex-1">{item.name}</span>
+                              <ChevronDown className={cn(
+                                'w-3 h-3 transition-transform duration-200',
+                                isExpanded ? 'rotate-180' : ''
+                              )} />
+                            </button>
+                            
+                            {isExpanded && item.children && (
+                              <div className="ml-6 mt-1 space-y-1">
+                                {item.children.map((child) => {
+                                  const ChildIcon = child.icon
+                                  const isChildActive = isNavItemActive(child, pathname, profile?.id, true)
+                                  
+                                  return (
+                                    <Link
+                                      key={child.name}
+                                      href={child.href}
+                                      className={cn(
+                                        'flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition-all duration-200',
+                                        isChildActive
+                                          ? 'bg-[#39FF14]/20 text-[#39FF14] border border-[#39FF14]/30'
+                                          : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+                                      )}
+                                    >
+                                      <ChildIcon className="w-3 h-3 flex-shrink-0" />
+                                      <span>{child.name}</span>
+                                    </Link>
+                                  )
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <Link
+                            href={item.href}
+                            className={cn(
+                              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200',
+                              isActive
+                                ? 'bg-[#00CC44]/20 text-[#00CC44] border border-[#00CC44]/30'
+                                : 'text-neutral-300 hover:text-white hover:bg-neutral-800'
+                            )}
+                          >
+                            <Icon className="w-4 h-4 flex-shrink-0" />
+                            <span className="flex-1">{item.name}</span>
+                          </Link>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
               )}
             </div>
           )
@@ -296,7 +466,7 @@ function SidebarBase({ className, navigation, isAdmin = false }: SidebarProps & 
 
 // User Sidebar Component
 export function UserSidebar({ className }: { className?: string }) {
-  return <SidebarBase className={className} navigation={userNavigation} isAdmin={false} />
+  return <SidebarBase className={className} navigation={userNavigation as NavItem[]} groups={userNavigationGroups} isAdmin={false} />
 }
 
 // Admin Sidebar Component
@@ -306,8 +476,9 @@ export function AdminSidebar({ className }: { className?: string }) {
 
 // Generic Sidebar Component (for backward compatibility)
 export function Sidebar({ className, isAdmin = false }: SidebarProps) {
-  const navigation = isAdmin ? adminNavigation : userNavigation
-  return <SidebarBase className={className} navigation={navigation} isAdmin={isAdmin} />
+  const navigation = isAdmin ? adminNavigation : (userNavigation as NavItem[])
+  const groups = isAdmin ? [] : userNavigationGroups
+  return <SidebarBase className={className} navigation={navigation} groups={groups} isAdmin={isAdmin} />
 }
 
 // Mobile Bottom Navigation Component
@@ -318,35 +489,94 @@ interface MobileBottomNavProps {
 export function MobileBottomNav({ className }: MobileBottomNavProps) {
   const pathname = usePathname()
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [activeVisionId, setActiveVisionId] = useState<string | null>(null)
   
-  // Use centralized mobile navigation
-  const mobileNavItems = mobileNavigation.map(item => ({
-    ...item,
-    isAction: item.href === '#', // "More" button is an action
-  }))
-
-  // Get all sidebar items for the drawer (exclude main nav items)
-  // Use userNavigation for mobile drawer (admin uses same mobile nav)
-  const allSidebarItems = userNavigation.filter((item: NavItem) => 
-    !mobileNavItems.some((mobileItem: NavItem & { isAction?: boolean }) => 
-      mobileItem.href === item.href || 
-      (mobileItem.href === '/life-vision' && item.href === '/life-vision') ||
-      (mobileItem.href === '/vision-board' && item.href === '/vision-board') ||
-      (mobileItem.href === '/journal' && item.href === '/journal')
-    )
-  )
-
-  const handleItemClick = (item: any) => {
-    if (item.hasDropdown && item.children) {
-      setSelectedCategory(item.name)
-      setIsDrawerOpen(true)
+  // Fetch active vision ID for dynamic Audio link
+  useEffect(() => {
+    const fetchActiveVision = async () => {
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        if (!user) return
+        
+        const { data: activeVision } = await supabase
+          .from('vision_versions')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .eq('is_draft', false)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        
+        if (activeVision) {
+          setActiveVisionId(activeVision.id)
+        }
+      } catch (error) {
+        console.error('Error fetching active vision:', error)
+      }
     }
-  }
+    
+    fetchActiveVision()
+  }, [])
+  
+  // Use centralized mobile navigation and resolve dynamic Audio link
+  const mobileNavItems = mobileNavigation.map(item => {
+    // Dynamically resolve Audio link to active vision's audio sets page
+    if (item.name === 'Audio' && activeVisionId) {
+      return {
+        ...item,
+        href: `/life-vision/${activeVisionId}/audio/sets`,
+        isAction: false,
+      }
+    }
+    
+    return {
+      ...item,
+      isAction: item.href === '#', // "More" button is an action
+    }
+  })
+
+  // Define drawer sections with categorized navigation
+  const drawerSections = [
+    {
+      title: 'Align',
+      items: [
+        { name: 'Vibe Tribe', href: '/vibe-tribe', icon: userNavigation.find(i => i.name === 'Vibe Tribe')?.icon },
+        { name: 'Alignment Gym', href: '/alignment-gym', icon: userNavigation.find(i => i.name === 'Alignment Gym')?.icon },
+        { name: 'Dashboard', href: '/dashboard', icon: userNavigation.find(i => i.name === 'Dashboard')?.icon },
+      ]
+    },
+    {
+      title: 'You',
+      items: [
+        { name: 'Profile', href: '/profile', icon: userNavigationGroups.find(g => g.name === 'Creations & Updates')?.items.find(i => i.name === 'Profile & Assessment')?.icon },
+        { name: 'Assessment', href: '/assessment', icon: userNavigationGroups.find(g => g.name === 'Creations & Updates')?.items.find(i => i.name === 'Profile & Assessment')?.children?.[1].icon },
+      ]
+    },
+    {
+      title: 'Tracking',
+      items: [
+        { name: 'Tracking', href: '/tracking', icon: userNavigationGroups.find(g => g.name === 'Tracking & Activity')?.items.find(i => i.name === 'Tracking')?.icon },
+        { name: 'Activity', href: '/dashboard/activity', icon: userNavigationGroups.find(g => g.name === 'Tracking & Activity')?.items.find(i => i.name === 'Activity')?.icon },
+        { name: 'Abundance Tracker', href: '/abundance-tracker', icon: userNavigationGroups.find(g => g.name === 'Tracking & Activity')?.items.find(i => i.name === 'Abundance Tracker')?.icon },
+        { name: 'Badges', href: '/snapshot/me', icon: Award },
+      ]
+    },
+    {
+      title: 'System',
+      items: [
+        { name: 'Tokens', href: '/dashboard/tokens', icon: userNavigationGroups.find(g => g.name === 'System & Billing')?.items.find(i => i.name === 'Tokens')?.icon },
+        { name: 'Storage', href: '/dashboard/storage', icon: userNavigationGroups.find(g => g.name === 'System & Billing')?.items.find(i => i.name === 'Storage')?.icon },
+        { name: 'Support', href: '/dashboard/support', icon: userNavigationGroups.find(g => g.name === 'System & Billing')?.items.find(i => i.name === 'Support')?.icon },
+        { name: 'Settings', href: '/account/settings', icon: userNavigationGroups.find(g => g.name === 'System & Billing')?.items.find(i => i.name === 'Settings')?.icon },
+      ]
+    }
+  ]
 
   const closeDrawer = () => {
     setIsDrawerOpen(false)
-    setSelectedCategory(null)
   }
 
   return (
@@ -417,13 +647,13 @@ export function MobileBottomNav({ className }: MobileBottomNavProps) {
           'bg-neutral-900 border-t border-neutral-800 rounded-t-2xl',
           'transform transition-transform duration-300 ease-in-out',
           isDrawerOpen ? 'translate-y-0' : 'translate-y-full',
-          'bottom-16' // Position above the bottom bar (assuming bottom bar is ~64px tall)
+          'bottom-16' // Position above the bottom bar
         )}>
-          <div className="p-4">
+          <div className="p-4 max-h-[70vh] overflow-y-auto">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-white">
-                {selectedCategory ? `${selectedCategory} Options` : 'More Options'}
+                More Options
               </h3>
               <button
                 onClick={closeDrawer}
@@ -433,36 +663,41 @@ export function MobileBottomNav({ className }: MobileBottomNavProps) {
               </button>
             </div>
 
-            {/* Grid of Items */}
-            <div className="grid grid-cols-2 gap-3">
-              {allSidebarItems.map((item: NavItem) => {
-                const Icon = item.icon
-                const isActive = isNavItemActive(item, pathname)
-                
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    onClick={closeDrawer}
-                    className={cn(
-                      'flex flex-col items-center justify-center p-4 rounded-xl transition-all duration-200',
-                      'border-2 border-neutral-700 hover:border-neutral-600',
-                      isActive
-                        ? 'bg-[#39FF14]/20 border-[#39FF14]/50 text-[#39FF14]'
-                        : 'bg-neutral-800/50 text-neutral-300 hover:bg-neutral-800 hover:text-white'
-                    )}
-                  >
-                    <Icon className="w-6 h-6 mb-2" />
-                    <span className="text-sm font-medium text-center">{item.name}</span>
-                    {item.badge && (
-                      <span className="mt-1 px-2 py-0.5 text-xs bg-[#39FF14] text-black rounded-full">
-                        {item.badge}
-                      </span>
-                    )}
-                  </Link>
-                )
-              })}
-            </div>
+            {/* Categorized Sections */}
+            {drawerSections.map((section, idx) => (
+              <div key={section.title}>
+                <h4 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">
+                  {section.title}
+                </h4>
+                <div className="grid grid-cols-2 gap-3 mb-6">
+                  {section.items.map((item) => {
+                    const Icon = item.icon
+                    const isActive = isNavItemActive(item as NavItem, pathname)
+                    
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        onClick={closeDrawer}
+                        className={cn(
+                          'flex flex-col items-center justify-center p-4 rounded-xl transition-all duration-200',
+                          'border-2 border-neutral-700 hover:border-neutral-600',
+                          isActive
+                            ? 'bg-[#39FF14]/20 border-[#39FF14]/50 text-[#39FF14]'
+                            : 'bg-neutral-800/50 text-neutral-300 hover:bg-neutral-800 hover:text-white'
+                        )}
+                      >
+                        {Icon && <Icon className="w-6 h-6 mb-2" />}
+                        <span className="text-sm font-medium text-center">{item.name}</span>
+                      </Link>
+                    )
+                  })}
+                </div>
+                {idx < drawerSections.length - 1 && (
+                  <div className="border-t border-neutral-800 mb-6" />
+                )}
+              </div>
+            ))}
           </div>
         </div>
       </div>

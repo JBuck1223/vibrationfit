@@ -2,11 +2,15 @@
  * Retention Metrics Types
  * 
  * These types define the shape of retention metrics calculated real-time
- * from existing database tables. The 4 metrics measure:
- * 1. Sessions - Alignment Gym attendance
- * 2. Connections - Vibe Tribe interactions
- * 3. Activations - Daily use (audio plays, vision views)
- * 4. Creations - Asset building activity
+ * from existing database tables. The 4 metrics measure different dimensions:
+ * 1. Creations - "What have I built?" (Asset count)
+ * 2. Activations - "How many times did I run my practice?" (Total qualifying events)
+ * 3. Connections - "How much am I engaging with the community?" (Vibe Tribe interactions)
+ * 4. Sessions - "How often am I showing up to live coaching?" (Alignment Gym attendance)
+ * 
+ * Note: Activities can increment multiple metrics. For example, attending an Alignment Gym
+ * session adds +1 Session AND +1 Activation. Creating a journal entry adds +1 Creation AND
+ * +1 Activation. This is intentional: each metric answers a different question about practice.
  */
 
 export interface SessionMetrics {
@@ -39,13 +43,11 @@ export interface ConnectionMetrics {
 }
 
 export interface ActivationMetrics {
-  /** Distinct days with activity in last 30 days */
+  /** Total qualifying activation events in last 30 days */
   recent: number
-  /** Target days to measure (always 30) */
-  target: number
-  /** All-time activation days */
+  /** All-time total activation events */
   lifetime: number
-  /** Total audio plays (used as proxy for engagement) */
+  /** Total audio plays across all tracks (subset of activations) */
   totalAudioPlays: number
 }
 
@@ -56,7 +58,7 @@ export interface CreationMetrics {
   lifetime: number
   /** Most recent creation */
   lastCreation?: {
-    type: 'vision' | 'audio' | 'board' | 'journal'
+    type: 'vision' | 'audio' | 'board' | 'journal' | 'daily_paper' | 'abundance'
     title: string
     createdAt: string
   }
