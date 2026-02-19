@@ -9,19 +9,19 @@ import { Toaster } from 'sonner'
 export const metadata: Metadata = {
   title: {
     template: '%s | VibrationFit',
-    default: 'VibrationFit',
+    default: 'Vibration Fit',
   },
   description: "The SaaS platform for conscious creation. Build your vision, align daily, and actualize your dreams.",
   // Let Next.js automatically use the favicon.ico from the app directory
   openGraph: {
-    title: "VibrationFit - Above the Green Line",
+    title: "Vibration Fit - Above the Green Line",
     description: "The SaaS platform for conscious creation. Build your vision, align daily, and actualize your dreams.",
     images: [
       {
         url: ASSETS.brand.logo,
         width: 1200,
         height: 630,
-        alt: "VibrationFit Logo",
+        alt: "Vibration Fit Logo",
       },
     ],
   },

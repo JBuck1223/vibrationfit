@@ -27,6 +27,7 @@ function isPathAccessibleForIntensive(
   const alwaysAllowed = [
     '/intensive/start',
     '/viva',
+    '/support',
   ]
   
   if (alwaysAllowed.some(path => pathname.startsWith(path))) {

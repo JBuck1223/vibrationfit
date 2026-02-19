@@ -59,7 +59,7 @@ export const EMAIL_TEMPLATES: EmailTemplateMetadata[] = [
   {
     id: 'welcome',
     name: 'Welcome Email',
-    description: 'Welcome new users to VibrationFit',
+    description: 'Welcome new users to Vibration Fit',
     category: 'Onboarding',
     triggers: [
       'User completes signup',

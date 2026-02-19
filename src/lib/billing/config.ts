@@ -150,7 +150,7 @@ export const PLAN_METADATA = {
     price: PRICING.SOLO_ANNUAL,
     interval: 'year',
     features: [
-      'VibrationFit platform access',
+      'Vibration Fit platform access',
       'Life Vision Builder and Assistant (12 Categories)',
       'Vision Boards, Vision Audio, Immersion Tracks',
       `VIVA AI assistant (${formatTokensShort(TOKEN_GRANTS.ANNUAL)} tokens)`,
@@ -172,7 +172,7 @@ export const PLAN_METADATA = {
     price: PRICING.SOLO_28DAY,
     interval: '28 days',
     features: [
-      'VibrationFit platform access',
+      'Vibration Fit platform access',
       'Life Vision Builder and Assistant (12 Categories)',
       'Vision Boards, Vision Audio, Immersion Tracks',
       `VIVA AI assistant (${formatTokensShort(TOKEN_GRANTS.MONTHLY_28DAY)} tokens per 28 days)`,

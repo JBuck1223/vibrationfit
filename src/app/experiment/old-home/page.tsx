@@ -906,7 +906,7 @@ export default function HomePage() {
 
                       <div className="space-y-3 mb-8">
                         {[
-                              'VibrationFit platform access',
+                              'Vibration Fit platform access',
                               'Life Vision Builder and Assistant (12 Categories)',
                               'Vision Boards, Vision Audio, Immersion Tracks',
                               'VIVA AI assistant (5M tokens)',
@@ -961,7 +961,7 @@ export default function HomePage() {
 
                       <div className="space-y-3 mb-8">
                         {[
-                              'VibrationFit platform access',
+                              'Vibration Fit platform access',
                               'Life Vision Builder and Assistant (12 Categories)',
                               'Vision Boards, Vision Audio, Immersion Tracks',
                               'VIVA AI assistant (375k tokens per 28 days)',
@@ -1020,7 +1020,7 @@ export default function HomePage() {
 
                           <div className="space-y-3 mb-8">
                             {[
-                              'VibrationFit platform access',
+                              'Vibration Fit platform access',
                               'Life Vision Builder and Assistant (12 Categories)',
                               'Vision Boards, Vision Audio, Immersion Tracks',
                               'VIVA AI assistant (5M tokens)',
@@ -1073,7 +1073,7 @@ export default function HomePage() {
 
                           <div className="space-y-3 mb-8">
                             {[
-                              'VibrationFit platform access',
+                              'Vibration Fit platform access',
                               'Life Vision Builder and Assistant (12 Categories)',
                               'Vision Boards, Vision Audio, Immersion Tracks',
                               'VIVA AI assistant (375k tokens per 28 days)',
@@ -1176,7 +1176,7 @@ export default function HomePage() {
                     Meet Your AI Alignment Coach
                   </h2>
                   <p className="text-lg text-neutral-400 max-w-2xl mx-auto">
-                    Watch this introduction to understand how VibrationFit transforms conscious creators 
+                    Watch this introduction to understand how Vibration Fit transforms conscious creators 
                     into manifestation masters.
                   </p>
                 </div>

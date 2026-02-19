@@ -314,7 +314,7 @@ export default function IntensiveStartPage() {
                   </Text>
                 </Inline>
                 <div className="text-sm text-neutral-300 leading-relaxed space-y-2">
-                  <p>When you complete all 14 steps, you graduate from the Intensive. That graduation unlocks the full VibrationFit platform, including:</p>
+                  <p>When you complete all 14 steps, you graduate from the Intensive. That graduation unlocks the full Vibration Fit platform, including:</p>
                   <ul className="list-none space-y-1 pl-0">
                     <li>– Advanced Audio Suite</li>
                     <li>– The Alignment Gym (weekly live coaching)</li>

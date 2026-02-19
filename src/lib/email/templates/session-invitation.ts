@@ -184,7 +184,7 @@ export function generateSessionInvitationEmail(
                 Questions? Reply to this email or visit <a href="https://vibrationfit.com/support" style="color: #39FF14; text-decoration: none; font-weight: 600;">vibrationfit.com/support</a>
               </p>
               <p style="margin: 0 0 8px; font-size: 11px; color: #666666;">
-                © ${new Date().getFullYear()} VibrationFit · <span style="color: #39FF14;">Above the Green Line</span>
+                © ${new Date().getFullYear()} Vibration Fit · <span style="color: #39FF14;">Above the Green Line</span>
               </p>
               <p style="margin: 0; font-size: 10px; color: #555555;">
                 This session was scheduled by ${hostName}.
@@ -203,7 +203,7 @@ export function generateSessionInvitationEmail(
   const textBody = `
 SESSION INVITATION: ${sessionTitle}
 
-VibrationFit Video Session
+Vibration Fit Video Session
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -242,7 +242,7 @@ https://vibrationfit.com/support
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-© ${new Date().getFullYear()} VibrationFit
+© ${new Date().getFullYear()} Vibration Fit
 Above the Green Line
 
 This session was scheduled by ${hostName}.

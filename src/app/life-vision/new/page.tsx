@@ -353,7 +353,7 @@ export default function VIVALifeVisionLandingPage() {
               Why Your Life Vision Matters
             </Text>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-              Your Life Vision is the foundation for intentional living inside VibrationFit:
+              Your Life Vision is the foundation for intentional living inside Vibration Fit:
             </p>
             <Stack gap="sm" className="text-sm text-neutral-300 leading-relaxed">
               <p>
@@ -370,7 +370,7 @@ export default function VIVALifeVisionLandingPage() {
               </p>
             </Stack>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed mt-4">
-              This is the document everything else in VibrationFit plugs into – your audio, your vision board, your Journal, and your 28‑day Activation Plan all start here.
+              This is the document everything else in Vibration Fit plugs into – your audio, your vision board, your Journal, and your 28‑day Activation Plan all start here.
             </p>
           </Stack>
         </Card>

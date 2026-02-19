@@ -630,7 +630,7 @@ function IntensiveDashboardContent() {
         id: 'unlock',
         stepNumber: 14,
         title: 'Full Platform Unlock',
-        description: 'Unlock the complete VibrationFit platform',
+        description: 'Unlock the complete Vibration Fit platform',
         icon: Unlock,
         phase: 'Completion',
         completed: checklist.unlock_completed || false,

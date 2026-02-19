@@ -195,7 +195,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <Image
             src={ASSETS.brand.logoWhite}
-            alt="VibrationFit"
+            alt="Vibration Fit"
             width={200}
             height={40}
             className="mx-auto mb-4"

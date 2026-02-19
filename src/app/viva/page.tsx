@@ -208,7 +208,7 @@ export default function VivaMasterPage() {
           setMessages([{
             id: assistantMessageId,
             role: 'assistant',
-            content: 'Hello! I\'m VIVA, your master guide for VibrationFit. I\'m here to help you become a master of the platform and live a powerful, vibrationally aligned life. How can I help you today?',
+            content: 'Hello! I\'m VIVA, your master guide for Vibration Fit. I\'m here to help you become a master of the platform and live a powerful, vibrationally aligned life. How can I help you today?',
             timestamp: new Date()
           }])
         }
@@ -217,7 +217,7 @@ export default function VivaMasterPage() {
         setMessages([{
           id: assistantMessageId,
           role: 'assistant',
-          content: 'Hello! I\'m VIVA, your master guide for VibrationFit. I\'m here to help you become a master of the platform and live a powerful, vibrationally aligned life. How can I help you today?',
+          content: 'Hello! I\'m VIVA, your master guide for Vibration Fit. I\'m here to help you become a master of the platform and live a powerful, vibrationally aligned life. How can I help you today?',
           timestamp: new Date()
         }])
       }
@@ -226,7 +226,7 @@ export default function VivaMasterPage() {
       const errorMessage: Message = {
         id: Date.now().toString(),
         role: 'assistant',
-        content: 'Hello! I\'m VIVA, your master guide for VibrationFit. I\'m here to help you become a master of the platform and live a powerful, vibrationally aligned life. How can I help you today?',
+        content: 'Hello! I\'m VIVA, your master guide for Vibration Fit. I\'m here to help you become a master of the platform and live a powerful, vibrationally aligned life. How can I help you today?',
         timestamp: new Date()
       }
       setMessages([errorMessage])
@@ -512,7 +512,7 @@ export default function VivaMasterPage() {
                 VIVA Master Assistant
               </h1>
               <Text size="sm" className="text-neutral-400">
-                Your comprehensive guide to mastering VibrationFit and living a vibrationally aligned life
+                Your comprehensive guide to mastering Vibration Fit and living a vibrationally aligned life
               </Text>
             </div>
             <div className="flex gap-2">
@@ -633,7 +633,7 @@ export default function VivaMasterPage() {
                       Welcome to VIVA Master Assistant
                     </h2>
                     <Text size="sm" className="text-neutral-300">
-                      Your comprehensive guide to mastering VibrationFit
+                      Your comprehensive guide to mastering Vibration Fit
                     </Text>
                   </div>
                 </div>
@@ -644,7 +644,7 @@ export default function VivaMasterPage() {
                     <ul className="space-y-1.5 text-sm text-neutral-300">
                       <li className="flex items-start gap-2">
                         <span className="text-[#8B5CF6] mt-0.5">•</span>
-                        <span>Answer questions about all VibrationFit tools</span>
+                        <span>Answer questions about all Vibration Fit tools</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-[#8B5CF6] mt-0.5">•</span>
@@ -701,7 +701,7 @@ export default function VivaMasterPage() {
                   Ready to chat with VIVA?
                 </Text>
                 <Text size="base" className="text-neutral-400 max-w-md">
-                  Ask me anything about VibrationFit, show you sections of your vision, or guide you through your journey.
+                  Ask me anything about Vibration Fit, show you sections of your vision, or guide you through your journey.
                 </Text>
               </div>
             </div>
@@ -824,7 +824,7 @@ export default function VivaMasterPage() {
                 value={currentMessage}
                 onChange={(e) => setCurrentMessage(e.target.value)}
                 onKeyDown={handleKeyPress}
-                placeholder="Ask VIVA anything about VibrationFit..."
+                placeholder="Ask VIVA anything about Vibration Fit..."
                 className="flex-1 bg-transparent border-none text-white placeholder-neutral-500 resize-none focus:outline-none focus:ring-0 min-h-[60px] max-h-[200px] py-3"
                 rows={1}
                 style={{
@@ -867,7 +867,7 @@ export default function VivaMasterPage() {
           </Card>
           
           <Text size="xs" className="text-neutral-500 mt-3 text-center">
-            VIVA has complete knowledge of all VibrationFit tools, processes, and the vibrational alignment philosophy
+            VIVA has complete knowledge of all Vibration Fit tools, processes, and the vibrational alignment philosophy
           </Text>
         </div>
       </div>

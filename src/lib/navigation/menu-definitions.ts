@@ -154,7 +154,7 @@ export const userNavigation: (NavItem | NavGroup)[] = [
     name: 'Vibe Tribe',
     href: '/vibe-tribe',
     icon: UsersRound,
-    description: 'Connect with the VibrationFit community',
+    description: 'Connect with the Vibration Fit community',
   },
 ]
 

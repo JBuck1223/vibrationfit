@@ -61,7 +61,7 @@ export default function DemoPage() {
           <div className="text-4xl md:text-5xl mb-4">🎉</div>
           <h2 className="text-2xl md:text-3xl font-bold mb-4 text-primary-500">Demo Requested!</h2>
           <p className="text-sm md:text-base text-neutral-300 mb-4 md:mb-6">
-            We'll reach out shortly to schedule your personalized VibrationFit demo.
+            We'll reach out shortly to schedule your personalized Vibration Fit demo.
           </p>
           <p className="text-xs md:text-sm text-neutral-400 mb-6 break-all">
             Check your email ({formData.email}) for confirmation.
@@ -79,7 +79,7 @@ export default function DemoPage() {
       <div className="mb-8 md:mb-12 text-center">
         <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4">Request a Demo</h1>
         <p className="text-sm md:text-base lg:text-lg text-neutral-400">
-          See VibrationFit in action with a personalized demo tailored to your goals.
+          See Vibration Fit in action with a personalized demo tailored to your goals.
         </p>
       </div>
 
@@ -158,7 +158,7 @@ export default function DemoPage() {
           </Button>
 
           <p className="text-xs md:text-sm text-neutral-500 text-center">
-            By submitting, you agree to receive communications from VibrationFit.
+            By submitting, you agree to receive communications from Vibration Fit.
           </p>
         </form>
       </Card>
@@ -169,7 +169,7 @@ export default function DemoPage() {
           <ul className="space-y-3 text-neutral-300">
             <li className="flex items-start">
               <span className="text-primary-500 mr-3">✓</span>
-              <span>30-minute personalized walkthrough of VibrationFit</span>
+              <span>30-minute personalized walkthrough of Vibration Fit</span>
             </li>
             <li className="flex items-start">
               <span className="text-primary-500 mr-3">✓</span>

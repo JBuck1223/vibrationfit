@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { getActiveProfileClient } from '@/lib/supabase/profile-client'
+import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
 import { Button } from '@/lib/design-system/components'
 import { 
   LayoutDashboard,
@@ -28,7 +30,8 @@ import {
   Unlock,
   Timer,
   Info,
-  Clock
+  Clock,
+  LogOut
 } from 'lucide-react'
 
 type Step = {
@@ -61,6 +64,7 @@ export function IntensiveSidebar() {
   const [intensiveStarted, setIntensiveStarted] = useState(false)
   const [startedAt, setStartedAt] = useState<string | null>(null)
   const [countdown, setCountdown] = useState<{ hours: number; minutes: number; seconds: number } | null>(null)
+  const [profile, setProfile] = useState<any>(null)
   
   // Refs to preserve scroll position during timer updates
   const navRef = useRef<HTMLElement>(null)
@@ -126,6 +130,11 @@ export function IntensiveSidebar() {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
+
+      // Fetch profile (non-blocking)
+      getActiveProfileClient(user.id)
+        .then(profileData => setProfile(profileData))
+        .catch(err => console.error('IntensiveSidebar: Error fetching profile:', err))
 
       // Check settings completion from user_accounts (Step 1)
       const { data: accountData } = await supabase
@@ -430,10 +439,23 @@ export function IntensiveSidebar() {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="p-4 md:p-6 border-b-2 border-primary-500">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base md:text-lg font-bold text-primary-400">
-            Activation Intensive
-          </h2>
+        {/* User Info */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <img
+              src={profile?.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
+              alt={profile?.first_name || 'Profile'}
+              className="w-8 h-8 rounded-full object-cover border-2 border-primary-500 flex-shrink-0"
+              loading="eager"
+            />
+            {profile?.first_name ? (
+              <span className="text-white font-medium truncate">
+                {profile.first_name}
+              </span>
+            ) : (
+              <div className="w-20 h-4 bg-neutral-700 rounded animate-pulse" />
+            )}
+          </div>
           <button
             onClick={() => setMobileOpen(false)}
             className="md:hidden text-neutral-400 hover:text-white"
@@ -442,6 +464,10 @@ export function IntensiveSidebar() {
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        <h2 className="text-base md:text-lg font-bold text-primary-400">
+          Activation Intensive
+        </h2>
         <div className="flex items-center gap-2 mt-2">
           <div className="flex-1 h-2 bg-neutral-700 rounded-full overflow-hidden">
             <div 
@@ -633,7 +659,7 @@ export function IntensiveSidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="p-3 md:p-4 border-t border-neutral-800">
+      <div className="p-3 md:p-4 border-t border-neutral-800 space-y-2">
         <Button
           variant="ghost"
           size="sm"
@@ -645,6 +671,17 @@ export function IntensiveSidebar() {
         >
           Support
         </Button>
+        <button
+          onClick={async () => {
+            const supabase = createClient()
+            await supabase.auth.signOut()
+            window.location.href = '/auth/login'
+          }}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-neutral-300 hover:text-white hover:bg-neutral-800 transition-all duration-200"
+        >
+          <LogOut className="w-4 h-4" />
+          <span>Sign Out</span>
+        </button>
       </div>
     </div>
   )

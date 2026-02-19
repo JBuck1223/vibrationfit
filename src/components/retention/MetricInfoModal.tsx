@@ -17,7 +17,7 @@ export const METRIC_EXPLAINERS: Record<MetricType, MetricExplainerContent> = {
   creations: {
     title: 'Creations',
     subtitle: 'What you\'ve built: visions, audios, boards, journals and more.',
-    description: 'We count any new asset you create in VibrationFit:',
+    description: 'We count any new asset you create in Vibration Fit:',
     items: [
       'Life Visions',
       'Audio Sets',

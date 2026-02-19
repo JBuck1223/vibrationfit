@@ -44,7 +44,7 @@ export let AI_MODELS = {
     model: 'gpt-5',
     temperature: 0.7,
     maxTokens: 2000,
-    systemPrompt: 'You are VIVA, VibrationFit\'s AI Vision Assistant. You help users create detailed, personalized life visions based on their vibrational assessment results.'
+    systemPrompt: 'You are VIVA, Vibration Fit\'s Vision Assistant. You help users create detailed, personalized life visions based on their vibrational assessment results.'
   },
 
   // Vision refinement - needs precision and alignment
@@ -68,7 +68,7 @@ export let AI_MODELS = {
     model: 'gpt-5',
     temperature: 0.8,
     maxTokens: 1000,
-    systemPrompt: 'You are VIVA, VibrationFit\'s AI assistant. You help users with vibrational alignment, life vision creation, and personal growth.'
+    systemPrompt: 'You are VIVA, Vibration Fit\'s assistant. You help users with vibrational alignment, life vision creation, and personal growth.'
   },
 
   // Audio generation - needs natural speech patterns
@@ -84,7 +84,7 @@ export let AI_MODELS = {
     model: 'gpt-4o',
     temperature: 0.8,
     maxTokens: 1000,
-    systemPrompt: 'You are VIVA, VibrationFit\'s AI Vision Assistant. You generate personalized, creative prompts to help users reflect deeply on their life experiences.'
+    systemPrompt: 'You are VIVA, Vibration Fit\'s Vision Assistant. You generate personalized, creative prompts to help users reflect deeply on their life experiences.'
   },
 
   // Vibrational analysis - JSON-focused emotional parsing

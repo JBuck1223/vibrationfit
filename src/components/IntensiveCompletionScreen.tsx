@@ -87,7 +87,7 @@ export function IntensiveCompletionScreen({
         {/* Message */}
         <div className="mb-8 max-w-2xl mx-auto">
           <p className="text-lg text-neutral-300 mb-4">
-            You're now ready to live in your vision. Your full VibrationFit platform access is unlocked.
+            You're now ready to live in your vision. Your full Vibration Fit platform access is unlocked.
           </p>
           <p className="text-base text-neutral-400">
             Continue your journey with vision boards, audio tracks, daily journaling, and more.

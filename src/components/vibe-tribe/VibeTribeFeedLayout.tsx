@@ -235,7 +235,7 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
                   value={searchQuery}
                   onChange={(e) => handleSearchChange(e.target.value)}
                   placeholder="Search posts..."
-                  className="w-full bg-neutral-900 border border-neutral-700 rounded-full pl-4 pr-10 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500"
+                  className="w-full bg-neutral-900 border border-neutral-700 rounded-full pl-4 pr-10 py-2 text-base md:text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500"
                 />
                 {isSearching && (
                   <div className="absolute right-10 top-1/2 -translate-y-1/2">

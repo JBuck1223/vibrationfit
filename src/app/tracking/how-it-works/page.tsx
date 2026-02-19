@@ -1,4 +1,4 @@
-import { Container, Stack, PageHero, Card } from '@/lib/design-system/components'
+import { Container, Stack, PageHero, Card, Button } from '@/lib/design-system/components'
 import {
   Sparkles,
   Play,
@@ -87,18 +87,16 @@ export default function HowItWorksPage() {
     <Container size="xl">
       <Stack gap="lg">
         <PageHero
-          title="How VibrationFit Tracks Your Practice"
+          title="How Vibration Fit Tracks Your Practice"
           subtitle="Everything you need to know about Creations, Activations, Connections, Sessions, and Badges."
-        />
-
-        {/* Back link */}
-        <Link
-          href="/tracking"
-          className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-primary-400 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Tracking
-        </Link>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/tracking">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Tracking
+            </Link>
+          </Button>
+        </PageHero>
 
         {/* About overlaps */}
         <Card className="p-5 md:p-6 bg-gradient-to-r from-[#39FF14]/5 to-[#00FFFF]/5 border-[#39FF14]/20">
@@ -238,15 +236,14 @@ export default function HowItWorksPage() {
           </div>
         </div>
 
-        {/* Back link at bottom */}
+        {/* Back button at bottom */}
         <div className="text-center pb-8">
-          <Link
-            href="/tracking"
-            className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-primary-400 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Tracking
-          </Link>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/tracking">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Tracking
+            </Link>
+          </Button>
         </div>
       </Stack>
     </Container>

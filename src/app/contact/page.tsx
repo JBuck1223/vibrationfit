@@ -155,7 +155,7 @@ export default function ContactPage() {
               </button>
 
               <p className="text-xs md:text-sm text-neutral-500 text-center">
-                We'll respond within 24 hours. By submitting, you agree to receive emails from VibrationFit.
+                We'll respond within 24 hours. By submitting, you agree to receive emails from Vibration Fit.
               </p>
             </form>
           </Card>

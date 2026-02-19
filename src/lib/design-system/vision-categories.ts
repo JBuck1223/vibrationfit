@@ -1,4 +1,4 @@
-// VibrationFit Vision Categories Configuration
+// Vibration Fit Vision Categories Configuration
 // Centralized source of truth for all vision categories across the application
 // This ensures consistency in titles, icons, and descriptions everywhere
 
