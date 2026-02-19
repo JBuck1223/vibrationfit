@@ -47,14 +47,24 @@ export async function GET(
       )
     }
 
-    // Check access - must be host, participant, or alignment_gym (open to all)
+    // Check access - must be host, participant, admin, or alignment_gym (open to all)
     const isHost = session.host_user_id === user.id
     const isParticipant = session.participants?.some(
       (p: { user_id: string }) => p.user_id === user.id
     )
     const isOpenSession = session.session_type === 'alignment_gym'
 
+    let isAdmin = false
     if (!isHost && !isParticipant && !isOpenSession) {
+      const { data: account } = await supabase
+        .from('user_accounts')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+      isAdmin = account?.role === 'super_admin'
+    }
+
+    if (!isHost && !isParticipant && !isOpenSession && !isAdmin) {
       return NextResponse.json(
         { error: 'Access denied' },
         { status: 403 }
@@ -100,10 +110,17 @@ export async function PATCH(
     }
 
     if (existingSession.host_user_id !== user.id) {
-      return NextResponse.json(
-        { error: 'Only the host can update this session' },
-        { status: 403 }
-      )
+      const { data: account } = await supabase
+        .from('user_accounts')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+      if (account?.role !== 'super_admin') {
+        return NextResponse.json(
+          { error: 'Only the host can update this session' },
+          { status: 403 }
+        )
+      }
     }
 
     const body: UpdateSessionRequest = await request.json()
@@ -177,10 +194,17 @@ export async function DELETE(
     }
 
     if (session.host_user_id !== user.id) {
-      return NextResponse.json(
-        { error: 'Only the host can delete this session' },
-        { status: 403 }
-      )
+      const { data: account } = await supabase
+        .from('user_accounts')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+      if (account?.role !== 'super_admin') {
+        return NextResponse.json(
+          { error: 'Only the host can delete this session' },
+          { status: 403 }
+        )
+      }
     }
 
     // Can't delete live sessions

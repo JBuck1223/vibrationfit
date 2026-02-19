@@ -111,18 +111,33 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
   const [intensiveData, setIntensiveData] = useState<IntensiveData | null>(null)
   const [settingsComplete, setSettingsComplete] = useState(false)
   const [loadingIntensive, setLoadingIntensive] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  
+  // Listen for auth state changes (login/logout)
+  useEffect(() => {
+    const supabase = createClient()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
   
   // Check for active intensive on mount and route changes
   useEffect(() => {
     const checkIntensive = async () => {
       try {
+        const supabase = createClient()
+        
+        // Check auth state (fast — reads from in-memory/localStorage cache)
+        const { data: { session } } = await supabase.auth.getSession()
+        setIsAuthenticated(!!session)
+        
         const intensive = await getActiveIntensiveClient()
         setIntensiveMode(!!intensive)
         setIntensiveData(intensive)
         
         // Check settings completion if in intensive mode
         if (intensive) {
-          const supabase = createClient()
           const { data: { user } } = await supabase.auth.getUser()
           if (user) {
             const { data: accountData } = await supabase
@@ -157,8 +172,13 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
   
   const pageType = getPageType(pathname)
   
-  // Render based on page type
-  if (pageType === 'USER' || pageType === 'ADMIN') {
+  // Authenticated users on public pages (except /auth/*) see the sidebar layout
+  const effectivePageType = (pageType === 'PUBLIC' && isAuthenticated && !pathname?.startsWith('/auth'))
+    ? 'USER'
+    : pageType
+  
+  // Render based on effective page type
+  if (effectivePageType === 'USER' || effectivePageType === 'ADMIN') {
     // Print pages: No sidebar, no padding (full-screen interface)
     if (pathname?.includes('/print') && !pathname?.endsWith('/html')) {
       return <>{children}</>
@@ -186,7 +206,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
     }
     
     // USER pages: Use IntensiveSidebar if in intensive mode, otherwise regular SidebarLayout
-    if (pageType === 'USER') {
+    if (effectivePageType === 'USER') {
       // Show loading state briefly
       if (loadingIntensive) {
         return (
@@ -227,7 +247,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
     }
     
     // ADMIN pages: Use SidebarLayout with AdminSidebar
-    if (pageType === 'ADMIN') {
+    if (effectivePageType === 'ADMIN') {
       return (
         <SidebarLayout isAdmin={true}>
           <PageLayout>

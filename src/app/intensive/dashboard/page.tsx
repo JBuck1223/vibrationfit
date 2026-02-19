@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { completeIntensive } from '@/lib/intensive/utils-client'
+import { checkUserHasPassword } from '@/lib/auth/check-password'
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
 import { IntensiveCompletionScreen } from '@/components/IntensiveCompletionScreen'
 import { getStepInfo, getNextStep } from '@/lib/intensive/step-mapping'
@@ -210,9 +211,12 @@ function IntensiveDashboardContent() {
       // Guard: ensure user has set a password before accessing intensive
       // Super admins bypass this check
       const { isSuperAdmin } = await checkSuperAdminAccess(supabase)
-      if (!isSuperAdmin && user.user_metadata?.has_password !== true) {
-        window.location.href = '/auth/setup-password?intensive=true'
-        return
+      if (!isSuperAdmin) {
+        const hasPassword = await checkUserHasPassword(supabase, user)
+        if (!hasPassword) {
+          window.location.href = '/auth/setup-password?intensive=true'
+          return
+        }
       }
 
       console.log('User ID:', user.id)

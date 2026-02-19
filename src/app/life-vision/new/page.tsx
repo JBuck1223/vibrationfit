@@ -135,10 +135,11 @@ export default function VIVALifeVisionLandingPage() {
         .map(([key]) => key)
       setCompletedCategoryKeys(completed)
       
-      // Determine vision status based on progress
+      // Determine vision status based on actual vision work
+      // Only count vision_new_category_state entries (not profile clarity fallback)
       if (!checklist?.vision_built) {
-        const hasAnyProgress = Object.keys(progressMap).length > 0
-        if (hasAnyProgress) {
+        const hasActualVisionProgress = categoryStates && categoryStates.length > 0
+        if (hasActualVisionProgress) {
           setVisionStatus('in_progress')
         }
         // Otherwise remains 'none'

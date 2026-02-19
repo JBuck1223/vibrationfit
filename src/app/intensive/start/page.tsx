@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { startIntensive } from '@/lib/intensive/utils-client'
+import { checkUserHasPassword } from '@/lib/auth/check-password'
 import { 
   Container, 
   Stack,
@@ -62,7 +63,8 @@ export default function IntensiveStartPage() {
       }
 
       // Guard: ensure user has set a password before accessing intensive
-      if (user.user_metadata?.has_password !== true) {
+      const hasPassword = await checkUserHasPassword(supabase, user)
+      if (!hasPassword) {
         window.location.href = '/auth/setup-password?intensive=true'
         return
       }

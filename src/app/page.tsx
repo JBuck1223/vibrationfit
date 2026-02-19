@@ -440,7 +440,7 @@ export default function HomePage() {
                         </a>
                       </Button>
                       <Text size="xs" className="text-neutral-400 text-center">
-                        $499 today. Includes 8 weeks of Vision Pro. Day 56: auto‑continue at your selected plan.
+                        ${getIntensiveTotal()} today. Includes 8 weeks of Vision Pro. Day 56: auto‑continue at your selected plan.
                       </Text>
                     </div>
                   </div>
@@ -1339,7 +1339,7 @@ export default function HomePage() {
                     </a>
                   </Button>
                   <Text size="xs" className="text-neutral-400 text-center mt-2">
-                    $499 today. Includes 8 weeks of Vision Pro. Day 56: auto‑continue at your selected plan.
+                    ${getIntensiveTotal()} today. Includes 8 weeks of Vision Pro. Day 56: auto‑continue at your selected plan.
                   </Text>
                 </div>
               </Stack>
@@ -1576,7 +1576,7 @@ export default function HomePage() {
                       </p>
                     </div>
                       <Text size="sm" className="md:text-base text-white text-center">
-                      Complete your Activation Checklist in 72 hours. Not satisfied? Full refund of your $499 Intensive fee. No questions asked.
+                      Complete your Activation Checklist in 72 hours. Not satisfied? Full refund of your ${getIntensiveTotal()} Intensive fee. No questions asked.
                     </Text>
                       <Text size="xs" className="md:text-sm text-neutral-300 text-center">
                       Completion = all of this done within 72 hours:<br />Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), First refinement done, AM/PM Vision Audios generated, Vision Board built (12 images), 1 journal entry logged, Calibration Call booked, My Activation Plan scheduled
@@ -1697,7 +1697,7 @@ export default function HomePage() {
                       {promoCode ? (
                         <div className="flex flex-col items-center gap-2 mb-4">
                           <div className="text-4xl md:text-6xl lg:text-8xl font-bold text-neutral-500 line-through opacity-50">
-                            $499
+                            ${getIntensiveTotal()}
                           </div>
                           <div className="text-5xl md:text-7xl lg:text-9xl font-bold text-[#39FF14]">
                             $1
@@ -2008,17 +2008,17 @@ export default function HomePage() {
                               // $1 payment verification with promo code
                               <><strong>Today:</strong> <span className="text-[#39FF14] font-bold">$1</span> payment verification + FREE 72‑Hour Intensive + 8 weeks included.</>
                             ) : paymentPlan === 'full' ? (
-                              <><strong>Today:</strong> $499 for the 72‑Hour Intensive + 8 weeks included.</>
+                              <><strong>Today:</strong> ${getIntensiveTotal()} for the 72‑Hour Intensive + 8 weeks included.</>
                             ) : paymentPlan === '2pay' ? (
                               <>
-                                <strong>Today:</strong> $249.50 for the 72‑Hour Intensive + 8 weeks included.<br />
-                                <strong>In 4 weeks:</strong> $249.50 (final payment)
+                                <strong>Today:</strong> ${getPaymentAmount()} for the 72‑Hour Intensive + 8 weeks included.<br />
+                                <strong>In 4 weeks:</strong> ${getPaymentAmount()} (final payment)
                               </>
                             ) : (
                               <>
-                                <strong>Today:</strong> $166.33 for the 72‑Hour Intensive + 8 weeks included.<br />
-                                <strong>In 4 weeks:</strong> $166.33<br />
-                                <strong>In 8 weeks:</strong> $166.33 (final payment)
+                                <strong>Today:</strong> ${getPaymentAmount()} for the 72‑Hour Intensive + 8 weeks included.<br />
+                                <strong>In 4 weeks:</strong> ${getPaymentAmount()}<br />
+                                <strong>In 8 weeks:</strong> ${getPaymentAmount()} (final payment)
                               </>
                             )}
                           </div>
@@ -2101,7 +2101,7 @@ export default function HomePage() {
                               <h5 className="text-white font-semibold">When does billing start?</h5>
                             </div>
                             <div className="ml-4 mb-0 text-justify">
-                              <p className="text-neutral-300 text-sm">$499 today for the Intensive + 8 weeks included. Day 56 your selected plan begins automatically.</p>
+                              <p className="text-neutral-300 text-sm">${getIntensiveTotal()} today for the Intensive + 8 weeks included. Day 56 your selected plan begins automatically.</p>
                             </div>
                           </div>
                           <div>
@@ -2518,7 +2518,7 @@ export default function HomePage() {
                     </a>
                   </Button>
                   <Text size="xs" className="text-neutral-400 text-center mt-2">
-                    $499 today. Includes 8 weeks of Vision Pro. Day 56: auto‑continue at your selected plan.
+                    ${getIntensiveTotal()} today. Includes 8 weeks of Vision Pro. Day 56: auto‑continue at your selected plan.
                   </Text>
                   <div className="flex flex-col items-center justify-center gap-3 text-xs uppercase tracking-wide text-neutral-400 mt-4">
                     <div className="flex items-center gap-2">
@@ -2589,7 +2589,7 @@ export default function HomePage() {
                 {
                   id: 'guarantee-qualify',
                   title: 'What qualifies for the 72‑Hour Activation Guarantee?',
-                  description: 'Complete your Activation Checklist in 72 hours. Completion = Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), first refinement done, AM/PM Vision Audios generated, Vision Board built (12 images), 1 journal entry logged, Calibration Call booked, My Activation Plan scheduled. If you complete your Activation Checklist in 72 hours and are not satisfied, you\'ll get a full refund of your $499 Intensive fee. No questions asked.'
+                  description: `Complete your Activation Checklist in 72 hours. Completion = Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), first refinement done, AM/PM Vision Audios generated, Vision Board built (12 images), 1 journal entry logged, Calibration Call booked, My Activation Plan scheduled. If you complete your Activation Checklist in 72 hours and are not satisfied, you'll get a full refund of your $${getIntensiveTotal()} Intensive fee. No questions asked.`
                 },
                 {
                   id: 'refunds',
@@ -2600,7 +2600,7 @@ export default function HomePage() {
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">What's covered</p>
                         <ul className="list-disc marker:text-[#39FF14] pl-5 space-y-1 text-sm text-neutral-300">
                           <li>
-                            72‑Hour Activation Guarantee: if you complete your Activation Checklist in 72 hours and aren't satisfied, we refund the $499 Intensive fee. (Completion = Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), First refinement done, AM/PM Vision Audios generated, Vision Board built (12 images), 1 journal entry logged, Calibration Call booked, My Activation Plan scheduled.)
+                            72‑Hour Activation Guarantee: if you complete your Activation Checklist in 72 hours and aren't satisfied, we refund the ${getIntensiveTotal()} Intensive fee. (Completion = Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), First refinement done, AM/PM Vision Audios generated, Vision Board built (12 images), 1 journal entry logged, Calibration Call booked, My Activation Plan scheduled.)
                           </li>
                           <li>
                             Membership Satisfaction Guarantee: From your checkout date, you have 16 weeks, no matter which plan you choose (Every 28 Days or Annual).
@@ -2641,7 +2641,7 @@ export default function HomePage() {
                 {
                   id: 'billing-start',
                   title: 'When does billing start?',
-                  description: '$499 today for the Intensive + 8 weeks included. Day 56 your selected plan begins automatically.'
+                  description: `$${getIntensiveTotal()} today for the Intensive + 8 weeks included. Day 56 your selected plan begins automatically.`
                 },
                 {
                   id: 'what-is-vibrational-fitness',

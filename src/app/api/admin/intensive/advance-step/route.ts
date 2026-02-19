@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { assessmentQuestions, filterQuestionsByProfile } from '@/lib/assessment/questions'
 
 // Create admin client that bypasses RLS
 function getAdminClient() {
@@ -375,22 +376,27 @@ async function advanceStep3_Profile(
   }
 }
 
-// Step 4: Create assessment
+// Step 4: Create assessment using real question bank + profile-based filtering
 async function advanceStep4_Assessment(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   now: string
 ) {
-  // Get the user's profile for profile_version_id
-  const { data: profile } = await supabase
+  // Get the user's full profile (needed for conditional question filtering)
+  const { data: profile, error: profileError } = await supabase
     .from('user_profiles')
-    .select('id')
+    .select('*')
     .eq('user_id', userId)
+    .eq('is_active', true)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
 
-  // Check if active assessment exists
+  if (profileError || !profile) {
+    throw new Error('No active profile found. Complete Step 3 (Profile) first.')
+  }
+
+  // Check if active assessment already exists
   const { data: existing } = await supabase
     .from('assessment_results')
     .select('id')
@@ -400,54 +406,119 @@ async function advanceStep4_Assessment(
 
   if (existing) return // Assessment already exists
 
-  // Create assessment result
-  const { data: assessment } = await supabase
+  // Deactivate any previous assessments
+  await supabase
+    .from('assessment_results')
+    .update({ is_active: false })
+    .eq('user_id', userId)
+
+  // Create assessment as in_progress (matching normal flow)
+  const { data: assessment, error: assessmentError } = await supabase
     .from('assessment_results')
     .insert({
       user_id: userId,
-      profile_version_id: profile?.id,
-      status: 'completed',
-      total_score: 315,
+      profile_version_id: profile.id,
+      status: 'in_progress',
+      assessment_version: 1,
       max_possible_score: 420,
-      overall_percentage: 75,
-      category_scores: {
-        fun: 28, travel: 25, home: 30, family: 27,
-        love: 26, health: 24, money: 22, work: 28,
-        social: 26, stuff: 27, giving: 25, spirituality: 27
-      },
-      green_line_status: {
-        fun: 'above', travel: 'above', home: 'above', family: 'above',
-        love: 'above', health: 'transition', money: 'transition', work: 'above',
-        social: 'above', stuff: 'above', giving: 'above', spirituality: 'above'
-      },
       started_at: now,
-      completed_at: now,
-      is_active: true,
-      is_draft: false
+      is_active: false,
+      is_draft: true
     })
     .select()
     .single()
 
-  if (!assessment) return
-
-  // Create sample responses for each category (7 questions each)
-  const responses = []
-  for (const category of LIFE_CATEGORIES) {
-    for (let q = 1; q <= 7; q++) {
-      responses.push({
-        assessment_id: assessment.id,
-        question_id: `${category}_q${q}`,
-        question_text: `Sample question ${q} for ${category}`,
-        category: category,
-        response_value: Math.floor(Math.random() * 3) + 3, // 3-5
-        response_text: 'Above the line',
-        response_emoji: null,
-        green_line: 'above'
-      })
-    }
+  if (assessmentError || !assessment) {
+    console.error('Failed to create assessment:', assessmentError)
+    throw new Error(`Failed to create assessment: ${assessmentError?.message || 'No data returned'}`)
   }
 
-  await supabase.from('assessment_responses').insert(responses)
+  // Filter real questions by the user's profile (handles conditional logic
+  // for has_children, relationship_status, employment_type)
+  const allQuestions = assessmentQuestions.flatMap(cat => cat.questions)
+  const filteredQuestions = filterQuestionsByProfile(allQuestions, profile)
+
+  // Realistic score patterns per category for the mock user profile:
+  // - Married, 2 kids, Employee, $100-250k income, active lifestyle
+  // - Generally above the green line, with money & health as growth areas
+  const categoryScoreTargets: Record<string, number[]> = {
+    fun:          [4, 4, 5, 3, 4, 4, 3],  // 27 - transition/above
+    travel:       [4, 5, 4, 3, 4, 4, 3],  // 27 - transition/above
+    home:         [4, 4, 3, 4, 5, 4, 4],  // 28 - above
+    family:       [4, 3, 4, 5, 3, 4, 4],  // 27 - transition/above
+    love:         [4, 4, 5, 3, 4, 4, 5],  // 29 - above
+    health:       [3, 4, 3, 3, 3, 4, 3],  // 23 - transition
+    money:        [3, 3, 4, 3, 3, 3, 3],  // 22 - transition
+    work:         [4, 4, 3, 4, 5, 4, 3],  // 27 - transition/above
+    social:       [4, 4, 5, 3, 4, 4, 3],  // 27 - transition/above
+    stuff:        [4, 5, 3, 4, 4, 4, 3],  // 27 - transition/above
+    giving:       [4, 3, 4, 5, 3, 4, 4],  // 27 - transition/above
+    spirituality: [4, 4, 5, 3, 4, 4, 4],  // 28 - above
+  }
+
+  // Track question index per category for score assignment
+  const categoryIndices: Record<string, number> = {}
+
+  // Build responses from real questions with realistic option selections
+  const responses = filteredQuestions.map(question => {
+    const category = question.category
+    if (categoryIndices[category] === undefined) categoryIndices[category] = 0
+    const qIndex = categoryIndices[category]++
+
+    const targetValue = categoryScoreTargets[category]?.[qIndex] ?? 4
+
+    // Find the real option matching the target value (skip custom "None of these" option)
+    const option = question.options.find(o => o.value === targetValue && !o.isCustom)
+      || question.options.find(o => !o.isCustom && o.value > 0)!
+
+    return {
+      assessment_id: assessment.id,
+      question_id: question.id,
+      question_text: question.text,
+      category: question.category,
+      response_value: option.value,
+      response_text: option.text,
+      response_emoji: option.emoji || null,
+      green_line: option.greenLine
+    }
+  })
+
+  if (responses.length !== 84) {
+    console.warn(`Expected 84 responses but got ${responses.length} after profile filtering`)
+  }
+
+  // Insert all responses (DB trigger auto-recalculates scores)
+  const { error: responsesError } = await supabase
+    .from('assessment_responses')
+    .insert(responses)
+
+  if (responsesError) {
+    console.error('Failed to create assessment responses:', responsesError)
+    throw new Error(`Failed to create assessment responses: ${responsesError.message}`)
+  }
+
+  // Complete the assessment (matching normal PATCH flow)
+  await supabase
+    .from('assessment_results')
+    .update({ is_active: false })
+    .eq('user_id', userId)
+    .neq('id', assessment.id)
+
+  const { error: completeError } = await supabase
+    .from('assessment_results')
+    .update({
+      status: 'completed',
+      completed_at: now,
+      is_draft: false,
+      is_active: true,
+      updated_at: now
+    })
+    .eq('id', assessment.id)
+
+  if (completeError) {
+    console.error('Failed to complete assessment:', completeError)
+    throw new Error(`Failed to complete assessment: ${completeError.message}`)
+  }
 }
 
 // Step 5: Create vision
