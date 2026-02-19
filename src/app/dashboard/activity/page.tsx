@@ -18,7 +18,7 @@ import {
   CheckCircle,
   Edit,
   Upload,
-  Clock
+  Calendar
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -208,8 +208,15 @@ export default function ActivityFeedPage() {
                             {activity.description}
                           </p>
                           <div className="flex items-center gap-2 text-xs text-neutral-500">
-                            <Clock className="w-3 h-3" />
-                            {new Date(activity.timestamp).toLocaleString()}
+                            <Calendar className="w-3 h-3" />
+                            {new Date(activity.timestamp).toLocaleString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit',
+                              hour12: true,
+                            })}
                           </div>
                         </div>
 

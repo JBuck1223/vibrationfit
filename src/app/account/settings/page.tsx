@@ -601,7 +601,7 @@ export default function AccountSettingsPage() {
       >
         <div className="space-y-4">
           <p className="text-neutral-300">
-            Your Profile Picture is used across VibrationFit to help you become a vibrational match to your vision. Are you sure you want to proceed with the default icon?
+            Your Profile Picture is used across Vibration Fit to help you become a vibrational match to your vision. Are you sure you want to proceed with the default icon?
           </p>
           <div className="flex flex-col gap-3">
             <Button variant="primary" onClick={() => setShowDefaultPictureModal(false)} className="w-full">

@@ -17,6 +17,7 @@ interface BadgeDetailModalProps {
 
 export default function BadgeDetailModal({ badge, isOpen, onClose }: BadgeDetailModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null)
+  const innerRef = useRef<HTMLDivElement>(null)
 
   // Close on escape key
   useEffect(() => {
@@ -58,12 +59,13 @@ export default function BadgeDetailModal({ badge, isOpen, onClose }: BadgeDetail
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
+      className="fixed inset-0 bg-black/60 z-50 overflow-y-auto"
       onClick={(e) => {
-        if (e.target === overlayRef.current) onClose()
+        if (e.target === overlayRef.current || e.target === innerRef.current) onClose()
       }}
     >
-      <Card className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-5 sm:p-6 animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:fade-in duration-200">
+      <div ref={innerRef} className="min-h-full flex items-start sm:items-center justify-center px-4 py-6 sm:p-8">
+        <Card className="w-full sm:max-w-md rounded-2xl p-5 sm:p-6 animate-in fade-in slide-in-from-bottom-4 duration-200">
         {/* Close button */}
         <div className="flex justify-end mb-2">
           <button
@@ -171,6 +173,7 @@ export default function BadgeDetailModal({ badge, isOpen, onClose }: BadgeDetail
           </div>
         )}
       </Card>
+      </div>
     </div>
   )
 }

@@ -1,4 +1,4 @@
-// /src/app/dashboard/support/tickets/[id]/page.tsx
+// /src/app/support/tickets/[id]/page.tsx
 // User's single ticket view
 
 'use client'
@@ -9,12 +9,13 @@ import {
   Button,
   Card,
   Badge,
+  type BadgeProps,
   Container,
   Spinner,
   Stack,
   Textarea,
 } from '@/lib/design-system/components'
-import { ArrowLeft, Send, Calendar, Hash } from 'lucide-react'
+import { ArrowLeft, Send } from 'lucide-react'
 
 interface Ticket {
   id: string
@@ -106,35 +107,23 @@ export default function TicketDetailPage() {
     })
   }
 
-  function getStatusColor(status: string) {
+  function getStatusVariant(status: string): BadgeProps['variant'] {
     switch (status) {
-      case 'open':
-        return 'bg-[#8B5CF6]'
-      case 'in_progress':
-        return 'bg-[#FFB701]'
-      case 'waiting_reply':
-        return 'bg-secondary-500'
-      case 'resolved':
-        return 'bg-primary-500'
-      case 'closed':
-        return 'bg-[#666666]'
-      default:
-        return 'bg-neutral-600'
+      case 'open': return 'accent'
+      case 'in_progress': return 'warning'
+      case 'waiting_reply': return 'secondary'
+      case 'resolved': return 'primary'
+      case 'closed': return 'neutral'
+      default: return 'neutral'
     }
   }
 
-  function getPriorityColor(priority: string) {
+  function getPriorityVariant(priority: string): BadgeProps['variant'] {
     switch (priority) {
-      case 'urgent':
-        return 'bg-[#D03739]'
-      case 'high':
-        return 'bg-[#FFB701]'
-      case 'normal':
-        return 'bg-secondary-500'
-      case 'low':
-        return 'bg-[#666666]'
-      default:
-        return 'bg-neutral-600'
+      case 'urgent': return 'danger'
+      case 'high': return 'warning'
+      case 'low': return 'neutral'
+      default: return 'neutral'
     }
   }
 
@@ -153,7 +142,7 @@ export default function TicketDetailPage() {
       <Container size="xl" className="py-8">
         <Card className="p-8 text-center">
           <p className="text-neutral-400 mb-4">Ticket not found</p>
-          <Button variant="secondary" onClick={() => router.push('/dashboard/support')}>
+          <Button variant="secondary" onClick={() => router.push('/support/tickets')}>
             Back to Tickets
           </Button>
         </Card>
@@ -168,7 +157,7 @@ export default function TicketDetailPage() {
         <div className="flex items-center justify-between">
           <Button
             variant="ghost"
-            onClick={() => router.push('/dashboard/support')}
+            onClick={() => router.push('/support/tickets')}
             className="flex items-center gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -178,38 +167,35 @@ export default function TicketDetailPage() {
 
         {/* Ticket Header Card */}
         <Card className="p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-2xl font-bold text-white">{ticket.subject}</h1>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-neutral-400">
-                <Hash className="w-4 h-4" />
-                <span>{ticket.ticket_number}</span>
-                <span>•</span>
-                <Calendar className="w-4 h-4" />
-                <span>{formatDate(ticket.created_at)}</span>
-              </div>
+          <div className="flex items-center justify-between mb-3">
+            <h1 className="text-2xl font-bold text-white">{ticket.subject}</h1>
+            <div className="flex items-center gap-2 shrink-0 ml-4">
+              <Badge variant={getStatusVariant(ticket.status)}>
+                {ticket.status.replace('_', ' ')}
+              </Badge>
+              {ticket.priority !== 'normal' && (
+                <Badge variant={getPriorityVariant(ticket.priority)}>
+                  {ticket.priority}
+                </Badge>
+              )}
             </div>
           </div>
 
-          {/* Status and Priority */}
-          <div className="flex items-center gap-3 mb-4">
-            <Badge className={`${getStatusColor(ticket.status)} text-white px-3 py-1.5`}>
-              {ticket.status.replace('_', ' ')}
-            </Badge>
-            <Badge className={`${getPriorityColor(ticket.priority)} text-white px-3 py-1.5`}>
-              {ticket.priority} priority
-            </Badge>
-            <Badge className="bg-[#1F1F1F] text-neutral-400 px-3 py-1.5">
-              {ticket.category}
-            </Badge>
+          <div className="flex items-center gap-3 text-sm text-neutral-500 pt-3 border-t border-[#333]">
+            <span>Ticket: {ticket.ticket_number}</span>
+            <span className="text-neutral-700">|</span>
+            <div className="flex items-center gap-2">
+              <span>Category:</span>
+              <Badge variant="neutral">{ticket.category}</Badge>
+            </div>
+            <span className="text-neutral-700">|</span>
+            <span>Submitted: {formatDate(ticket.created_at)}</span>
           </div>
         </Card>
 
         {/* Original Message */}
         <Card className="p-6">
-          <h2 className="text-lg font-bold text-white mb-4">Your Request</h2>
+          <h2 className="text-lg font-bold text-white mb-4">Description</h2>
           <div className="bg-neutral-900 p-4 rounded-xl">
             <p className="text-neutral-300 whitespace-pre-wrap">{ticket.description}</p>
           </div>
@@ -289,7 +275,3 @@ export default function TicketDetailPage() {
     </Container>
   )
 }
-
-
-
-

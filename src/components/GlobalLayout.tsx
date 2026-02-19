@@ -8,7 +8,6 @@ import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { SidebarLayout, UserSidebar, MobileBottomNav } from '@/components/Sidebar'
 import { IntensiveSidebar } from '@/components/IntensiveSidebar'
-import { IntensiveMobileNav } from '@/components/IntensiveMobileNav'
 import { IntensiveLockedOverlay } from '@/components/IntensiveLockedOverlay'
 import { getPageType } from '@/lib/navigation'
 import { getActiveIntensiveClient, IntensiveData } from '@/lib/intensive/utils-client'
@@ -28,6 +27,7 @@ function isPathAccessibleForIntensive(
   const alwaysAllowed = [
     '/intensive/start',
     '/viva',
+    '/support',
   ]
   
   if (alwaysAllowed.some(path => pathname.startsWith(path))) {
@@ -222,16 +222,14 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
         const isAccessible = isPathAccessibleForIntensive(pathname, intensiveData, settingsComplete)
         
         return (
-          <div className="min-h-screen bg-black text-white pb-16 md:pb-0">
+          <div className="min-h-screen bg-black text-white">
             <IntensiveSidebar />
             <div className="md:ml-[280px]">
               <PageLayout>
                 {children}
               </PageLayout>
-              {/* Show overlay on pages that aren't accessible based on progress */}
               {!isAccessible && <IntensiveLockedOverlay />}
             </div>
-            <IntensiveMobileNav />
           </div>
         )
       }

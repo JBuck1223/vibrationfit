@@ -17,7 +17,7 @@ export const METRIC_EXPLAINERS: Record<MetricType, MetricExplainerContent> = {
   creations: {
     title: 'Creations',
     subtitle: 'What you\'ve built: visions, audios, boards, journals and more.',
-    description: 'We count any new asset you create in VibrationFit:',
+    description: 'We count any new asset you create in Vibration Fit:',
     items: [
       'Life Visions',
       'Audio Sets',
@@ -32,7 +32,7 @@ export const METRIC_EXPLAINERS: Record<MetricType, MetricExplainerContent> = {
     subtitle: 'Number of reps you completed.',
     description: 'Every qualifying practice event counts as an Activation:',
     items: [
-      'Playing a Vision Audio (80%+ completion)',
+      'Playing a Vision Audio',
       'Creating a Journal entry',
       'Creating a Daily Paper entry',
       'Creating an Abundance Tracker entry',

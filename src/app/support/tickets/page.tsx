@@ -1,4 +1,4 @@
-// /src/app/dashboard/support/page.tsx
+// /src/app/support/tickets/page.tsx
 // User's support tickets list
 
 'use client'
@@ -73,7 +73,7 @@ export default function MyTicketsPage() {
 
   if (loading) {
     return (
-      <Container size="xl" className="py-8">
+      <Container size="xl">
         <div className="flex justify-center py-20">
           <Spinner size="lg" />
         </div>
@@ -82,7 +82,7 @@ export default function MyTicketsPage() {
   }
 
   return (
-    <Container size="xl" className="py-8">
+    <Container size="xl">
       <Stack gap="lg">
         <PageHero
           title="My Support Tickets"
@@ -117,7 +117,7 @@ export default function MyTicketsPage() {
               <Card
                 key={ticket.id}
                 className="p-6 hover:border-primary-500 transition-colors cursor-pointer"
-                onClick={() => router.push(`/dashboard/support/tickets/${ticket.id}`)}
+                onClick={() => router.push(`/support/tickets/${ticket.id}`)}
               >
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-lg font-semibold text-white">
@@ -157,7 +157,3 @@ export default function MyTicketsPage() {
     </Container>
   )
 }
-
-
-
-

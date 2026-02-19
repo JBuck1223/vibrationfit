@@ -17,7 +17,7 @@ export function Footer({ className = '' }: FooterProps) {
           <Link href="/" className="flex items-center">
             <Image
               src={ASSETS.brand.logoWhite}
-              alt="VibrationFit"
+              alt="Vibration Fit"
               width={120}
               height={24}
               style={{ width: 'auto', height: '1.5rem' }}

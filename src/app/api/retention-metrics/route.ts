@@ -287,7 +287,7 @@ async function getConnectionsMetrics(
  * Get activation metrics - total count of qualifying practice events
  * 
  * Each qualifying activity counts as +1 activation:
- * - Play a Vision Audio (80%+ completion)
+ * - Play a Vision Audio
  * - Create Journal entry
  * - Create Daily Paper entry
  * - Create Abundance Tracker entry

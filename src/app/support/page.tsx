@@ -165,8 +165,8 @@ export default function SupportPage() {
             <p className="text-xs md:text-sm text-neutral-400 mb-6 break-all">
               We've sent a confirmation email to {formData.guest_email}
             </p>
-            <Button variant="primary" size="sm" onClick={() => (window.location.href = '/')}>
-              Return Home
+            <Button variant="primary" size="sm" onClick={() => (window.location.href = '/support/tickets')}>
+              View My Tickets
             </Button>
           </Card>
         </Stack>
@@ -306,6 +306,7 @@ export default function SupportPage() {
                 value={formData.category}
                 onChange={(value) => handleChange('category', value)}
                 options={[
+                  { value: 'bug', label: 'Bug Report' },
                   { value: 'account', label: 'Account Help' },
                   { value: 'feature', label: 'Feature Request' },
                   { value: 'technical', label: 'Technical Assistance' },

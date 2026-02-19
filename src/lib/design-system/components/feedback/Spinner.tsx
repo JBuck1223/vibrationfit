@@ -43,7 +43,7 @@ export const Spinner = React.forwardRef<HTMLDivElement, SpinnerProps>(
             {/* Original VibrationFit Logo with pulse */}
             <img 
               src="https://media.vibrationfit.com/site-assets/brand/logo/logo-bar.svg"
-              alt="VibrationFit Loading"
+              alt="Vibration Fit Loading"
               className={cn(
                 'relative z-10 logo-loading',
                 sizes[size]

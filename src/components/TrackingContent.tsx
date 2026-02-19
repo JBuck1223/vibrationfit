@@ -239,7 +239,7 @@ export default function TrackingContent({ user, profileData, visionData, visionB
               href="/tracking/how-it-works"
               className="text-xs text-neutral-400 hover:text-primary-400 transition-colors underline underline-offset-2"
             >
-              How VibrationFit tracks your Creations, Activations, Connections and Sessions
+              How Vibration Fit tracks your Creations, Activations, Connections and Sessions
             </Link>
           </div>
 
@@ -667,7 +667,7 @@ export default function TrackingContent({ user, profileData, visionData, visionB
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-white">Billing</h3>
-                  <p className="text-sm text-neutral-400">VibrationFit Pro</p>
+                  <p className="text-sm text-neutral-400">Vibration Fit Pro</p>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -729,11 +729,11 @@ export default function TrackingContent({ user, profileData, visionData, visionB
               <p className="text-sm text-neutral-400 mt-2">
                 of {storageQuotaGB} GB total
               </p>
-              <Link href="/dashboard/storage" className="mt-6">
-                <Button variant="secondary" size="sm">
+              <Button variant="secondary" size="sm" asChild className="mt-6">
+                <Link href="/dashboard/storage">
                   Storage Dashboard
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </div>
           </Card>
         </div>

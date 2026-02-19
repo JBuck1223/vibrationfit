@@ -36,7 +36,7 @@ export function generateSupportTicketCreatedEmail(
             <td style="padding: 0 0 24px; text-align: center;">
               <div style="display: inline-block; padding: 8px 24px; background-color: rgba(57, 255, 20, 0.1); border-radius: 50px; border: 2px solid #39FF14; margin-bottom: 16px;">
                 <p style="margin: 0; font-size: 12px; font-weight: 600; color: #39FF14; text-transform: uppercase; letter-spacing: 1px;">
-                  VibrationFit Support
+                  Vibration Fit Support
                 </p>
               </div>
             </td>
@@ -141,7 +141,7 @@ export function generateSupportTicketCreatedEmail(
                 Questions? Reply to this email or visit <a href="https://vibrationfit.com/support" style="color: #39FF14; text-decoration: none; font-weight: 600;">vibrationfit.com/support</a>
               </p>
               <p style="margin: 0 0 8px; font-size: 11px; color: #666666;">
-                © ${new Date().getFullYear()} VibrationFit · <span style="color: #39FF14;">Above the Green Line</span>
+                © ${new Date().getFullYear()} Vibration Fit · <span style="color: #39FF14;">Above the Green Line</span>
               </p>
               <p style="margin: 0; font-size: 10px; color: #555555;">
                 This email was sent because you submitted a support request.
@@ -160,7 +160,7 @@ export function generateSupportTicketCreatedEmail(
   const textBody = `
 ✓ TICKET CREATED SUCCESSFULLY
 
-VibrationFit Support · Ticket ${ticketNumber}
+Vibration Fit Support · Ticket ${ticketNumber}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -186,7 +186,7 @@ https://vibrationfit.com/support
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-© ${new Date().getFullYear()} VibrationFit
+© ${new Date().getFullYear()} Vibration Fit
 Above the Green Line
 
 This email was sent because you submitted a support request.

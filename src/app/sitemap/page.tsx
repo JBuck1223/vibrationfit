@@ -390,7 +390,7 @@ export default function SitemapPage() {
       {/* Header */}
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold text-white mb-4">
-          VibrationFit Sitemap
+          Vibration Fit Sitemap
         </h1>
         <p className="text-xl text-neutral-300 mb-6">
           Complete page classification and navigation reference

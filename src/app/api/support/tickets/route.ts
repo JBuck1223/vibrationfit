@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
         process.env.NEXT_PUBLIC_SITE_URL ||
         'https://vibrationfit.com'
 
-      const ticketUrl = `${appUrl}/dashboard/support/tickets/${ticket.id}`
+      const ticketUrl = `${appUrl}/support/tickets/${ticket.id}`
 
       const emailData = generateSupportTicketCreatedEmail({
         ticketNumber: ticket.ticket_number,

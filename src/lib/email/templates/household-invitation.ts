@@ -14,7 +14,7 @@ export function generateHouseholdInvitationEmail(
 ): { subject: string; htmlBody: string; textBody: string } {
   const { inviterName, inviterEmail, householdName, invitationLink, expiresInDays } = data
 
-  const subject = `${inviterName} invited you to join their VibrationFit Household`
+  const subject = `${inviterName} invited you to join their Vibration Fit Household`
 
   const htmlBody = `
 <!DOCTYPE html>
@@ -59,7 +59,7 @@ export function generateHouseholdInvitationEmail(
 
                 <!-- Main Message -->
                 <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: #E5E5E5; text-align: center;">
-                  <strong style="color: #39FF14;">${inviterName}</strong> (${inviterEmail}) has invited you to join their VibrationFit Household: <strong style="color: #39FF14;">${householdName}</strong>
+                  <strong style="color: #39FF14;">${inviterName}</strong> (${inviterEmail}) has invited you to join their Vibration Fit Household: <strong style="color: #39FF14;">${householdName}</strong>
                 </p>
 
                 <!-- Benefits Card -->
@@ -169,7 +169,7 @@ export function generateHouseholdInvitationEmail(
                 Questions? Reply to this email or visit <a href="https://vibrationfit.com/support" style="color: #39FF14; text-decoration: none; font-weight: 600;">vibrationfit.com/support</a>
               </p>
               <p style="margin: 0 0 8px; font-size: 11px; color: #666666;">
-                © ${new Date().getFullYear()} VibrationFit · <span style="color: #39FF14;">Above the Green Line</span>
+                © ${new Date().getFullYear()} Vibration Fit · <span style="color: #39FF14;">Above the Green Line</span>
               </p>
               <p style="margin: 0; font-size: 10px; color: #555555;">
                 This invitation was sent by ${inviterName}.
@@ -188,13 +188,13 @@ export function generateHouseholdInvitationEmail(
   const textBody = `
 YOU'RE INVITED TO JOIN ${householdName}
 
-VibrationFit Household Invitation
+Vibration Fit Household Invitation
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Hi there!
 
-${inviterName} (${inviterEmail}) has invited you to join their VibrationFit Household: ${householdName}
+${inviterName} (${inviterEmail}) has invited you to join their Vibration Fit Household: ${householdName}
 
 WHAT'S INCLUDED
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -218,7 +218,7 @@ https://vibrationfit.com/support
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-© ${new Date().getFullYear()} VibrationFit
+© ${new Date().getFullYear()} Vibration Fit
 Above the Green Line
 
 This invitation was sent by ${inviterName}.

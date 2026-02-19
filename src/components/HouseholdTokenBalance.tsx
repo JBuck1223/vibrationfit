@@ -136,11 +136,11 @@ export default function HouseholdTokenBalance() {
             {formatNumber(individualBalance)}
           </p>
           <p className="text-sm text-neutral-400 mt-2">Creation Tokens available</p>
-          <Link href="/dashboard/tokens" className="mt-6">
-            <Button variant="accent" size="sm">
+          <Button variant="accent" size="sm" asChild className="mt-6">
+            <Link href="/dashboard/tokens">
               Token Dashboard
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       </Card>
     )

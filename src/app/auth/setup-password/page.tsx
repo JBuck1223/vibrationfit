@@ -102,13 +102,13 @@ export default function SetupPasswordPage() {
   }
 
   return (
-    <Container size="sm" className="py-16">
+    <Container size="sm" className="pt-4 pb-12 md:py-16">
       <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-primary-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+        <div className="hidden md:flex w-16 h-16 bg-primary-500/20 rounded-full items-center justify-center mx-auto mb-6">
           <Lock className="w-8 h-8 text-primary-500" />
         </div>
         <h1 className="text-4xl font-bold mb-3">
-          {isIntensive ? 'Welcome to Your Intensive' : 'Welcome to VibrationFit'}
+          {isIntensive ? 'Welcome to Your Intensive' : 'Welcome to Vibration Fit'}
         </h1>
         <p className="text-lg text-neutral-300">
           {isIntensive 
