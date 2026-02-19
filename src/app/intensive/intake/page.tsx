@@ -130,7 +130,7 @@ const MultipleChoiceSelectorComponent = ({
       <RadioGroup
         name={question.id}
         value={value}
-        onChange={(val) => onValueChange(val)}
+        onChange={(val) => onValueChange(String(val))}
         options={question.options || []}
         orientation="vertical"
       />

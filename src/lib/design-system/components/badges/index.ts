@@ -1,4 +1,4 @@
-export { Badge } from './Badge'
+export { Badge, type BadgeProps } from './Badge'
 export { CreatedDateBadge } from './CreatedDateBadge'
 export { StatusBadge } from './StatusBadge'
 export { VersionBadge } from './VersionBadge'
