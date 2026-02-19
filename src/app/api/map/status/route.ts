@@ -32,18 +32,7 @@ export async function GET() {
       .eq('user_id', user.id)
       .maybeSingle()
 
-    const mapStarted = checklist?.activation_protocol_completed || false
-    
-    if (!mapStarted) {
-      return NextResponse.json({
-        mapStarted: false,
-        dayNumber: 0,
-        amDone: false,
-        pmDone: false,
-      })
-    }
-
-    // Calculate day number based on when they completed the MAP setup
+    // Calculate day number based on when they completed the MAP setup (if available)
     const startDate = checklist?.activation_protocol_completed_at 
       ? new Date(checklist.activation_protocol_completed_at)
       : new Date()
@@ -51,10 +40,11 @@ export async function GET() {
     const today = new Date()
     const diffTime = Math.abs(today.getTime() - startDate.getTime())
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    const dayNumber = Math.min(diffDays, 28) // Cap at 28 days
+    const dayNumber = checklist?.activation_protocol_completed_at 
+      ? Math.min(diffDays, 28) 
+      : 0
 
     // TODO: Query daily_activations table to check AM/PM completion for today
-    // For now, return false for both (not completed yet)
     const amDone = false
     const pmDone = false
 

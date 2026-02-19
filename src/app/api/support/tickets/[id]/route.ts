@@ -59,13 +59,22 @@ export async function GET(
     // Get replies
     const { data: replies } = await adminClient
       .from('support_ticket_replies')
-      .select('*, admin:admin_id(email)')
+      .select('*')
       .eq('ticket_id', id)
       .order('created_at', { ascending: true })
 
+    const formattedReplies = (replies || []).map(reply => ({
+      id: reply.id,
+      ticket_id: reply.ticket_id,
+      admin_id: reply.is_staff ? reply.user_id : null,
+      reply: reply.message,
+      is_internal: false,
+      created_at: reply.created_at,
+    }))
+
     return NextResponse.json({
       ticket,
-      replies: replies || [],
+      replies: formattedReplies,
     })
   } catch (error: unknown) {
     console.error('Error in get ticket API:', error)

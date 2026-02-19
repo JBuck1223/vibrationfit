@@ -16,12 +16,6 @@ import {
   Checkbox,
   RadioGroup
 } from '@/lib/design-system/components'
-import { OptimizedVideo } from '@/components/OptimizedVideo'
-
-// Placeholder video URL - user will replace this later
-const INTAKE_INTRO_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
-
 import { 
   getQuestionsForPhase, 
   INTAKE_QUESTIONS,
@@ -541,16 +535,7 @@ export default function IntensiveIntake() {
             eyebrow="ACTIVATION INTENSIVE • STEP 2 OF 14"
             title="Baseline Intake"
             subtitle="Help us understand where you are today so we can measure your transformation"
-          >
-            {/* Video */}
-            <div className="mx-auto w-full max-w-3xl">
-              <OptimizedVideo
-                url={INTAKE_INTRO_VIDEO}
-                context="single"
-                className="w-full"
-              />
-            </div>
-          </PageHero>
+          />
 
           {/* Read-Only Responses */}
           <ReadOnlySection
@@ -584,16 +569,7 @@ export default function IntensiveIntake() {
           eyebrow="ACTIVATION INTENSIVE • STEP 2 OF 14"
           title="Baseline Intake"
           subtitle="Help us understand where you are today so we can measure your transformation"
-        >
-          {/* Video */}
-          <div className="mx-auto w-full max-w-3xl">
-            <OptimizedVideo
-              url={INTAKE_INTRO_VIDEO}
-              context="single"
-              className="w-full"
-            />
-          </div>
-        </PageHero>
+        />
 
         <div className="space-y-6">
           <form onSubmit={(e) => { e.preventDefault(); submitForm(); }} className="space-y-6">

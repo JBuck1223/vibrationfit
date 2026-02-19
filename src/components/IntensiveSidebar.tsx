@@ -638,13 +638,12 @@ export function IntensiveSidebar() {
           variant="ghost"
           size="sm"
           onClick={() => {
-            router.push('/profile')
+            router.push('/support')
             setMobileOpen(false)
           }}
           className="w-full text-xs"
         >
-          <User className="w-4 h-4 mr-2" />
-          My Profile
+          Support
         </Button>
       </div>
     </div>

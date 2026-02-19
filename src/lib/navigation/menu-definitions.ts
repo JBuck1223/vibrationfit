@@ -286,7 +286,7 @@ export const userNavigationGroups: NavGroup[] = [
       },
       {
         name: 'Support',
-        href: '/dashboard/support',
+        href: '/support/tickets',
         icon: Users,
         description: 'Get help and support',
       },

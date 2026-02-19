@@ -69,7 +69,6 @@ export default function DashboardContent({ user, profileData, visionData, vision
   const [storageUsed, setStorageUsed] = useState(0)
   const [mounted, setMounted] = useState(false)
   const [showCelebration, setShowCelebration] = useState(false)
-  const [mapStarted, setMapStarted] = useState(false)
   const [earnedActivationBadges, setEarnedActivationBadges] = useState<Set<string>>(new Set())
   const [activationDays, setActivationDays] = useState(0)
   
@@ -109,15 +108,10 @@ export default function DashboardContent({ user, profileData, visionData, vision
   useEffect(() => {
     async function fetchMapAndBadges() {
       try {
-        const [mapRes, badgesRes] = await Promise.all([
+        const [, badgesRes] = await Promise.all([
           fetch('/api/map/status'),
           fetch('/api/badges'),
         ])
-        
-        if (mapRes.ok) {
-          const mapData = await mapRes.json()
-          setMapStarted(mapData.mapStarted || false)
-        }
         
         if (badgesRes.ok) {
           const badgesData = await badgesRes.json()
@@ -248,7 +242,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
           />
 
         {/* MAP Card - My Activation Plan */}
-        {mapStarted && (
+        {/* MAP Card - My Activation Plan */}
           <Card className="relative overflow-hidden p-0">
             {/* Background map pattern */}
             <div className="absolute inset-0 opacity-10">
@@ -311,10 +305,8 @@ export default function DashboardContent({ user, profileData, visionData, vision
               </div>
             </div>
           </Card>
-        )}
 
         {/* Activation Badges Strip */}
-        {mapStarted && (
           <Card className="p-6">
             <div className="text-center mb-4">
               <h3 className="text-lg font-bold text-white mb-1">Activation Badges</h3>
@@ -358,7 +350,6 @@ export default function DashboardContent({ user, profileData, visionData, vision
               </Button>
             </div>
           </Card>
-        )}
 
         {/* What's New Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

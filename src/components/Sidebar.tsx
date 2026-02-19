@@ -569,7 +569,7 @@ export function MobileBottomNav({ className }: MobileBottomNavProps) {
       items: [
         { name: 'Tokens', href: '/dashboard/tokens', icon: userNavigationGroups.find(g => g.name === 'System & Billing')?.items.find(i => i.name === 'Tokens')?.icon },
         { name: 'Storage', href: '/dashboard/storage', icon: userNavigationGroups.find(g => g.name === 'System & Billing')?.items.find(i => i.name === 'Storage')?.icon },
-        { name: 'Support', href: '/dashboard/support', icon: userNavigationGroups.find(g => g.name === 'System & Billing')?.items.find(i => i.name === 'Support')?.icon },
+        { name: 'Support', href: '/support/tickets', icon: userNavigationGroups.find(g => g.name === 'System & Billing')?.items.find(i => i.name === 'Support')?.icon },
         { name: 'Settings', href: '/account/settings', icon: userNavigationGroups.find(g => g.name === 'System & Billing')?.items.find(i => i.name === 'Settings')?.icon },
       ]
     }

@@ -29,8 +29,10 @@ import {
   Eye,
   Settings,
   FileText,
-  Unlock
+  Unlock,
+  HelpCircle
 } from 'lucide-react'
+import Link from 'next/link'
 
 import { 
   Container, 
@@ -566,7 +568,7 @@ function IntensiveDashboardContent() {
         completedAt: checklist.audios_generated_at,
         href: '/life-vision/audio/mix/new',
         viewHref: '/life-vision',
-        locked: !checklist.audio_generated
+        locked: !(hasVoiceRecordings || checklist.voice_recording_skipped)
       },
       
       // Phase 5: Activation (Steps 10-12)
@@ -993,6 +995,22 @@ function IntensiveDashboardContent() {
             )
           })}
         </div>
+
+        {/* Support Card */}
+        <Card className="p-4 md:p-6 border-secondary-500/20">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-secondary-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+              <HelpCircle className="w-5 h-5 text-secondary-500" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-white">Found a Bug?</h3>
+              <p className="text-xs text-neutral-400">Help us improve by reporting any issues you find.</p>
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/support">Report</Link>
+            </Button>
+          </div>
+        </Card>
       </Stack>
     </Container>
   )

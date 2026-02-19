@@ -43,7 +43,7 @@ export default function HowItWorksPage() {
       borderColor: 'border-green-500/30',
       timeframe: 'Last 30 days + all-time total',
       items: [
-        'Playing a Vision Audio (80%+ completion)',
+        'Playing a Vision Audio',
         'Creating a Journal entry',
         'Creating a Daily Paper entry',
         'Creating an Abundance Tracker entry',

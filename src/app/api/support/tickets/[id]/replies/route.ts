@@ -87,17 +87,8 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!isUserAdmin(user)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-
     const adminClient = createAdminClient()
-    const body = await request.json()
-    const { reply, is_internal } = body
-
-    if (!reply || !reply.trim()) {
-      return NextResponse.json({ error: 'Reply cannot be empty' }, { status: 400 })
-    }
+    const isAdmin = isUserAdmin(user)
 
     // Get ticket details
     const { data: ticket, error: ticketError } = await adminClient
@@ -111,6 +102,18 @@ export async function POST(
       return NextResponse.json({ error: 'Ticket not found' }, { status: 404 })
     }
 
+    // Must be admin or ticket owner
+    if (!isAdmin && ticket.user_id !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const body = await request.json()
+    const { reply, is_internal } = body
+
+    if (!reply || !reply.trim()) {
+      return NextResponse.json({ error: 'Reply cannot be empty' }, { status: 400 })
+    }
+
     // Insert reply
     const { data: newReply, error: replyError } = await adminClient
       .from('support_ticket_replies')
@@ -118,7 +121,7 @@ export async function POST(
         ticket_id: ticketId,
         user_id: user.id,
         message: reply,
-        is_staff: true,
+        is_staff: isAdmin,
       })
       .select()
       .single()
@@ -128,8 +131,8 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to create reply' }, { status: 500 })
     }
 
-    // Send email notification to customer (only if not internal)
-    if (!is_internal) {
+    // Send email notification to customer (only for admin replies that aren't internal)
+    if (isAdmin && !is_internal) {
       try {
         const customerEmail = ticket.guest_email
 
@@ -137,7 +140,7 @@ export async function POST(
           const emailContent = generatePersonalMessageEmail({
             recipientName: undefined,
             senderName: 'VibrationFit Support Team',
-            messageBody: `Thank you for contacting us. We've added a response to your support ticket ${ticket.ticket_number}:\n\n${reply}\n\nYou can view your ticket and reply at: ${process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'}/dashboard/support/tickets/${ticketId}`,
+            messageBody: `Thank you for contacting us. We've added a response to your support ticket ${ticket.ticket_number}:\n\n${reply}\n\nYou can view your ticket and reply at: ${process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'}/support/tickets/${ticketId}`,
             closingLine: 'Best regards,',
           })
 
