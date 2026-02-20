@@ -17,7 +17,7 @@ import { createClient } from '@/lib/supabase/client'
 import { BookOpen, Heart, Sparkles, Plus, Eye, Mic, Video, Tag, TrendingUp, Lightbulb } from 'lucide-react'
 
 const JOURNAL_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
+  'https://media.vibrationfit.com/site-assets/video/intensive/11-journal-1080p.mp4'
 
 export default function JournalResourcesPage() {
   const [isIntensiveMode, setIsIntensiveMode] = useState(false)

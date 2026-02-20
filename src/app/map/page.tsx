@@ -48,9 +48,8 @@ import {
   type BadgeWithProgress as BadgeWithProgressType,
 } from '@/lib/badges/types'
 
-// Placeholder video URL - replace with actual MAP video
 const MAP_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
+  'https://media.vibrationfit.com/site-assets/video/intensive/13-map-1080p.mp4'
 
 // Milestone data for activation badges
 const MILESTONES: Array<{

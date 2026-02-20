@@ -50,7 +50,7 @@ import {
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
 
 const UNLOCK_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
+  'https://media.vibrationfit.com/site-assets/video/intensive/14-unlock-1080p.mp4'
 
 // Types
 interface IntensiveStats {

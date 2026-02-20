@@ -997,6 +997,33 @@ export async function uploadSiteAsset(
   }
 }
 
+export async function replaceSiteAsset(
+  existingKey: string,
+  file: File,
+  onProgress?: (progress: number) => void
+): Promise<{ url: string; key: string }> {
+  const fileType = file.type || 'application/octet-stream'
+
+  const response = await fetch('/api/upload/presigned', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key: existingKey, fileType })
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json()
+    throw new Error(errorData.error || 'Failed to get presigned URL')
+  }
+
+  const { uploadUrl } = await response.json()
+
+  await uploadWithXHRProgress(uploadUrl, file, onProgress)
+  if (onProgress) onProgress(100)
+
+  const finalUrl = getFileUrl(existingKey)
+  return { url: finalUrl, key: existingKey }
+}
+
 // Multipart upload for very large site assets (>100MB)
 async function uploadSiteAssetMultipart(
   category: string,

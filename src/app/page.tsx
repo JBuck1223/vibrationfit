@@ -342,51 +342,23 @@ export default function HomePage() {
     return planType === 'solo' ? '1 seat' : '2 seats included'
   }
 
-  const handleIntensivePurchase = async () => {
+  const handleIntensivePurchase = () => {
     if (!agreedToTerms) {
       toast.error('Please agree to the renewal terms before proceeding.')
       return
     }
 
-    setIsLoading(true)
-    try {
-      // Directly create Stripe checkout session with plan type, promo code, and affiliate tracking
-      const response = await fetch('/api/stripe/checkout-combined', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          intensivePaymentPlan: paymentPlan,
-          continuityPlan: billingPeriod,
-          planType: planType, // 'solo' or 'household'
-          promoCode: promoCode || undefined, // Apply promo code if present
-          referralSource: referralSource || undefined, // Track affiliate/referral source
-          campaignName: campaignName || undefined, // Track campaign name
-        })
-      })
+    const params = new URLSearchParams({
+      product: 'intensive',
+      plan: paymentPlan,
+      continuity: billingPeriod,
+      planType: planType,
+    })
+    if (promoCode) params.set('promo', promoCode)
+    if (referralSource) params.set('ref', referralSource)
+    if (campaignName) params.set('campaign', campaignName)
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        console.error('API Error:', data)
-        const errorMessage = data.error || 'Unknown error'
-        const errorDetails = data.details ? `\n\nDetails: ${JSON.stringify(data.details, null, 2)}` : ''
-        throw new Error(`Failed to create checkout session: ${errorMessage}${errorDetails}`)
-      }
-
-      if (!data.url) {
-        console.error('No checkout URL in response:', data)
-        throw new Error('No checkout URL returned from server')
-      }
-
-      // Redirect directly to Stripe checkout
-      window.location.href = data.url
-
-    } catch (error) {
-      console.error('Checkout error:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Failed to start checkout. Please try again.'
-      toast.error(errorMessage)
-      setIsLoading(false)
-    }
+    window.location.href = `/checkout?${params.toString()}`
   }
 
   return (

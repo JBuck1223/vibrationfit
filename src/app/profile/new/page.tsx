@@ -18,9 +18,8 @@ import { IntensiveCompletionBanner } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
 import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
 
-// Placeholder video URL - user will replace this later
 const PROFILE_INTRO_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
+  'https://media.vibrationfit.com/site-assets/video/intensive/03-profile-1080p.mp4'
 
 export default function ProfileNewPage() {
   const router = useRouter()

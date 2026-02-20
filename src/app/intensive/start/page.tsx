@@ -36,9 +36,8 @@ import {
   Clock
 } from 'lucide-react'
 
-// Placeholder video URL - replace with actual intro video
 const INTENSIVE_START_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
+  'https://media.vibrationfit.com/site-assets/video/intensive/01-intensive-start-1080p.mp4'
 
 export default function IntensiveStartPage() {
   const router = useRouter()

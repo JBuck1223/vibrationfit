@@ -19,9 +19,8 @@ import { ArrowRight, Eye, Sparkles, Target, Compass, Lightbulb } from 'lucide-re
 import { VISION_CATEGORIES, getCategoryClarityField, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
 import { createClient } from '@/lib/supabase/client'
 
-// Placeholder video URL - user will replace this later
 const VISION_INTRO_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
+  'https://media.vibrationfit.com/site-assets/video/intensive/05-vision-builder-1080p.mp4'
 
 interface CategoryProgress {
   [key: string]: {

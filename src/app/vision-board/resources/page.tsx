@@ -17,7 +17,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Image, Eye, Sparkles, Plus, Layout, TrendingUp, Upload, Download, CheckCircle } from 'lucide-react'
 
 const VISION_BOARD_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
+  'https://media.vibrationfit.com/site-assets/video/intensive/10-vision-board-1080p.mp4'
 
 export default function VisionBoardResourcesPage() {
   const [isIntensiveMode, setIsIntensiveMode] = useState(false)

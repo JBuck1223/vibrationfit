@@ -21,7 +21,7 @@ import {
 } from '@/lib/design-system/components'
 
 const CALIBRATION_CALL_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
+  'https://media.vibrationfit.com/site-assets/video/intensive/12-book-a-call-1080p.mp4'
 
 // Types
 interface AvailableSlot {
