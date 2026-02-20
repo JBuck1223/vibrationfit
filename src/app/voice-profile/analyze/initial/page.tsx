@@ -93,7 +93,7 @@ export default function InitialVoiceAnalyzerPage() {
             <ul className="space-y-2 text-neutral-300 text-sm">
               <li className="flex items-start gap-2">
                 <span className="text-secondary-500 mt-1">✓</span>
-                <span>You're new to VibrationFit and don't have scenes or journals yet</span>
+                <span>You're new to Vibration Fit and don't have scenes or journals yet</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-secondary-500 mt-1">✓</span>

@@ -30,7 +30,7 @@ export default function CheckoutSuccessPage() {
 
           {/* Title */}
           <h1 className="text-4xl font-bold text-white mb-4">
-            Welcome to VibrationFit! 🎉
+            Welcome to Vibration Fit! 🎉
           </h1>
 
           {/* Description */}

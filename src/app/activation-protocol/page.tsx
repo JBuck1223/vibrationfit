@@ -589,7 +589,7 @@ export default function ActivationProtocolPage() {
               <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
                 Your 28-Day Milestones
               </Text>
-              <p className="text-sm text-neutral-500 mt-2">We&apos;ll remind you of these inside VibrationFit. Here&apos;s what to look for:</p>
+              <p className="text-sm text-neutral-500 mt-2">We&apos;ll remind you of these inside Vibration Fit. Here&apos;s what to look for:</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

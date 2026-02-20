@@ -17,9 +17,8 @@ import {
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowRight, Volume2, Headphones, LayoutGrid, MousePointerClick, ListMusic, Music2, Layers } from 'lucide-react'
 
-// Placeholder video URL - replace with actual intro video
 const AUDIO_GENERATE_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
+  'https://media.vibrationfit.com/site-assets/video/intensive/07-audio-generation-1080p.mp4'
 
 export default function AudioGenerateNewPage() {
   const router = useRouter()

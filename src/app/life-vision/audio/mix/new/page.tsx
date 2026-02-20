@@ -18,9 +18,8 @@ import {
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowRight, Sliders, Music, Brain, Waves, Headphones, Rocket, Volume2, Sunrise, Focus, Moon, Zap } from 'lucide-react'
 
-// Placeholder video URL - replace with actual intro video
 const AUDIO_MIX_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
+  'https://media.vibrationfit.com/site-assets/video/intensive/09-audio-mixing-1080p.mp4'
 
 export default function AudioMixNewPage() {
   const router = useRouter()

@@ -50,7 +50,7 @@ import {
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
 
 const UNLOCK_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
+  'https://media.vibrationfit.com/site-assets/video/intensive/14-unlock-1080p.mp4'
 
 // Types
 interface IntensiveStats {
@@ -685,7 +685,7 @@ export default function IntensiveUnlockPage() {
                 <p>You&apos;ve completed all 14 steps. This page does two things:</p>
                 <ol className="list-decimal list-inside space-y-1">
                   <li>Captures your before/after results and experience,</li>
-                  <li>Unlocks your full VibrationFit platform access as a Graduate.</li>
+                  <li>Unlocks your full Vibration Fit platform access as a Graduate.</li>
                 </ol>
               </div>
             </div>

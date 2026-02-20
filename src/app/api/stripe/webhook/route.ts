@@ -194,6 +194,35 @@ async function getStorageAddonPrices(
     .filter((row: StorageAddonPrice | null): row is StorageAddonPrice => Boolean(row))
 }
 
+type TokenAddonPrice = {
+  stripePriceId: string
+  grantAmount: number
+  grantUnit: 'tokens'
+  packKey?: string | null
+}
+
+async function getTokenAddonPrices(
+  stripePriceIds: string[],
+  supabaseAdmin: any
+): Promise<TokenAddonPrice[]> {
+  if (!stripePriceIds.length) return []
+
+  const tokenAddonPriceIds = [
+    process.env.STRIPE_PRICE_TOKEN_ADDON_28DAY,
+    process.env.STRIPE_PRICE_TOKEN_ADDON_ANNUAL,
+  ].filter(Boolean) as string[]
+
+  const matched = stripePriceIds.filter(id => tokenAddonPriceIds.includes(id))
+  if (!matched.length) return []
+
+  return matched.map(priceId => ({
+    stripePriceId: priceId,
+    grantAmount: 1_000_000,
+    grantUnit: 'tokens' as const,
+    packKey: 'token_addon',
+  }))
+}
+
 async function createOrderItemByProductKey({
   orderId,
   productKey,
@@ -530,48 +559,48 @@ export async function POST(request: NextRequest) {
           const customerEmail = session.customer_details?.email
 
           // Handle guest checkout - create user account if needed
+          // If the user was created during custom checkout, existingUserId will be set
           let userId = existingUserId && existingUserId !== 'guest' ? existingUserId : null
           
           if (!userId && customerEmail) {
-            console.log('Creating user account for guest checkout:', customerEmail)
+            console.log('Looking up or creating user account for:', customerEmail)
             
-            // Create user account in Supabase Auth with magic link (using admin client)
-            const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-              email: customerEmail,
-              email_confirm: true, // Skip email confirmation for purchased users
-            })
-
-            if (authError) {
-              console.error('Error creating user account:', authError)
-              break
-            }
-
-            userId = authData.user.id
-            console.log('Created user account:', userId)
-
-            // Generate both auto-login token AND magic link
-            const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+            // Check if user already exists (may have been created by custom checkout)
+            const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers()
+            const existingUser = existingUsers?.users?.find((u: any) => u.email === customerEmail)
             
-            // Generate magic link for email backup (using admin client)
-            const { data: magicLinkData, error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
-              type: 'magiclink',
-              email: customerEmail,
-              options: {
-                redirectTo: `${appUrl}/auth/setup-password`,
-              },
-            })
-
-            if (magicLinkError) {
-              console.error('Error generating magic link:', magicLinkError)
+            if (existingUser) {
+              userId = existingUser.id
+              console.log('Found existing user account:', userId)
             } else {
-              console.log('Magic link generated for:', customerEmail)
-              console.log('Magic link URL:', magicLinkData.properties.action_link)
-            }
+              const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+                email: customerEmail,
+                email_confirm: true,
+              })
 
-            // Store the access token in the intensive purchase for auto-login
-            if (magicLinkData?.properties?.hashed_token) {
-              // We'll use this to auto-login the user on redirect
-              console.log('Auto-login token ready for:', customerEmail)
+              if (authError) {
+                console.error('Error creating user account:', authError)
+                break
+              }
+
+              userId = authData.user.id
+              console.log('Created user account:', userId)
+
+              const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+              
+              const { data: magicLinkData, error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
+                type: 'magiclink',
+                email: customerEmail,
+                options: {
+                  redirectTo: `${appUrl}/auth/setup-password`,
+                },
+              })
+
+              if (magicLinkError) {
+                console.error('Error generating magic link:', magicLinkError)
+              } else {
+                console.log('Magic link generated for:', customerEmail)
+              }
             }
           }
 
@@ -913,37 +942,42 @@ export async function POST(request: NextRequest) {
           }
           
           // Handle guest checkout - create user account if needed
+          // Custom checkout creates the user upfront, so user_id will typically be set
           let userId = session.metadata.user_id && session.metadata.user_id !== 'guest' ? session.metadata.user_id : null
           
           if (!userId && customerEmail) {
-            console.log('Creating user account for combined checkout:', customerEmail)
+            console.log('Looking up or creating user for combined checkout:', customerEmail)
             
-            const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-              email: customerEmail,
-              email_confirm: true,
-            })
-
-            if (authError) {
-              console.error('Error creating user account:', authError)
-              break
-            }
-
-            userId = authData.user.id
-            console.log('Created user account for combined checkout:', userId)
-
-            const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-            const { data: magicLinkData, error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
-              type: 'magiclink',
-              email: customerEmail,
-              options: {
-                redirectTo: `${appUrl}/auth/setup-password`,
-              },
-            })
-
-            if (magicLinkError) {
-              console.error('Error generating magic link:', magicLinkError)
+            const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers()
+            const existingUser = existingUsers?.users?.find((u: any) => u.email === customerEmail)
+            
+            if (existingUser) {
+              userId = existingUser.id
+              console.log('Found existing user for combined checkout:', userId)
             } else {
-              console.log('Magic link generated for combined checkout:', customerEmail)
+              const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+                email: customerEmail,
+                email_confirm: true,
+              })
+
+              if (authError) {
+                console.error('Error creating user account:', authError)
+                break
+              }
+
+              userId = authData.user.id
+              console.log('Created user account for combined checkout:', userId)
+
+              const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+              const { error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
+                type: 'magiclink',
+                email: customerEmail,
+                options: { redirectTo: `${appUrl}/auth/setup-password` },
+              })
+
+              if (magicLinkError) {
+                console.error('Error generating magic link:', magicLinkError)
+              }
             }
           }
 
@@ -1479,6 +1513,40 @@ export async function POST(request: NextRequest) {
                 if (storageError) {
                   console.error('Failed to grant storage add-on:', storageError)
                 }
+              }
+            }
+
+            // Grant tokens for token add-on line items on renewal
+            const tokenAddonPrices = await getTokenAddonPrices(linePriceIds, supabaseAdmin)
+            if (tokenAddonPrices.length > 0) {
+              const { recordTokenPackPurchase } = await import('@/lib/tokens/transactions')
+
+              for (const line of invoiceLines) {
+                const priceId = line?.price?.id
+                if (!priceId) continue
+
+                const tokenPrice = tokenAddonPrices.find(p => p.stripePriceId === priceId)
+                if (!tokenPrice) continue
+
+                const quantity = Number.isFinite(line?.quantity) ? line.quantity : 1
+                const tokensToGrant = tokenPrice.grantAmount * quantity
+
+                await recordTokenPackPurchase(
+                  subscription.user_id,
+                  'token_addon',
+                  tokensToGrant,
+                  (line?.amount || 0),
+                  (invoice as any).payment_intent as string || '',
+                  '',
+                  {
+                    source: 'subscription_addon',
+                    stripe_price_id: priceId,
+                    quantity,
+                    invoice_id: invoice.id,
+                  },
+                  supabase
+                )
+                console.log(`Granted ${tokensToGrant} token addon tokens for user ${subscription.user_id}`)
               }
             }
           }

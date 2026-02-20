@@ -17,9 +17,8 @@ import {
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowRight, Sparkles, Target, Heart, Zap, Eye, TrendingUp, RefreshCw, Layers, Activity, FlaskConical } from 'lucide-react'
 
-// Placeholder video URL - user will replace this later
 const VISION_INTRO_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
+  'https://media.vibrationfit.com/site-assets/video/intensive/06-refine-1080p.mp4'
 
 export default function LifeVisionRefineNewPage() {
   const router = useRouter()

@@ -18,9 +18,8 @@ import { IntensiveCompletionBanner } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
 import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
 
-// Placeholder video URL - user will replace this later
 const PROFILE_INTRO_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
+  'https://media.vibrationfit.com/site-assets/video/intensive/03-profile-1080p.mp4'
 
 export default function ProfileNewPage() {
   const router = useRouter()
@@ -191,7 +190,7 @@ export default function ProfileNewPage() {
         <PageHero
           eyebrow={isIntensiveMode ? "ACTIVATION INTENSIVE • STEP 3 OF 14" : undefined}
           title="Welcome to Your Profile"
-          subtitle="Your profile is the foundation of your journey with VibrationFit."
+          subtitle="Your profile is the foundation of your journey with Vibration Fit."
         >
           {/* Video */}
           <div className="mx-auto w-full max-w-3xl">
@@ -275,7 +274,7 @@ export default function ProfileNewPage() {
               What Is Your Profile?
             </Text>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-              Your VibrationFit Profile is a clear snapshot of where you are right now across all 12 categories of your life. It's how we anchor your starting point so you can intentionally create the life you actually desire, not a vague idea you can't measure.
+              Your Vibration Fit Profile is a clear snapshot of where you are right now across all 12 categories of your life. It's how we anchor your starting point so you can intentionally create the life you actually desire, not a vague idea you can't measure.
             </p>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
               Think of it as your personal GPS coordinates: you need to know where you are before you can map where you're going. This isn't about judgment. It's about clarity and self-awareness.

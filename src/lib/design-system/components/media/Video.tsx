@@ -188,7 +188,7 @@ export const Video = React.forwardRef<HTMLVideoElement, VideoProps>(
           <div className="absolute inset-0 bg-black/80 flex items-center justify-center p-4">
             <div className="bg-[#1F1F1F] border-2 border-[#39FF14] rounded-2xl p-6 max-w-md w-full">
               <h3 className="text-xl font-semibold text-white mb-4">
-                Get More VibrationFit Content
+                Get More Vibration Fit Content
               </h3>
               <form onSubmit={handleLeadSubmit} className="space-y-4">
                 <input

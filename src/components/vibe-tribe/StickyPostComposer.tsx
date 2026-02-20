@@ -359,7 +359,7 @@ export function StickyPostComposer({ userId, onPostCreated }: StickyPostComposer
                 onChange={(e) => setContent(e.target.value)}
                 onFocus={handleFocus}
                 placeholder="Type a Message..."
-                className="w-full h-11 bg-neutral-900 border border-neutral-700 rounded-full px-5 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500"
+                className="w-full h-11 bg-neutral-900 border border-neutral-700 rounded-full px-5 text-base md:text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500"
               />
             </div>
 

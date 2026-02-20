@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { startIntensive } from '@/lib/intensive/utils-client'
+import { checkUserHasPassword } from '@/lib/auth/check-password'
 import { 
   Container, 
   Stack,
@@ -35,9 +36,8 @@ import {
   Clock
 } from 'lucide-react'
 
-// Placeholder video URL - replace with actual intro video
 const INTENSIVE_START_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
+  'https://media.vibrationfit.com/site-assets/video/intensive/01-intensive-start-1080p.mp4'
 
 export default function IntensiveStartPage() {
   const router = useRouter()
@@ -62,7 +62,8 @@ export default function IntensiveStartPage() {
       }
 
       // Guard: ensure user has set a password before accessing intensive
-      if (user.user_metadata?.has_password !== true) {
+      const hasPassword = await checkUserHasPassword(supabase, user)
+      if (!hasPassword) {
         window.location.href = '/auth/setup-password?intensive=true'
         return
       }
@@ -314,7 +315,7 @@ export default function IntensiveStartPage() {
                   </Text>
                 </Inline>
                 <div className="text-sm text-neutral-300 leading-relaxed space-y-2">
-                  <p>When you complete all 14 steps, you graduate from the Intensive. That graduation unlocks the full VibrationFit platform, including:</p>
+                  <p>When you complete all 14 steps, you graduate from the Intensive. That graduation unlocks the full Vibration Fit platform, including:</p>
                   <ul className="list-none space-y-1 pl-0">
                     <li>– Advanced Audio Suite</li>
                     <li>– The Alignment Gym (weekly live coaching)</li>

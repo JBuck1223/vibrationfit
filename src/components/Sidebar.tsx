@@ -569,7 +569,7 @@ export function MobileBottomNav({ className }: MobileBottomNavProps) {
       items: [
         { name: 'Tokens', href: '/dashboard/tokens', icon: userNavigationGroups.find(g => g.name === 'System & Billing')?.items.find(i => i.name === 'Tokens')?.icon },
         { name: 'Storage', href: '/dashboard/storage', icon: userNavigationGroups.find(g => g.name === 'System & Billing')?.items.find(i => i.name === 'Storage')?.icon },
-        { name: 'Support', href: '/dashboard/support', icon: userNavigationGroups.find(g => g.name === 'System & Billing')?.items.find(i => i.name === 'Support')?.icon },
+        { name: 'Support', href: '/support/tickets', icon: userNavigationGroups.find(g => g.name === 'System & Billing')?.items.find(i => i.name === 'Support')?.icon },
         { name: 'Settings', href: '/account/settings', icon: userNavigationGroups.find(g => g.name === 'System & Billing')?.items.find(i => i.name === 'Settings')?.icon },
       ]
     }
@@ -698,6 +698,22 @@ export function MobileBottomNav({ className }: MobileBottomNavProps) {
                 )}
               </div>
             ))}
+
+            {/* Sign Out */}
+            <div className="border-t border-neutral-800 pt-4">
+              <button
+                onClick={async () => {
+                  closeDrawer()
+                  const supabase = createClient()
+                  await supabase.auth.signOut()
+                  window.location.href = '/auth/login'
+                }}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium text-red-400 hover:text-red-300 hover:bg-neutral-800 transition-all duration-200 border-2 border-neutral-700"
+              >
+                <LogOut className="w-5 h-5" />
+                <span>Sign Out</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

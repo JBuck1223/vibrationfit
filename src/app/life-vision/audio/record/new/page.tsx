@@ -18,9 +18,8 @@ import {
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowRight, Mic, Heart, Brain, Sparkles, SkipForward, Rocket, Headphones } from 'lucide-react'
 
-// Placeholder video URL - replace with actual intro video
 const AUDIO_RECORD_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
+  'https://media.vibrationfit.com/site-assets/video/intensive/08-audio-record-1080p.mp4'
 
 export default function AudioRecordNewPage() {
   const router = useRouter()

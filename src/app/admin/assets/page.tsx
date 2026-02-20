@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Container, Card, Button, Badge, Input, Stack, PageHero } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
-import { Upload, Copy, Check, Image as ImageIcon, Video, Music, File, Folder, Plus, ChevronRight, ArrowLeft, CheckCircle2, X, Search, Trash2, Play, Pause, ChevronLeft, FileText, ExternalLink, Grid, List } from 'lucide-react'
+import { Upload, Copy, Check, Image as ImageIcon, Video, Music, File, Folder, Plus, ChevronRight, ArrowLeft, CheckCircle2, X, Search, Trash2, Play, Pause, ChevronLeft, FileText, ExternalLink, Grid, List, RefreshCw } from 'lucide-react'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
-import { uploadMultipleSiteAssets } from '@/lib/storage/s3-storage-presigned'
+import { uploadMultipleSiteAssets, replaceSiteAsset } from '@/lib/storage/s3-storage-presigned'
 
 interface AssetFile {
   key: string
@@ -68,6 +68,11 @@ function AssetsAdminContent() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [draggedFiles, setDraggedFiles] = useState<string[]>([])
   const [dragOverFolder, setDragOverFolder] = useState<string | null>(null)
+  
+  // Replace file state
+  const [replacingKey, setReplacingKey] = useState<string | null>(null)
+  const [replaceProgress, setReplaceProgress] = useState(0)
+  const replaceInputRef = useRef<HTMLInputElement>(null)
   
   // Video modal state
   const [videoModalOpen, setVideoModalOpen] = useState(false)
@@ -550,6 +555,48 @@ function AssetsAdminContent() {
     }
   }
 
+  const startReplace = (fileKey: string) => {
+    setReplacingKey(fileKey)
+    replaceInputRef.current?.click()
+  }
+
+  const handleReplaceFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !replacingKey) {
+      setReplacingKey(null)
+      return
+    }
+
+    try {
+      setReplaceProgress(0)
+
+      await replaceSiteAsset(replacingKey, file, (progress) => {
+        setReplaceProgress(progress)
+      })
+
+      await fetchCurrentPathAssets()
+
+      const fileName = replacingKey.split('/').pop() || replacingKey
+      setSuccessMessage({
+        title: `Replaced "${fileName}" successfully!`,
+      })
+      setTimeout(() => setSuccessMessage(null), 4000)
+    } catch (error) {
+      console.error('Replace error:', error)
+      setErrorMessage({
+        title: 'Replace failed',
+        details: [error instanceof Error ? error.message : 'Unknown error'],
+      })
+      setTimeout(() => setErrorMessage(null), 5000)
+    } finally {
+      setReplacingKey(null)
+      setReplaceProgress(0)
+      if (replaceInputRef.current) {
+        replaceInputRef.current.value = ''
+      }
+    }
+  }
+
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, fileKeys: string[]) => {
     e.stopPropagation()
@@ -910,6 +957,14 @@ function AssetsAdminContent() {
 
   return (
     <>
+      {/* Hidden file input for replacing files */}
+      <input
+        ref={replaceInputRef}
+        type="file"
+        className="hidden"
+        onChange={handleReplaceFileSelect}
+      />
+
       {/* Delete Confirmation Dialog */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
@@ -2067,6 +2122,30 @@ function AssetsAdminContent() {
                           )}
                         </Button>
                       )}
+
+                      {/* Replace button */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        disabled={replacingKey === file.key}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          startReplace(file.key)
+                        }}
+                      >
+                        {replacingKey === file.key ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                            Replacing... {replaceProgress}%
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                            Replace File
+                          </>
+                        )}
+                      </Button>
                     </div>
                   </Card>
                 )
@@ -2249,6 +2328,21 @@ function AssetsAdminContent() {
                       
                       {/* Actions */}
                       <div className="flex items-center gap-2 flex-shrink-0">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={replacingKey === file.key}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            startReplace(file.key)
+                          }}
+                        >
+                          {replacingKey === file.key ? (
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <RefreshCw className="w-4 h-4" />
+                          )}
+                        </Button>
                         {isPDF ? (
                           <>
                             <Button

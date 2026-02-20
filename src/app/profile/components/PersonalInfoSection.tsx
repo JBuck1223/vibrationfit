@@ -215,31 +215,25 @@ export function PersonalInfoSection({ profile, onProfileChange, onError, onSave,
               </div>
               
               {isGenderDropdownOpen && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-10" 
-                    onClick={() => setIsGenderDropdownOpen(false)}
-                  />
-                  <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
-                    {genderOptions.map(option => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => {
-                          handleInputChange('gender', option.value)
-                          setIsGenderDropdownOpen(false)
-                        }}
-                        className={`w-full px-6 py-2 text-left transition-colors ${
-                          (profile.gender || '') === option.value 
-                            ? 'bg-primary-500/20 text-primary-500 font-semibold' 
-                            : 'text-white hover:bg-[#333]'
-                        }`}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                </>
+                <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                  {genderOptions.map(option => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        handleInputChange('gender', option.value)
+                        setIsGenderDropdownOpen(false)
+                      }}
+                      className={`w-full px-6 py-2 text-left transition-colors ${
+                        (profile.gender || '') === option.value 
+                          ? 'bg-primary-500/20 text-primary-500 font-semibold' 
+                          : 'text-white hover:bg-[#333]'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
           </div>
@@ -268,31 +262,25 @@ export function PersonalInfoSection({ profile, onProfileChange, onError, onSave,
               </div>
               
               {isEthnicityDropdownOpen && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-10" 
-                    onClick={() => setIsEthnicityDropdownOpen(false)}
-                  />
-                  <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
-                    {ethnicityOptions.map(option => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => {
-                          handleInputChange('ethnicity', option.value)
-                          setIsEthnicityDropdownOpen(false)
-                        }}
-                        className={`w-full px-6 py-2 text-left transition-colors ${
-                          (profile.ethnicity || '') === option.value 
-                            ? 'bg-primary-500/20 text-primary-500 font-semibold' 
-                            : 'text-white hover:bg-[#333]'
-                        }`}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                </>
+                <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                  {ethnicityOptions.map(option => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        handleInputChange('ethnicity', option.value)
+                        setIsEthnicityDropdownOpen(false)
+                      }}
+                      className={`w-full px-6 py-2 text-left transition-colors ${
+                        (profile.ethnicity || '') === option.value 
+                          ? 'bg-primary-500/20 text-primary-500 font-semibold' 
+                          : 'text-white hover:bg-[#333]'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
           </div>

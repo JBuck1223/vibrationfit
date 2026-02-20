@@ -17,9 +17,8 @@ import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowRight, Target, BarChart, TrendingUp } from 'lucide-react'
 import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
 
-// Placeholder video URL - user will replace this later
 const ASSESSMENT_INTRO_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
+  'https://media.vibrationfit.com/site-assets/video/intensive/04-assessment-1080p.mp4'
 
 export default function AssessmentNewPage() {
   const router = useRouter()

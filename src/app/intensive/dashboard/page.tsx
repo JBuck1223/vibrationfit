@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { completeIntensive } from '@/lib/intensive/utils-client'
+import { checkUserHasPassword } from '@/lib/auth/check-password'
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
 import { IntensiveCompletionScreen } from '@/components/IntensiveCompletionScreen'
 import { getStepInfo, getNextStep } from '@/lib/intensive/step-mapping'
@@ -29,8 +30,10 @@ import {
   Eye,
   Settings,
   FileText,
-  Unlock
+  Unlock,
+  HelpCircle
 } from 'lucide-react'
+import Link from 'next/link'
 
 import { 
   Container, 
@@ -210,9 +213,12 @@ function IntensiveDashboardContent() {
       // Guard: ensure user has set a password before accessing intensive
       // Super admins bypass this check
       const { isSuperAdmin } = await checkSuperAdminAccess(supabase)
-      if (!isSuperAdmin && user.user_metadata?.has_password !== true) {
-        window.location.href = '/auth/setup-password?intensive=true'
-        return
+      if (!isSuperAdmin) {
+        const hasPassword = await checkUserHasPassword(supabase, user)
+        if (!hasPassword) {
+          window.location.href = '/auth/setup-password?intensive=true'
+          return
+        }
       }
 
       console.log('User ID:', user.id)
@@ -566,7 +572,7 @@ function IntensiveDashboardContent() {
         completedAt: checklist.audios_generated_at,
         href: '/life-vision/audio/mix/new',
         viewHref: '/life-vision',
-        locked: !checklist.audio_generated
+        locked: !(hasVoiceRecordings || checklist.voice_recording_skipped)
       },
       
       // Phase 5: Activation (Steps 10-12)
@@ -628,7 +634,7 @@ function IntensiveDashboardContent() {
         id: 'unlock',
         stepNumber: 14,
         title: 'Full Platform Unlock',
-        description: 'Unlock the complete VibrationFit platform',
+        description: 'Unlock the complete Vibration Fit platform',
         icon: Unlock,
         phase: 'Completion',
         completed: checklist.unlock_completed || false,
@@ -993,6 +999,22 @@ function IntensiveDashboardContent() {
             )
           })}
         </div>
+
+        {/* Support Card */}
+        <Card className="p-4 md:p-6 border-secondary-500/20">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-secondary-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+              <HelpCircle className="w-5 h-5 text-secondary-500" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-white">Found a Bug?</h3>
+              <p className="text-xs text-neutral-400">Help us improve by reporting any issues you find.</p>
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/support">Report</Link>
+            </Button>
+          </div>
+        </Card>
       </Stack>
     </Container>
   )

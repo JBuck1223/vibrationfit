@@ -348,7 +348,7 @@ export default function VibeTribeNewPage() {
                   <p>- Who you are + where you're tuning in from</p>
                   <p>- One desire you're actively creating right now</p>
                   <p>- One sentence that captures your Life Vision vibe</p>
-                  <p>- Why you joined VibrationFit now (not "someday")</p>
+                  <p>- Why you joined Vibration Fit now (not "someday")</p>
                 </div>
                 <div className="relative">
                   <Textarea

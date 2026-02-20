@@ -19,9 +19,8 @@ import { ArrowRight, Eye, Sparkles, Target, Compass, Lightbulb } from 'lucide-re
 import { VISION_CATEGORIES, getCategoryClarityField, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
 import { createClient } from '@/lib/supabase/client'
 
-// Placeholder video URL - user will replace this later
 const VISION_INTRO_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
+  'https://media.vibrationfit.com/site-assets/video/intensive/05-vision-builder-1080p.mp4'
 
 interface CategoryProgress {
   [key: string]: {
@@ -135,10 +134,11 @@ export default function VIVALifeVisionLandingPage() {
         .map(([key]) => key)
       setCompletedCategoryKeys(completed)
       
-      // Determine vision status based on progress
+      // Determine vision status based on actual vision work
+      // Only count vision_new_category_state entries (not profile clarity fallback)
       if (!checklist?.vision_built) {
-        const hasAnyProgress = Object.keys(progressMap).length > 0
-        if (hasAnyProgress) {
+        const hasActualVisionProgress = categoryStates && categoryStates.length > 0
+        if (hasActualVisionProgress) {
           setVisionStatus('in_progress')
         }
         // Otherwise remains 'none'
@@ -353,7 +353,7 @@ export default function VIVALifeVisionLandingPage() {
               Why Your Life Vision Matters
             </Text>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-              Your Life Vision is the foundation for intentional living inside VibrationFit:
+              Your Life Vision is the foundation for intentional living inside Vibration Fit:
             </p>
             <Stack gap="sm" className="text-sm text-neutral-300 leading-relaxed">
               <p>
@@ -370,7 +370,7 @@ export default function VIVALifeVisionLandingPage() {
               </p>
             </Stack>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed mt-4">
-              This is the document everything else in VibrationFit plugs into – your audio, your vision board, your Journal, and your 28‑day Activation Plan all start here.
+              This is the document everything else in Vibration Fit plugs into – your audio, your vision board, your Journal, and your 28‑day Activation Plan all start here.
             </p>
           </Stack>
         </Card>

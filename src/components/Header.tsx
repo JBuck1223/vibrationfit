@@ -92,7 +92,7 @@ export function Header() {
           <Link href="/" className="flex items-center">
             <Image
               src={ASSETS.brand.logoWhite}
-              alt="VibrationFit"
+              alt="Vibration Fit"
               width={200}
               height={40}
               style={{ width: 'auto', height: '2rem' }}

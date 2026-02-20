@@ -44,7 +44,7 @@ export default function CheckEmailPage() {
                   <div>
                     <p className="font-medium text-sm md:text-base">Check your inbox</p>
                     <p className="text-xs md:text-sm text-neutral-400">
-                      Look for an email from VibrationFit
+                      Look for an email from Vibration Fit
                     </p>
                   </div>
                 </div>

@@ -245,7 +245,7 @@ export default function AdminDashboardPage() {
         <PageHero
           eyebrow="ADMIN"
           title="Admin Dashboard"
-          subtitle="Central hub for managing VibrationFit"
+          subtitle="Central hub for managing Vibration Fit"
         />
 
         <SectionGroup title="CRM" sections={crmSections} />

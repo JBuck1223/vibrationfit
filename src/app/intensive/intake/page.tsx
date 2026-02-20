@@ -16,12 +16,6 @@ import {
   Checkbox,
   RadioGroup
 } from '@/lib/design-system/components'
-import { OptimizedVideo } from '@/components/OptimizedVideo'
-
-// Placeholder video URL - user will replace this later
-const INTAKE_INTRO_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
-
 import { 
   getQuestionsForPhase, 
   INTAKE_QUESTIONS,
@@ -32,7 +26,9 @@ import { ReadOnlySection } from '@/components/IntensiveStepCompletedBanner'
 import { IntensiveCompletionBanner } from '@/lib/design-system/components'
 import { getStepInfo, getNextStep } from '@/lib/intensive/step-mapping'
 
-// Text Question Component - defined outside to prevent re-renders
+// All question components defined outside IntensiveIntake to prevent
+// unmount/remount on every state change (which resets scroll position).
+
 const TextQuestionComponent = ({ 
   question,
   value,
@@ -59,6 +55,110 @@ const TextQuestionComponent = ({
         rows={4}
         className="text-sm md:text-base"
       />
+    </div>
+  </div>
+)
+
+const RatingSelectorComponent = ({ 
+  question,
+  value,
+  onValueChange
+}: { 
+  question: IntakeQuestion
+  value: number | null
+  onValueChange: (value: number) => void
+}) => (
+  <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
+    <div className="flex items-start gap-3 mb-4">
+      <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
+        {question.order}
+      </div>
+      <label className="block text-sm md:text-base font-medium text-white pt-0.5">
+        {question.questionPre}
+      </label>
+    </div>
+    {question.hint && (
+      <p className="text-xs md:text-sm text-neutral-500 mb-4 ml-10 italic">
+        {question.hint}
+      </p>
+    )}
+    <div className="flex flex-wrap gap-2 ml-10 max-w-[232px] md:max-w-fit">
+      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+        <button
+          key={num}
+          type="button"
+          onClick={() => onValueChange(num)}
+          className={`
+            w-10 h-10 rounded border-2 font-semibold transition-colors duration-150 text-sm flex-shrink-0
+            ${value === num 
+              ? 'bg-primary-500 border-primary-500 text-black' 
+              : 'bg-neutral-900 border-neutral-700 text-neutral-400 hover:border-neutral-600'
+            }
+          `}
+        >
+          {num}
+        </button>
+      ))}
+    </div>
+  </div>
+)
+
+const MultipleChoiceSelectorComponent = ({ 
+  question,
+  value,
+  onValueChange
+}: { 
+  question: IntakeQuestion
+  value: string
+  onValueChange: (value: string) => void
+}) => (
+  <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
+    <div className="flex items-start gap-3 mb-4">
+      <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
+        {question.order}
+      </div>
+      <label className="block text-sm md:text-base font-medium text-white pt-0.5">
+        {question.questionPre}
+      </label>
+    </div>
+    {question.hint && (
+      <p className="text-xs md:text-sm text-neutral-500 mb-4 ml-10 italic">
+        {question.hint}
+      </p>
+    )}
+    <div className="ml-10">
+      <RadioGroup
+        name={question.id}
+        value={value}
+        onChange={(val) => onValueChange(String(val))}
+        options={question.options || []}
+        orientation="vertical"
+      />
+    </div>
+  </div>
+)
+
+const BooleanQuestionComponent = ({ 
+  question,
+  value,
+  onValueChange
+}: { 
+  question: IntakeQuestion
+  value: boolean
+  onValueChange: (value: boolean) => void
+}) => (
+  <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
+    <div className="flex items-start gap-3">
+      <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
+        {question.order}
+      </div>
+      <div className="pt-0.5">
+        <Checkbox
+          checked={value}
+          onChange={(e) => onValueChange(e.target.checked)}
+          label={question.questionPre}
+        />
+      </div>
     </div>
   </div>
 )
@@ -399,105 +499,26 @@ export default function IntensiveIntake() {
     }
   }
 
-  const RatingSelector = ({ 
-    question
-  }: { 
-    question: IntakeQuestion
-  }) => (
-    <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
-      <div className="flex items-start gap-3 mb-4">
-        <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
-          {question.order}
-        </div>
-        <label className="block text-sm md:text-base font-medium text-white pt-0.5">
-          {question.questionPre}
-        </label>
-      </div>
-      {question.hint && (
-        <p className="text-xs md:text-sm text-neutral-500 mb-4 ml-10 italic">
-          {question.hint}
-        </p>
-      )}
-      <div className="flex flex-wrap gap-2 ml-10 max-w-[232px] md:max-w-fit">
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-          <button
-            key={num}
-            type="button"
-            onClick={() => updateFormData(question.id, num)}
-            className={`
-              w-10 h-10 rounded border-2 font-semibold transition-colors duration-150 text-sm flex-shrink-0
-              ${formData[question.id] === num 
-                ? 'bg-primary-500 border-primary-500 text-black' 
-                : 'bg-neutral-900 border-neutral-700 text-neutral-400 hover:border-neutral-600'
-              }
-            `}
-          >
-            {num}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-
-  const MultipleChoiceSelector = ({ 
-    question
-  }: { 
-    question: IntakeQuestion
-  }) => (
-    <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
-      <div className="flex items-start gap-3 mb-4">
-        <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
-          {question.order}
-        </div>
-        <label className="block text-sm md:text-base font-medium text-white pt-0.5">
-          {question.questionPre}
-        </label>
-      </div>
-      {question.hint && (
-        <p className="text-xs md:text-sm text-neutral-500 mb-4 ml-10 italic">
-          {question.hint}
-        </p>
-      )}
-      <div className="ml-10">
-        <RadioGroup
-          name={question.id}
-          value={(formData[question.id] as string) || ''}
-          onChange={(value) => updateFormData(question.id, value)}
-          options={question.options || []}
-          orientation="vertical"
-        />
-      </div>
-    </div>
-  )
-
-
-  const BooleanQuestion = ({ 
-    question
-  }: { 
-    question: IntakeQuestion
-  }) => (
-    <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
-      <div className="flex items-start gap-3">
-        <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
-          {question.order}
-        </div>
-        <div className="pt-0.5">
-          <Checkbox
-            checked={formData[question.id] as boolean}
-            onChange={(e) => updateFormData(question.id, e.target.checked)}
-            label={question.questionPre}
-          />
-        </div>
-      </div>
-    </div>
-  )
-
   const renderQuestion = (question: IntakeQuestion) => {
     switch (question.type) {
       case 'rating':
-        return <RatingSelector key={question.id} question={question} />
+        return (
+          <RatingSelectorComponent 
+            key={question.id} 
+            question={question} 
+            value={formData[question.id] as number | null}
+            onValueChange={(value) => updateFormData(question.id, value)}
+          />
+        )
       case 'multiple_choice':
-        return <MultipleChoiceSelector key={question.id} question={question} />
+        return (
+          <MultipleChoiceSelectorComponent 
+            key={question.id} 
+            question={question} 
+            value={(formData[question.id] as string) || ''}
+            onValueChange={(value) => updateFormData(question.id, value)}
+          />
+        )
       case 'text':
         return (
           <TextQuestionComponent 
@@ -508,7 +529,14 @@ export default function IntensiveIntake() {
           />
         )
       case 'boolean':
-        return <BooleanQuestion key={question.id} question={question} />
+        return (
+          <BooleanQuestionComponent 
+            key={question.id} 
+            question={question} 
+            value={formData[question.id] as boolean}
+            onValueChange={(value) => updateFormData(question.id, value)}
+          />
+        )
       default:
         return null
     }
@@ -541,16 +569,7 @@ export default function IntensiveIntake() {
             eyebrow="ACTIVATION INTENSIVE • STEP 2 OF 14"
             title="Baseline Intake"
             subtitle="Help us understand where you are today so we can measure your transformation"
-          >
-            {/* Video */}
-            <div className="mx-auto w-full max-w-3xl">
-              <OptimizedVideo
-                url={INTAKE_INTRO_VIDEO}
-                context="single"
-                className="w-full"
-              />
-            </div>
-          </PageHero>
+          />
 
           {/* Read-Only Responses */}
           <ReadOnlySection
@@ -584,16 +603,7 @@ export default function IntensiveIntake() {
           eyebrow="ACTIVATION INTENSIVE • STEP 2 OF 14"
           title="Baseline Intake"
           subtitle="Help us understand where you are today so we can measure your transformation"
-        >
-          {/* Video */}
-          <div className="mx-auto w-full max-w-3xl">
-            <OptimizedVideo
-              url={INTAKE_INTRO_VIDEO}
-              context="single"
-              className="w-full"
-            />
-          </div>
-        </PageHero>
+        />
 
         <div className="space-y-6">
           <form onSubmit={(e) => { e.preventDefault(); submitForm(); }} className="space-y-6">

@@ -32,6 +32,14 @@ export const STRIPE_CONFIG = {
     token_power: process.env.STRIPE_PRICE_TOKEN_POWER, // 2M - $99
     token_mega: process.env.STRIPE_PRICE_TOKEN_MEGA, // 5M - $199
     token_ultra: process.env.STRIPE_PRICE_TOKEN_ULTRA, // 12M - $399
+    
+    // Token Subscription Add-on ($29/1M per cycle)
+    token_addon_28day: process.env.STRIPE_PRICE_TOKEN_ADDON_28DAY,
+    token_addon_annual: process.env.STRIPE_PRICE_TOKEN_ADDON_ANNUAL,
+    
+    // Storage Subscription Add-on ($9/100GB per cycle)
+    storage_addon_28day: process.env.STRIPE_PRICE_STORAGE_ADDON_28DAY,
+    storage_addon_annual: process.env.STRIPE_PRICE_STORAGE_ADDON_ANNUAL,
   },
   
   // Success/Cancel URLs
