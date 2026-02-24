@@ -1994,32 +1994,36 @@ export default function HomePage() {
                               </>
                             )}
                           </div>
-                          <div className="flex items-center justify-center gap-2 text-neutral-400 text-xs">
-                            <Shield className="w-3 h-3 text-[#FFFF00]" />
-                            <span>72‑Hour Activation Guarantee</span>
-                          </div>
+                          <p className="text-neutral-400 text-xs text-center">
+                            <Shield className="w-3 h-3 text-[#FFFF00] inline-block align-middle -mt-[2px] mr-1" aria-hidden />
+                            72‑Hour Activation Guarantee
+                          </p>
                           <div className="text-white text-center text-sm md:text-base">
                             <strong>Day 56:</strong> {billingPeriod === 'annual' 
                               ? '$999 Payment (=$76.85/28 days). Renews annually.'
                               : '$99 Payment. Renews every 28 days.'
                             }
                           </div>
-                          <div className="flex items-center justify-center gap-2 text-neutral-400 text-xs">
-                            <Shield className="w-3 h-3 text-[#FFFF00]" />
-                            <span>16‑week Membership Satisfaction Guarantee from today.</span>
-                          </div>
-                          <div className="text-white text-center text-sm md:text-base">
-                            <strong>You can switch or cancel any time before Day 56.</strong>
+                          <p className="text-neutral-400 text-xs text-center">
+                            <Shield className="w-3 h-3 text-[#FFFF00] inline-block align-middle -mt-[2px] mr-1" aria-hidden />
+                            16‑week Membership Satisfaction Guarantee from today.
+                          </p>
+                          <div className="flex justify-center text-center">
+                            <div className="text-white text-sm md:text-base max-w-[min(100%,20rem)] mx-auto">
+                              <strong>You can switch or cancel any time before Day 56.</strong>
+                            </div>
                           </div>
                         </Stack>
 
                         {/* Required Checkbox */}
-                        <div className="flex items-center justify-center">
-                          <Checkbox
-                            label="I agree to the renewal and guarantee terms above."
-                            checked={agreedToTerms}
-                            onChange={(e) => setAgreedToTerms(e.target.checked)}
-                          />
+                        <div className="flex justify-center">
+                          <div className="inline-flex justify-center">
+                            <Checkbox
+                              label="I agree to the renewal and guarantee terms above."
+                              checked={agreedToTerms}
+                              onChange={(e) => setAgreedToTerms(e.target.checked)}
+                            />
+                          </div>
                         </div>
 
                         {/* CTA BUTTON */}
