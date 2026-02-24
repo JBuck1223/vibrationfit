@@ -22,6 +22,8 @@ import {
 
 const CALIBRATION_CALL_VIDEO =
   'https://media.vibrationfit.com/site-assets/video/intensive/12-book-a-call-1080p.mp4'
+const CALIBRATION_CALL_POSTER =
+  'https://media.vibrationfit.com/site-assets/video/intensive/12-book-a-call-thumb.0000000.jpg'
 
 // Types
 interface AvailableSlot {
@@ -476,6 +478,7 @@ export default function ScheduleCallPage() {
             <div className="mx-auto w-full max-w-3xl mb-6">
               <OptimizedVideo
                 url={CALIBRATION_CALL_VIDEO}
+                thumbnailUrl={CALIBRATION_CALL_POSTER}
                 context="single"
                 className="w-full"
               />
@@ -526,6 +529,7 @@ export default function ScheduleCallPage() {
           <div className="mx-auto w-full max-w-3xl mb-6">
             <OptimizedVideo
               url={CALIBRATION_CALL_VIDEO}
+              thumbnailUrl={CALIBRATION_CALL_POSTER}
               context="single"
               className="w-full"
             />

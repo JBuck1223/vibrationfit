@@ -21,6 +21,8 @@ import { createClient } from '@/lib/supabase/client'
 
 const VISION_INTRO_VIDEO =
   'https://media.vibrationfit.com/site-assets/video/intensive/05-vision-builder-1080p.mp4'
+const VISION_INTRO_POSTER =
+  'https://media.vibrationfit.com/site-assets/video/intensive/05-vision-builder-thumb.0000000.jpg'
 
 interface CategoryProgress {
   [key: string]: {
@@ -201,6 +203,7 @@ export default function VIVALifeVisionLandingPage() {
           <div className="mx-auto w-full max-w-3xl">
             <OptimizedVideo
               url={VISION_INTRO_VIDEO}
+              thumbnailUrl={VISION_INTRO_POSTER}
               context="single"
               className="w-full"
             />

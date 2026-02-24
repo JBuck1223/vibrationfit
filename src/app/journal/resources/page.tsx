@@ -18,6 +18,8 @@ import { BookOpen, Heart, Sparkles, Plus, Eye, Mic, Video, Tag, TrendingUp, Ligh
 
 const JOURNAL_VIDEO =
   'https://media.vibrationfit.com/site-assets/video/intensive/11-journal-1080p.mp4'
+const JOURNAL_POSTER =
+  'https://media.vibrationfit.com/site-assets/video/intensive/11-journal-thumb.0000000.jpg'
 
 export default function JournalResourcesPage() {
   const [isIntensiveMode, setIsIntensiveMode] = useState(false)
@@ -72,6 +74,7 @@ export default function JournalResourcesPage() {
           <div className="mx-auto w-full max-w-3xl mb-6">
             <OptimizedVideo
               url={JOURNAL_VIDEO}
+              thumbnailUrl={JOURNAL_POSTER}
               context="single"
               className="w-full"
             />

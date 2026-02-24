@@ -20,6 +20,8 @@ import { ArrowRight, Sliders, Music, Brain, Waves, Headphones, Rocket, Volume2, 
 
 const AUDIO_MIX_VIDEO =
   'https://media.vibrationfit.com/site-assets/video/intensive/09-audio-mixing-1080p.mp4'
+const AUDIO_MIX_POSTER =
+  'https://media.vibrationfit.com/site-assets/video/intensive/09-audio-mixing-thumb.0000000.jpg'
 
 export default function AudioMixNewPage() {
   const router = useRouter()
@@ -123,6 +125,7 @@ export default function AudioMixNewPage() {
           <div className="mx-auto w-full max-w-3xl">
             <OptimizedVideo
               url={AUDIO_MIX_VIDEO}
+              thumbnailUrl={AUDIO_MIX_POSTER}
               context="single"
               className="w-full"
             />

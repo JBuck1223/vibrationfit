@@ -86,6 +86,8 @@ export async function PATCH(request: NextRequest) {
       'monthly_token_grant',
       'annual_token_grant',
       'storage_quota_gb',
+      'price_monthly',
+      'price_yearly',
       'is_active',
     ]
 

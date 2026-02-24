@@ -122,16 +122,16 @@ export async function POST(request: NextRequest) {
     }
 
     // ------------------------------------------------------------------
-    // 3. Resolve product & pricing
+    // 3. Resolve product & pricing from database
     // ------------------------------------------------------------------
-    const { resolveCheckoutProduct } = await import('@/lib/checkout/products')
-    const checkoutProduct = resolveCheckoutProduct({ product, plan, continuity, planType, packKey })
+    const { resolveProduct } = await import('@/lib/billing/products')
+    const checkoutProduct = await resolveProduct({ product, plan, continuity, planType, packKey })
 
     if (!checkoutProduct) {
       return NextResponse.json({ error: 'Invalid product configuration' }, { status: 400 })
     }
 
-    const priceId = checkoutProduct.getPriceEnvKey()
+    const priceId = checkoutProduct.stripePriceId
     if (!priceId) {
       return NextResponse.json(
         { error: `Stripe price not configured for ${checkoutProduct.key}` },

@@ -51,10 +51,10 @@ export async function POST(request: NextRequest) {
     
     switch (templateId) {
       case 'household-invitation':
-        emailContent = generateHouseholdInvitationEmail(templateData)
+        emailContent = await generateHouseholdInvitationEmail(templateData)
         break
       case 'support-ticket-created':
-        emailContent = generateSupportTicketCreatedEmail(templateData)
+        emailContent = await generateSupportTicketCreatedEmail(templateData)
         break
       default:
         return NextResponse.json(

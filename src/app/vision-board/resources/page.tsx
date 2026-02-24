@@ -18,6 +18,8 @@ import { Image, Eye, Sparkles, Plus, Layout, TrendingUp, Upload, Download, Check
 
 const VISION_BOARD_VIDEO =
   'https://media.vibrationfit.com/site-assets/video/intensive/10-vision-board-1080p.mp4'
+const VISION_BOARD_POSTER =
+  'https://media.vibrationfit.com/site-assets/video/intensive/10-vision-board-thumb.0000000.jpg'
 
 export default function VisionBoardResourcesPage() {
   const [isIntensiveMode, setIsIntensiveMode] = useState(false)
@@ -72,6 +74,7 @@ export default function VisionBoardResourcesPage() {
           <div className="mx-auto w-full max-w-3xl mb-6">
             <OptimizedVideo
               url={VISION_BOARD_VIDEO}
+              thumbnailUrl={VISION_BOARD_POSTER}
               context="single"
               className="w-full"
             />

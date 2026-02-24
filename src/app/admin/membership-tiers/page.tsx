@@ -19,6 +19,7 @@ import {
   Pencil,
   X,
   Save,
+  DollarSign,
 } from 'lucide-react'
 
 interface MembershipTier {
@@ -78,6 +79,11 @@ function getBillingLabel(billingInterval: string): string {
   }
 }
 
+function getTierPrice(tier: MembershipTier): number {
+  if (tier.billing_interval === 'year' && tier.price_yearly) return tier.price_yearly
+  return tier.price_monthly
+}
+
 function getCategoryColor(category: string): string {
   switch (category) {
     case 'intensive': return 'bg-accent-500/20 text-accent-400 border-accent-500/30'
@@ -100,11 +106,15 @@ function TierCard({
     monthly_token_grant: tier.monthly_token_grant,
     annual_token_grant: tier.annual_token_grant,
     storage_quota_gb: tier.storage_quota_gb,
+    price_monthly: tier.price_monthly,
+    price_yearly: tier.price_yearly || 0,
   })
 
   const tokenGrant = tier.billing_interval === 'year'
     ? tier.annual_token_grant
     : tier.monthly_token_grant
+
+  const displayPrice = getTierPrice(tier)
 
   const handleSave = async () => {
     setSaving(true)
@@ -121,6 +131,8 @@ function TierCard({
       monthly_token_grant: tier.monthly_token_grant,
       annual_token_grant: tier.annual_token_grant,
       storage_quota_gb: tier.storage_quota_gb,
+      price_monthly: tier.price_monthly,
+      price_yearly: tier.price_yearly || 0,
     })
     setEditing(false)
   }
@@ -155,7 +167,7 @@ function TierCard({
         </div>
         <div className="text-right shrink-0 ml-3">
           <div className="text-lg md:text-xl font-bold text-white">
-            {tier.price_monthly > 0 ? formatPrice(tier.price_monthly) : 'Free'}
+            {displayPrice > 0 ? formatPrice(displayPrice) : 'Free'}
           </div>
           <div className="text-xs text-neutral-500">
             {tier.billing_interval === 'year' ? '/year' : tier.billing_interval === 'month' ? '/28 days' : ''}
@@ -239,6 +251,43 @@ function TierCard({
       ) : (
         /* Edit Mode */
         <div className="space-y-3 mb-4">
+          {/* Price */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-neutral-400 block mb-1">
+                <DollarSign className="w-3 h-3 inline mr-0.5" />
+                Price (cents){tier.billing_interval === 'month' ? ' /28 days' : tier.billing_interval === 'year' ? ' /month display' : ''}
+              </label>
+              <input
+                type="number"
+                value={editValues.price_monthly}
+                onChange={(e) => setEditValues(prev => ({ ...prev, price_monthly: parseInt(e.target.value) || 0 }))}
+                className="w-full bg-[#1A1A1A] border border-neutral-700 rounded-lg px-3 py-2 text-white text-sm focus:border-primary-500 focus:outline-none"
+              />
+              <span className="text-[10px] text-neutral-500 mt-0.5 block">
+                = {formatPrice(editValues.price_monthly)}
+              </span>
+            </div>
+            {tier.billing_interval === 'year' && (
+              <div>
+                <label className="text-xs text-neutral-400 block mb-1">
+                  <DollarSign className="w-3 h-3 inline mr-0.5" />
+                  Yearly Price (cents)
+                </label>
+                <input
+                  type="number"
+                  value={editValues.price_yearly}
+                  onChange={(e) => setEditValues(prev => ({ ...prev, price_yearly: parseInt(e.target.value) || 0 }))}
+                  className="w-full bg-[#1A1A1A] border border-neutral-700 rounded-lg px-3 py-2 text-white text-sm focus:border-primary-500 focus:outline-none"
+                />
+                <span className="text-[10px] text-neutral-500 mt-0.5 block">
+                  = {formatPrice(editValues.price_yearly)}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Tokens */}
           {tier.billing_interval === 'year' ? (
             <div>
               <label className="text-xs text-neutral-400 block mb-1">Annual Token Grant</label>
@@ -266,6 +315,8 @@ function TierCard({
               </span>
             </div>
           )}
+
+          {/* Storage */}
           <div>
             <label className="text-xs text-neutral-400 block mb-1">Storage (GB)</label>
             <input

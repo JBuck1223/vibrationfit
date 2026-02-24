@@ -19,6 +19,8 @@ import { ArrowRight, Volume2, Headphones, LayoutGrid, MousePointerClick, ListMus
 
 const AUDIO_GENERATE_VIDEO =
   'https://media.vibrationfit.com/site-assets/video/intensive/07-audio-generation-1080p.mp4'
+const AUDIO_GENERATE_POSTER =
+  'https://media.vibrationfit.com/site-assets/video/intensive/07-audio-generation-thumb.0000000.jpg'
 
 export default function AudioGenerateNewPage() {
   const router = useRouter()
@@ -122,6 +124,7 @@ export default function AudioGenerateNewPage() {
           <div className="mx-auto w-full max-w-3xl">
             <OptimizedVideo
               url={AUDIO_GENERATE_VIDEO}
+              thumbnailUrl={AUDIO_GENERATE_POSTER}
               context="single"
               className="w-full"
             />

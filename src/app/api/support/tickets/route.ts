@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create ticket' }, { status: 500 })
     }
 
-    // Send confirmation email using file-based template
+    // Send confirmation email using database template
     try {
       const appUrl =
         process.env.NEXT_PUBLIC_APP_URL ||
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
 
       const ticketUrl = `${appUrl}/support/tickets/${ticket.id}`
 
-      const emailData = generateSupportTicketCreatedEmail({
+      const emailData = await generateSupportTicketCreatedEmail({
         ticketNumber: ticket.ticket_number,
         ticketSubject: ticket.subject,
         ticketStatus: ticket.status,

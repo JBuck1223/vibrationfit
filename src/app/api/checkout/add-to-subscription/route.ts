@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { stripe } from '@/lib/stripe/config'
-import { getAddonPriceId } from '@/lib/checkout/products'
+import { resolveStripePriceId } from '@/lib/billing/products'
 import type Stripe from 'stripe'
 
 const MAX_QUANTITY = 10
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       intervalKey = '28day'
     }
 
-    const addonPriceId = getAddonPriceId(addonType, intervalKey)
+    const addonPriceId = await resolveStripePriceId(addonType, intervalKey)
     if (!addonPriceId) {
       return NextResponse.json(
         { error: `Add-on price not configured for ${addonType} (${intervalKey})` },

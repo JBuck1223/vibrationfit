@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://vibrationfit.com'
       const invitationLink = `${appUrl}/household/invite/${invitation.invitation_token}`
       
-      const emailContent = generateHouseholdInvitationEmail({
+      const emailContent = await generateHouseholdInvitationEmail({
         inviterName,
         inviterEmail: user.email || '',
         householdName: household.name,

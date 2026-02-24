@@ -20,6 +20,8 @@ import { ArrowRight, Mic, Heart, Brain, Sparkles, SkipForward, Rocket, Headphone
 
 const AUDIO_RECORD_VIDEO =
   'https://media.vibrationfit.com/site-assets/video/intensive/08-audio-record-1080p.mp4'
+const AUDIO_RECORD_POSTER =
+  'https://media.vibrationfit.com/site-assets/video/intensive/08-audio-record-thumb.0000000.jpg'
 
 export default function AudioRecordNewPage() {
   const router = useRouter()
@@ -179,6 +181,7 @@ export default function AudioRecordNewPage() {
           <div className="mx-auto w-full max-w-3xl">
             <OptimizedVideo
               url={AUDIO_RECORD_VIDEO}
+              thumbnailUrl={AUDIO_RECORD_POSTER}
               context="single"
               className="w-full"
             />

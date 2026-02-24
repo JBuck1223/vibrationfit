@@ -19,6 +19,8 @@ import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
 
 const ASSESSMENT_INTRO_VIDEO =
   'https://media.vibrationfit.com/site-assets/video/intensive/04-assessment-1080p.mp4'
+const ASSESSMENT_INTRO_POSTER =
+  'https://media.vibrationfit.com/site-assets/video/intensive/04-assessment-thumb.0000000.jpg'
 
 export default function AssessmentNewPage() {
   const router = useRouter()
@@ -133,6 +135,7 @@ export default function AssessmentNewPage() {
           <div className="mx-auto w-full max-w-3xl">
             <OptimizedVideo
               url={ASSESSMENT_INTRO_VIDEO}
+              thumbnailUrl={ASSESSMENT_INTRO_POSTER}
               context="single"
               className="w-full"
             />
