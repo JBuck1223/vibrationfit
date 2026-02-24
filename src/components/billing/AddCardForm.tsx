@@ -7,7 +7,8 @@ import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { toast } from 'sonner'
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
+const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+const stripePromise = publishableKey ? loadStripe(publishableKey) : null
 
 type Props = {
   isOpen: boolean
@@ -113,7 +114,13 @@ export default function AddCardForm({ isOpen, onClose, onSuccess }: Props) {
         <div className="py-8 text-center text-neutral-400 text-sm">Loading...</div>
       )}
 
-      {clientSecret && (
+      {clientSecret && !stripePromise && (
+        <div className="py-4 text-center text-amber-500 text-sm">
+          Payment form is not configured. Add NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY to your environment.
+        </div>
+      )}
+
+      {clientSecret && stripePromise && (
         <Elements
           stripe={stripePromise}
           options={{

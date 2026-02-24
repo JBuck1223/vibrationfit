@@ -6,7 +6,7 @@
 import { Container, Stack, PageHero, Card } from '@/lib/design-system/components'
 
 export default function TermsOfServicePage() {
-  const lastUpdated = 'January 12, 2026'
+  const lastUpdated = 'February 24, 2026'
 
   return (
     <Container size="xl">
@@ -53,8 +53,11 @@ export default function TermsOfServicePage() {
               <p className="text-neutral-300 mb-4">
                 To use certain features, you must create an account. You agree to provide accurate and current information and to keep your account information up to date.
               </p>
+              <p className="text-neutral-300 mb-2">
+                The account holder must be at least 18 years of age. Minors may access the platform only under that adult&apos;s account or as sub-accounts the adult controls. The adult accepts these Terms on behalf of any minors they allow to use the Services.
+              </p>
               <p className="text-neutral-300 mb-6">
-                Accounts are created and managed by adults. If users under the age of 18 use the platform, they do so under the supervision and responsibility of the account holder.
+                The account holder is the legal customer for all purposes, including contracts, payments, and responsibility for use of the Services.
               </p>
 
               <h3 className="text-lg font-semibold text-white mb-3">3.2 Account Security</h3>
@@ -98,7 +101,10 @@ export default function TermsOfServicePage() {
                 Some features of Vibration Fit use VIVA to generate insights, reflections, suggestions, or creative outputs.
               </p>
               <p className="text-neutral-300 mb-4">
-                VIVA-generated content is intended to support personal reflection and growth. It does not constitute medical, psychological, legal, or professional advice.
+                The Services, including VIVA-assisted features, are for general wellness, reflection, and personal development only. They are not a substitute for professional medical, psychological, legal, or financial advice.
+              </p>
+              <p className="text-neutral-300 mb-4">
+                Do not use the Services for crisis situations or as a treatment for mental health conditions.
               </p>
               <p className="text-neutral-300">
                 You remain responsible for how you interpret and apply any VIVA-generated content.
@@ -106,26 +112,41 @@ export default function TermsOfServicePage() {
             </section>
 
             <section className="mb-8">
-              <h2 className="text-xl font-bold text-white mb-4">6. Subscriptions, Payments & Billing</h2>
+              <h2 className="text-xl font-bold text-white mb-4">6. Subscriptions, Payments & Automatic Renewal</h2>
               <p className="text-neutral-300 mb-4">
-                Certain features of the Services may require a paid subscription.
+                Some purchases include an initial fee for the Vision Activation Intensive plus an ongoing Vision Pro membership that renews every 28 days or annually until canceled.
               </p>
-              <p className="text-neutral-300 mb-4">By subscribing, you agree to:</p>
+              <p className="text-neutral-300 mb-4">
+                We will clearly display the initial charge, future renewal amount, and renewal date at checkout before you complete your purchase.
+              </p>
+              <p className="text-neutral-300 mb-4">
+                By completing checkout, you authorize us to charge your payment method for the initial fee and for recurring membership charges until you cancel.
+              </p>
+              <p className="text-neutral-300 mb-4">In addition, by subscribing you agree to:</p>
               <ul className="list-disc list-inside text-neutral-300 mb-4 space-y-2">
                 <li>Pay all applicable fees</li>
                 <li>Authorize recurring billing where applicable</li>
                 <li>Keep payment information current</li>
               </ul>
+              <p className="text-neutral-300 mb-4">
+                If you have a billing question, please contact us first so we can resolve it. Initiating a chargeback without first contacting support may result in suspension of your account.
+              </p>
               <p className="text-neutral-300">
                 Subscription terms, pricing, and cancellation options are presented at the time of purchase and may change with notice.
               </p>
             </section>
 
             <section className="mb-8">
-              <h2 className="text-xl font-bold text-white mb-4">7. Cancellation & Account Termination</h2>
+              <h2 className="text-xl font-bold text-white mb-4">7. Cancellations, Refunds & Guarantees</h2>
               <p className="text-neutral-300 mb-4">
-                You may cancel your subscription or delete your account at any time through your account settings.
+                You may cancel your subscription or delete your account at any time through your account settings or as described below.
               </p>
+              <ul className="list-disc list-inside text-neutral-300 mb-4 space-y-2">
+                <li><strong className="text-white">72-Hour Activation Guarantee</strong> applies only to the Intensive fee and requires completion of the activation checklist as described on the checkout page.</li>
+                <li><strong className="text-white">16-Week Membership Satisfaction Guarantee</strong> applies only to membership fees within 16 weeks of initial checkout.</li>
+                <li>To request a refund or cancel renewal, contact us in-app or via the support channel listed on our website.</li>
+                <li>We process approved refunds to the original payment method; processing times depend on your bank.</li>
+              </ul>
               <p className="text-neutral-300 mb-4">
                 We reserve the right to suspend or terminate accounts that violate these Terms or misuse the Services.
               </p>
@@ -197,8 +218,14 @@ export default function TermsOfServicePage() {
 
             <section className="mb-8">
               <h2 className="text-xl font-bold text-white mb-4">14. Governing Law</h2>
-              <p className="text-neutral-300">
-                These Terms are governed by the laws of the jurisdiction in which Vibration Fit operates, without regard to conflict of law principles.
+              <p className="text-neutral-300 mb-4">
+                These Terms are governed by the laws of the jurisdiction in which Vibration Fit operates, without regard to conflict of law principles. Specific issues such as jurisdiction, mandatory arbitration, small-claims procedures, and class action waivers may apply as required by applicable law.
+              </p>
+              <p className="text-neutral-300 mb-4">
+                Data and privacy practices are described in our Privacy Policy and are aligned with these Terms.
+              </p>
+              <p className="text-neutral-300 text-sm italic">
+                If you have questions about how these Terms apply to your situation, including jurisdiction or dispute resolution, we recommend consulting your own legal advisor.
               </p>
             </section>
 

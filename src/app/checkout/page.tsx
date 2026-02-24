@@ -11,7 +11,8 @@ import CheckoutForm, { type AccountDetails } from '@/components/checkout/Checkou
 import { resolveCheckoutProduct, type CheckoutProduct } from '@/lib/checkout/products'
 import { toast } from 'sonner'
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
+const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+const stripePromise = publishableKey ? loadStripe(publishableKey) : null
 
 function CheckoutContent() {
   const searchParams = useSearchParams()
@@ -33,6 +34,30 @@ function CheckoutContent() {
 
   const referralSource = searchParams.get('ref') || ''
   const campaignName = searchParams.get('campaign') || ''
+
+  const isIntensive =
+    product?.metadata?.purchase_type === 'intensive' || product?.key?.startsWith('intensive-')
+  const paymentPlan = (product?.metadata?.intensive_payment_plan as 'full' | '2pay' | '3pay') || 'full'
+  const fullPrice =
+    !product
+      ? 0
+      : paymentPlan === 'full'
+        ? product.amount
+        : paymentPlan === '2pay'
+          ? product.amount * 2
+          : product.amount * 3
+  const total = Math.max(0, fullPrice - (promoDiscount?.amountOff ?? 0))
+  const todayCents =
+    paymentPlan === 'full' ? total : paymentPlan === '2pay' ? Math.round(total / 2) : Math.round(total / 3)
+  const todayDollars =
+    todayCents % 100 === 0 ? (todayCents / 100).toString() : (todayCents / 100).toFixed(2)
+  const submitLabel =
+    product && isIntensive
+      ? `Pay $${todayDollars} & Start the Activation Intensive`
+      : product
+        ? `Pay $${todayDollars}`
+        : undefined
+  const submitLabelShort = product ? `Pay $${todayDollars}` : undefined
 
   async function validatePromo() {
     if (!promoCode.trim()) return
@@ -110,6 +135,20 @@ function CheckoutContent() {
     )
   }
 
+  if (!stripePromise) {
+    return (
+      <Container size="md" className="py-20">
+        <Card className="p-8 text-center">
+          <h2 className="text-xl font-bold text-white mb-2">Checkout not configured</h2>
+          <p className="text-neutral-400">
+            Payment is not available right now. Please add <code className="text-neutral-300 bg-neutral-800 px-1 rounded">NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY</code> to your environment.
+          </p>
+          <a href="/" className="mt-4 inline-block text-[#39FF14] hover:underline">Return to homepage</a>
+        </Card>
+      </Container>
+    )
+  }
+
   const elementsOptions = {
     mode: product.mode as 'payment' | 'subscription',
     amount: product.amount,
@@ -145,17 +184,11 @@ function CheckoutContent() {
   }
 
   return (
-    <Container size="xl" className="py-8 md:py-12">
-      <div className="mb-8">
-        <a href="/" className="text-sm text-neutral-400 hover:text-white transition-colors">
-          &larr; Back to VibrationFit
-        </a>
-      </div>
-
+    <Container size="xl">
       <Elements stripe={stripePromise} options={elementsOptions}>
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-          {/* Order Summary - left on desktop */}
-          <div className="lg:col-span-2 order-2 lg:order-1">
+          {/* Order Summary - first on mobile, left on desktop */}
+          <div className="lg:col-span-2 order-1 lg:order-1">
             <OrderSummary
               product={product}
               promoCode={promoCode}
@@ -166,13 +199,16 @@ function CheckoutContent() {
             />
           </div>
 
-          {/* Checkout Form - right on desktop */}
-          <div className="lg:col-span-3 order-1 lg:order-2">
+          {/* Checkout Form - second on mobile, right on desktop */}
+          <div className="lg:col-span-3 order-2 lg:order-2">
             <Card className="p-6 md:p-8">
               <CheckoutForm
                 onSubmit={handleFormSubmit}
                 isProcessing={isProcessing}
-                submitLabel={`Pay $${((product.amount - (promoDiscount?.amountOff || 0)) / 100).toFixed(product.amount % 100 === 0 ? 0 : 2)}`}
+                submitLabel={submitLabel}
+                submitLabelShort={submitLabelShort}
+                continuity={(searchParams.get('continuity') as 'annual' | '28day') || undefined}
+                planType={(searchParams.get('planType') as 'solo' | 'household') || undefined}
               />
             </Card>
           </div>

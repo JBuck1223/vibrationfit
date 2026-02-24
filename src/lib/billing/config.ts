@@ -29,7 +29,7 @@ export const TOKEN_GRANTS = {
   // Household Plans - Token allocation for 2-person households
   HOUSEHOLD_28DAY: 1_500_000,      // 1.5M per 28-day cycle
   HOUSEHOLD_ANNUAL: 30_000_000,    // 30M total (shared or split)
-  HOUSEHOLD_INTENSIVE: 7_500_000,  // 7.5M tokens, no expiration
+  HOUSEHOLD_INTENSIVE: 7_000_000,  // 7M tokens, no expiration (must match membership_tiers table)
   
   // Add-on Members - Individual token allocation
   ADDON_MEMBER_MONTHLY: 100_000, // 100k per add-on member per month
