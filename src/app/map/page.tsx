@@ -50,6 +50,8 @@ import {
 
 const MAP_VIDEO =
   'https://media.vibrationfit.com/site-assets/video/intensive/13-map-1080p.mp4'
+const MAP_POSTER =
+  'https://media.vibrationfit.com/site-assets/video/intensive/13-map-thumb.0000000.jpg'
 
 // Milestone data for activation badges
 const MILESTONES: Array<{
@@ -244,6 +246,7 @@ export default function MAPPage() {
           <div className="mx-auto w-full max-w-3xl">
             <OptimizedVideo
               url={MAP_VIDEO}
+              thumbnailUrl={MAP_POSTER}
               context="single"
               className="w-full"
             />

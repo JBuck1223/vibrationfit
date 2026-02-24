@@ -38,6 +38,8 @@ import {
 
 const INTENSIVE_START_VIDEO =
   'https://media.vibrationfit.com/site-assets/video/intensive/01-intensive-start-1080p.mp4'
+const INTENSIVE_START_POSTER =
+  'https://media.vibrationfit.com/site-assets/video/intensive/01-intensive-start-thumb.0000000.jpg'
 
 export default function IntensiveStartPage() {
   const router = useRouter()
@@ -207,6 +209,7 @@ export default function IntensiveStartPage() {
           <div className="mx-auto w-full max-w-3xl">
             <OptimizedVideo
               url={INTENSIVE_START_VIDEO}
+              thumbnailUrl={INTENSIVE_START_POSTER}
               context="single"
               className="w-full"
             />

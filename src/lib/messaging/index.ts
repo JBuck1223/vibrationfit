@@ -44,7 +44,7 @@ export async function sendMessage(
 
   if (templateId && templateVariables) {
     try {
-      messageBody = fillTemplate(templateId, templateVariables)
+      messageBody = await fillTemplate(templateId, templateVariables)
     } catch (error: any) {
       return {
         success: false,

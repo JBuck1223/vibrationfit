@@ -20,6 +20,8 @@ import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
 
 const PROFILE_INTRO_VIDEO =
   'https://media.vibrationfit.com/site-assets/video/intensive/03-profile-1080p.mp4'
+const PROFILE_INTRO_POSTER =
+  'https://media.vibrationfit.com/site-assets/video/intensive/03-profile-thumb.0000000.jpg'
 
 export default function ProfileNewPage() {
   const router = useRouter()
@@ -196,6 +198,7 @@ export default function ProfileNewPage() {
           <div className="mx-auto w-full max-w-3xl">
             <OptimizedVideo
               url={PROFILE_INTRO_VIDEO}
+              thumbnailUrl={PROFILE_INTRO_POSTER}
               context="single"
               className="w-full"
             />

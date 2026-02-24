@@ -672,7 +672,7 @@ export default function TrackingContent({ user, profileData, visionData, visionB
               </div>
               <div className="flex gap-2">
                 <Button variant="ghost" size="sm" asChild>
-                  <Link href="/billing">Manage</Link>
+                  <Link href="/account/billing">Manage</Link>
                 </Button>
               </div>
             </div>

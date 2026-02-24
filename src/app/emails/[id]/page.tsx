@@ -1,11 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Container, Card, Button, Badge, Input } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
 import { ArrowLeft, Send, Eye, Code, Settings, Copy } from 'lucide-react'
-import { generateHouseholdInvitationEmail } from '@/lib/email/templates/household-invitation'
 
 // Email template metadata (same as list page)
 const EMAIL_TEMPLATES_DATA: Record<string, any> = {
@@ -36,7 +35,7 @@ const EMAIL_TEMPLATES_DATA: Record<string, any> = {
       { name: 'expiresInDays', description: 'Days until invitation expires', example: '7' },
     ],
     status: 'active',
-    templateFile: '/src/lib/email/templates/household-invitation.ts',
+    templateFile: 'Database: email_templates (slug: household-invitation)',
     hasPreview: true,
   },
   'welcome': {
@@ -69,9 +68,42 @@ export default function EmailDetailPage() {
   const [sending, setSending] = useState(false)
   const [sendResult, setSendResult] = useState('')
   const [showPreview, setShowPreview] = useState(false)
+  const [emailContent, setEmailContent] = useState<{ subject: string; htmlBody: string; textBody: string } | null>(null)
+  const [loadingPreview, setLoadingPreview] = useState(false)
 
   const emailId = params.id as string
   const email = EMAIL_TEMPLATES_DATA[emailId]
+
+  useEffect(() => {
+    if (email?.hasPreview && emailId === 'household-invitation') {
+      setLoadingPreview(true)
+      fetch('/api/admin/templates/email/' + emailId)
+        .then((res) => res.json())
+        .then((template) => {
+          if (template?.html_body) {
+            const vars: Record<string, string> = {
+              inviterName: 'Jordan Buckingham',
+              inviterEmail: 'jordan@vibrationfit.com',
+              householdName: 'The Buckingham Family',
+              invitationLink: 'https://vibrationfit.com/household/invite/sample-token',
+              expiresInDays: '7',
+            }
+            let html = template.html_body
+            let text = template.text_body || ''
+            let subject = template.subject || ''
+            for (const [key, value] of Object.entries(vars)) {
+              const re = new RegExp(`\\{\\{${key}\\}\\}`, 'g')
+              html = html.replace(re, value)
+              text = text.replace(re, value)
+              subject = subject.replace(re, value)
+            }
+            setEmailContent({ subject, htmlBody: html, textBody: text })
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoadingPreview(false))
+    }
+  }, [email?.hasPreview, emailId])
 
   if (!email) {
     return (
@@ -87,18 +119,6 @@ export default function EmailDetailPage() {
         </Card>
       </Container>
     )
-  }
-
-  // Generate preview if available
-  let emailContent: any = null
-  if (email.hasPreview && emailId === 'household-invitation') {
-    emailContent = generateHouseholdInvitationEmail({
-      inviterName: 'Jordan Buckingham',
-      inviterEmail: 'jordan@vibrationfit.com',
-      householdName: 'The Buckingham Family',
-      invitationLink: 'https://vibrationfit.com/household/invite/sample-token',
-      expiresInDays: 7,
-    })
   }
 
   async function handleSendTest() {
@@ -328,22 +348,30 @@ export default function EmailDetailPage() {
       </div>
 
       {/* Email Preview */}
-      {showPreview && emailContent && (
+      {showPreview && (
         <Card variant="elevated" className="p-4 md:p-6 lg:p-8 mt-6 md:mt-8">
           <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">Email Preview</h2>
           
-          <div className="mb-4 p-4 bg-neutral-900 rounded-xl">
-            <p className="text-xs text-neutral-400 mb-2"><strong>Subject:</strong></p>
-            <p className="text-sm md:text-base text-neutral-200">{emailContent.subject}</p>
-          </div>
+          {loadingPreview && (
+            <p className="text-sm text-neutral-400">Loading preview...</p>
+          )}
 
-          <div className="bg-white rounded-xl overflow-hidden">
-            <iframe
-              srcDoc={emailContent.htmlBody}
-              className="w-full h-[600px] md:h-[800px] border-0"
-              title="Email Preview"
-            />
-          </div>
+          {emailContent && (
+            <>
+              <div className="mb-4 p-4 bg-neutral-900 rounded-xl">
+                <p className="text-xs text-neutral-400 mb-2"><strong>Subject:</strong></p>
+                <p className="text-sm md:text-base text-neutral-200">{emailContent.subject}</p>
+              </div>
+
+              <div className="bg-white rounded-xl overflow-hidden">
+                <iframe
+                  srcDoc={emailContent.htmlBody}
+                  className="w-full h-[600px] md:h-[800px] border-0"
+                  title="Email Preview"
+                />
+              </div>
+            </>
+          )}
         </Card>
       )}
     </Container>

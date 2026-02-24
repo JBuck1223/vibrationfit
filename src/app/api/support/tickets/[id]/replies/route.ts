@@ -137,7 +137,7 @@ export async function POST(
         const customerEmail = ticket.guest_email
 
         if (customerEmail) {
-          const emailContent = generatePersonalMessageEmail({
+          const emailContent = await generatePersonalMessageEmail({
             recipientName: undefined,
             senderName: 'Vibration Fit Support Team',
             messageBody: `Thank you for contacting us. We've added a response to your support ticket ${ticket.ticket_number}:\n\n${reply}\n\nYou can view your ticket and reply at: ${process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'}/support/tickets/${ticketId}`,

@@ -61,7 +61,7 @@ export async function POST(
     const joinLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'}/session/${session.id}?email=${encodeURIComponent(participant.email)}`
 
     // Generate email
-    const emailData = generateSessionInvitationEmail({
+    const emailData = await generateSessionInvitationEmail({
       participantName: participant.name || participant.email,
       participantEmail: participant.email,
       hostName,
@@ -154,7 +154,7 @@ export async function GET(
     const joinLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'}/session/${session.id}?email=${encodeURIComponent(participant.email)}`
 
     // Generate email preview
-    const emailData = generateSessionInvitationEmail({
+    const emailData = await generateSessionInvitationEmail({
       participantName: participant.name || participant.email,
       participantEmail: participant.email,
       hostName,

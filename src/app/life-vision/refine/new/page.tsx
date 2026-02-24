@@ -19,6 +19,8 @@ import { ArrowRight, Sparkles, Target, Heart, Zap, Eye, TrendingUp, RefreshCw, L
 
 const VISION_INTRO_VIDEO =
   'https://media.vibrationfit.com/site-assets/video/intensive/06-refine-1080p.mp4'
+const VISION_INTRO_POSTER =
+  'https://media.vibrationfit.com/site-assets/video/intensive/06-refine-thumb.0000000.jpg'
 
 export default function LifeVisionRefineNewPage() {
   const router = useRouter()
@@ -173,6 +175,7 @@ export default function LifeVisionRefineNewPage() {
           <div className="mx-auto w-full max-w-3xl">
             <OptimizedVideo
               url={VISION_INTRO_VIDEO}
+              thumbnailUrl={VISION_INTRO_POSTER}
               context="single"
               className="w-full"
             />

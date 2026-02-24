@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
       // Send immediate invitation email
       if (body.participant_email) {
         try {
-          const emailData = generateSessionInvitationEmail({
+          const emailData = await generateSessionInvitationEmail({
             participantName,
             participantEmail: body.participant_email,
             hostName,
