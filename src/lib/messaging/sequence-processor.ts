@@ -74,11 +74,11 @@ export async function processSequenceSteps(): Promise<ProcessResult> {
           })
           .eq('id', enrollment.id)
 
-        await supabase.rpc('increment_field', {
+        await Promise.resolve(supabase.rpc('increment_field', {
           table_name: 'sequences',
           field_name: 'total_completed',
           row_id: enrollment.sequence_id,
-        }).then(() => {}).catch(() => {
+        })).then(() => {}).catch(() => {
           supabase
             .from('sequences')
             .select('total_completed')
@@ -117,7 +117,7 @@ export async function processSequenceSteps(): Promise<ProcessResult> {
             .eq(skipCheck.user_field, enrollment.user_id)
             .maybeSingle()
 
-          if (row && (row as Record<string, unknown>)[skipCheck.check_field] === skipCheck.check_value) {
+          if (row && (row as unknown as Record<string, unknown>)[skipCheck.check_field] === skipCheck.check_value) {
             shouldSkip = true
           }
         } catch (checkErr) {

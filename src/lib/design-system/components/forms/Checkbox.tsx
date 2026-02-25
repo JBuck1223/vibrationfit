@@ -6,6 +6,7 @@ import { cn } from '../shared-utils'
 
 interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type' | 'onChange'> {
   label?: string
+  labelClassName?: string
   error?: string
   helperText?: string
   onCheckedChange?: (checked: boolean) => void
@@ -13,7 +14,7 @@ interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>
 }
 
 export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
-  ({ label, error, helperText, onCheckedChange, onChange, className = '', ...props }, ref) => {
+  ({ label, labelClassName, error, helperText, onCheckedChange, onChange, className = '', ...props }, ref) => {
     const id = React.useId()
     
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -28,7 +29,7 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
     return (
       <div className="space-y-2">
         <div className="flex items-center gap-3">
-          <label htmlFor={id} className="relative flex items-center cursor-pointer">
+          <label htmlFor={id} className="relative flex items-center cursor-pointer flex-shrink-0">
             <input
               ref={ref}
               id={id}
@@ -53,7 +54,7 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
           {label && (
             <label 
               htmlFor={id}
-              className="text-sm text-[#E5E7EB] cursor-pointer"
+              className={cn('text-sm text-[#E5E7EB] cursor-pointer', labelClassName)}
             >
               {label}
             </label>

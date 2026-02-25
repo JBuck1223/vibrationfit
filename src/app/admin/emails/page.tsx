@@ -148,7 +148,7 @@ function AdminEmailsContent() {
               </Badge>
               {(stats?.emailDraft || 0) > 0 && (
                 <Badge className="bg-yellow-500/20 text-yellow-500 text-[10px] px-1.5 py-0.5">
-                  {stats.emailDraft} draft
+                  {stats?.emailDraft} draft
                 </Badge>
               )}
             </div>
@@ -168,7 +168,7 @@ function AdminEmailsContent() {
               </Badge>
               {(stats?.smsDraft || 0) > 0 && (
                 <Badge className="bg-yellow-500/20 text-yellow-500 text-[10px] px-1.5 py-0.5">
-                  {stats.smsDraft} draft
+                  {stats?.smsDraft} draft
                 </Badge>
               )}
             </div>
