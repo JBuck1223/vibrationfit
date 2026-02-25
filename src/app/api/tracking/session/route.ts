@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     const ttclid = urlParams?.ttclid || null
 
     if (isNewVisitor) {
-      await supabase.from('visitors').insert({
+      const { error: visitorErr } = await supabase.from('visitors').insert({
         id: visitorId,
         fingerprint: visitorId,
         first_landing_page: landingPage || null,
@@ -67,6 +67,7 @@ export async function POST(request: NextRequest) {
         first_seen_at: new Date().toISOString(),
         last_seen_at: new Date().toISOString(),
       })
+      if (visitorErr) console.error('Failed to insert visitor:', visitorErr)
     } else {
       const updates: Record<string, unknown> = {
         last_seen_at: new Date().toISOString(),
@@ -104,7 +105,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (isNewSession) {
-      await supabase.from('sessions').insert({
+      const { error: sessionErr } = await supabase.from('sessions').insert({
         id: sessionId,
         visitor_id: visitorId,
         landing_page: landingPage || null,
@@ -128,6 +129,7 @@ export async function POST(request: NextRequest) {
         started_at: new Date().toISOString(),
         last_activity_at: new Date().toISOString(),
       })
+      if (sessionErr) console.error('Failed to insert session:', sessionErr)
     }
 
     return NextResponse.json({ ok: true })

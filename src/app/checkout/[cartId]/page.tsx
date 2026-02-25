@@ -93,7 +93,7 @@ export default function CartCheckoutPage() {
       amount: r.amount,
       currency: r.currency,
       features: r.features,
-      redirectAfterSuccess: '/intensive/dashboard',
+      redirectAfterSuccess: '/intensive/start',
       getPriceEnvKey: () => undefined,
       metadata: {},
     }

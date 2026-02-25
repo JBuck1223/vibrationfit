@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { Input, Button, Checkbox } from '@/lib/design-system/components'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 interface CheckoutFormProps {
   onSubmit: (accountDetails: AccountDetails) => Promise<{ clientSecret: string; redirectUrl: string } | null>
@@ -105,7 +106,14 @@ export default function CheckoutForm({ onSubmit, isProcessing, submitLabel, subm
       return
     }
 
-    // If no redirect was needed (3D Secure not required), navigate manually
+    // Sign the user in before redirecting
+    try {
+      const supabase = createClient()
+      await supabase.auth.signInWithPassword({ email, password })
+    } catch {
+      // If auto-login fails, the user can sign in manually
+    }
+
     window.location.href = result.redirectUrl
   }
 

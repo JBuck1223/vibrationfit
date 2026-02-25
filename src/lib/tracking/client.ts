@@ -83,7 +83,7 @@ export async function initTracking(): Promise<TrackingIds> {
   setCookie(SESSION_COOKIE, sessionId!, SESSION_TTL_MINUTES / 1440)
 
   try {
-    await fetch('/api/tracking/session', {
+    const res = await fetch('/api/tracking/session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -96,10 +96,11 @@ export async function initTracking(): Promise<TrackingIds> {
         urlParams,
         device: getDeviceInfo(),
       }),
-      keepalive: true,
     })
-  } catch {
-    // Tracking failures should never block the user
+    const data = await res.json()
+    if (!res.ok) console.warn('[VF Tracking] session API error:', res.status, data)
+  } catch (err) {
+    console.warn('[VF Tracking] session fetch failed:', err)
   }
 
   return { visitorId, sessionId: sessionId!, isNewVisitor, isNewSession }
