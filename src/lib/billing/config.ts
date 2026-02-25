@@ -40,9 +40,11 @@ export const TOKEN_GRANTS = {
 // ============================================================================
 
 export const STORAGE_QUOTAS = {
-  // Trial (Intensive) - no specific storage quota (uses default)
-  TRIAL: 100,
-  
+  // Trial (Intensive) - fallback only when DB has no value; real values come from membership_tiers via /api/billing/tiers/checkout
+  TRIAL: 250,
+  TRIAL_SOLO: 250,       // Activation Intensive (solo) fallback
+  TRIAL_HOUSEHOLD: 250,   // Activation Intensive (household) fallback
+
   // 28-Day Plans
   MONTHLY_28DAY: 250,
   

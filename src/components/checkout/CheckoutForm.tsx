@@ -3,8 +3,7 @@
 import { useState } from 'react'
 import { PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { Input, Button, Checkbox } from '@/lib/design-system/components'
-import { Eye, EyeOff, Loader2 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { Loader2 } from 'lucide-react'
 
 interface CheckoutFormProps {
   onSubmit: (accountDetails: AccountDetails) => Promise<{ clientSecret: string; redirectUrl: string } | null>
@@ -20,9 +19,10 @@ interface CheckoutFormProps {
 
 export interface AccountDetails {
   name: string
+  firstName: string
+  lastName: string
   email: string
   phone: string
-  password: string
 }
 
 function getMembershipBillingPhrase(continuity: 'annual' | '28day', planType: 'solo' | 'household'): string {
@@ -40,13 +40,10 @@ export default function CheckoutForm({ onSubmit, isProcessing, submitLabel, subm
     ? `I understand and agree to the charges shown, including that my Vision Pro membership will begin billing on Day 56 at ${membershipBillingPhrase} and that I'm covered by the 16‑week guarantee.`
     : "I agree to the charges shown, including Vision Pro billing starting on Day 56 at my selected plan, covered by the 16‑week guarantee."
 
-  const [name, setName] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [generalError, setGeneralError] = useState('')
   const [agreedToTerms, setAgreedToTerms] = useState(false)
@@ -54,11 +51,10 @@ export default function CheckoutForm({ onSubmit, isProcessing, submitLabel, subm
   function validate(): boolean {
     const newErrors: Record<string, string> = {}
 
-    if (!name.trim()) newErrors.name = 'Full name is required'
+    if (!firstName.trim()) newErrors.firstName = 'First name is required'
+    if (!lastName.trim()) newErrors.lastName = 'Last name is required'
     if (!email.trim()) newErrors.email = 'Email is required'
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = 'Invalid email address'
-    if (password.length < 8) newErrors.password = 'Password must be at least 8 characters'
-    if (password !== confirmPassword) newErrors.confirmPassword = 'Passwords do not match'
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -88,7 +84,8 @@ export default function CheckoutForm({ onSubmit, isProcessing, submitLabel, subm
     }
 
     // Call parent to create the intent (user account + PaymentIntent/Subscription)
-    const result = await onSubmit({ name, email, phone, password })
+    const name = [firstName.trim(), lastName.trim()].filter(Boolean).join(' ')
+    const result = await onSubmit({ name, firstName: firstName.trim(), lastName: lastName.trim(), email, phone })
     if (!result) return // Parent handles error display
 
     // Confirm payment with the returned clientSecret
@@ -106,30 +103,33 @@ export default function CheckoutForm({ onSubmit, isProcessing, submitLabel, subm
       return
     }
 
-    // Sign the user in before redirecting
-    try {
-      const supabase = createClient()
-      await supabase.auth.signInWithPassword({ email, password })
-    } catch {
-      // If auto-login fails, the user can sign in manually
-    }
-
+    // Redirect to set-password (or dashboard); session is established via link from API
     window.location.href = result.redirectUrl
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5 -mx-2 sm:mx-0">
       <h2 className="text-xl font-bold text-white mb-1">Create your account</h2>
-      <p className="text-sm text-neutral-400 mb-4">You'll use these credentials to log in.</p>
+      <p className="text-sm text-neutral-400 mb-4">You&apos;ll set your password right after payment.</p>
 
-      <Input
-        label="Full name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        error={errors.name}
-        placeholder="Jordan Buckingham"
-        autoComplete="name"
-      />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <Input
+          label="First name"
+          value={firstName}
+          onChange={(e) => setFirstName(e.target.value)}
+          error={errors.firstName}
+          placeholder="Jordan"
+          autoComplete="given-name"
+        />
+        <Input
+          label="Last name"
+          value={lastName}
+          onChange={(e) => setLastName(e.target.value)}
+          error={errors.lastName}
+          placeholder="Buckingham"
+          autoComplete="family-name"
+        />
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <Input
@@ -149,49 +149,6 @@ export default function CheckoutForm({ onSubmit, isProcessing, submitLabel, subm
           placeholder="+1 (555) 000-0000"
           autoComplete="tel"
         />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <div className="relative">
-          <Input
-            label="Password"
-            type={showPassword ? 'text' : 'password'}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            error={errors.password}
-            placeholder="8+ characters"
-            autoComplete="new-password"
-            className="pr-12"
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 translate-y-1 text-neutral-400 hover:text-white transition-colors"
-            aria-label={showPassword ? 'Hide password' : 'Show password'}
-          >
-            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-          </button>
-        </div>
-        <div className="relative">
-          <Input
-            label="Confirm password"
-            type={showConfirmPassword ? 'text' : 'password'}
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            error={errors.confirmPassword}
-            placeholder="Re-enter password"
-            autoComplete="new-password"
-            className="pr-12"
-          />
-          <button
-            type="button"
-            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 translate-y-1 text-neutral-400 hover:text-white transition-colors"
-            aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
-          >
-            {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-          </button>
-        </div>
       </div>
 
       {/* Stripe Payment Element - min-height so Link row has room on mobile */}

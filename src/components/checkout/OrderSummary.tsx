@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, Button, Input } from '@/lib/design-system/components'
 import { Check, Tag, ShieldCheck, ChevronDown, ChevronUp } from 'lucide-react'
 import type { CheckoutProduct } from '@/lib/checkout/products'
@@ -81,9 +81,33 @@ export default function OrderSummary({
     paymentPlan === 'full' ? 'One-time payment' : paymentPlan === '2pay' ? '2 payments' : '3 payments'
   const planTypeLabel = planType === 'solo' ? 'Solo' : 'Household'
 
-  const intensiveTokens = planType === 'solo' ? TOKEN_GRANTS.INTENSIVE_TRIAL : TOKEN_GRANTS.HOUSEHOLD_INTENSIVE
-  // Intensive trial storage during 8 weeks (config TRIAL); membership storage differs after Day 56
-  const intensiveStorageGb = STORAGE_QUOTAS.TRIAL
+  const [tierFromDb, setTierFromDb] = useState<{
+    solo: { storage_quota_gb: number; monthly_token_grant?: number } | null
+    household: { storage_quota_gb: number; monthly_token_grant?: number } | null
+  } | null>(null)
+
+  useEffect(() => {
+    if (!isIntensive) return
+    fetch('/api/billing/tiers/checkout')
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => data && (data.solo || data.household) && setTierFromDb(data))
+      .catch(() => {})
+  }, [isIntensive])
+
+  const intensiveTokens = (() => {
+    if (tierFromDb && planType === 'solo' && tierFromDb.solo?.monthly_token_grant != null)
+      return tierFromDb.solo.monthly_token_grant
+    if (tierFromDb && planType === 'household' && tierFromDb.household?.monthly_token_grant != null)
+      return tierFromDb.household.monthly_token_grant
+    return planType === 'solo' ? TOKEN_GRANTS.INTENSIVE_TRIAL : TOKEN_GRANTS.HOUSEHOLD_INTENSIVE
+  })()
+  const intensiveStorageGb = (() => {
+    if (tierFromDb && planType === 'solo' && tierFromDb.solo?.storage_quota_gb != null)
+      return tierFromDb.solo.storage_quota_gb
+    if (tierFromDb && planType === 'household' && tierFromDb.household?.storage_quota_gb != null)
+      return tierFromDb.household.storage_quota_gb
+    return planType === 'solo' ? STORAGE_QUOTAS.TRIAL_SOLO : STORAGE_QUOTAS.TRIAL_HOUSEHOLD
+  })()
 
   const membershipTokenGrant =
     continuity === 'annual'
@@ -169,7 +193,7 @@ export default function OrderSummary({
             <li className="flex items-start gap-2 text-sm">
               <Check className="w-4 h-4 text-[#39FF14] mt-0.5 flex-shrink-0" />
               <span className="text-neutral-300">
-                Life Vision Builder (12 Categories), Vision Board, Vision Audio, Immersion Tracks, journal
+                Life Vision Builder, Vision Board, Vision Audio, Journal, MAP (My Activation Plan)
               </span>
             </li>
             <li className="flex items-start gap-2 text-sm">
