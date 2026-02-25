@@ -197,8 +197,11 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
       return (
         <div className="flex h-screen bg-black">
           <UserSidebar />
-          <main className={`flex-1 flex flex-col ${isNewPage ? 'overflow-y-auto' : 'overflow-hidden'}`}>
-            {children}
+          <main className={`flex-1 flex flex-col min-h-0 ${isNewPage ? 'overflow-y-auto' : 'overflow-hidden'}`}>
+            {/* Mobile safe area: reserve space above bottom nav so content is never hidden (pb-28 = 112px) */}
+            <div className={`flex-1 flex flex-col min-h-0 w-full ${isNewPage ? 'pb-28 md:pb-0' : ''}`}>
+              {children}
+            </div>
           </main>
           <MobileBottomNav />
         </div>

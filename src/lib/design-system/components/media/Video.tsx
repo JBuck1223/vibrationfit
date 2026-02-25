@@ -148,7 +148,6 @@ export const Video = React.forwardRef<HTMLVideoElement, VideoProps>(
       }
     }
 
-
     return (
       <div className={cn('relative overflow-hidden', variants[variant], className)}>
         <video
