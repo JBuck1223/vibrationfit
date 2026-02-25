@@ -5,10 +5,10 @@
 
 import { useState } from 'react'
 import { Button, Card, Input, Textarea, Container } from '@/lib/design-system/components'
-import { useUTMTracking } from '@/hooks/useUTMTracking'
+import { useTracking } from '@/components/TrackingProvider'
 
 export default function IntensiveIntakePage() {
-  const utmData = useUTMTracking()
+  const { visitorId, sessionId } = useTracking()
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [formData, setFormData] = useState({
@@ -45,7 +45,8 @@ export default function IntensiveIntakePage() {
             timeline: formData.timeline,
           },
           message: `Current: ${formData.current_situation}\n\nDesired: ${formData.desired_outcome}\n\nCommitment: ${formData.commitment_level}\n\nTimeline: ${formData.timeline}`,
-          ...utmData,
+          visitor_id: visitorId,
+          session_id: sessionId,
         }),
       })
 

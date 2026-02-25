@@ -24,6 +24,9 @@ import {
   Link2,
   Award,
   Layers,
+  Radio,
+  GitBranch,
+  Send,
 } from 'lucide-react'
 
 interface AdminSection {
@@ -81,18 +84,46 @@ const crmSections: AdminSection[] = [
 
 const communicationSections: AdminSection[] = [
   {
-    title: 'Emails',
-    description: 'Email campaigns & templates',
+    title: 'Messaging Hub',
+    description: 'Overview, stats, and quick actions',
     href: '/admin/emails',
     icon: Mail,
     color: 'text-primary-500',
   },
   {
-    title: 'Texts',
-    description: 'SMS messages & templates',
-    href: '/admin/texts',
+    title: 'Email Templates',
+    description: 'Database-driven email templates',
+    href: '/admin/emails/list',
+    icon: Mail,
+    color: 'text-primary-500',
+  },
+  {
+    title: 'SMS Templates',
+    description: 'Database-driven SMS templates',
+    href: '/admin/sms',
     icon: MessageSquare,
     color: 'text-secondary-500',
+  },
+  {
+    title: 'Automation Rules',
+    description: 'Event-driven message triggers',
+    href: '/admin/automations',
+    icon: Radio,
+    color: 'text-[#FF6B35]',
+  },
+  {
+    title: 'Sequences',
+    description: 'Multi-step drip campaigns',
+    href: '/admin/sequences',
+    icon: GitBranch,
+    color: 'text-accent-500',
+  },
+  {
+    title: 'Campaigns',
+    description: 'Bulk audience sends',
+    href: '/admin/messaging-campaigns',
+    icon: Send,
+    color: 'text-energy-500',
   },
 ]
 
@@ -249,7 +280,7 @@ export default function AdminDashboardPage() {
         />
 
         <SectionGroup title="CRM" sections={crmSections} />
-        <SectionGroup title="Communication" sections={communicationSections} />
+        <SectionGroup title="Messaging & Automation" sections={communicationSections} />
         <SectionGroup title="Content & Audio" sections={contentSections} />
         <SectionGroup title="Intensive Program" sections={intensiveSections} />
         <SectionGroup title="System" sections={systemSections} />

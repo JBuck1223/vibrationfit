@@ -9,6 +9,7 @@ import {
 } from '@/lib/supabase/household'
 import { sendEmail } from '@/lib/email/aws-ses'
 import { generateHouseholdInvitationEmail } from '@/lib/email/templates/household-invitation'
+import { triggerEvent } from '@/lib/messaging/events'
 
 // =====================================================================
 // POST /api/household/invite - Create invitation (admin only)
@@ -167,9 +168,11 @@ export async function POST(request: NextRequest) {
       console.log('✅ Household invitation email sent to:', email)
     } catch (emailError) {
       console.error('❌ Failed to send invitation email:', emailError)
-      // Don't fail the invitation creation if email fails
-      // Admin can manually share the link
     }
+
+    triggerEvent('household.invited', { email }).catch((err) =>
+      console.error('triggerEvent error:', err)
+    )
 
     return NextResponse.json({
       invitation: {

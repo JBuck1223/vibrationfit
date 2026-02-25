@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient, isUserAdmin } from '@/lib/supabase/admin'
 import { sendEmail } from '@/lib/email/aws-ses'
 import { generateSupportTicketCreatedEmail } from '@/lib/email/templates/support-ticket-created'
+import { triggerEvent } from '@/lib/messaging/events'
 
 export async function POST(request: NextRequest) {
   try {
@@ -98,6 +99,12 @@ export async function POST(request: NextRequest) {
       console.error('Failed to send confirmation email:', emailError)
       // Don't fail ticket creation if email fails
     }
+
+    triggerEvent('support.ticket_created', {
+      email: ticket.email || user?.email || undefined,
+      userId: user?.id || undefined,
+      name: ticket.name || undefined,
+    }).catch((err) => console.error('triggerEvent error:', err))
 
     return NextResponse.json({ ticket }, { status: 201 })
   } catch (error: unknown) {

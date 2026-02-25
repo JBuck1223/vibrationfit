@@ -342,23 +342,51 @@ export default function HomePage() {
     return planType === 'solo' ? '1 seat' : '2 seats included'
   }
 
-  const handleIntensivePurchase = () => {
+  const handleIntensivePurchase = async () => {
     if (!agreedToTerms) {
       toast.error('Please agree to the renewal terms before proceeding.')
       return
     }
 
-    const params = new URLSearchParams({
-      product: 'intensive',
-      plan: paymentPlan,
-      continuity: billingPeriod,
-      planType: planType,
-    })
-    if (promoCode) params.set('promo', promoCode)
-    if (referralSource) params.set('ref', referralSource)
-    if (campaignName) params.set('campaign', campaignName)
+    setIsLoading(true)
 
-    window.location.href = `/checkout?${params.toString()}`
+    try {
+      const visitorId = typeof document !== 'undefined'
+        ? document.cookie.match(/(?:^|; )vf_visitor_id=([^;]*)/)?.[1] || undefined
+        : undefined
+      const sessionId = typeof document !== 'undefined'
+        ? document.cookie.match(/(?:^|; )vf_session_id=([^;]*)/)?.[1] || undefined
+        : undefined
+
+      const res = await fetch('/api/cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: [{
+            product_key: 'intensive',
+            plan: paymentPlan,
+            continuity: billingPeriod,
+            plan_type: planType,
+          }],
+          promoCode: promoCode || undefined,
+          referralSource: referralSource || undefined,
+          campaignName: campaignName || undefined,
+          visitorId,
+          sessionId,
+        }),
+      })
+
+      const data = await res.json()
+      if (data.cartId) {
+        window.location.href = `/checkout/${data.cartId}`
+      } else {
+        toast.error('Failed to create checkout session')
+        setIsLoading(false)
+      }
+    } catch {
+      toast.error('Network error. Please try again.')
+      setIsLoading(false)
+    }
   }
 
   return (

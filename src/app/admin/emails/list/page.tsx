@@ -9,7 +9,7 @@
 import { useState, useEffect } from 'react'
 import { Container, Card, Badge, Button, Stack, PageHero, Spinner } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
-import { Mail, Plus, Copy, ArrowLeft, Code } from 'lucide-react'
+import { Mail, Plus, Copy, ArrowLeft, Code, Search, Filter } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface EmailTemplate {
@@ -35,6 +35,8 @@ export default function EmailTemplatesListPage() {
   const [templates, setTemplates] = useState<EmailTemplate[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'active' | 'draft'>('all')
+  const [categoryFilter, setCategoryFilter] = useState<string>('all')
+  const [searchQuery, setSearchQuery] = useState('')
   const [duplicating, setDuplicating] = useState<string | null>(null)
 
   useEffect(() => {
@@ -73,9 +75,22 @@ export default function EmailTemplatesListPage() {
     }
   }
 
-  const filteredTemplates = filter === 'all'
-    ? templates
-    : templates.filter(t => t.status === filter)
+  const categories = Array.from(new Set(templates.map(t => t.category))).sort()
+
+  const filteredTemplates = templates.filter(t => {
+    if (filter !== 'all' && t.status !== filter) return false
+    if (categoryFilter !== 'all' && t.category !== categoryFilter) return false
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      return (
+        t.name.toLowerCase().includes(q) ||
+        t.slug.toLowerCase().includes(q) ||
+        t.subject.toLowerCase().includes(q) ||
+        (t.description || '').toLowerCase().includes(q)
+      )
+    }
+    return true
+  })
 
   function getStatusColor(status: string) {
     switch (status) {
@@ -149,33 +164,75 @@ export default function EmailTemplatesListPage() {
             </div>
           </PageHero>
 
-          {/* Filter Tabs */}
-          <div className="flex flex-col sm:flex-row gap-2 border-b border-neutral-800 pb-4">
-            <Button
-              variant={filter === 'all' ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => setFilter('all')}
-              className="justify-start sm:justify-center"
-            >
-              All Templates ({templates.length})
-            </Button>
-            <Button
-              variant={filter === 'active' ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => setFilter('active')}
-              className="justify-start sm:justify-center"
-            >
-              Active ({templates.filter(t => t.status === 'active').length})
-            </Button>
-            <Button
-              variant={filter === 'draft' ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => setFilter('draft')}
-              className="justify-start sm:justify-center"
-            >
-              Draft ({templates.filter(t => t.status === 'draft').length})
-            </Button>
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+            <input
+              type="text"
+              placeholder="Search templates by name, slug, or subject..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 bg-neutral-900 border border-neutral-700 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-primary-500 transition-colors"
+            />
           </div>
+
+          {/* Filter Tabs */}
+          <div className="flex flex-col gap-3 border-b border-neutral-800 pb-4">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={filter === 'all' ? 'primary' : 'ghost'}
+                size="sm"
+                onClick={() => setFilter('all')}
+              >
+                All ({templates.length})
+              </Button>
+              <Button
+                variant={filter === 'active' ? 'primary' : 'ghost'}
+                size="sm"
+                onClick={() => setFilter('active')}
+              >
+                Active ({templates.filter(t => t.status === 'active').length})
+              </Button>
+              <Button
+                variant={filter === 'draft' ? 'primary' : 'ghost'}
+                size="sm"
+                onClick={() => setFilter('draft')}
+              >
+                Draft ({templates.filter(t => t.status === 'draft').length})
+              </Button>
+            </div>
+
+            {categories.length > 1 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <Filter className="w-4 h-4 text-neutral-500" />
+                <Button
+                  variant={categoryFilter === 'all' ? 'outline' : 'ghost'}
+                  size="sm"
+                  onClick={() => setCategoryFilter('all')}
+                >
+                  All Categories
+                </Button>
+                {categories.map((cat) => (
+                  <Button
+                    key={cat}
+                    variant={categoryFilter === cat ? 'outline' : 'ghost'}
+                    size="sm"
+                    onClick={() => setCategoryFilter(cat)}
+                  >
+                    {cat} ({templates.filter(t => t.category === cat).length})
+                  </Button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Results Count */}
+          {(searchQuery || categoryFilter !== 'all' || filter !== 'all') && (
+            <p className="text-sm text-neutral-400">
+              Showing {filteredTemplates.length} of {templates.length} templates
+              {searchQuery && <span> matching &ldquo;{searchQuery}&rdquo;</span>}
+            </p>
+          )}
 
           {/* Template Cards */}
           {filteredTemplates.length === 0 ? (

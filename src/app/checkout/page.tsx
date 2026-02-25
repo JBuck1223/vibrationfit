@@ -1,20 +1,23 @@
 'use client'
 
-import { useState, useMemo, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useState, useMemo, useEffect, Suspense } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements } from '@stripe/react-stripe-js'
-import { Container, Card, Stack } from '@/lib/design-system/components'
+import { Container, Card } from '@/lib/design-system/components'
 import { Spinner } from '@/lib/design-system/components'
 import OrderSummary from '@/components/checkout/OrderSummary'
 import CheckoutForm, { type AccountDetails } from '@/components/checkout/CheckoutForm'
 import { resolveCheckoutProduct, type CheckoutProduct } from '@/lib/checkout/products'
+import { getVisitorId, getSessionId } from '@/lib/tracking/client'
 import { toast } from 'sonner'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
 function CheckoutContent() {
   const searchParams = useSearchParams()
+  const router = useRouter()
+  const [redirecting, setRedirecting] = useState(false)
 
   const product = useMemo<CheckoutProduct | null>(() => {
     return resolveCheckoutProduct({
@@ -25,6 +28,49 @@ function CheckoutContent() {
       packKey: searchParams.get('packKey') || undefined,
     })
   }, [searchParams])
+
+  // Auto-create a cart session and redirect to the cart-based checkout URL
+  useEffect(() => {
+    if (!product || redirecting) return
+    const productKey = searchParams.get('product')
+    if (!productKey) return
+
+    setRedirecting(true)
+
+    const item: Record<string, string> = { product_key: productKey }
+    const plan = searchParams.get('plan')
+    const continuity = searchParams.get('continuity')
+    const planType = searchParams.get('planType')
+    const packKey = searchParams.get('packKey')
+    if (plan) item.plan = plan
+    if (continuity) item.continuity = continuity
+    if (planType) item.plan_type = planType
+    if (packKey) item.pack_key = packKey
+
+    fetch('/api/cart', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        items: [item],
+        promoCode: searchParams.get('promo') || undefined,
+        referralSource: searchParams.get('ref') || undefined,
+        campaignName: searchParams.get('campaign') || undefined,
+        visitorId: getVisitorId() || undefined,
+        sessionId: getSessionId() || undefined,
+      }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.cartId) {
+          router.replace(`/checkout/${data.cartId}`)
+        } else {
+          setRedirecting(false)
+        }
+      })
+      .catch(() => {
+        setRedirecting(false)
+      })
+  }, [product, searchParams, router, redirecting])
 
   const [promoCode, setPromoCode] = useState(searchParams.get('promo') || '')
   const [promoDiscount, setPromoDiscount] = useState<{ label: string; amountOff: number } | null>(null)
@@ -38,20 +84,25 @@ function CheckoutContent() {
     if (!promoCode.trim()) return
     setValidatingPromo(true)
     try {
-      const res = await fetch('/api/stripe/validate-coupon', {
+      const res = await fetch('/api/billing/coupons/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: promoCode }),
+        body: JSON.stringify({
+          code: promoCode,
+          productKey: searchParams.get('product') || undefined,
+          purchaseAmount: product?.amount,
+        }),
       })
       const data = await res.json()
       if (!res.ok || !data.valid) {
-        toast.error('Invalid promo code')
+        toast.error(data.error || 'Invalid promo code')
         setPromoDiscount(null)
         return
       }
-      const amountOff = data.percent_off
-        ? Math.round((product?.amount || 0) * data.percent_off / 100)
-        : data.amount_off || 0
+      const amountOff = data.discountAmount
+        ?? (data.percent_off
+          ? Math.round((product?.amount || 0) * data.percent_off / 100)
+          : data.amount_off || 0)
       setPromoDiscount({ label: data.name || promoCode, amountOff })
       toast.success('Promo code applied')
     } catch {
@@ -78,6 +129,8 @@ function CheckoutContent() {
           promoCode: promoCode || undefined,
           referralSource: referralSource || undefined,
           campaignName: campaignName || undefined,
+          visitorId: getVisitorId() || undefined,
+          sessionId: getSessionId() || undefined,
         }),
       })
 
@@ -89,11 +142,19 @@ function CheckoutContent() {
       }
 
       return { clientSecret: data.clientSecret, redirectUrl: data.redirectUrl }
-    } catch (err) {
+    } catch {
       toast.error('Network error. Please try again.')
       setIsProcessing(false)
       return null
     }
+  }
+
+  if (redirecting) {
+    return (
+      <Container size="md" className="py-20 flex justify-center">
+        <Spinner size="lg" />
+      </Container>
+    )
   }
 
   if (!product) {
@@ -154,7 +215,6 @@ function CheckoutContent() {
 
       <Elements stripe={stripePromise} options={elementsOptions}>
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-          {/* Order Summary - left on desktop */}
           <div className="lg:col-span-2 order-2 lg:order-1">
             <OrderSummary
               product={product}
@@ -166,7 +226,6 @@ function CheckoutContent() {
             />
           </div>
 
-          {/* Checkout Form - right on desktop */}
           <div className="lg:col-span-3 order-1 lg:order-2">
             <Card className="p-6 md:p-8">
               <CheckoutForm

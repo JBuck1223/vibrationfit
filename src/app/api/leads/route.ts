@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendEmail } from '@/lib/email/aws-ses'
+import { triggerEvent } from '@/lib/messaging/events'
 
 export async function POST(request: NextRequest) {
   try {
@@ -59,6 +60,15 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('✅ Lead created:', lead.id)
+
+    // Fire event for automation rules and sequence enrollment
+    triggerEvent('lead.created', {
+      email: body.email,
+      phone: body.phone || undefined,
+      name: [body.first_name, body.last_name].filter(Boolean).join(' ') || undefined,
+      firstName: body.first_name || undefined,
+      leadType: body.type,
+    }).catch((err) => console.error('triggerEvent error:', err))
 
     // Send confirmation email
     try {

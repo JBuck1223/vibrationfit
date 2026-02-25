@@ -1,5 +1,7 @@
 // /src/hooks/useUTMTracking.ts
-// Hook to capture UTM parameters and tracking data
+// @deprecated Use TrackingProvider + useTracking() from @/components/TrackingProvider instead.
+// This hook only stores UTMs in sessionStorage (ephemeral). The new system uses persistent cookies
+// and server-side tracking with full attribution waterfall.
 'use client'
 
 import { useEffect, useState } from 'react'

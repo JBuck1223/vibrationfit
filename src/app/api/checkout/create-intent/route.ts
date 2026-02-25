@@ -29,6 +29,9 @@ export async function POST(request: NextRequest) {
       promoCode,
       referralSource,
       campaignName,
+      cartSessionId,
+      visitorId,
+      sessionId,
     } = body as {
       name: string
       email: string
@@ -42,6 +45,9 @@ export async function POST(request: NextRequest) {
       promoCode?: string
       referralSource?: string
       campaignName?: string
+      cartSessionId?: string
+      visitorId?: string
+      sessionId?: string
     }
 
     if (!name || !email || !password || !product) {
@@ -122,7 +128,80 @@ export async function POST(request: NextRequest) {
     }
 
     // ------------------------------------------------------------------
-    // 3. Resolve product & pricing from database
+    // 3. Attribution waterfall: create customers SSOT row
+    // ------------------------------------------------------------------
+    let customerRowId: string | null = null
+
+    const { data: existingCustomerRow } = await supabaseAdmin
+      .from('customers')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (existingCustomerRow) {
+      customerRowId = existingCustomerRow.id
+      await supabaseAdmin
+        .from('customers')
+        .update({
+          stripe_customer_id: stripeCustomerId,
+          last_active_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', customerRowId)
+    } else {
+      // Fetch visitor first-touch attribution for waterfall
+      let visitorData: Record<string, unknown> | null = null
+      if (visitorId) {
+        const { data } = await supabaseAdmin
+          .from('visitors')
+          .select('*')
+          .eq('id', visitorId)
+          .single()
+        visitorData = data
+
+        // Link visitor to user
+        if (visitorData && !visitorData.user_id) {
+          await supabaseAdmin
+            .from('visitors')
+            .update({ user_id: userId })
+            .eq('id', visitorId)
+        }
+      }
+
+      const { data: newCustomerRow } = await supabaseAdmin
+        .from('customers')
+        .insert({
+          user_id: userId,
+          visitor_id: visitorId || null,
+          stripe_customer_id: stripeCustomerId,
+
+          first_utm_source: (visitorData?.first_utm_source as string) || null,
+          first_utm_medium: (visitorData?.first_utm_medium as string) || null,
+          first_utm_campaign: (visitorData?.first_utm_campaign as string) || null,
+          first_utm_content: (visitorData?.first_utm_content as string) || null,
+          first_utm_term: (visitorData?.first_utm_term as string) || null,
+          first_gclid: (visitorData?.first_gclid as string) || null,
+          first_fbclid: (visitorData?.first_fbclid as string) || null,
+          first_landing_page: (visitorData?.first_landing_page as string) || null,
+          first_referrer: (visitorData?.first_referrer as string) || null,
+          first_url_params: visitorData?.first_url_params || {},
+
+          first_seen_at: (visitorData?.first_seen_at as string) || new Date().toISOString(),
+          email_captured_at: new Date().toISOString(),
+          first_purchase_at: new Date().toISOString(),
+          last_purchase_at: new Date().toISOString(),
+          last_active_at: new Date().toISOString(),
+
+          status: 'customer',
+        })
+        .select('id')
+        .single()
+
+      customerRowId = newCustomerRow?.id || null
+    }
+
+    // ------------------------------------------------------------------
+    // 4. Resolve product & pricing from database
     // ------------------------------------------------------------------
     const { resolveProduct } = await import('@/lib/billing/products')
     const checkoutProduct = await resolveProduct({ product, plan, continuity, planType, packKey })
@@ -139,23 +218,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Apply promo code if provided
-    let couponId: string | undefined
+    // ------------------------------------------------------------------
+    // 5. Validate coupon from database
+    // ------------------------------------------------------------------
+    const { validateCouponCode, calculateDiscount, recordRedemption } = await import('@/lib/billing/coupons')
+
+    let couponResult: Awaited<ReturnType<typeof validateCouponCode>> | null = null
+    let discountAmount = 0
+
     if (promoCode) {
-      try {
-        const promoCodes = await stripe.promotionCodes.list({ code: promoCode, active: true, limit: 1 })
-        if (promoCodes.data.length > 0) {
-          couponId = (promoCodes.data[0] as any).coupon.id
-        } else {
-          try {
-            await stripe.coupons.retrieve(promoCode)
-            couponId = promoCode
-          } catch {
-            // Invalid code -- proceed without discount
-          }
-        }
-      } catch {
-        // Proceed without discount
+      couponResult = await validateCouponCode(promoCode, {
+        userId,
+        productKey: product,
+        purchaseAmount: checkoutProduct.amount,
+      })
+
+      if (couponResult.valid && couponResult.coupon) {
+        discountAmount = calculateDiscount(couponResult.coupon, checkoutProduct.amount)
       }
     }
 
@@ -165,35 +244,38 @@ export async function POST(request: NextRequest) {
       promo_code: promoCode || '',
       referral_source: referralSource || '',
       campaign_name: campaignName || '',
+      cart_session_id: cartSessionId || '',
+      visitor_id: visitorId || '',
     }
 
     // ------------------------------------------------------------------
-    // 4. Create PaymentIntent or Subscription
+    // 6. Create PaymentIntent or Subscription
     // ------------------------------------------------------------------
     let clientSecret: string
 
     if (checkoutProduct.mode === 'payment') {
       const intentParams: Stripe.PaymentIntentCreateParams = {
-        amount: checkoutProduct.amount,
+        amount: Math.max(0, checkoutProduct.amount - discountAmount),
         currency: checkoutProduct.currency,
         customer: stripeCustomerId,
         metadata: fullMetadata,
         automatic_payment_methods: { enabled: true },
       }
 
-      if (couponId) {
-        const coupon = await stripe.coupons.retrieve(couponId)
-        if (coupon.percent_off) {
-          intentParams.amount = Math.round(checkoutProduct.amount * (1 - coupon.percent_off / 100))
-        } else if (coupon.amount_off) {
-          intentParams.amount = Math.max(0, checkoutProduct.amount - coupon.amount_off)
-        }
-      }
-
       const paymentIntent = await stripe.paymentIntents.create(intentParams)
       clientSecret = paymentIntent.client_secret!
+
+      if (couponResult?.valid && couponResult.coupon && couponResult.codeRow) {
+        recordRedemption({
+          couponId: couponResult.coupon.id,
+          couponCodeId: couponResult.codeRow.id,
+          userId,
+          discountAmount,
+          originalAmount: checkoutProduct.amount,
+          productKey: product,
+        }).catch(err => console.error('Failed to record coupon redemption:', err))
+      }
     } else {
-      // Subscription mode (installment plans)
       const subParams: Stripe.SubscriptionCreateParams = {
         customer: stripeCustomerId,
         items: [{ price: priceId, quantity: 1 }],
@@ -203,23 +285,154 @@ export async function POST(request: NextRequest) {
         metadata: fullMetadata,
       }
 
-      if (couponId) {
-        (subParams as any).coupon = couponId
+      if (couponResult?.valid && couponResult.coupon && discountAmount > 0) {
+        const stripeCoupon = await stripe.coupons.create(
+          couponResult.coupon.discount_type === 'percent'
+            ? { percent_off: couponResult.coupon.discount_value, duration: 'once' }
+            : { amount_off: discountAmount, currency: 'usd', duration: 'once' },
+        );
+        (subParams as any).coupon = stripeCoupon.id
       }
 
       const subscription = await stripe.subscriptions.create(subParams)
       const invoice = subscription.latest_invoice as any
       const paymentIntent = invoice.payment_intent as Stripe.PaymentIntent
       clientSecret = paymentIntent.client_secret!
+
+      if (couponResult?.valid && couponResult.coupon && couponResult.codeRow) {
+        recordRedemption({
+          couponId: couponResult.coupon.id,
+          couponCodeId: couponResult.codeRow.id,
+          userId,
+          discountAmount,
+          originalAmount: checkoutProduct.amount,
+          productKey: product,
+        }).catch(err => console.error('Failed to record coupon redemption:', err))
+      }
     }
 
     // ------------------------------------------------------------------
-    // 5. Return to client
+    // 7. Create order + order_items (wire up the order chain)
+    // ------------------------------------------------------------------
+    const { data: order } = await supabaseAdmin
+      .from('orders')
+      .insert({
+        user_id: userId,
+        customer_id: customerRowId,
+        cart_session_id: cartSessionId || null,
+        total_amount: checkoutProduct.amount - discountAmount,
+        currency: checkoutProduct.currency,
+        status: 'pending',
+        promo_code: promoCode || null,
+        referral_source: referralSource || null,
+        campaign_name: campaignName || null,
+        metadata: {
+          product_key: product,
+          plan,
+          continuity,
+          plan_type: planType,
+          visitor_id: visitorId || null,
+          session_id: sessionId || null,
+        },
+      })
+      .select('id')
+      .single()
+
+    if (order) {
+      // Look up the DB product ID for the order_item FK
+      const productKey = product === 'intensive'
+        ? (planType === 'household' ? 'intensive_household' : 'intensive')
+        : product === 'token-pack' ? 'tokens' : product
+      const { data: dbProd } = await supabaseAdmin
+        .from('products')
+        .select('id')
+        .eq('key', productKey)
+        .maybeSingle()
+
+      if (dbProd) {
+        const { error: oiErr } = await supabaseAdmin.from('order_items').insert({
+          order_id: order.id,
+          product_id: dbProd.id,
+          quantity: 1,
+          amount: checkoutProduct.amount - discountAmount,
+          currency: checkoutProduct.currency,
+          payment_plan: plan || 'full',
+          is_subscription: checkoutProduct.mode === 'subscription',
+          promo_code: promoCode || null,
+          referral_source: referralSource || null,
+          campaign_name: campaignName || null,
+          metadata: fullMetadata,
+        })
+        if (oiErr) console.error('Failed to create order_item:', oiErr)
+      }
+    }
+
+    // Mark cart as checkout_started if not already
+    if (cartSessionId) {
+      await supabaseAdmin
+        .from('cart_sessions')
+        .update({
+          status: 'checkout_started',
+          user_id: userId,
+          email,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', cartSessionId)
+    }
+
+    // ------------------------------------------------------------------
+    // 8. Journey event: purchase_completed + update customers metrics
+    // ------------------------------------------------------------------
+    await supabaseAdmin.from('journey_events').insert({
+      visitor_id: visitorId || null,
+      session_id: sessionId || null,
+      user_id: userId,
+      cart_session_id: cartSessionId || null,
+      event_type: 'purchase_completed',
+      event_data: {
+        order_id: order?.id || null,
+        product_key: product,
+        amount: checkoutProduct.amount - discountAmount,
+        promo_code: promoCode || null,
+      },
+    })
+
+    // Update customers SSOT with purchase metrics
+    if (customerRowId) {
+      const { data: custData } = await supabaseAdmin
+        .from('customers')
+        .select('total_orders, total_spent')
+        .eq('id', customerRowId)
+        .single()
+
+      await supabaseAdmin
+        .from('customers')
+        .update({
+          total_orders: (custData?.total_orders || 0) + 1,
+          total_spent: (custData?.total_spent || 0) + (checkoutProduct.amount - discountAmount),
+          last_purchase_at: new Date().toISOString(),
+          last_active_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', customerRowId)
+    }
+
+    // Mark session as converted
+    if (sessionId) {
+      await supabaseAdmin
+        .from('sessions')
+        .update({ converted: true, conversion_type: 'purchase' })
+        .eq('id', sessionId)
+    }
+
+    // ------------------------------------------------------------------
+    // 9. Return to client
     // ------------------------------------------------------------------
     return NextResponse.json({
       clientSecret,
       userId,
       redirectUrl: checkoutProduct.redirectAfterSuccess,
+      orderId: order?.id || null,
     })
   } catch (error) {
     console.error('Create intent error:', error)
