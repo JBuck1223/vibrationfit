@@ -184,7 +184,7 @@ export default function CartCheckoutPage() {
 
   if (loading) {
     return (
-      <Container size="md" className="py-20 flex justify-center">
+      <Container size="md" className="flex justify-center">
         <Spinner size="lg" />
       </Container>
     )
@@ -192,7 +192,7 @@ export default function CartCheckoutPage() {
 
   if (error || !product) {
     return (
-      <Container size="md" className="py-20">
+      <Container size="md">
         <Card className="p-8 text-center">
           <h2 className="text-xl font-bold text-white mb-2">
             {error === 'Cart expired' ? 'Cart Expired' : error === 'Cart already completed' ? 'Already Completed' : 'Invalid Cart'}
@@ -245,16 +245,10 @@ export default function CartCheckoutPage() {
   }
 
   return (
-    <Container size="xl" className="py-8 md:py-12">
-      <div className="mb-8">
-        <a href="/" className="text-sm text-neutral-400 hover:text-white transition-colors">
-          &larr; Back to VibrationFit
-        </a>
-      </div>
-
+    <Container size="xl">
       <Elements stripe={stripePromise} options={elementsOptions}>
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-          <div className="lg:col-span-2 order-2 lg:order-1">
+          <div className="lg:col-span-2 order-1 lg:order-1">
             <OrderSummary
               product={product}
               promoCode={promoCode}
@@ -265,7 +259,7 @@ export default function CartCheckoutPage() {
             />
           </div>
 
-          <div className="lg:col-span-3 order-1 lg:order-2">
+          <div className="lg:col-span-3 order-2 lg:order-2">
             <Card className="p-6 md:p-8">
               <CheckoutForm
                 onSubmit={handleFormSubmit}

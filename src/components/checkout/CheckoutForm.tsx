@@ -38,7 +38,7 @@ export default function CheckoutForm({ onSubmit, isProcessing, submitLabel, subm
     continuity && planType ? getMembershipBillingPhrase(continuity, planType) : null
   const agreementLabel = membershipBillingPhrase
     ? `I understand and agree to the charges shown, including that my Vision Pro membership will begin billing on Day 56 at ${membershipBillingPhrase} and that I'm covered by the 16‑week guarantee.`
-    : "I understand and agree to the charges shown, including that my Vision Pro membership will begin billing on Day 56 at the plan I selected and that I'm covered by the 16‑week guarantee."
+    : "I agree to the charges shown, including Vision Pro billing starting on Day 56 at my selected plan, covered by the 16‑week guarantee."
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')

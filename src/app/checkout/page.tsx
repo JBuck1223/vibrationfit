@@ -176,7 +176,7 @@ function CheckoutContent() {
 
   if (redirecting) {
     return (
-      <Container size="md" className="py-20 flex justify-center">
+      <Container size="md" className="flex justify-center">
         <Spinner size="lg" />
       </Container>
     )
@@ -184,7 +184,7 @@ function CheckoutContent() {
 
   if (!product) {
     return (
-      <Container size="md" className="py-20">
+      <Container size="md">
         <Card className="p-8 text-center">
           <h2 className="text-xl font-bold text-white mb-2">Invalid checkout link</h2>
           <p className="text-neutral-400">
@@ -198,7 +198,7 @@ function CheckoutContent() {
 
   if (!stripePromise) {
     return (
-      <Container size="md" className="py-20">
+      <Container size="md">
         <Card className="p-8 text-center">
           <h2 className="text-xl font-bold text-white mb-2">Checkout not configured</h2>
           <p className="text-neutral-400">
@@ -282,7 +282,7 @@ function CheckoutContent() {
 export default function CheckoutPage() {
   return (
     <Suspense fallback={
-      <Container size="md" className="py-20 flex justify-center">
+      <Container size="md" className="flex justify-center">
         <Spinner size="lg" />
       </Container>
     }>
