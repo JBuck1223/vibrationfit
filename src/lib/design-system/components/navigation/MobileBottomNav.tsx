@@ -8,7 +8,8 @@ import {
   Home, 
   UsersRound, 
   Video, 
-  Map, 
+  Map,
+  Target, 
   User, 
   Brain, 
   TrendingUp, 
@@ -94,6 +95,7 @@ export const MobileBottomNav = React.forwardRef<HTMLDivElement, MobileBottomNavP
       {
         title: 'Align',
         items: [
+          { name: 'Life Vision', href: activeVisionId ? `/life-vision/${activeVisionId}` : '/life-vision', icon: Target },
           { name: 'Vibe Tribe', href: '/vibe-tribe', icon: UsersRound },
           { name: 'Alignment Gym', href: '/alignment-gym', icon: Video },
           { name: 'Dashboard', href: '/dashboard', icon: Home },

@@ -114,7 +114,7 @@ export default function StoriesListPage({ params }: { params: Promise<{ id: stri
               </Link>
             </Button>
             <Button asChild variant="primary" size="sm">
-              <Link href={`/life-vision/${visionId}/focus`}>
+              <Link href={`/life-vision/${visionId}/story/new`}>
                 <Sparkles className="w-4 h-4 mr-2" />
                 Create Focus Story
               </Link>
@@ -127,8 +127,8 @@ export default function StoriesListPage({ params }: { params: Promise<{ id: stri
           <StoriesList
             entityType="life_vision"
             entityId={visionId}
-            createUrl={`/life-vision/${visionId}/focus`}
-            storyUrlPrefix={`/life-vision/${visionId}/stories`}
+            createUrl={`/life-vision/${visionId}/story/new`}
+            storyUrlPrefix={`/life-vision/${visionId}/story`}
             showCreateButton={true}
             showDeleteButton={true}
             emptyStateMessage="No stories yet. Create your first Focus Story to experience your vision as an immersive day-in-the-life narrative."
@@ -139,7 +139,7 @@ export default function StoriesListPage({ params }: { params: Promise<{ id: stri
         <Card className="p-4 md:p-6 lg:p-8">
           <h3 className="text-lg font-semibold text-white mb-4">Create a Story</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Link href={`/life-vision/${visionId}/focus`}>
+            <Link href={`/life-vision/${visionId}/story/new`}>
               <Card variant="elevated" hover className="p-4 cursor-pointer h-full">
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -156,7 +156,7 @@ export default function StoriesListPage({ params }: { params: Promise<{ id: stri
               </Card>
             </Link>
 
-            <Link href={`/life-vision/${visionId}/stories/new`}>
+            <Link href={`/life-vision/${visionId}/story/new`}>
               <Card variant="elevated" hover className="p-4 cursor-pointer h-full">
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 bg-teal-500/20 rounded-lg flex items-center justify-center flex-shrink-0">

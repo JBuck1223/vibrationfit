@@ -9,7 +9,6 @@ import {
   X,
   CheckCircle,
   Wand2,
-  Mic,
   Eye,
   Volume2
 } from 'lucide-react'
@@ -33,7 +32,7 @@ interface Voice {
   previewUrl?: string
 }
 
-export default function StoryAudioGeneratePage({ 
+export default function VisionBoardStoryAudioGeneratePage({ 
   params 
 }: { 
   params: Promise<{ id: string; storyId: string }> 
@@ -41,7 +40,7 @@ export default function StoryAudioGeneratePage({
   const router = useRouter()
   const supabase = createClient()
   
-  const [visionId, setVisionId] = useState<string>('')
+  const [itemId, setItemId] = useState<string>('')
   const [storyId, setStoryId] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
@@ -59,7 +58,7 @@ export default function StoryAudioGeneratePage({
   useEffect(() => {
     ;(async () => {
       const p = await params
-      setVisionId(p.id)
+      setItemId(p.id)
       setStoryId(p.storyId)
     })()
   }, [params])
@@ -76,7 +75,6 @@ export default function StoryAudioGeneratePage({
       return
     }
 
-    // Load story
     const { data: storyData, error: storyError } = await supabase
       .from('stories')
       .select('*')
@@ -92,7 +90,6 @@ export default function StoryAudioGeneratePage({
 
     setStory(storyData)
 
-    // Check for existing audio
     if (storyData.audio_set_id) {
       const { data: track } = await supabase
         .from('audio_tracks')
@@ -106,7 +103,6 @@ export default function StoryAudioGeneratePage({
       }
     }
 
-    // Load voices
     try {
       const resp = await fetch('/api/audio/voices', { cache: 'no-store' })
       const data = await resp.json()
@@ -134,7 +130,7 @@ export default function StoryAudioGeneratePage({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          visionId,
+          visionId: itemId,
           storyId,
           storyContent: story.content,
           voice: selectedVoice
@@ -152,7 +148,6 @@ export default function StoryAudioGeneratePage({
         setExistingAudioUrl(data.audioUrl)
       }
 
-      // Reload story to get updated audio_set_id
       const { data: updatedStory } = await supabase
         .from('stories')
         .select('*')
@@ -222,7 +217,7 @@ export default function StoryAudioGeneratePage({
         <Card className="text-center p-4 md:p-6 lg:p-8">
           <Text className="text-red-400 mb-4">{error}</Text>
           <Button asChild variant="outline">
-            <Link href={`/life-vision/${visionId}/stories`}>
+            <Link href={`/vision-board/${itemId}/story`}>
               <ChevronLeft className="w-4 h-4 mr-2" />
               Back to Stories
             </Link>
@@ -233,20 +228,19 @@ export default function StoryAudioGeneratePage({
   }
 
   const wordCount = story?.word_count || 0
-  const estimatedDuration = Math.max(1, Math.ceil(wordCount / 150)) // ~150 words per minute for TTS
+  const estimatedDuration = Math.max(1, Math.ceil(wordCount / 150))
 
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {/* Hero */}
         <PageHero
-          eyebrow="FOCUS STORY"
+          eyebrow="VISION BOARD STORY"
           title="Generate Audio"
-          subtitle="Create AI-narrated audio of your focus story"
+          subtitle="Create AI-narrated audio of your vision board story"
         >
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Button asChild variant="ghost" size="sm">
-              <Link href={`/life-vision/${visionId}/stories/${storyId}/audio`}>
+              <Link href={`/vision-board/${itemId}/story/${storyId}/audio`}>
                 <ChevronLeft className="w-4 h-4 mr-1" />
                 Audio Studio
               </Link>
@@ -258,7 +252,6 @@ export default function StoryAudioGeneratePage({
           </div>
         </PageHero>
 
-        {/* Voice Selection */}
         <Card className="p-4 md:p-6 lg:p-8">
           <div className="flex flex-col items-center mb-6">
             <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center mb-3">
@@ -269,7 +262,6 @@ export default function StoryAudioGeneratePage({
           </div>
 
           <div className="max-w-md mx-auto space-y-4">
-            {/* Voice Dropdown */}
             <div className="relative">
               <button
                 type="button"
@@ -285,10 +277,7 @@ export default function StoryAudioGeneratePage({
               </div>
               {isVoiceDropdownOpen && (
                 <>
-                  <div 
-                    className="fixed inset-0 z-10" 
-                    onClick={() => setIsVoiceDropdownOpen(false)}
-                  />
+                  <div className="fixed inset-0 z-10" onClick={() => setIsVoiceDropdownOpen(false)} />
                   <div className="absolute z-20 w-full mt-2 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-60 overflow-y-auto">
                     {voices.map((voice) => (
                       <button
@@ -303,15 +292,11 @@ export default function StoryAudioGeneratePage({
                           setIsPreviewing(false)
                           setPreviewProgress(0)
                         }}
-                        className={`w-full px-4 py-3 text-left hover:bg-[#2A2A2A] transition-colors border-b border-[#333] last:border-b-0 ${
-                          selectedVoice === voice.id ? 'bg-purple-500/10' : ''
-                        }`}
+                        className={`w-full px-4 py-3 text-left hover:bg-[#2A2A2A] transition-colors border-b border-[#333] last:border-b-0 ${selectedVoice === voice.id ? 'bg-purple-500/10' : ''}`}
                       >
                         <div className="flex items-center justify-between">
                           <span className="text-white font-medium">{voice.name}</span>
-                          {selectedVoice === voice.id && (
-                            <CheckCircle className="w-5 h-5 text-purple-400" />
-                          )}
+                          {selectedVoice === voice.id && <CheckCircle className="w-5 h-5 text-purple-400" />}
                         </div>
                       </button>
                     ))}
@@ -320,27 +305,15 @@ export default function StoryAudioGeneratePage({
               )}
             </div>
 
-            {/* Preview Button */}
             <Button 
               variant="outline"
               onClick={handlePreviewVoice}
               disabled={!selectedVoice || !voices.find(v => v.id === selectedVoice)?.previewUrl}
               className="w-full"
             >
-              {isPreviewing ? (
-                <>
-                  <X className="w-4 h-4 mr-2" />
-                  Stop Preview
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4 mr-2" />
-                  Preview Voice
-                </>
-              )}
+              {isPreviewing ? <><X className="w-4 h-4 mr-2" />Stop Preview</> : <><Play className="w-4 h-4 mr-2" />Preview Voice</>}
             </Button>
 
-            {/* Generate Button */}
             <Button 
               variant="primary"
               onClick={handleGenerate}
@@ -348,33 +321,22 @@ export default function StoryAudioGeneratePage({
               className="w-full"
             >
               {generating ? (
-                <>
-                  <Spinner size="sm" className="mr-2" />
-                  Generating Audio...
-                </>
+                <><Spinner size="sm" className="mr-2" />Generating Audio...</>
               ) : existingAudioUrl ? (
-                <>
-                  <Wand2 className="w-4 h-4 mr-2" />
-                  Regenerate Audio
-                </>
+                <><Wand2 className="w-4 h-4 mr-2" />Regenerate Audio</>
               ) : (
-                <>
-                  <Wand2 className="w-4 h-4 mr-2" />
-                  Generate Audio
-                </>
+                <><Wand2 className="w-4 h-4 mr-2" />Generate Audio</>
               )}
             </Button>
           </div>
         </Card>
 
-        {/* Error Display */}
         {error && (
           <Card className="p-4 bg-red-500/10 border-red-500/30">
             <Text size="sm" className="text-red-400">{error}</Text>
           </Card>
         )}
 
-        {/* Existing Audio Player */}
         {existingAudioUrl && (
           <Card className="p-4 md:p-6 lg:p-8">
             <div className="flex items-center gap-3 mb-4">
@@ -389,7 +351,7 @@ export default function StoryAudioGeneratePage({
             <AudioPlayer
               track={{
                 id: 'story-audio',
-                title: story?.title || 'Focus Story',
+                title: story?.title || 'Vision Board Story',
                 artist: 'VIVA',
                 duration: 0,
                 url: existingAudioUrl
@@ -399,14 +361,12 @@ export default function StoryAudioGeneratePage({
           </Card>
         )}
 
-        {/* Story Preview */}
         <Card className="p-4 md:p-6 lg:p-8">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white">Story Preview</h3>
             <Button asChild variant="ghost" size="sm">
-              <Link href={`/life-vision/${visionId}/stories/${storyId}`}>
-                <Eye className="w-4 h-4 mr-1" />
-                Edit Story
+              <Link href={`/vision-board/${itemId}/story/${storyId}`}>
+                <Eye className="w-4 h-4 mr-1" />Edit Story
               </Link>
             </Button>
           </div>

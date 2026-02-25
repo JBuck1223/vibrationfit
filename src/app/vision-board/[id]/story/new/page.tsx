@@ -180,7 +180,7 @@ Write the story directly without any preamble or explanation.`
       if (storyError) throw storyError
 
       // Redirect to the story detail page
-      router.push(`/vision-board/${itemId}/stories/${storyData.id}`)
+      router.push(`/vision-board/${itemId}/story/${storyData.id}`)
 
     } catch (err) {
       console.error('Error generating story:', err)
@@ -267,7 +267,7 @@ Write the enhanced story directly without any preamble, explanation, or quotes.`
 
       if (storyError) throw storyError
 
-      router.push(`/vision-board/${itemId}/stories/${storyData.id}`)
+      router.push(`/vision-board/${itemId}/story/${storyData.id}`)
 
     } catch (err) {
       console.error('Error creating story:', err)
@@ -310,7 +310,7 @@ Write the enhanced story directly without any preamble, explanation, or quotes.`
         >
           <div className="flex justify-center">
             <Button asChild variant="ghost" size="sm">
-              <Link href={`/vision-board/${itemId}/stories`}>
+              <Link href={`/vision-board/${itemId}/story`}>
                 <ChevronLeft className="w-4 h-4 mr-1" />
                 Back to Stories
               </Link>

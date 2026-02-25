@@ -8,7 +8,8 @@ import {
   Brain, TrendingUp, Shield, Play, Award, Globe, Crown, Check, Clock, User, Dumbbell,
   Headphones, Image, BookOpen, CalendarDays, Lock, HelpCircle, Eye,
   RefreshCw, Maximize2, Minimize2, Layers, Smile, Signal, RadioTower,
-  Settings, FileText, ClipboardCheck, Wand2, Music, Mic, Sliders, Calendar, Rocket, Unlock
+  Settings, FileText, ClipboardCheck, Wand2, Music, Mic, Sliders, Calendar, Rocket, Unlock,
+  ShoppingCart
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
@@ -2057,7 +2058,7 @@ export default function HomePage() {
                         </Stack>
 
                         {/* CTA BUTTON */}
-                    <div className="flex justify-center">
+                    <div className="flex flex-col items-center">
                       <Button
                         variant="primary"
                         size="xl"
@@ -2066,6 +2067,10 @@ export default function HomePage() {
                       >
                         {isLoading ? 'Processing...' : promoCode ? 'Pay $1 & Start Activation Intensive' : 'Start the Activation Intensive'}
                       </Button>
+                      <p className="flex items-center justify-center gap-2 text-xs text-[#39FF14] text-center mt-2">
+                        <ShoppingCart className="w-3.5 h-3.5" />
+                        Next Step: Secure Checkout
+                      </p>
                     </div>
                       </Stack>
                     </Card>

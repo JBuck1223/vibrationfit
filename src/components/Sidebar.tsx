@@ -14,6 +14,7 @@ import {
   X,
   LogOut,
   Award,
+  Target,
 } from 'lucide-react'
 import { userNavigation, userNavigationGroups, adminNavigation, mobileNavigation, isNavItemActive, type NavItem, type NavGroup } from '@/lib/navigation'
 import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
@@ -543,6 +544,7 @@ export function MobileBottomNav({ className }: MobileBottomNavProps) {
     {
       title: 'Align',
       items: [
+        { name: 'Life Vision', href: activeVisionId ? `/life-vision/${activeVisionId}` : '/life-vision', icon: Target },
         { name: 'Vibe Tribe', href: '/vibe-tribe', icon: userNavigation.find(i => i.name === 'Vibe Tribe')?.icon },
         { name: 'Alignment Gym', href: '/alignment-gym', icon: userNavigation.find(i => i.name === 'Alignment Gym')?.icon },
         { name: 'Dashboard', href: '/dashboard', icon: userNavigation.find(i => i.name === 'Dashboard')?.icon },

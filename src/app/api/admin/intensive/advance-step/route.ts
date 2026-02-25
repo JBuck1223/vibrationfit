@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { assessmentQuestions, filterQuestionsByProfile } from '@/lib/assessment/questions'
+import { triggerEvent } from '@/lib/messaging/events'
 
 // Create admin client that bypasses RLS
 function getAdminClient() {
@@ -132,6 +133,22 @@ export async function POST(request: NextRequest) {
         break
       case 14:
         await advanceStep14_Unlock(adminClient, checklist, now)
+
+        // Fire exit event to cancel the onboarding sequence
+        {
+          const { data: userAuth } = await adminClient.auth.admin.getUserById(userId)
+          const { data: profile } = await adminClient
+            .from('user_profiles')
+            .select('first_name')
+            .eq('user_id', userId)
+            .maybeSingle()
+
+          triggerEvent('intensive.completed', {
+            email: userAuth?.user?.email || '',
+            userId,
+            firstName: profile?.first_name || userAuth?.user?.email?.split('@')[0] || '',
+          }).catch(err => console.error('triggerEvent intensive.completed error:', err))
+        }
         break
     }
 
