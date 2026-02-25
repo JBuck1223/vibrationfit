@@ -3,6 +3,7 @@ import "./globals.css";
 import '@/styles/brand.css'
 import { GlobalLayout } from '@/components/GlobalLayout'
 import { AuthProvider } from '@/components/AuthProvider'
+import { TrackingProvider } from '@/components/TrackingProvider'
 import { ASSETS } from '@/lib/storage/s3-storage-presigned'
 import { Toaster } from 'sonner'
 
@@ -45,10 +46,11 @@ export default function RootLayout({
         suppressHydrationWarning={true}
       >
         <AuthProvider>
+          <TrackingProvider>
           <GlobalLayout>
-            {/* <IntensiveBar /> */}
             {children}
           </GlobalLayout>
+          </TrackingProvider>
           <Toaster 
             position="top-right"
             toastOptions={{

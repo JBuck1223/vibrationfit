@@ -7,8 +7,37 @@ import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Plus, Calendar, FileText, Play, Volume2, ChevronLeft, ChevronRight, X, Eye, Grid, List, Filter } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Plus, Calendar, FileText, Play, Volume2, ChevronLeft, ChevronRight, X, Eye, Grid, List, Filter, ImageOff } from 'lucide-react'
+import { useEffect, useState, useCallback } from 'react'
+
+function JournalImage({ src, alt, className, onClick, loading }: {
+  src: string
+  alt: string
+  className?: string
+  onClick?: (e: React.MouseEvent) => void
+  loading?: 'lazy' | 'eager'
+}) {
+  const [error, setError] = useState(false)
+
+  if (error) {
+    return (
+      <div className={`bg-neutral-800 flex items-center justify-center ${className || ''}`} onClick={onClick}>
+        <ImageOff className="w-6 h-6 text-neutral-600" />
+      </div>
+    )
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={className}
+      onClick={onClick}
+      loading={loading}
+      onError={() => setError(true)}
+    />
+  )
+}
 
 interface JournalEntry {
   id: string
@@ -494,7 +523,7 @@ export default function JournalPage() {
                               <div className={`grid ${imageCount === 2 ? 'grid-cols-2' : imageCount === 3 ? 'grid-cols-2' : 'grid-cols-2'} gap-0.5`}>
                                 {imagesToShow.map((imageUrl, idx) => (
                                   <div key={idx} className="relative bg-neutral-800">
-                                    <img
+                                    <JournalImage
                                       src={imageUrl}
                                       alt={`Entry preview ${idx + 1}`}
                                       className="w-full h-full object-cover aspect-square"
@@ -515,7 +544,7 @@ export default function JournalPage() {
                         // Single image
                         return (
                           <div className="relative w-full rounded-lg overflow-hidden border border-neutral-700 cursor-pointer group">
-                            <img
+                            <JournalImage
                               src={imageUrls[0]}
                               alt={`Entry preview`}
                               className="w-full h-auto object-contain group-hover:scale-105 transition-transform duration-200 rounded-lg"
@@ -649,7 +678,7 @@ export default function JournalPage() {
                                 <div className={`grid ${imageCount === 2 ? 'grid-cols-2' : imageCount === 3 ? 'grid-cols-2' : 'grid-cols-2'} gap-0.5 h-full`}>
                                   {imagesToShow.map((imageUrl, idx) => (
                                     <div key={idx} className="relative bg-neutral-800">
-                                      <img
+                                      <JournalImage
                                         src={imageUrl}
                                         alt={`Entry preview ${idx + 1}`}
                                         className="w-full h-full object-cover aspect-square"
@@ -670,7 +699,7 @@ export default function JournalPage() {
                           // Single image
                           return (
                             <div className="w-full h-full flex items-center justify-center">
-                              <img
+                              <JournalImage
                                 src={imageUrls[0]}
                                 alt={entry.title || 'Entry preview'}
                                 className="max-w-full max-h-full w-auto h-auto object-contain"

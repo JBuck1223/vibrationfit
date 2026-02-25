@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { sendEmail } from '@/lib/email/aws-ses'
 import { sendSMS } from '@/lib/messaging/twilio'
+import { processSequenceSteps } from '@/lib/messaging/sequence-processor'
 
 // Secret key for manual cron job authentication (optional)
 const CRON_SECRET = process.env.CRON_SECRET
@@ -183,9 +184,18 @@ async function processMessages(request: NextRequest) {
 
     console.log(`📊 Processing complete: ${results.sent} sent, ${results.failed} failed`)
 
+    // --- Process sequence enrollments ---
+    let sequenceResults = { processed: 0, sent: 0, completed: 0, skipped: 0, errors: 0 }
+    try {
+      sequenceResults = await processSequenceSteps()
+    } catch (seqErr) {
+      console.error('Error processing sequences:', seqErr)
+    }
+
     return NextResponse.json({
       message: 'Processing complete',
-      ...results
+      ...results,
+      sequences: sequenceResults,
     })
 
   } catch (error) {

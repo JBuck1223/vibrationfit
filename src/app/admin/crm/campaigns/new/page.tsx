@@ -401,13 +401,24 @@ export default function NewCampaignPage() {
               <label className="block text-sm font-medium mb-2">
                 Promo Code <span className="text-primary-500">(promo=)</span>
               </label>
-              <Input
-                value={formData.promo_code}
-                onChange={(e) => handleChange('promo_code', e.target.value.toUpperCase())}
-                placeholder="INTENSIVE2025 (Solo) or INTENSIVE2025-HOUSEHOLD"
-              />
+              <div className="flex gap-2">
+                <Input
+                  value={formData.promo_code}
+                  onChange={(e) => handleChange('promo_code', e.target.value.toUpperCase())}
+                  placeholder="Enter code or select from coupons"
+                  className="flex-1"
+                />
+                <a
+                  href="/admin/coupons"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-neutral-800 border-2 border-neutral-700 text-sm text-neutral-300 hover:border-[#39FF14] hover:text-white transition-colors whitespace-nowrap"
+                >
+                  Manage Coupons
+                </a>
+              </div>
               <p className="text-xs text-neutral-500 mt-1">
-                Auto-applies discount at checkout. Use <strong>$498 off (Solo)</strong> or <strong>$698 off (Household)</strong> for $1 verification.
+                Enter a coupon code from the <a href="/admin/coupons" className="text-[#39FF14] hover:underline">Coupons</a> page. Discounts are validated from the database at checkout.
               </p>
             </div>
 

@@ -5,10 +5,10 @@
 
 import { useState } from 'react'
 import { Button, Card, Input, Textarea, Container } from '@/lib/design-system/components'
-import { useUTMTracking } from '@/hooks/useUTMTracking'
+import { useTracking } from '@/components/TrackingProvider'
 
 export default function DemoPage() {
-  const utmData = useUTMTracking()
+  const { visitorId, sessionId } = useTracking()
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [formData, setFormData] = useState({
@@ -36,7 +36,8 @@ export default function DemoPage() {
           type: 'demo',
           source: 'demo_request',
           ...formData,
-          ...utmData,
+          visitor_id: visitorId,
+          session_id: sessionId,
         }),
       })
 

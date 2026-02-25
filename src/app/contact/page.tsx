@@ -5,11 +5,11 @@
 
 import { useState } from 'react'
 import { Button, Card, Input, Textarea, Container, Stack, PageHero } from '@/lib/design-system/components'
-import { useUTMTracking } from '@/hooks/useUTMTracking'
+import { useTracking } from '@/components/TrackingProvider'
 import { CheckCircle } from 'lucide-react'
 
 export default function ContactPage() {
-  const utmData = useUTMTracking()
+  const { visitorId, sessionId } = useTracking()
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [formData, setFormData] = useState({
@@ -36,7 +36,8 @@ export default function ContactPage() {
           type: 'contact',
           source: 'website_contact',
           ...formData,
-          ...utmData,
+          visitor_id: visitorId,
+          session_id: sessionId,
         }),
       })
 

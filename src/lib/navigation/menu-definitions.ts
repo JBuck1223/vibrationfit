@@ -63,6 +63,10 @@ import {
   Music,
   Map,
   Award,
+  MessageSquare,
+  Radio,
+  GitBranch,
+  Send,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -363,20 +367,23 @@ export const adminNavigation: NavItem[] = [
   },
   
   // ============================================================================
-  // EMAIL MANAGEMENT
+  // MESSAGING & AUTOMATION
   // ============================================================================
   {
-    name: 'Email System',
+    name: 'Messaging',
     href: '/admin/emails',
     icon: Mail,
     requiresAdmin: true,
     hasDropdown: true,
-    description: 'Email templates and delivery',
+    description: 'Email, SMS, automations, and campaigns',
     children: [
-      { name: 'Email Dashboard', href: '/admin/emails', icon: Mail, description: 'Email management overview' },
-      { name: 'All Emails', href: '/admin/emails/list', icon: FileText, description: 'View all sent emails' },
-      { name: 'Sent Emails', href: '/admin/emails/sent', icon: FileText, description: 'Email delivery history' },
-      { name: 'Test Email', href: '/admin/emails/test', icon: Wand2, description: 'Send test emails' },
+      { name: 'Messaging Hub', href: '/admin/emails', icon: Mail, description: 'Messaging overview and stats' },
+      { name: 'Email Templates', href: '/admin/emails/list', icon: FileText, description: 'Browse and edit email templates' },
+      { name: 'SMS Templates', href: '/admin/sms', icon: MessageSquare, description: 'Browse and edit SMS templates' },
+      { name: 'Automation Rules', href: '/admin/automations', icon: Radio, description: 'Event-driven single-fire triggers' },
+      { name: 'Sequences', href: '/admin/sequences', icon: GitBranch, description: 'Multi-step drip campaigns' },
+      { name: 'Campaigns', href: '/admin/messaging-campaigns', icon: Send, description: 'Bulk audience sends' },
+      { name: 'Sent Email Log', href: '/admin/emails/sent', icon: FileText, description: 'Email delivery history' },
     ]
   },
   

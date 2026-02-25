@@ -125,7 +125,7 @@ async function resolveIntensiveProduct(
       `Vision Pro ${continuityPlan === 'annual' ? 'Annual' : '28-Day'} starts billing Day 56`,
       ...continuityMeta.features.slice(0, 5),
     ],
-    redirectAfterSuccess: '/intensive/dashboard',
+    redirectAfterSuccess: '/intensive/start',
     stripePriceId,
     stripePriceEnvKey,
     metadata: {

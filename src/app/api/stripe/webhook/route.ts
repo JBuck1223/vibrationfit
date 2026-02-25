@@ -8,6 +8,7 @@ import { getActivePackByKey } from '@/lib/billing/packs'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
+import { triggerEvent } from '@/lib/messaging/events'
 
 type OrderInsertParams = {
   userId: string
@@ -886,8 +887,13 @@ export async function POST(request: NextRequest) {
             }
           }
 
-          // TODO: Send welcome email with intensive onboarding instructions
-          // TODO: Schedule SMS reminders for 24h, 36h, 72h checkpoints
+          triggerEvent('intensive.purchased', {
+            email: customerEmail || '',
+            userId,
+            name: session.customer_details?.name || customerEmail?.split('@')[0] || '',
+            firstName: session.customer_details?.name?.split(' ')[0] || customerEmail?.split('@')[0] || '',
+            paymentPlan,
+          }).catch(err => console.error('triggerEvent intensive.purchased error:', err))
         }
         
         // Handle Combined Checkout: Intensive + Vision Pro Continuity
@@ -1286,8 +1292,13 @@ export async function POST(request: NextRequest) {
             deadline: activationDeadline.toISOString(),
           })
 
-          // TODO: Send welcome email with intensive onboarding + subscription details
-          // TODO: Schedule SMS reminders for intensive milestones
+          triggerEvent('intensive.purchased', {
+            email: customerEmail || '',
+            userId,
+            name: session.customer_details?.name || customerEmail?.split('@')[0] || '',
+            firstName: session.customer_details?.name?.split(' ')[0] || customerEmail?.split('@')[0] || '',
+            paymentPlan: intensivePaymentPlan,
+          }).catch(err => console.error('triggerEvent intensive.purchased error:', err))
         }
         
         break

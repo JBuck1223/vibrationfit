@@ -44,7 +44,7 @@ What I ask from you:
 * Tell us what you loved, what was confusing, and what you’d change  
 * If it helps you, be open to sharing a short written or video testimonial
 
-If you’re in, grab your spot for $1 here: https://vibrationfit.com/?promo=intensive2025
+If you’re in, grab your spot for $1 here: https://vibrationfit.com/?promo=LAUNCH2026
 
 We’re only taking about 15–20 people, and your 8 weeks of membership starts the day you sign up.
 
@@ -59,7 +59,7 @@ Initial text:
 *Hey\! We just finished building our Vibration Fit platform and I’m running a tiny “friends & family” test of our 72‑Hour Activation Intensive. It’ll be $499 when we launch, but I’m giving this first round for $1, and it also includes 8 weeks of membership starting when you join.All I’m asking for is honest feedback (and a testimonial if you love it). Want me to send you the link?*
 
 If they say  yes:  
-*Amazing, thank you\! Here’s the $1 founding tester link for the 72‑Hour Activation Intensive \+ 8 weeks of membership: https://vibrationfit.com/?promo=intensive2025*
+*Amazing, thank you\! Here’s the $1 founding tester link for the 72‑Hour Activation Intensive \+ 8 weeks of membership: https://vibrationfit.com/?promo=LAUNCH2026*
 
 *We’re only taking about 15–20 people in this first round, so grab it when you can.*  
 That’s it. One clear email, one clear text. Then your real work starts: make these 15–20 people win so hard that their stories do the selling for you later.
