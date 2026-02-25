@@ -8,6 +8,8 @@ import {
   Mic,
   CheckCircle,
   Wand2,
+  Eye,
+  Volume2,
   Trash2
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -25,7 +27,7 @@ import {
 import { MediaRecorderComponent } from '@/components/MediaRecorder'
 import type { Story } from '@/lib/stories'
 
-export default function VisionBoardStoryAudioRecordPage({ 
+export default function StoryAudioRecordPage({ 
   params 
 }: { 
   params: Promise<{ id: string; storyId: string }> 
@@ -33,18 +35,21 @@ export default function VisionBoardStoryAudioRecordPage({
   const router = useRouter()
   const supabase = createClient()
   
-  const [itemId, setItemId] = useState<string>('')
+  const [visionId, setVisionId] = useState<string>('')
   const [storyId, setStoryId] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [story, setStory] = useState<Story | null>(null)
-  const [existingRecording, setExistingRecording] = useState<{ url: string; duration: number } | null>(null)
+  const [existingRecording, setExistingRecording] = useState<{
+    url: string
+    duration: number
+  } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     ;(async () => {
       const p = await params
-      setItemId(p.id)
+      setVisionId(p.id)
       setStoryId(p.storyId)
     })()
   }, [params])
@@ -61,6 +66,7 @@ export default function VisionBoardStoryAudioRecordPage({
       return
     }
 
+    // Load story
     const { data: storyData, error: storyError } = await supabase
       .from('stories')
       .select('*')
@@ -76,6 +82,7 @@ export default function VisionBoardStoryAudioRecordPage({
 
     setStory(storyData)
 
+    // Check for existing user recording
     if (storyData.user_audio_url) {
       setExistingRecording({
         url: storyData.user_audio_url,
@@ -94,6 +101,7 @@ export default function VisionBoardStoryAudioRecordPage({
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
+      // Delete old recording from S3 if exists
       if (existingRecording?.url) {
         try {
           const { deleteRecording } = await import('@/lib/services/recordingService')
@@ -103,6 +111,7 @@ export default function VisionBoardStoryAudioRecordPage({
         }
       }
 
+      // Update story with new recording
       const { error: updateError } = await supabase
         .from('stories')
         .update({
@@ -113,7 +122,10 @@ export default function VisionBoardStoryAudioRecordPage({
 
       if (updateError) throw updateError
 
-      setExistingRecording({ url: s3Url, duration: Math.floor(duration) })
+      setExistingRecording({
+        url: s3Url,
+        duration: Math.floor(duration)
+      })
 
     } catch (err) {
       console.error('Failed to save recording:', err)
@@ -131,6 +143,7 @@ export default function VisionBoardStoryAudioRecordPage({
     setError(null)
 
     try {
+      // Delete from S3
       try {
         const { deleteRecording } = await import('@/lib/services/recordingService')
         await deleteRecording(existingRecording.url)
@@ -138,9 +151,13 @@ export default function VisionBoardStoryAudioRecordPage({
         console.warn('Could not delete from S3:', err)
       }
 
+      // Update story
       const { error: updateError } = await supabase
         .from('stories')
-        .update({ user_audio_url: null, user_audio_duration_seconds: null })
+        .update({
+          user_audio_url: null,
+          user_audio_duration_seconds: null
+        })
         .eq('id', storyId)
 
       if (updateError) throw updateError
@@ -169,7 +186,7 @@ export default function VisionBoardStoryAudioRecordPage({
         <Card className="text-center p-4 md:p-6 lg:p-8">
           <Text className="text-red-400 mb-4">{error}</Text>
           <Button asChild variant="outline">
-            <Link href={`/vision-board/${itemId}/stories`}>
+            <Link href={`/life-vision/${visionId}/story`}>
               <ChevronLeft className="w-4 h-4 mr-2" />
               Back to Stories
             </Link>
@@ -185,14 +202,15 @@ export default function VisionBoardStoryAudioRecordPage({
   return (
     <Container size="xl">
       <Stack gap="lg">
+        {/* Hero */}
         <PageHero
-          eyebrow="VISION BOARD STORY"
+          eyebrow="FOCUS STORY"
           title="Record Your Voice"
-          subtitle="Read your vision board story in your own voice"
+          subtitle="Read your focus story in your own voice"
         >
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Button asChild variant="ghost" size="sm">
-              <Link href={`/vision-board/${itemId}/stories/${storyId}/audio`}>
+              <Link href={`/life-vision/${visionId}/story/${storyId}/audio`}>
                 <ChevronLeft className="w-4 h-4 mr-1" />
                 Audio Studio
               </Link>
@@ -201,13 +219,15 @@ export default function VisionBoardStoryAudioRecordPage({
               <Badge variant="secondary">{wordCount} words</Badge>
               {existingRecording && (
                 <Badge variant="success">
-                  <CheckCircle className="w-3 h-3 mr-1" />Recorded
+                  <CheckCircle className="w-3 h-3 mr-1" />
+                  Recorded
                 </Badge>
               )}
             </div>
           </div>
         </PageHero>
 
+        {/* Existing Recording */}
         {existingRecording && (
           <Card className="p-4 md:p-6 lg:p-8">
             <div className="flex items-center justify-between mb-4">
@@ -229,13 +249,14 @@ export default function VisionBoardStoryAudioRecordPage({
                 disabled={saving}
                 className="text-red-400 hover:text-red-300"
               >
-                <Trash2 className="w-4 h-4 mr-1" />Delete
+                <Trash2 className="w-4 h-4 mr-1" />
+                Delete
               </Button>
             </div>
             <AudioPlayer
               track={{
                 id: 'story-recording',
-                title: story?.title || 'Vision Board Story',
+                title: story?.title || 'Focus Story',
                 artist: 'Your Voice',
                 duration: existingRecording.duration,
                 url: existingRecording.url
@@ -245,6 +266,7 @@ export default function VisionBoardStoryAudioRecordPage({
           </Card>
         )}
 
+        {/* Recording Section */}
         <Card className="p-4 md:p-6 lg:p-8">
           <div className="flex flex-col items-center mb-6">
             <div className="w-12 h-12 rounded-full bg-teal-500/20 flex items-center justify-center mb-3">
@@ -253,30 +275,44 @@ export default function VisionBoardStoryAudioRecordPage({
             <h3 className="text-xl font-semibold text-white">
               {existingRecording ? 'Re-record Your Story' : 'Record Your Story'}
             </h3>
-            <Text size="sm" className="text-neutral-400">Read the text below while recording</Text>
+            <Text size="sm" className="text-neutral-400">
+              Read the text below while recording
+            </Text>
           </div>
 
           {!hasContent ? (
             <div className="text-center p-8 bg-neutral-800/30 border border-neutral-700 border-dashed rounded-lg">
-              <Text className="text-neutral-400 mb-4">No story content yet. Add content first.</Text>
+              <Text className="text-neutral-400 mb-4">
+                No story content yet. Add content first.
+              </Text>
               <Button asChild variant="primary">
-                <Link href={`/vision-board/${itemId}/stories/${storyId}`}>Edit Story</Link>
+                <Link href={`/life-vision/${visionId}/story/${storyId}`}>
+                  Edit Story
+                </Link>
               </Button>
             </div>
           ) : (
             <>
+              {/* Story Text to Read */}
               <div className="mb-6">
                 <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg overflow-hidden">
                   <div className="flex items-center gap-2 p-4 pb-3 border-b border-neutral-700">
-                    <span className="text-xs uppercase tracking-wider text-neutral-500 font-semibold">Your Story Text:</span>
-                    <span className="text-xs text-neutral-400">({story?.content?.length || 0} characters)</span>
+                    <span className="text-xs uppercase tracking-wider text-neutral-500 font-semibold">
+                      Your Story Text:
+                    </span>
+                    <span className="text-xs text-neutral-400">
+                      ({story?.content?.length || 0} characters)
+                    </span>
                   </div>
                   <div className="p-4 max-h-[300px] overflow-y-auto">
-                    <p className="text-neutral-300 text-sm leading-relaxed whitespace-pre-wrap">{story?.content}</p>
+                    <p className="text-neutral-300 text-sm leading-relaxed whitespace-pre-wrap">
+                      {story?.content}
+                    </p>
                   </div>
                 </div>
               </div>
 
+              {/* Recorder */}
               <MediaRecorderComponent
                 mode="audio"
                 recordingPurpose="audioOnly"
@@ -312,12 +348,14 @@ export default function VisionBoardStoryAudioRecordPage({
           )}
         </Card>
 
+        {/* Error Display */}
         {error && (
           <Card className="p-4 bg-red-500/10 border-red-500/30">
             <Text size="sm" className="text-red-400">{error}</Text>
           </Card>
         )}
 
+        {/* Alternative: AI Generation */}
         <Card className="p-4 md:p-6 lg:p-8 bg-purple-500/5 border-purple-500/20">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -325,10 +363,14 @@ export default function VisionBoardStoryAudioRecordPage({
             </div>
             <div className="flex-1">
               <Text className="text-white font-medium">Prefer AI narration?</Text>
-              <Text size="sm" className="text-neutral-400">Generate professional AI audio instead of recording yourself.</Text>
+              <Text size="sm" className="text-neutral-400">
+                Generate professional AI audio instead of recording yourself.
+              </Text>
             </div>
             <Button asChild variant="outline" size="sm">
-              <Link href={`/vision-board/${itemId}/stories/${storyId}/audio/generate`}>Generate AI Audio</Link>
+              <Link href={`/life-vision/${visionId}/story/${storyId}/audio/generate`}>
+                Generate AI Audio
+              </Link>
             </Button>
           </div>
         </Card>

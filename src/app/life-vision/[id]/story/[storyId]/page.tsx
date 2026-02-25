@@ -69,7 +69,7 @@ export default function StoryDetailPage({
     setDeleting(true)
     const success = await deleteStory()
     if (success) {
-      router.push(`/life-vision/${visionId}/stories`)
+      router.push(`/life-vision/${visionId}/story`)
     }
     setDeleting(false)
   }
@@ -90,7 +90,7 @@ export default function StoryDetailPage({
         <Card className="text-center p-4 md:p-6 lg:p-8">
           <Text className="text-red-400 mb-4">{error || 'Story not found'}</Text>
           <Button asChild variant="outline">
-            <Link href={`/life-vision/${visionId}/stories`}>
+            <Link href={`/life-vision/${visionId}/story`}>
               <ChevronLeft className="w-4 h-4 mr-2" />
               Back to Stories
             </Link>
@@ -116,7 +116,7 @@ export default function StoryDetailPage({
         >
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Button asChild variant="ghost" size="sm">
-              <Link href={`/life-vision/${visionId}/stories`}>
+              <Link href={`/life-vision/${visionId}/story`}>
                 <ChevronLeft className="w-4 h-4 mr-1" />
                 All Stories
               </Link>
@@ -160,7 +160,7 @@ export default function StoryDetailPage({
           <Heading level={3} className="text-white mb-4">Audio Options</Heading>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Audio Hub */}
-            <Link href={`/life-vision/${visionId}/stories/${storyId}/audio`}>
+            <Link href={`/life-vision/${visionId}/story/${storyId}/audio`}>
               <Card variant="elevated" hover className="p-4 cursor-pointer h-full">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center">
@@ -175,7 +175,7 @@ export default function StoryDetailPage({
             </Link>
 
             {/* Generate AI Audio */}
-            <Link href={`/life-vision/${visionId}/stories/${storyId}/audio/generate`}>
+            <Link href={`/life-vision/${visionId}/story/${storyId}/audio/generate`}>
               <Card variant="elevated" hover className="p-4 cursor-pointer h-full">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
@@ -190,7 +190,7 @@ export default function StoryDetailPage({
             </Link>
 
             {/* Record Audio */}
-            <Link href={`/life-vision/${visionId}/stories/${storyId}/audio/record`}>
+            <Link href={`/life-vision/${visionId}/story/${storyId}/audio/record`}>
               <Card variant="elevated" hover className="p-4 cursor-pointer h-full">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-teal-500/20 rounded-lg flex items-center justify-center">

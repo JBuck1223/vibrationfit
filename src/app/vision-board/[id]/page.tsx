@@ -364,7 +364,7 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                 Back to Vision Board
               </Button>
               <Button asChild variant="primary" size="sm">
-                <Link href={`/vision-board/${item?.id}/stories`}>
+                <Link href={`/vision-board/${item?.id}/story`}>
                   <BookOpen className="w-4 h-4 mr-2" />
                   Stories
                 </Link>

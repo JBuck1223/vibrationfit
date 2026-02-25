@@ -145,8 +145,8 @@ export default function VisionBoardStoriesPage({ params }: { params: Promise<{ i
           <StoriesList
             entityType="vision_board_item"
             entityId={itemId}
-            createUrl={`/vision-board/${itemId}/stories/new`}
-            storyUrlPrefix={`/vision-board/${itemId}/stories`}
+            createUrl={`/vision-board/${itemId}/story/new`}
+            storyUrlPrefix={`/vision-board/${itemId}/story`}
             showCreateButton={true}
             showDeleteButton={true}
             emptyStateMessage="No stories yet. Create your first story to bring this vision to life."
@@ -157,7 +157,7 @@ export default function VisionBoardStoriesPage({ params }: { params: Promise<{ i
         <Card className="p-4 md:p-6 lg:p-8">
           <h3 className="text-lg font-semibold text-white mb-4">Create a Story</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Link href={`/vision-board/${itemId}/stories/new?mode=viva`}>
+            <Link href={`/vision-board/${itemId}/story/new?mode=viva`}>
               <Card variant="elevated" hover className="p-4 cursor-pointer h-full">
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -174,7 +174,7 @@ export default function VisionBoardStoriesPage({ params }: { params: Promise<{ i
               </Card>
             </Link>
 
-            <Link href={`/vision-board/${itemId}/stories/new?mode=write`}>
+            <Link href={`/vision-board/${itemId}/story/new?mode=write`}>
               <Card variant="elevated" hover className="p-4 cursor-pointer h-full">
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 bg-teal-500/20 rounded-lg flex items-center justify-center flex-shrink-0">

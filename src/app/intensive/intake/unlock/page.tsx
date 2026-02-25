@@ -390,6 +390,10 @@ export default function IntensiveUnlockPage() {
         throw new Error('Failed to complete unlock')
       }
 
+      // Fire intensive.completed event to cancel onboarding sequence
+      fetch('/api/intensive/completed', { method: 'POST' })
+        .catch(err => console.error('intensive.completed event error:', err))
+
       // Redirect to main dashboard with unlock celebration
       router.push('/dashboard?unlocked=true')
 
