@@ -227,7 +227,7 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 translate-y-0.5 text-neutral-400 hover:text-neutral-300 transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 translate-y-1 text-neutral-400 hover:text-neutral-300 transition-colors"
             >
               {showPassword ? (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

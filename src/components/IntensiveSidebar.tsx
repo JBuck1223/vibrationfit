@@ -131,15 +131,10 @@ export function IntensiveSidebar() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      // Fetch profile (non-blocking)
-      getActiveProfileClient(user.id)
-        .then(profileData => setProfile(profileData))
-        .catch(err => console.error('IntensiveSidebar: Error fetching profile:', err))
-
-      // Check settings completion from user_accounts (Step 1)
+      // Check settings completion and account display info from user_accounts (Step 1)
       const { data: accountData } = await supabase
         .from('user_accounts')
-        .select('first_name, last_name, email, phone')
+        .select('first_name, last_name, email, phone, profile_picture_url')
         .eq('id', user.id)
         .single()
 
@@ -150,6 +145,19 @@ export function IntensiveSidebar() {
         accountData.phone?.trim())
       
       setSettingsComplete(hasSettings)
+
+      // Populate header name and photo from user_accounts (same source as settings)
+      if (accountData) {
+        setProfile({
+          first_name: accountData.first_name ?? null,
+          profile_picture_url: accountData.profile_picture_url ?? null
+        })
+      } else {
+        // Fallback: try getActiveProfileClient (e.g. if row missing)
+        getActiveProfileClient(user.id)
+          .then(profileData => setProfile(profileData))
+          .catch(err => console.error('IntensiveSidebar: Error fetching profile:', err))
+      }
 
       // Get intensive checklist (source of truth for all tracking)
       const { data: checklist } = await supabase

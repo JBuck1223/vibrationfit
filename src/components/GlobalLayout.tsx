@@ -258,13 +258,19 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
   }
   
   // PUBLIC pages: Use Header + Footer with PageLayout (no sidebar)
+  // Auth pages: reduced top padding so content sits at top (design system spacing)
+  const isAuthPage = pathname?.startsWith('/auth')
+  const pageLayoutClass = isAuthPage
+    ? 'pt-4 pb-12 md:pt-6 md:pb-12 lg:pt-6 lg:pb-12'
+    : undefined
+
   return (
     <div className="min-h-screen bg-black text-white">
-      <Header />
-      <PageLayout>
+      {!isAuthPage && <Header />}
+      <PageLayout className={pageLayoutClass}>
         {children}
       </PageLayout>
-      <Footer />
+      {!isAuthPage && <Footer />}
     </div>
   )
 }
