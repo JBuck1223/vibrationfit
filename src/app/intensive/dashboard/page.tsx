@@ -312,8 +312,8 @@ function IntensiveDashboardContent() {
         const inProgress = assessments?.find((a: { status: string }) => a.status === 'in_progress')
         const completedList = assessments?.filter((a: { status: string }) => a.status === 'completed') || []
         const sortedCompleted = [...completedList].sort((a, b) => {
-          const tA = (a as { completed_at?: string }).completed_at ? new Date((a as { completed_at: string }).completed_at).getTime() : 0
-          const tB = (b as { completed_at?: string }).completed_at ? new Date((b as { completed_at: string }).completed_at).getTime() : 0
+          const tA = (a as unknown as { completed_at?: string }).completed_at ? new Date((a as unknown as { completed_at: string }).completed_at).getTime() : 0
+          const tB = (b as unknown as { completed_at?: string }).completed_at ? new Date((b as unknown as { completed_at: string }).completed_at).getTime() : 0
           return tB - tA
         })
         setAssessmentInProgressId(inProgress?.id ?? null)
