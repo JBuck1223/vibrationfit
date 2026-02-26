@@ -2,6 +2,15 @@
 
 import { useState, useEffect } from 'react'
 
+export const TIER_TYPES = {
+  ANNUAL: 'vision_pro_annual',
+  MONTHLY_28DAY: 'vision_pro_28day',
+  HOUSEHOLD_ANNUAL: 'vision_pro_household_annual',
+  HOUSEHOLD_28DAY: 'vision_pro_household_28day',
+  INTENSIVE: 'intensive',
+  INTENSIVE_HOUSEHOLD: 'intensive_household',
+} as const
+
 export type MembershipTier = {
   id: string
   name: string

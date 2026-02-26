@@ -5,7 +5,7 @@ import { Card, Button, Input } from '@/lib/design-system/components'
 import { Check, Tag, ShieldCheck, ChevronDown, ChevronUp } from 'lucide-react'
 import type { CheckoutProduct } from '@/lib/checkout/products'
 import { formatTokensShort } from '@/lib/billing/config'
-import { useMembershipTiers } from '@/hooks/useMembershipTiers'
+import { useMembershipTiers, TIER_TYPES } from '@/hooks/useMembershipTiers'
 
 interface OrderSummaryProps {
   product: CheckoutProduct
@@ -80,13 +80,13 @@ export default function OrderSummary({
 
   const { tokenGrant, storageQuota } = useMembershipTiers()
 
-  const intensiveTierType = planType === 'solo' ? 'intensive_trial' : 'household_intensive'
+  const intensiveTierType = planType === 'solo' ? TIER_TYPES.INTENSIVE : TIER_TYPES.INTENSIVE_HOUSEHOLD
   const intensiveTokens = tokenGrant(intensiveTierType)
   const intensiveStorageGb = storageQuota(intensiveTierType) || 100
 
   const membershipTierType = continuity === 'annual'
-    ? (planType === 'solo' ? 'annual' : 'household_annual')
-    : (planType === 'solo' ? 'monthly_28day' : 'household_28day')
+    ? (planType === 'solo' ? TIER_TYPES.ANNUAL : TIER_TYPES.HOUSEHOLD_ANNUAL)
+    : (planType === 'solo' ? TIER_TYPES.MONTHLY_28DAY : TIER_TYPES.HOUSEHOLD_28DAY)
   const membershipTokenGrant = tokenGrant(membershipTierType)
   const membershipStorageGb = storageQuota(membershipTierType)
   const membershipTokenLabel =

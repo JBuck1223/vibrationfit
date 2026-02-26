@@ -1,5 +1,5 @@
 import { formatPrice, formatTokensShort } from '@/lib/billing/config'
-import type { MembershipTier } from '@/hooks/useMembershipTiers'
+import { TIER_TYPES, type MembershipTier } from '@/hooks/useMembershipTiers'
 
 export type CheckoutMode = 'payment' | 'subscription'
 
@@ -28,32 +28,28 @@ function getIntensiveProduct(
 ): CheckoutProduct {
   const isSolo = planType === 'solo'
 
-  const priceMap: Record<string, { envKey: string }> = {
-    'solo-full': { envKey: 'STRIPE_PRICE_INTENSIVE_FULL' },
-    'solo-2pay': { envKey: 'STRIPE_PRICE_INTENSIVE_2PAY' },
-    'solo-3pay': { envKey: 'STRIPE_PRICE_INTENSIVE_3PAY' },
-    'household-full': { envKey: 'STRIPE_PRICE_HOUSEHOLD_INTENSIVE_FULL' },
-    'household-2pay': { envKey: 'STRIPE_PRICE_HOUSEHOLD_INTENSIVE_2PAY' },
-    'household-3pay': { envKey: 'STRIPE_PRICE_HOUSEHOLD_INTENSIVE_3PAY' },
+  const priceMap: Record<string, { amount: number; envKey: string }> = {
+    'solo-full': { amount: 49900, envKey: 'STRIPE_PRICE_INTENSIVE_FULL' },
+    'solo-2pay': { amount: 24950, envKey: 'STRIPE_PRICE_INTENSIVE_2PAY' },
+    'solo-3pay': { amount: 16633, envKey: 'STRIPE_PRICE_INTENSIVE_3PAY' },
+    'household-full': { amount: 69900, envKey: 'STRIPE_PRICE_HOUSEHOLD_INTENSIVE_FULL' },
+    'household-2pay': { amount: 34950, envKey: 'STRIPE_PRICE_HOUSEHOLD_INTENSIVE_2PAY' },
+    'household-3pay': { amount: 23300, envKey: 'STRIPE_PRICE_HOUSEHOLD_INTENSIVE_3PAY' },
   }
 
-  const intensiveTier = tierLookup(tiers, isSolo ? 'intensive_trial' : 'household_intensive')
+  const intensiveTier = tierLookup(tiers, isSolo ? TIER_TYPES.INTENSIVE : TIER_TYPES.INTENSIVE_HOUSEHOLD)
   const intensiveTokens = intensiveTier
     ? (intensiveTier.monthly_token_grant || intensiveTier.annual_token_grant)
     : 0
-  const intensivePrice = intensiveTier?.price_monthly ?? 0
-  const perInstallment = paymentPlan === '2pay' ? Math.round(intensivePrice / 2)
-    : paymentPlan === '3pay' ? Math.round(intensivePrice / 3)
-    : intensivePrice
 
   const continuityTierType = continuityPlan === 'annual'
-    ? (isSolo ? 'annual' : 'household_annual')
-    : (isSolo ? 'monthly_28day' : 'household_28day')
+    ? (isSolo ? TIER_TYPES.ANNUAL : TIER_TYPES.HOUSEHOLD_ANNUAL)
+    : (isSolo ? TIER_TYPES.MONTHLY_28DAY : TIER_TYPES.HOUSEHOLD_28DAY)
   const continuityTier = tierLookup(tiers, continuityTierType)
   const continuityFeatures = (continuityTier?.features as string[] | undefined) || []
 
   const priceKey = `${planType}-${paymentPlan}`
-  const { envKey } = priceMap[priceKey]
+  const { amount, envKey } = priceMap[priceKey]
 
   const planLabel = paymentPlan === 'full'
     ? 'One-time payment'
@@ -66,7 +62,7 @@ function getIntensiveProduct(
     name: 'Vision Activation Intensive',
     description: `${isSolo ? 'Solo' : 'Household'} - ${planLabel}`,
     mode: paymentPlan === 'full' ? 'payment' : 'subscription',
-    amount: perInstallment,
+    amount,
     currency: 'usd',
     features: [
       'Full Activation Intensive experience',

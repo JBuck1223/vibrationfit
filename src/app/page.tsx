@@ -14,7 +14,7 @@ import {
 import { toast } from 'sonner'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { formatTokensShort } from '@/lib/billing/config'
-import { useMembershipTiers } from '@/hooks/useMembershipTiers'
+import { useMembershipTiers, TIER_TYPES } from '@/hooks/useMembershipTiers'
 import {
   Stack,
   Inline,
@@ -322,15 +322,15 @@ export default function HomePage() {
 
   const getVisionProTokensForPeriod = (period: 'annual' | '28day') => {
     const tierType = period === 'annual'
-      ? (planType === 'solo' ? 'annual' : 'household_annual')
-      : (planType === 'solo' ? 'monthly_28day' : 'household_28day')
+      ? (planType === 'solo' ? TIER_TYPES.ANNUAL : TIER_TYPES.HOUSEHOLD_ANNUAL)
+      : (planType === 'solo' ? TIER_TYPES.MONTHLY_28DAY : TIER_TYPES.HOUSEHOLD_28DAY)
     return tokenGrant(tierType)
   }
 
   const getVisionProStorageForPeriod = (period: 'annual' | '28day') => {
     const tierType = period === 'annual'
-      ? (planType === 'solo' ? 'annual' : 'household_annual')
-      : (planType === 'solo' ? 'monthly_28day' : 'household_28day')
+      ? (planType === 'solo' ? TIER_TYPES.ANNUAL : TIER_TYPES.HOUSEHOLD_ANNUAL)
+      : (planType === 'solo' ? TIER_TYPES.MONTHLY_28DAY : TIER_TYPES.HOUSEHOLD_28DAY)
     return storageQuota(tierType)
   }
 
@@ -1711,11 +1711,11 @@ export default function HomePage() {
                             </li>
                             <li className="flex items-center gap-2">
                               <Check className="w-4 h-4 text-[#39FF14] flex-shrink-0" />
-                              <span>{formatTokensShort(tokenGrant(planType === 'solo' ? 'intensive_trial' : 'household_intensive'))} VIVA Tokens</span>
+                              <span>{formatTokensShort(tokenGrant(planType === 'solo' ? TIER_TYPES.INTENSIVE : TIER_TYPES.INTENSIVE_HOUSEHOLD))} VIVA Tokens</span>
                             </li>
                             <li className="flex items-center gap-2">
                               <Check className="w-4 h-4 text-[#39FF14] flex-shrink-0" />
-                              <span>{storageQuota(planType === 'solo' ? 'monthly_28day' : 'household_28day')} GB Storage</span>
+                              <span>{storageQuota(planType === 'solo' ? TIER_TYPES.MONTHLY_28DAY : TIER_TYPES.HOUSEHOLD_28DAY)} GB Storage</span>
                             </li>
                           </ul>
                         </div>
@@ -1882,7 +1882,7 @@ export default function HomePage() {
                       <div className="space-y-3 mb-8">
                         {[
                               'Platform access: same as Annual',
-                              `Capacity: ${formatTokensShort(getVisionProTokensForPeriod('28day'))} VIVA tokens per 28 days + ${getVisionProStorageForPeriod('28day')}GB storage; unused tokens roll over (max ${byType(planType === 'solo' ? 'monthly_28day' : 'household_28day')?.rollover_max_cycles ?? 3} cycles)`,
+                              `Capacity: ${formatTokensShort(getVisionProTokensForPeriod('28day'))} VIVA tokens per 28 days + ${getVisionProStorageForPeriod('28day')}GB storage; unused tokens roll over (max ${byType(planType === 'solo' ? TIER_TYPES.MONTHLY_28DAY : TIER_TYPES.HOUSEHOLD_28DAY)?.rollover_max_cycles ?? 3} cycles)`,
                               'Standard support queue',
                               '16‑week satisfaction guarantee from today',
                               'Flexible — cancel any cycle',
@@ -1985,7 +1985,7 @@ export default function HomePage() {
                           <div className="space-y-3 mb-8">
                             {[
                               'Platform access: same as Annual',
-                              `Capacity: ${formatTokensShort(getVisionProTokensForPeriod('28day'))} VIVA tokens per 28 days + ${getVisionProStorageForPeriod('28day')}GB storage; unused tokens roll over (max ${byType(planType === 'solo' ? 'monthly_28day' : 'household_28day')?.rollover_max_cycles ?? 3} cycles)`,
+                              `Capacity: ${formatTokensShort(getVisionProTokensForPeriod('28day'))} VIVA tokens per 28 days + ${getVisionProStorageForPeriod('28day')}GB storage; unused tokens roll over (max ${byType(planType === 'solo' ? TIER_TYPES.MONTHLY_28DAY : TIER_TYPES.HOUSEHOLD_28DAY)?.rollover_max_cycles ?? 3} cycles)`,
                               'Standard support queue',
                               '16‑week satisfaction guarantee from today',
                               'Flexible — cancel any cycle',
@@ -2777,11 +2777,11 @@ export default function HomePage() {
                     <div className="space-y-4 text-sm text-neutral-300 leading-relaxed">
                       <div>
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Annual token & storage capacity</p>
-                        <p>{formatTokensShort(tokenGrant('annual'))} VIVA tokens/year + {storageQuota('annual')}GB storage; tokens reset at renewal.</p>
+                        <p>{formatTokensShort(tokenGrant(TIER_TYPES.ANNUAL))} VIVA tokens/year + {storageQuota(TIER_TYPES.ANNUAL)}GB storage; tokens reset at renewal.</p>
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">28-Day token & storage capacity</p>
-                        <p>{formatTokensShort(tokenGrant('monthly_28day'))} VIVA tokens per 28 days + {storageQuota('monthly_28day')}GB storage; unused tokens roll over (max {byType('monthly_28day')?.rollover_max_cycles ?? 3} cycles).</p>
+                        <p>{formatTokensShort(tokenGrant(TIER_TYPES.MONTHLY_28DAY))} VIVA tokens per 28 days + {storageQuota(TIER_TYPES.MONTHLY_28DAY)}GB storage; unused tokens roll over (max {byType(TIER_TYPES.MONTHLY_28DAY)?.rollover_max_cycles ?? 3} cycles).</p>
                       </div>
                       <p>Both plans can add-on extra tokens or storage for a fee.</p>
                     </div>

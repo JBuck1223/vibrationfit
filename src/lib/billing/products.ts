@@ -105,7 +105,7 @@ async function resolveIntensiveProduct(
     : paymentPlan === '2pay' ? '2 payments'
     : '3 payments'
 
-  const intensiveTierType = isSolo ? 'intensive_trial' : 'household_intensive'
+  const intensiveTierType = isSolo ? 'intensive' : 'intensive_household'
   const { data: intensiveTier } = await sb
     .from('membership_tiers')
     .select('monthly_token_grant, annual_token_grant, storage_quota_gb, features')
@@ -115,8 +115,8 @@ async function resolveIntensiveProduct(
   const intensiveTokens = intensiveTier?.monthly_token_grant || intensiveTier?.annual_token_grant || 0
 
   const continuityTierType = continuityPlan === 'annual'
-    ? (isSolo ? 'annual' : 'household_annual')
-    : (isSolo ? 'monthly_28day' : 'household_28day')
+    ? (isSolo ? 'vision_pro_annual' : 'vision_pro_household_annual')
+    : (isSolo ? 'vision_pro_28day' : 'vision_pro_household_28day')
   const { data: continuityTier } = await sb
     .from('membership_tiers')
     .select('features')
