@@ -130,6 +130,9 @@ export default function SetupPasswordPage() {
           </div>
         ) : (
           <>
+            <div className="flex md:hidden w-16 h-16 bg-primary-500/20 rounded-full items-center justify-center mx-auto mb-6">
+              <Lock className="w-8 h-8 text-primary-500" />
+            </div>
             {userEmail && (
               <div className="rounded-xl border-2 border-[#333] bg-black/40 px-4 py-3 mb-6 text-center">
                 <p className="text-xs md:text-sm text-neutral-400">
