@@ -102,37 +102,19 @@ export default function SetupPasswordPage() {
   }
 
   return (
-    <Container size="sm" className="pt-4 pb-12 md:py-16">
+    <Container size="sm" className="pb-12 md:pb-16">
       <div className="text-center mb-8">
         <div className="hidden md:flex w-16 h-16 bg-primary-500/20 rounded-full items-center justify-center mx-auto mb-6">
           <Lock className="w-8 h-8 text-primary-500" />
         </div>
-        <h1 className="text-4xl font-bold mb-3">
+        <h1 className="text-2xl md:text-4xl font-bold mb-3">
           Welcome to Vibration Fit
         </h1>
-        {isIntensive ? (
-          <>
-            {userEmail && (
-              <p className="text-lg text-neutral-300 mb-2">
-                We&apos;ve created your account with {userEmail}.
-              </p>
-            )}
-            <p className="text-lg text-neutral-300">
-              Create your password to start your 72‑Hour Activation.
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="text-lg text-neutral-300">
-              Set your password to secure your account
-            </p>
-            {userEmail && (
-              <p className="text-sm text-neutral-500 mt-2">
-                Setting password for {userEmail}
-              </p>
-            )}
-          </>
-        )}
+        <p className="text-base md:text-lg text-neutral-300">
+          {isIntensive
+            ? 'Create your password to start your 72‑Hour Activation.'
+            : 'Set your password to secure your account'}
+        </p>
       </div>
 
       <Card variant="elevated" className="max-w-md mx-auto">
@@ -141,13 +123,21 @@ export default function SetupPasswordPage() {
             <div className="w-16 h-16 bg-primary-500 rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="w-8 h-8 text-white" />
             </div>
-            <h2 className="text-2xl font-bold mb-2">Password Set</h2>
-            <p className="text-neutral-300">
+            <h2 className="text-xl md:text-2xl font-bold mb-2">Password Set</h2>
+            <p className="text-sm md:text-base text-neutral-300">
               Redirecting to your {isIntensive ? 'intensive' : 'dashboard'}...
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSetupPassword} className="space-y-6">
+          <>
+            {userEmail && (
+              <div className="rounded-xl border-2 border-[#333] bg-black/40 px-4 py-3 mb-6 text-center">
+                <p className="text-xs md:text-sm text-neutral-400">
+                  Setting password for <span className="text-primary-500 font-medium">{userEmail}</span>
+                </p>
+              </div>
+            )}
+            <form onSubmit={handleSetupPassword} className="space-y-6">
             <div className="relative">
               <Input
                 id="password"
@@ -164,7 +154,7 @@ export default function SetupPasswordPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-10 text-neutral-400 hover:text-neutral-300 transition-colors"
+                className="absolute right-3 top-[3.375rem] -translate-y-1/2 text-neutral-400 hover:text-neutral-300 transition-colors"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -186,7 +176,7 @@ export default function SetupPasswordPage() {
               <button
                 type="button"
                 onClick={() => setShowConfirm(!showConfirm)}
-                className="absolute right-3 top-10 text-neutral-400 hover:text-neutral-300 transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 translate-y-1 text-neutral-400 hover:text-neutral-300 transition-colors"
                 aria-label={showConfirm ? 'Hide password' : 'Show password'}
               >
                 {showConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -194,7 +184,7 @@ export default function SetupPasswordPage() {
             </div>
 
             {error && (
-              <div className="bg-red-500/10 border-2 border-red-500 text-red-400 px-4 py-3 rounded-xl text-sm">
+              <div className="bg-red-500/10 border-2 border-red-500 text-red-400 px-4 py-3 rounded-xl text-xs md:text-sm">
                 {error}
               </div>
             )}
@@ -212,17 +202,18 @@ export default function SetupPasswordPage() {
             {isIntensive && (
               <div className="bg-primary-500/10 border-2 border-primary-500/30 px-4 py-3 rounded-xl flex items-start gap-3">
                 <Clock className="w-5 h-5 text-primary-500 mt-0.5 flex-shrink-0" />
-                <p className="text-primary-500 text-sm">
+                <p className="text-primary-500 text-xs md:text-sm">
                   Your 72-hour activation window begins when you start your intensive on the next page.
                 </p>
               </div>
             )}
           </form>
+          </>
         )}
       </Card>
 
       <div className="text-center mt-6">
-        <p className="text-sm text-neutral-400">
+        <p className="text-xs md:text-sm text-neutral-400">
           Need help? Contact{' '}
           <a href="mailto:support@vibrationfit.com" className="text-primary-500 hover:underline">
             support@vibrationfit.com
