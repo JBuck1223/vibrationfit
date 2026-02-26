@@ -1522,8 +1522,8 @@ export default function HomePage() {
                 <Text size="base" className="text-neutral-300 text-center w-full">
                   VIVA now walks you through this 4-Layer Architecture across all 12 life categories—so in 72 hours you finish "active" with your complete vision, AM/PM vision audios, vision board built, 1 journal entry logged, calibration call booked, and your My Activation Plan scheduled.
                 </Text>
-                <Button variant="primary" size="lg">
-                  Start the Activation Intensive
+                <Button variant="primary" size="lg" asChild>
+                  <a href="#pricing">Start the Activation Intensive</a>
                 </Button>
               </Stack>
             </div>
