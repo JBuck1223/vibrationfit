@@ -38,8 +38,13 @@ export async function GET(
       return NextResponse.json({ error: 'Cart expired' }, { status: 410 })
     }
 
-    // Resolve product details for each item so the frontend can display them
     const { resolveCheckoutProduct } = await import('@/lib/checkout/products')
+
+    const { data: tiers } = await supabase
+      .from('membership_tiers')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true })
 
     const resolvedItems = (cart.items as Array<Record<string, string>>).map((item) => {
       const product = resolveCheckoutProduct({
@@ -48,7 +53,7 @@ export async function GET(
         continuity: item.continuity,
         planType: item.plan_type,
         packKey: item.pack_key,
-      })
+      }, tiers || undefined)
       return {
         ...item,
         resolved: product

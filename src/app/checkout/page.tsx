@@ -9,6 +9,7 @@ import { Spinner } from '@/lib/design-system/components'
 import OrderSummary from '@/components/checkout/OrderSummary'
 import CheckoutForm, { type AccountDetails } from '@/components/checkout/CheckoutForm'
 import { resolveCheckoutProduct, type CheckoutProduct } from '@/lib/checkout/products'
+import { useMembershipTiers } from '@/hooks/useMembershipTiers'
 import { getVisitorId, getSessionId } from '@/lib/tracking/client'
 import { toast } from 'sonner'
 
@@ -19,6 +20,7 @@ function CheckoutContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [redirecting, setRedirecting] = useState(false)
+  const { tiers } = useMembershipTiers()
 
   const product = useMemo<CheckoutProduct | null>(() => {
     return resolveCheckoutProduct({
@@ -27,8 +29,8 @@ function CheckoutContent() {
       continuity: searchParams.get('continuity') || undefined,
       planType: searchParams.get('planType') || undefined,
       packKey: searchParams.get('packKey') || undefined,
-    })
-  }, [searchParams])
+    }, tiers)
+  }, [searchParams, tiers])
 
   // Auto-create a cart session and redirect to the cart-based checkout URL
   useEffect(() => {

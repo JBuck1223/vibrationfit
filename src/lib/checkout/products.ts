@@ -1,4 +1,5 @@
-import { PRICING, PLAN_METADATA, formatPrice, formatTokensShort } from '@/lib/billing/config'
+import { formatPrice, formatTokensShort } from '@/lib/billing/config'
+import type { MembershipTier } from '@/hooks/useMembershipTiers'
 
 export type CheckoutMode = 'payment' | 'subscription'
 
@@ -15,25 +16,44 @@ export type CheckoutProduct = {
   metadata: Record<string, string>
 }
 
-// Intensive checkout products keyed by plan + payment combination
+function tierLookup(tiers: MembershipTier[] | undefined, tierType: string) {
+  return tiers?.find(t => t.tier_type === tierType)
+}
+
 function getIntensiveProduct(
   paymentPlan: 'full' | '2pay' | '3pay',
   continuityPlan: 'annual' | '28day',
   planType: 'solo' | 'household',
+  tiers?: MembershipTier[],
 ): CheckoutProduct {
   const isSolo = planType === 'solo'
 
-  const priceMap: Record<string, { amount: number; envKey: string }> = {
-    'solo-full': { amount: PRICING.INTENSIVE, envKey: 'STRIPE_PRICE_INTENSIVE_FULL' },
-    'solo-2pay': { amount: PRICING.INTENSIVE_2PAY, envKey: 'STRIPE_PRICE_INTENSIVE_2PAY' },
-    'solo-3pay': { amount: PRICING.INTENSIVE_3PAY, envKey: 'STRIPE_PRICE_INTENSIVE_3PAY' },
-    'household-full': { amount: PRICING.HOUSEHOLD_INTENSIVE, envKey: 'STRIPE_PRICE_HOUSEHOLD_INTENSIVE_FULL' },
-    'household-2pay': { amount: Math.round(PRICING.HOUSEHOLD_INTENSIVE / 2), envKey: 'STRIPE_PRICE_HOUSEHOLD_INTENSIVE_2PAY' },
-    'household-3pay': { amount: Math.round(PRICING.HOUSEHOLD_INTENSIVE / 3), envKey: 'STRIPE_PRICE_HOUSEHOLD_INTENSIVE_3PAY' },
+  const priceMap: Record<string, { envKey: string }> = {
+    'solo-full': { envKey: 'STRIPE_PRICE_INTENSIVE_FULL' },
+    'solo-2pay': { envKey: 'STRIPE_PRICE_INTENSIVE_2PAY' },
+    'solo-3pay': { envKey: 'STRIPE_PRICE_INTENSIVE_3PAY' },
+    'household-full': { envKey: 'STRIPE_PRICE_HOUSEHOLD_INTENSIVE_FULL' },
+    'household-2pay': { envKey: 'STRIPE_PRICE_HOUSEHOLD_INTENSIVE_2PAY' },
+    'household-3pay': { envKey: 'STRIPE_PRICE_HOUSEHOLD_INTENSIVE_3PAY' },
   }
 
+  const intensiveTier = tierLookup(tiers, isSolo ? 'intensive_trial' : 'household_intensive')
+  const intensiveTokens = intensiveTier
+    ? (intensiveTier.monthly_token_grant || intensiveTier.annual_token_grant)
+    : 0
+  const intensivePrice = intensiveTier?.price_monthly ?? 0
+  const perInstallment = paymentPlan === '2pay' ? Math.round(intensivePrice / 2)
+    : paymentPlan === '3pay' ? Math.round(intensivePrice / 3)
+    : intensivePrice
+
+  const continuityTierType = continuityPlan === 'annual'
+    ? (isSolo ? 'annual' : 'household_annual')
+    : (isSolo ? 'monthly_28day' : 'household_28day')
+  const continuityTier = tierLookup(tiers, continuityTierType)
+  const continuityFeatures = (continuityTier?.features as string[] | undefined) || []
+
   const priceKey = `${planType}-${paymentPlan}`
-  const { amount, envKey } = priceMap[priceKey]
+  const { envKey } = priceMap[priceKey]
 
   const planLabel = paymentPlan === 'full'
     ? 'One-time payment'
@@ -41,22 +61,20 @@ function getIntensiveProduct(
       ? '2 payments'
       : '3 payments'
 
-  const continuityMeta = continuityPlan === 'annual'
-    ? PLAN_METADATA.annual
-    : PLAN_METADATA.monthly_28day
-
   return {
     key: `intensive-${planType}-${paymentPlan}`,
     name: 'Vision Activation Intensive',
     description: `${isSolo ? 'Solo' : 'Household'} - ${planLabel}`,
     mode: paymentPlan === 'full' ? 'payment' : 'subscription',
-    amount,
+    amount: perInstallment,
     currency: 'usd',
     features: [
       'Full Activation Intensive experience',
-      `${formatTokensShort(isSolo ? 5_000_000 : 7_500_000)} VIVA tokens included`,
+      intensiveTokens > 0
+        ? `${formatTokensShort(intensiveTokens)} VIVA tokens included`
+        : 'VIVA tokens included',
       `Vision Pro ${continuityPlan === 'annual' ? 'Annual' : '28-Day'} starts billing Day 56`,
-      ...continuityMeta.features.slice(0, 5),
+      ...continuityFeatures.slice(0, 5),
     ],
     redirectAfterSuccess: '/intensive/dashboard',
     getPriceEnvKey: () => process.env[envKey],
@@ -114,13 +132,16 @@ export const ADDON_PRICING = {
   STORAGE_GRANT_PER_UNIT: 100,
 } as const
 
-export function resolveCheckoutProduct(params: {
-  product: string
-  plan?: string
-  continuity?: string
-  planType?: string
-  packKey?: string
-}): CheckoutProduct | null {
+export function resolveCheckoutProduct(
+  params: {
+    product: string
+    plan?: string
+    continuity?: string
+    planType?: string
+    packKey?: string
+  },
+  tiers?: MembershipTier[],
+): CheckoutProduct | null {
   const { product, plan, continuity, planType, packKey } = params
 
   if (product === 'intensive') {
@@ -128,6 +149,7 @@ export function resolveCheckoutProduct(params: {
       (plan as 'full' | '2pay' | '3pay') || 'full',
       (continuity as 'annual' | '28day') || 'annual',
       (planType as 'solo' | 'household') || 'solo',
+      tiers,
     )
   }
 

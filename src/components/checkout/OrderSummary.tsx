@@ -4,11 +4,8 @@ import { useState } from 'react'
 import { Card, Button, Input } from '@/lib/design-system/components'
 import { Check, Tag, ShieldCheck, ChevronDown, ChevronUp } from 'lucide-react'
 import type { CheckoutProduct } from '@/lib/checkout/products'
-import {
-  TOKEN_GRANTS,
-  STORAGE_QUOTAS,
-  formatTokensShort,
-} from '@/lib/billing/config'
+import { formatTokensShort } from '@/lib/billing/config'
+import { useMembershipTiers } from '@/hooks/useMembershipTiers'
 
 interface OrderSummaryProps {
   product: CheckoutProduct
@@ -81,26 +78,17 @@ export default function OrderSummary({
     paymentPlan === 'full' ? 'One-time payment' : paymentPlan === '2pay' ? '2 payments' : '3 payments'
   const planTypeLabel = planType === 'solo' ? 'Solo' : 'Household'
 
-  const intensiveTokens = planType === 'solo' ? TOKEN_GRANTS.INTENSIVE_TRIAL : TOKEN_GRANTS.HOUSEHOLD_INTENSIVE
-  // Intensive trial storage during 8 weeks (config TRIAL); membership storage differs after Day 56
-  const intensiveStorageGb = STORAGE_QUOTAS.TRIAL
+  const { tokenGrant, storageQuota } = useMembershipTiers()
 
-  const membershipTokenGrant =
-    continuity === 'annual'
-      ? planType === 'solo'
-        ? TOKEN_GRANTS.ANNUAL
-        : TOKEN_GRANTS.HOUSEHOLD_ANNUAL
-      : planType === 'solo'
-        ? TOKEN_GRANTS.MONTHLY_28DAY
-        : TOKEN_GRANTS.HOUSEHOLD_28DAY
-  const membershipStorageGb =
-    continuity === 'annual'
-      ? planType === 'solo'
-        ? STORAGE_QUOTAS.ANNUAL
-        : STORAGE_QUOTAS.HOUSEHOLD_ANNUAL
-      : planType === 'solo'
-        ? STORAGE_QUOTAS.MONTHLY_28DAY
-        : STORAGE_QUOTAS.HOUSEHOLD_28DAY
+  const intensiveTierType = planType === 'solo' ? 'intensive_trial' : 'household_intensive'
+  const intensiveTokens = tokenGrant(intensiveTierType)
+  const intensiveStorageGb = storageQuota(intensiveTierType) || 100
+
+  const membershipTierType = continuity === 'annual'
+    ? (planType === 'solo' ? 'annual' : 'household_annual')
+    : (planType === 'solo' ? 'monthly_28day' : 'household_28day')
+  const membershipTokenGrant = tokenGrant(membershipTierType)
+  const membershipStorageGb = storageQuota(membershipTierType)
   const membershipTokenLabel =
     continuity === 'annual'
       ? `${formatTokensShort(membershipTokenGrant)} VIVA tokens per year`

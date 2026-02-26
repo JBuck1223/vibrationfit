@@ -89,6 +89,16 @@ export async function POST(request: NextRequest) {
       { onConflict: 'user_id' }
     )
 
+    // Sync name and phone to user_accounts (trigger may have missed full_name split)
+    const nameParts = (name || '').trim().split(' ')
+    const firstName = nameParts[0] || null
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : null
+    await supabaseAdmin.from('user_accounts').update({
+      first_name: firstName,
+      last_name: lastName,
+      phone: phone || null,
+    }).eq('id', userId)
+
     // ------------------------------------------------------------------
     // 2. Create or find the Stripe customer
     // ------------------------------------------------------------------

@@ -2,22 +2,33 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Container, Stack, PageHero, Button, Spinner } from '@/lib/design-system/components'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, Zap, CreditCard } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { Suspense } from 'react'
+import IntensiveOverview from '@/components/billing/IntensiveOverview'
 import PlanOverview from '@/components/billing/PlanOverview'
 import AddOnsList from '@/components/billing/AddOnsList'
 import PaymentMethodsList from '@/components/billing/PaymentMethodsList'
 import InvoiceHistory from '@/components/billing/InvoiceHistory'
 import AddCardForm from '@/components/billing/AddCardForm'
-import ChangePlanModal from '@/components/billing/ChangePlanModal'
+
+function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
+  return (
+    <div className="flex items-center gap-2 pt-2">
+      <Icon className="w-4 h-4 text-neutral-500" />
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-neutral-500">{title}</h2>
+      <div className="flex-1 border-t border-neutral-800" />
+    </div>
+  )
+}
 
 function BillingContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
   const [membership, setMembership] = useState<any>(null)
+  const [intensive, setIntensive] = useState<any>(null)
   const [paymentMethods, setPaymentMethods] = useState<any[]>([])
   const [invoices, setInvoices] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -25,24 +36,26 @@ function BillingContent() {
   const [isCanceling, setIsCanceling] = useState(false)
   const [isResuming, setIsResuming] = useState(false)
   const [showAddCard, setShowAddCard] = useState(false)
-  const [showChangePlan, setShowChangePlan] = useState(false)
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
     try {
-      const [membershipRes, pmRes, invoicesRes] = await Promise.all([
+      const [membershipRes, intensiveRes, pmRes, invoicesRes] = await Promise.all([
         fetch('/api/billing/membership'),
+        fetch('/api/billing/intensive'),
         fetch('/api/billing/payment-methods'),
         fetch('/api/billing/invoices'),
       ])
 
-      const [membershipData, pmData, invoicesData] = await Promise.all([
+      const [membershipData, intensiveData, pmData, invoicesData] = await Promise.all([
         membershipRes.json(),
+        intensiveRes.json(),
         pmRes.json(),
         invoicesRes.json(),
       ])
 
       setMembership(membershipData)
+      setIntensive(intensiveData.intensive || null)
       setPaymentMethods(pmData.paymentMethods || [])
       setInvoices(invoicesData.invoices || [])
     } catch {
@@ -65,7 +78,7 @@ function BillingContent() {
   }, [searchParams, fetchAll, router])
 
   const handleCancel = async () => {
-    if (!confirm('Are you sure you want to cancel your subscription? You will retain access until the end of your billing period.')) return
+    if (!confirm('Are you sure you want to cancel your membership? You will retain access until the end of your billing period.')) return
 
     setIsCanceling(true)
     try {
@@ -74,7 +87,7 @@ function BillingContent() {
         const data = await res.json()
         throw new Error(data.error || 'Failed to cancel')
       }
-      toast.success('Subscription set to cancel at end of billing period')
+      toast.success('Membership set to cancel at end of billing period')
       fetchAll()
     } catch (err: any) {
       toast.error(err.message)
@@ -91,7 +104,7 @@ function BillingContent() {
         const data = await res.json()
         throw new Error(data.error || 'Failed to resume')
       }
-      toast.success('Subscription resumed')
+      toast.success('Membership resumed')
       fetchAll()
     } catch (err: any) {
       toast.error(err.message)
@@ -115,7 +128,7 @@ function BillingContent() {
       <Stack gap="lg">
         <PageHero
           title="Billing & Subscription"
-          subtitle="Manage your plan, payment methods, and billing history"
+          subtitle="Manage your purchases, membership, and billing history"
         >
           <div className="flex justify-center w-full">
             <Button variant="outline" onClick={() => router.push('/account')}>
@@ -125,18 +138,24 @@ function BillingContent() {
           </div>
         </PageHero>
 
-        {/* Plan Overview */}
+        {intensive && (
+          <>
+            <SectionHeader icon={Zap} title="Vision Activation Intensive" />
+            <IntensiveOverview intensive={intensive} />
+          </>
+        )}
+
+        <SectionHeader icon={CreditCard} title="Vision Pro Membership" />
         <PlanOverview
           subscription={membership?.subscription || null}
           upcomingInvoice={membership?.upcomingInvoice || null}
           onCancel={handleCancel}
           onResume={handleResume}
-          onChangePlan={() => setShowChangePlan(true)}
+          onRefresh={fetchAll}
           isCanceling={isCanceling}
           isResuming={isResuming}
         />
 
-        {/* Two-column layout for add-ons and payment methods */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <AddOnsList
             addons={membership?.addons || []}
@@ -149,23 +168,13 @@ function BillingContent() {
           />
         </div>
 
-        {/* Add Card Form (inline, expands when open) */}
         <AddCardForm
           isOpen={showAddCard}
           onClose={() => setShowAddCard(false)}
           onSuccess={fetchAll}
         />
 
-        {/* Invoice History */}
         <InvoiceHistory invoices={invoices} />
-
-        {/* Change Plan Modal */}
-        <ChangePlanModal
-          isOpen={showChangePlan}
-          onClose={() => setShowChangePlan(false)}
-          currentTierId={membership?.subscription?.tier?.id || null}
-          onPlanChanged={fetchAll}
-        />
       </Stack>
     </Container>
   )

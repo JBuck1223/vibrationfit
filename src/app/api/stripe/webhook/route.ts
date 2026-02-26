@@ -379,6 +379,10 @@ export async function POST(request: NextRequest) {
           .single()
 
           console.log('✅ Subscription created:', subscriptionId)
+
+          await supabaseAdmin.from('user_accounts').update({
+            membership_tier_id: tier.id,
+          }).eq('id', userId)
           
           // Grant tokens based on Stripe price ID (dynamic tier lookup)
           const priceId = subscription.items.data[0].price.id
@@ -768,6 +772,10 @@ export async function POST(request: NextRequest) {
                 .select()
                 .single()
 
+                await supabaseAdmin.from('user_accounts').update({
+                  membership_tier_id: tier.id,
+                }).eq('id', userId)
+
                 const membershipOrderItem =
                   (await createOrderItemByPriceId({
                     orderId: order.id,
@@ -1061,6 +1069,10 @@ export async function POST(request: NextRequest) {
 
             console.log('✅ Vision Pro subscription record created:', visionProSubId)
             customerSubscriptionId = newSubscription?.id || null
+
+            await supabaseAdmin.from('user_accounts').update({
+              membership_tier_id: tier.id,
+            }).eq('id', userId)
             
             // Create household if plan_type is 'household'
             const planType = session.metadata?.plan_type

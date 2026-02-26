@@ -1,5 +1,5 @@
 import { createClient as createServerClient } from '@/lib/supabase/server'
-import { formatPrice, formatTokensShort, PLAN_METADATA } from '@/lib/billing/config'
+import { formatPrice, formatTokensShort } from '@/lib/billing/config'
 
 export type CheckoutMode = 'payment' | 'subscription'
 
@@ -105,9 +105,25 @@ async function resolveIntensiveProduct(
     : paymentPlan === '2pay' ? '2 payments'
     : '3 payments'
 
-  const continuityMeta = continuityPlan === 'annual'
-    ? PLAN_METADATA.annual
-    : PLAN_METADATA.monthly_28day
+  const intensiveTierType = isSolo ? 'intensive_trial' : 'household_intensive'
+  const { data: intensiveTier } = await sb
+    .from('membership_tiers')
+    .select('monthly_token_grant, annual_token_grant, storage_quota_gb, features')
+    .eq('tier_type', intensiveTierType)
+    .eq('is_active', true)
+    .maybeSingle()
+  const intensiveTokens = intensiveTier?.monthly_token_grant || intensiveTier?.annual_token_grant || 0
+
+  const continuityTierType = continuityPlan === 'annual'
+    ? (isSolo ? 'annual' : 'household_annual')
+    : (isSolo ? 'monthly_28day' : 'household_28day')
+  const { data: continuityTier } = await sb
+    .from('membership_tiers')
+    .select('features')
+    .eq('tier_type', continuityTierType)
+    .eq('is_active', true)
+    .maybeSingle()
+  const continuityFeatures = (continuityTier?.features as string[] | null) || []
 
   const stripePriceEnvKey = (price.metadata as any)?.stripe_price_env || null
   const stripePriceId = price.stripe_price_id || (stripePriceEnvKey ? process.env[stripePriceEnvKey] : null) || null
@@ -121,9 +137,9 @@ async function resolveIntensiveProduct(
     currency: price.currency || 'usd',
     features: [
       'Full Activation Intensive experience',
-      `${formatTokensShort(isSolo ? 5_000_000 : 7_500_000)} VIVA tokens included`,
+      `${formatTokensShort(intensiveTokens)} VIVA tokens included`,
       `Vision Pro ${continuityPlan === 'annual' ? 'Annual' : '28-Day'} starts billing Day 56`,
-      ...continuityMeta.features.slice(0, 5),
+      ...continuityFeatures.slice(0, 5),
     ],
     redirectAfterSuccess: '/intensive/start',
     stripePriceId,
