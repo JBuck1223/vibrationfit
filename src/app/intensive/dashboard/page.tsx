@@ -45,6 +45,7 @@ import {
   Stack,
   PageHero
 } from '@/lib/design-system/components'
+import { fetchAssessments } from '@/lib/services/assessmentService'
 
 interface IntensivePurchase {
   id: string
@@ -116,6 +117,8 @@ interface IntensiveStep {
   viewHref: string // URL to view completed step
   locked: boolean
   canSkip?: boolean // Some steps can be skipped
+  actionLabel?: string // e.g. "Start Assessment", "Continue Assessment"
+  viewLabel?: string // e.g. "View Results"
 }
 
 function IntensiveDashboardContent() {
@@ -131,6 +134,8 @@ function IntensiveDashboardContent() {
   const [hoursRemaining, setHoursRemaining] = useState<number>(72)
   const [settingsComplete, setSettingsComplete] = useState(false) // Step 1 from user_accounts
   const [hasVoiceRecordings, setHasVoiceRecordings] = useState(false) // Step 8: actual user voice recordings
+  const [assessmentInProgressId, setAssessmentInProgressId] = useState<string | null>(null)
+  const [assessmentLatestCompletedId, setAssessmentLatestCompletedId] = useState<string | null>(null)
   const toastShownRef = useRef(false) // Prevent duplicate toasts
 
   useEffect(() => {
@@ -300,6 +305,22 @@ function IntensiveDashboardContent() {
       }
 
       setChecklist(checklistData)
+
+      // Fetch assessment state for conditional step labels (Start / Continue / View Results)
+      try {
+        const { assessments } = await fetchAssessments()
+        const inProgress = assessments?.find((a: { status: string }) => a.status === 'in_progress')
+        const completedList = assessments?.filter((a: { status: string }) => a.status === 'completed') || []
+        const sortedCompleted = [...completedList].sort((a, b) => {
+          const tA = (a as { completed_at?: string }).completed_at ? new Date((a as { completed_at: string }).completed_at).getTime() : 0
+          const tB = (b as { completed_at?: string }).completed_at ? new Date((b as { completed_at: string }).completed_at).getTime() : 0
+          return tB - tA
+        })
+        setAssessmentInProgressId(inProgress?.id ?? null)
+        setAssessmentLatestCompletedId(sortedCompleted[0]?.id ?? null)
+      } catch (e) {
+        console.error('Error fetching assessments for dashboard:', e)
+      }
 
       // Get intensive purchase for reference
       const { data: intensiveData } = await supabase
@@ -500,9 +521,17 @@ function IntensiveDashboardContent() {
         phase: 'Foundation',
         completed: checklist.assessment_completed,
         completedAt: checklist.assessment_completed_at,
-        href: '/assessment/new',
-        viewHref: '/assessment/new',
-        locked: !checklist.profile_completed
+        href: checklist.assessment_completed && assessmentLatestCompletedId
+          ? `/assessment/${assessmentLatestCompletedId}/results`
+          : assessmentInProgressId
+            ? `/assessment/${assessmentInProgressId}/in-progress`
+            : '/assessment/new',
+        viewHref: assessmentLatestCompletedId
+          ? `/assessment/${assessmentLatestCompletedId}/results`
+          : '/assessment/new',
+        locked: !checklist.profile_completed,
+        actionLabel: assessmentInProgressId ? 'Continue Assessment' : 'Start Assessment',
+        viewLabel: 'View Results'
       },
       
       // Phase 3: Vision Creation (Steps 5-6)
@@ -819,7 +848,7 @@ function IntensiveDashboardContent() {
                       onClick={() => router.push(nextStep.href)}
                       className="w-full justify-center"
                     >
-                      Continue
+                      {nextStep.actionLabel ?? 'Continue'}
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
                   </div>
@@ -831,7 +860,7 @@ function IntensiveDashboardContent() {
                       size="sm"
                       onClick={() => router.push(nextStep.href)}
                     >
-                      Continue
+                      {nextStep.actionLabel ?? 'Continue'}
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
                   </div>
@@ -951,7 +980,7 @@ function IntensiveDashboardContent() {
                                     className="w-full justify-center"
                                   >
                                     <Eye className="w-4 h-4 mr-1" />
-                                    View
+                                    {step.viewLabel ?? 'View'}
                                   </Button>
                                 )}
                               </div>
@@ -971,7 +1000,7 @@ function IntensiveDashboardContent() {
                                   size="sm"
                                   onClick={() => router.push(step.href)}
                                 >
-                                  Start
+                                  {step.actionLabel ?? 'Start'}
                                   <ArrowRight className="w-4 h-4 ml-2" />
                                 </Button>
                               )}
@@ -983,7 +1012,7 @@ function IntensiveDashboardContent() {
                                     onClick={() => router.push(step.viewHref)}
                                   >
                                     <Eye className="w-4 h-4 mr-1" />
-                                    View
+                                    {step.viewLabel ?? 'View'}
                                   </Button>
                                   <CheckCircle className="w-6 h-6 text-primary-500 flex-shrink-0" />
                                 </div>

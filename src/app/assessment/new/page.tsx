@@ -16,6 +16,7 @@ import {
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowRight, Target, BarChart, TrendingUp } from 'lucide-react'
 import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
+import { fetchAssessments } from '@/lib/services/assessmentService'
 
 const ASSESSMENT_INTRO_VIDEO =
   'https://media.vibrationfit.com/site-assets/video/intensive/04-assessment-1080p.mp4'
@@ -30,27 +31,39 @@ export default function AssessmentNewPage() {
   const [isIntensiveCompleted, setIsIntensiveCompleted] = useState(false)
   const [intensiveCompletedAt, setIntensiveCompletedAt] = useState<string | null>(null)
   const [checkingIntensive, setCheckingIntensive] = useState(true)
+  const [assessmentInProgressId, setAssessmentInProgressId] = useState<string | null>(null)
+  const [assessmentLatestCompletedId, setAssessmentLatestCompletedId] = useState<string | null>(null)
 
   useEffect(() => {
-    checkIntensiveCompletion()
+    checkIntensiveAndAssessments()
   }, [])
 
-  const checkIntensiveCompletion = async () => {
+  const checkIntensiveAndAssessments = async () => {
     try {
-      // Use centralized intensive check (source of truth: intensive_checklist.status)
       const intensiveData = await getActiveIntensiveClient()
+      const { assessments } = await fetchAssessments()
 
       if (intensiveData) {
         setIsIntensiveMode(true)
-        
-        // Check if assessment step is completed (data is already in intensiveData)
         if (intensiveData.assessment_completed) {
           setIsIntensiveCompleted(true)
           setIntensiveCompletedAt(intensiveData.assessment_completed_at || intensiveData.created_at)
         }
       }
+
+      if (assessments?.length) {
+        const inProgress = assessments.find((a) => a.status === 'in_progress')
+        const completedList = assessments.filter((a) => a.status === 'completed') || []
+        const sortedCompleted = [...completedList].sort((a, b) => {
+          const tA = a.completed_at ? new Date(a.completed_at).getTime() : 0
+          const tB = b.completed_at ? new Date(b.completed_at).getTime() : 0
+          return tB - tA
+        })
+        setAssessmentInProgressId(inProgress?.id ?? null)
+        setAssessmentLatestCompletedId(sortedCompleted[0]?.id ?? null)
+      }
     } catch (error) {
-      console.error('Error checking intensive completion:', error)
+      console.error('Error checking intensive/assessments:', error)
     } finally {
       setCheckingIntensive(false)
     }
@@ -144,26 +157,48 @@ export default function AssessmentNewPage() {
           {/* Action Button */}
           <div className="flex flex-col gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
             {isIntensiveMode ? (
-              // Intensive mode: Start Assessment button
-              <Button 
-                variant="primary" 
-                size="sm" 
-                onClick={handleCreateAssessment}
-                disabled={isCreating}
-                className="w-full md:w-auto"
-              >
-                {isCreating ? (
-                  <>
-                    <Spinner variant="primary" size="sm" className="mr-2" />
-                    Starting Assessment...
-                  </>
-                ) : (
-                  <>
-                    <ArrowRight className="mr-2 h-4 w-4" />
-                    Start Assessment
-                  </>
-                )}
-              </Button>
+              // Intensive: Start / Continue / View Results based on state
+              assessmentLatestCompletedId ? (
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={() => router.push(`/assessment/${assessmentLatestCompletedId}/results`)}
+                  className="w-full md:w-auto"
+                >
+                  <ArrowRight className="mr-2 h-4 w-4" />
+                  View Results
+                </Button>
+              ) : assessmentInProgressId ? (
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={() => router.push(`/assessment/${assessmentInProgressId}/in-progress`)}
+                  className="w-full md:w-auto"
+                >
+                  <ArrowRight className="mr-2 h-4 w-4" />
+                  Continue Assessment
+                </Button>
+              ) : (
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={handleCreateAssessment}
+                  disabled={isCreating}
+                  className="w-full md:w-auto"
+                >
+                  {isCreating ? (
+                    <>
+                      <Spinner variant="primary" size="sm" className="mr-2" />
+                      Starting Assessment...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowRight className="mr-2 h-4 w-4" />
+                      Start Assessment
+                    </>
+                  )}
+                </Button>
+              )
             ) : (
               // Non-intensive mode: Assessment Hub button
               <Button 
