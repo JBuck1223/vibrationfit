@@ -66,9 +66,9 @@ export const PageHero = React.forwardRef<HTMLDivElement, PageHeroProps>(
                 </div>
               )}
 
-              {/* Custom Children (video, buttons, etc.) */}
+              {/* Custom Children (video, buttons, etc.) - consistent mobile button width site-wide */}
               {children && (
-                <div className="flex flex-col items-center space-y-4 md:space-y-4 lg:space-y-6">
+                <div className="flex flex-col items-stretch md:items-center space-y-4 md:space-y-4 lg:space-y-6 w-full max-w-2xl mx-auto [&_button]:w-full [&_button]:md:w-auto">
                   {children}
                 </div>
               )}

@@ -738,8 +738,11 @@ export function SidebarLayout({ children, className, isAdmin = false }: SidebarL
       ) : (
         <UserSidebar className={className} />
       )}
-      <main className={cn('flex-1 overflow-auto pb-16 md:pb-0', className)}>
-        {children}
+      <main className={cn('flex-1 overflow-auto min-h-0', className)}>
+        {/* Mobile safe area: reserve space above bottom nav so content is never hidden (pb-24 = 96px) */}
+        <div className="w-full pb-24 md:pb-0">
+          {children}
+        </div>
       </main>
       <MobileBottomNav />
     </div>

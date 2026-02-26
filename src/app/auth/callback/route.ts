@@ -26,10 +26,17 @@ export async function GET(request: Request) {
     console.log('Auth callback: PKCE code flow')
     await supabase.auth.exchangeCodeForSession(code)
     
+    const intensiveParam = requestUrl.searchParams.get('intensive') === 'true'
+
+    if (intensiveParam) {
+      console.log('Auth callback: intensive=true, redirecting to setup-password')
+      return NextResponse.redirect(`${origin}/auth/setup-password?intensive=true`)
+    }
+
     // Check if user has active intensive
     const { data: { user } } = await supabase.auth.getUser()
     console.log('Auth callback: User:', user?.email)
-    
+
     if (user) {
       // Use admin client to bypass RLS
       const adminClient = getAdminClient()
@@ -39,9 +46,9 @@ export async function GET(request: Request) {
         .eq('user_id', user.id)
         .in('status', ['pending', 'in_progress'])
         .maybeSingle()
-      
+
       console.log('Auth callback: Intensive checklist:', intensiveChecklist, 'Error:', checklistError)
-      
+
       if (intensiveChecklist) {
         // If intensive hasn't been started yet, go to start page
         if (!intensiveChecklist.started_at) {
@@ -53,7 +60,7 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}/intensive/dashboard`)
       }
     }
-    
+
     console.log('Auth callback: No intensive, redirecting to /dashboard')
     return NextResponse.redirect(`${origin}/dashboard`)
   }

@@ -101,7 +101,7 @@ function CheckoutContent() {
     todayCents % 100 === 0 ? (todayCents / 100).toString() : (todayCents / 100).toFixed(2)
   const submitLabel =
     product && isIntensive
-      ? `Pay $${todayDollars} & Start the Activation Intensive`
+      ? `Pay $${todayDollars} and Start the Activation Intensive`
       : product
         ? `Pay $${todayDollars}`
         : undefined

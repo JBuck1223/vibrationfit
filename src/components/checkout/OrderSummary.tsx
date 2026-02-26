@@ -157,7 +157,7 @@ export default function OrderSummary({
             <li className="flex items-start gap-2 text-sm">
               <Check className="w-4 h-4 text-[#39FF14] mt-0.5 flex-shrink-0" />
               <span className="text-neutral-300">
-                Life Vision Builder (12 Categories), Vision Board, Vision Audio, Immersion Tracks, journal
+                Life Vision Builder, Vision Board, Vision Audio, Journal, MAP (My Activation Plan)
               </span>
             </li>
             <li className="flex items-start gap-2 text-sm">

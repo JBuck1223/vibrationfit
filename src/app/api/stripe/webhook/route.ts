@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
+import { randomBytes } from 'crypto'
 import { stripe, STRIPE_CONFIG } from '@/lib/stripe/config'
 import { getActivePackByKey } from '@/lib/billing/packs'
 import { createClient as createServerClient } from '@/lib/supabase/server'
@@ -1634,6 +1635,219 @@ export async function POST(request: NextRequest) {
         
         // Update customer info if needed
         console.log('✅ Customer updated:', customer.id)
+        break
+      }
+
+      // ========================================================================
+      // PAYMENT INTENT SUCCEEDED (custom checkout - create user/order after payment)
+      // ========================================================================
+      case 'payment_intent.succeeded': {
+        const pi = event.data.object as Stripe.PaymentIntent
+        const meta = (pi.metadata || {}) as Record<string, string>
+        const product = meta.product
+        const purchaseType = meta.purchase_type
+        const productType = meta.product_type
+
+        if (!product || (!purchaseType && !productType)) {
+          break
+        }
+        const isIntensive = product === 'intensive' || productType === 'combined_intensive_continuity'
+
+        const { data: existingOrder } = await supabaseAdmin
+          .from('orders')
+          .select('id')
+          .eq('stripe_payment_intent_id', pi.id)
+          .maybeSingle()
+        if (existingOrder) {
+          break
+        }
+
+        const email = meta.email
+        const name = meta.name || ''
+        const phone = meta.phone || ''
+        const plan = meta.plan || 'full'
+        const planType = (meta.plan_type as 'solo' | 'household') || 'solo'
+        const promoCode = meta.promo_code || null
+        const referralSource = meta.referral_source || null
+        const campaignName = meta.campaign_name || null
+        const cartSessionId = meta.cart_session_id || null
+        const visitorId = meta.visitor_id || null
+        const sessionId = meta.session_id || null
+
+        if (!email) {
+          console.error('payment_intent.succeeded: missing email in metadata')
+          break
+        }
+
+        let userId: string
+        const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers()
+        const existingUser = existingUsers?.users?.find((u: { email?: string }) => u.email === email)
+        if (existingUser) {
+          userId = existingUser.id
+        } else {
+          const { data: newUser, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+            email,
+            password: randomBytes(32).toString('hex'),
+            email_confirm: true,
+            user_metadata: { full_name: name, phone },
+          })
+          if (createErr || !newUser?.user) {
+            console.error('payment_intent.succeeded: create user failed', createErr)
+            break
+          }
+          userId = newUser.user.id
+        }
+
+        await supabaseAdmin.from('user_profiles').upsert(
+          { user_id: userId, full_name: name, phone: phone || null },
+          { onConflict: 'user_id' }
+        )
+
+        const customerId = typeof pi.customer === 'string' ? pi.customer : (pi.customer as Stripe.Customer)?.id
+        if (customerId) {
+          await stripe.customers.update(customerId, { metadata: { supabase_user_id: userId } }).catch(() => {})
+        }
+
+        let customerRowId: string | null = null
+        const { data: existingCust } = await supabaseAdmin.from('customers').select('id').eq('user_id', userId).maybeSingle()
+        if (existingCust) {
+          customerRowId = existingCust.id
+        } else {
+          const { data: newCust } = await supabaseAdmin
+            .from('customers')
+            .insert({
+              user_id: userId,
+              visitor_id: visitorId || null,
+              stripe_customer_id: customerId || '',
+              status: 'customer',
+              first_purchase_at: new Date().toISOString(),
+              last_purchase_at: new Date().toISOString(),
+              last_active_at: new Date().toISOString(),
+            })
+            .select('id')
+            .single()
+          customerRowId = newCust?.id || null
+        }
+
+        const totalAmount = pi.amount_received || 0
+        const { data: order, error: orderErr } = await supabaseAdmin
+          .from('orders')
+          .insert({
+            user_id: userId,
+            stripe_payment_intent_id: pi.id,
+            total_amount: totalAmount,
+            currency: pi.currency || 'usd',
+            status: 'paid',
+            paid_at: new Date().toISOString(),
+            promo_code: promoCode,
+            referral_source: referralSource,
+            campaign_name: campaignName,
+            metadata: { product_key: product, plan, plan_type: planType, visitor_id: visitorId || null, session_id: sessionId || null },
+            ...(customerRowId && { customer_id: customerRowId }),
+            ...(cartSessionId && { cart_session_id: cartSessionId }),
+          })
+          .select('id')
+          .single()
+
+        if (orderErr || !order) {
+          console.error('payment_intent.succeeded: order insert failed', orderErr)
+          break
+        }
+
+        const productKey = product === 'intensive' ? (planType === 'household' ? 'intensive_household' : 'intensive') : product
+        const activationDeadline = new Date()
+        activationDeadline.setHours(activationDeadline.getHours() + 72)
+
+        const intensiveOrderItem = await createOrderItemByProductKey({
+          orderId: order.id,
+          productKey,
+          amount: totalAmount,
+          currency: pi.currency || 'usd',
+          isSubscription: false,
+          extraFields: {
+            stripe_payment_intent_id: pi.id,
+            payment_plan: plan,
+            installments_total: plan === 'full' ? 1 : plan === '2pay' ? 2 : 3,
+            installments_paid: 1,
+            completion_status: 'pending',
+            activation_deadline: activationDeadline.toISOString(),
+            promo_code: promoCode,
+            referral_source: referralSource,
+            campaign_name: campaignName,
+          },
+          metadata: { ...meta },
+          supabaseAdmin,
+        })
+
+        if (intensiveOrderItem && isIntensive) {
+          await supabaseAdmin.from('intensive_checklist').insert({
+            intensive_id: intensiveOrderItem.id,
+            user_id: userId,
+          })
+          const { error: grantErr } = await supabaseAdmin.rpc('grant_trial_tokens', {
+            p_user_id: userId,
+            p_intensive_id: intensiveOrderItem.id,
+          })
+          if (grantErr) console.error('payment_intent.succeeded: grant_trial_tokens failed', grantErr)
+        }
+
+        if (promoCode) {
+          const { validateCouponCode, calculateDiscount, recordRedemption } = await import('@/lib/billing/coupons')
+          const couponResult = await validateCouponCode(promoCode, {
+            userId,
+            productKey: product,
+            purchaseAmount: totalAmount,
+          })
+          if (couponResult.valid && couponResult.coupon && couponResult.codeRow) {
+            const discountAmount = calculateDiscount(couponResult.coupon, totalAmount)
+            await recordRedemption({
+              couponId: couponResult.coupon.id,
+              couponCodeId: couponResult.codeRow.id,
+              userId,
+              discountAmount,
+              originalAmount: totalAmount,
+              productKey: product,
+            }).catch((err) => console.error('recordRedemption failed', err))
+          }
+        }
+
+        if (visitorId) {
+          await supabaseAdmin.from('visitors').update({ user_id: userId }).eq('id', visitorId).catch(() => {})
+        }
+        if (sessionId) {
+          await supabaseAdmin.from('sessions').update({ converted: true, conversion_type: 'purchase' }).eq('id', sessionId).catch(() => {})
+        }
+        if (cartSessionId) {
+          await supabaseAdmin.from('cart_sessions').update({ status: 'checkout_started', user_id: userId, email }).eq('id', cartSessionId).catch(() => {})
+        }
+
+        await supabaseAdmin.from('journey_events').insert({
+          visitor_id: visitorId || null,
+          session_id: sessionId || null,
+          user_id: userId,
+          cart_session_id: cartSessionId || null,
+          event_type: 'purchase_completed',
+          event_data: { order_id: order.id, product_key: product, amount: totalAmount, promo_code: promoCode },
+        }).catch(() => {})
+
+        if (customerRowId) {
+          const { data: custData } = await supabaseAdmin.from('customers').select('total_orders, total_spent').eq('id', customerRowId).single()
+          await supabaseAdmin
+            .from('customers')
+            .update({
+              total_orders: (custData?.total_orders || 0) + 1,
+              total_spent: (custData?.total_spent || 0) + totalAmount,
+              last_purchase_at: new Date().toISOString(),
+              last_active_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', customerRowId)
+            .catch(() => {})
+        }
+
+        if (isIntensive && intensiveOrderItem) {
+          triggerEvent('intensive.purchased', { userId, orderId: order.id, intensiveId: intensiveOrderItem.id, paymentPlan: plan }).catch(() => {})
+        }
         break
       }
 

@@ -85,6 +85,14 @@ export default function CartCheckoutPage() {
     if (!cart?.items?.[0]?.resolved) return null
     const item = cart.items[0]
     const r = item.resolved!
+    const isIntensive = r.key?.startsWith('intensive-')
+    const metadata: Record<string, string> = {}
+    if (isIntensive) {
+      if (item.plan) metadata.intensive_payment_plan = item.plan
+      if (item.continuity) metadata.continuity_plan = item.continuity
+      if (item.plan_type) metadata.plan_type = item.plan_type
+      metadata.purchase_type = 'intensive'
+    }
     return {
       key: r.key,
       name: r.name,
@@ -95,9 +103,20 @@ export default function CartCheckoutPage() {
       features: r.features,
       redirectAfterSuccess: '/intensive/start',
       getPriceEnvKey: () => undefined,
-      metadata: {},
+      metadata,
     }
   }, [cart])
+
+  const { submitLabel, submitLabelShort } = useMemo(() => {
+    if (!product) return { submitLabel: 'Complete Purchase', submitLabelShort: undefined }
+    const todayCents = Math.max(0, product.amount - (promoDiscount?.amountOff || 0))
+    const todayDollars = todayCents % 100 === 0 ? (todayCents / 100).toString() : (todayCents / 100).toFixed(2)
+    const isIntensive = product.key?.startsWith('intensive-')
+    return {
+      submitLabel: isIntensive ? `Pay $${todayDollars} and Start the Activation Intensive` : `Pay $${todayDollars}`,
+      submitLabelShort: `Pay $${todayDollars}`,
+    }
+  }, [product, promoDiscount?.amountOff])
 
   async function validatePromo() {
     if (!promoCode.trim() || !product) return
@@ -264,7 +283,8 @@ export default function CartCheckoutPage() {
               <CheckoutForm
                 onSubmit={handleFormSubmit}
                 isProcessing={isProcessing}
-                submitLabel={`Pay $${((product.amount - (promoDiscount?.amountOff || 0)) / 100).toFixed(product.amount % 100 === 0 ? 0 : 2)}`}
+                submitLabel={submitLabel}
+                submitLabelShort={submitLabelShort}
               />
             </Card>
           </div>

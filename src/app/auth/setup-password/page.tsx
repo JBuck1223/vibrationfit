@@ -108,18 +108,30 @@ export default function SetupPasswordPage() {
           <Lock className="w-8 h-8 text-primary-500" />
         </div>
         <h1 className="text-4xl font-bold mb-3">
-          {isIntensive ? 'Welcome to Your Intensive' : 'Welcome to Vibration Fit'}
+          Welcome to Vibration Fit
         </h1>
-        <p className="text-lg text-neutral-300">
-          {isIntensive 
-            ? 'Secure your account to access your Vision Activation Intensive'
-            : 'Set your password to secure your account'
-          }
-        </p>
-        {userEmail && (
-          <p className="text-sm text-neutral-500 mt-2">
-            Setting password for {userEmail}
-          </p>
+        {isIntensive ? (
+          <>
+            {userEmail && (
+              <p className="text-lg text-neutral-300 mb-2">
+                We&apos;ve created your account with {userEmail}.
+              </p>
+            )}
+            <p className="text-lg text-neutral-300">
+              Create your password to start your 72‑Hour Activation.
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="text-lg text-neutral-300">
+              Set your password to secure your account
+            </p>
+            {userEmail && (
+              <p className="text-sm text-neutral-500 mt-2">
+                Setting password for {userEmail}
+              </p>
+            )}
+          </>
         )}
       </div>
 
