@@ -1,52 +1,15 @@
--- Comprehensive fix: find ALL FK constraints referencing auth.users(id)
--- that have NO ACTION (the default, which blocks deletion), and convert
--- them to ON DELETE SET NULL.
---
--- This replaces the earlier partial fix (20260226130000) by catching
--- every constraint dynamically via pg_constraint instead of listing
--- them by hand.
+-- Fix: video_session_participants has CHECK (user_id IS NOT NULL OR email IS NOT NULL)
+-- which conflicts with ON DELETE SET NULL when participant has no email.
+-- Change to CASCADE -- a participant row without a user is meaningless.
 
-DO $$
-DECLARE
-  r RECORD;
-  fixed INT := 0;
-BEGIN
-  FOR r IN
-    SELECT
-      c.conrelid::regclass::text AS table_name,
-      c.conname                  AS constraint_name,
-      a.attname                  AS column_name
-    FROM pg_constraint c
-    JOIN pg_attribute a
-      ON a.attnum = ANY(c.conkey) AND a.attrelid = c.conrelid
-    WHERE c.contype    = 'f'                          -- foreign keys only
-      AND c.confrelid  = 'auth.users'::regclass       -- pointing at auth.users
-      AND c.confdeltype = 'a'                          -- 'a' = NO ACTION (default / restrict)
-  LOOP
-    RAISE NOTICE 'Fixing %.% (constraint %)', r.table_name, r.column_name, r.constraint_name;
-    EXECUTE format(
-      'ALTER TABLE %s DROP CONSTRAINT %I', r.table_name, r.constraint_name
-    );
-    EXECUTE format(
-      'ALTER TABLE %s ADD CONSTRAINT %I FOREIGN KEY (%I) REFERENCES auth.users(id) ON DELETE SET NULL',
-      r.table_name, r.constraint_name, r.column_name
-    );
-    fixed := fixed + 1;
-  END LOOP;
-
-  RAISE NOTICE 'Done. Fixed % FK constraint(s).', fixed;
-END $$;
-
--- Fix video_session_participants: SET NULL on user_id conflicts with the
--- CHECK (user_id IS NOT NULL OR email IS NOT NULL) when the participant
--- has no email. Delete the rows instead.
 ALTER TABLE public.video_session_participants
   DROP CONSTRAINT IF EXISTS video_session_participants_user_id_fkey;
+
 ALTER TABLE public.video_session_participants
   ADD CONSTRAINT video_session_participants_user_id_fkey
     FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
--- Runtime safety net: a callable function that cleans up before deleteUser().
+-- Update prepare_user_for_deletion to also handle this edge case at runtime
 CREATE OR REPLACE FUNCTION public.prepare_user_for_deletion(p_user_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql

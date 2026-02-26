@@ -1784,11 +1784,6 @@ export async function POST(request: NextRequest) {
             intensive_id: intensiveOrderItem.id,
             user_id: userId,
           })
-          const { error: grantErr } = await supabaseAdmin.rpc('grant_trial_tokens', {
-            p_user_id: userId,
-            p_intensive_id: intensiveOrderItem.id,
-          })
-          if (grantErr) console.error('payment_intent.succeeded: grant_trial_tokens failed', grantErr)
         }
 
         if (promoCode) {
@@ -1808,6 +1803,154 @@ export async function POST(request: NextRequest) {
               originalAmount: totalAmount,
               productKey: product,
             }).catch((err) => console.error('recordRedemption failed', err))
+          }
+        }
+
+        // Create Vision Pro subscription with 56-day trial (mirrors checkout.session.completed logic)
+        let subscriptionCreated = false
+        if (isIntensive && intensiveOrderItem) {
+          const continuityPlan = meta.continuity || 'annual'
+          const continuityPriceId = continuityPlan === 'annual'
+            ? process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL
+            : process.env.NEXT_PUBLIC_STRIPE_PRICE_28DAY
+
+          if (continuityPriceId) {
+            try {
+              const customerId = typeof pi.customer === 'string'
+                ? pi.customer
+                : (pi.customer as Stripe.Customer)?.id
+                  || (await stripe.customers.create({
+                       email: email ?? undefined,
+                       metadata: { supabase_user_id: userId },
+                     }).then(c => c.id))
+
+              const tierType = continuityPlan === 'annual' ? 'vision_pro_annual' : 'vision_pro_28day'
+              const { data: tier } = await supabase
+                .from('membership_tiers')
+                .select('id')
+                .eq('tier_type', tierType)
+                .single()
+
+              if (tier && customerId) {
+                const visionProSubscription = await stripe.subscriptions.create({
+                  customer: customerId,
+                  items: [{ price: continuityPriceId, quantity: 1 }],
+                  trial_period_days: 56,
+                  metadata: {
+                    product_type: 'vision_pro_continuity',
+                    tier_type: tierType,
+                    intensive_payment_plan: plan,
+                    continuity_plan: continuityPlan,
+                    intensive_order_item_id: intensiveOrderItem.id,
+                    billing_starts_day: '56',
+                  },
+                })
+
+                console.log('Vision Pro subscription created:', visionProSubscription.id)
+
+                const { data: newSubscription } = await supabase.from('customer_subscriptions').insert({
+                  user_id: userId,
+                  membership_tier_id: tier.id,
+                  stripe_customer_id: customerId,
+                  stripe_subscription_id: visionProSubscription.id,
+                  stripe_price_id: continuityPriceId,
+                  status: 'trialing' as any,
+                  current_period_start: new Date((visionProSubscription as any).current_period_start * 1000).toISOString(),
+                  current_period_end: new Date((visionProSubscription as any).current_period_end * 1000).toISOString(),
+                  trial_start: new Date().toISOString(),
+                  trial_end: new Date(Date.now() + (56 * 24 * 60 * 60 * 1000)).toISOString(),
+                  order_id: order.id,
+                  order_item_id: intensiveOrderItem.id,
+                })
+                .select()
+                .single()
+
+                await supabaseAdmin.from('user_accounts').update({
+                  membership_tier_id: tier.id,
+                }).eq('id', userId)
+
+                const membershipOrderItem =
+                  (await createOrderItemByPriceId({
+                    orderId: order.id,
+                    stripePriceId: continuityPriceId,
+                    amount: 0,
+                    currency: pi.currency || 'usd',
+                    isSubscription: true,
+                    subscriptionId: newSubscription?.id || null,
+                    metadata: { trial_days: 56, billing_starts_day: 56 },
+                    supabaseAdmin,
+                  })) ||
+                  (await createOrderItemByProductKey({
+                    orderId: order.id,
+                    productKey: tierType,
+                    amount: 0,
+                    currency: pi.currency || 'usd',
+                    isSubscription: true,
+                    subscriptionId: newSubscription?.id || null,
+                    metadata: { trial_days: 56, billing_starts_day: 56 },
+                    supabaseAdmin,
+                  }))
+
+                if (membershipOrderItem?.id && newSubscription?.id) {
+                  await supabaseAdmin
+                    .from('customer_subscriptions')
+                    .update({ order_item_id: membershipOrderItem.id })
+                    .eq('id', newSubscription.id)
+                }
+
+                subscriptionCreated = true
+
+                const { error: grantError } = await supabase.rpc('grant_trial_tokens', {
+                  p_user_id: userId,
+                  p_intensive_id: intensiveOrderItem.id,
+                })
+                if (grantError) {
+                  console.error('Failed to grant intensive trial tokens:', grantError)
+                }
+
+                // Create household if plan type is 'household'
+                if (planType === 'household') {
+                  try {
+                    const { data: household, error: householdError } = await supabaseAdmin
+                      .from('households')
+                      .insert({
+                        admin_user_id: userId,
+                        name: `${email?.split('@')[0] || 'My'}'s Household`,
+                        max_members: 2,
+                        shared_tokens_enabled: true,
+                      })
+                      .select()
+                      .single()
+
+                    if (!householdError && household) {
+                      await supabaseAdmin.from('user_profiles').upsert(
+                        { user_id: userId, household_id: household.id, is_household_admin: true },
+                        { onConflict: 'user_id' }
+                      )
+                      await supabaseAdmin.from('household_members').insert({
+                        household_id: household.id,
+                        user_id: userId,
+                        role: 'admin',
+                        joined_at: new Date().toISOString(),
+                      })
+                    }
+                  } catch (householdErr) {
+                    console.error('Household creation error:', householdErr)
+                  }
+                }
+              }
+            } catch (visionProError) {
+              console.error('Failed to create Vision Pro subscription:', visionProError)
+            }
+          }
+
+          // Fallback: grant trial tokens even if subscription creation was skipped
+          if (!subscriptionCreated) {
+            const { error: grantErr } = await supabaseAdmin.rpc('grant_trial_tokens', {
+              p_user_id: userId,
+              p_intensive_id: intensiveOrderItem.id,
+            })
+            if (grantErr) console.error('Fallback grant_trial_tokens failed:', grantErr)
           }
         }
 

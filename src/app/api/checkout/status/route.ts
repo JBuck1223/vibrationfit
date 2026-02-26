@@ -9,8 +9,8 @@ const supabaseAdmin = createClient(
 
 /**
  * Polled after payment success. Looks up the order by payment_intent_id or
- * order_id, then generates a magic link to establish the user's session and
- * redirect them to setup-password or the intensive start page.
+ * order_id, then generates a magic link token and redirects through the
+ * client-side /auth/verify page to establish the session in the browser.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -49,17 +49,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ready: false })
     }
 
-    const hasPassword = user?.user?.user_metadata?.has_password === true
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin
-
-    const redirectTo = hasPassword
-      ? `${appUrl}/auth/callback`
-      : `${appUrl}/auth/callback?setup_password=true`
 
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
       email,
-      options: { redirectTo },
     })
 
     if (linkError || !linkData?.properties?.action_link) {
@@ -67,9 +61,33 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ready: false }, { status: 500 })
     }
 
+    const actionUrl = new URL(linkData.properties.action_link)
+    const token = actionUrl.searchParams.get('token')
+    const type = actionUrl.searchParams.get('type')
+
+    if (!token || !type) {
+      console.error('Status: no token found in magic link')
+      return NextResponse.json({ ready: false }, { status: 500 })
+    }
+
+    // Check if user has an active intensive to pass the correct param
+    const { data: checklist } = await supabaseAdmin
+      .from('intensive_checklist')
+      .select('id')
+      .eq('user_id', order.user_id)
+      .in('status', ['pending', 'in_progress'])
+      .maybeSingle()
+
+    const verifyUrl = new URL('/auth/verify', appUrl)
+    verifyUrl.searchParams.set('token_hash', token)
+    verifyUrl.searchParams.set('type', type)
+    if (checklist) {
+      verifyUrl.searchParams.set('intensive', 'true')
+    }
+
     return NextResponse.json({
       ready: true,
-      redirectUrl: linkData.properties.action_link,
+      redirectUrl: verifyUrl.toString(),
     })
   } catch (err) {
     console.error('Checkout status error:', err)
