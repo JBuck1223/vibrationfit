@@ -88,13 +88,14 @@ export default function CheckoutForm({ onSubmit, isProcessing, submitLabel, subm
     const result = await onSubmit({ name, firstName: firstName.trim(), lastName: lastName.trim(), email, phone })
     if (!result) return // Parent handles error display
 
-    // Confirm payment with the returned clientSecret
+    const returnUrl = result.redirectUrl.startsWith('http')
+      ? result.redirectUrl
+      : `${window.location.origin}${result.redirectUrl}`
+
     const { error: confirmError } = await stripe.confirmPayment({
       elements,
       clientSecret: result.clientSecret,
-      confirmParams: {
-        return_url: `${window.location.origin}${result.redirectUrl}`,
-      },
+      confirmParams: { return_url: returnUrl },
       redirect: 'if_required',
     })
 
@@ -103,8 +104,7 @@ export default function CheckoutForm({ onSubmit, isProcessing, submitLabel, subm
       return
     }
 
-    // Redirect to set-password (or dashboard); session is established via link from API
-    window.location.href = result.redirectUrl
+    window.location.href = returnUrl
   }
 
   return (

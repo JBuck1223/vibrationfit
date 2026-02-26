@@ -328,6 +328,7 @@ export async function POST(request: NextRequest) {
         user_id: userId,
         customer_id: customerRowId,
         cart_session_id: cartSessionId || null,
+        stripe_payment_intent_id: paymentIntent?.id || null,
         total_amount: checkoutProduct.amount - discountAmount,
         currency: checkoutProduct.currency,
         status: 'pending',
@@ -443,25 +444,19 @@ export async function POST(request: NextRequest) {
     // ------------------------------------------------------------------
     // 9. Return to client
     // ------------------------------------------------------------------
-    let redirectUrl = checkoutProduct.redirectAfterSuccess
-    if (redirectToSetupPassword) {
-      const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-        type: 'magiclink',
-        email,
-        options: {
-          redirectTo: `${appUrl}/auth/callback?intensive=true`,
-        },
-      })
-      if (!linkError && linkData?.properties?.action_link) {
-        redirectUrl = linkData.properties.action_link
-      }
-    }
+    const orderId = order?.id || null
+    const piId = paymentIntent?.id || null
+    const redirectUrl = piId
+      ? `${appUrl}/checkout/success?payment_intent=${piId}`
+      : orderId
+        ? `${appUrl}/checkout/success?order_id=${orderId}`
+        : checkoutProduct.redirectAfterSuccess
 
     return NextResponse.json({
       clientSecret,
       userId,
       redirectUrl,
-      orderId: order?.id || null,
+      orderId,
     })
   } catch (error) {
     console.error('Create intent error:', error)

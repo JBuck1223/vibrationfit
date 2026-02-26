@@ -10,10 +10,11 @@ const MAX_ATTEMPTS = 40 // ~60 seconds
 export default function CheckoutSuccessPage() {
   const searchParams = useSearchParams()
   const paymentIntentId = searchParams.get('payment_intent')
+  const orderId = searchParams.get('order_id')
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!paymentIntentId || !paymentIntentId.startsWith('pi_')) {
+    if (!paymentIntentId && !orderId) {
       setError('Invalid checkout session')
       return
     }
@@ -28,9 +29,10 @@ export default function CheckoutSuccessPage() {
       attempts += 1
 
       try {
-        const res = await fetch(
-          `/api/checkout/status?payment_intent_id=${encodeURIComponent(paymentIntentId)}`
-        )
+        const qs = paymentIntentId
+          ? `payment_intent_id=${encodeURIComponent(paymentIntentId)}`
+          : `order_id=${encodeURIComponent(orderId!)}`
+        const res = await fetch(`/api/checkout/status?${qs}`)
         const data = await res.json()
 
         if (data.ready && data.redirectUrl) {
@@ -51,7 +53,7 @@ export default function CheckoutSuccessPage() {
     }
 
     poll()
-  }, [paymentIntentId])
+  }, [paymentIntentId, orderId])
 
   if (error) {
     return (

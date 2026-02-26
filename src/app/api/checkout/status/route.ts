@@ -8,21 +8,36 @@ const supabaseAdmin = createClient(
 )
 
 /**
- * Polled after payment success. When the payment_intent.succeeded webhook has
- * created the order and user, we return a magic link so the client can redirect.
+ * Polled after payment success. Looks up the order by payment_intent_id or
+ * order_id, then generates a magic link to establish the user's session and
+ * redirect them to setup-password or the intensive start page.
  */
 export async function GET(request: NextRequest) {
   try {
     const paymentIntentId = request.nextUrl.searchParams.get('payment_intent_id')
-    if (!paymentIntentId || !paymentIntentId.startsWith('pi_')) {
-      return NextResponse.json({ ready: false, error: 'Invalid payment_intent_id' }, { status: 400 })
+    const orderId = request.nextUrl.searchParams.get('order_id')
+
+    if (!paymentIntentId && !orderId) {
+      return NextResponse.json({ ready: false, error: 'Missing payment_intent_id or order_id' }, { status: 400 })
     }
 
-    const { data: order } = await supabaseAdmin
-      .from('orders')
-      .select('id, user_id')
-      .eq('stripe_payment_intent_id', paymentIntentId)
-      .maybeSingle()
+    let order: { id: string; user_id: string; status: string } | null = null
+
+    if (orderId) {
+      const { data } = await supabaseAdmin
+        .from('orders')
+        .select('id, user_id, status')
+        .eq('id', orderId)
+        .maybeSingle()
+      order = data
+    } else if (paymentIntentId) {
+      const { data } = await supabaseAdmin
+        .from('orders')
+        .select('id, user_id, status')
+        .eq('stripe_payment_intent_id', paymentIntentId)
+        .maybeSingle()
+      order = data
+    }
 
     if (!order?.user_id) {
       return NextResponse.json({ ready: false })
@@ -34,13 +49,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ready: false })
     }
 
+    const hasPassword = user?.user?.user_metadata?.has_password === true
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin
+
+    const redirectTo = hasPassword
+      ? `${appUrl}/auth/callback`
+      : `${appUrl}/auth/callback?setup_password=true`
+
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
       email,
-      options: {
-        redirectTo: `${appUrl}/auth/callback?intensive=true`,
-      },
+      options: { redirectTo },
     })
 
     if (linkError || !linkData?.properties?.action_link) {

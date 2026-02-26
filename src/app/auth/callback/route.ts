@@ -25,20 +25,34 @@ export async function GET(request: Request) {
   if (code) {
     console.log('Auth callback: PKCE code flow')
     await supabase.auth.exchangeCodeForSession(code)
-    
-    const intensiveParam = requestUrl.searchParams.get('intensive') === 'true'
 
-    if (intensiveParam) {
-      console.log('Auth callback: intensive=true, redirecting to setup-password')
-      return NextResponse.redirect(`${origin}/auth/setup-password?intensive=true`)
-    }
-
-    // Check if user has active intensive
     const { data: { user } } = await supabase.auth.getUser()
     console.log('Auth callback: User:', user?.email)
 
+    // Determine if user needs to set a password (check param OR user metadata)
+    const setupPasswordParam = requestUrl.searchParams.get('setup_password') === 'true'
+      || requestUrl.searchParams.get('intensive') === 'true'
+    const needsPassword = setupPasswordParam
+      || (user && user.user_metadata?.has_password !== true)
+
+    if (user && needsPassword) {
+      // Check if user has an active intensive to pass the correct param
+      const adminClient = getAdminClient()
+      const { data: checklist } = await adminClient
+        .from('intensive_checklist')
+        .select('id')
+        .eq('user_id', user.id)
+        .in('status', ['pending', 'in_progress'])
+        .maybeSingle()
+
+      const isIntensive = !!checklist
+      console.log('Auth callback: needs password, intensive=', isIntensive)
+      return NextResponse.redirect(
+        `${origin}/auth/setup-password${isIntensive ? '?intensive=true' : ''}`
+      )
+    }
+
     if (user) {
-      // Use admin client to bypass RLS
       const adminClient = getAdminClient()
       const { data: intensiveChecklist, error: checklistError } = await adminClient
         .from('intensive_checklist')
@@ -50,12 +64,10 @@ export async function GET(request: Request) {
       console.log('Auth callback: Intensive checklist:', intensiveChecklist, 'Error:', checklistError)
 
       if (intensiveChecklist) {
-        // If intensive hasn't been started yet, go to start page
         if (!intensiveChecklist.started_at) {
           console.log('Auth callback: Redirecting to /intensive/start (not started)')
           return NextResponse.redirect(`${origin}/intensive/start`)
         }
-        // Otherwise go to intensive dashboard
         console.log('Auth callback: Redirecting to /intensive/dashboard (already started)')
         return NextResponse.redirect(`${origin}/intensive/dashboard`)
       }
@@ -89,14 +101,26 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}/auth/login`)
     }
 
-    // Redirect based on intensive flag
-    if (intensive === 'true') {
-      return NextResponse.redirect(`${origin}/auth/setup-password`)
+    const setupPwd = intensive === 'true'
+      || requestUrl.searchParams.get('setup_password') === 'true'
+      || (data.user && data.user.user_metadata?.has_password !== true)
+
+    if (data.user && setupPwd) {
+      const adminClient = getAdminClient()
+      const { data: checklist } = await adminClient
+        .from('intensive_checklist')
+        .select('id')
+        .eq('user_id', data.user.id)
+        .in('status', ['pending', 'in_progress'])
+        .maybeSingle()
+      const isIntensive = !!checklist
+      console.log('Auth callback (magic link): needs password, intensive=', isIntensive)
+      return NextResponse.redirect(
+        `${origin}/auth/setup-password${isIntensive ? '?intensive=true' : ''}`
+      )
     }
 
-    // Check if user has active intensive (even if not from intensive flow)
     if (data.user) {
-      // Use admin client to bypass RLS
       const adminClient = getAdminClient()
       const { data: intensiveChecklist, error: checklistError } = await adminClient
         .from('intensive_checklist')
@@ -108,12 +132,10 @@ export async function GET(request: Request) {
       console.log('Auth callback (magic link): Intensive checklist:', intensiveChecklist, 'Error:', checklistError)
       
       if (intensiveChecklist) {
-        // If intensive hasn't been started yet, go to start page
         if (!intensiveChecklist.started_at) {
           console.log('Auth callback (magic link): Redirecting to /intensive/start')
           return NextResponse.redirect(`${origin}/intensive/start`)
         }
-        // Otherwise go to intensive dashboard
         console.log('Auth callback (magic link): Redirecting to /intensive/dashboard')
         return NextResponse.redirect(`${origin}/intensive/dashboard`)
       }

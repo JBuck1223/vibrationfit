@@ -12,42 +12,37 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { sendEmail } from '@/lib/email/aws-ses'
 import { sendSMS } from '@/lib/messaging/twilio'
 import { processSequenceSteps } from '@/lib/messaging/sequence-processor'
 
-// Secret key for manual cron job authentication (optional)
 const CRON_SECRET = process.env.CRON_SECRET
 
 async function processMessages(request: NextRequest) {
   try {
-    // Authenticate - Vercel cron, custom secret, or admin user
     const authHeader = request.headers.get('authorization')
     const cronSecret = request.headers.get('x-cron-secret')
-    const supabase = await createClient()
     
     let isAuthorized = false
     
-    // Check Vercel cron secret (automatically added by Vercel)
     if (authHeader === `Bearer ${process.env.CRON_SECRET}`) {
       isAuthorized = true
     }
     
-    // Check custom cron secret header
     if (CRON_SECRET && cronSecret === CRON_SECRET) {
       isAuthorized = true
     }
     
-    // In development, allow without auth for testing
     if (process.env.NODE_ENV === 'development') {
       isAuthorized = true
     }
     
-    // Check if user is admin (for manual triggers)
     if (!isAuthorized) {
-      const { data: { user } } = await supabase.auth.getUser()
+      const supabaseAuth = await createClient()
+      const { data: { user } } = await supabaseAuth.auth.getUser()
       if (user) {
-        const { data: account } = await supabase
+        const { data: account } = await supabaseAuth
           .from('user_accounts')
           .select('role')
           .eq('id', user.id)
@@ -63,7 +58,8 @@ async function processMessages(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get pending messages that are due
+    // Use admin client to bypass RLS -- the cron job has no user session
+    const supabase = createAdminClient()
     const now = new Date().toISOString()
     
     const { data: pendingMessages, error: fetchError } = await supabase
