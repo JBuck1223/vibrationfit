@@ -263,6 +263,66 @@ export default function AssessmentHub() {
           )}
         </PageHero>
 
+        {/* Intensive: single CTA - Start / Continue / View Results */}
+        {(isIntensiveMode || isIntensiveCompleted) && (
+          <Card variant="elevated" className="p-4 md:p-6">
+            <div className="flex flex-col items-center gap-3 md:gap-4 mb-4 md:mb-6 text-center">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-primary-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                <BarChart3 className="w-5 h-5 md:w-6 md:h-6 text-[#1F1F1F]" />
+              </div>
+              <div>
+                <h2 className="text-lg md:text-xl lg:text-2xl font-semibold mb-2">
+                  {incompleteAssessment
+                    ? 'Assessment In Progress'
+                    : sortedCompletedAssessments.length > 0
+                      ? 'Your Assessment Results'
+                      : 'Vibration Assessment'}
+                </h2>
+                <p className="text-sm text-neutral-400 max-w-2xl mx-auto">
+                  {incompleteAssessment
+                    ? 'Pick up where you left off and complete your assessment.'
+                    : sortedCompletedAssessments.length > 0
+                      ? 'Review your vibration scores and category breakdown.'
+                      : 'Discover your current vibration score and insights.'}
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-center">
+              {incompleteAssessment ? (
+                <Button 
+                  variant="primary" 
+                  size="md"
+                  onClick={handleContinueAssessment}
+                  className="w-full sm:w-auto"
+                >
+                  <PlayCircle className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+                  Continue Assessment
+                </Button>
+              ) : sortedCompletedAssessments.length > 0 ? (
+                <Button 
+                  variant="primary" 
+                  size="md"
+                  onClick={() => handleViewResults(sortedCompletedAssessments[0].id)}
+                  className="w-full sm:w-auto"
+                >
+                  <Eye className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+                  View Results
+                </Button>
+              ) : (
+                <Button 
+                  variant="primary" 
+                  size="md"
+                  onClick={() => router.push('/assessment/new')}
+                  className="w-full sm:w-auto"
+                >
+                  <ArrowRight className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+                  Start Assessment
+                </Button>
+              )}
+            </div>
+          </Card>
+        )}
+
         {/* Take New Assessment Card */}
         {!incompleteAssessment && !isIntensiveMode && !isIntensiveCompleted && (
           <Card variant="elevated" className="p-4 md:p-6">
