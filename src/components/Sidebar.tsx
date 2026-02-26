@@ -84,13 +84,11 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
       // We'll update profile/storage as data comes in
       setLoading(false)
       
-      // Parallel fetch: getUser and profile at the same time
-      const [userResult] = await Promise.allSettled([
-        supabase.auth.getUser()
-      ])
+      // Use getSession (reads from storage, no Auth API call) to avoid rate limits
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       
-      if (userResult.status === 'fulfilled' && userResult.value.data?.user) {
-        const user = userResult.value.data.user
+      if (user) {
         setUser(user)
         
         // Fetch profile (non-blocking - UI already rendered)
@@ -497,7 +495,8 @@ export function MobileBottomNav({ className }: MobileBottomNavProps) {
     const fetchActiveVision = async () => {
       try {
         const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        const { data: { session } } = await supabase.auth.getSession()
+        const user = session?.user
         
         if (!user) return
         

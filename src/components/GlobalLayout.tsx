@@ -128,7 +128,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
       try {
         const supabase = createClient()
         
-        // Check auth state (fast — reads from in-memory/localStorage cache)
+        // Check auth state (getSession reads from cookie - no network call to Supabase Auth)
         const { data: { session } } = await supabase.auth.getSession()
         setIsAuthenticated(!!session)
         
@@ -137,22 +137,20 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
         setIntensiveData(intensive)
         
         // Check settings completion if in intensive mode
-        if (intensive) {
-          const { data: { user } } = await supabase.auth.getUser()
-          if (user) {
-            const { data: accountData } = await supabase
-              .from('user_accounts')
-              .select('first_name, last_name, email, phone')
-              .eq('id', user.id)
-              .single()
-            
-            const hasSettings = !!(accountData && 
-              accountData.first_name?.trim() && 
-              accountData.last_name?.trim() && 
-              accountData.email?.trim() && 
-              accountData.phone?.trim())
-            setSettingsComplete(hasSettings)
-          }
+        if (intensive && session?.user) {
+          const user = session.user
+          const { data: accountData } = await supabase
+            .from('user_accounts')
+            .select('first_name, last_name, email, phone')
+            .eq('id', user.id)
+            .single()
+          
+          const hasSettings = !!(accountData && 
+            accountData.first_name?.trim() && 
+            accountData.last_name?.trim() && 
+            accountData.email?.trim() && 
+            accountData.phone?.trim())
+          setSettingsComplete(hasSettings)
         }
       } catch (error) {
         console.error('Error checking intensive mode:', error)

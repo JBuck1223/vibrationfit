@@ -26,9 +26,10 @@ async function verifyAdmin() {
     }
   )
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+  const user = session?.user
 
-  if (authError || !user) {
+  if (sessionError || !user) {
     return { error: 'Authentication required', status: 401 }
   }
 

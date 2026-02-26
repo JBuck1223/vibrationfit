@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Container, Card, Button, Badge, Input, Stack, PageHero } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
 import { createClient } from '@/lib/supabase/client'
-import { Search, UserPlus, Shield, Mail, Calendar, CheckCircle, Clock, RefreshCw, AlertCircle, Zap } from 'lucide-react'
+import { Search, UserPlus, Shield, Mail, Calendar, CheckCircle, Clock, RefreshCw, AlertCircle, Zap, Trash2 } from 'lucide-react'
 import Image from 'next/image'
 
 interface User {
@@ -42,6 +42,8 @@ function UsersAdminContent() {
   const [showProductDropdown, setShowProductDropdown] = useState<Record<string, boolean>>({})
   const [enrollingUser, setEnrollingUser] = useState<string | null>(null)
   const [enrollFeedback, setEnrollFeedback] = useState<Record<string, { type: 'success' | 'error'; message: string }>>({})
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null)
 
   // Available products for enrollment
   const availableProducts = [
@@ -128,6 +130,32 @@ function UsersAdminContent() {
       }
     } catch (error) {
       console.error('Failed to add admin:', error)
+    }
+  }
+
+  const handleDeleteUser = async (targetUserId: string) => {
+    setDeletingUserId(targetUserId)
+    try {
+      const res = await fetch('/api/admin/users/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: targetUserId }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        console.error('[Delete User] Full response:', JSON.stringify(data, null, 2))
+        const debugInfo = data.debug ? '\n\nDebug log:\n' + data.debug.join('\n') : ''
+        throw new Error((data.error || data.details || 'Delete failed') + debugInfo)
+      }
+      if (data.debug) {
+        console.log('[Delete User] Success debug log:', data.debug.join('\n'))
+      }
+      setShowDeleteConfirm(null)
+      fetchUsers()
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Failed to delete user')
+    } finally {
+      setDeletingUserId(null)
     }
   }
 
@@ -453,6 +481,25 @@ function UsersAdminContent() {
                     className="text-red-400 border-red-400 hover:bg-red-400/10 w-full"
                   >
                     Remove Admin
+                  </Button>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    className="w-full border-red-500/50 text-red-400 hover:bg-red-500/10"
+                    disabled={deletingUserId === user.id}
+                    onClick={() => setShowDeleteConfirm(user.id)}
+                  >
+                    {deletingUserId === user.id ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        Deleting...
+                      </span>
+                    ) : (
+                      <>
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete User
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>
@@ -780,12 +827,62 @@ function UsersAdminContent() {
                   >
                     Make Admin
                   </Button>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    className="w-full border-red-500/50 text-red-400 hover:bg-red-500/10"
+                    disabled={deletingUserId === user.id}
+                    onClick={() => setShowDeleteConfirm(user.id)}
+                  >
+                    {deletingUserId === user.id ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        Deleting...
+                      </span>
+                    ) : (
+                      <>
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete User
+                      </>
+                    )}
+                  </Button>
                 </div>
               </div>
             ))}
           </div>
         )}
       </Card>
+
+      {/* Delete User Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <Card className="max-w-md w-full border-red-500/30">
+            <div className="p-6 space-y-4">
+              <h3 className="text-xl font-bold text-white">Delete User?</h3>
+              <p className="text-neutral-300 text-sm">
+                This will permanently delete the user, their S3 storage folder, and all related data.
+                This cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setShowDeleteConfirm(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="danger"
+                  className="flex-1"
+                  onClick={() => handleDeleteUser(showDeleteConfirm)}
+                >
+                  Delete
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
       </Stack>
     </Container>
   )
