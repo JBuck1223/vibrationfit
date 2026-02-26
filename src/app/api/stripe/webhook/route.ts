@@ -1812,27 +1812,27 @@ export async function POST(request: NextRequest) {
         }
 
         if (visitorId) {
-          await supabaseAdmin.from('visitors').update({ user_id: userId }).eq('id', visitorId).catch(() => {})
+          await Promise.resolve(supabaseAdmin.from('visitors').update({ user_id: userId }).eq('id', visitorId)).catch(() => {})
         }
         if (sessionId) {
-          await supabaseAdmin.from('sessions').update({ converted: true, conversion_type: 'purchase' }).eq('id', sessionId).catch(() => {})
+          await Promise.resolve(supabaseAdmin.from('sessions').update({ converted: true, conversion_type: 'purchase' }).eq('id', sessionId)).catch(() => {})
         }
         if (cartSessionId) {
-          await supabaseAdmin.from('cart_sessions').update({ status: 'checkout_started', user_id: userId, email }).eq('id', cartSessionId).catch(() => {})
+          await Promise.resolve(supabaseAdmin.from('cart_sessions').update({ status: 'checkout_started', user_id: userId, email }).eq('id', cartSessionId)).catch(() => {})
         }
 
-        await supabaseAdmin.from('journey_events').insert({
+        await Promise.resolve(supabaseAdmin.from('journey_events').insert({
           visitor_id: visitorId || null,
           session_id: sessionId || null,
           user_id: userId,
           cart_session_id: cartSessionId || null,
           event_type: 'purchase_completed',
           event_data: { order_id: order.id, product_key: product, amount: totalAmount, promo_code: promoCode },
-        }).catch(() => {})
+        })).catch(() => {})
 
         if (customerRowId) {
           const { data: custData } = await supabaseAdmin.from('customers').select('total_orders, total_spent').eq('id', customerRowId).single()
-          await supabaseAdmin
+          await Promise.resolve(supabaseAdmin
             .from('customers')
             .update({
               total_orders: (custData?.total_orders || 0) + 1,
@@ -1842,7 +1842,7 @@ export async function POST(request: NextRequest) {
               updated_at: new Date().toISOString(),
             })
             .eq('id', customerRowId)
-            .catch(() => {})
+          ).catch(() => {})
         }
 
         if (isIntensive && intensiveOrderItem) {
