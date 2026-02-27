@@ -70,20 +70,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ready: false }, { status: 500 })
     }
 
-    // Check if user has an active intensive to pass the correct param
-    const { data: checklist } = await supabaseAdmin
-      .from('intensive_checklist')
-      .select('id')
-      .eq('user_id', order.user_id)
-      .in('status', ['pending', 'in_progress'])
-      .maybeSingle()
-
     const verifyUrl = new URL('/auth/verify', appUrl)
     verifyUrl.searchParams.set('token_hash', token)
     verifyUrl.searchParams.set('type', type)
-    if (checklist) {
-      verifyUrl.searchParams.set('intensive', 'true')
-    }
 
     return NextResponse.json({
       ready: true,

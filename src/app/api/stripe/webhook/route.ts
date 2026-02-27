@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { randomBytes } from 'crypto'
 import { stripe, STRIPE_CONFIG } from '@/lib/stripe/config'
+import { findOrCreateStripeCustomerByEmail } from '@/lib/stripe/customer'
 import { getActivePackByKey } from '@/lib/billing/packs'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
@@ -579,9 +580,20 @@ export async function POST(request: NextRequest) {
               userId = existingUser.id
               console.log('Found existing user account:', userId)
             } else {
+              const customerName = session.customer_details?.name || ''
+              const nameParts = customerName.trim().split(' ')
+              const firstName = nameParts[0] || undefined
+              const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : undefined
+
               const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
                 email: customerEmail,
                 email_confirm: true,
+                user_metadata: {
+                  full_name: customerName || undefined,
+                  first_name: firstName,
+                  last_name: lastName,
+                  phone: session.customer_details?.phone || undefined,
+                },
               })
 
               if (authError) {
@@ -616,6 +628,18 @@ export async function POST(request: NextRequest) {
           }
 
           console.log('✅ User ID confirmed:', userId)
+
+          // Ensure user_accounts has name/phone from Stripe customer details
+          const intensiveCustomerName = session.customer_details?.name || ''
+          if (intensiveCustomerName || session.customer_details?.phone) {
+            const parts = intensiveCustomerName.trim().split(' ')
+            await supabaseAdmin.from('user_accounts').update({
+              ...(parts[0] ? { first_name: parts[0] } : {}),
+              ...(parts.length > 1 ? { last_name: parts.slice(1).join(' ') } : {}),
+              ...(session.customer_details?.phone ? { phone: session.customer_details.phone } : {}),
+            }).eq('id', userId)
+          }
+
           console.log('Creating intensive order item...')
 
           const activationDeadline = new Date()
@@ -720,12 +744,10 @@ export async function POST(request: NextRequest) {
             console.log('Creating Vision Pro subscription with 56-day trial...')
             
             try {
-              // Get or create Stripe customer
-              const customerId = session.customer as string || 
-                                 await stripe.customers.create({
-                                   email: customerEmail ?? undefined,
-                                   metadata: { user_id: userId },
-                                 }).then(c => c.id)
+              const customerId = (session.customer as string) ||
+                await findOrCreateStripeCustomerByEmail(customerEmail || '', {
+                  metadata: { supabase_user_id: userId },
+                })
 
               const tierType = continuityPlan === 'annual' ? 'vision_pro_annual' : 'vision_pro_28day'
               const { data: tier } = await supabase
@@ -935,19 +957,15 @@ export async function POST(request: NextRequest) {
             const tempSubscription = await stripe.subscriptions.retrieve(subscriptionId)
             customerId = tempSubscription.customer as string
           } else {
-            // Payment mode - need to get customer from payment intent
             const paymentIntentId = session.payment_intent as string
             if (paymentIntentId) {
               const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
               customerId = paymentIntent.customer as string | null
             }
-            // If no customer yet, we'll create one
             if (!customerId && customerEmail) {
-              const customer = await stripe.customers.create({
-                email: customerEmail ?? undefined,
+              customerId = await findOrCreateStripeCustomerByEmail(customerEmail, {
                 metadata: { source: 'intensive_checkout' },
               })
-              customerId = customer.id
             }
           }
           
@@ -970,9 +988,20 @@ export async function POST(request: NextRequest) {
               userId = existingUser.id
               console.log('Found existing user for combined checkout:', userId)
             } else {
+              const customerName = session.customer_details?.name || ''
+              const nameParts = customerName.trim().split(' ')
+              const firstName = nameParts[0] || undefined
+              const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : undefined
+
               const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
                 email: customerEmail,
                 email_confirm: true,
+                user_metadata: {
+                  full_name: customerName || undefined,
+                  first_name: firstName,
+                  last_name: lastName,
+                  phone: session.customer_details?.phone || undefined,
+                },
               })
 
               if (authError) {
@@ -999,6 +1028,17 @@ export async function POST(request: NextRequest) {
           if (!userId || userId === 'guest') {
             console.error('Missing valid user_id for combined checkout')
             break
+          }
+
+          // Ensure user_accounts has name/phone from Stripe customer details
+          const combinedCustomerName = session.customer_details?.name || ''
+          if (combinedCustomerName || session.customer_details?.phone) {
+            const parts = combinedCustomerName.trim().split(' ')
+            await supabaseAdmin.from('user_accounts').update({
+              ...(parts[0] ? { first_name: parts[0] } : {}),
+              ...(parts.length > 1 ? { last_name: parts.slice(1).join(' ') } : {}),
+              ...(session.customer_details?.phone ? { phone: session.customer_details.phone } : {}),
+            }).eq('id', userId)
           }
 
           const tierType = continuityPlan === 'annual' ? 'vision_pro_annual' : 'vision_pro_28day'
@@ -1680,6 +1720,10 @@ export async function POST(request: NextRequest) {
         }
 
         let userId: string
+        const nameParts = (name || '').trim().split(' ')
+        const firstName = nameParts[0] || null
+        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : null
+
         const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers()
         const existingUser = existingUsers?.users?.find((u: { email?: string }) => u.email === email)
         if (existingUser) {
@@ -1689,7 +1733,12 @@ export async function POST(request: NextRequest) {
             email,
             password: randomBytes(32).toString('hex'),
             email_confirm: true,
-            user_metadata: { full_name: name, phone },
+            user_metadata: {
+              full_name: name || undefined,
+              first_name: firstName || undefined,
+              last_name: lastName || undefined,
+              phone: phone || undefined,
+            },
           })
           if (createErr || !newUser?.user) {
             console.error('payment_intent.succeeded: create user failed', createErr)
@@ -1702,6 +1751,15 @@ export async function POST(request: NextRequest) {
           { user_id: userId, full_name: name, phone: phone || null },
           { onConflict: 'user_id' }
         )
+
+        // Ensure user_accounts has name/phone data
+        if (firstName || lastName || phone) {
+          await supabaseAdmin.from('user_accounts').update({
+            ...(firstName ? { first_name: firstName } : {}),
+            ...(lastName ? { last_name: lastName } : {}),
+            ...(phone ? { phone } : {}),
+          }).eq('id', userId)
+        }
 
         const customerId = typeof pi.customer === 'string' ? pi.customer : (pi.customer as Stripe.Customer)?.id
         if (customerId) {
@@ -1819,10 +1877,9 @@ export async function POST(request: NextRequest) {
               const customerId = typeof pi.customer === 'string'
                 ? pi.customer
                 : (pi.customer as Stripe.Customer)?.id
-                  || (await stripe.customers.create({
-                       email: email ?? undefined,
+                  || await findOrCreateStripeCustomerByEmail(email || '', {
                        metadata: { supabase_user_id: userId },
-                     }).then(c => c.id))
+                     })
 
               const tierType = continuityPlan === 'annual' ? 'vision_pro_annual' : 'vision_pro_28day'
               const { data: tier } = await supabase
@@ -1989,7 +2046,15 @@ export async function POST(request: NextRequest) {
         }
 
         if (isIntensive && intensiveOrderItem) {
-          triggerEvent('intensive.purchased', { userId, orderId: order.id, intensiveId: intensiveOrderItem.id, paymentPlan: plan }).catch(() => {})
+          triggerEvent('intensive.purchased', {
+            email: email || '',
+            userId,
+            name: name || email?.split('@')[0] || '',
+            firstName: name?.split(' ')[0] || email?.split('@')[0] || '',
+            orderId: order.id,
+            intensiveId: intensiveOrderItem.id,
+            paymentPlan: plan,
+          }).catch(() => {})
         }
         break
       }

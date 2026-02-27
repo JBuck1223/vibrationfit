@@ -16,10 +16,10 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        // Check if this is from an intensive purchase
-        const intensive = searchParams.get('intensive')
-        if (intensive === 'true') {
-          router.push('/auth/setup-password?intensive=true')
+        // setup-password checks DB for intensive enrollment itself
+        const needsSetup = searchParams.get('setup_password')
+        if (needsSetup === 'true') {
+          router.push('/auth/setup-password')
         }
       }
     })

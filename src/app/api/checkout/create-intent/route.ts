@@ -158,11 +158,17 @@ export async function POST(request: NextRequest) {
       }
     } else {
       const tempPassword = hasPassword ? password! : randomBytes(32).toString('hex')
+      const tempNameParts = (name || '').trim().split(' ')
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password: tempPassword,
         email_confirm: true,
-        user_metadata: { full_name: name, phone },
+        user_metadata: {
+          full_name: name || undefined,
+          first_name: tempNameParts[0] || undefined,
+          last_name: tempNameParts.length > 1 ? tempNameParts.slice(1).join(' ') : undefined,
+          phone: phone || undefined,
+        },
       })
       if (createError || !newUser?.user) {
         console.error('Failed to create user:', createError)

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict kDhUcgz0UG9TSPecbG2SifYMQ5eo6hmYaqw12t847eXT2SprYedAgzTf7hfjhJ9
+\restrict BgaVFla6tm6gePB7AxVNpXvXw0Qv3zCfZCkxQerxHHfVmiZWjCTyIJd4dbsib73
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Homebrew)
@@ -2076,6 +2076,66 @@ $$;
 
 
 --
+-- Name: debug_delete_auth_user(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.debug_delete_auth_user(p_user_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'auth', 'storage'
+    AS $$
+DECLARE
+  fk_info jsonb := '[]'::jsonb;
+  r RECORD;
+BEGIN
+  -- First, report all FK constraints pointing at auth.users for this user
+  FOR r IN
+    SELECT
+      c.conrelid::regclass::text AS table_name,
+      c.conname                  AS constraint_name,
+      a.attname                  AS column_name,
+      CASE c.confdeltype
+        WHEN 'a' THEN 'NO ACTION'
+        WHEN 'r' THEN 'RESTRICT'
+        WHEN 'c' THEN 'CASCADE'
+        WHEN 'n' THEN 'SET NULL'
+        WHEN 'd' THEN 'SET DEFAULT'
+      END AS on_delete
+    FROM pg_constraint c
+    JOIN pg_attribute a
+      ON a.attnum = ANY(c.conkey) AND a.attrelid = c.conrelid
+    WHERE c.contype   = 'f'
+      AND c.confrelid = 'auth.users'::regclass
+    ORDER BY c.conrelid::regclass::text
+  LOOP
+    fk_info := fk_info || jsonb_build_object(
+      'table', r.table_name,
+      'constraint', r.constraint_name,
+      'column', r.column_name,
+      'on_delete', r.on_delete
+    );
+  END LOOP;
+
+  -- Now try the actual delete and catch the error
+  BEGIN
+    DELETE FROM auth.users WHERE id = p_user_id;
+    RETURN jsonb_build_object(
+      'success', true,
+      'message', 'User deleted successfully',
+      'fk_constraints', fk_info
+    );
+  EXCEPTION WHEN OTHERS THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'error_message', SQLERRM,
+      'error_detail', SQLSTATE,
+      'fk_constraints', fk_info
+    );
+  END;
+END;
+$$;
+
+
+--
 -- Name: decrement_vibe_assistant_allowance(uuid, integer, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2154,6 +2214,33 @@ BEGIN
   RETURN result;
 END;
 $$;
+
+
+--
+-- Name: delete_user_storage_objects(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.delete_user_storage_objects(p_user_id uuid) RETURNS integer
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'storage', 'public'
+    AS $$
+DECLARE
+  deleted_count integer;
+BEGIN
+  -- Supabase storage.protect_delete trigger blocks direct DELETE unless this is set
+  PERFORM set_config('storage.allow_delete_query', 'true', true);
+  DELETE FROM storage.objects WHERE owner = p_user_id;
+  GET DIAGNOSTICS deleted_count = ROW_COUNT;
+  RETURN deleted_count;
+END;
+$$;
+
+
+--
+-- Name: FUNCTION delete_user_storage_objects(p_user_id uuid); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION public.delete_user_storage_objects(p_user_id uuid) IS 'Deletes all Supabase Storage objects owned by the user. Must be called before auth.admin.deleteUser() to avoid FK constraint violation.';
 
 
 --
@@ -3890,6 +3977,58 @@ BEGIN
   END IF;
 END;
 $$;
+
+
+--
+-- Name: prepare_user_for_deletion(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.prepare_user_for_deletion(p_user_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'auth', 'storage'
+    AS $_$
+DECLARE
+  r RECORD;
+  result jsonb := '[]'::jsonb;
+  row_count int;
+BEGIN
+  -- 1. Delete Supabase Storage objects owned by this user
+  PERFORM set_config('storage.allow_delete_query', 'true', true);
+  DELETE FROM storage.objects WHERE owner = p_user_id;
+  GET DIAGNOSTICS row_count = ROW_COUNT;
+  result := result || jsonb_build_object('step', 'storage_objects', 'deleted', row_count);
+
+  -- 2. Delete rows where SET NULL would violate a CHECK constraint
+  DELETE FROM video_session_participants WHERE user_id = p_user_id AND email IS NULL;
+  GET DIAGNOSTICS row_count = ROW_COUNT;
+  result := result || jsonb_build_object('step', 'video_session_participants', 'deleted', row_count);
+
+  -- 3. Find and null out any FK columns referencing auth.users with NO ACTION
+  FOR r IN
+    SELECT
+      c.conrelid::regclass::text AS table_name,
+      a.attname                  AS column_name
+    FROM pg_constraint c
+    JOIN pg_attribute a
+      ON a.attnum = ANY(c.conkey) AND a.attrelid = c.conrelid
+    WHERE c.contype    = 'f'
+      AND c.confrelid  = 'auth.users'::regclass
+      AND c.confdeltype = 'a'
+  LOOP
+    EXECUTE format(
+      'UPDATE %s SET %I = NULL WHERE %I = $1',
+      r.table_name, r.column_name, r.column_name
+    ) USING p_user_id;
+    GET DIAGNOSTICS row_count = ROW_COUNT;
+    result := result || jsonb_build_object(
+      'step', r.table_name || '.' || r.column_name,
+      'nulled', row_count
+    );
+  END LOOP;
+
+  RETURN result;
+END;
+$_$;
 
 
 --
@@ -6742,6 +6881,56 @@ COMMENT ON TABLE auth.audit_log_entries IS 'Auth: Audit trail for user actions.'
 
 
 --
+-- Name: custom_oauth_providers; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.custom_oauth_providers (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    provider_type text NOT NULL,
+    identifier text NOT NULL,
+    name text NOT NULL,
+    client_id text NOT NULL,
+    client_secret text NOT NULL,
+    acceptable_client_ids text[] DEFAULT '{}'::text[] NOT NULL,
+    scopes text[] DEFAULT '{}'::text[] NOT NULL,
+    pkce_enabled boolean DEFAULT true NOT NULL,
+    attribute_mapping jsonb DEFAULT '{}'::jsonb NOT NULL,
+    authorization_params jsonb DEFAULT '{}'::jsonb NOT NULL,
+    enabled boolean DEFAULT true NOT NULL,
+    email_optional boolean DEFAULT false NOT NULL,
+    issuer text,
+    discovery_url text,
+    skip_nonce_check boolean DEFAULT false NOT NULL,
+    cached_discovery jsonb,
+    discovery_cached_at timestamp with time zone,
+    authorization_url text,
+    token_url text,
+    userinfo_url text,
+    jwks_uri text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT custom_oauth_providers_authorization_url_https CHECK (((authorization_url IS NULL) OR (authorization_url ~~ 'https://%'::text))),
+    CONSTRAINT custom_oauth_providers_authorization_url_length CHECK (((authorization_url IS NULL) OR (char_length(authorization_url) <= 2048))),
+    CONSTRAINT custom_oauth_providers_client_id_length CHECK (((char_length(client_id) >= 1) AND (char_length(client_id) <= 512))),
+    CONSTRAINT custom_oauth_providers_discovery_url_length CHECK (((discovery_url IS NULL) OR (char_length(discovery_url) <= 2048))),
+    CONSTRAINT custom_oauth_providers_identifier_format CHECK ((identifier ~ '^[a-z0-9][a-z0-9:-]{0,48}[a-z0-9]$'::text)),
+    CONSTRAINT custom_oauth_providers_issuer_length CHECK (((issuer IS NULL) OR ((char_length(issuer) >= 1) AND (char_length(issuer) <= 2048)))),
+    CONSTRAINT custom_oauth_providers_jwks_uri_https CHECK (((jwks_uri IS NULL) OR (jwks_uri ~~ 'https://%'::text))),
+    CONSTRAINT custom_oauth_providers_jwks_uri_length CHECK (((jwks_uri IS NULL) OR (char_length(jwks_uri) <= 2048))),
+    CONSTRAINT custom_oauth_providers_name_length CHECK (((char_length(name) >= 1) AND (char_length(name) <= 100))),
+    CONSTRAINT custom_oauth_providers_oauth2_requires_endpoints CHECK (((provider_type <> 'oauth2'::text) OR ((authorization_url IS NOT NULL) AND (token_url IS NOT NULL) AND (userinfo_url IS NOT NULL)))),
+    CONSTRAINT custom_oauth_providers_oidc_discovery_url_https CHECK (((provider_type <> 'oidc'::text) OR (discovery_url IS NULL) OR (discovery_url ~~ 'https://%'::text))),
+    CONSTRAINT custom_oauth_providers_oidc_issuer_https CHECK (((provider_type <> 'oidc'::text) OR (issuer IS NULL) OR (issuer ~~ 'https://%'::text))),
+    CONSTRAINT custom_oauth_providers_oidc_requires_issuer CHECK (((provider_type <> 'oidc'::text) OR (issuer IS NOT NULL))),
+    CONSTRAINT custom_oauth_providers_provider_type_check CHECK ((provider_type = ANY (ARRAY['oauth2'::text, 'oidc'::text]))),
+    CONSTRAINT custom_oauth_providers_token_url_https CHECK (((token_url IS NULL) OR (token_url ~~ 'https://%'::text))),
+    CONSTRAINT custom_oauth_providers_token_url_length CHECK (((token_url IS NULL) OR (char_length(token_url) <= 2048))),
+    CONSTRAINT custom_oauth_providers_userinfo_url_https CHECK (((userinfo_url IS NULL) OR (userinfo_url ~~ 'https://%'::text))),
+    CONSTRAINT custom_oauth_providers_userinfo_url_length CHECK (((userinfo_url IS NULL) OR (char_length(userinfo_url) <= 2048)))
+);
+
+
+--
 -- Name: flow_state; Type: TABLE; Schema: auth; Owner: -
 --
 
@@ -8224,6 +8413,36 @@ COMMENT ON TABLE public.audio_voice_clones IS 'Stores user voice clones from Ele
 
 
 --
+-- Name: automation_rules; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.automation_rules (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    event_name text NOT NULL,
+    conditions jsonb DEFAULT '{}'::jsonb NOT NULL,
+    channel text NOT NULL,
+    template_id uuid NOT NULL,
+    delay_minutes integer DEFAULT 0 NOT NULL,
+    status text DEFAULT 'paused'::text NOT NULL,
+    total_sent integer DEFAULT 0 NOT NULL,
+    last_sent_at timestamp with time zone,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT automation_rules_channel_check CHECK ((channel = ANY (ARRAY['email'::text, 'sms'::text]))),
+    CONSTRAINT automation_rules_status_check CHECK ((status = ANY (ARRAY['active'::text, 'paused'::text, 'archived'::text])))
+);
+
+
+--
+-- Name: TABLE automation_rules; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.automation_rules IS 'Single-fire automation rules: one event triggers one template send';
+
+
+--
 -- Name: bookings; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8347,6 +8566,39 @@ COMMENT ON COLUMN public.calendar_events.blocks_availability IS 'If true, this e
 
 
 --
+-- Name: cart_sessions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.cart_sessions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    visitor_id uuid,
+    session_id uuid,
+    user_id uuid,
+    email text,
+    items jsonb DEFAULT '[]'::jsonb NOT NULL,
+    promo_code text,
+    referral_source text,
+    campaign_name text,
+    utm_source text,
+    utm_medium text,
+    utm_campaign text,
+    status text DEFAULT 'active'::text NOT NULL,
+    expires_at timestamp with time zone DEFAULT (now() + '7 days'::interval) NOT NULL,
+    completed_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT cart_sessions_status_check CHECK ((status = ANY (ARRAY['active'::text, 'checkout_started'::text, 'completed'::text, 'abandoned'::text, 'expired'::text])))
+);
+
+
+--
+-- Name: TABLE cart_sessions; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.cart_sessions IS 'Cart-based checkout sessions. UUID used directly in checkout URLs and abandoned cart recovery emails.';
+
+
+--
 -- Name: conversation_sessions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8399,6 +8651,111 @@ COMMENT ON COLUMN public.conversation_sessions.vision_id IS 'The vision this con
 --
 
 COMMENT ON COLUMN public.conversation_sessions.cached_system_prompt IS 'Cached system prompt built once at session start. Contains profile, assessment, vision context. Prevents wasteful rebuilding on every message.';
+
+
+--
+-- Name: coupon_codes; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.coupon_codes (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    coupon_id uuid NOT NULL,
+    code text NOT NULL,
+    batch_id text,
+    max_redemptions integer,
+    redemption_count integer DEFAULT 0 NOT NULL,
+    is_active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: coupon_redemptions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.coupon_redemptions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    coupon_id uuid NOT NULL,
+    coupon_code_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    order_id uuid,
+    subscription_id uuid,
+    discount_amount integer NOT NULL,
+    original_amount integer NOT NULL,
+    product_key text,
+    redeemed_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: coupons; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.coupons (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    discount_type text DEFAULT 'percent'::text NOT NULL,
+    discount_value integer NOT NULL,
+    currency text DEFAULT 'usd'::text NOT NULL,
+    min_purchase_amount integer,
+    max_discount_amount integer,
+    eligible_products text[],
+    eligible_tiers text[],
+    max_redemptions integer,
+    max_redemptions_per_user integer DEFAULT 1 NOT NULL,
+    valid_from timestamp with time zone,
+    valid_until timestamp with time zone,
+    is_active boolean DEFAULT true NOT NULL,
+    campaign_id uuid,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT coupons_discount_type_check CHECK ((discount_type = ANY (ARRAY['percent'::text, 'fixed'::text]))),
+    CONSTRAINT coupons_discount_value_positive CHECK ((discount_value > 0)),
+    CONSTRAINT coupons_percent_max CHECK (((discount_type <> 'percent'::text) OR (discount_value <= 100)))
+);
+
+
+--
+-- Name: customers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.customers (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    visitor_id uuid,
+    stripe_customer_id text,
+    lead_id uuid,
+    first_utm_source text,
+    first_utm_medium text,
+    first_utm_campaign text,
+    first_utm_content text,
+    first_utm_term text,
+    first_gclid text,
+    first_fbclid text,
+    first_landing_page text,
+    first_referrer text,
+    first_url_params jsonb DEFAULT '{}'::jsonb,
+    first_seen_at timestamp with time zone,
+    email_captured_at timestamp with time zone,
+    first_purchase_at timestamp with time zone,
+    last_purchase_at timestamp with time zone,
+    last_active_at timestamp with time zone,
+    status text DEFAULT 'customer'::text NOT NULL,
+    total_orders integer DEFAULT 0 NOT NULL,
+    total_spent integer DEFAULT 0 NOT NULL,
+    metadata jsonb DEFAULT '{}'::jsonb,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT customers_status_check CHECK ((status = ANY (ARRAY['visitor'::text, 'lead'::text, 'customer'::text, 'active_subscriber'::text, 'churned'::text])))
+);
+
+
+--
+-- Name: TABLE customers; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.customers IS 'Single Source of Truth for the customer journey. 1:1 with auth.users. Attribution waterfalled from visitors on account creation.';
 
 
 --
@@ -8808,6 +9165,31 @@ COMMENT ON COLUMN public.journal_entries.thumbnail_urls IS 'Array of thumbnail U
 
 
 --
+-- Name: journey_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.journey_events (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    visitor_id uuid,
+    session_id uuid,
+    user_id uuid,
+    lead_id uuid,
+    cart_session_id uuid,
+    event_type text NOT NULL,
+    event_data jsonb DEFAULT '{}'::jsonb,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT journey_events_event_type_check CHECK ((event_type = ANY (ARRAY['email_captured'::text, 'cart_created'::text, 'checkout_started'::text, 'purchase_completed'::text])))
+);
+
+
+--
+-- Name: TABLE journey_events; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.journey_events IS 'Key milestones in the customer journey funnel.';
+
+
+--
 -- Name: lead_tracking_events; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8860,6 +9242,7 @@ CREATE TABLE public.leads (
     sms_opt_out_date timestamp with time zone,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
+    visitor_id uuid,
     CONSTRAINT leads_status_check CHECK ((status = ANY (ARRAY['new'::text, 'contacted'::text, 'qualified'::text, 'converted'::text, 'lost'::text]))),
     CONSTRAINT leads_type_check CHECK ((type = ANY (ARRAY['contact'::text, 'demo'::text, 'intensive_intake'::text])))
 );
@@ -8967,6 +9350,37 @@ COMMENT ON TABLE public.message_send_log IS 'Audit log of all sent messages';
 
 
 --
+-- Name: messaging_campaigns; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.messaging_campaigns (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    description text,
+    channel text NOT NULL,
+    template_id uuid NOT NULL,
+    audience_filter jsonb DEFAULT '{}'::jsonb NOT NULL,
+    audience_count integer DEFAULT 0 NOT NULL,
+    scheduled_for timestamp with time zone,
+    status text DEFAULT 'draft'::text NOT NULL,
+    sent_count integer DEFAULT 0 NOT NULL,
+    failed_count integer DEFAULT 0 NOT NULL,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT messaging_campaigns_channel_check CHECK ((channel = ANY (ARRAY['email'::text, 'sms'::text]))),
+    CONSTRAINT messaging_campaigns_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'scheduled'::text, 'sending'::text, 'sent'::text, 'cancelled'::text])))
+);
+
+
+--
+-- Name: TABLE messaging_campaigns; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.messaging_campaigns IS 'One-time or scheduled bulk email/SMS sends with audience filtering';
+
+
+--
 -- Name: order_items; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9021,8 +9435,33 @@ CREATE TABLE public.orders (
     metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    customer_id uuid,
+    cart_session_id uuid,
     CONSTRAINT orders_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'paid'::text, 'canceled'::text, 'refunded'::text, 'failed'::text])))
 );
+
+
+--
+-- Name: page_views; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.page_views (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    session_id uuid NOT NULL,
+    visitor_id uuid NOT NULL,
+    page_path text NOT NULL,
+    page_title text,
+    view_order integer DEFAULT 0 NOT NULL,
+    time_on_page_seconds integer,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: TABLE page_views; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.page_views IS 'Every page viewed, per session.';
 
 
 --
@@ -9207,6 +9646,136 @@ COMMENT ON TABLE public.scheduled_messages IS 'Queue for scheduled email and SMS
 --
 
 COMMENT ON COLUMN public.scheduled_messages.scheduled_for IS 'When this message should be sent';
+
+
+--
+-- Name: sequence_enrollments; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sequence_enrollments (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    sequence_id uuid NOT NULL,
+    user_id uuid,
+    email text,
+    phone text,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    current_step_order integer DEFAULT 0 NOT NULL,
+    status text DEFAULT 'active'::text NOT NULL,
+    enrolled_at timestamp with time zone DEFAULT now() NOT NULL,
+    next_step_at timestamp with time zone,
+    completed_at timestamp with time zone,
+    cancelled_at timestamp with time zone,
+    cancel_reason text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT sequence_enrollments_status_check CHECK ((status = ANY (ARRAY['active'::text, 'completed'::text, 'cancelled'::text, 'paused'::text])))
+);
+
+
+--
+-- Name: TABLE sequence_enrollments; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.sequence_enrollments IS 'Tracks each user/lead progress through a drip sequence';
+
+
+--
+-- Name: sequence_steps; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sequence_steps (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    sequence_id uuid NOT NULL,
+    step_order integer NOT NULL,
+    channel text NOT NULL,
+    template_id uuid NOT NULL,
+    delay_minutes integer DEFAULT 0 NOT NULL,
+    delay_from text DEFAULT 'previous_step'::text NOT NULL,
+    subject_override text,
+    conditions jsonb DEFAULT '{}'::jsonb NOT NULL,
+    status text DEFAULT 'active'::text NOT NULL,
+    total_sent integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT sequence_steps_channel_check CHECK ((channel = ANY (ARRAY['email'::text, 'sms'::text]))),
+    CONSTRAINT sequence_steps_delay_from_check CHECK ((delay_from = ANY (ARRAY['enrollment'::text, 'previous_step'::text]))),
+    CONSTRAINT sequence_steps_status_check CHECK ((status = ANY (ARRAY['active'::text, 'paused'::text])))
+);
+
+
+--
+-- Name: TABLE sequence_steps; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.sequence_steps IS 'Ordered steps within a drip sequence, each linking to a template';
+
+
+--
+-- Name: sequences; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sequences (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    description text,
+    trigger_event text NOT NULL,
+    trigger_conditions jsonb DEFAULT '{}'::jsonb NOT NULL,
+    exit_events jsonb DEFAULT '[]'::jsonb NOT NULL,
+    status text DEFAULT 'paused'::text NOT NULL,
+    total_enrolled integer DEFAULT 0 NOT NULL,
+    total_completed integer DEFAULT 0 NOT NULL,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT sequences_status_check CHECK ((status = ANY (ARRAY['active'::text, 'paused'::text, 'archived'::text])))
+);
+
+
+--
+-- Name: TABLE sequences; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.sequences IS 'Multi-step drip sequence containers with trigger and exit events';
+
+
+--
+-- Name: sessions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sessions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    visitor_id uuid NOT NULL,
+    landing_page text,
+    referrer text,
+    utm_source text,
+    utm_medium text,
+    utm_campaign text,
+    utm_content text,
+    utm_term text,
+    gclid text,
+    fbclid text,
+    msclkid text,
+    ttclid text,
+    li_fat_id text,
+    gbraid text,
+    wbraid text,
+    url_params jsonb DEFAULT '{}'::jsonb,
+    device_type text,
+    browser text,
+    os text,
+    pageview_count integer DEFAULT 0 NOT NULL,
+    converted boolean DEFAULT false NOT NULL,
+    conversion_type text,
+    started_at timestamp with time zone DEFAULT now() NOT NULL,
+    last_activity_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: TABLE sessions; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.sessions IS 'Individual visit sessions with per-session attribution data.';
 
 
 --
@@ -11162,6 +11731,43 @@ COMMENT ON COLUMN public.vision_versions.household_id IS 'NULL = personal vision
 
 
 --
+-- Name: visitors; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.visitors (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    fingerprint text NOT NULL,
+    first_landing_page text,
+    first_referrer text,
+    first_utm_source text,
+    first_utm_medium text,
+    first_utm_campaign text,
+    first_utm_content text,
+    first_utm_term text,
+    first_gclid text,
+    first_fbclid text,
+    first_msclkid text,
+    first_ttclid text,
+    first_url_params jsonb DEFAULT '{}'::jsonb,
+    last_utm_source text,
+    last_utm_medium text,
+    last_utm_campaign text,
+    session_count integer DEFAULT 0 NOT NULL,
+    total_pageviews integer DEFAULT 0 NOT NULL,
+    user_id uuid,
+    first_seen_at timestamp with time zone DEFAULT now() NOT NULL,
+    last_seen_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: TABLE visitors; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.visitors IS 'Anonymous cookie-based visitor tracking. Linked to auth.users after account creation (waterfall).';
+
+
+--
 -- Name: viva_conversations; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -11233,74 +11839,90 @@ PARTITION BY RANGE (inserted_at);
 
 
 --
--- Name: messages_2026_02_18; Type: TABLE; Schema: realtime; Owner: -
---
-
-CREATE TABLE realtime.messages_2026_02_18 (
-    topic text NOT NULL,
-    extension text NOT NULL,
-    payload jsonb,
-    event text,
-    private boolean DEFAULT false,
-    updated_at timestamp without time zone DEFAULT now() NOT NULL,
-    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
-    id uuid DEFAULT gen_random_uuid() NOT NULL
-);
-
-
---
--- Name: messages_2026_02_19; Type: TABLE; Schema: realtime; Owner: -
---
-
-CREATE TABLE realtime.messages_2026_02_19 (
-    topic text NOT NULL,
-    extension text NOT NULL,
-    payload jsonb,
-    event text,
-    private boolean DEFAULT false,
-    updated_at timestamp without time zone DEFAULT now() NOT NULL,
-    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
-    id uuid DEFAULT gen_random_uuid() NOT NULL
-);
-
-
---
--- Name: messages_2026_02_20; Type: TABLE; Schema: realtime; Owner: -
---
-
-CREATE TABLE realtime.messages_2026_02_20 (
-    topic text NOT NULL,
-    extension text NOT NULL,
-    payload jsonb,
-    event text,
-    private boolean DEFAULT false,
-    updated_at timestamp without time zone DEFAULT now() NOT NULL,
-    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
-    id uuid DEFAULT gen_random_uuid() NOT NULL
-);
-
-
---
--- Name: messages_2026_02_21; Type: TABLE; Schema: realtime; Owner: -
---
-
-CREATE TABLE realtime.messages_2026_02_21 (
-    topic text NOT NULL,
-    extension text NOT NULL,
-    payload jsonb,
-    event text,
-    private boolean DEFAULT false,
-    updated_at timestamp without time zone DEFAULT now() NOT NULL,
-    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
-    id uuid DEFAULT gen_random_uuid() NOT NULL
-);
-
-
---
 -- Name: messages_2026_02_22; Type: TABLE; Schema: realtime; Owner: -
 --
 
 CREATE TABLE realtime.messages_2026_02_22 (
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL
+);
+
+
+--
+-- Name: messages_2026_02_24; Type: TABLE; Schema: realtime; Owner: -
+--
+
+CREATE TABLE realtime.messages_2026_02_24 (
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL
+);
+
+
+--
+-- Name: messages_2026_02_25; Type: TABLE; Schema: realtime; Owner: -
+--
+
+CREATE TABLE realtime.messages_2026_02_25 (
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL
+);
+
+
+--
+-- Name: messages_2026_02_26; Type: TABLE; Schema: realtime; Owner: -
+--
+
+CREATE TABLE realtime.messages_2026_02_26 (
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL
+);
+
+
+--
+-- Name: messages_2026_02_27; Type: TABLE; Schema: realtime; Owner: -
+--
+
+CREATE TABLE realtime.messages_2026_02_27 (
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL
+);
+
+
+--
+-- Name: messages_2026_02_28; Type: TABLE; Schema: realtime; Owner: -
+--
+
+CREATE TABLE realtime.messages_2026_02_28 (
     topic text NOT NULL,
     extension text NOT NULL,
     payload jsonb,
@@ -11519,38 +12141,45 @@ CREATE TABLE supabase_migrations.seed_files (
 
 
 --
--- Name: messages_2026_02_18; Type: TABLE ATTACH; Schema: realtime; Owner: -
---
-
-ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_02_18 FOR VALUES FROM ('2026-02-18 00:00:00') TO ('2026-02-19 00:00:00');
-
-
---
--- Name: messages_2026_02_19; Type: TABLE ATTACH; Schema: realtime; Owner: -
---
-
-ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_02_19 FOR VALUES FROM ('2026-02-19 00:00:00') TO ('2026-02-20 00:00:00');
-
-
---
--- Name: messages_2026_02_20; Type: TABLE ATTACH; Schema: realtime; Owner: -
---
-
-ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_02_20 FOR VALUES FROM ('2026-02-20 00:00:00') TO ('2026-02-21 00:00:00');
-
-
---
--- Name: messages_2026_02_21; Type: TABLE ATTACH; Schema: realtime; Owner: -
---
-
-ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_02_21 FOR VALUES FROM ('2026-02-21 00:00:00') TO ('2026-02-22 00:00:00');
-
-
---
 -- Name: messages_2026_02_22; Type: TABLE ATTACH; Schema: realtime; Owner: -
 --
 
 ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_02_22 FOR VALUES FROM ('2026-02-22 00:00:00') TO ('2026-02-23 00:00:00');
+
+
+--
+-- Name: messages_2026_02_24; Type: TABLE ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_02_24 FOR VALUES FROM ('2026-02-24 00:00:00') TO ('2026-02-25 00:00:00');
+
+
+--
+-- Name: messages_2026_02_25; Type: TABLE ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_02_25 FOR VALUES FROM ('2026-02-25 00:00:00') TO ('2026-02-26 00:00:00');
+
+
+--
+-- Name: messages_2026_02_26; Type: TABLE ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_02_26 FOR VALUES FROM ('2026-02-26 00:00:00') TO ('2026-02-27 00:00:00');
+
+
+--
+-- Name: messages_2026_02_27; Type: TABLE ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_02_27 FOR VALUES FROM ('2026-02-27 00:00:00') TO ('2026-02-28 00:00:00');
+
+
+--
+-- Name: messages_2026_02_28; Type: TABLE ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_02_28 FOR VALUES FROM ('2026-02-28 00:00:00') TO ('2026-03-01 00:00:00');
 
 
 --
@@ -11574,6 +12203,22 @@ ALTER TABLE ONLY auth.mfa_amr_claims
 
 ALTER TABLE ONLY auth.audit_log_entries
     ADD CONSTRAINT audit_log_entries_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: custom_oauth_providers custom_oauth_providers_identifier_key; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.custom_oauth_providers
+    ADD CONSTRAINT custom_oauth_providers_identifier_key UNIQUE (identifier);
+
+
+--
+-- Name: custom_oauth_providers custom_oauth_providers_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.custom_oauth_providers
+    ADD CONSTRAINT custom_oauth_providers_pkey PRIMARY KEY (id);
 
 
 --
@@ -11953,6 +12598,14 @@ ALTER TABLE ONLY public.audio_voice_clones
 
 
 --
+-- Name: automation_rules automation_rules_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.automation_rules
+    ADD CONSTRAINT automation_rules_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: bookings bookings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -11969,11 +12622,51 @@ ALTER TABLE ONLY public.calendar_events
 
 
 --
+-- Name: cart_sessions cart_sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.cart_sessions
+    ADD CONSTRAINT cart_sessions_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: conversation_sessions conversation_sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.conversation_sessions
     ADD CONSTRAINT conversation_sessions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: coupon_codes coupon_codes_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.coupon_codes
+    ADD CONSTRAINT coupon_codes_code_key UNIQUE (code);
+
+
+--
+-- Name: coupon_codes coupon_codes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.coupon_codes
+    ADD CONSTRAINT coupon_codes_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: coupon_redemptions coupon_redemptions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.coupon_redemptions
+    ADD CONSTRAINT coupon_redemptions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: coupons coupons_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.coupons
+    ADD CONSTRAINT coupons_pkey PRIMARY KEY (id);
 
 
 --
@@ -11990,6 +12683,22 @@ ALTER TABLE ONLY public.customer_subscriptions
 
 ALTER TABLE ONLY public.customer_subscriptions
     ADD CONSTRAINT customer_subscriptions_stripe_subscription_id_key UNIQUE (stripe_subscription_id);
+
+
+--
+-- Name: customers customers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customers
+    ADD CONSTRAINT customers_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: customers customers_user_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customers
+    ADD CONSTRAINT customers_user_id_key UNIQUE (user_id);
 
 
 --
@@ -12153,6 +12862,14 @@ ALTER TABLE ONLY public.journal_entries
 
 
 --
+-- Name: journey_events journey_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.journey_events
+    ADD CONSTRAINT journey_events_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: lead_tracking_events lead_tracking_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -12241,6 +12958,14 @@ ALTER TABLE ONLY public.message_send_log
 
 
 --
+-- Name: messaging_campaigns messaging_campaigns_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.messaging_campaigns
+    ADD CONSTRAINT messaging_campaigns_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: order_items order_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -12262,6 +12987,14 @@ ALTER TABLE ONLY public.orders
 
 ALTER TABLE ONLY public.orders
     ADD CONSTRAINT orders_stripe_checkout_session_id_key UNIQUE (stripe_checkout_session_id);
+
+
+--
+-- Name: page_views page_views_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.page_views
+    ADD CONSTRAINT page_views_pkey PRIMARY KEY (id);
 
 
 --
@@ -12326,6 +13059,46 @@ ALTER TABLE ONLY public.scenes
 
 ALTER TABLE ONLY public.scheduled_messages
     ADD CONSTRAINT scheduled_messages_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sequence_enrollments sequence_enrollments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sequence_enrollments
+    ADD CONSTRAINT sequence_enrollments_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sequence_steps sequence_steps_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sequence_steps
+    ADD CONSTRAINT sequence_steps_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sequence_steps sequence_steps_sequence_id_step_order_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sequence_steps
+    ADD CONSTRAINT sequence_steps_sequence_id_step_order_key UNIQUE (sequence_id, step_order);
+
+
+--
+-- Name: sequences sequences_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sequences
+    ADD CONSTRAINT sequences_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sessions sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sessions
+    ADD CONSTRAINT sessions_pkey PRIMARY KEY (id);
 
 
 --
@@ -12737,6 +13510,22 @@ ALTER TABLE ONLY public.vision_versions
 
 
 --
+-- Name: visitors visitors_fingerprint_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitors
+    ADD CONSTRAINT visitors_fingerprint_key UNIQUE (fingerprint);
+
+
+--
+-- Name: visitors visitors_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitors
+    ADD CONSTRAINT visitors_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: viva_conversations viva_conversations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -12761,43 +13550,51 @@ ALTER TABLE ONLY realtime.messages
 
 
 --
--- Name: messages_2026_02_18 messages_2026_02_18_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
---
-
-ALTER TABLE ONLY realtime.messages_2026_02_18
-    ADD CONSTRAINT messages_2026_02_18_pkey PRIMARY KEY (id, inserted_at);
-
-
---
--- Name: messages_2026_02_19 messages_2026_02_19_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
---
-
-ALTER TABLE ONLY realtime.messages_2026_02_19
-    ADD CONSTRAINT messages_2026_02_19_pkey PRIMARY KEY (id, inserted_at);
-
-
---
--- Name: messages_2026_02_20 messages_2026_02_20_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
---
-
-ALTER TABLE ONLY realtime.messages_2026_02_20
-    ADD CONSTRAINT messages_2026_02_20_pkey PRIMARY KEY (id, inserted_at);
-
-
---
--- Name: messages_2026_02_21 messages_2026_02_21_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
---
-
-ALTER TABLE ONLY realtime.messages_2026_02_21
-    ADD CONSTRAINT messages_2026_02_21_pkey PRIMARY KEY (id, inserted_at);
-
-
---
 -- Name: messages_2026_02_22 messages_2026_02_22_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
 --
 
 ALTER TABLE ONLY realtime.messages_2026_02_22
     ADD CONSTRAINT messages_2026_02_22_pkey PRIMARY KEY (id, inserted_at);
+
+
+--
+-- Name: messages_2026_02_24 messages_2026_02_24_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages_2026_02_24
+    ADD CONSTRAINT messages_2026_02_24_pkey PRIMARY KEY (id, inserted_at);
+
+
+--
+-- Name: messages_2026_02_25 messages_2026_02_25_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages_2026_02_25
+    ADD CONSTRAINT messages_2026_02_25_pkey PRIMARY KEY (id, inserted_at);
+
+
+--
+-- Name: messages_2026_02_26 messages_2026_02_26_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages_2026_02_26
+    ADD CONSTRAINT messages_2026_02_26_pkey PRIMARY KEY (id, inserted_at);
+
+
+--
+-- Name: messages_2026_02_27 messages_2026_02_27_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages_2026_02_27
+    ADD CONSTRAINT messages_2026_02_27_pkey PRIMARY KEY (id, inserted_at);
+
+
+--
+-- Name: messages_2026_02_28 messages_2026_02_28_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages_2026_02_28
+    ADD CONSTRAINT messages_2026_02_28_pkey PRIMARY KEY (id, inserted_at);
 
 
 --
@@ -12916,6 +13713,34 @@ CREATE INDEX audit_logs_instance_id_idx ON auth.audit_log_entries USING btree (i
 --
 
 CREATE UNIQUE INDEX confirmation_token_idx ON auth.users USING btree (confirmation_token) WHERE ((confirmation_token)::text !~ '^[0-9 ]*$'::text);
+
+
+--
+-- Name: custom_oauth_providers_created_at_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX custom_oauth_providers_created_at_idx ON auth.custom_oauth_providers USING btree (created_at);
+
+
+--
+-- Name: custom_oauth_providers_enabled_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX custom_oauth_providers_enabled_idx ON auth.custom_oauth_providers USING btree (enabled);
+
+
+--
+-- Name: custom_oauth_providers_identifier_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX custom_oauth_providers_identifier_idx ON auth.custom_oauth_providers USING btree (identifier);
+
+
+--
+-- Name: custom_oauth_providers_provider_type_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX custom_oauth_providers_provider_type_idx ON auth.custom_oauth_providers USING btree (provider_type);
 
 
 --
@@ -13633,6 +14458,20 @@ CREATE INDEX idx_audio_voice_clones_user_id ON public.audio_voice_clones USING b
 
 
 --
+-- Name: idx_automation_rules_event; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_automation_rules_event ON public.automation_rules USING btree (event_name, status);
+
+
+--
+-- Name: idx_automation_rules_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_automation_rules_status ON public.automation_rules USING btree (status);
+
+
+--
 -- Name: idx_bookings_event_type; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -13738,6 +14577,34 @@ CREATE INDEX idx_campaigns_status ON public.marketing_campaigns USING btree (sta
 
 
 --
+-- Name: idx_cart_sessions_email; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_cart_sessions_email ON public.cart_sessions USING btree (email);
+
+
+--
+-- Name: idx_cart_sessions_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_cart_sessions_status ON public.cart_sessions USING btree (status);
+
+
+--
+-- Name: idx_cart_sessions_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_cart_sessions_user_id ON public.cart_sessions USING btree (user_id);
+
+
+--
+-- Name: idx_cart_sessions_visitor_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_cart_sessions_visitor_id ON public.cart_sessions USING btree (visitor_id);
+
+
+--
 -- Name: idx_conversation_sessions_category; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -13780,6 +14647,62 @@ CREATE INDEX idx_conversation_sessions_vision_id ON public.conversation_sessions
 
 
 --
+-- Name: idx_coupon_codes_batch_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_coupon_codes_batch_id ON public.coupon_codes USING btree (batch_id) WHERE (batch_id IS NOT NULL);
+
+
+--
+-- Name: idx_coupon_codes_code; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_coupon_codes_code ON public.coupon_codes USING btree (code);
+
+
+--
+-- Name: idx_coupon_codes_coupon_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_coupon_codes_coupon_id ON public.coupon_codes USING btree (coupon_id);
+
+
+--
+-- Name: idx_coupon_redemptions_code_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_coupon_redemptions_code_id ON public.coupon_redemptions USING btree (coupon_code_id);
+
+
+--
+-- Name: idx_coupon_redemptions_coupon_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_coupon_redemptions_coupon_id ON public.coupon_redemptions USING btree (coupon_id);
+
+
+--
+-- Name: idx_coupon_redemptions_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_coupon_redemptions_user_id ON public.coupon_redemptions USING btree (user_id);
+
+
+--
+-- Name: idx_coupons_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_coupons_active ON public.coupons USING btree (is_active);
+
+
+--
+-- Name: idx_coupons_campaign_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_coupons_campaign_id ON public.coupons USING btree (campaign_id);
+
+
+--
 -- Name: idx_customer_subscriptions_promo_code; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -13819,6 +14742,41 @@ CREATE INDEX idx_customer_subscriptions_stripe_subscription ON public.customer_s
 --
 
 CREATE INDEX idx_customer_subscriptions_user_id ON public.customer_subscriptions USING btree (user_id);
+
+
+--
+-- Name: idx_customers_first_utm_source; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_customers_first_utm_source ON public.customers USING btree (first_utm_source);
+
+
+--
+-- Name: idx_customers_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_customers_status ON public.customers USING btree (status);
+
+
+--
+-- Name: idx_customers_stripe_customer_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_customers_stripe_customer_id ON public.customers USING btree (stripe_customer_id);
+
+
+--
+-- Name: idx_customers_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_customers_user_id ON public.customers USING btree (user_id);
+
+
+--
+-- Name: idx_customers_visitor_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_customers_visitor_id ON public.customers USING btree (visitor_id);
 
 
 --
@@ -14130,6 +15088,34 @@ CREATE INDEX idx_intensive_responses_user_id ON public.intensive_responses USING
 
 
 --
+-- Name: idx_journey_events_created_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_journey_events_created_at ON public.journey_events USING btree (created_at);
+
+
+--
+-- Name: idx_journey_events_event_type; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_journey_events_event_type ON public.journey_events USING btree (event_type);
+
+
+--
+-- Name: idx_journey_events_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_journey_events_user_id ON public.journey_events USING btree (user_id);
+
+
+--
+-- Name: idx_journey_events_visitor_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_journey_events_visitor_id ON public.journey_events USING btree (visitor_id);
+
+
+--
 -- Name: idx_leads_campaign_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -14277,6 +15263,20 @@ CREATE INDEX idx_message_send_log_type ON public.message_send_log USING btree (m
 
 
 --
+-- Name: idx_messaging_campaigns_scheduled; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_messaging_campaigns_scheduled ON public.messaging_campaigns USING btree (scheduled_for) WHERE (status = 'scheduled'::text);
+
+
+--
+-- Name: idx_messaging_campaigns_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_messaging_campaigns_status ON public.messaging_campaigns USING btree (status);
+
+
+--
 -- Name: idx_order_items_order_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -14316,6 +15316,20 @@ CREATE INDEX idx_orders_status ON public.orders USING btree (status);
 --
 
 CREATE INDEX idx_orders_user_id ON public.orders USING btree (user_id);
+
+
+--
+-- Name: idx_page_views_session_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_page_views_session_id ON public.page_views USING btree (session_id);
+
+
+--
+-- Name: idx_page_views_visitor_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_page_views_visitor_id ON public.page_views USING btree (visitor_id);
 
 
 --
@@ -14435,6 +15449,76 @@ CREATE INDEX idx_scheduled_messages_scheduled_for ON public.scheduled_messages U
 --
 
 CREATE INDEX idx_scheduled_messages_status ON public.scheduled_messages USING btree (status);
+
+
+--
+-- Name: idx_sequence_enrollments_next; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_sequence_enrollments_next ON public.sequence_enrollments USING btree (status, next_step_at) WHERE (status = 'active'::text);
+
+
+--
+-- Name: idx_sequence_enrollments_sequence; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_sequence_enrollments_sequence ON public.sequence_enrollments USING btree (sequence_id, status);
+
+
+--
+-- Name: idx_sequence_enrollments_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_sequence_enrollments_unique ON public.sequence_enrollments USING btree (sequence_id, email) WHERE (status = 'active'::text);
+
+
+--
+-- Name: idx_sequence_enrollments_user; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_sequence_enrollments_user ON public.sequence_enrollments USING btree (user_id) WHERE (user_id IS NOT NULL);
+
+
+--
+-- Name: idx_sequence_steps_sequence; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_sequence_steps_sequence ON public.sequence_steps USING btree (sequence_id, step_order);
+
+
+--
+-- Name: idx_sequences_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_sequences_status ON public.sequences USING btree (status);
+
+
+--
+-- Name: idx_sequences_trigger; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_sequences_trigger ON public.sequences USING btree (trigger_event, status);
+
+
+--
+-- Name: idx_sessions_started_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_sessions_started_at ON public.sessions USING btree (started_at);
+
+
+--
+-- Name: idx_sessions_utm_source; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_sessions_utm_source ON public.sessions USING btree (utm_source);
+
+
+--
+-- Name: idx_sessions_visitor_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_sessions_visitor_id ON public.sessions USING btree (visitor_id);
 
 
 --
@@ -15453,6 +16537,34 @@ CREATE INDEX idx_vision_versions_richness_metadata ON public.vision_versions USI
 
 
 --
+-- Name: idx_visitors_fingerprint; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_visitors_fingerprint ON public.visitors USING btree (fingerprint);
+
+
+--
+-- Name: idx_visitors_first_seen_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_visitors_first_seen_at ON public.visitors USING btree (first_seen_at);
+
+
+--
+-- Name: idx_visitors_first_utm_source; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_visitors_first_utm_source ON public.visitors USING btree (first_utm_source);
+
+
+--
+-- Name: idx_visitors_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_visitors_user_id ON public.visitors USING btree (user_id);
+
+
+--
 -- Name: idx_viva_conversations_session; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -15516,38 +16628,45 @@ CREATE INDEX messages_inserted_at_topic_index ON ONLY realtime.messages USING bt
 
 
 --
--- Name: messages_2026_02_18_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: -
---
-
-CREATE INDEX messages_2026_02_18_inserted_at_topic_idx ON realtime.messages_2026_02_18 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
-
-
---
--- Name: messages_2026_02_19_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: -
---
-
-CREATE INDEX messages_2026_02_19_inserted_at_topic_idx ON realtime.messages_2026_02_19 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
-
-
---
--- Name: messages_2026_02_20_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: -
---
-
-CREATE INDEX messages_2026_02_20_inserted_at_topic_idx ON realtime.messages_2026_02_20 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
-
-
---
--- Name: messages_2026_02_21_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: -
---
-
-CREATE INDEX messages_2026_02_21_inserted_at_topic_idx ON realtime.messages_2026_02_21 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
-
-
---
 -- Name: messages_2026_02_22_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: -
 --
 
 CREATE INDEX messages_2026_02_22_inserted_at_topic_idx ON realtime.messages_2026_02_22 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
+
+
+--
+-- Name: messages_2026_02_24_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: -
+--
+
+CREATE INDEX messages_2026_02_24_inserted_at_topic_idx ON realtime.messages_2026_02_24 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
+
+
+--
+-- Name: messages_2026_02_25_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: -
+--
+
+CREATE INDEX messages_2026_02_25_inserted_at_topic_idx ON realtime.messages_2026_02_25 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
+
+
+--
+-- Name: messages_2026_02_26_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: -
+--
+
+CREATE INDEX messages_2026_02_26_inserted_at_topic_idx ON realtime.messages_2026_02_26 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
+
+
+--
+-- Name: messages_2026_02_27_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: -
+--
+
+CREATE INDEX messages_2026_02_27_inserted_at_topic_idx ON realtime.messages_2026_02_27 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
+
+
+--
+-- Name: messages_2026_02_28_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: -
+--
+
+CREATE INDEX messages_2026_02_28_inserted_at_topic_idx ON realtime.messages_2026_02_28 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
 
 
 --
@@ -15614,62 +16733,6 @@ CREATE UNIQUE INDEX vector_indexes_name_bucket_id_idx ON storage.vector_indexes 
 
 
 --
--- Name: messages_2026_02_18_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: -
---
-
-ALTER INDEX realtime.messages_inserted_at_topic_index ATTACH PARTITION realtime.messages_2026_02_18_inserted_at_topic_idx;
-
-
---
--- Name: messages_2026_02_18_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
---
-
-ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_02_18_pkey;
-
-
---
--- Name: messages_2026_02_19_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: -
---
-
-ALTER INDEX realtime.messages_inserted_at_topic_index ATTACH PARTITION realtime.messages_2026_02_19_inserted_at_topic_idx;
-
-
---
--- Name: messages_2026_02_19_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
---
-
-ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_02_19_pkey;
-
-
---
--- Name: messages_2026_02_20_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: -
---
-
-ALTER INDEX realtime.messages_inserted_at_topic_index ATTACH PARTITION realtime.messages_2026_02_20_inserted_at_topic_idx;
-
-
---
--- Name: messages_2026_02_20_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
---
-
-ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_02_20_pkey;
-
-
---
--- Name: messages_2026_02_21_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: -
---
-
-ALTER INDEX realtime.messages_inserted_at_topic_index ATTACH PARTITION realtime.messages_2026_02_21_inserted_at_topic_idx;
-
-
---
--- Name: messages_2026_02_21_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
---
-
-ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_02_21_pkey;
-
-
---
 -- Name: messages_2026_02_22_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: -
 --
 
@@ -15681,6 +16744,76 @@ ALTER INDEX realtime.messages_inserted_at_topic_index ATTACH PARTITION realtime.
 --
 
 ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_02_22_pkey;
+
+
+--
+-- Name: messages_2026_02_24_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_inserted_at_topic_index ATTACH PARTITION realtime.messages_2026_02_24_inserted_at_topic_idx;
+
+
+--
+-- Name: messages_2026_02_24_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_02_24_pkey;
+
+
+--
+-- Name: messages_2026_02_25_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_inserted_at_topic_index ATTACH PARTITION realtime.messages_2026_02_25_inserted_at_topic_idx;
+
+
+--
+-- Name: messages_2026_02_25_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_02_25_pkey;
+
+
+--
+-- Name: messages_2026_02_26_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_inserted_at_topic_index ATTACH PARTITION realtime.messages_2026_02_26_inserted_at_topic_idx;
+
+
+--
+-- Name: messages_2026_02_26_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_02_26_pkey;
+
+
+--
+-- Name: messages_2026_02_27_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_inserted_at_topic_index ATTACH PARTITION realtime.messages_2026_02_27_inserted_at_topic_idx;
+
+
+--
+-- Name: messages_2026_02_27_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_02_27_pkey;
+
+
+--
+-- Name: messages_2026_02_28_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_inserted_at_topic_index ATTACH PARTITION realtime.messages_2026_02_28_inserted_at_topic_idx;
+
+
+--
+-- Name: messages_2026_02_28_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_02_28_pkey;
 
 
 --
@@ -15873,6 +17006,13 @@ CREATE TRIGGER trigger_update_comment_hearts_count_insert AFTER INSERT ON public
 
 
 --
+-- Name: coupons trigger_update_coupons_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trigger_update_coupons_updated_at BEFORE UPDATE ON public.coupons FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
 -- Name: leads trigger_update_leads_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -16006,6 +17146,13 @@ CREATE TRIGGER update_audio_generation_batches_updated_at BEFORE UPDATE ON publi
 
 
 --
+-- Name: automation_rules update_automation_rules_timestamp; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_automation_rules_timestamp BEFORE UPDATE ON public.automation_rules FOR EACH ROW EXECUTE FUNCTION public.update_messaging_timestamp();
+
+
+--
 -- Name: bookings update_bookings_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -16055,6 +17202,13 @@ CREATE TRIGGER update_membership_tiers_updated_at BEFORE UPDATE ON public.member
 
 
 --
+-- Name: messaging_campaigns update_messaging_campaigns_timestamp; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_messaging_campaigns_timestamp BEFORE UPDATE ON public.messaging_campaigns FOR EACH ROW EXECUTE FUNCTION public.update_messaging_timestamp();
+
+
+--
 -- Name: scheduled_messages update_scheduled_messages_timestamp; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -16066,6 +17220,27 @@ CREATE TRIGGER update_scheduled_messages_timestamp BEFORE UPDATE ON public.sched
 --
 
 CREATE TRIGGER update_scores_on_response_change AFTER INSERT OR DELETE OR UPDATE ON public.assessment_responses FOR EACH ROW EXECUTE FUNCTION public.update_assessment_scores();
+
+
+--
+-- Name: sequence_enrollments update_sequence_enrollments_timestamp; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_sequence_enrollments_timestamp BEFORE UPDATE ON public.sequence_enrollments FOR EACH ROW EXECUTE FUNCTION public.update_messaging_timestamp();
+
+
+--
+-- Name: sequence_steps update_sequence_steps_timestamp; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_sequence_steps_timestamp BEFORE UPDATE ON public.sequence_steps FOR EACH ROW EXECUTE FUNCTION public.update_messaging_timestamp();
+
+
+--
+-- Name: sequences update_sequences_timestamp; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_sequences_timestamp BEFORE UPDATE ON public.sequences FOR EACH ROW EXECUTE FUNCTION public.update_messaging_timestamp();
 
 
 --
@@ -16438,11 +17613,19 @@ ALTER TABLE ONLY public.audio_voice_clones
 
 
 --
+-- Name: automation_rules automation_rules_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.automation_rules
+    ADD CONSTRAINT automation_rules_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+
+--
 -- Name: bookings bookings_cancelled_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.bookings
-    ADD CONSTRAINT bookings_cancelled_by_fkey FOREIGN KEY (cancelled_by) REFERENCES auth.users(id);
+    ADD CONSTRAINT bookings_cancelled_by_fkey FOREIGN KEY (cancelled_by) REFERENCES auth.users(id) ON DELETE SET NULL;
 
 
 --
@@ -16510,6 +17693,30 @@ ALTER TABLE ONLY public.calendar_events
 
 
 --
+-- Name: cart_sessions cart_sessions_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.cart_sessions
+    ADD CONSTRAINT cart_sessions_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id) ON DELETE SET NULL;
+
+
+--
+-- Name: cart_sessions cart_sessions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.cart_sessions
+    ADD CONSTRAINT cart_sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: cart_sessions cart_sessions_visitor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.cart_sessions
+    ADD CONSTRAINT cart_sessions_visitor_id_fkey FOREIGN KEY (visitor_id) REFERENCES public.visitors(id) ON DELETE SET NULL;
+
+
+--
 -- Name: conversation_sessions conversation_sessions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16523,6 +17730,62 @@ ALTER TABLE ONLY public.conversation_sessions
 
 ALTER TABLE ONLY public.conversation_sessions
     ADD CONSTRAINT conversation_sessions_vision_id_fkey FOREIGN KEY (vision_id) REFERENCES public.vision_versions(id) ON DELETE CASCADE;
+
+
+--
+-- Name: coupon_codes coupon_codes_coupon_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.coupon_codes
+    ADD CONSTRAINT coupon_codes_coupon_id_fkey FOREIGN KEY (coupon_id) REFERENCES public.coupons(id) ON DELETE CASCADE;
+
+
+--
+-- Name: coupon_redemptions coupon_redemptions_coupon_code_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.coupon_redemptions
+    ADD CONSTRAINT coupon_redemptions_coupon_code_id_fkey FOREIGN KEY (coupon_code_id) REFERENCES public.coupon_codes(id) ON DELETE CASCADE;
+
+
+--
+-- Name: coupon_redemptions coupon_redemptions_coupon_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.coupon_redemptions
+    ADD CONSTRAINT coupon_redemptions_coupon_id_fkey FOREIGN KEY (coupon_id) REFERENCES public.coupons(id) ON DELETE CASCADE;
+
+
+--
+-- Name: coupon_redemptions coupon_redemptions_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.coupon_redemptions
+    ADD CONSTRAINT coupon_redemptions_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id) ON DELETE SET NULL;
+
+
+--
+-- Name: coupon_redemptions coupon_redemptions_subscription_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.coupon_redemptions
+    ADD CONSTRAINT coupon_redemptions_subscription_id_fkey FOREIGN KEY (subscription_id) REFERENCES public.customer_subscriptions(id) ON DELETE SET NULL;
+
+
+--
+-- Name: coupon_redemptions coupon_redemptions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.coupon_redemptions
+    ADD CONSTRAINT coupon_redemptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: coupons coupons_campaign_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.coupons
+    ADD CONSTRAINT coupons_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES public.marketing_campaigns(id) ON DELETE SET NULL;
 
 
 --
@@ -16558,6 +17821,22 @@ ALTER TABLE ONLY public.customer_subscriptions
 
 
 --
+-- Name: customers customers_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customers
+    ADD CONSTRAINT customers_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: customers customers_visitor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customers
+    ADD CONSTRAINT customers_visitor_id_fkey FOREIGN KEY (visitor_id) REFERENCES public.visitors(id) ON DELETE SET NULL;
+
+
+--
 -- Name: daily_papers daily_papers_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16586,7 +17865,7 @@ ALTER TABLE ONLY public.email_messages
 --
 
 ALTER TABLE ONLY public.email_templates
-    ADD CONSTRAINT email_templates_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id);
+    ADD CONSTRAINT email_templates_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
 
 
 --
@@ -16650,7 +17929,7 @@ ALTER TABLE ONLY public.household_invitations
 --
 
 ALTER TABLE ONLY public.household_invitations
-    ADD CONSTRAINT household_invitations_invited_by_fkey FOREIGN KEY (invited_by) REFERENCES auth.users(id);
+    ADD CONSTRAINT household_invitations_invited_by_fkey FOREIGN KEY (invited_by) REFERENCES auth.users(id) ON DELETE SET NULL;
 
 
 --
@@ -16666,7 +17945,7 @@ ALTER TABLE ONLY public.household_members
 --
 
 ALTER TABLE ONLY public.household_members
-    ADD CONSTRAINT household_members_invited_by_fkey FOREIGN KEY (invited_by) REFERENCES auth.users(id);
+    ADD CONSTRAINT household_members_invited_by_fkey FOREIGN KEY (invited_by) REFERENCES auth.users(id) ON DELETE SET NULL;
 
 
 --
@@ -16726,6 +18005,38 @@ ALTER TABLE ONLY public.journal_entries
 
 
 --
+-- Name: journey_events journey_events_cart_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.journey_events
+    ADD CONSTRAINT journey_events_cart_session_id_fkey FOREIGN KEY (cart_session_id) REFERENCES public.cart_sessions(id) ON DELETE SET NULL;
+
+
+--
+-- Name: journey_events journey_events_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.journey_events
+    ADD CONSTRAINT journey_events_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id) ON DELETE SET NULL;
+
+
+--
+-- Name: journey_events journey_events_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.journey_events
+    ADD CONSTRAINT journey_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: journey_events journey_events_visitor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.journey_events
+    ADD CONSTRAINT journey_events_visitor_id_fkey FOREIGN KEY (visitor_id) REFERENCES public.visitors(id) ON DELETE SET NULL;
+
+
+--
 -- Name: lead_tracking_events lead_tracking_events_lead_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16766,6 +18077,14 @@ ALTER TABLE ONLY public.leads
 
 
 --
+-- Name: leads leads_visitor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.leads
+    ADD CONSTRAINT leads_visitor_id_fkey FOREIGN KEY (visitor_id) REFERENCES public.visitors(id) ON DELETE SET NULL;
+
+
+--
 -- Name: marketing_campaigns marketing_campaigns_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16787,6 +18106,14 @@ ALTER TABLE ONLY public.media_metadata
 
 ALTER TABLE ONLY public.membership_tiers
     ADD CONSTRAINT membership_tiers_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE SET NULL;
+
+
+--
+-- Name: messaging_campaigns messaging_campaigns_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.messaging_campaigns
+    ADD CONSTRAINT messaging_campaigns_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
 
 
 --
@@ -16822,11 +18149,43 @@ ALTER TABLE ONLY public.order_items
 
 
 --
+-- Name: orders orders_cart_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.orders
+    ADD CONSTRAINT orders_cart_session_id_fkey FOREIGN KEY (cart_session_id) REFERENCES public.cart_sessions(id) ON DELETE SET NULL;
+
+
+--
+-- Name: orders orders_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.orders
+    ADD CONSTRAINT orders_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id) ON DELETE SET NULL;
+
+
+--
 -- Name: orders orders_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.orders
     ADD CONSTRAINT orders_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: page_views page_views_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.page_views
+    ADD CONSTRAINT page_views_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id) ON DELETE CASCADE;
+
+
+--
+-- Name: page_views page_views_visitor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.page_views
+    ADD CONSTRAINT page_views_visitor_id_fkey FOREIGN KEY (visitor_id) REFERENCES public.visitors(id) ON DELETE CASCADE;
 
 
 --
@@ -16874,7 +18233,7 @@ ALTER TABLE ONLY public.scenes
 --
 
 ALTER TABLE ONLY public.scheduled_messages
-    ADD CONSTRAINT scheduled_messages_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id);
+    ADD CONSTRAINT scheduled_messages_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
 
 
 --
@@ -16899,6 +18258,46 @@ ALTER TABLE ONLY public.scheduled_messages
 
 ALTER TABLE ONLY public.scheduled_messages
     ADD CONSTRAINT scheduled_messages_sms_template_id_fkey FOREIGN KEY (sms_template_id) REFERENCES public.sms_templates(id) ON DELETE SET NULL;
+
+
+--
+-- Name: sequence_enrollments sequence_enrollments_sequence_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sequence_enrollments
+    ADD CONSTRAINT sequence_enrollments_sequence_id_fkey FOREIGN KEY (sequence_id) REFERENCES public.sequences(id) ON DELETE CASCADE;
+
+
+--
+-- Name: sequence_enrollments sequence_enrollments_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sequence_enrollments
+    ADD CONSTRAINT sequence_enrollments_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: sequence_steps sequence_steps_sequence_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sequence_steps
+    ADD CONSTRAINT sequence_steps_sequence_id_fkey FOREIGN KEY (sequence_id) REFERENCES public.sequences(id) ON DELETE CASCADE;
+
+
+--
+-- Name: sequences sequences_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sequences
+    ADD CONSTRAINT sequences_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: sessions sessions_visitor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sessions
+    ADD CONSTRAINT sessions_visitor_id_fkey FOREIGN KEY (visitor_id) REFERENCES public.visitors(id) ON DELETE CASCADE;
 
 
 --
@@ -16930,7 +18329,7 @@ ALTER TABLE ONLY public.sms_messages
 --
 
 ALTER TABLE ONLY public.sms_templates
-    ADD CONSTRAINT sms_templates_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id);
+    ADD CONSTRAINT sms_templates_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
 
 
 --
@@ -16978,7 +18377,7 @@ ALTER TABLE ONLY public.support_ticket_replies
 --
 
 ALTER TABLE ONLY public.support_ticket_replies
-    ADD CONSTRAINT support_ticket_replies_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id);
+    ADD CONSTRAINT support_ticket_replies_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
 
 
 --
@@ -17002,7 +18401,7 @@ ALTER TABLE ONLY public.support_tickets
 --
 
 ALTER TABLE ONLY public.token_transactions
-    ADD CONSTRAINT token_transactions_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id);
+    ADD CONSTRAINT token_transactions_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
 
 
 --
@@ -17295,7 +18694,7 @@ ALTER TABLE ONLY public.video_session_participants
 --
 
 ALTER TABLE ONLY public.video_session_participants
-    ADD CONSTRAINT video_session_participants_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+    ADD CONSTRAINT video_session_participants_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
 
 --
@@ -17467,6 +18866,14 @@ ALTER TABLE ONLY public.vision_versions
 
 
 --
+-- Name: visitors visitors_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitors
+    ADD CONSTRAINT visitors_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+
+--
 -- Name: viva_conversations viva_conversations_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -17617,6 +19024,20 @@ ALTER TABLE auth.sso_providers ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE auth.users ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: coupon_codes Active coupon codes are viewable by everyone; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Active coupon codes are viewable by everyone" ON public.coupon_codes FOR SELECT USING ((is_active = true));
+
+
+--
+-- Name: coupons Active coupons are viewable by everyone; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Active coupons are viewable by everyone" ON public.coupons FOR SELECT USING ((is_active = true));
+
 
 --
 -- Name: membership_tiers Active membership tiers are viewable by everyone; Type: POLICY; Schema: public; Owner: -
@@ -17966,6 +19387,13 @@ CREATE POLICY "Anyone can read audio variants" ON public.audio_variants FOR SELE
 
 
 --
+-- Name: cart_sessions Anyone can read cart sessions; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Anyone can read cart sessions" ON public.cart_sessions FOR SELECT USING (true);
+
+
+--
 -- Name: ai_model_pricing Anyone can read model pricing; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -18180,6 +19608,27 @@ CREATE POLICY "Service role can manage all refinements" ON public.refinements US
 
 
 --
+-- Name: coupon_codes Service role can manage coupon codes; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Service role can manage coupon codes" ON public.coupon_codes USING ((auth.role() = 'service_role'::text)) WITH CHECK ((auth.role() = 'service_role'::text));
+
+
+--
+-- Name: coupon_redemptions Service role can manage coupon redemptions; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Service role can manage coupon redemptions" ON public.coupon_redemptions USING ((auth.role() = 'service_role'::text)) WITH CHECK ((auth.role() = 'service_role'::text));
+
+
+--
+-- Name: coupons Service role can manage coupons; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Service role can manage coupons" ON public.coupons USING ((auth.role() = 'service_role'::text)) WITH CHECK ((auth.role() = 'service_role'::text));
+
+
+--
 -- Name: order_items Service role can manage order items; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -18219,6 +19668,83 @@ CREATE POLICY "Service role can update audio generation batches" ON public.audio
 --
 
 CREATE POLICY "Service role can update badges" ON public.user_badges FOR UPDATE TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: automation_rules Service role full access on automation_rules; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Service role full access on automation_rules" ON public.automation_rules USING (true) WITH CHECK (true);
+
+
+--
+-- Name: cart_sessions Service role full access on cart_sessions; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Service role full access on cart_sessions" ON public.cart_sessions USING ((auth.role() = 'service_role'::text));
+
+
+--
+-- Name: customers Service role full access on customers; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Service role full access on customers" ON public.customers USING ((auth.role() = 'service_role'::text));
+
+
+--
+-- Name: journey_events Service role full access on journey_events; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Service role full access on journey_events" ON public.journey_events USING ((auth.role() = 'service_role'::text));
+
+
+--
+-- Name: messaging_campaigns Service role full access on messaging_campaigns; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Service role full access on messaging_campaigns" ON public.messaging_campaigns USING (true) WITH CHECK (true);
+
+
+--
+-- Name: page_views Service role full access on page_views; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Service role full access on page_views" ON public.page_views USING ((auth.role() = 'service_role'::text));
+
+
+--
+-- Name: sequence_enrollments Service role full access on sequence_enrollments; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Service role full access on sequence_enrollments" ON public.sequence_enrollments USING (true) WITH CHECK (true);
+
+
+--
+-- Name: sequence_steps Service role full access on sequence_steps; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Service role full access on sequence_steps" ON public.sequence_steps USING (true) WITH CHECK (true);
+
+
+--
+-- Name: sequences Service role full access on sequences; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Service role full access on sequences" ON public.sequences USING (true) WITH CHECK (true);
+
+
+--
+-- Name: sessions Service role full access on sessions; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Service role full access on sessions" ON public.sessions USING ((auth.role() = 'service_role'::text));
+
+
+--
+-- Name: visitors Service role full access on visitors; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Service role full access on visitors" ON public.visitors USING ((auth.role() = 'service_role'::text));
 
 
 --
@@ -18725,6 +20251,13 @@ CREATE POLICY "Users can manage their voice profile" ON public.voice_profiles US
 
 
 --
+-- Name: customers Users can read own customer record; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can read own customer record" ON public.customers FOR SELECT USING ((auth.uid() = user_id));
+
+
+--
 -- Name: vibe_hearts Users can remove their own hearts; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -19122,6 +20655,13 @@ CREATE POLICY "Users can view own profile" ON public.user_profiles FOR SELECT US
 
 
 --
+-- Name: coupon_redemptions Users can view own redemptions; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can view own redemptions" ON public.coupon_redemptions FOR SELECT USING ((auth.uid() = user_id));
+
+
+--
 -- Name: user_storage Users can view own storage grants; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -19431,6 +20971,12 @@ ALTER TABLE public.audio_variants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audio_voice_clones ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: automation_rules; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.automation_rules ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: bookings; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -19554,16 +21100,46 @@ CREATE POLICY calendar_staff_select ON public.calendar_events FOR SELECT USING (
 
 
 --
+-- Name: cart_sessions; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.cart_sessions ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: conversation_sessions; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.conversation_sessions ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: coupon_codes; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.coupon_codes ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: coupon_redemptions; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.coupon_redemptions ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: coupons; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: customer_subscriptions; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.customer_subscriptions ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: customers; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: daily_papers; Type: ROW SECURITY; Schema: public; Owner: -
@@ -19668,6 +21244,12 @@ ALTER TABLE public.intensive_responses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.journal_entries ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: journey_events; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.journey_events ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: lead_tracking_events; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -19704,6 +21286,12 @@ ALTER TABLE public.membership_tiers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.message_send_log ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: messaging_campaigns; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.messaging_campaigns ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: order_items; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -19728,6 +21316,12 @@ CREATE POLICY overrides_modify ON public.ai_action_token_overrides TO authentica
 
 CREATE POLICY overrides_select ON public.ai_action_token_overrides FOR SELECT TO authenticated USING (true);
 
+
+--
+-- Name: page_views; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.page_views ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: payment_history; Type: ROW SECURITY; Schema: public; Owner: -
@@ -19764,6 +21358,30 @@ ALTER TABLE public.scenes ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.scheduled_messages ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: sequence_enrollments; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.sequence_enrollments ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: sequence_steps; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.sequence_steps ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: sequences; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.sequences ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: sessions; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.sessions ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: sms_messages; Type: ROW SECURITY; Schema: public; Owner: -
@@ -20098,6 +21716,12 @@ ALTER TABLE public.vision_refinements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.vision_versions ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: visitors; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.visitors ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: viva_conversations; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -20429,5 +22053,5 @@ CREATE EVENT TRIGGER pgrst_drop_watch ON sql_drop
 -- PostgreSQL database dump complete
 --
 
-\unrestrict kDhUcgz0UG9TSPecbG2SifYMQ5eo6hmYaqw12t847eXT2SprYedAgzTf7hfjhJ9
+\unrestrict BgaVFla6tm6gePB7AxVNpXvXw0Qv3zCfZCkxQerxHHfVmiZWjCTyIJd4dbsib73
 

@@ -1,53 +1,65 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button, Card, Container, Input } from '@/lib/design-system/components'
-import { Lock, CheckCircle, Eye, EyeOff, Clock } from 'lucide-react'
+import { Lock, CheckCircle, Eye, EyeOff, Clock, Spinner } from 'lucide-react'
 
 export default function SetupPasswordPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const isIntensive = searchParams.get('intensive') === 'true'
-  
+
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [checking, setChecking] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [hasIntensive, setHasIntensive] = useState(false)
 
   useEffect(() => {
     const checkUser = async () => {
       const supabase = createClient()
-      
-      // Wait a moment for auth to fully establish
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (user) {
-        setUserEmail(user.email || null)
 
-        // If user already has a password, skip this page
-        if (user.user_metadata?.has_password === true) {
-          if (isIntensive) {
-            window.location.href = '/intensive/start'
-          } else {
-            window.location.href = '/dashboard'
-          }
-        }
-      } else {
-        // No session - redirect to login
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (!user) {
         router.push('/auth/login')
+        return
       }
+
+      setUserEmail(user.email || null)
+
+      // Check DB for active intensive enrollment
+      const { data: checklist } = await supabase
+        .from('intensive_checklist')
+        .select('id')
+        .eq('user_id', user.id)
+        .in('status', ['pending', 'in_progress'])
+        .maybeSingle()
+
+      setHasIntensive(!!checklist)
+
+      // If user already has a password, redirect based on DB state
+      if (user.user_metadata?.has_password === true) {
+        if (checklist) {
+          window.location.href = '/intensive/start'
+        } else {
+          window.location.href = '/dashboard'
+        }
+        return
+      }
+
+      setChecking(false)
     }
-    
+
     checkUser()
-  }, [isIntensive, router])
+  }, [router])
 
   const handleSetupPassword = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -68,37 +80,41 @@ export default function SetupPasswordPage() {
 
     try {
       const supabase = createClient()
-      
-      // Update user password and mark as having a password
+
       const { data, error: updateError } = await supabase.auth.updateUser({
         password: password,
-        data: {
-          has_password: true,
-        },
+        data: { has_password: true },
       })
 
-      if (updateError) {
-        throw updateError
-      }
+      if (updateError) throw updateError
 
       console.log('Password set for:', data.user?.email)
       setSuccess(true)
 
-      // Redirect after brief success state
       setTimeout(() => {
-        if (isIntensive) {
+        if (hasIntensive) {
           window.location.href = '/intensive/start'
         } else {
           window.location.href = '/dashboard'
         }
       }, 1500)
-
     } catch (err: any) {
       console.error('Password setup error:', err)
       setError(err.message || 'Failed to set password')
     } finally {
       setLoading(false)
     }
+  }
+
+  if (checking) {
+    return (
+      <Container size="sm" className="py-16 text-center">
+        <div className="bg-primary-500/10 border-2 border-primary-500 rounded-2xl p-12">
+          <Spinner className="w-8 h-8 text-primary-500 animate-spin mx-auto mb-4" />
+          <p className="text-neutral-300">Setting up your account...</p>
+        </div>
+      </Container>
+    )
   }
 
   return (
@@ -111,8 +127,8 @@ export default function SetupPasswordPage() {
           Welcome to Vibration Fit
         </h1>
         <p className="text-base md:text-lg text-neutral-300">
-          {isIntensive
-            ? 'Create your password to start your 72‑Hour Activation.'
+          {hasIntensive
+            ? 'Create your password to start your 72-Hour Activation.'
             : 'Set your password to secure your account'}
         </p>
       </div>
@@ -125,7 +141,7 @@ export default function SetupPasswordPage() {
             </div>
             <h2 className="text-xl md:text-2xl font-bold mb-2">Password Set</h2>
             <p className="text-sm md:text-base text-neutral-300">
-              Redirecting to your {isIntensive ? 'intensive' : 'dashboard'}...
+              Redirecting to your {hasIntensive ? 'intensive' : 'dashboard'}...
             </p>
           </div>
         ) : (
@@ -141,76 +157,76 @@ export default function SetupPasswordPage() {
               </div>
             )}
             <form onSubmit={handleSetupPassword} className="space-y-6">
-            <div className="relative">
-              <Input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                label="Create Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                helperText="Must be at least 8 characters"
-                required
-                disabled={loading}
-                className="pr-12"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-[3.375rem] -translate-y-1/2 text-neutral-400 hover:text-neutral-300 transition-colors"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-              >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-            </div>
-
-            <div className="relative">
-              <Input
-                id="confirmPassword"
-                type={showConfirm ? 'text' : 'password'}
-                label="Confirm Password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm your password"
-                required
-                disabled={loading}
-                className="pr-12"
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirm(!showConfirm)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 translate-y-1 text-neutral-400 hover:text-neutral-300 transition-colors"
-                aria-label={showConfirm ? 'Hide password' : 'Show password'}
-              >
-                {showConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-            </div>
-
-            {error && (
-              <div className="bg-red-500/10 border-2 border-red-500 text-red-400 px-4 py-3 rounded-xl text-xs md:text-sm">
-                {error}
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  label="Create Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  helperText="Must be at least 8 characters"
+                  required
+                  disabled={loading}
+                  className="pr-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-[3.375rem] -translate-y-1/2 text-neutral-400 hover:text-neutral-300 transition-colors"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
               </div>
-            )}
 
-            <Button
-              type="submit"
-              variant="primary"
-              size="lg"
-              className="w-full"
-              loading={loading}
-            >
-              {loading ? 'Setting Password...' : 'Set Password & Continue'}
-            </Button>
-
-            {isIntensive && (
-              <div className="bg-primary-500/10 border-2 border-primary-500/30 px-4 py-3 rounded-xl flex items-start gap-3">
-                <Clock className="w-5 h-5 text-primary-500 mt-0.5 flex-shrink-0" />
-                <p className="text-primary-500 text-xs md:text-sm">
-                  Your 72-hour activation window begins when you start your intensive on the next page.
-                </p>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirm ? 'text' : 'password'}
+                  label="Confirm Password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm your password"
+                  required
+                  disabled={loading}
+                  className="pr-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 translate-y-1 text-neutral-400 hover:text-neutral-300 transition-colors"
+                  aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                >
+                  {showConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
               </div>
-            )}
-          </form>
+
+              {error && (
+                <div className="bg-red-500/10 border-2 border-red-500 text-red-400 px-4 py-3 rounded-xl text-xs md:text-sm">
+                  {error}
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                className="w-full"
+                loading={loading}
+              >
+                {loading ? 'Setting Password...' : 'Set Password & Continue'}
+              </Button>
+
+              {hasIntensive && (
+                <div className="bg-primary-500/10 border-2 border-primary-500/30 px-4 py-3 rounded-xl flex items-start gap-3">
+                  <Clock className="w-5 h-5 text-primary-500 mt-0.5 flex-shrink-0" />
+                  <p className="text-primary-500 text-xs md:text-sm">
+                    Your 72-hour activation window begins when you start your intensive on the next page.
+                  </p>
+                </div>
+              )}
+            </form>
           </>
         )}
       </Card>

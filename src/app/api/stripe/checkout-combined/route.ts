@@ -242,8 +242,7 @@ You can cancel anytime before the first billing to avoid charges.`
         },
       },
       
-      // Customer info
-      customer_email: undefined, // Let Stripe collect email
+      // Guest checkout: Stripe collects email; webhook reuses customer via findOrCreateStripeCustomerByEmail
       
       // Success/Cancel URLs
       success_url: `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/auto-login?session_id={CHECKOUT_SESSION_ID}&email={CHECKOUT_SESSION_CUSTOMER_EMAIL}&continuity_plan=${continuityPlan}`,

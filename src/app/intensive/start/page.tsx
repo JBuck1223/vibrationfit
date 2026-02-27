@@ -66,7 +66,7 @@ export default function IntensiveStartPage() {
       // Guard: ensure user has set a password before accessing intensive
       const hasPassword = await checkUserHasPassword(supabase, user)
       if (!hasPassword) {
-        window.location.href = '/auth/setup-password?intensive=true'
+        window.location.href = '/auth/setup-password'
         return
       }
 

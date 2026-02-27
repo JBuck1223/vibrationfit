@@ -221,7 +221,7 @@ function IntensiveDashboardContent() {
       if (!isSuperAdmin) {
         const hasPassword = await checkUserHasPassword(supabase, user)
         if (!hasPassword) {
-          window.location.href = '/auth/setup-password?intensive=true'
+          window.location.href = '/auth/setup-password'
           return
         }
       }

@@ -27,6 +27,7 @@ import {
   Radio,
   GitBranch,
   Send,
+  ShoppingBag,
 } from 'lucide-react'
 
 interface AdminSection {
@@ -79,6 +80,13 @@ const crmSections: AdminSection[] = [
     href: '/admin/crm/utm-builder',
     icon: Link2,
     color: 'text-neutral-400',
+  },
+  {
+    title: 'Orders & Emails',
+    description: 'Order status & email delivery',
+    href: '/admin/orders',
+    icon: ShoppingBag,
+    color: 'text-green-400',
   },
 ]
 

@@ -67,12 +67,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL('/intensive/check-email?email=' + email, request.url))
     }
 
-    // Redirect to client-side verification page (to handle session properly)
     const verifyUrl = new URL('/auth/verify', request.url)
     verifyUrl.searchParams.set('token_hash', token)
     verifyUrl.searchParams.set('type', type)
-    verifyUrl.searchParams.set('intensive', 'true')
-    
+
     return NextResponse.redirect(verifyUrl.toString())
 
   } catch (error) {

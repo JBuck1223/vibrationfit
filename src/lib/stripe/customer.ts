@@ -6,34 +6,70 @@ import Stripe from 'stripe'
 import { createClient } from '@/lib/supabase/server'
 
 /**
- * Get or create a Stripe customer for a user
+ * Find an existing Stripe customer by email, or create one.
+ * Checks Supabase first (fast), then searches Stripe by email to avoid duplicates.
  */
-export async function getOrCreateStripeCustomer(userId: string, email: string): Promise<string> {
+export async function getOrCreateStripeCustomer(
+  userId: string,
+  email: string,
+  extra?: { name?: string; phone?: string }
+): Promise<string> {
   if (!stripe) {
     throw new Error('Stripe not configured - missing STRIPE_SECRET_KEY')
   }
 
   const supabase = await createClient()
-  
-  // Check if user already has a subscription with a customer ID
+
   const { data: existingSubscription } = await supabase
     .from('customer_subscriptions')
     .select('stripe_customer_id')
     .eq('user_id', userId)
-    .single()
+    .limit(1)
+    .maybeSingle()
 
   if (existingSubscription?.stripe_customer_id) {
     return existingSubscription.stripe_customer_id
   }
 
-  // Create new Stripe customer
+  return findOrCreateStripeCustomerByEmail(email, {
+    ...extra,
+    metadata: { supabase_user_id: userId },
+  })
+}
+
+/**
+ * Standalone helper: find or create a Stripe customer by email.
+ * Usable from webhooks and other contexts that don't have a server Supabase client.
+ */
+export async function findOrCreateStripeCustomerByEmail(
+  email: string,
+  opts?: { name?: string; phone?: string; metadata?: Record<string, string> }
+): Promise<string> {
+  if (!stripe) {
+    throw new Error('Stripe not configured - missing STRIPE_SECRET_KEY')
+  }
+
+  const existing = await stripe.customers.list({ email, limit: 1 })
+  if (existing.data.length > 0) {
+    const cust = existing.data[0]
+    const updates: Stripe.CustomerUpdateParams = {}
+    if (opts?.name && !cust.name) updates.name = opts.name
+    if (opts?.phone && !cust.phone) updates.phone = opts.phone
+    if (opts?.metadata) {
+      updates.metadata = { ...((cust.metadata as Record<string, string>) || {}), ...opts.metadata }
+    }
+    if (Object.keys(updates).length > 0) {
+      await stripe.customers.update(cust.id, updates).catch(() => {})
+    }
+    return cust.id
+  }
+
   const customer = await stripe.customers.create({
     email,
-    metadata: {
-      supabase_user_id: userId,
-    },
+    name: opts?.name || undefined,
+    phone: opts?.phone || undefined,
+    metadata: opts?.metadata || {},
   })
-
   return customer.id
 }
 
