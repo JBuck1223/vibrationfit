@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements } from '@stripe/react-stripe-js'
@@ -49,6 +49,7 @@ export default function CartCheckoutPage() {
   const [promoDiscount, setPromoDiscount] = useState<{ label: string; amountOff: number } | null>(null)
   const [validatingPromo, setValidatingPromo] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
+  const hasAutoAppliedPromo = useRef(false)
 
   useEffect(() => {
     async function loadCart() {
@@ -106,6 +107,43 @@ export default function CartCheckoutPage() {
       metadata,
     }
   }, [cart])
+
+  // Auto-apply promo when pre-filled from cart (e.g. ?promo=launch2026 from homepage)
+  useEffect(() => {
+    if (
+      hasAutoAppliedPromo.current ||
+      !cart?.items?.[0] ||
+      !product ||
+      !promoCode.trim() ||
+      promoDiscount !== null
+    ) return
+    hasAutoAppliedPromo.current = true
+    setValidatingPromo(true)
+    const item = cart.items[0]
+    fetch('/api/billing/coupons/validate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code: promoCode,
+        productKey: item.product_key,
+        purchaseAmount: product.amount,
+      }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.valid) {
+          setPromoDiscount(null)
+          return
+        }
+        const amountOff = data.discountAmount
+          ?? (data.percent_off
+            ? Math.round(product.amount * data.percent_off / 100)
+            : data.amount_off || 0)
+        setPromoDiscount({ label: data.name || promoCode, amountOff })
+      })
+      .catch(() => setPromoDiscount(null))
+      .finally(() => setValidatingPromo(false))
+  }, [cart, product, promoCode, promoDiscount])
 
   const { submitLabel, submitLabelShort } = useMemo(() => {
     if (!product) return { submitLabel: 'Complete Purchase', submitLabelShort: undefined }

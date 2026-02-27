@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect, Suspense } from 'react'
+import { useState, useMemo, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements } from '@stripe/react-stripe-js'
@@ -79,6 +79,7 @@ function CheckoutContent() {
   const [promoDiscount, setPromoDiscount] = useState<{ label: string; amountOff: number } | null>(null)
   const [validatingPromo, setValidatingPromo] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
+  const hasAutoAppliedPromo = useRef(false)
 
   const referralSource = searchParams.get('ref') || ''
   const campaignName = searchParams.get('campaign') || ''
@@ -106,6 +107,41 @@ function CheckoutContent() {
         ? `Pay $${todayDollars}`
         : undefined
   const submitLabelShort = product ? `Pay $${todayDollars}` : undefined
+
+  // Auto-apply promo when present in URL (e.g. ?promo=launch2026) so total shows $1 without clicking Apply
+  useEffect(() => {
+    if (
+      hasAutoAppliedPromo.current ||
+      !product ||
+      !promoCode.trim() ||
+      promoDiscount !== null
+    ) return
+    hasAutoAppliedPromo.current = true
+    setValidatingPromo(true)
+    fetch('/api/billing/coupons/validate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code: promoCode,
+        productKey: searchParams.get('product') || undefined,
+        purchaseAmount: product.amount,
+      }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.valid) {
+          setPromoDiscount(null)
+          return
+        }
+        const amountOff = data.discountAmount
+          ?? (data.percent_off
+            ? Math.round(product.amount * data.percent_off / 100)
+            : data.amount_off || 0)
+        setPromoDiscount({ label: data.name || promoCode, amountOff })
+      })
+      .catch(() => setPromoDiscount(null))
+      .finally(() => setValidatingPromo(false))
+  }, [product, promoCode, promoDiscount, searchParams])
 
   async function validatePromo() {
     if (!promoCode.trim()) return
