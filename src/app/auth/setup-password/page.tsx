@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button, Card, Container, Input } from '@/lib/design-system/components'
-import { Lock, CheckCircle, Eye, EyeOff, Clock, Spinner } from 'lucide-react'
+import { Lock, CheckCircle, Eye, EyeOff, Clock, Loader2 } from 'lucide-react'
 
 export default function SetupPasswordPage() {
   const router = useRouter()
@@ -110,7 +110,7 @@ export default function SetupPasswordPage() {
     return (
       <Container size="sm" className="py-16 text-center">
         <div className="bg-primary-500/10 border-2 border-primary-500 rounded-2xl p-12">
-          <Spinner className="w-8 h-8 text-primary-500 animate-spin mx-auto mb-4" />
+          <Loader2 className="w-8 h-8 text-primary-500 animate-spin mx-auto mb-4" />
           <p className="text-neutral-300">Setting up your account...</p>
         </div>
       </Container>
