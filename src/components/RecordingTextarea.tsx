@@ -175,7 +175,24 @@ export function RecordingTextarea({
   // Quick mode: Start inline recording immediately
   const startQuickRecording = async () => {
     try {
+      // Force-reset any stuck state from a previous recording
+      setIsUploading(false)
+      setIsQuickRecording(false)
       setUploadError(null)
+
+      // Clean up any leftover resources from a prior session
+      if (quickAnimationFrameRef.current) {
+        cancelAnimationFrame(quickAnimationFrameRef.current)
+        quickAnimationFrameRef.current = null
+      }
+      if (quickAudioContextRef.current) {
+        try { quickAudioContextRef.current.close() } catch { /* already closed */ }
+        quickAudioContextRef.current = null
+      }
+      if (quickStreamRef.current) {
+        quickStreamRef.current.getTracks().forEach(track => track.stop())
+        quickStreamRef.current = null
+      }
       
       // Request default microphone (no device selection)
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
@@ -194,7 +211,6 @@ export function RecordingTextarea({
       
       const dataArray = new Uint8Array(analyser.frequencyBinCount)
       
-      // Update audio level in animation frame
       const updateLevel = () => {
         if (!quickAnalyserRef.current) return
         
@@ -211,7 +227,7 @@ export function RecordingTextarea({
         mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
           ? 'audio/webm;codecs=opus' 
           : 'audio/webm',
-        audioBitsPerSecond: 48000 // 48kbps - sufficient for speech transcription
+        audioBitsPerSecond: 48000
       })
       
       quickMediaRecorderRef.current = mediaRecorder
@@ -224,104 +240,111 @@ export function RecordingTextarea({
       }
       
       mediaRecorder.onstop = async () => {
-        if (quickAnimationFrameRef.current) {
-          cancelAnimationFrame(quickAnimationFrameRef.current)
-        }
-        if (quickAudioContextRef.current) {
-          quickAudioContextRef.current.close()
-        }
-        setQuickAudioLevel(0)
-        
-        if (quickStreamRef.current) {
-          quickStreamRef.current.getTracks().forEach(track => track.stop())
-        }
-        
-        const blob = new Blob(quickChunksRef.current, { type: 'audio/webm' })
-        
-        if (blob.size === 0) {
-          setUploadError('Recording failed - no data captured')
-          setIsQuickRecording(false)
-          setQuickRecordingDuration(0)
-          return
-        }
-        
-        setIsUploading(true)
-        const MAX_ATTEMPTS = 2
-        const TIMEOUT_MS = 4 * 60 * 1000
+        // Guarantee state cleanup no matter what happens
+        try {
+          if (quickAnimationFrameRef.current) {
+            cancelAnimationFrame(quickAnimationFrameRef.current)
+            quickAnimationFrameRef.current = null
+          }
+          if (quickAudioContextRef.current) {
+            try { quickAudioContextRef.current.close() } catch { /* already closed */ }
+            quickAudioContextRef.current = null
+          }
+          setQuickAudioLevel(0)
+          
+          if (quickStreamRef.current) {
+            quickStreamRef.current.getTracks().forEach(track => track.stop())
+            quickStreamRef.current = null
+          }
+          
+          const blob = new Blob(quickChunksRef.current, { type: 'audio/webm' })
+          
+          if (blob.size === 0) {
+            setUploadError('Recording failed - no data captured')
+            return
+          }
+          
+          setIsUploading(true)
+          const MAX_ATTEMPTS = 2
+          const TIMEOUT_MS = 4 * 60 * 1000
 
-        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-          const controller = new AbortController()
-          const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS)
+          for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            const controller = new AbortController()
+            const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS)
 
-          try {
-            const formData = new FormData()
-            formData.append('audio', blob, 'recording.webm')
-            
-            const response = await fetch('/api/transcribe', {
-              method: 'POST',
-              body: formData,
-              signal: controller.signal
-            })
-            
-            clearTimeout(timeoutId)
-            
-            if (!response.ok) {
-              let errorMsg = 'Transcription failed'
-              let retryable = false
-              try {
-                const errorData = await response.json()
-                errorMsg = errorData.error || errorMsg
-                retryable = errorData.retryable === true || response.status >= 500
-              } catch { /* use default */ }
+            try {
+              const formData = new FormData()
+              formData.append('audio', blob, 'recording.webm')
               
-              if (retryable && attempt < MAX_ATTEMPTS) {
+              const response = await fetch('/api/transcribe', {
+                method: 'POST',
+                body: formData,
+                signal: controller.signal
+              })
+              
+              clearTimeout(timeoutId)
+              
+              if (!response.ok) {
+                let errorMsg = 'Transcription failed'
+                let retryable = false
+                try {
+                  const errorData = await response.json()
+                  errorMsg = errorData.error || errorMsg
+                  retryable = errorData.retryable === true || response.status >= 500
+                } catch { /* use default */ }
+                
+                if (retryable && attempt < MAX_ATTEMPTS) {
+                  await new Promise(r => setTimeout(r, 2000))
+                  continue
+                }
+                throw new Error(errorMsg)
+              }
+              
+              const data = await response.json()
+              const transcript = data.transcript || ''
+              
+              const newValue = value 
+                ? `${value}\n\n${transcript}`
+                : transcript
+              onChange(newValue)
+              break
+            } catch (err: any) {
+              clearTimeout(timeoutId)
+
+              const isRetryable = 
+                err.name === 'AbortError' ||
+                err.message?.includes('Failed to fetch') ||
+                err.message?.includes('NetworkError')
+
+              if (isRetryable && attempt < MAX_ATTEMPTS) {
                 await new Promise(r => setTimeout(r, 2000))
                 continue
               }
-              throw new Error(errorMsg)
-            }
-            
-            const data = await response.json()
-            const transcript = data.transcript || ''
-            
-            const newValue = value 
-              ? `${value}\n\n${transcript}`
-              : transcript
-            onChange(newValue)
-            break
-          } catch (err: any) {
-            clearTimeout(timeoutId)
 
-            const isRetryable = 
-              err.name === 'AbortError' ||
-              err.message?.includes('Failed to fetch') ||
-              err.message?.includes('NetworkError')
-
-            if (isRetryable && attempt < MAX_ATTEMPTS) {
-              await new Promise(r => setTimeout(r, 2000))
-              continue
+              console.error('Quick transcription error:', err)
+              if (err.name === 'AbortError') {
+                setUploadError('Transcription timed out. Try a shorter recording or check your connection.')
+              } else {
+                setUploadError(err.message || 'Failed to transcribe audio. Please try again.')
+              }
+              break
             }
-
-            console.error('Quick transcription error:', err)
-            if (err.name === 'AbortError') {
-              setUploadError('Transcription timed out. Try a shorter recording or check your connection.')
-            } else {
-              setUploadError(err.message || 'Failed to transcribe audio. Please try again.')
-            }
-            break
           }
+        } catch (err) {
+          console.error('Unexpected error in onstop handler:', err)
+          setUploadError('Something went wrong. Please try again.')
+        } finally {
+          // Always reset state so the mic button is usable again
+          setIsUploading(false)
+          setIsQuickRecording(false)
+          setQuickRecordingDuration(0)
         }
-
-        setIsUploading(false)
-        setIsQuickRecording(false)
-        setQuickRecordingDuration(0)
       }
       
       mediaRecorder.start(1000)
       setIsQuickRecording(true)
       setQuickRecordingDuration(0)
       
-      // Start timer
       quickTimerRef.current = setInterval(() => {
         setQuickRecordingDuration(prev => prev + 1)
       }, 1000)
@@ -338,6 +361,7 @@ export function RecordingTextarea({
       
       setUploadError(errorMessage)
       setIsQuickRecording(false)
+      setIsUploading(false)
     }
   }
 
@@ -345,10 +369,16 @@ export function RecordingTextarea({
   const stopQuickRecording = () => {
     if (quickTimerRef.current) {
       clearInterval(quickTimerRef.current)
+      quickTimerRef.current = null
     }
     
-    if (quickMediaRecorderRef.current && isQuickRecording) {
+    if (quickMediaRecorderRef.current && quickMediaRecorderRef.current.state === 'recording') {
       quickMediaRecorderRef.current.stop()
+    } else {
+      // Recorder already stopped or inactive -- force cleanup
+      setIsQuickRecording(false)
+      setIsUploading(false)
+      setQuickRecordingDuration(0)
     }
   }
 
