@@ -287,14 +287,14 @@ export default function ProfileRefinePage() {
             {renderField({ label: 'Status', value: profile.relationship_status, fieldKey: 'relationship_status' }, showHighlight, isEditable)}
             {renderField({ label: 'Partner', value: profile.partner_name, fieldKey: 'partner_name' }, showHighlight, isEditable)}
             {renderField({ label: 'Relationship Length', value: profile.relationship_length, fieldKey: 'relationship_length' }, showHighlight, isEditable)}
-            {renderField({ label: "What's going well?", value: profile.clarity_love, fieldKey: 'clarity_love', type: 'story' }, showHighlight, isEditable)}            {renderField({ label: "What's not working?", value: profile.contrast_love, fieldKey: 'contrast_love', type: 'story' }, showHighlight, isEditable)}          </div>
+            {renderField({ label: "Current State", value: profile.state_love, fieldKey: 'state_love', type: 'story' }, showHighlight, isEditable)}          </div>
         )
       
       case 'family':
         return (
           <div className="space-y-4">
             {renderField({ label: 'Has Children', value: profile.has_children, fieldKey: 'has_children', type: 'boolean' }, showHighlight, isEditable)}
-            {renderField({ label: "What's going well?", value: profile.clarity_family, fieldKey: 'clarity_family', type: 'story' }, showHighlight, isEditable)}            {renderField({ label: "What's not working?", value: profile.contrast_family, fieldKey: 'contrast_family', type: 'story' }, showHighlight, isEditable)}          </div>
+            {renderField({ label: "Current State", value: profile.state_family, fieldKey: 'state_family', type: 'story' }, showHighlight, isEditable)}          </div>
         )
       
       case 'health':
@@ -303,7 +303,7 @@ export default function ProfileRefinePage() {
             {renderField({ label: 'Height', value: profile.height, fieldKey: 'height', type: 'number' }, showHighlight, isEditable)}
             {renderField({ label: 'Weight', value: profile.weight, fieldKey: 'weight', type: 'number' }, showHighlight, isEditable)}
             {renderField({ label: 'Exercise Frequency', value: profile.exercise_frequency, fieldKey: 'exercise_frequency' }, showHighlight, isEditable)}
-            {renderField({ label: "What's going well?", value: profile.clarity_health, fieldKey: 'clarity_health', type: 'story' }, showHighlight, isEditable)}            {renderField({ label: "What's not working?", value: profile.contrast_health, fieldKey: 'contrast_health', type: 'story' }, showHighlight, isEditable)}          </div>
+            {renderField({ label: "Current State", value: profile.state_health, fieldKey: 'state_health', type: 'story' }, showHighlight, isEditable)}          </div>
         )
       
       case 'home':
@@ -313,7 +313,7 @@ export default function ProfileRefinePage() {
             {renderField({ label: 'City', value: profile.city, fieldKey: 'city' }, showHighlight, isEditable)}
             {renderField({ label: 'State', value: profile.state, fieldKey: 'state' }, showHighlight, isEditable)}
             {renderField({ label: 'Country', value: profile.country, fieldKey: 'country' }, showHighlight, isEditable)}
-            {renderField({ label: "What's going well?", value: profile.clarity_home, fieldKey: 'clarity_home', type: 'story' }, showHighlight, isEditable)}            {renderField({ label: "What's not working?", value: profile.contrast_home, fieldKey: 'contrast_home', type: 'story' }, showHighlight, isEditable)}          </div>
+            {renderField({ label: "Current State", value: profile.state_home, fieldKey: 'state_home', type: 'story' }, showHighlight, isEditable)}          </div>
         )
       
       case 'work':
@@ -322,7 +322,7 @@ export default function ProfileRefinePage() {
             {renderField({ label: 'Employment Type', value: profile.employment_type, fieldKey: 'employment_type' }, showHighlight, isEditable)}
             {renderField({ label: 'Occupation', value: profile.occupation, fieldKey: 'occupation' }, showHighlight, isEditable)}
             {renderField({ label: 'Company', value: profile.company, fieldKey: 'company' }, showHighlight, isEditable)}
-            {renderField({ label: "What's going well?", value: profile.clarity_work, fieldKey: 'clarity_work', type: 'story' }, showHighlight, isEditable)}            {renderField({ label: "What's not working?", value: profile.contrast_work, fieldKey: 'contrast_work', type: 'story' }, showHighlight, isEditable)}          </div>
+            {renderField({ label: "Current State", value: profile.state_work, fieldKey: 'state_work', type: 'story' }, showHighlight, isEditable)}          </div>
         )
       
       case 'money':
@@ -330,7 +330,7 @@ export default function ProfileRefinePage() {
           <div className="space-y-4">
             {renderField({ label: 'Household Income', value: profile.household_income, fieldKey: 'household_income' }, showHighlight, isEditable)}
             {renderField({ label: 'Savings & Retirement', value: profile.savings_retirement, fieldKey: 'savings_retirement' }, showHighlight, isEditable)}
-            {renderField({ label: "What's going well?", value: profile.clarity_money, fieldKey: 'clarity_money', type: 'story' }, showHighlight, isEditable)}            {renderField({ label: "What's not working?", value: profile.contrast_money, fieldKey: 'contrast_money', type: 'story' }, showHighlight, isEditable)}          </div>
+            {renderField({ label: "Current State", value: profile.state_money, fieldKey: 'state_money', type: 'story' }, showHighlight, isEditable)}          </div>
         )
       
       case 'fun':
@@ -338,7 +338,7 @@ export default function ProfileRefinePage() {
           <div className="space-y-4">
             {renderField({ label: 'Hobbies', value: profile.hobbies, fieldKey: 'hobbies', type: 'array' }, showHighlight, isEditable)}
             {renderField({ label: 'Leisure Time Weekly', value: profile.leisure_time_weekly, fieldKey: 'leisure_time_weekly' }, showHighlight, isEditable)}
-            {renderField({ label: "What's going well?", value: profile.clarity_fun, fieldKey: 'clarity_fun', type: 'story' }, showHighlight, isEditable)}            {renderField({ label: "What's not working?", value: profile.contrast_fun, fieldKey: 'contrast_fun', type: 'story' }, showHighlight, isEditable)}          </div>
+            {renderField({ label: "Current State", value: profile.state_fun, fieldKey: 'state_fun', type: 'story' }, showHighlight, isEditable)}          </div>
         )
       
       case 'travel':
@@ -346,7 +346,7 @@ export default function ProfileRefinePage() {
           <div className="space-y-4">
             {renderField({ label: 'Travel Frequency', value: profile.travel_frequency, fieldKey: 'travel_frequency' }, showHighlight, isEditable)}
             {renderField({ label: 'Countries Visited', value: profile.countries_visited, fieldKey: 'countries_visited', type: 'number' }, showHighlight, isEditable)}
-            {renderField({ label: "What's going well?", value: profile.clarity_travel, fieldKey: 'clarity_travel', type: 'story' }, showHighlight, isEditable)}            {renderField({ label: "What's not working?", value: profile.contrast_travel, fieldKey: 'contrast_travel', type: 'story' }, showHighlight, isEditable)}          </div>
+            {renderField({ label: "Current State", value: profile.state_travel, fieldKey: 'state_travel', type: 'story' }, showHighlight, isEditable)}          </div>
         )
       
       case 'social':
@@ -354,14 +354,14 @@ export default function ProfileRefinePage() {
           <div className="space-y-4">
             {renderField({ label: 'Close Friends Count', value: profile.close_friends_count, fieldKey: 'close_friends_count' }, showHighlight, isEditable)}
             {renderField({ label: 'Social Preference', value: profile.social_preference, fieldKey: 'social_preference' }, showHighlight, isEditable)}
-            {renderField({ label: "What's going well?", value: profile.clarity_social, fieldKey: 'clarity_social', type: 'story' }, showHighlight, isEditable)}            {renderField({ label: "What's not working?", value: profile.contrast_social, fieldKey: 'contrast_social', type: 'story' }, showHighlight, isEditable)}          </div>
+            {renderField({ label: "Current State", value: profile.state_social, fieldKey: 'state_social', type: 'story' }, showHighlight, isEditable)}          </div>
         )
       
       case 'stuff':
         return (
           <div className="space-y-4">
             {renderField({ label: 'Lifestyle Category', value: profile.lifestyle_category, fieldKey: 'lifestyle_category' }, showHighlight, isEditable)}
-            {renderField({ label: "What's going well?", value: profile.clarity_stuff, fieldKey: 'clarity_stuff', type: 'story' }, showHighlight, isEditable)}            {renderField({ label: "What's not working?", value: profile.contrast_stuff, fieldKey: 'contrast_stuff', type: 'story' }, showHighlight, isEditable)}          </div>
+            {renderField({ label: "Current State", value: profile.state_stuff, fieldKey: 'state_stuff', type: 'story' }, showHighlight, isEditable)}          </div>
         )
       
       case 'spirituality':
@@ -369,7 +369,7 @@ export default function ProfileRefinePage() {
           <div className="space-y-4">
             {renderField({ label: 'Spiritual Practice', value: profile.spiritual_practice, fieldKey: 'spiritual_practice' }, showHighlight, isEditable)}
             {renderField({ label: 'Meditation Frequency', value: profile.meditation_frequency, fieldKey: 'meditation_frequency' }, showHighlight, isEditable)}
-            {renderField({ label: "What's going well?", value: profile.clarity_spirituality, fieldKey: 'clarity_spirituality', type: 'story' }, showHighlight, isEditable)}            {renderField({ label: "What's not working?", value: profile.contrast_spirituality, fieldKey: 'contrast_spirituality', type: 'story' }, showHighlight, isEditable)}          </div>
+            {renderField({ label: "Current State", value: profile.state_spirituality, fieldKey: 'state_spirituality', type: 'story' }, showHighlight, isEditable)}          </div>
         )
       
       case 'giving':
@@ -377,7 +377,7 @@ export default function ProfileRefinePage() {
           <div className="space-y-4">
             {renderField({ label: 'Volunteer Status', value: profile.volunteer_status, fieldKey: 'volunteer_status' }, showHighlight, isEditable)}
             {renderField({ label: 'Charitable Giving', value: profile.charitable_giving, fieldKey: 'charitable_giving' }, showHighlight, isEditable)}
-            {renderField({ label: "What's going well?", value: profile.clarity_giving, fieldKey: 'clarity_giving', type: 'story' }, showHighlight, isEditable)}            {renderField({ label: "What's not working?", value: profile.contrast_giving, fieldKey: 'contrast_giving', type: 'story' }, showHighlight, isEditable)}          </div>
+            {renderField({ label: "Current State", value: profile.state_giving, fieldKey: 'state_giving', type: 'story' }, showHighlight, isEditable)}          </div>
         )
       
       default:

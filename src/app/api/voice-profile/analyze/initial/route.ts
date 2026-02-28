@@ -45,19 +45,19 @@ function normalizeEnum<T extends string | number>(value: unknown, allowed: reado
   return allowed.includes(value as T) ? (value as T) : fallback
 }
 
-const CLARITY_FIELDS = [
-  'clarity_love',
-  'clarity_family',
-  'clarity_work',
-  'clarity_money',
-  'clarity_home',
-  'clarity_health',
-  'clarity_fun',
-  'clarity_travel',
-  'clarity_social',
-  'clarity_stuff',
-  'clarity_giving',
-  'clarity_spirituality',
+const STATE_FIELDS = [
+  'state_love',
+  'state_family',
+  'state_work',
+  'state_money',
+  'state_home',
+  'state_health',
+  'state_fun',
+  'state_travel',
+  'state_social',
+  'state_stuff',
+  'state_giving',
+  'state_spirituality',
 ] as const
 
 export async function POST() {
@@ -90,20 +90,19 @@ export async function POST() {
       return NextResponse.json({ error: 'No active user profile found.' }, { status: 404 })
     }
 
-    // Collect clarity fields
+    // Collect state fields
     const samples: string[] = []
 
-    // Add clarity fields
-    CLARITY_FIELDS.forEach((field) => {
+    STATE_FIELDS.forEach((field) => {
       const value = userProfile[field]
       if (value && typeof value === 'string' && value.trim().length > 0) {
-        samples.push(`CLARITY (${field.replace('clarity_', '')}): ${value}`)
+        samples.push(`STATE (${field.replace('state_', '')}): ${value}`)
       }
     })
 
     if (samples.length === 0) {
       return NextResponse.json(
-        { error: 'No clarity fields found in user profile. Complete your profile first.' },
+        { error: 'No state fields found in user profile. Complete your profile first.' },
         { status: 400 }
       )
     }
@@ -170,7 +169,7 @@ export async function POST() {
         metadata: {
           sample_count: samples.length,
           has_existing_profile: Boolean(currentProfile),
-          source: 'clarity_fields',
+          source: 'state_fields',
         },
       }
     )

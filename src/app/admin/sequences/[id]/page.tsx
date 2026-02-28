@@ -368,6 +368,10 @@ function SequenceDetailContent() {
   const [enrollmentFilter, setEnrollmentFilter] = useState<string>('')
   const [showAddStep, setShowAddStep] = useState(false)
   const [editingStepId, setEditingStepId] = useState<string | null>(null)
+  const [showEnrollForm, setShowEnrollForm] = useState(false)
+  const [enrollForm, setEnrollForm] = useState({ email: '', name: '' })
+  const [enrolling, setEnrolling] = useState(false)
+  const [enrollError, setEnrollError] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     name: '',
@@ -532,6 +536,29 @@ function SequenceDetailContent() {
       body: JSON.stringify({ enrollment_id: enrollmentId, action }),
     })
     if (res.ok) await fetchData()
+  }
+
+  const handleManualEnroll = async () => {
+    if (!enrollForm.email) return
+    setEnrolling(true)
+    setEnrollError(null)
+    const res = await fetch(`/api/admin/sequences/${id}/enrollments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: enrollForm.email,
+        name: enrollForm.name || undefined,
+      }),
+    })
+    if (res.ok) {
+      await fetchData()
+      setShowEnrollForm(false)
+      setEnrollForm({ email: '', name: '' })
+    } else {
+      const data = await res.json()
+      setEnrollError(data.error || 'Failed to enroll')
+    }
+    setEnrolling(false)
   }
 
   const getTemplateName = (templateId: string, channel: string) => {
@@ -854,7 +881,55 @@ function SequenceDetailContent() {
 
         {/* Section C: Enrollments */}
         <Card variant="elevated" className="p-6 md:p-8">
-          <h2 className="text-lg font-semibold text-white mb-6">Enrollments</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-semibold text-white">Enrollments</h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowEnrollForm((v) => !v)}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Enroll User
+            </Button>
+          </div>
+
+          {showEnrollForm && (
+            <div className="p-4 bg-neutral-900 rounded-xl border-2 border-primary-500/50 space-y-4 mb-6">
+              <h3 className="text-sm font-semibold text-white">Manual Enrollment</h3>
+              {enrollError && (
+                <div className="p-3 rounded-lg bg-red-500/20 border border-red-500/50 text-red-400 text-sm">
+                  {enrollError}
+                </div>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#E5E7EB] mb-2">Email *</label>
+                  <Input
+                    type="email"
+                    placeholder="user@example.com"
+                    value={enrollForm.email}
+                    onChange={(e) => setEnrollForm((f) => ({ ...f, email: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#E5E7EB] mb-2">Name</label>
+                  <Input
+                    placeholder="First Last (optional)"
+                    value={enrollForm.name}
+                    onChange={(e) => setEnrollForm((f) => ({ ...f, name: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="primary" onClick={handleManualEnroll} disabled={!enrollForm.email || enrolling}>
+                  {enrolling ? 'Enrolling...' : 'Enroll'}
+                </Button>
+                <Button variant="outline" onClick={() => { setShowEnrollForm(false); setEnrollError(null) }}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
 
           <div className="flex gap-2 mb-4">
             <button

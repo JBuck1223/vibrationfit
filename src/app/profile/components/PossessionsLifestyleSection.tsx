@@ -548,10 +548,11 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
         </div>
 
         <RecordingTextarea
-          label={`What's your current state of ${getVisionCategoryLabel(visionToRecordingKey('stuff'))}?`}
+          label={`Current State of ${getVisionCategoryLabel(visionToRecordingKey('stuff'))}`}
+          description="Talk about the things in your life — your possessions, lifestyle, and material world. What do you enjoy and what feels like clutter or like something's missing? Be open about what serves you and what doesn't."
           value={profile.state_stuff || ''}
           onChange={(value) => handleInputChange('state_stuff', value)}
-          placeholder="Describe your current state - what's going well, what you'd like to change, how you feel about this area of your life... Or record your thoughts!"
+          placeholder="Type or click the microphone to turn your voice into text."
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"

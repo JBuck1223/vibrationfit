@@ -432,10 +432,11 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload, on
         </div>
 
         <RecordingTextarea
-          label={`What's your current state of ${getVisionCategoryLabel('money')}?`}
+          label={`Current State of ${getVisionCategoryLabel('money')}`}
+          description="Be real about your financial life right now. Where do you feel secure and where does money stress you out? The more honest you are about both sides, the more your vision will resonate and motivate you."
           value={profile.state_money || ''}
           onChange={(value) => handleInputChange('state_money', value)}
-          placeholder="Describe your current state - what's going well, what you'd like to change, how you feel about this area of your life... Or record your thoughts!"
+          placeholder="Type or click the microphone to turn your voice into text."
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"

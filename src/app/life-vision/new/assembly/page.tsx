@@ -384,10 +384,9 @@ export default function AssemblyPage() {
             body: JSON.stringify({
               categoryKey,
               idealStateText: state?.ideal_state || '',
-              clarityPresentStateText: state?.clarity_keys?.[0] || '',
-              contrastFlips: state?.contrast_flips || [],
-              scenes: [], // Not used in simplified flow
-              blueprintData: null, // Not used in simplified flow
+              currentStateText: state?.clarity_keys?.[0] || '',
+              scenes: [],
+              blueprintData: null,
               transcript: '',
               perspective
             }),
@@ -509,10 +508,9 @@ export default function AssemblyPage() {
               body: JSON.stringify({
                 categoryKey,
                 idealStateText: state?.ideal_state || '',
-                clarityPresentStateText: state?.clarity_keys?.[0] || '',
-                contrastFlips: state?.contrast_flips || [],
-                scenes: [], // Not used in simplified flow
-                blueprintData: null, // Not used in simplified flow
+                currentStateText: state?.clarity_keys?.[0] || '',
+                scenes: [],
+                blueprintData: null,
                 transcript: '',
                 perspective
               }),

@@ -273,10 +273,11 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
 
         {/* State Field */}
         <RecordingTextarea
-          label="What's your current state of Fun & Recreation?"
+          label="Current State of Fun & Recreation"
+          description="Explain what fun looks like in your day-to-day reality. What do you do that feels really fun and what potentially feels like it's missing? Be thorough explaining what's going well and venting about what's not going well — we will use this later when crafting your vision."
           value={profile.state_fun || ''}
           onChange={(value) => handleInputChange('state_fun', value)}
-          placeholder="Describe your current state - what's going well, what you'd like to change, how you feel about this area of your life... Or record your thoughts!"
+          placeholder="Type or click the microphone to turn your voice into text."
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"

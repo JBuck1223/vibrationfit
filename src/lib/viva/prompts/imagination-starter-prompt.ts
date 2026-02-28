@@ -2,12 +2,12 @@
  * Imagination Starter Prompt
  * 
  * Generates a draft "Get Me Started" text for the imagination step.
- * Uses raw profile data (clarity + contrast) and category-specific facts
+ * Uses raw profile data (state) and category-specific facts
  * to create a starting point the user can edit and expand.
  * 
  * KEY PHILOSOPHY:
  * - Use their RAW language (no pre-processed AI content)
- * - Flip contrast to positive WITHIN this prompt
+ * - Identify challenges from state and flip to positive WITHIN this prompt
  * - Output is meant to be EDITED, not final
  * - Leave room for expansion - don't be "complete"
  * - Natural, conversational voice they'll want to personalize
@@ -103,17 +103,13 @@ function formatProfileContext(categoryKey: LifeCategoryKey, profileData: Record<
  * Calculate input richness to determine output length
  */
 function calculateInputRichness(
-  clarityText: string,
-  contrastText: string,
+  stateText: string,
   profileData: Record<string, any>
 ): { totalWords: number; richness: 'minimal' | 'moderate' | 'rich' | 'very_rich' } {
-  const clarityWords = clarityText?.trim().split(/\s+/).filter(Boolean).length || 0
-  const contrastWords = contrastText?.trim().split(/\s+/).filter(Boolean).length || 0
+  const stateWords = stateText?.trim().split(/\s+/).filter(Boolean).length || 0
   const profileFieldCount = Object.keys(profileData).length
   
-  // Estimate total input "weight"
-  const totalWords = clarityWords + contrastWords
-  const adjustedTotal = totalWords + (profileFieldCount * 5) // Each profile field adds ~5 words of context
+  const adjustedTotal = stateWords + (profileFieldCount * 5)
   
   let richness: 'minimal' | 'moderate' | 'rich' | 'very_rich'
   if (adjustedTotal < 30) {
@@ -134,8 +130,7 @@ function calculateInputRichness(
  * 
  * @param categoryKey - The category (fun, health, etc.)
  * @param categoryLabel - Human-readable label (Fun, Health, etc.)
- * @param clarityText - Raw clarity text from profile (what's working)
- * @param contrastText - Raw contrast text from profile (what's not working - will be flipped)
+ * @param stateText - Raw state text from profile (holistic description of where they are now)
  * @param profileData - Category-specific profile fields
  * @param inspirationQuestions - A few questions to weave in
  * @param perspective - singular (I/my) or plural (we/our)
@@ -143,8 +138,7 @@ function calculateInputRichness(
 export function buildImaginationStarterPrompt(
   categoryKey: LifeCategoryKey,
   categoryLabel: string,
-  clarityText: string,
-  contrastText: string,
+  stateText: string,
   profileData: Record<string, any>,
   inspirationQuestions: string[],
   perspective: 'singular' | 'plural' = 'singular'
@@ -153,18 +147,15 @@ export function buildImaginationStarterPrompt(
   const emotionalTarget = CATEGORY_EMOTIONAL_TARGETS[categoryKey]
   const profileContext = formatProfileContext(categoryKey, profileData)
   
-  // Calculate input richness to determine output length
-  const { totalWords, richness } = calculateInputRichness(clarityText, contrastText, profileData)
+  const { totalWords, richness } = calculateInputRichness(stateText, profileData)
   
-  // Dynamic length guidance based on input richness
   const lengthGuidance = {
     minimal: 'Write 100-150 words. Keep it simple since input is brief.',
     moderate: 'Write 150-250 words. Cover the main themes from their input.',
-    rich: 'Write 250-400 words. Fully explore each topic from their clarity and contrast.',
+    rich: 'Write 250-400 words. Fully explore each topic from their state description.',
     very_rich: 'Write 400-600 words. This person has shared a lot - honor all of it. Multiple paragraphs, each topic addressed.'
   }[richness]
   
-  // Pick questions based on richness
   const questionCount = richness === 'minimal' ? 2 : richness === 'moderate' ? 3 : 4
   const selectedQuestions = inspirationQuestions.slice(0, questionCount).join('\n- ')
   
@@ -178,16 +169,11 @@ EMOTIONAL TARGET: ${emotionalTarget}
 RAW INPUT FROM THEIR PROFILE (use their words and details)
 ═══════════════════════════════════════════════════════════════
 
-${clarityText ? `WHAT'S ALREADY WORKING (clarity):
-"${clarityText}"
+${stateText ? `CURRENT STATE (their description of where they are now):
+"${stateText}"
 
-` : ''}${contrastText ? `WHAT THEY WANT TO CHANGE (contrast - flip this to positive):
-"${contrastText}"
-
-The contrast shows what they DON'T want. Transform this into what they DO want.
-Example: "I never have time for fun" → "I make space for play and joy flows naturally"
-Example: "My partner and I fight constantly" → "We communicate with ease and understanding"
-
+Use their current state to understand what's working and what they want to change.
+Transform challenges into positive vision while preserving what's already good.
 ` : ''}${profileContext ? `GROUNDING FACTS:
 ${profileContext}
 
@@ -207,8 +193,8 @@ Do NOT pad with generic filler if input is brief.
 
 Write a DRAFT imagination text that:
 
-1. USES THEIR WORDS - borrow phrasing from clarity text heavily
-2. FLIPS CONTRAST TO POSITIVE - transform what's not working into what IS working
+1. USES THEIR WORDS - borrow phrasing from their state description heavily
+2. FLIPS CHALLENGES TO POSITIVE - identify challenges from their state description and transform to positive
 3. GROUNDS IN FACTS - use their actual details (names, places, numbers)
 4. PRESENT TENSE - everything is happening NOW
 5. LEAVES ROOM - this is a starting point, not a finished vision

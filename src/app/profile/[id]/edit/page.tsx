@@ -846,9 +846,9 @@ export default function ProfileEditPage() {
               'lifestyle_category',
               'spiritual_practice', 'meditation_frequency', 'personal_growth_focus',
               'volunteer_status', 'charitable_giving', 'legacy_mindset',
-              'clarity_fun', 'clarity_health', 'clarity_travel', 'clarity_love', 'clarity_family',
-              'clarity_social', 'clarity_home', 'clarity_work', 'clarity_money', 'clarity_stuff',
-              'clarity_giving', 'clarity_spirituality'
+              'state_fun', 'state_health', 'state_travel', 'state_love', 'state_family',
+              'state_social', 'state_home', 'state_work', 'state_money', 'state_stuff',
+              'state_giving', 'state_spirituality'
             ]
             
             const missingOrEmpty = fieldsToCheck.filter(field => {

@@ -321,10 +321,11 @@ export function LocationSection({ profile, onProfileChange, onProfileReload, onS
         </div>
 
         <RecordingTextarea
-          label={`What's your current state of ${getVisionCategoryLabel('home')}?`}
+          label={`Current State of ${getVisionCategoryLabel('home')}`}
+          description="Describe what your living situation feels like right now. What do you love about your home and environment, and what feels like it's not quite right? Paint the full picture — the cozy parts and the frustrations."
           value={profile.state_home || ''}
           onChange={(value) => handleInputChange('state_home', value)}
-          placeholder="Describe your current state - what's going well, what you'd like to change, how you feel about this area of your life... Or record your thoughts!"
+          placeholder="Type or click the microphone to turn your voice into text."
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"

@@ -213,10 +213,11 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
         </div>
 
         <RecordingTextarea
-          label={`What's your current state of ${getVisionCategoryLabel('spirituality')}?`}
+          label={`Current State of ${getVisionCategoryLabel('spirituality')}`}
+          description="Share where you are with your inner life — your spiritual practice, personal growth, and sense of alignment. What grounds you and where do you feel lost or searching? This honest reflection shapes a vision rooted in who you really are."
           value={profile.state_spirituality || ''}
           onChange={(value) => handleInputChange('state_spirituality', value)}
-          placeholder="Describe your current state - what's going well, what you'd like to change, how you feel about this area of your life... Or record your thoughts!"
+          placeholder="Type or click the microphone to turn your voice into text."
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"

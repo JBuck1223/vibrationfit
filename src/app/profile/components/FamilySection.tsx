@@ -222,10 +222,11 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
 
         {/* State Field */}
         <RecordingTextarea
-          label={`What's your current state of ${getVisionCategoryLabel('family')}?`}
+          label={`Current State of ${getVisionCategoryLabel('family')}`}
+          description="Talk about your family dynamics right now. What feels nourishing and what feels heavy or complicated? Be thorough about the good and the tough parts — this gives us the full picture for crafting your vision."
           value={profile.state_family || ''}
           onChange={(value) => handleInputChange('state_family', value)}
-          placeholder="Describe your current state - what's going well, what you'd like to change, how you feel about this area of your life... Or record your thoughts!"
+          placeholder="Type or click the microphone to turn your voice into text."
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"

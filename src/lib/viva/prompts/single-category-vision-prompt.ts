@@ -13,8 +13,7 @@ export interface IndividualCategoryParams {
   categoryKey: VisionCategoryKey
   categoryLabel: string
   idealStateText: string
-  clarityPresentStateText?: string
-  contrastFlips: string[]
+  currentStateText?: string
   perspective?: 'singular' | 'plural'
 }
 
@@ -227,8 +226,7 @@ Alignment is natural. I return to it easily.`
  * @param categoryKey - The category key (e.g., 'fun', 'health')
  * @param categoryLabel - The category label (e.g., 'Fun', 'Health')
  * @param idealStateText - User's imagination text (PRIMARY SOURCE)
- * @param clarityPresentStateText - Clarity text from profile (what's already going well)
- * @param contrastFlips - Array of contrast flips
+ * @param currentStateText - Current state text from profile (holistic description of where they are now)
  * @param _scenes - Array of scene objects (not used in polish mode)
  * @param _blueprintData - Blueprint data (not used in polish mode)
  * @param _transcript - Raw transcript (not used in polish mode)
@@ -240,8 +238,7 @@ export function buildIndividualCategoryPrompt(
   categoryKey: string,
   categoryLabel: string,
   idealStateText: string,
-  clarityPresentStateText: string,
-  contrastFlips: string[],
+  currentStateText: string,
   _scenes: any[], // Not used in polish mode
   _blueprintData: any, // Not used in polish mode
   _transcript: string, // Not used in polish mode
@@ -250,11 +247,6 @@ export function buildIndividualCategoryPrompt(
 ): string {
   const categoryMicroTuning = CATEGORY_MICRO_TUNING[categoryKey] || ''
   const pronoun = perspective === 'plural' ? 'we/our' : 'I/my'
-
-  // Format contrast flips
-  const contrastFlipsText = contrastFlips
-    .filter(f => f && f.trim())
-    .join('\n')
 
   return `You are VIVA. Your job is to POLISH the member's imagination text into a flowing vision.
 
@@ -270,19 +262,12 @@ ${idealStateText || '(No imagination text provided)'}
 ═══════════════════════════════════════════════════════════════
 INVISIBLE ANCHORS (DO NOT QUOTE OR INSERT - let these SHAPE the output)
 ═══════════════════════════════════════════════════════════════
-${clarityPresentStateText ? `
-CLARITY (what's already true for them):
-${clarityPresentStateText}
+${currentStateText ? `
+CURRENT STATE (what's true for them now):
+${currentStateText}
 
-Use this to: Add grounding specifics, acknowledge what's working, inform tone.
-DO NOT: Copy this text. DO NOT insert it as a paragraph. DO NOT reference it directly.
-` : ''}
-${contrastFlipsText ? `
-CONTRAST FLIPS (what they've chosen instead):
-${contrastFlipsText}
-
-Use this to: Inform emphasis, add energy to related passages.
-DO NOT: Copy this text. DO NOT insert it as a paragraph. DO NOT reference it directly.
+Use this to: Ground the vision in reality, inform tone, acknowledge their starting point.
+DO NOT: Copy this text directly. Let it invisibly shape the output.
 ` : ''}
 ═══════════════════════════════════════════════════════════════
 YOUR JOB: FLOW, DON'T LIST
@@ -301,7 +286,7 @@ LIGHT POLISH:
 - Add a sensory detail here and there (sparingly)
 
 THE KEY INSTRUCTION:
-If CLARITY or CONTRAST FLIPS contain something valuable not in the imagination text,
+If CURRENT STATE contains something valuable not in the imagination text,
 you may add a sentence or two that NATURALLY fits the flow.
 
 But write it in the VOICE of the vision (present tense, feeling-based, embodied),
@@ -315,7 +300,7 @@ RIGHT: "Our income expands dynamically, growing beyond the familiar into somethi
 
 DO NOT:
 - Start paragraphs with "I'm so grateful for..."
-- Insert clarity/contrast text as-is (biggest mistake)
+- Insert current state text as-is (biggest mistake)
 - Generate scenes they didn't describe
 - Compress detailed lists
 

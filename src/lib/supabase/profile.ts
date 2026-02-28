@@ -68,31 +68,6 @@ export interface UserProfile {
   state_stuff?: string | null
   state_giving?: string | null
   state_spirituality?: string | null
-  // Clarity & Contrast Fields (12 categories)
-  clarity_fun?: string | null
-  contrast_fun?: string | null
-  clarity_health?: string | null
-  contrast_health?: string | null
-  clarity_travel?: string | null
-  contrast_travel?: string | null
-  clarity_love?: string | null
-  contrast_love?: string | null
-  clarity_family?: string | null
-  contrast_family?: string | null
-  clarity_social?: string | null
-  contrast_social?: string | null
-  clarity_home?: string | null
-  contrast_home?: string | null
-  clarity_work?: string | null
-  contrast_work?: string | null
-  clarity_money?: string | null
-  contrast_money?: string | null
-  clarity_stuff?: string | null
-  contrast_stuff?: string | null
-  clarity_giving?: string | null
-  contrast_giving?: string | null
-  clarity_spirituality?: string | null
-  contrast_spirituality?: string | null
   // Structured Data Fields (12 categories)
   // Fun & Recreation
   hobbies?: string[] | null

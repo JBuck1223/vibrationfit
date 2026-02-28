@@ -324,10 +324,11 @@ export function CareerSection({ profile, onProfileChange, onProfileReload, onSav
 
         {/* State Field */}
         <RecordingTextarea
-          label={`What's your current state of ${getVisionCategoryLabel(visionToRecordingKey('work'))}?`}
+          label={`Current State of ${getVisionCategoryLabel(visionToRecordingKey('work'))}`}
+          description="Describe your current work situation — what energizes you and what drains you. What feels aligned and what feels like it needs to change? The more real you are here, the more powerful your vision will be."
           value={profile.state_work || ''}
           onChange={(value) => handleInputChange('state_work', value)}
-          placeholder="Describe your current state - what's going well, what you'd like to change, how you feel about this area of your life... Or record your thoughts!"
+          placeholder="Type or click the microphone to turn your voice into text."
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"

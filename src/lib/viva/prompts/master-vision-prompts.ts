@@ -106,17 +106,12 @@ REWRITE RULE (silent):
  * Builds the complete master vision assembly prompt
  * 
  * ENHANCED V4: Now uses the complete life vision flow data:
- * - Step 1 (Clarity): AI summaries
+ * - Step 1 (State): AI summaries from user's current state
  * - Step 2 (Imagination): User's ideal state text (PRIMARY SOURCE!)
  * - Step 3 (Blueprint): Being/Doing/Receiving loops
  * - Step 4 (Scenes): Visualization scenes with sensory details
  * 
- * @param categorySummaries - Step 1: AI-generated clarity summaries
- * @param categoryIdealStates - Step 2: User's imagination text (PRIMARY!)
- * @param categoryBlueprints - Step 3: Being/Doing/Receiving loops
- * @param categoryScenes - Step 4: Visualization scenes
- * @param categoryTranscripts - Legacy: Original user transcripts (if available)
- * @param categorySummaries - Step 1: AI-generated clarity summaries
+ * @param categorySummaries - Step 1: AI-generated state summaries
  * @param categoryIdealStates - Step 2: User's imagination text (PRIMARY!)
  * @param categoryBlueprints - Step 3: Being/Doing/Receiving loops
  * @param categoryScenes - Step 4: Visualization scenes
@@ -494,12 +489,10 @@ Avoid:
  * @param categoryKey - The category key (e.g., 'fun', 'health')
  * @param categoryLabel - The category label (e.g., 'Fun', 'Health')
  * @param idealStateText - User's imagination text (PRIMARY SOURCE)
- * @param clarityKeys - Array of clarity keys from profile (what's already going well)
- * @param contrastFlips - Array of contrast flips
+ * @param currentStateText - Current state text from profile (holistic description of where they are now)
  * @param scenes - Array of scene objects with text
  * @param blueprintData - Blueprint data (loops, summary)
  * @param transcript - Raw transcript (optional)
- * @param profile - Profile facts (names, places, routines only)
  * @param activeVisionCategoryText - Existing active vision for this category (optional)
  * @param perspective - 'singular' or 'plural'
  * @returns Complete prompt string for single category generation
@@ -508,8 +501,7 @@ export function buildIndividualCategoryPrompt(
   categoryKey: string,
   categoryLabel: string,
   idealStateText: string,
-  clarityPresentStateText: string,
-  contrastFlips: string[],
+  currentStateText: string,
   _scenes: any[], // Not used in polish mode
   _blueprintData: any, // Not used in polish mode
   _transcript: string, // Not used in polish mode
@@ -518,11 +510,6 @@ export function buildIndividualCategoryPrompt(
 ): string {
   const categoryMicroTuning = CATEGORY_MICRO_TUNING[categoryKey] || ''
   const pronoun = perspective === 'plural' ? 'we/our' : 'I/my'
-
-  // Format contrast flips
-  const contrastFlipsText = contrastFlips
-    .filter(f => f && f.trim())
-    .join('\n')
 
   return `You are VIVA. Your job is to POLISH the member's imagination text into a flowing vision.
 
@@ -538,19 +525,12 @@ ${idealStateText || '(No imagination text provided)'}
 ═══════════════════════════════════════════════════════════════
 INVISIBLE ANCHORS (DO NOT QUOTE OR INSERT - let these SHAPE the output)
 ═══════════════════════════════════════════════════════════════
-${clarityPresentStateText ? `
-CLARITY (what's already true for them):
-${clarityPresentStateText}
+${currentStateText ? `
+CURRENT STATE (what's true for them now):
+${currentStateText}
 
-Use this to: Add grounding specifics, acknowledge what's working, inform tone.
-DO NOT: Copy this text. DO NOT insert it as a paragraph. DO NOT reference it directly.
-` : ''}
-${contrastFlipsText ? `
-CONTRAST FLIPS (what they've chosen instead):
-${contrastFlipsText}
-
-Use this to: Inform emphasis, add energy to related passages.
-DO NOT: Copy this text. DO NOT insert it as a paragraph. DO NOT reference it directly.
+Use this to: Ground the vision in reality, inform tone, acknowledge their starting point.
+DO NOT: Copy this text directly. Let it invisibly shape the output.
 ` : ''}
 ═══════════════════════════════════════════════════════════════
 YOUR JOB: FLOW, DON'T LIST
@@ -569,7 +549,7 @@ LIGHT POLISH:
 - Add a sensory detail here and there (sparingly)
 
 THE KEY INSTRUCTION:
-If CLARITY or CONTRAST FLIPS contain something valuable not in the imagination text,
+If CURRENT STATE contains something valuable not in the imagination text,
 you may add a sentence or two that NATURALLY fits the flow.
 
 But write it in the VOICE of the vision (present tense, feeling-based, embodied),
@@ -583,7 +563,7 @@ RIGHT: "Our income expands dynamically, growing beyond the familiar into somethi
 
 DO NOT:
 - Start paragraphs with "I'm so grateful for..."
-- Insert clarity/contrast text as-is (biggest mistake)
+- Insert current state text as-is (biggest mistake)
 - Generate scenes they didn't describe
 - Compress detailed lists
 

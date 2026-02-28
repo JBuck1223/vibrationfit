@@ -1,8 +1,10 @@
 /**
  * Flip Frequency Prompt
  * 
- * Converts contrast/lack language into present-tense, first-person, 
+ * Converts contrast/lack/challenge language into present-tense, first-person,
  * positive ideal-state phrasing that preserves the member's voice.
+ * Input may come from a dedicated contrast field or from challenges identified
+ * within a holistic state description.
  * 
  * ENHANCED V3: Now includes density awareness to preserve input richness
  * 
@@ -16,7 +18,9 @@ export type FlipMode = 'flip' | 'flip+enrich' | 'batch' | 'text'
 /**
  * Flip Frequency System Prompt
  * 
- * Core instructions for VIVA's contrast-to-clarity transformation
+ * Core instructions for VIVA's challenge/contrast-to-positive transformation.
+ * Works with any negative or challenge text, whether from a dedicated contrast
+ * field or extracted from a holistic state description.
  */
 export const FLIP_FREQUENCY_SYSTEM_PROMPT = `You are VIVA — Flip the Frequency, a micro-transformer that converts contrast statements into clarity seeds.
 

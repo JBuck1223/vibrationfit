@@ -1,21 +1,20 @@
 import { NextResponse } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
-import { flipFrequency } from '@/lib/viva/flip-frequency'
 
-const CATEGORY_PROFILE_FIELDS: Record<string, { clarity: string; contrast: string }> = {
-  fun: { clarity: 'clarity_fun', contrast: 'contrast_fun' },
-  travel: { clarity: 'clarity_travel', contrast: 'contrast_travel' },
-  home: { clarity: 'clarity_home', contrast: 'contrast_home' },
-  family: { clarity: 'clarity_family', contrast: 'contrast_family' },
-  love: { clarity: 'clarity_love', contrast: 'contrast_love' },
-  health: { clarity: 'clarity_health', contrast: 'contrast_health' },
-  money: { clarity: 'clarity_money', contrast: 'contrast_money' },
-  work: { clarity: 'clarity_work', contrast: 'contrast_work' },
-  social: { clarity: 'clarity_social', contrast: 'contrast_social' },
-  giving: { clarity: 'clarity_giving', contrast: 'contrast_giving' },
-  stuff: { clarity: 'clarity_stuff', contrast: 'contrast_stuff' },
-  spirituality: { clarity: 'clarity_spirituality', contrast: 'contrast_spirituality' },
+const CATEGORY_STATE_FIELDS: Record<string, string> = {
+  fun: 'state_fun',
+  travel: 'state_travel',
+  home: 'state_home',
+  family: 'state_family',
+  love: 'state_love',
+  health: 'state_health',
+  money: 'state_money',
+  work: 'state_work',
+  social: 'state_social',
+  giving: 'state_giving',
+  stuff: 'state_stuff',
+  spirituality: 'state_spirituality',
 }
 
 const VISION_FIELD_MAP: Record<string, string> = {
@@ -129,22 +128,6 @@ async function fetchAssessmentSnippets(
     .slice(0, 5)
 }
 
-async function fetchLatestFlip(
-  supabase: SupabaseClient,
-  userId: string,
-  category: string
-) {
-  const { data } = await supabase
-    .from('frequency_flip')
-    .select('clarity_seed')
-    .eq('user_id', userId)
-    .eq('category', category)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  return data?.clarity_seed ?? ''
-}
 
 export async function GET(request: Request) {
   try {
@@ -165,30 +148,8 @@ export async function GET(request: Request) {
     const vision = await fetchActiveVision(supabase, user.id)
     const assessmentSnippets = await fetchAssessmentSnippets(supabase, user.id, category)
 
-    const profileFields = CATEGORY_PROFILE_FIELDS[category]
-    const clarityField = profileFields?.clarity
-    const contrastField = profileFields?.contrast
-    const profileGoesWellText = clarityField && profile ? profile[clarityField] ?? '' : ''
-    const profileContrastText = contrastField && profile ? profile[contrastField] ?? '' : ''
-
-    let storedClarity = await fetchLatestFlip(supabase, user.id, category)
-
-    let flippedText = storedClarity
-    if ((!flippedText || flippedText.trim().length === 0) && profileContrastText && profileContrastText.trim().length > 0) {
-      try {
-        const flipResult = await flipFrequency({ mode: 'flip', input: profileContrastText })
-        const flipResponse = typeof flipResult === 'string' ? null : flipResult
-        const generated =
-          (typeof flipResult === 'string' && flipResult.trim().length > 0 ? flipResult : null) ??
-          flipResponse?.items?.[0]?.clarity_seed?.trim() ?? ''
-
-        if (generated) {
-          flippedText = generated
-        }
-      } catch (error) {
-        console.warn('Flip frequency failed for scene context:', error)
-      }
-    }
+    const stateField = CATEGORY_STATE_FIELDS[category]
+    const profileStateText = stateField && profile ? profile[stateField] ?? '' : ''
 
     const visionField = VISION_FIELD_MAP[category] ?? category
     const existingVisionParagraph = vision
@@ -197,10 +158,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       category,
-      profileGoesWellText: profileGoesWellText ?? '',
-      profileContrastText: profileContrastText ?? '',
-      profileNotWellTextFlipped: flippedText ?? '',
-      clarityStored: storedClarity || '',
+      profileStateText: profileStateText ?? '',
       existingVisionParagraph: existingVisionParagraph ?? '',
       assessmentSnippets,
     })

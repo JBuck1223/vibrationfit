@@ -1,12 +1,12 @@
 import { Card } from '@/lib/design-system/components'
-import { Sparkles } from 'lucide-react'
+import { Compass } from 'lucide-react'
 
-interface ProfileClarityCardProps {
-  clarityText?: string | null
+interface ProfileStateCardProps {
+  stateText?: string | null
   categoryLabel: string
 }
 
-export function ProfileClarityCard({ clarityText, categoryLabel }: ProfileClarityCardProps) {
+export function ProfileStateCard({ stateText, categoryLabel }: ProfileStateCardProps) {
   return (
     <Card 
       variant="outlined" 
@@ -14,29 +14,28 @@ export function ProfileClarityCard({ clarityText, categoryLabel }: ProfileClarit
     >
       <div className="flex items-center gap-2 mb-4">
         <div className="w-8 h-8 bg-[#00FFFF]/20 rounded-lg flex items-center justify-center shrink-0">
-          <Sparkles className="w-5 h-5 text-[#00FFFF]" />
+          <Compass className="w-5 h-5 text-[#00FFFF]" />
         </div>
         <h3 className="text-base md:text-lg font-semibold text-[#00FFFF]">
-          Clarity From Profile
+          Current State from Profile
         </h3>
       </div>
       
-      {clarityText ? (
+      {stateText ? (
         <div>
-          <p className="text-xs text-[#00FFFF]/70 mb-2 font-medium">What's Going Well</p>
-          <p className="text-sm md:text-base text-neutral-200 leading-relaxed">{clarityText}</p>
+          <p className="text-xs text-[#00FFFF]/70 mb-2 font-medium">Your Current State of {categoryLabel}</p>
+          <p className="text-sm md:text-base text-neutral-200 leading-relaxed whitespace-pre-line">{stateText}</p>
         </div>
       ) : (
         <div className="space-y-2">
           <p className="text-neutral-400 text-sm">
-            No clarity recorded yet for {categoryLabel}.
+            No current state recorded yet for {categoryLabel}.
           </p>
           <p className="text-[#00FFFF]/70 text-xs italic">
-            This will help VIVA understand what's already working well.
+            Describing your current state helps VIVA understand where you are today.
           </p>
         </div>
       )}
     </Card>
   )
 }
-

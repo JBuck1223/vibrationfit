@@ -187,8 +187,7 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({
           categoryKey: nextCategory,
           idealStateText: state?.ideal_state || '',
-          clarityKeys: state?.clarity_keys || [],
-          contrastFlips: state?.contrast_flips || [],
+          currentStateText: '',
           scenes: scenesByCategory[nextCategory] || [],
           blueprintData: state?.blueprint_data || null,
           transcript: '',

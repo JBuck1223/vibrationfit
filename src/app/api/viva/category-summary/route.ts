@@ -5,7 +5,7 @@ import OpenAI from 'openai'
 import { analyzeProfile, analyzeAssessment } from '@/lib/viva/profile-analyzer'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 import { buildCategorySummaryPrompt, CATEGORY_SUMMARY_SYSTEM_PROMPT } from '@/lib/viva/prompts/category-summary-prompt'
-import { getCategoryClarityField } from '@/lib/design-system/vision-categories'
+import { getCategoryStateField } from '@/lib/design-system/vision-categories'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -16,10 +16,10 @@ function getCategoryProfileFields(category: string, profile: any): string {
   
   const fields: string[] = []
   
-  // Add the user's own clarity text for this category (highest priority context)
-  const clarityField = getCategoryClarityField(category as any)
-  if (profile[clarityField] && profile[clarityField].trim().length > 0) {
-    fields.push(`User's own words about ${category}:\n"${profile[clarityField]}"`)
+  // Add the user's own state text for this category (highest priority context)
+  const stateField = getCategoryStateField(category as any)
+  if (profile[stateField] && profile[stateField].trim().length > 0) {
+    fields.push(`User's own words about ${category}:\n"${profile[stateField]}"`)
   }
   
   // Category-specific profile field mappings

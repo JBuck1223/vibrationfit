@@ -36,6 +36,67 @@ export async function GET(request: NextRequest, context: RouteContext) {
   }
 }
 
+export async function POST(request: NextRequest, context: RouteContext) {
+  try {
+    const { id: sequenceId } = await context.params
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    if (!await checkIsAdmin(supabase, user)) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    }
+
+    const body = await request.json()
+    if (!body.email) {
+      return NextResponse.json({ error: 'email is required' }, { status: 400 })
+    }
+
+    const { data: firstStep } = await supabase
+      .from('sequence_steps')
+      .select('delay_minutes')
+      .eq('sequence_id', sequenceId)
+      .eq('step_order', 1)
+      .eq('status', 'active')
+      .single()
+
+    const delayMs = (firstStep?.delay_minutes || 0) * 60 * 1000
+    const nextStepAt = new Date(Date.now() + delayMs).toISOString()
+
+    const metadata: Record<string, string> = {}
+    if (body.email) metadata.email = body.email
+    if (body.name) { metadata.name = body.name; metadata.firstName = body.name.split(' ')[0] }
+
+    const { data: enrollment, error } = await supabase
+      .from('sequence_enrollments')
+      .insert({
+        sequence_id: sequenceId,
+        user_id: body.user_id || null,
+        email: body.email,
+        phone: body.phone || null,
+        metadata,
+        current_step_order: 0,
+        status: 'active',
+        next_step_at: nextStepAt,
+      })
+      .select()
+      .single()
+
+    if (error) {
+      if (error.code === '23505') {
+        return NextResponse.json({ error: 'This email is already enrolled in this sequence' }, { status: 409 })
+      }
+      console.error('Error enrolling in sequence:', error)
+      return NextResponse.json({ error: 'Failed to enroll' }, { status: 500 })
+    }
+
+    return NextResponse.json({ enrollment }, { status: 201 })
+  } catch {
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
 export async function PUT(request: NextRequest, context: RouteContext) {
   try {
     await context.params

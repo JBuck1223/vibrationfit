@@ -10,6 +10,7 @@ import {
   FileText,
   Plus,
   Eye,
+  Pencil,
   X,
   Trash2,
   CheckCircle,
@@ -646,21 +647,36 @@ export default function ProfileDashboardPage() {
                     actions={
                       <>
                         {isDraft ? (
-                          // Draft version - only show View button
-                          <Button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              router.push(`/profile/${version.id}/draft`)
-                            }}
-                            variant="ghost-yellow"
-                            size="sm"
-                            className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2 font-semibold"
-                          >
-                            <Eye className="w-4 h-4" />
-                            View
-                          </Button>
+                          <>
+                            <Button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                router.push(`/profile/${version.id}`)
+                              }}
+                              variant="ghost-yellow"
+                              size="sm"
+                              className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2 font-semibold"
+                            >
+                              <Eye className="w-4 h-4" />
+                              View
+                            </Button>
+                            <Button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                router.push(`/profile/${version.id}/draft`)
+                              }}
+                              variant="ghost-yellow"
+                              size="sm"
+                              className="text-xs md:text-sm flex-1 md:flex-none min-w-0 shrink flex items-center justify-center gap-2 font-semibold"
+                            >
+                              <Pencil className="w-4 h-4" />
+                              Edit
+                            </Button>
+                          </>
                         ) : (
                           <>
                             {/* Clone button for non-draft versions - Hidden in intensive mode */}

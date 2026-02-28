@@ -4,7 +4,7 @@
  * Step 3: Generates Being/Doing/Receiving loops for a category
  * 
  * POST /api/viva/blueprint
- * Body: { category, categoryName, currentClarity, idealState, flippedContrast }
+ * Body: { category, categoryName, currentState, idealState }
  * Returns: { loops: [{being, doing, receiving, essence}], summary }
  */
 
@@ -34,9 +34,8 @@ export async function POST(request: NextRequest) {
     const {
       category,
       categoryName,
-      currentClarity,
-      idealState,
-      flippedContrast
+      currentState,
+      idealState
     } = body
 
     // Validate required fields
@@ -79,9 +78,8 @@ export async function POST(request: NextRequest) {
     const prompt = buildBlueprintPrompt(
       category,
       categoryName,
-      currentClarity || '',
-      idealStateText,
-      flippedContrast || ''
+      currentState || '',
+      idealStateText
     )
 
     console.log('[Blueprint] Generating Being/Doing/Receiving loops for category:', category)

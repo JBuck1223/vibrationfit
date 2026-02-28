@@ -212,10 +212,11 @@ export function GivingLegacySection({ profile, onProfileChange, onProfileReload,
         </div>
 
         <RecordingTextarea
-          label={`What's your current state of ${getVisionCategoryLabel('giving')}?`}
+          label={`Current State of ${getVisionCategoryLabel('giving')}`}
+          description="Describe your relationship with generosity, contribution, and the legacy you're building. What feels fulfilling and where do you feel you're falling short or wanting to do more? Be thorough — this fuels a meaningful vision."
           value={profile.state_giving || ''}
           onChange={(value) => handleInputChange('state_giving', value)}
-          placeholder="Describe your current state - what's going well, what you'd like to change, how you feel about this area of your life... Or record your thoughts!"
+          placeholder="Type or click the microphone to turn your voice into text."
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"

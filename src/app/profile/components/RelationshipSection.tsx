@@ -269,10 +269,11 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload,
 
         {/* State Field */}
         <RecordingTextarea
-          label={`What's your current state of ${getVisionCategoryLabel(visionToRecordingKey('love'))}?`}
+          label={`Current State of ${getVisionCategoryLabel(visionToRecordingKey('love'))}`}
+          description="Share what your love life and romantic connection really look like right now. What feels good and where do you wish things were different? Don't hold back on either side — this honesty becomes the foundation for your vision."
           value={profile.state_love || ''}
           onChange={(value) => handleInputChange('state_love', value)}
-          placeholder="Describe your current state - what's going well, what you'd like to change, how you feel about this area of your life... Or record your thoughts!"
+          placeholder="Type or click the microphone to turn your voice into text."
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"

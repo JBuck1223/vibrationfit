@@ -119,6 +119,12 @@ export const userNavigation: (NavItem | NavGroup)[] = [
     description: 'My Activation Plan - Your 28-day roadmap',
   },
   {
+    name: 'Profile',
+    href: '/profile/active',
+    icon: User,
+    description: 'Your active profile',
+  },
+  {
     name: 'Life Vision',
     href: '/life-vision/active',
     icon: Target,
@@ -705,6 +711,13 @@ export function isNavItemActive(
     // Match /life-vision/[uuid]/audio/sets or /life-vision/[uuid]/audio/*
     if (item.href.match(/^\/life-vision\/[a-f0-9-]{36}\/audio\/sets$/)) {
       if (pathname.match(/^\/life-vision\/[a-f0-9-]{36}\/audio/)) {
+        return true
+      }
+    }
+    
+    // Special handling for /profile/active - match any profile route
+    if (item.href === '/profile/active') {
+      if (pathname.startsWith('/profile')) {
         return true
       }
     }

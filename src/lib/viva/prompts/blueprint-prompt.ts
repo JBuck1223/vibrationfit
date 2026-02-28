@@ -36,20 +36,17 @@ export interface BeingDoingReceivingLoop {
  * 
  * @param category - Category key (e.g., 'money', 'health')
  * @param categoryName - Display name (e.g., 'Money', 'Health')
- * @param currentClarity - What's going well (from Step 1)
+ * @param currentState - Their current state description (from Step 1)
  * @param idealState - Ideal state imagination (from Step 2)
- * @param flippedContrast - Clarity from flipped contrast (from Step 1)
  * @returns Complete prompt for blueprint generation
  */
 export function buildBlueprintPrompt(
   category: string,
   categoryName: string,
-  currentClarity: string,
-  idealState: string,
-  flippedContrast: string
+  currentState: string,
+  idealState: string
 ): string {
-  // Compute target length range for density matching
-  const combinedInput = combineTextSources(currentClarity, idealState, flippedContrast)
+  const combinedInput = combineTextSources(currentState, idealState)
   const lengthRange = computeTargetLengthRange(combinedInput)
   
   return `${VIVA_PERSONA_WITH_GOLDEN_RULES}
@@ -62,14 +59,11 @@ This is Step 3 of 6 - not the final vision text, but the structural loops that w
 
 ## WHAT YOU KNOW (From Steps 1-2):
 
-**Current Clarity (What's Going Well):**
-${currentClarity}
+**Current State (Where They Are Now):**
+${currentState}
 
 **Ideal State (What They Imagined):**
 ${idealState}
-
-**Clarity from Contrast (What They're Moving Toward):**
-${flippedContrast}
 
 ## DENSITY GUIDANCE:
 

@@ -11,7 +11,7 @@
 
 import { VIVA_PERSONA } from './shared/viva-persona'
 import { flattenAssessmentResponsesNumbered } from '../prompt-flatteners'
-import { getCategoryClarityField, getCategoryContrastField, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
+import { getCategoryStateField, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
 import { computeTargetLengthRange, combineTextSources } from '../text-metrics'
 
 export const CATEGORY_SUMMARY_SYSTEM_PROMPT = `${VIVA_PERSONA}
@@ -28,12 +28,9 @@ export function buildCategorySummaryPrompt(
   profile: any,
   assessment: any
 ): string {
-  // Get clarity and contrast profile fields for this category
-  const clarityField = getCategoryClarityField(category as LifeCategoryKey)
-  const contrastField = getCategoryContrastField(category as LifeCategoryKey)
-  
-  const profileClarity = profile?.[clarityField]?.trim() || null
-  const profileContrast = profile?.[contrastField]?.trim() || null
+  // Get state profile field for this category
+  const stateField = getCategoryStateField(category as LifeCategoryKey)
+  const profileState = profile?.[stateField]?.trim() || null
 
   // Get category-specific assessment responses
   const categoryResponses = assessment?.responses?.filter((r: any) => r.category === category) || []
@@ -43,10 +40,7 @@ export function buildCategorySummaryPrompt(
     ? flattenAssessmentResponsesNumbered(categoryResponses, false)
     : ''
   
-  // Combine all text sources from profile fields
-  const allProfileText = [profileClarity, profileContrast]
-    .filter(Boolean)
-    .join('\n\n')
+  const allProfileText = profileState || ''
   const combinedInput = combineTextSources(transcript, allProfileText, assessmentText)
   const lengthRange = computeTargetLengthRange(combinedInput)
 
@@ -60,26 +54,16 @@ export function buildCategorySummaryPrompt(
 `
   }
 
-  // Add profile clarity (Positive/Aspirational)
-  if (profileClarity) {
-    dataSections += `## DATA SOURCE 2: User's Profile - Clarity (What's Going Well)
-**What's Going Well:**
-"${profileClarity}"
-
-`
-  }
-
-  // Add profile contrast (Awareness/Concerns)
-  if (profileContrast) {
-    dataSections += `## DATA SOURCE 3: User's Profile - Contrast (What's Not Working)
-**What's Not Working:**
-"${profileContrast}"
+  if (profileState) {
+    dataSections += `## DATA SOURCE 2: User's Profile - Current State
+**Current State of ${categoryName}:**
+"${profileState}"
 
 `
   }
 
   if (categoryResponses.length > 0) {
-    dataSections += `## DATA SOURCE 4: Assessment Responses (Their Own Answers)
+    dataSections += `## DATA SOURCE 3: Assessment Responses (Their Own Answers)
 ${assessmentText}`
   }
 
@@ -100,24 +84,24 @@ ${assessmentText}`
 - Aim for 90-110% of input length to maintain detail level
 
 **APPROACH:**
-1. First, create THREE separate summaries (one for each data source below)
+1. First, create a separate summary for each data source below
 2. Then, combine these summaries to identify what's going well and what's challenging
 3. Use their actual words, phrases, and speech patterns throughout - reframe, don't rewrite
 4. Preserve ALL distinct themes and ideas mentioned
 
 ${dataSections}
 
-## STEP 1: Create Three Separate Summaries
+## STEP 1: Create Separate Summaries
 
 For EACH data source above, create a brief summary that:
 - Uses their exact words, phrases, and speech patterns
-- Identifies what's going well in their own words
-- Identifies what's challenging in their own words
+- Identifies from their current state description what's going well
+- Identifies from their current state description what's challenging
 - Maintains their voice, tone, and way of expressing themselves
 
 ## STEP 2: Combine Into Final Summary
 
-Combine all three summaries to create one unified view that identifies:
+Combine all summaries to create one unified view that identifies:
 
 **What's Going Really Well** - Things they mentioned that feel positive, aligned, or working well
 - Extract their actual words and phrases

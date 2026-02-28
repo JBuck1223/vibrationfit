@@ -4,10 +4,10 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Card, Button, Spinner, Container, Stack, PageHero, CategoryGrid, IconList, InsufficientTokensDialog } from '@/lib/design-system/components'
-import { ProfileClarityCard, ProfileContrastCard } from '@/lib/design-system/profile-cards'
+import { ProfileStateCard } from '@/lib/design-system/profile-cards'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { Sparkles, ArrowLeft, ArrowRight, ChevronDown, User, Lightbulb, Wand2 } from 'lucide-react'
-import { VISION_CATEGORIES, getVisionCategory, getCategoryFields, getCategoryStoryField, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
+import { VISION_CATEGORIES, getVisionCategory, getCategoryStateField, getCategoryStoryField, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
 import { getFilteredQuestionsForCategory } from '@/lib/life-vision/ideal-state-questions'
 
 export default function CategoryPage() {
@@ -24,10 +24,8 @@ export default function CategoryPage() {
   const [profileData, setProfileData] = useState<{
     story: string
     hasStory: boolean
-    clarity: string
-    contrast: string
-    hasClarityData: boolean
-    hasContrastData: boolean
+    state: string
+    hasStateData: boolean
   } | null>(null)
   
   // Imagination state
@@ -95,18 +93,15 @@ export default function CategoryPage() {
       const storyField = getCategoryStoryField(categoryKey)
       const profileStory = profile?.[storyField] || ''
 
-      // Load clarity and contrast profile fields for this category
-      const fields = getCategoryFields(categoryKey)
-      const clarityValue = profile?.[fields.clarity] || ''
-      const contrastValue = profile?.[fields.contrast] || ''
+      // Load state profile field for this category
+      const stateField = getCategoryStateField(categoryKey)
+      const stateValue = profile?.[stateField] || ''
 
       setProfileData({
         story: profileStory,
         hasStory: profileStory.trim().length > 0,
-        clarity: clarityValue,
-        contrast: contrastValue,
-        hasClarityData: !!clarityValue,
-        hasContrastData: !!contrastValue
+        state: stateValue,
+        hasStateData: !!stateValue
       })
 
       // Get filtered questions for inspiration
@@ -224,10 +219,9 @@ export default function CategoryPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Unauthorized')
 
-      // Save to database - save both ideal_state and clarity_keys (for assembly compatibility)
-      const fields = getCategoryFields(categoryKey)
-      const clarityValue = fullProfile?.[fields.clarity] || ''
-      const contrastValue = fullProfile?.[fields.contrast] || ''
+      // Save to database - save both ideal_state and state from profile (for assembly compatibility)
+      const stateField = getCategoryStateField(categoryKey)
+      const stateValue = fullProfile?.[stateField] || ''
       
       const { error: updateError } = await supabase
         .from('vision_new_category_state')
@@ -235,9 +229,8 @@ export default function CategoryPage() {
           user_id: user.id,
           category: categoryKey,
           ideal_state: freeFlowText.trim(),
-          // Store clarity and contrast from profile for assembly prompt
-          clarity_keys: clarityValue ? [clarityValue] : [],
-          contrast_flips: contrastValue ? [contrastValue] : [] // Raw contrast, not flipped
+          clarity_keys: stateValue ? [stateValue] : [],
+          contrast_flips: []
         }, {
           onConflict: 'user_id,category'
         })
@@ -312,7 +305,7 @@ export default function CategoryPage() {
           </div>
         </PageHero>
 
-        {/* Context Card - Profile Details + Clarity + Contrast */}
+        {/* Context Card - Profile Details + Current State */}
         {(profileData || fullProfile) && (
           <Card className="border-2 border-neutral-700 bg-neutral-800/30">
             <button
@@ -474,21 +467,12 @@ export default function CategoryPage() {
                   </Card>
                 )}
 
-                {/* Clarity and Contrast Cards */}
+                {/* Current State Card */}
                 {profileData && (
-                  <div className="space-y-4">
-                    {/* Clarity From Profile (Green) */}
-                    <ProfileClarityCard
-                      clarityText={profileData.clarity}
-                      categoryLabel={category.label}
-                    />
-                    
-                    {/* Contrast from Profile (Red) */}
-                    <ProfileContrastCard
-                      contrastText={profileData.contrast}
-                      categoryLabel={category.label}
-                    />
-                  </div>
+                  <ProfileStateCard
+                    stateText={profileData.state}
+                    categoryLabel={category.label}
+                  />
                 )}
               </div>
             )}

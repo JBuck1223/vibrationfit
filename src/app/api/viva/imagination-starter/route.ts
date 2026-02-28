@@ -2,7 +2,7 @@
  * Imagination Starter API Route
  * 
  * Generates a "Get Me Started" draft for the imagination step.
- * Uses raw profile data (clarity + contrast) to create a starting point
+ * Uses raw profile data (state) to create a starting point
  * the user can edit and expand.
  */
 
@@ -19,8 +19,7 @@ import {
 import { 
   getVisionCategory, 
   isValidVisionCategory,
-  getCategoryClarityField,
-  getCategoryContrastField,
+  getCategoryStateField,
   type LifeCategoryKey 
 } from '@/lib/design-system/vision-categories'
 import { getFilteredQuestionsForCategory } from '@/lib/life-vision/ideal-state-questions'
@@ -77,17 +76,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Extract clarity and contrast from profile
-    const clarityField = getCategoryClarityField(categoryKey as LifeCategoryKey)
-    const contrastField = getCategoryContrastField(categoryKey as LifeCategoryKey)
-    
-    const clarityText = profile[clarityField] || ''
-    const contrastText = profile[contrastField] || ''
+    // Extract state from profile
+    const stateField = getCategoryStateField(categoryKey as LifeCategoryKey)
+    const stateText = profile[stateField] || ''
 
     // Check if we have any content to work with
-    if (!clarityText && !contrastText) {
+    if (!stateText) {
       return NextResponse.json(
-        { error: `No clarity or contrast data found for ${category.label}. Please complete your profile first.` },
+        { error: `No state data found for ${category.label}. Please complete your profile first.` },
         { status: 400 }
       )
     }
@@ -100,9 +96,8 @@ export async function POST(request: NextRequest) {
     const questionTexts = questions.map(q => q.text)
 
     // Calculate input richness for dynamic max tokens
-    const clarityWords = clarityText?.trim().split(/\s+/).filter(Boolean).length || 0
-    const contrastWords = contrastText?.trim().split(/\s+/).filter(Boolean).length || 0
-    const totalInputWords = clarityWords + contrastWords + (Object.keys(profileData).length * 5)
+    const stateWords = stateText?.trim().split(/\s+/).filter(Boolean).length || 0
+    const totalInputWords = stateWords + (Object.keys(profileData).length * 5)
     
     // Dynamic max tokens based on input richness
     // minimal (<30 words): 300 tokens, moderate (<80): 500 tokens, rich (<150): 800 tokens, very_rich: 1200 tokens
@@ -111,14 +106,13 @@ export async function POST(request: NextRequest) {
       : totalInputWords < 150 ? 800 
       : 1200
 
-    console.log(`[ImaginationStarter] Data - clarity: ${clarityWords} words, contrast: ${contrastWords} words, profile fields: ${Object.keys(profileData).length}, maxTokens: ${dynamicMaxTokens}`)
+    console.log(`[ImaginationStarter] Data - state: ${stateWords} words, profile fields: ${Object.keys(profileData).length}, maxTokens: ${dynamicMaxTokens}`)
 
     // Build the prompt
     const prompt = buildImaginationStarterPrompt(
       categoryKey as LifeCategoryKey,
       category.label,
-      clarityText,
-      contrastText,
+      stateText,
       profileData,
       questionTexts,
       perspective as 'singular' | 'plural'
@@ -179,8 +173,7 @@ export async function POST(request: NextRequest) {
               category: categoryKey,
               elapsed_ms: elapsedMs,
               output_length: text?.length || 0,
-              had_clarity: !!clarityText,
-              had_contrast: !!contrastText,
+              had_state: !!stateText,
               profile_fields_count: Object.keys(profileData).length,
               input_words: totalInputWords,
               max_tokens_used: dynamicMaxTokens

@@ -230,11 +230,11 @@ export async function GET(request: NextRequest) {
         profile.state,
         profile.household_income,
         profile.exercise_frequency,
-        profile.clarity_love,
-        profile.clarity_family,
-        profile.clarity_work,
-        profile.clarity_money,
-        profile.clarity_health,
+        profile.state_love,
+        profile.state_family,
+        profile.state_work,
+        profile.state_money,
+        profile.state_health,
       ]
       
       const filledFields = profileFields.filter(f => f !== null && f !== undefined && f !== '').length

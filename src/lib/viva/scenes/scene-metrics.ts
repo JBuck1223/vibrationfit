@@ -62,7 +62,7 @@ export interface SceneCountRecommendation {
  * @example
  * const recommendation = inferSceneCountFromData(
  *   profileStory,
- *   flippedContrast,
+ *   profileState,
  *   assessmentResponses,
  *   visionText,
  *   'A'

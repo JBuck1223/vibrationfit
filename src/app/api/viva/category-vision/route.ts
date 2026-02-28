@@ -33,8 +33,7 @@ export async function POST(request: NextRequest) {
     
     const {
       idealStateText = '',
-      clarityPresentStateText = '',
-      contrastFlips = [],
+      currentStateText = '',
       scenes = [],
       blueprintData = null,
       transcript = '',
@@ -66,15 +65,14 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`[CategoryVision] Starting ${categoryKey} (streaming)`)
-    console.log(`[CategoryVision] Input sizes: ideal=${idealStateText?.length || 0}, clarity=${clarityPresentStateText?.length || 0}`)
+    console.log(`[CategoryVision] Input sizes: ideal=${idealStateText?.length || 0}, state=${currentStateText?.length || 0}`)
 
     // Build the prompt
     const prompt = buildIndividualCategoryPrompt(
       categoryKey,
       category.label,
       idealStateText,
-      clarityPresentStateText,
-      Array.isArray(contrastFlips) ? contrastFlips : [],
+      currentStateText,
       Array.isArray(scenes) ? scenes : [],
       blueprintData,
       transcript,

@@ -200,10 +200,11 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
         </div>
 
         <RecordingTextarea
-          label={`What's your current state of ${getVisionCategoryLabel('social')}?`}
+          label={`Current State of ${getVisionCategoryLabel('social')}`}
+          description="Describe your social life and friendships as they actually are today. Who lights you up and where do you feel disconnected or lacking? Share both the fulfilling connections and the lonely spots."
           value={profile.state_social || ''}
           onChange={(value) => handleInputChange('state_social', value)}
-          placeholder="Describe your current state - what's going well, what you'd like to change, how you feel about this area of your life... Or record your thoughts!"
+          placeholder="Type or click the microphone to turn your voice into text."
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"

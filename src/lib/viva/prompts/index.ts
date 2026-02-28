@@ -30,8 +30,8 @@ export {
   buildMasterVisionPrompt,
 } from './master-vision-prompts'
 
-// Merge Clarity
-export { MERGE_CLARITY_SYSTEM_PROMPT } from './merge-clarity-prompt'
+// Merge State (formerly Merge Clarity)
+export { MERGE_STATE_SYSTEM_PROMPT, MERGE_CLARITY_SYSTEM_PROMPT, buildMergeStatePrompt, buildMergeClarityPrompt } from './merge-clarity-prompt'
 
 // Vibrational Analysis & Scene Generation
 export {

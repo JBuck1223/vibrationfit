@@ -16,7 +16,7 @@ import {
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowRight, Eye, Sparkles, Target, Compass, Lightbulb } from 'lucide-react'
-import { VISION_CATEGORIES, getCategoryClarityField, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
+import { VISION_CATEGORIES, getCategoryStateField, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
 import { createClient } from '@/lib/supabase/client'
 
 const VISION_INTRO_VIDEO =
@@ -86,7 +86,7 @@ export default function VIVALifeVisionLandingPage() {
         .select('category, clarity_keys, ideal_state, blueprint_data')
         .eq('user_id', user.id)
 
-      // Also get user profile to check for profile clarity as fallback
+      // Also get user profile to check for profile state as fallback
       const { data: profile } = await supabase
         .from('user_profiles')
         .select('*')
@@ -106,14 +106,13 @@ export default function VIVALifeVisionLandingPage() {
         }
       })
       
-      // Then check profile clarity as fallback for categories without clarity_keys
+      // Then check profile state as fallback for categories without clarity_keys
       if (profile) {
         VISION_CATEGORIES.filter(cat => cat.order > 0 && cat.order < 13).forEach(cat => {
-          const clarityField = getCategoryClarityField(cat.key as LifeCategoryKey)
-          const hasProfileClarity = profile[clarityField] && String(profile[clarityField]).trim().length > 0
+          const stateField = getCategoryStateField(cat.key as LifeCategoryKey)
+          const hasProfileState = profile[stateField] && String(profile[stateField]).trim().length > 0
           
-          // If we don't have clarity in category state but we have it in profile, mark as having clarity
-          if (hasProfileClarity) {
+          if (hasProfileState) {
             if (!progressMap[cat.key]) {
               progressMap[cat.key] = {
                 hasClarity: true,
@@ -137,7 +136,7 @@ export default function VIVALifeVisionLandingPage() {
       setCompletedCategoryKeys(completed)
       
       // Determine vision status based on actual vision work
-      // Only count vision_new_category_state entries (not profile clarity fallback)
+      // Only count vision_new_category_state entries (not profile state fallback)
       if (!checklist?.vision_built) {
         const hasActualVisionProgress = categoryStates && categoryStates.length > 0
         if (hasActualVisionProgress) {

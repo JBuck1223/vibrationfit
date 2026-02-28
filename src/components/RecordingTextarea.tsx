@@ -15,6 +15,7 @@ interface RecordingTextareaProps {
   placeholder?: string
   rows?: number
   label?: string
+  description?: string
   allowVideo?: boolean
   className?: string
   disabled?: boolean
@@ -33,6 +34,7 @@ export function RecordingTextarea({
   placeholder,
   rows = 4,
   label,
+  description,
   allowVideo = false,
   className = '',
   disabled = false,
@@ -376,6 +378,12 @@ export function RecordingTextarea({
         <label className="block text-sm font-medium text-neutral-200">
           {label}
         </label>
+      )}
+
+      {description && (
+        <p className="text-sm text-neutral-400">
+          {description}
+        </p>
       )}
 
       {/* Text Input */}

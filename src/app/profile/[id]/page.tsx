@@ -679,19 +679,11 @@ export default function ProfileDetailPage() {
               ]}
             />
             <ProfileField 
-              label={`What's going well in ${getVisionCategoryLabel('love')}?`}
-              value={editedFields.clarity_love !== undefined ? editedFields.clarity_love : profile.clarity_love}
+              label={`Current State of ${getVisionCategoryLabel('love')}`}
+              value={editedFields.state_love !== undefined ? editedFields.state_love : profile.state_love}
               type="story"
               editable={editingSection === 'love'}
-              fieldKey="clarity_love"
-              onSave={handleFieldChange}
-              collapsible={true}
-            /><ProfileField 
-              label={`What's not going well in ${getVisionCategoryLabel('love')}?`}
-              value={editedFields.contrast_love !== undefined ? editedFields.contrast_love : profile.contrast_love}
-              type="story"
-              editable={editingSection === 'love'}
-              fieldKey="contrast_love"
+              fieldKey="state_love"
               onSave={handleFieldChange}
               collapsible={true}
             /></>
@@ -737,19 +729,11 @@ export default function ProfileDetailPage() {
             )}
 
             <ProfileField 
-              label={`What's going well in ${getVisionCategoryLabel('family')}?`}
-              value={editedFields.clarity_family !== undefined ? editedFields.clarity_family : profile.clarity_family}
+              label={`Current State of ${getVisionCategoryLabel('family')}`}
+              value={editedFields.state_family !== undefined ? editedFields.state_family : profile.state_family}
               type="story"
               editable={editingSection === 'family'}
-              fieldKey="clarity_family"
-              onSave={handleFieldChange}
-              collapsible={true}
-            /><ProfileField 
-              label={`What's not going well in ${getVisionCategoryLabel('family')}?`}
-              value={editedFields.contrast_family !== undefined ? editedFields.contrast_family : profile.contrast_family}
-              type="story"
-              editable={editingSection === 'family'}
-              fieldKey="contrast_family"
+              fieldKey="state_family"
               onSave={handleFieldChange}
               collapsible={true}
             /></>
@@ -802,19 +786,11 @@ export default function ProfileDetailPage() {
               ]}
             />
             <ProfileField 
-              label={`What's going well in ${getVisionCategoryLabel('health')}?`}
-              value={editedFields.clarity_health !== undefined ? editedFields.clarity_health : profile.clarity_health}
+              label={`Current State of ${getVisionCategoryLabel('health')}`}
+              value={editedFields.state_health !== undefined ? editedFields.state_health : profile.state_health}
               type="story"
               editable={editingSection === 'health'}
-              fieldKey="clarity_health"
-              onSave={handleFieldChange}
-              collapsible={true}
-            /><ProfileField 
-              label={`What's not going well in ${getVisionCategoryLabel('health')}?`}
-              value={editedFields.contrast_health !== undefined ? editedFields.contrast_health : profile.contrast_health}
-              type="story"
-              editable={editingSection === 'health'}
-              fieldKey="contrast_health"
+              fieldKey="state_health"
               onSave={handleFieldChange}
               collapsible={true}
             /></>
@@ -881,19 +857,11 @@ export default function ProfileDetailPage() {
               onSave={handleFieldChange}
             />
             <ProfileField 
-              label={`What's going well in ${getVisionCategoryLabel('home')}?`}
-              value={editedFields.clarity_home !== undefined ? editedFields.clarity_home : profile.clarity_home}
+              label={`Current State of ${getVisionCategoryLabel('home')}`}
+              value={editedFields.state_home !== undefined ? editedFields.state_home : profile.state_home}
               type="story"
               editable={editingSection === 'home'}
-              fieldKey="clarity_home"
-              onSave={handleFieldChange}
-              collapsible={true}
-            /><ProfileField 
-              label={`What's not going well in ${getVisionCategoryLabel('home')}?`}
-              value={editedFields.contrast_home !== undefined ? editedFields.contrast_home : profile.contrast_home}
-              type="story"
-              editable={editingSection === 'home'}
-              fieldKey="contrast_home"
+              fieldKey="state_home"
               onSave={handleFieldChange}
               collapsible={true}
             /></>
@@ -975,19 +943,11 @@ export default function ProfileDetailPage() {
               type="story"
             />
             <ProfileField 
-              label={`What's going well in ${getVisionCategoryLabel('work')}?`}
-              value={editedFields.clarity_work !== undefined ? editedFields.clarity_work : profile.clarity_work}
+              label={`Current State of ${getVisionCategoryLabel('work')}`}
+              value={editedFields.state_work !== undefined ? editedFields.state_work : profile.state_work}
               type="story"
               editable={editingSection === 'work'}
-              fieldKey="clarity_work"
-              onSave={handleFieldChange}
-              collapsible={true}
-            /><ProfileField 
-              label={`What's not going well in ${getVisionCategoryLabel('work')}?`}
-              value={editedFields.contrast_work !== undefined ? editedFields.contrast_work : profile.contrast_work}
-              type="story"
-              editable={editingSection === 'work'}
-              fieldKey="contrast_work"
+              fieldKey="state_work"
               onSave={handleFieldChange}
               collapsible={true}
             /></>
@@ -1078,19 +1038,11 @@ export default function ProfileDetailPage() {
               ]}
             />
             <ProfileField 
-              label={`What's going well in ${getVisionCategoryLabel('money')}?`}
-              value={editedFields.clarity_money !== undefined ? editedFields.clarity_money : profile.clarity_money}
+              label={`Current State of ${getVisionCategoryLabel('money')}`}
+              value={editedFields.state_money !== undefined ? editedFields.state_money : profile.state_money}
               type="story"
               editable={editingSection === 'money'}
-              fieldKey="clarity_money"
-              onSave={handleFieldChange}
-              collapsible={true}
-            /><ProfileField 
-              label={`What's not going well in ${getVisionCategoryLabel('money')}?`}
-              value={editedFields.contrast_money !== undefined ? editedFields.contrast_money : profile.contrast_money}
-              type="story"
-              editable={editingSection === 'money'}
-              fieldKey="contrast_money"
+              fieldKey="state_money"
               onSave={handleFieldChange}
               collapsible={true}
             /></>
@@ -1123,19 +1075,11 @@ export default function ProfileDetailPage() {
               ]}
             />
             <ProfileField 
-              label={`What's going well in ${getVisionCategoryLabel('fun')}?`}
-              value={editedFields.clarity_fun !== undefined ? editedFields.clarity_fun : profile.clarity_fun}
+              label={`Current State of ${getVisionCategoryLabel('fun')}`}
+              value={editedFields.state_fun !== undefined ? editedFields.state_fun : profile.state_fun}
               type="story"
               editable={editingSection === 'fun'}
-              fieldKey="clarity_fun"
-              onSave={handleFieldChange}
-              collapsible={true}
-            /><ProfileField 
-              label={`What's not going well in ${getVisionCategoryLabel('fun')}?`}
-              value={editedFields.contrast_fun !== undefined ? editedFields.contrast_fun : profile.contrast_fun}
-              type="story"
-              editable={editingSection === 'fun'}
-              fieldKey="contrast_fun"
+              fieldKey="state_fun"
               onSave={handleFieldChange}
               collapsible={true}
             /></>
@@ -1203,19 +1147,11 @@ export default function ProfileDetailPage() {
             )}
 
             <ProfileField 
-              label={`What's going well in ${getVisionCategoryLabel('travel')}?`}
-              value={editedFields.clarity_travel !== undefined ? editedFields.clarity_travel : profile.clarity_travel}
+              label={`Current State of ${getVisionCategoryLabel('travel')}`}
+              value={editedFields.state_travel !== undefined ? editedFields.state_travel : profile.state_travel}
               type="story"
               editable={editingSection === 'travel'}
-              fieldKey="clarity_travel"
-              onSave={handleFieldChange}
-              collapsible={true}
-            /><ProfileField 
-              label={`What's not going well in ${getVisionCategoryLabel('travel')}?`}
-              value={editedFields.contrast_travel !== undefined ? editedFields.contrast_travel : profile.contrast_travel}
-              type="story"
-              editable={editingSection === 'travel'}
-              fieldKey="contrast_travel"
+              fieldKey="state_travel"
               onSave={handleFieldChange}
               collapsible={true}
             /></>
@@ -1252,19 +1188,11 @@ export default function ProfileDetailPage() {
               ]}
             />
             <ProfileField 
-              label={`What's going well in ${getVisionCategoryLabel('social')}?`}
-              value={editedFields.clarity_social !== undefined ? editedFields.clarity_social : profile.clarity_social}
+              label={`Current State of ${getVisionCategoryLabel('social')}`}
+              value={editedFields.state_social !== undefined ? editedFields.state_social : profile.state_social}
               type="story"
               editable={editingSection === 'social'}
-              fieldKey="clarity_social"
-              onSave={handleFieldChange}
-              collapsible={true}
-            /><ProfileField 
-              label={`What's not going well in ${getVisionCategoryLabel('social')}?`}
-              value={editedFields.contrast_social !== undefined ? editedFields.contrast_social : profile.contrast_social}
-              type="story"
-              editable={editingSection === 'social'}
-              fieldKey="contrast_social"
+              fieldKey="state_social"
               onSave={handleFieldChange}
               collapsible={true}
             /></>
@@ -1355,19 +1283,11 @@ export default function ProfileDetailPage() {
             )}
 
             <ProfileField 
-              label={`What's going well in ${getVisionCategoryLabel('stuff')}?`}
-              value={editedFields.clarity_stuff !== undefined ? editedFields.clarity_stuff : profile.clarity_stuff}
+              label={`Current State of ${getVisionCategoryLabel('stuff')}`}
+              value={editedFields.state_stuff !== undefined ? editedFields.state_stuff : profile.state_stuff}
               type="story"
               editable={editingSection === 'stuff'}
-              fieldKey="clarity_stuff"
-              onSave={handleFieldChange}
-              collapsible={true}
-            /><ProfileField 
-              label={`What's not going well in ${getVisionCategoryLabel('stuff')}?`}
-              value={editedFields.contrast_stuff !== undefined ? editedFields.contrast_stuff : profile.contrast_stuff}
-              type="story"
-              editable={editingSection === 'stuff'}
-              fieldKey="contrast_stuff"
+              fieldKey="state_stuff"
               onSave={handleFieldChange}
               collapsible={true}
             /></>
@@ -1413,19 +1333,11 @@ export default function ProfileDetailPage() {
               onSave={handleFieldChange}
             />
             <ProfileField 
-              label={`What's going well in ${getVisionCategoryLabel('spirituality')}?`}
-              value={editedFields.clarity_spirituality !== undefined ? editedFields.clarity_spirituality : profile.clarity_spirituality}
+              label={`Current State of ${getVisionCategoryLabel('spirituality')}`}
+              value={editedFields.state_spirituality !== undefined ? editedFields.state_spirituality : profile.state_spirituality}
               type="story"
               editable={editingSection === 'spirituality'}
-              fieldKey="clarity_spirituality"
-              onSave={handleFieldChange}
-              collapsible={true}
-            /><ProfileField 
-              label={`What's not going well in ${getVisionCategoryLabel('spirituality')}?`}
-              value={editedFields.contrast_spirituality !== undefined ? editedFields.contrast_spirituality : profile.contrast_spirituality}
-              type="story"
-              editable={editingSection === 'spirituality'}
-              fieldKey="contrast_spirituality"
+              fieldKey="state_spirituality"
               onSave={handleFieldChange}
               collapsible={true}
             /></>
@@ -1471,19 +1383,11 @@ export default function ProfileDetailPage() {
               onSave={handleFieldChange}
             />
             <ProfileField 
-              label={`What's going well in ${getVisionCategoryLabel('giving')}?`}
-              value={editedFields.clarity_giving !== undefined ? editedFields.clarity_giving : profile.clarity_giving}
+              label={`Current State of ${getVisionCategoryLabel('giving')}`}
+              value={editedFields.state_giving !== undefined ? editedFields.state_giving : profile.state_giving}
               type="story"
               editable={editingSection === 'giving'}
-              fieldKey="clarity_giving"
-              onSave={handleFieldChange}
-              collapsible={true}
-            /><ProfileField 
-              label={`What's not going well in ${getVisionCategoryLabel('giving')}?`}
-              value={editedFields.contrast_giving !== undefined ? editedFields.contrast_giving : profile.contrast_giving}
-              type="story"
-              editable={editingSection === 'giving'}
-              fieldKey="contrast_giving"
+              fieldKey="state_giving"
               onSave={handleFieldChange}
               collapsible={true}
             /></>

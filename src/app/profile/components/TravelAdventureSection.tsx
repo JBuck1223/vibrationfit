@@ -313,10 +313,11 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
 
         {/* State Field */}
         <RecordingTextarea
-          label={`What's your current state of ${getVisionCategoryLabel('travel')}?`}
+          label={`Current State of ${getVisionCategoryLabel('travel')}`}
+          description="Describe your current relationship with travel and adventure. What experiences light you up and what do you feel is missing? Share both the highlights and the gaps — we'll use all of it to shape your vision."
           value={profile.state_travel || ''}
           onChange={(value) => handleInputChange('state_travel', value)}
-          placeholder="Describe your current state - what's going well, what you'd like to change, how you feel about this area of your life... Or record your thoughts!"
+          placeholder="Type or click the microphone to turn your voice into text."
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"

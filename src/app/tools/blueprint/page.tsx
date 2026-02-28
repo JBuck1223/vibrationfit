@@ -152,8 +152,7 @@ export default function BlueprintToolPage() {
           category: selectedCategory,
           categoryName: category?.label || selectedCategory,
           idealState: categoryState.ideal_state,
-          currentClarity: Array.isArray(categoryState.clarity_keys) ? categoryState.clarity_keys.join('\n\n') : '',
-          flippedContrast: '',
+          currentState: Array.isArray(categoryState.clarity_keys) ? categoryState.clarity_keys.join('\n\n') : '',
           profile,
           assessment
         })

@@ -315,10 +315,11 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
 
         {/* State Field */}
         <RecordingTextarea
-          label={`What's your current state of ${getVisionCategoryLabel('health')}?`}
+          label={`Current State of ${getVisionCategoryLabel('health')}`}
+          description="Describe your relationship with your body, energy, and overall wellness. What health habits are working for you and where do you feel stuck? Be honest about both the wins and the frustrations — this helps shape a vision that actually fits your life."
           value={profile.state_health || ''}
           onChange={(value) => handleInputChange('state_health', value)}
-          placeholder="Describe your current state - what's going well, what you'd like to change, how you feel about this area of your life... Or record your thoughts!"
+          placeholder="Type or click the microphone to turn your voice into text."
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"

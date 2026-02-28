@@ -464,29 +464,29 @@ export default function ProfileEditPage() {
         case 'fun':
           return (profile.hobbies && profile.hobbies.length > 0) || 
                  profile.leisure_time_weekly ||
-                 (profile.clarity_fun && profile.clarity_fun.trim().length > 0)
+                 (profile.state_fun && profile.state_fun.trim().length > 0)
         case 'travel':
           return profile.travel_frequency || 
                  profile.passport !== undefined || 
                  profile.countries_visited !== undefined ||
-                 (profile.clarity_travel && profile.clarity_travel.trim().length > 0)
+                 (profile.state_travel && profile.state_travel.trim().length > 0)
         case 'social':
           return profile.close_friends_count || 
                  profile.social_preference ||
-                 (profile.clarity_social && profile.clarity_social.trim().length > 0)
+                 (profile.state_social && profile.state_social.trim().length > 0)
         case 'stuff':
           return profile.lifestyle_category || 
-                 (profile.clarity_stuff && profile.clarity_stuff.trim().length > 0)
+                 (profile.state_stuff && profile.state_stuff.trim().length > 0)
         case 'spirituality':
           return profile.spiritual_practice || 
                  profile.meditation_frequency || 
                  profile.personal_growth_focus !== undefined ||
-                 (profile.clarity_spirituality && profile.clarity_spirituality.trim().length > 0)
+                 (profile.state_spirituality && profile.state_spirituality.trim().length > 0)
         case 'giving':
           return profile.volunteer_status || 
                  profile.charitable_giving || 
                  profile.legacy_mindset !== undefined ||
-                 (profile.clarity_giving && profile.clarity_giving.trim().length > 0)
+                 (profile.state_giving && profile.state_giving.trim().length > 0)
         case 'photos-notes':
           return (profile.version_notes && profile.version_notes.trim().length > 0) || 
                  (profile.progress_photos && profile.progress_photos.length > 0)
