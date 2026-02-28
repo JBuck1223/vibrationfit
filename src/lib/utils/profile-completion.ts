@@ -48,7 +48,7 @@ export const FIELD_TO_SECTION_MAP: Record<string, string> = {
   height: 'health',
   weight: 'health',
   exercise_frequency: 'health',
-  clarity_health: 'health',
+  state_health: 'health',
   
   // Home section
   living_situation: 'home',
@@ -57,7 +57,7 @@ export const FIELD_TO_SECTION_MAP: Record<string, string> = {
   state: 'home',
   postal_code: 'home',
   country: 'home',
-  clarity_home: 'home',
+  state_home: 'home',
   
   // Work section
   employment_type: 'work',
@@ -65,7 +65,7 @@ export const FIELD_TO_SECTION_MAP: Record<string, string> = {
   company: 'work',
   time_in_role: 'work',
   education: 'work',
-  clarity_work: 'work',
+  state_work: 'work',
   
   // Money section
   currency: 'money',
@@ -73,43 +73,43 @@ export const FIELD_TO_SECTION_MAP: Record<string, string> = {
   savings_retirement: 'money',
   assets_equity: 'money',
   consumer_debt: 'money',
-  clarity_money: 'money',
+  state_money: 'money',
   
   // Fun section
   hobbies: 'fun',
   leisure_time_weekly: 'fun',
-  clarity_fun: 'fun',
+  state_fun: 'fun',
   
   // Travel section
   travel_frequency: 'travel',
   passport: 'travel',
   countries_visited: 'travel',
-  clarity_travel: 'travel',
+  state_travel: 'travel',
   
   // Social section
   close_friends_count: 'social',
   social_preference: 'social',
-  clarity_social: 'social',
+  state_social: 'social',
   
   // Stuff section
   lifestyle_category: 'stuff',
-  clarity_stuff: 'stuff',
+  state_stuff: 'stuff',
   
   // Spirituality section
   spiritual_practice: 'spirituality',
   meditation_frequency: 'spirituality',
   personal_growth_focus: 'spirituality',
-  clarity_spirituality: 'spirituality',
+  state_spirituality: 'spirituality',
   
   // Giving section
   volunteer_status: 'giving',
   charitable_giving: 'giving',
   legacy_mindset: 'giving',
-  clarity_giving: 'giving',
+  state_giving: 'giving',
   
-  // Love & Family clarity
-  clarity_love: 'love',
-  clarity_family: 'family',
+  // Love & Family state
+  state_love: 'love',
+  state_family: 'family',
 }
 
 // Field definitions with labels for display
@@ -161,19 +161,19 @@ export const PROFILE_FIELD_DEFINITIONS = {
     assets_equity: 'Assets/Equity',
     consumer_debt: 'Consumer Debt'
   },
-  clarity: {
-    clarity_fun: 'Fun & Recreation Story',
-    clarity_health: 'Health Story',
-    clarity_travel: 'Travel Story',
-    clarity_love: 'Love Story',
-    clarity_family: 'Family Story',
-    clarity_social: 'Social Story',
-    clarity_home: 'Home Story',
-    clarity_work: 'Work Story',
-    clarity_money: 'Money Story',
-    clarity_stuff: 'Stuff Story',
-    clarity_giving: 'Giving Story',
-    clarity_spirituality: 'Spirituality Story'
+  state: {
+    state_fun: 'Fun State',
+    state_health: 'Health State',
+    state_travel: 'Travel State',
+    state_love: 'Love State',
+    state_family: 'Family State',
+    state_social: 'Social State',
+    state_home: 'Home State',
+    state_work: 'Work State',
+    state_money: 'Money State',
+    state_stuff: 'Stuff State',
+    state_giving: 'Giving State',
+    state_spirituality: 'Spirituality State'
   },
   fun: {
     hobbies: 'Hobbies',
@@ -295,10 +295,10 @@ export function getIncompleteFields(profileData: ProfileData | null | undefined)
     }
   })
 
-  // Check clarity fields (map to their respective sections)
-  Object.entries(PROFILE_FIELD_DEFINITIONS.clarity).forEach(([field, label]) => {
+  // Check state fields (map to their respective sections)
+  Object.entries(PROFILE_FIELD_DEFINITIONS.state).forEach(([field, label]) => {
     if (!hasValue(profileData, field)) {
-      incompleteFields.push({ field, label, section: 'Life Stories', sectionId: FIELD_TO_SECTION_MAP[field] || 'personal' })
+      incompleteFields.push({ field, label, section: 'Current State', sectionId: FIELD_TO_SECTION_MAP[field] || 'personal' })
     }
   })
 
@@ -415,22 +415,22 @@ export function calculateProfileCompletion(profileData: ProfileData | null | und
     if (hasValue(profileData, field)) completedFields++
   })
 
-  // Life Category Clarity Fields (12 categories)
-  const clarityFields = [
-    'clarity_fun',
-    'clarity_health',
-    'clarity_travel',
-    'clarity_love',
-    'clarity_family',
-    'clarity_social',
-    'clarity_home',
-    'clarity_work',
-    'clarity_money',
-    'clarity_stuff',
-    'clarity_giving',
-    'clarity_spirituality'
+  // Life Category State Fields (12 categories)
+  const stateFields = [
+    'state_fun',
+    'state_health',
+    'state_travel',
+    'state_love',
+    'state_family',
+    'state_social',
+    'state_home',
+    'state_work',
+    'state_money',
+    'state_stuff',
+    'state_giving',
+    'state_spirituality'
   ]
-  clarityFields.forEach(field => {
+  stateFields.forEach(field => {
     totalFields++
     if (hasValue(profileData, field)) completedFields++
   })

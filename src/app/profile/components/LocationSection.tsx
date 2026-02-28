@@ -84,7 +84,7 @@ export function LocationSection({ profile, onProfileChange, onProfileReload, onS
     const newRecording = { url, transcript, type, category: visionToRecordingKey('home'), created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
-      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, clarity_home: updatedText }) })
+      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, state_home: updatedText }) })
       if (onProfileReload) await onProfileReload()
     } catch (error) { alert('Failed to save recording.') }
   }
@@ -320,35 +320,23 @@ export function LocationSection({ profile, onProfileChange, onProfileReload, onS
           </div>
         </div>
 
-        {/* Clarity Field */}
         <RecordingTextarea
-          label={`What's going well in ${getVisionCategoryLabel('home')}?`}
-          value={profile.clarity_home || ''}
-          onChange={(value) => handleInputChange('clarity_home', value)}
-          placeholder="Share what's going well with your home story, living environment, space goals... Or record your story!"
+          label={`What's your current state of ${getVisionCategoryLabel('home')}?`}
+          value={profile.state_home || ''}
+          onChange={(value) => handleInputChange('state_home', value)}
+          placeholder="Describe your current state - what's going well, what you'd like to change, how you feel about this area of your life... Or record your thoughts!"
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
           recordingPurpose="quick"
           category={visionToRecordingKey('home')}
-          instanceId="clarity"
+          instanceId="state"
         />
         <SavedRecordings
           key={`home-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
           categoryFilter={visionToRecordingKey('home')}
           onDelete={handleDeleteRecording}
-        />        {/* Contrast Field */}
-        <RecordingTextarea
-          label={`What's not going well in ${getVisionCategoryLabel('home')}?`}
-          value={profile.contrast_home || ''}
-          onChange={(value) => handleInputChange('contrast_home', value)}
-          placeholder="Share what's not going well with your home or living environment, or what you'd like to improve..."
-          rows={6}
-          storageFolder="profile"
-          recordingPurpose="quick"
-          category={visionToRecordingKey('home')}
-          instanceId="contrast"
         />      </div>
 
       {/* Save Button - Bottom Right */}

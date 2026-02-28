@@ -67,7 +67,7 @@ export function GivingLegacySection({ profile, onProfileChange, onProfileReload,
     const newRecording = { url, transcript, type, category: visionToRecordingKey('giving'), created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
-      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, clarity_giving: updatedText }) })
+      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, state_giving: updatedText }) })
       if (onProfileReload) await onProfileReload()
     } catch (error) { alert('Failed to save recording.') }
   }
@@ -211,35 +211,23 @@ export function GivingLegacySection({ profile, onProfileChange, onProfileReload,
           />
         </div>
 
-        {/* Clarity Field */}
         <RecordingTextarea
-          label={`What's going well in ${getVisionCategoryLabel('giving')}?`}
-          value={profile.clarity_giving || ''}
-          onChange={(value) => handleInputChange('clarity_giving', value)}
-          placeholder="Share what's going well with your giving practices, what causes matter to you, how you're contributing... Or record your story!"
+          label={`What's your current state of ${getVisionCategoryLabel('giving')}?`}
+          value={profile.state_giving || ''}
+          onChange={(value) => handleInputChange('state_giving', value)}
+          placeholder="Describe your current state - what's going well, what you'd like to change, how you feel about this area of your life... Or record your thoughts!"
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
           recordingPurpose="quick"
           category={visionToRecordingKey('giving')}
-          instanceId="clarity"
+          instanceId="state"
         />
         <SavedRecordings
           key={`giving-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
           categoryFilter={visionToRecordingKey('giving')}
           onDelete={handleDeleteRecording}
-        />        {/* Contrast Field */}
-        <RecordingTextarea
-          label={`What's not going well in ${getVisionCategoryLabel('giving')}?`}
-          value={profile.contrast_giving || ''}
-          onChange={(value) => handleInputChange('contrast_giving', value)}
-          placeholder="Share what's not going well with your giving or legacy goals, or what you'd like to improve..."
-          rows={6}
-          storageFolder="profile"
-          recordingPurpose="quick"
-          category={visionToRecordingKey('giving')}
-          instanceId="contrast"
         />      </div>
 
       {/* Save Button - Bottom Right */}

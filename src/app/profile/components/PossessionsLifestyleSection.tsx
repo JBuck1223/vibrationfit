@@ -147,7 +147,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
       await fetch(apiUrl, { 
         method: 'PUT', 
         headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ story_recordings: updatedRecordings, clarity_stuff: updatedText }) 
+        body: JSON.stringify({ story_recordings: updatedRecordings, state_stuff: updatedText }) 
       })
       if (onProfileReload) await onProfileReload()
     } catch (error) { 
@@ -547,35 +547,23 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
           )}
         </div>
 
-        {/* Clarity Field */}
         <RecordingTextarea
-          label={`What's going well in ${getVisionCategoryLabel(visionToRecordingKey('stuff'))}?`}
-          value={profile.clarity_stuff || ''}
-          onChange={(value) => handleInputChange('clarity_stuff', value)}
-          placeholder="Share what's going well with your lifestyle, what possessions matter to you, how you live... Or record your story!"
+          label={`What's your current state of ${getVisionCategoryLabel(visionToRecordingKey('stuff'))}?`}
+          value={profile.state_stuff || ''}
+          onChange={(value) => handleInputChange('state_stuff', value)}
+          placeholder="Describe your current state - what's going well, what you'd like to change, how you feel about this area of your life... Or record your thoughts!"
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
           recordingPurpose="quick"
           category={visionToRecordingKey('stuff')}
-          instanceId="clarity"
+          instanceId="state"
         />
         <SavedRecordings
           key={`possessions-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
           categoryFilter={visionToRecordingKey('stuff')}
           onDelete={handleDeleteRecording}
-        />        {/* Contrast Field */}
-        <RecordingTextarea
-          label={`What's not going well in ${getVisionCategoryLabel(visionToRecordingKey('stuff'))}?`}
-          value={profile.contrast_stuff || ''}
-          onChange={(value) => handleInputChange('contrast_stuff', value)}
-          placeholder="Share what's not going well with your lifestyle or possessions, or what you'd like to improve..."
-          rows={6}
-          storageFolder="profile"
-          recordingPurpose="quick"
-          category={visionToRecordingKey('stuff')}
-          instanceId="contrast"
         />      </div>
 
       {/* Save Button - Bottom Right */}

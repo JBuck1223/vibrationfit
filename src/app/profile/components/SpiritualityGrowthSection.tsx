@@ -66,7 +66,7 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
     const newRecording = { url, transcript, type, category: visionToRecordingKey('spirituality'), created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
-      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, clarity_spirituality: updatedText }) })
+      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, state_spirituality: updatedText }) })
       if (onProfileReload) await onProfileReload()
     } catch (error) { alert('Failed to save recording.') }
   }
@@ -212,35 +212,23 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
           />
         </div>
 
-        {/* Clarity Field */}
         <RecordingTextarea
-          label={`What's going well in ${getVisionCategoryLabel('spirituality')}?`}
-          value={profile.clarity_spirituality || ''}
-          onChange={(value) => handleInputChange('clarity_spirituality', value)}
-          placeholder="Share what's going well with your spiritual journey, personal growth practices, what you're learning... Or record your story!"
+          label={`What's your current state of ${getVisionCategoryLabel('spirituality')}?`}
+          value={profile.state_spirituality || ''}
+          onChange={(value) => handleInputChange('state_spirituality', value)}
+          placeholder="Describe your current state - what's going well, what you'd like to change, how you feel about this area of your life... Or record your thoughts!"
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
           recordingPurpose="quick"
           category={visionToRecordingKey('spirituality')}
-          instanceId="clarity"
+          instanceId="state"
         />
         <SavedRecordings
           key={`spirituality-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
           categoryFilter={visionToRecordingKey('spirituality')}
           onDelete={handleDeleteRecording}
-        />        {/* Contrast Field */}
-        <RecordingTextarea
-          label={`What's not going well in ${getVisionCategoryLabel('spirituality')}?`}
-          value={profile.contrast_spirituality || ''}
-          onChange={(value) => handleInputChange('contrast_spirituality', value)}
-          placeholder="Share what's not going well with your spiritual or growth journey, or what you'd like to improve..."
-          rows={6}
-          storageFolder="profile"
-          recordingPurpose="quick"
-          category={visionToRecordingKey('spirituality')}
-          instanceId="contrast"
         />      </div>
 
       {/* Save Button - Bottom Right */}

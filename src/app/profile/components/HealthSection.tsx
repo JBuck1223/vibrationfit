@@ -84,7 +84,7 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
         },
         body: JSON.stringify({
           story_recordings: updatedRecordings,
-          clarity_health: updatedText // Save the updated story text with transcript
+          state_health: updatedText
         }),
       })
 
@@ -95,7 +95,7 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
       const data = await response.json()
       console.log('✅ Recording auto-saved to database', {
         savedRecordings: data.profile?.story_recordings?.length || 0,
-        storyTextLength: data.profile?.clarity_health?.length || 0,
+        storyTextLength: data.profile?.state_health?.length || 0,
         actualRecordings: data.profile?.story_recordings
       })
 
@@ -208,7 +208,7 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
         <RadioGroup
           label="Measurement Units *"
           name="units"
-          value={profile.units}
+          value={profile.units ?? undefined}
           onChange={(value) => handleInputChange('units', value)}
           options={[
             { value: 'US', label: 'US (in, lbs)' },
@@ -313,18 +313,18 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
           </div>
         </div>
 
-        {/* Clarity Field */}
+        {/* State Field */}
         <RecordingTextarea
-          label={`What's going well in ${getVisionCategoryLabel('health')}?`}
-          value={profile.clarity_health || ''}
-          onChange={(value) => handleInputChange('clarity_health', value)}
-          placeholder="Share what's going well with your health journey, fitness goals, wellness practices... Or click the microphone to record your story!"
+          label={`What's your current state of ${getVisionCategoryLabel('health')}?`}
+          value={profile.state_health || ''}
+          onChange={(value) => handleInputChange('state_health', value)}
+          placeholder="Describe your current state - what's going well, what you'd like to change, how you feel about this area of your life... Or record your thoughts!"
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
           recordingPurpose="quick"
           category={visionToRecordingKey('health')}
-          instanceId="clarity"
+          instanceId="state"
         />
 
         {/* Display Saved Recordings */}
@@ -335,18 +335,6 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
           onDelete={handleDeleteRecording}
         />
 
-        {/* Contrast Field */}
-        <RecordingTextarea
-          label={`What's not going well in ${getVisionCategoryLabel('health')}?`}
-          value={profile.contrast_health || ''}
-          onChange={(value) => handleInputChange('contrast_health', value)}
-          placeholder="Share what's not going well with your health, fitness, or wellness, or what you'd like to improve..."
-          rows={6}
-          storageFolder="profile"
-          recordingPurpose="quick"
-          category={visionToRecordingKey('health')}
-          instanceId="contrast"
-        />
       </div>
 
       {/* Save Button - Bottom Right */}

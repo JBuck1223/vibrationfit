@@ -64,7 +64,7 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
       await fetch(apiUrl, { 
         method: 'PUT', 
         headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ story_recordings: updatedRecordings, clarity_fun: updatedText }) 
+        body: JSON.stringify({ story_recordings: updatedRecordings, state_fun: updatedText }) 
       })
       if (onProfileReload) await onProfileReload()
     } catch (error) { 
@@ -271,18 +271,18 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
           </div>
         </div>
 
-        {/* Clarity Field */}
+        {/* State Field */}
         <RecordingTextarea
-          label="What's going well in Fun?"
-          value={profile.clarity_fun || ''}
-          onChange={(value) => handleInputChange('clarity_fun', value)}
-          placeholder="Share what's going well with your recreational activities, leisure time, what brings you joy... Or record your story!"
+          label="What's your current state of Fun & Recreation?"
+          value={profile.state_fun || ''}
+          onChange={(value) => handleInputChange('state_fun', value)}
+          placeholder="Describe your current state - what's going well, what you'd like to change, how you feel about this area of your life... Or record your thoughts!"
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
           recordingPurpose="quick"
           category={visionToRecordingKey('fun')}
-          instanceId="clarity"
+          instanceId="state"
         />
 
         <SavedRecordings
@@ -291,18 +291,7 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
           categoryFilter={visionToRecordingKey('fun')}
           onDelete={handleDeleteRecording}
         />
-        {/* Contrast Field */}
-        <RecordingTextarea
-          label="What's not going well in Fun?"
-          value={profile.contrast_fun || ''}
-          onChange={(value) => handleInputChange('contrast_fun', value)}
-          placeholder="Share what's not going well with your recreational activities, leisure time, or what you'd like to improve..."
-          rows={6}
-          storageFolder="profile"
-          recordingPurpose="quick"
-          category={visionToRecordingKey('fun')}
-          instanceId="contrast"
-        />      </div>
+      </div>
 
       {/* Save Button - Bottom Right */}
       {onSave && (

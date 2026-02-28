@@ -80,7 +80,7 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           story_recordings: updatedRecordings,
-          clarity_love: updatedText
+          state_love: updatedText
         }),
       })
 
@@ -267,18 +267,18 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload,
           </div>
         )}
 
-        {/* Clarity Field */}
+        {/* State Field */}
         <RecordingTextarea
-          label={`What's going well in ${getVisionCategoryLabel(visionToRecordingKey('love'))}?`}
-          value={profile.clarity_love || ''}
-          onChange={(value) => handleInputChange('clarity_love', value)}
-          placeholder="Share what's going well with your relationship journey, love story, partnership goals... Or click the microphone to record!"
+          label={`What's your current state of ${getVisionCategoryLabel(visionToRecordingKey('love'))}?`}
+          value={profile.state_love || ''}
+          onChange={(value) => handleInputChange('state_love', value)}
+          placeholder="Describe your current state - what's going well, what you'd like to change, how you feel about this area of your life... Or record your thoughts!"
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
           recordingPurpose="quick"
           category={visionToRecordingKey('love')}
-          instanceId="clarity"
+          instanceId="state"
         />
 
         {/* Display Saved Recordings */}
@@ -288,18 +288,7 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload,
           categoryFilter={visionToRecordingKey('love')}
           onDelete={handleDeleteRecording}
         />
-        {/* Contrast Field */}
-        <RecordingTextarea
-          label={`What's not going well in ${getVisionCategoryLabel(visionToRecordingKey('love'))}?`}
-          value={profile.contrast_love || ''}
-          onChange={(value) => handleInputChange('contrast_love', value)}
-          placeholder="Share what's not going well with your relationship or romantic life, or what you'd like to improve..."
-          rows={6}
-          storageFolder="profile"
-          recordingPurpose="quick"
-          category={visionToRecordingKey('love')}
-          instanceId="contrast"
-        />      </div>
+      </div>
 
       {/* Save Button - Bottom Right */}
       {onSave && (

@@ -64,7 +64,7 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
     const newRecording = { url, transcript, type, category: visionToRecordingKey('social'), created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
-      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, clarity_social: updatedText }) })
+      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, state_social: updatedText }) })
       if (onProfileReload) await onProfileReload()
     } catch (error) { alert('Failed to save recording.') }
   }
@@ -199,35 +199,23 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
           </div>
         </div>
 
-        {/* Clarity Field */}
         <RecordingTextarea
-          label={`What's going well in ${getVisionCategoryLabel('social')}?`}
-          value={profile.clarity_social || ''}
-          onChange={(value) => handleInputChange('clarity_social', value)}
-          placeholder="Share what's going well with your social life, friendships, how you connect with others... Or record your story!"
+          label={`What's your current state of ${getVisionCategoryLabel('social')}?`}
+          value={profile.state_social || ''}
+          onChange={(value) => handleInputChange('state_social', value)}
+          placeholder="Describe your current state - what's going well, what you'd like to change, how you feel about this area of your life... Or record your thoughts!"
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
           recordingPurpose="quick"
           category={visionToRecordingKey('social')}
-          instanceId="clarity"
+          instanceId="state"
         />
         <SavedRecordings
           key={`social-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
           categoryFilter={visionToRecordingKey('social')}
           onDelete={handleDeleteRecording}
-        />        {/* Contrast Field */}
-        <RecordingTextarea
-          label={`What's not going well in ${getVisionCategoryLabel('social')}?`}
-          value={profile.contrast_social || ''}
-          onChange={(value) => handleInputChange('contrast_social', value)}
-          placeholder="Share what's not going well with your social life or friendships, or what you'd like to improve..."
-          rows={6}
-          storageFolder="profile"
-          recordingPurpose="quick"
-          category={visionToRecordingKey('social')}
-          instanceId="contrast"
         />      </div>
 
       {/* Save Button - Bottom Right */}

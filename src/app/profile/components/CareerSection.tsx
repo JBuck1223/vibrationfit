@@ -89,7 +89,7 @@ export function CareerSection({ profile, onProfileChange, onProfileReload, onSav
       await fetch('/api/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ story_recordings: updatedRecordings, clarity_work: updatedText }),
+        body: JSON.stringify({ story_recordings: updatedRecordings, state_work: updatedText }),
       })
       if (onProfileReload) await onProfileReload()
     } catch (error) { alert('Failed to save recording.') }
@@ -322,35 +322,24 @@ export function CareerSection({ profile, onProfileChange, onProfileReload, onSav
           />
         </div>
 
-        {/* Clarity Field */}
+        {/* State Field */}
         <RecordingTextarea
-          label={`What's going well in ${getVisionCategoryLabel(visionToRecordingKey('work'))}?`}
-          value={profile.clarity_work || ''}
-          onChange={(value) => handleInputChange('clarity_work', value)}
-          placeholder="Share what's going well with your career journey, professional goals, work experiences... Or record your story!"
+          label={`What's your current state of ${getVisionCategoryLabel(visionToRecordingKey('work'))}?`}
+          value={profile.state_work || ''}
+          onChange={(value) => handleInputChange('state_work', value)}
+          placeholder="Describe your current state - what's going well, what you'd like to change, how you feel about this area of your life... Or record your thoughts!"
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
           recordingPurpose="quick"
           category={visionToRecordingKey('work')}
-          instanceId="clarity"
+          instanceId="state"
         />
         <SavedRecordings
           key={`career-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
           categoryFilter={visionToRecordingKey('work')}
           onDelete={handleDeleteRecording}
-        />        {/* Contrast Field */}
-        <RecordingTextarea
-          label={`What's not going well in ${getVisionCategoryLabel(visionToRecordingKey('work'))}?`}
-          value={profile.contrast_work || ''}
-          onChange={(value) => handleInputChange('contrast_work', value)}
-          placeholder="Share what's not going well with your career or work, or what you'd like to improve..."
-          rows={6}
-          storageFolder="profile"
-          recordingPurpose="quick"
-          category={visionToRecordingKey('work')}
-          instanceId="contrast"
         />      </div>
 
       {/* Save Button - Bottom Right */}

@@ -229,32 +229,31 @@ export function getCategoryStoryField(categoryKey: LifeCategoryKey): string {
 }
 
 /**
- * Get the clarity field name for a life category (e.g., 'fun' -> 'clarity_fun')
+ * Get the state field name for a life category (e.g., 'fun' -> 'state_fun')
  * Only accepts life category keys (excludes forward/conclusion)
  */
-export function getCategoryClarityField(categoryKey: LifeCategoryKey): string {
-  return `clarity_${categoryKey}`
+export function getCategoryStateField(categoryKey: LifeCategoryKey): string {
+  return `state_${categoryKey}`
 }
 
-/**
- * Get the contrast field name for a life category (e.g., 'fun' -> 'contrast_fun')
- * Only accepts life category keys (excludes forward/conclusion)
- */
-export function getCategoryContrastField(categoryKey: LifeCategoryKey): string {
-  return `contrast_${categoryKey}`
-}
+/** @deprecated Use getCategoryStateField instead */
+export const getCategoryClarityField = getCategoryStateField
+/** @deprecated Contrast fields no longer exist; use getCategoryStateField */
+export const getCategoryContrastField = getCategoryStateField
 
 /**
- * Get clarity and contrast field names for a life category
+ * Get state field name for a life category
  * Only accepts life category keys (excludes forward/conclusion)
  */
-export function getCategoryFields(categoryKey: LifeCategoryKey): { 
+export function getCategoryFields(categoryKey: LifeCategoryKey): {
+  state: string
   clarity: string
   contrast: string
 } {
   return {
-    clarity: getCategoryClarityField(categoryKey),
-    contrast: getCategoryContrastField(categoryKey),
+    state: getCategoryStateField(categoryKey),
+    clarity: `clarity_${categoryKey}`,
+    contrast: `contrast_${categoryKey}`,
   }
 }
 
@@ -265,17 +264,16 @@ export const CATEGORY_STORY_FIELDS: Record<LifeCategoryKey, string> =
     return acc
   }, {} as Record<LifeCategoryKey, string>)
 
-export const CATEGORY_CLARITY_FIELDS: Record<LifeCategoryKey, string> = 
+export const CATEGORY_STATE_FIELDS: Record<LifeCategoryKey, string> = 
   LIFE_CATEGORY_KEYS.reduce((acc, key) => {
-    acc[key] = getCategoryClarityField(key)
+    acc[key] = getCategoryStateField(key)
     return acc
   }, {} as Record<LifeCategoryKey, string>)
 
-export const CATEGORY_CONTRAST_FIELDS: Record<LifeCategoryKey, string> = 
-  LIFE_CATEGORY_KEYS.reduce((acc, key) => {
-    acc[key] = getCategoryContrastField(key)
-    return acc
-  }, {} as Record<LifeCategoryKey, string>)
+/** @deprecated Use CATEGORY_STATE_FIELDS instead */
+export const CATEGORY_CLARITY_FIELDS = CATEGORY_STATE_FIELDS
+/** @deprecated Contrast fields no longer exist; use CATEGORY_STATE_FIELDS */
+export const CATEGORY_CONTRAST_FIELDS = CATEGORY_STATE_FIELDS
 
 // ============================================================================
 // CATEGORY MAPPING - AUTO-GENERATED FROM VISION_CATEGORIES

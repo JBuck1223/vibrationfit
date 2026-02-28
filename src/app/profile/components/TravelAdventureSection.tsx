@@ -93,7 +93,7 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
       await fetch(apiUrl, { 
         method: 'PUT', 
         headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ story_recordings: updatedRecordings, clarity_travel: updatedText }) 
+        body: JSON.stringify({ story_recordings: updatedRecordings, state_travel: updatedText }) 
       })
       if (onProfileReload) await onProfileReload()
     } catch (error) { 
@@ -311,35 +311,24 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
           )}
         </div>
 
-        {/* Clarity Field */}
+        {/* State Field */}
         <RecordingTextarea
-          label={`What's going well in ${getVisionCategoryLabel('travel')}?`}
-          value={profile.clarity_travel || ''}
-          onChange={(value) => handleInputChange('clarity_travel', value)}
-          placeholder="Share what's going well with your travel experiences, where you've been, how you like to travel... Or record your story!"
+          label={`What's your current state of ${getVisionCategoryLabel('travel')}?`}
+          value={profile.state_travel || ''}
+          onChange={(value) => handleInputChange('state_travel', value)}
+          placeholder="Describe your current state - what's going well, what you'd like to change, how you feel about this area of your life... Or record your thoughts!"
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
           recordingPurpose="quick"
           category={visionToRecordingKey('travel')}
-          instanceId="clarity"
+          instanceId="state"
         />
         <SavedRecordings
           key={`travel-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
           categoryFilter={visionToRecordingKey('travel')}
           onDelete={handleDeleteRecording}
-        />        {/* Contrast Field */}
-        <RecordingTextarea
-          label={`What's not going well in ${getVisionCategoryLabel('travel')}?`}
-          value={profile.contrast_travel || ''}
-          onChange={(value) => handleInputChange('contrast_travel', value)}
-          placeholder="Share what's not going well with your travel or adventures, or what you'd like to improve..."
-          rows={6}
-          storageFolder="profile"
-          recordingPurpose="quick"
-          category={visionToRecordingKey('travel')}
-          instanceId="contrast"
         />      </div>
 
       {/* Save Button - Bottom Right */}

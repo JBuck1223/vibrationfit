@@ -97,7 +97,7 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload, on
     const newRecording = { url, transcript, type, category: visionToRecordingKey('money'), created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
-      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, clarity_money: updatedText }) })
+      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, state_money: updatedText }) })
       if (onProfileReload) await onProfileReload()
     } catch (error) { alert('Failed to save recording.') }
   }
@@ -431,35 +431,23 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload, on
           </div>
         </div>
 
-        {/* Clarity Field */}
         <RecordingTextarea
-          label={`What's going well in ${getVisionCategoryLabel('money')}?`}
-          value={profile.clarity_money || ''}
-          onChange={(value) => handleInputChange('clarity_money', value)}
-          placeholder="Share what's going well with your financial journey, wealth goals, money mindset... Or record your story!"
+          label={`What's your current state of ${getVisionCategoryLabel('money')}?`}
+          value={profile.state_money || ''}
+          onChange={(value) => handleInputChange('state_money', value)}
+          placeholder="Describe your current state - what's going well, what you'd like to change, how you feel about this area of your life... Or record your thoughts!"
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
           recordingPurpose="quick"
           category={visionToRecordingKey('money')}
-          instanceId="clarity"
+          instanceId="state"
         />
         <SavedRecordings
           key={`money-recordings-${profile.story_recordings?.length || 0}`}
           recordings={profile.story_recordings || []}
           categoryFilter={visionToRecordingKey('money')}
           onDelete={handleDeleteRecording}
-        />        {/* Contrast Field */}
-        <RecordingTextarea
-          label={`What's not going well in ${getVisionCategoryLabel('money')}?`}
-          value={profile.contrast_money || ''}
-          onChange={(value) => handleInputChange('contrast_money', value)}
-          placeholder="Share what's not going well with your finances or wealth, or what you'd like to improve..."
-          rows={6}
-          storageFolder="profile"
-          recordingPurpose="quick"
-          category={visionToRecordingKey('money')}
-          instanceId="contrast"
         />      </div>
 
       <div className="mt-6 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">

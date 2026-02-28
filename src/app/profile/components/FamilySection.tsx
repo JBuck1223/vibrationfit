@@ -74,7 +74,7 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           story_recordings: updatedRecordings,
-          clarity_family: updatedText
+          state_family: updatedText
         }),
       })
       if (onProfileReload) await onProfileReload()
@@ -138,7 +138,7 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
         <RadioGroup
           label="Do you have children? *"
           name="has_children"
-          value={hasChildren}
+          value={hasChildren ?? undefined}
           onChange={(value) => handleInputChange('has_children', value)}
           options={[
             { value: true, label: 'Yes' },
@@ -220,18 +220,18 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
           </div>
         )}
 
-        {/* Clarity Field */}
+        {/* State Field */}
         <RecordingTextarea
-          label={`What's going well in ${getVisionCategoryLabel('family')}?`}
-          value={profile.clarity_family || ''}
-          onChange={(value) => handleInputChange('clarity_family', value)}
-          placeholder="Share what's going well with your family journey, parenting experiences, family goals... Or record your story!"
+          label={`What's your current state of ${getVisionCategoryLabel('family')}?`}
+          value={profile.state_family || ''}
+          onChange={(value) => handleInputChange('state_family', value)}
+          placeholder="Describe your current state - what's going well, what you'd like to change, how you feel about this area of your life... Or record your thoughts!"
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
           recordingPurpose="quick"
           category={visionToRecordingKey('family')}
-          instanceId="clarity"
+          instanceId="state"
         />
 
         {/* Display Saved Recordings */}
@@ -241,18 +241,7 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
           categoryFilter={visionToRecordingKey('family')}
           onDelete={handleDeleteRecording}
         />
-        {/* Contrast Field */}
-        <RecordingTextarea
-          label={`What's not going well in ${getVisionCategoryLabel('family')}?`}
-          value={profile.contrast_family || ''}
-          onChange={(value) => handleInputChange('contrast_family', value)}
-          placeholder="Share what's not going well with your family or parenting, or what you'd like to improve..."
-          rows={6}
-          storageFolder="profile"
-          recordingPurpose="quick"
-          category={visionToRecordingKey('family')}
-          instanceId="contrast"
-        />      </div>
+      </div>
 
       {/* Save Button - Bottom Right */}
       {onSave && (

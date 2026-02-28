@@ -200,15 +200,10 @@ export function getChangedFields(
     // Financial
     'currency', 'household_income', 'savings_retirement', 'assets_equity', 'consumer_debt',
     
-    // Life category clarity fields
-    'clarity_fun', 'clarity_health', 'clarity_travel', 'clarity_love', 'clarity_family',
-    'clarity_social', 'clarity_home', 'clarity_work', 'clarity_money', 'clarity_stuff',
-    'clarity_giving', 'clarity_spirituality',
-    
-    // Life category contrast fields
-    'contrast_fun', 'contrast_health', 'contrast_travel', 'contrast_love', 'contrast_family',
-    'contrast_social', 'contrast_home', 'contrast_work', 'contrast_money', 'contrast_stuff',
-    'contrast_giving', 'contrast_spirituality',
+    // Life category state fields
+    'state_fun', 'state_health', 'state_travel', 'state_love', 'state_family',
+    'state_social', 'state_home', 'state_work', 'state_money', 'state_stuff',
+    'state_giving', 'state_spirituality',
     
     // Structured fields
     'hobbies', 'leisure_time_weekly', 'travel_frequency', 'passport', 'countries_visited',
@@ -293,20 +288,17 @@ export function getChangedSections(
     relationship_status: 'love',
     partner_name: 'love',
     relationship_length: 'love',
-    clarity_love: 'love',
-    contrast_love: 'love',
+    state_love: 'love',
     
     has_children: 'family',
     children: 'family',
-    clarity_family: 'family',
-    contrast_family: 'family',
+    state_family: 'family',
     
     units: 'health',
     height: 'health',
     weight: 'health',
     exercise_frequency: 'health',
-    clarity_health: 'health',
-    contrast_health: 'health',
+    state_health: 'health',
     
     living_situation: 'home',
     time_at_location: 'home',
@@ -314,8 +306,7 @@ export function getChangedSections(
     state: 'home',
     postal_code: 'home',
     country: 'home',
-    clarity_home: 'home',
-    contrast_home: 'home',
+    state_home: 'home',
     
     employment_type: 'work',
     occupation: 'work',
@@ -323,51 +314,43 @@ export function getChangedSections(
     time_in_role: 'work',
     education: 'work',
     education_description: 'work',
-    clarity_work: 'work',
-    contrast_work: 'work',
+    state_work: 'work',
     
     currency: 'money',
     household_income: 'money',
     savings_retirement: 'money',
     assets_equity: 'money',
     consumer_debt: 'money',
-    clarity_money: 'money',
-    contrast_money: 'money',
+    state_money: 'money',
     
     hobbies: 'fun',
     leisure_time_weekly: 'fun',
-    clarity_fun: 'fun',
-    contrast_fun: 'fun',
+    state_fun: 'fun',
     
     travel_frequency: 'travel',
     passport: 'travel',
     countries_visited: 'travel',
     trips: 'travel',
-    clarity_travel: 'travel',
-    contrast_travel: 'travel',
+    state_travel: 'travel',
     
     close_friends_count: 'social',
     social_preference: 'social',
-    clarity_social: 'social',
-    contrast_social: 'social',
+    state_social: 'social',
     
     lifestyle_category: 'stuff',
     vehicles: 'stuff',
     items: 'stuff',
-    clarity_stuff: 'stuff',
-    contrast_stuff: 'stuff',
+    state_stuff: 'stuff',
     
     spiritual_practice: 'spirituality',
     meditation_frequency: 'spirituality',
     personal_growth_focus: 'spirituality',
-    clarity_spirituality: 'spirituality',
-    contrast_spirituality: 'spirituality',
+    state_spirituality: 'spirituality',
     
     volunteer_status: 'giving',
     charitable_giving: 'giving',
     legacy_mindset: 'giving',
-    clarity_giving: 'giving',
-    contrast_giving: 'giving',
+    state_giving: 'giving',
   }
   
   for (const field of changedFields) {
@@ -428,22 +411,19 @@ export function getRefinedSections(draft: Partial<UserProfile>): string[] {
     'relationship_status': 'love', 
     'partner_name': 'love', 
     'relationship_length': 'love', 
-    'clarity_love': 'love',
-    'contrast_love': 'love', 
+    'state_love': 'love',
     
     // Family
     'has_children': 'family', 
     'children': 'family',
-    'clarity_family': 'family',
-    'contrast_family': 'family', 
+    'state_family': 'family',
     
     // Health
     'units': 'health',
     'height': 'health', 
     'weight': 'health', 
     'exercise_frequency': 'health',
-    'clarity_health': 'health', 
-    'contrast_health': 'health', 
+    'state_health': 'health',
     
     // Home
     'living_situation': 'home', 
@@ -452,8 +432,7 @@ export function getRefinedSections(draft: Partial<UserProfile>): string[] {
     'state': 'home', 
     'postal_code': 'home',
     'country': 'home',
-    'clarity_home': 'home', 
-    'contrast_home': 'home', 
+    'state_home': 'home',
     
     // Work
     'employment_type': 'work', 
@@ -462,8 +441,7 @@ export function getRefinedSections(draft: Partial<UserProfile>): string[] {
     'time_in_role': 'work',
     'education': 'work',
     'education_description': 'work',
-    'clarity_work': 'work', 
-    'contrast_work': 'work', 
+    'state_work': 'work',
     
     // Money
     'currency': 'money',
@@ -471,49 +449,42 @@ export function getRefinedSections(draft: Partial<UserProfile>): string[] {
     'savings_retirement': 'money',
     'assets_equity': 'money',
     'consumer_debt': 'money',
-    'clarity_money': 'money', 
-    'contrast_money': 'money', 
+    'state_money': 'money',
     
     // Fun
     'hobbies': 'fun', 
     'leisure_time_weekly': 'fun',
-    'clarity_fun': 'fun', 
-    'contrast_fun': 'fun', 
+    'state_fun': 'fun',
     
     // Travel
     'travel_frequency': 'travel', 
     'passport': 'travel',
     'countries_visited': 'travel',
     'trips': 'travel',
-    'clarity_travel': 'travel', 
-    'contrast_travel': 'travel', 
+    'state_travel': 'travel',
     
     // Social
     'close_friends_count': 'social', 
     'social_preference': 'social',
-    'clarity_social': 'social', 
-    'contrast_social': 'social', 
+    'state_social': 'social',
     
     // Stuff
     'lifestyle_category': 'stuff',
     'vehicles': 'stuff',
     'items': 'stuff',
-    'clarity_stuff': 'stuff',
-    'contrast_stuff': 'stuff',
+    'state_stuff': 'stuff',
     
     // Spirituality
     'spiritual_practice': 'spirituality', 
     'meditation_frequency': 'spirituality',
     'personal_growth_focus': 'spirituality',
-    'clarity_spirituality': 'spirituality', 
-    'contrast_spirituality': 'spirituality', 
+    'state_spirituality': 'spirituality',
     
     // Giving
     'volunteer_status': 'giving', 
     'charitable_giving': 'giving',
     'legacy_mindset': 'giving',
-    'clarity_giving': 'giving', 
-    'contrast_giving': 'giving', 
+    'state_giving': 'giving',
   }
   
   refinedFields.forEach(field => {
