@@ -280,6 +280,7 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
+          recordingPurpose="quick"
           category={visionToRecordingKey('fun')}
           instanceId="clarity"
         />
@@ -298,6 +299,7 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
           placeholder="Share what's not going well with your recreational activities, leisure time, or what you'd like to improve..."
           rows={6}
           storageFolder="profile"
+          recordingPurpose="quick"
           category={visionToRecordingKey('fun')}
           instanceId="contrast"
         />      </div>

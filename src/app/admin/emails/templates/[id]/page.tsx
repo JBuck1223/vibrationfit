@@ -71,6 +71,7 @@ export default function EmailTemplateDetailPage() {
   const [sendResult, setSendResult] = useState<{ success: boolean; message: string } | null>(null)
 
   const [formData, setFormData] = useState({
+    slug: '',
     name: '',
     description: '',
     category: 'other',
@@ -97,6 +98,7 @@ export default function EmailTemplateDetailPage() {
 
       setTemplate(data.template)
       setFormData({
+        slug: data.template.slug,
         name: data.template.name,
         description: data.template.description || '',
         category: data.template.category,
@@ -124,6 +126,7 @@ export default function EmailTemplateDetailPage() {
   useEffect(() => {
     if (template) {
       const changed =
+        formData.slug !== template.slug ||
         formData.name !== template.name ||
         formData.description !== (template.description || '') ||
         formData.category !== template.category ||
@@ -303,7 +306,7 @@ export default function EmailTemplateDetailPage() {
           <PageHero
             eyebrow="EMAIL TEMPLATES"
             title={template?.name || 'Edit Template'}
-            subtitle={template?.slug}
+            subtitle={formData.slug || template?.slug}
           >
             <div className="flex flex-col sm:flex-row gap-3">
               {hasChanges && (
@@ -339,12 +342,12 @@ export default function EmailTemplateDetailPage() {
                       Slug
                     </label>
                     <Input
-                      value={template?.slug || ''}
-                      readOnly
-                      className="bg-neutral-900 border-neutral-700 font-mono text-neutral-500"
+                      value={formData.slug}
+                      onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') }))}
+                      className="bg-neutral-800 border-neutral-700 font-mono"
                     />
                     <p className="text-xs text-neutral-500 mt-1">
-                      Slug cannot be changed after creation
+                      Lowercase letters, numbers, and hyphens only
                     </p>
                   </div>
 

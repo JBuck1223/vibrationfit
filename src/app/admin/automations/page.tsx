@@ -15,6 +15,7 @@ import { AdminWrapper } from '@/components/AdminWrapper'
 import { ArrowLeft, Plus, Mail, MessageSquare, Zap } from 'lucide-react'
 
 const EVENT_NAMES = [
+  'intensive.purchased',
   'lead.created',
   'user.created',
   'subscription.created',

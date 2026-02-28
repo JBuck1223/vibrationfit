@@ -3,13 +3,15 @@
  *
  * triggerEvent(eventName, payload) does three things:
  * 1. Fires matching automation_rules (single-fire sends)
+ *    - 0-delay rules send immediately via SES/Twilio
+ *    - Delayed rules queue in scheduled_messages for the cron
  * 2. Enrolls into matching sequences (multi-step drips)
  * 3. Processes sequence exit events (cancel active enrollments)
- *
- * All sends go through the scheduled_messages queue.
  */
 
 import { createAdminClient } from '@/lib/supabase/admin'
+import { sendEmail } from '@/lib/email/aws-ses'
+import { sendSMS } from '@/lib/messaging/twilio'
 
 export interface EventPayload {
   email?: string
@@ -98,25 +100,72 @@ export async function triggerEvent(
             body = applyVariables(template.body, variables)
           }
 
-          const scheduledFor = new Date(
-            Date.now() + (rule.delay_minutes || 0) * 60 * 1000
-          ).toISOString()
+          const delayMs = (rule.delay_minutes || 0) * 60 * 1000
+          const now = new Date().toISOString()
+          const sendImmediately = delayMs === 0
 
-          await supabase.from('scheduled_messages').insert({
-            message_type: rule.channel,
-            recipient_email: payload.email || null,
-            recipient_phone: payload.phone || null,
-            recipient_name: payload.name || null,
-            recipient_user_id: payload.userId || null,
-            subject,
-            body,
-            text_body: textBody,
-            scheduled_for: scheduledFor,
-            email_template_id:
-              rule.channel === 'email' ? rule.template_id : null,
-            sms_template_id:
-              rule.channel === 'sms' ? rule.template_id : null,
-          })
+          if (sendImmediately) {
+            // Send right now, then log as already sent
+            if (rule.channel === 'email' && payload.email) {
+              await sendEmail({
+                to: payload.email,
+                subject: subject || 'VibrationFit',
+                htmlBody: body,
+                textBody: textBody || body.replace(/<[^>]*>/g, ''),
+              })
+            } else if (rule.channel === 'sms' && payload.phone) {
+              await sendSMS({ to: payload.phone, body })
+            }
+
+            await supabase.from('scheduled_messages').insert({
+              message_type: rule.channel,
+              recipient_email: payload.email || null,
+              recipient_phone: payload.phone || null,
+              recipient_name: payload.name || null,
+              recipient_user_id: payload.userId || null,
+              subject,
+              body,
+              text_body: textBody,
+              scheduled_for: now,
+              sent_at: now,
+              status: 'sent',
+              email_template_id:
+                rule.channel === 'email' ? rule.template_id : null,
+              sms_template_id:
+                rule.channel === 'sms' ? rule.template_id : null,
+            })
+
+            await supabase.from('message_send_log').insert({
+              message_type: rule.channel,
+              template_id: rule.template_id,
+              recipient_email: payload.email || null,
+              recipient_phone: payload.phone || null,
+              recipient_name: payload.name || null,
+              recipient_user_id: payload.userId || null,
+              subject,
+              status: 'sent',
+              sent_at: now,
+            })
+          } else {
+            // Delayed -- queue for the cron job
+            const scheduledFor = new Date(Date.now() + delayMs).toISOString()
+
+            await supabase.from('scheduled_messages').insert({
+              message_type: rule.channel,
+              recipient_email: payload.email || null,
+              recipient_phone: payload.phone || null,
+              recipient_name: payload.name || null,
+              recipient_user_id: payload.userId || null,
+              subject,
+              body,
+              text_body: textBody,
+              scheduled_for: scheduledFor,
+              email_template_id:
+                rule.channel === 'email' ? rule.template_id : null,
+              sms_template_id:
+                rule.channel === 'sms' ? rule.template_id : null,
+            })
+          }
 
           await supabase
             .from('automation_rules')

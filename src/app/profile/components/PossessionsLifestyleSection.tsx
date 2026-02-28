@@ -556,6 +556,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
+          recordingPurpose="quick"
           category={visionToRecordingKey('stuff')}
           instanceId="clarity"
         />
@@ -572,6 +573,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
           placeholder="Share what's not going well with your lifestyle or possessions, or what you'd like to improve..."
           rows={6}
           storageFolder="profile"
+          recordingPurpose="quick"
           category={visionToRecordingKey('stuff')}
           instanceId="contrast"
         />      </div>

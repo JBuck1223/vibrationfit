@@ -31,7 +31,7 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
 
   // Initialize children array and state
   const children: Child[] = profile.children || []
-  const hasChildren = profile.has_children ?? false
+  const hasChildren = profile.has_children
 
   const handleChildChange = (index: number, field: keyof Child, value: string) => {
     const updated = [...children]
@@ -229,6 +229,7 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
+          recordingPurpose="quick"
           category={visionToRecordingKey('family')}
           instanceId="clarity"
         />
@@ -248,6 +249,7 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
           placeholder="Share what's not going well with your family or parenting, or what you'd like to improve..."
           rows={6}
           storageFolder="profile"
+          recordingPurpose="quick"
           category={visionToRecordingKey('family')}
           instanceId="contrast"
         />      </div>

@@ -220,6 +220,7 @@ export function GivingLegacySection({ profile, onProfileChange, onProfileReload,
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
+          recordingPurpose="quick"
           category={visionToRecordingKey('giving')}
           instanceId="clarity"
         />
@@ -236,6 +237,7 @@ export function GivingLegacySection({ profile, onProfileChange, onProfileReload,
           placeholder="Share what's not going well with your giving or legacy goals, or what you'd like to improve..."
           rows={6}
           storageFolder="profile"
+          recordingPurpose="quick"
           category={visionToRecordingKey('giving')}
           instanceId="contrast"
         />      </div>

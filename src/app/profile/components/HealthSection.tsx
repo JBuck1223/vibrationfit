@@ -208,7 +208,7 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
         <RadioGroup
           label="Measurement Units *"
           name="units"
-          value={profile.units || 'US'}
+          value={profile.units}
           onChange={(value) => handleInputChange('units', value)}
           options={[
             { value: 'US', label: 'US (in, lbs)' },
@@ -322,6 +322,7 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
+          recordingPurpose="quick"
           category={visionToRecordingKey('health')}
           instanceId="clarity"
         />
@@ -342,6 +343,7 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
           placeholder="Share what's not going well with your health, fitness, or wellness, or what you'd like to improve..."
           rows={6}
           storageFolder="profile"
+          recordingPurpose="quick"
           category={visionToRecordingKey('health')}
           instanceId="contrast"
         />

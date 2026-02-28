@@ -174,13 +174,12 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload, on
               type="button"
               onClick={() => setIsCurrencyDropdownOpen(!isCurrencyDropdownOpen)}
               className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
-                profile.currency && profile.currency !== 'USD'
+                profile.currency
                   ? 'text-white' 
                   : 'text-[#9CA3AF]'
               }`}
             >
-              {/* Treat database default 'USD' as unselected for display */}
-              {profile.currency && profile.currency !== 'USD'
+              {profile.currency
                 ? currencyOptions.find(opt => opt.value === profile.currency)?.label || profile.currency
                 : 'Select currency'}
             </button>
@@ -206,7 +205,7 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload, on
                         setIsCurrencyDropdownOpen(false)
                       }}
                       className={`w-full px-6 py-2 text-left transition-colors ${
-                        profile.currency && profile.currency !== 'USD' && profile.currency === option.value 
+                        profile.currency === option.value 
                           ? 'bg-primary-500/20 text-primary-500 font-semibold' 
                           : 'text-white hover:bg-[#333]'
                       }`}
@@ -441,6 +440,7 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload, on
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
+          recordingPurpose="quick"
           category={visionToRecordingKey('money')}
           instanceId="clarity"
         />
@@ -457,6 +457,7 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload, on
           placeholder="Share what's not going well with your finances or wealth, or what you'd like to improve..."
           rows={6}
           storageFolder="profile"
+          recordingPurpose="quick"
           category={visionToRecordingKey('money')}
           instanceId="contrast"
         />      </div>

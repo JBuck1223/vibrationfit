@@ -542,11 +542,18 @@ export function MediaRecorderComponent({
         ? 'video/webm;codecs=vp9,opus'
         : 'audio/webm;codecs=opus'
 
-      const mediaRecorder = new MediaRecorder(stream, {
+      const recorderOptions: MediaRecorderOptions = {
         mimeType: MediaRecorder.isTypeSupported(mimeType) 
           ? mimeType 
           : mode === 'video' ? 'video/webm' : 'audio/webm'
-      })
+      }
+
+      // Lower bitrate for speech-only recordings to reduce file size and speed up transcription
+      if (mode === 'audio' && (recordingPurpose === 'transcriptOnly' || recordingPurpose === 'quick')) {
+        recorderOptions.audioBitsPerSecond = 48000 // 48kbps - plenty for speech/Whisper
+      }
+
+      const mediaRecorder = new MediaRecorder(stream, recorderOptions)
 
       mediaRecorderRef.current = mediaRecorder
       chunksRef.current = []
@@ -802,80 +809,132 @@ export function MediaRecorderComponent({
     }
   }
 
+  const transcribeWithRetry = async (
+    blob: Blob,
+    attempt: number = 1,
+    maxAttempts: number = 2
+  ): Promise<{ transcript: string; duration: number }> => {
+    const TRANSCRIBE_TIMEOUT_MS = 4 * 60 * 1000 // 4 minutes
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), TRANSCRIBE_TIMEOUT_MS)
+
+    try {
+      const formData = new FormData()
+      formData.append('audio', blob, 'recording.webm')
+
+      console.log(`Transcription attempt ${attempt}/${maxAttempts}:`, {
+        blobSize: `${(blob.size / (1024 * 1024)).toFixed(2)}MB`
+      })
+
+      const response = await fetch('/api/transcribe', {
+        method: 'POST',
+        body: formData,
+        signal: controller.signal
+      })
+
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        let errorMessage = 'Transcription failed'
+        let retryable = false
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorData.details || `Server error (${response.status})`
+          retryable = errorData.retryable === true
+          console.error('Transcription API error:', errorData)
+        } catch {
+          errorMessage = `Transcription failed: ${response.statusText || response.status}`
+          retryable = response.status >= 500
+        }
+
+        if (retryable && attempt < maxAttempts) {
+          const delay = attempt * 2000
+          console.log(`Retrying transcription in ${delay}ms...`)
+          await new Promise(resolve => setTimeout(resolve, delay))
+          return transcribeWithRetry(blob, attempt + 1, maxAttempts)
+        }
+
+        throw new Error(errorMessage)
+      }
+
+      const data = await response.json()
+
+      if (!data.transcript) {
+        throw new Error('No transcript received from server')
+      }
+
+      return { transcript: data.transcript, duration: data.duration || 0 }
+    } catch (err: any) {
+      clearTimeout(timeoutId)
+
+      if (err.name === 'AbortError') {
+        if (attempt < maxAttempts) {
+          console.log('Transcription timed out, retrying...')
+          return transcribeWithRetry(blob, attempt + 1, maxAttempts)
+        }
+        throw new Error(
+          'Transcription timed out. Your recording may be too long for a single request. ' +
+          'Try a shorter recording (under 3 minutes) or check your network connection.'
+        )
+      }
+
+      if (
+        attempt < maxAttempts &&
+        (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError'))
+      ) {
+        const delay = attempt * 2000
+        console.log(`Network error, retrying in ${delay}ms...`)
+        await new Promise(resolve => setTimeout(resolve, delay))
+        return transcribeWithRetry(blob, attempt + 1, maxAttempts)
+      }
+
+      throw err
+    }
+  }
+
   const transcribeAudio = async (blob: Blob): Promise<string> => {
     setIsTranscribing(true)
     setError(null)
 
     try {
-      // Validate blob
       if (!blob || blob.size === 0) {
         throw new Error('Recording is empty or invalid. Please record again.')
       }
 
-      // Handle different recording purposes:
-      // - 'quick': No S3 upload, just transcribe immediately
-      // - 'transcriptOnly': S3 upload in parallel (backup), delete if discarded
-      // - 'withFile': S3 upload in parallel, keep file always
+      const MAX_TRANSCRIBE_SIZE = 25 * 1024 * 1024 // 25MB
+      if (blob.size > MAX_TRANSCRIBE_SIZE) {
+        const sizeMB = (blob.size / (1024 * 1024)).toFixed(1)
+        throw new Error(
+          `Recording is too large (${sizeMB}MB) for transcription. ` +
+          'Maximum is 25MB. Try a shorter recording or lower quality setting.'
+        )
+      }
       
       let uploadPromise: Promise<void> | null = null
       
       if (recordingPurpose === 'quick') {
-        // Quick mode: Skip S3 entirely, just transcribe
-        console.log('⚡ Quick mode: Transcribing only (no S3 upload)')
+        console.log('Quick mode: Transcribing only (no S3 upload)')
       } else {
-        // Transcript-only or with-file: Upload to S3 in parallel
-        console.log(`📤 ${recordingPurpose === 'transcriptOnly' ? 'Transcript-only' : 'Full file'} mode: Uploading to S3 in parallel...`)
+        console.log(`${recordingPurpose} mode: Uploading to S3 in parallel...`)
         const folder = storageFolder || (mode === 'video' ? 'journalVideoRecordings' : 'journalAudioRecordings')
-        // Include recordingId in filename if provided for better S3 organization
         const filePrefix = providedRecordingId ? `${providedRecordingId}-` : ''
         const fileName = `${filePrefix}recording-${Date.now()}.webm`
         
         uploadPromise = uploadRecording(blob, folder, fileName)
           .then((uploadResult) => {
             setS3Url(uploadResult.url)
-            console.log('✅ Recording uploaded to S3:', uploadResult.url)
+            console.log('Recording uploaded to S3:', uploadResult.url)
           })
           .catch((uploadErr) => {
-            console.error('❌ S3 upload failed:', uploadErr)
-            // Non-critical - continue without S3 URL
-            console.warn('⚠️ S3 upload failed - will use local blob for playback')
+            console.error('S3 upload failed:', uploadErr)
+            console.warn('S3 upload failed - will use local blob for playback')
           })
           .then(() => {}) as Promise<void>
       }
 
-      // Start transcription immediately (this is what user is waiting for)
-      const formData = new FormData()
-      formData.append('audio', blob, 'recording.webm')
-
-      console.log('🎙️ Transcribing audio...')
-
-      const response = await fetch('/api/transcribe', {
-        method: 'POST',
-        body: formData
-      })
-
-      // Get error details from response if available
-      if (!response.ok) {
-        let errorMessage = 'Transcription failed'
-        try {
-          const errorData = await response.json()
-          errorMessage = errorData.error || errorData.details || `Server error (${response.status})`
-          console.error('❌ Transcription API error:', errorData)
-        } catch (parseError) {
-          // If JSON parsing fails, use status text
-          errorMessage = `Transcription failed: ${response.statusText || response.status}`
-        }
-        throw new Error(errorMessage)
-      }
-
-      const data = await response.json()
+      const { transcript: transcriptText } = await transcribeWithRetry(blob)
       
-      if (!data.transcript) {
-        throw new Error('No transcript received from server')
-      }
-
-      const transcriptText = data.transcript || ''
-      console.log('✅ Transcription successful:', { length: transcriptText.length })
+      console.log('Transcription successful:', { length: transcriptText.length })
       
       setTranscript(transcriptText)
       
@@ -883,17 +942,13 @@ export function MediaRecorderComponent({
         onTranscriptComplete(transcriptText)
       }
 
-      // Wait for S3 upload to complete if we started one
       if (uploadPromise) {
-        await uploadPromise.catch(() => {
-          // Upload failed but transcription succeeded - that's okay
-          // User can still use local blob or retry upload later
-        })
+        await uploadPromise.catch(() => {})
       }
 
       return transcriptText
     } catch (err) {
-      console.error('❌ Transcription error:', err)
+      console.error('Transcription error:', err)
       const errorMessage = err instanceof Error 
         ? err.message 
         : 'Failed to transcribe audio. Please try again.'
@@ -1521,9 +1576,16 @@ export function MediaRecorderComponent({
           {recordingPurpose !== 'audioOnly' && (
             <div className="space-y-2">
               {isTranscribing ? (
-                <div className="flex items-center gap-2 text-primary-500">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-sm">Transcribing {mode === 'video' ? 'video' : 'audio'}...</span>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-primary-500">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="text-sm">Transcribing {mode === 'video' ? 'video' : 'audio'}...</span>
+                  </div>
+                  {duration > 120 && (
+                    <p className="text-xs text-neutral-500 pl-6">
+                      Longer recordings take more time. This may take up to a minute.
+                    </p>
+                  )}
                 </div>
               ) : transcript ? (
                 <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-4">

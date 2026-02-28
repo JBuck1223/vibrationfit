@@ -208,6 +208,7 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
+          recordingPurpose="quick"
           category={visionToRecordingKey('social')}
           instanceId="clarity"
         />
@@ -224,6 +225,7 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
           placeholder="Share what's not going well with your social life or friendships, or what you'd like to improve..."
           rows={6}
           storageFolder="profile"
+          recordingPurpose="quick"
           category={visionToRecordingKey('social')}
           instanceId="contrast"
         />      </div>

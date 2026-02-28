@@ -24,6 +24,7 @@ export interface ProcessResult {
   sent: number
   completed: number
   skipped: number
+  exited: number
   errors: number
 }
 
@@ -35,6 +36,7 @@ export async function processSequenceSteps(): Promise<ProcessResult> {
     sent: 0,
     completed: 0,
     skipped: 0,
+    exited: 0,
     errors: 0,
   }
 
@@ -96,6 +98,46 @@ export async function processSequenceSteps(): Promise<ProcessResult> {
 
         result.completed++
         continue
+      }
+
+      // --- Exit (dropoff) condition check ---
+      // If the step has an exit_if_checklist condition and the user meets it,
+      // cancel the enrollment entirely so no further steps fire.
+      const exitCheck = (step.conditions as Record<string, unknown>)?.exit_if_checklist as {
+        table: string
+        user_field: string
+        check_field: string
+        check_value: unknown
+      } | undefined
+
+      if (exitCheck && enrollment.user_id) {
+        try {
+          const { data: row } = await supabase
+            .from(exitCheck.table)
+            .select(exitCheck.check_field)
+            .eq(exitCheck.user_field, enrollment.user_id)
+            .maybeSingle()
+
+          if (row && (row as unknown as Record<string, unknown>)[exitCheck.check_field] === exitCheck.check_value) {
+            await supabase
+              .from('sequence_enrollments')
+              .update({
+                status: 'cancelled',
+                cancelled_at: now,
+                cancel_reason: 'exit_condition_met',
+                next_step_at: null,
+              })
+              .eq('id', enrollment.id)
+
+            result.exited++
+            continue
+          }
+        } catch (checkErr) {
+          console.error(
+            `[sequence-processor] Error checking exit condition for step ${step.id}:`,
+            checkErr
+          )
+        }
       }
 
       // --- Skip condition check ---
@@ -244,7 +286,7 @@ export async function processSequenceSteps(): Promise<ProcessResult> {
 
   if (result.processed > 0) {
     console.log(
-      `[sequence-processor] Processed ${result.processed}: ${result.sent} sent, ${result.completed} completed, ${result.skipped} skipped, ${result.errors} errors`
+      `[sequence-processor] Processed ${result.processed}: ${result.sent} sent, ${result.completed} completed, ${result.skipped} skipped, ${result.exited} exited, ${result.errors} errors`
     )
   }
 

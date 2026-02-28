@@ -9,6 +9,20 @@ export interface ProfileData {
   [key: string]: any
 }
 
+// Database column defaults that should NOT count toward profile completion.
+// These are auto-set by PostgreSQL when a new profile row is created and
+// don't represent intentional user input.
+const DATABASE_DEFAULTS: Record<string, any> = {
+  units: 'US',
+  country: 'United States',
+  currency: 'USD',
+  has_children: false,
+  passport: false,
+  countries_visited: 0,
+  personal_growth_focus: false,
+  legacy_mindset: false,
+}
+
 // Field to section mapping (matches profile edit page sections)
 export const FIELD_TO_SECTION_MAP: Record<string, string> = {
   // Personal Info section
@@ -189,19 +203,21 @@ export const PROFILE_FIELD_DEFINITIONS = {
   }
 }
 
-// Helper to check if a field has value
+// Helper to check if a field has a user-provided value (not a database default)
 const hasValue = (profileData: ProfileData, field: string) => {
-  // Check if field exists in the data (not just undefined)
   if (!(field in profileData)) return false
   const value = profileData[field]
+
+  // Exclude values that match database column defaults
+  if (field in DATABASE_DEFAULTS && value === DATABASE_DEFAULTS[field]) return false
   
   // Handle arrays
   if (Array.isArray(value)) return value.length > 0
   
-  // Booleans always count as having a value (even false)
+  // Booleans count as having a value (even false) once past the default check
   if (typeof value === 'boolean') return true
   
-  // Handle numbers (0 is a valid value)
+  // Numbers count as having a value (even 0) once past the default check
   if (typeof value === 'number') return true
   
   // Handle strings - check for non-empty, non-whitespace strings
@@ -363,9 +379,8 @@ export function calculateProfileCompletion(profileData: ProfileData | null | und
 
   // Family Fields (conditional)
   totalFields++ // has_children is always counted
-  if (profileData.has_children !== undefined && profileData.has_children !== null) {
+  if (hasValue(profileData, 'has_children')) {
     completedFields++
-    // If has children, expect children array with details
     if (profileData.has_children === true) {
       totalFields += 1
       if (hasValue(profileData, 'children')) completedFields++

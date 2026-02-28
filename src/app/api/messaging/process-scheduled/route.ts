@@ -23,10 +23,16 @@ async function processMessages(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization')
     const cronSecret = request.headers.get('x-cron-secret')
+    const isVercelCron = request.headers.get('x-vercel-cron') === '1'
+      || request.headers.get('user-agent')?.includes('vercel-cron')
     
     let isAuthorized = false
     
-    if (authHeader === `Bearer ${process.env.CRON_SECRET}`) {
+    if (isVercelCron) {
+      isAuthorized = true
+    }
+    
+    if (CRON_SECRET && authHeader === `Bearer ${CRON_SECRET}`) {
       isAuthorized = true
     }
     

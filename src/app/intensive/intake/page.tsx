@@ -38,7 +38,7 @@ const TextQuestionComponent = ({
   value: string
   onValueChange: (value: string) => void
 }) => (
-  <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
+  <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30 overflow-hidden">
     <div className="flex items-start gap-3 mb-4">
       <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
         {question.order}
@@ -47,7 +47,7 @@ const TextQuestionComponent = ({
         {question.questionPre}
       </label>
     </div>
-    <div className="ml-10">
+    <div className="mt-3 md:ml-10">
       <Textarea
         value={value}
         onChange={(e) => onValueChange(e.target.value)}
@@ -68,7 +68,7 @@ const RatingSelectorComponent = ({
   value: number | null
   onValueChange: (value: number) => void
 }) => (
-  <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
+  <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30 overflow-hidden">
     <div className="flex items-start gap-3 mb-4">
       <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
         {question.order}
@@ -78,18 +78,18 @@ const RatingSelectorComponent = ({
       </label>
     </div>
     {question.hint && (
-      <p className="text-xs md:text-sm text-neutral-500 mb-4 ml-10 italic">
+      <p className="text-xs md:text-sm text-neutral-500 mb-4 md:ml-10 italic">
         {question.hint}
       </p>
     )}
-    <div className="flex flex-wrap gap-2 ml-10 max-w-[232px] md:max-w-fit">
+    <div className="grid grid-cols-5 gap-2 md:flex md:flex-wrap md:ml-10">
       {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
         <button
           key={num}
           type="button"
           onClick={() => onValueChange(num)}
           className={`
-            w-10 h-10 rounded border-2 font-semibold transition-colors duration-150 text-sm flex-shrink-0
+            h-11 rounded border-2 font-semibold transition-colors duration-150 text-sm flex-shrink-0 md:w-11
             ${value === num 
               ? 'bg-primary-500 border-primary-500 text-black' 
               : 'bg-neutral-900 border-neutral-700 text-neutral-400 hover:border-neutral-600'
@@ -112,7 +112,7 @@ const MultipleChoiceSelectorComponent = ({
   value: string
   onValueChange: (value: string) => void
 }) => (
-  <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
+  <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30 overflow-hidden">
     <div className="flex items-start gap-3 mb-4">
       <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
         {question.order}
@@ -122,11 +122,11 @@ const MultipleChoiceSelectorComponent = ({
       </label>
     </div>
     {question.hint && (
-      <p className="text-xs md:text-sm text-neutral-500 mb-4 ml-10 italic">
+      <p className="text-xs md:text-sm text-neutral-500 mb-4 md:ml-10 italic">
         {question.hint}
       </p>
     )}
-    <div className="ml-10">
+    <div className="mt-3 md:mt-0 md:ml-10">
       <RadioGroup
         name={question.id}
         value={value}
@@ -147,7 +147,7 @@ const BooleanQuestionComponent = ({
   value: boolean
   onValueChange: (value: boolean) => void
 }) => (
-  <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
+  <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30 overflow-hidden">
     <div className="flex items-start gap-3">
       <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
         {question.order}
@@ -355,7 +355,7 @@ export default function IntensiveIntake() {
     question: IntakeQuestion
     value: number | null 
   }) => (
-    <div className="border border-neutral-700/50 rounded-lg p-4 md:p-6 bg-neutral-900/20">
+    <div className="border border-neutral-700/50 rounded-lg p-4 md:p-6 bg-neutral-900/20 overflow-hidden">
       <div className="flex items-start gap-3 mb-4">
         <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-500 flex items-center justify-center font-semibold text-sm">
           {question.order}
@@ -364,12 +364,12 @@ export default function IntensiveIntake() {
           {question.questionPre}
         </label>
       </div>
-      <div className="flex flex-wrap gap-2 ml-10 max-w-[232px] md:max-w-fit">
+      <div className="grid grid-cols-5 gap-2 md:flex md:flex-wrap md:ml-10">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
           <div
             key={num}
             className={`
-              w-10 h-10 rounded border-2 font-semibold flex items-center justify-center text-sm flex-shrink-0
+              h-11 rounded border-2 font-semibold flex items-center justify-center text-sm flex-shrink-0 md:w-11
               ${value === num 
                 ? 'bg-primary-500/30 border-primary-500/50 text-primary-400' 
                 : 'bg-neutral-800/50 border-neutral-700/30 text-neutral-600'
@@ -391,7 +391,7 @@ export default function IntensiveIntake() {
     question: IntakeQuestion
     value: string | null 
   }) => (
-    <div className="border border-neutral-700/50 rounded-lg p-4 md:p-6 bg-neutral-900/20">
+    <div className="border border-neutral-700/50 rounded-lg p-4 md:p-6 bg-neutral-900/20 overflow-hidden">
       <div className="flex items-start gap-3 mb-4">
         <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-500 flex items-center justify-center font-semibold text-sm">
           {question.order}
@@ -400,7 +400,7 @@ export default function IntensiveIntake() {
           {question.questionPre}
         </label>
       </div>
-      <div className="ml-10 space-y-2">
+      <div className="mt-3 md:mt-0 md:ml-10 space-y-2">
         {question.options?.map((option) => (
           <div 
             key={option.value} 
@@ -434,7 +434,7 @@ export default function IntensiveIntake() {
     question: IntakeQuestion
     value: string | null 
   }) => (
-    <div className="border border-neutral-700/50 rounded-lg p-4 md:p-6 bg-neutral-900/20">
+    <div className="border border-neutral-700/50 rounded-lg p-4 md:p-6 bg-neutral-900/20 overflow-hidden">
       <div className="flex items-start gap-3 mb-4">
         <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-500 flex items-center justify-center font-semibold text-sm">
           {question.order}
@@ -443,7 +443,7 @@ export default function IntensiveIntake() {
           {question.questionPre}
         </label>
       </div>
-      <div className="ml-10">
+      <div className="mt-3 md:mt-0 md:ml-10">
         <div className="p-3 rounded-lg bg-neutral-800/30 border border-neutral-700/30 text-neutral-400 text-sm min-h-[80px]">
           {value || <span className="italic text-neutral-600">No response provided</span>}
         </div>
@@ -459,7 +459,7 @@ export default function IntensiveIntake() {
     question: IntakeQuestion
     value: boolean | null 
   }) => (
-    <div className="border border-neutral-700/50 rounded-lg p-4 md:p-6 bg-neutral-900/20">
+    <div className="border border-neutral-700/50 rounded-lg p-4 md:p-6 bg-neutral-900/20 overflow-hidden">
       <div className="flex items-start gap-3">
         <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-500 flex items-center justify-center font-semibold text-sm">
           {question.order}

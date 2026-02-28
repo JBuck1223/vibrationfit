@@ -23,9 +23,14 @@ import {
   Pause,
   Play,
   XCircle,
+  ChevronDown,
+  ChevronUp,
+  LogOut,
+  SkipForward,
 } from 'lucide-react'
 
 const EVENT_NAMES = [
+  'intensive.purchased',
   'lead.created',
   'user.created',
   'subscription.created',
@@ -41,6 +46,114 @@ function formatDelay(minutes: number): string {
   if (minutes < 60) return `${minutes} min`
   if (minutes < 1440) return `${Math.round(minutes / 60)} hr`
   return `${Math.round(minutes / 1440)} day${Math.round(minutes / 1440) !== 1 ? 's' : ''}`
+}
+
+const EMPTY_CONDITION: ChecklistCondition = {
+  table: '',
+  user_field: 'user_id',
+  check_field: '',
+  check_value: true,
+}
+
+function ConditionFields({
+  label,
+  icon: Icon,
+  colorClass,
+  borderClass,
+  enabled,
+  onToggle,
+  condition,
+  onChange,
+}: {
+  label: string
+  icon: React.ElementType
+  colorClass: string
+  borderClass: string
+  enabled: boolean
+  onToggle: (enabled: boolean) => void
+  condition: ChecklistCondition
+  onChange: (c: ChecklistCondition) => void
+}) {
+  return (
+    <div className={`rounded-lg border p-3 space-y-3 ${enabled ? borderClass : 'border-neutral-700'}`}>
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={enabled}
+          onChange={(e) => onToggle(e.target.checked)}
+          className="accent-[#39FF14] w-4 h-4"
+        />
+        <Icon className={`w-4 h-4 ${enabled ? colorClass : 'text-neutral-500'}`} />
+        <span className={`text-sm font-medium ${enabled ? 'text-white' : 'text-neutral-500'}`}>
+          {label}
+        </span>
+      </label>
+      {enabled && (
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-neutral-400 mb-1">Table</label>
+            <input
+              value={condition.table}
+              onChange={(e) => onChange({ ...condition, table: e.target.value })}
+              placeholder="e.g. intensive_checklist"
+              className="w-full px-3 py-2 bg-[#404040] border border-[#666666] rounded-lg text-white text-sm focus:outline-none focus:border-[#39FF14]"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-neutral-400 mb-1">User field</label>
+            <input
+              value={condition.user_field}
+              onChange={(e) => onChange({ ...condition, user_field: e.target.value })}
+              placeholder="user_id"
+              className="w-full px-3 py-2 bg-[#404040] border border-[#666666] rounded-lg text-white text-sm focus:outline-none focus:border-[#39FF14]"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-neutral-400 mb-1">Check field</label>
+            <input
+              value={condition.check_field}
+              onChange={(e) => onChange({ ...condition, check_field: e.target.value })}
+              placeholder="e.g. intake_completed"
+              className="w-full px-3 py-2 bg-[#404040] border border-[#666666] rounded-lg text-white text-sm focus:outline-none focus:border-[#39FF14]"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-neutral-400 mb-1">Check value</label>
+            <select
+              value={String(condition.check_value)}
+              onChange={(e) => {
+                const v = e.target.value
+                onChange({
+                  ...condition,
+                  check_value: v === 'true' ? true : v === 'false' ? false : v,
+                })
+              }}
+              className="w-full px-3 py-2 bg-[#404040] border border-[#666666] rounded-lg text-white text-sm focus:outline-none focus:border-[#39FF14]"
+            >
+              <option value="true">true</option>
+              <option value="false">false</option>
+            </select>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function buildConditions(
+  skipEnabled: boolean,
+  skipCondition: ChecklistCondition,
+  exitEnabled: boolean,
+  exitCondition: ChecklistCondition,
+): StepConditions {
+  const conditions: StepConditions = {}
+  if (skipEnabled && skipCondition.table && skipCondition.check_field) {
+    conditions.skip_if_checklist = skipCondition
+  }
+  if (exitEnabled && exitCondition.table && exitCondition.check_field) {
+    conditions.exit_if_checklist = exitCondition
+  }
+  return conditions
 }
 
 function StepEditForm({
@@ -60,6 +173,17 @@ function StepEditForm({
   const [templateId, setTemplateId] = useState(step.template_id)
   const [delayMinutes, setDelayMinutes] = useState(step.delay_minutes)
   const [delayFrom, setDelayFrom] = useState(step.delay_from)
+  const [showConditions, setShowConditions] = useState(
+    !!(step.conditions?.skip_if_checklist || step.conditions?.exit_if_checklist)
+  )
+  const [skipEnabled, setSkipEnabled] = useState(!!step.conditions?.skip_if_checklist)
+  const [skipCondition, setSkipCondition] = useState<ChecklistCondition>(
+    (step.conditions?.skip_if_checklist as ChecklistCondition) || { ...EMPTY_CONDITION }
+  )
+  const [exitEnabled, setExitEnabled] = useState(!!step.conditions?.exit_if_checklist)
+  const [exitCondition, setExitCondition] = useState<ChecklistCondition>(
+    (step.conditions?.exit_if_checklist as ChecklistCondition) || { ...EMPTY_CONDITION }
+  )
 
   const templates = channel === 'email' ? emailTemplates : smsTemplates
 
@@ -117,10 +241,59 @@ function StepEditForm({
           </select>
         </div>
       </div>
+
+      <div>
+        <button
+          type="button"
+          onClick={() => setShowConditions((v) => !v)}
+          className="flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-colors"
+        >
+          {showConditions ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          Conditions
+          {(skipEnabled || exitEnabled) && (
+            <span className="text-xs text-primary-500">
+              ({[skipEnabled && 'skip', exitEnabled && 'exit'].filter(Boolean).join(', ')})
+            </span>
+          )}
+        </button>
+        {showConditions && (
+          <div className="mt-3 space-y-3">
+            <ConditionFields
+              label="Skip this step if..."
+              icon={SkipForward}
+              colorClass="text-yellow-400"
+              borderClass="border-yellow-500/50"
+              enabled={skipEnabled}
+              onToggle={setSkipEnabled}
+              condition={skipCondition}
+              onChange={setSkipCondition}
+            />
+            <ConditionFields
+              label="Exit sequence if..."
+              icon={LogOut}
+              colorClass="text-red-400"
+              borderClass="border-red-500/50"
+              enabled={exitEnabled}
+              onToggle={setExitEnabled}
+              condition={exitCondition}
+              onChange={setExitCondition}
+            />
+          </div>
+        )}
+      </div>
+
       <div className="flex gap-2">
         <Button
           variant="primary"
-          onClick={() => onSave({ channel, template_id: templateId, delay_minutes: delayMinutes, delay_from: delayFrom })}
+          onClick={() =>
+            onSave({
+              channel,
+              template_id: templateId,
+              delay_minutes: delayMinutes,
+              delay_from: delayFrom,
+              conditions: buildConditions(skipEnabled, skipCondition, exitEnabled, exitCondition),
+            })
+          }
           disabled={!templateId}
         >
           Save
@@ -143,6 +316,18 @@ interface Sequence {
   status: string
 }
 
+interface ChecklistCondition {
+  table: string
+  user_field: string
+  check_field: string
+  check_value: string | boolean
+}
+
+interface StepConditions {
+  skip_if_checklist?: ChecklistCondition
+  exit_if_checklist?: ChecklistCondition
+}
+
 interface Step {
   id: string
   step_order: number
@@ -150,6 +335,7 @@ interface Step {
   template_id: string
   delay_minutes: number
   delay_from: string
+  conditions: StepConditions
 }
 
 interface Enrollment {
@@ -198,6 +384,11 @@ function SequenceDetailContent() {
     delay_minutes: 0,
     delay_from: 'previous_step',
   })
+  const [newStepShowConditions, setNewStepShowConditions] = useState(false)
+  const [newStepSkipEnabled, setNewStepSkipEnabled] = useState(false)
+  const [newStepSkipCondition, setNewStepSkipCondition] = useState<ChecklistCondition>({ ...EMPTY_CONDITION })
+  const [newStepExitEnabled, setNewStepExitEnabled] = useState(false)
+  const [newStepExitCondition, setNewStepExitCondition] = useState<ChecklistCondition>({ ...EMPTY_CONDITION })
 
   const fetchData = useCallback(async () => {
     const [seqRes, emailRes, smsRes] = await Promise.all([
@@ -279,6 +470,10 @@ function SequenceDetailContent() {
 
   const handleAddStep = async () => {
     if (!newStep.template_id) return
+    const conditions = buildConditions(
+      newStepSkipEnabled, newStepSkipCondition,
+      newStepExitEnabled, newStepExitCondition,
+    )
     const res = await fetch(`/api/admin/sequences/${id}/steps`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -287,12 +482,18 @@ function SequenceDetailContent() {
         template_id: newStep.template_id,
         delay_minutes: newStep.delay_minutes,
         delay_from: newStep.delay_from,
+        conditions,
       }),
     })
     if (res.ok) {
       await fetchData()
       setShowAddStep(false)
       setNewStep({ channel: 'email', template_id: '', delay_minutes: 0, delay_from: 'previous_step' })
+      setNewStepShowConditions(false)
+      setNewStepSkipEnabled(false)
+      setNewStepSkipCondition({ ...EMPTY_CONDITION })
+      setNewStepExitEnabled(false)
+      setNewStepExitCondition({ ...EMPTY_CONDITION })
     }
   }
 
@@ -315,6 +516,7 @@ function SequenceDetailContent() {
         template_id: updates.template_id ?? step.template_id,
         delay_minutes: updates.delay_minutes ?? step.delay_minutes,
         delay_from: updates.delay_from ?? step.delay_from,
+        conditions: updates.conditions ?? step.conditions ?? {},
       }),
     })
     if (res.ok) {
@@ -481,6 +683,18 @@ function SequenceDetailContent() {
                         <span className="text-xs text-neutral-500">
                           {formatDelay(step.delay_minutes)} from {step.delay_from.replace('_', ' ')}
                         </span>
+                        {step.conditions?.skip_if_checklist && (
+                          <Badge className="bg-yellow-500/20 text-yellow-400">
+                            <SkipForward className="w-3 h-3 mr-1" />
+                            Skip if {step.conditions.skip_if_checklist.check_field}
+                          </Badge>
+                        )}
+                        {step.conditions?.exit_if_checklist && (
+                          <Badge className="bg-red-500/20 text-red-400">
+                            <LogOut className="w-3 h-3 mr-1" />
+                            Exit if {step.conditions.exit_if_checklist.check_field}
+                          </Badge>
+                        )}
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -573,6 +787,47 @@ function SequenceDetailContent() {
                     </select>
                   </div>
                 </div>
+
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setNewStepShowConditions((v) => !v)}
+                    className="flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-colors"
+                  >
+                    {newStepShowConditions ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    Conditions
+                    {(newStepSkipEnabled || newStepExitEnabled) && (
+                      <span className="text-xs text-primary-500">
+                        ({[newStepSkipEnabled && 'skip', newStepExitEnabled && 'exit'].filter(Boolean).join(', ')})
+                      </span>
+                    )}
+                  </button>
+                  {newStepShowConditions && (
+                    <div className="mt-3 space-y-3">
+                      <ConditionFields
+                        label="Skip this step if..."
+                        icon={SkipForward}
+                        colorClass="text-yellow-400"
+                        borderClass="border-yellow-500/50"
+                        enabled={newStepSkipEnabled}
+                        onToggle={setNewStepSkipEnabled}
+                        condition={newStepSkipCondition}
+                        onChange={setNewStepSkipCondition}
+                      />
+                      <ConditionFields
+                        label="Exit sequence if..."
+                        icon={LogOut}
+                        colorClass="text-red-400"
+                        borderClass="border-red-500/50"
+                        enabled={newStepExitEnabled}
+                        onToggle={setNewStepExitEnabled}
+                        condition={newStepExitCondition}
+                        onChange={setNewStepExitCondition}
+                      />
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex gap-2">
                   <Button variant="primary" onClick={handleAddStep} disabled={!newStep.template_id}>
                     Add Step

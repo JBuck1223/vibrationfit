@@ -16,6 +16,7 @@ import { AdminWrapper } from '@/components/AdminWrapper'
 import { Save, ArrowLeft, ChevronDown } from 'lucide-react'
 
 const EVENT_NAMES = [
+  { value: 'intensive.purchased', label: 'Intensive Purchased' },
   { value: 'lead.created', label: 'Lead Created' },
   { value: 'user.created', label: 'User Created' },
   { value: 'subscription.created', label: 'Subscription Created' },

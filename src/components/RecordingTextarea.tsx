@@ -208,7 +208,8 @@ export function RecordingTextarea({
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
           ? 'audio/webm;codecs=opus' 
-          : 'audio/webm'
+          : 'audio/webm',
+        audioBitsPerSecond: 48000 // 48kbps - sufficient for speech transcription
       })
       
       quickMediaRecorderRef.current = mediaRecorder
@@ -221,7 +222,6 @@ export function RecordingTextarea({
       }
       
       mediaRecorder.onstop = async () => {
-        // Stop audio level monitoring
         if (quickAnimationFrameRef.current) {
           cancelAnimationFrame(quickAnimationFrameRef.current)
         }
@@ -230,12 +230,10 @@ export function RecordingTextarea({
         }
         setQuickAudioLevel(0)
         
-        // Stop stream
         if (quickStreamRef.current) {
           quickStreamRef.current.getTracks().forEach(track => track.stop())
         }
         
-        // Create blob
         const blob = new Blob(quickChunksRef.current, { type: 'audio/webm' })
         
         if (blob.size === 0) {
@@ -245,37 +243,76 @@ export function RecordingTextarea({
           return
         }
         
-        // Transcribe
         setIsUploading(true)
-        try {
-          const formData = new FormData()
-          formData.append('audio', blob, 'recording.webm')
-          
-          const response = await fetch('/api/transcribe', {
-            method: 'POST',
-            body: formData
-          })
-          
-          if (!response.ok) {
-            throw new Error('Transcription failed')
+        const MAX_ATTEMPTS = 2
+        const TIMEOUT_MS = 4 * 60 * 1000
+
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+          const controller = new AbortController()
+          const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS)
+
+          try {
+            const formData = new FormData()
+            formData.append('audio', blob, 'recording.webm')
+            
+            const response = await fetch('/api/transcribe', {
+              method: 'POST',
+              body: formData,
+              signal: controller.signal
+            })
+            
+            clearTimeout(timeoutId)
+            
+            if (!response.ok) {
+              let errorMsg = 'Transcription failed'
+              let retryable = false
+              try {
+                const errorData = await response.json()
+                errorMsg = errorData.error || errorMsg
+                retryable = errorData.retryable === true || response.status >= 500
+              } catch { /* use default */ }
+              
+              if (retryable && attempt < MAX_ATTEMPTS) {
+                await new Promise(r => setTimeout(r, 2000))
+                continue
+              }
+              throw new Error(errorMsg)
+            }
+            
+            const data = await response.json()
+            const transcript = data.transcript || ''
+            
+            const newValue = value 
+              ? `${value}\n\n${transcript}`
+              : transcript
+            onChange(newValue)
+            break
+          } catch (err: any) {
+            clearTimeout(timeoutId)
+
+            const isRetryable = 
+              err.name === 'AbortError' ||
+              err.message?.includes('Failed to fetch') ||
+              err.message?.includes('NetworkError')
+
+            if (isRetryable && attempt < MAX_ATTEMPTS) {
+              await new Promise(r => setTimeout(r, 2000))
+              continue
+            }
+
+            console.error('Quick transcription error:', err)
+            if (err.name === 'AbortError') {
+              setUploadError('Transcription timed out. Try a shorter recording or check your connection.')
+            } else {
+              setUploadError(err.message || 'Failed to transcribe audio. Please try again.')
+            }
+            break
           }
-          
-          const data = await response.json()
-          const transcript = data.transcript || ''
-          
-          // Insert transcript into textarea
-          const newValue = value 
-            ? `${value}\n\n${transcript}`
-            : transcript
-          onChange(newValue)
-        } catch (err) {
-          console.error('Quick transcription error:', err)
-          setUploadError('Failed to transcribe audio. Please try again.')
-        } finally {
-          setIsUploading(false)
-          setIsQuickRecording(false)
-          setQuickRecordingDuration(0)
         }
+
+        setIsUploading(false)
+        setIsQuickRecording(false)
+        setQuickRecordingDuration(0)
       }
       
       mediaRecorder.start(1000)

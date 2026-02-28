@@ -331,6 +331,7 @@ export function CareerSection({ profile, onProfileChange, onProfileReload, onSav
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
+          recordingPurpose="quick"
           category={visionToRecordingKey('work')}
           instanceId="clarity"
         />
@@ -347,6 +348,7 @@ export function CareerSection({ profile, onProfileChange, onProfileReload, onSav
           placeholder="Share what's not going well with your career or work, or what you'd like to improve..."
           rows={6}
           storageFolder="profile"
+          recordingPurpose="quick"
           category={visionToRecordingKey('work')}
           instanceId="contrast"
         />      </div>

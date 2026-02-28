@@ -217,9 +217,9 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
           <Input
             type="number"
             min="0"
-            value={profile.countries_visited || 0}
-            onChange={(e) => handleInputChange('countries_visited', parseInt(e.target.value) || 0)}
-            placeholder="0"
+            value={profile.countries_visited != null && profile.countries_visited > 0 ? profile.countries_visited : ''}
+            onChange={(e) => handleInputChange('countries_visited', e.target.value !== '' ? parseInt(e.target.value) || 0 : null)}
+            placeholder="How many countries have you visited?"
             className="w-full"
           />
         </div>
@@ -320,6 +320,7 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
+          recordingPurpose="quick"
           category={visionToRecordingKey('travel')}
           instanceId="clarity"
         />
@@ -336,6 +337,7 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
           placeholder="Share what's not going well with your travel or adventures, or what you'd like to improve..."
           rows={6}
           storageFolder="profile"
+          recordingPurpose="quick"
           category={visionToRecordingKey('travel')}
           instanceId="contrast"
         />      </div>

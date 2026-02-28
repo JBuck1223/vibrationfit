@@ -75,20 +75,26 @@ export async function PUT(
     const body = await request.json()
 
     // Update template
+    const updateData: Record<string, unknown> = {
+      name: body.name,
+      description: body.description,
+      category: body.category,
+      status: body.status,
+      subject: body.subject,
+      html_body: body.html_body,
+      text_body: body.text_body,
+      variables: body.variables,
+      triggers: body.triggers,
+      updated_at: new Date().toISOString(),
+    }
+
+    if (body.slug !== undefined) {
+      updateData.slug = body.slug
+    }
+
     const { data: template, error } = await supabase
       .from('email_templates')
-      .update({
-        name: body.name,
-        description: body.description,
-        category: body.category,
-        status: body.status,
-        subject: body.subject,
-        html_body: body.html_body,
-        text_body: body.text_body,
-        variables: body.variables,
-        triggers: body.triggers,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single()

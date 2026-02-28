@@ -514,7 +514,7 @@ export default function IntensiveUnlockPage() {
     const scoreExplanation = getScoreExplanation(question.id)
 
     return (
-      <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
+      <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30 overflow-hidden">
         <div className="flex items-start gap-3 mb-4">
           <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
             {displayNumber}
@@ -540,14 +540,14 @@ export default function IntensiveUnlockPage() {
         </div>
 
         {question.hint && (
-          <p className="text-xs md:text-sm text-neutral-500 mb-3 ml-10 italic">
+          <p className="text-xs md:text-sm text-neutral-500 mb-3 md:ml-10 italic">
             {question.hint}
           </p>
         )}
 
         {/* Stats info panel with score explanation */}
         {statsInfo && (
-          <div className="mb-4 ml-10 p-3 bg-neutral-800/30 rounded-lg border border-neutral-700/50">
+          <div className="mb-4 md:ml-10 p-3 bg-neutral-800/30 rounded-lg border border-neutral-700/50">
             <div className="text-xs text-neutral-400 mb-2 font-medium">Your Activity:</div>
             <div className="flex flex-wrap gap-2 mb-2">
               {statsInfo}
@@ -560,14 +560,14 @@ export default function IntensiveUnlockPage() {
           </div>
         )}
 
-        <div className="flex flex-wrap gap-2 ml-10">
+        <div className="grid grid-cols-5 gap-2 md:flex md:flex-wrap md:ml-10">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
             <button
               key={num}
               type="button"
               onClick={() => updateFormData(question.id, num)}
               className={`
-                w-10 h-10 rounded border-2 font-semibold transition-colors duration-150 text-sm
+                h-11 rounded border-2 font-semibold transition-colors duration-150 text-sm md:w-11
                 ${value === num 
                   ? 'bg-primary-500 border-primary-500 text-black' 
                   : 'bg-neutral-900 border-neutral-700 text-neutral-400 hover:border-neutral-600'
@@ -588,7 +588,7 @@ export default function IntensiveUnlockPage() {
     const statsInfo = getStatsForQuestion(question.id)
 
     return (
-      <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
+      <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30 overflow-hidden">
         <div className="flex items-start gap-3 mb-4">
           <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
             {displayNumber}
@@ -606,14 +606,14 @@ export default function IntensiveUnlockPage() {
         </div>
 
         {question.hint && (
-          <p className="text-xs md:text-sm text-neutral-500 mb-3 ml-10 italic">
+          <p className="text-xs md:text-sm text-neutral-500 mb-3 md:ml-10 italic">
             {question.hint}
           </p>
         )}
 
         {/* Stats info panel */}
         {statsInfo && (
-          <div className="mb-4 ml-10 p-3 bg-neutral-800/30 rounded-lg border border-neutral-700/50">
+          <div className="mb-4 md:ml-10 p-3 bg-neutral-800/30 rounded-lg border border-neutral-700/50">
             <div className="text-xs text-neutral-400 mb-2 font-medium">Your Activity:</div>
             <div className="flex flex-wrap gap-2">
               {statsInfo}
@@ -621,7 +621,7 @@ export default function IntensiveUnlockPage() {
           </div>
         )}
 
-        <div className="ml-10">
+        <div className="mt-3 md:mt-0 md:ml-10">
           <RadioGroup
             name={question.id}
             value={(formData[question.id] as string) || ''}
@@ -867,7 +867,7 @@ export default function IntensiveUnlockPage() {
           {questions.map((q, index) => renderQuestion(q, index))}
 
           {/* Combined Video Testimonial / Text Response Section - Q12 */}
-          <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30">
+          <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30 overflow-hidden">
             <div className="flex items-start gap-3 mb-4">
               <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
                 {questions.length + 1}
@@ -882,7 +882,7 @@ export default function IntensiveUnlockPage() {
               </div>
             </div>
             
-            <div className="ml-10">
+            <div className="mt-3 md:mt-0 md:ml-10">
               {showTextInput ? (
                 <>
                   <Textarea
@@ -945,7 +945,7 @@ export default function IntensiveUnlockPage() {
           </div>
 
           {/* Sharing Preference - No number */}
-          <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30 space-y-4">
+          <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30 overflow-hidden space-y-4">
             <div className="mb-4">
               <h3 className="text-lg font-medium text-white">How would you like to share your success?</h3>
               <p className="text-sm text-neutral-400 mt-1">All data can be used as part of member success calculations.</p>

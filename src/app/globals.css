@@ -208,5 +208,11 @@ input:-webkit-autofill:active {
     left: 50% !important;
     right: auto !important;
     transform: translateX(-50%) !important;
+    width: calc(100vw - 32px) !important;
+    max-width: 356px !important;
+  }
+  [data-sonner-toast] {
+    width: 100% !important;
+    max-width: 100% !important;
   }
 }

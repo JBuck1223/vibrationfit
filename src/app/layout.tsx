@@ -59,6 +59,7 @@ export default function RootLayout({
                 color: '#FFFFFF',
                 border: '1px solid #333',
                 zIndex: 99999,
+                wordBreak: 'break-word',
               },
               className: 'toast',
             }}

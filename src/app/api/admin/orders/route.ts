@@ -28,30 +28,10 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 200)
     const offset = parseInt(searchParams.get('offset') || '0', 10)
 
+    // Fetch orders (no join -- orders FK goes to auth.users, not user_accounts)
     const { data: orders, error: ordersError } = await adminDb
       .from('orders')
-      .select(`
-        id,
-        user_id,
-        total_amount,
-        currency,
-        status,
-        paid_at,
-        promo_code,
-        referral_source,
-        campaign_name,
-        metadata,
-        created_at,
-        stripe_payment_intent_id,
-        stripe_checkout_session_id,
-        user_accounts!inner (
-          email,
-          first_name,
-          last_name,
-          full_name,
-          phone
-        )
-      `)
+      .select('id, user_id, total_amount, currency, status, paid_at, promo_code, referral_source, campaign_name, metadata, created_at, stripe_payment_intent_id, stripe_checkout_session_id')
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
 
@@ -64,9 +44,31 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ orders: [], emailStatuses: {} })
     }
 
+    // Batch-fetch user accounts for all orders
     const userIds = [...new Set(orders.map(o => o.user_id))]
 
-    // Scheduled messages for these users (created within a reasonable window of each order)
+    const { data: accounts } = await adminDb
+      .from('user_accounts')
+      .select('id, email, first_name, last_name, full_name, phone')
+      .in('id', userIds)
+
+    const accountMap = new Map(
+      (accounts || []).map(a => [a.id, a])
+    )
+
+    // Merge account data onto each order
+    const enrichedOrders = orders.map(order => ({
+      ...order,
+      user_accounts: accountMap.get(order.user_id) || {
+        email: null,
+        first_name: null,
+        last_name: null,
+        full_name: null,
+        phone: null,
+      },
+    }))
+
+    // Scheduled messages for these users
     const { data: scheduledMessages } = await adminDb
       .from('scheduled_messages')
       .select('id, recipient_user_id, recipient_email, status, subject, scheduled_for, sent_at, error_message, created_at')
@@ -136,7 +138,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ orders, emailStatuses })
+    return NextResponse.json({ orders: enrichedOrders, emailStatuses })
   } catch (error) {
     console.error('Admin orders GET error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -162,23 +164,10 @@ export async function POST(request: NextRequest) {
 
     const adminDb = createAdminClient()
 
+    // Fetch order
     const { data: order, error: orderError } = await adminDb
       .from('orders')
-      .select(`
-        id,
-        user_id,
-        total_amount,
-        status,
-        metadata,
-        created_at,
-        user_accounts!inner (
-          email,
-          first_name,
-          last_name,
-          full_name,
-          phone
-        )
-      `)
+      .select('id, user_id, total_amount, status, metadata, created_at')
       .eq('id', orderId)
       .single()
 
@@ -186,7 +175,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
 
-    const account = order.user_accounts as any
+    // Fetch the user account separately
+    const { data: account } = await adminDb
+      .from('user_accounts')
+      .select('email, first_name, last_name, full_name, phone')
+      .eq('id', order.user_id)
+      .single()
+
     const email = account?.email
     const fullName = account?.full_name || ''
     const firstName = account?.first_name || fullName.split(' ')[0] || email?.split('@')[0] || ''
@@ -207,6 +202,7 @@ export async function POST(request: NextRequest) {
 
     const paymentPlan = intensiveItem?.payment_plan || intensiveItem?.metadata?.payment_plan || 'full'
 
+    // Fire triggerEvent for any configured automation rules / sequences
     const result = await triggerEvent('intensive.purchased', {
       email,
       userId: order.user_id,
@@ -217,10 +213,67 @@ export async function POST(request: NextRequest) {
       intensiveId: intensiveItem?.id || '',
     })
 
+    // If no automation rules matched, fall back to queuing via the email_templates
+    // table directly so the message still goes through the scheduled_messages pipeline
+    let fallbackQueued = false
+    if (result.rulesFired === 0 && result.sequencesEnrolled === 0) {
+      const { data: template } = await adminDb
+        .from('email_templates')
+        .select('id, subject, html_body, text_body')
+        .eq('slug', 'intensive-purchase-confirmation')
+        .eq('status', 'active')
+        .maybeSingle()
+
+      if (template) {
+        const variables: Record<string, string> = {
+          firstName,
+          name: fullName || firstName,
+          email,
+          paymentPlan,
+          orderId: order.id,
+        }
+
+        let subject = template.subject
+        let body = template.html_body
+        let textBody = template.text_body || ''
+        for (const [key, value] of Object.entries(variables)) {
+          const re = new RegExp(`\\{\\{${key}\\}\\}`, 'g')
+          subject = subject.replace(re, value)
+          body = body.replace(re, value)
+          textBody = textBody.replace(re, value)
+        }
+
+        const { error: insertError } = await adminDb.from('scheduled_messages').insert({
+          message_type: 'email',
+          recipient_email: email,
+          recipient_name: fullName || firstName,
+          recipient_user_id: order.user_id,
+          subject,
+          body,
+          text_body: textBody || null,
+          scheduled_for: new Date().toISOString(),
+          email_template_id: template.id,
+        })
+
+        if (!insertError) {
+          fallbackQueued = true
+        } else {
+          console.error('Failed to queue fallback email:', insertError)
+        }
+      }
+    }
+
+    const parts: string[] = []
+    if (result.rulesFired > 0) parts.push(`${result.rulesFired} automation rule(s) fired`)
+    if (result.sequencesEnrolled > 0) parts.push(`${result.sequencesEnrolled} sequence(s) enrolled`)
+    if (fallbackQueued) parts.push(`purchase confirmation queued via template`)
+    if (parts.length === 0) parts.push('No automation rules, sequences, or fallback template found. Create an active email_template with slug "intensive-purchase-confirmation" or an automation rule for the "intensive.purchased" event.')
+
     return NextResponse.json({
-      success: true,
-      message: `Resend triggered: ${result.rulesFired} rules fired, ${result.sequencesEnrolled} sequences enrolled`,
+      success: result.rulesFired > 0 || result.sequencesEnrolled > 0 || fallbackQueued,
+      message: parts.join('; '),
       result,
+      fallbackQueued,
     })
   } catch (error) {
     console.error('Admin orders POST (resend) error:', error)

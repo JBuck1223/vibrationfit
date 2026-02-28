@@ -274,13 +274,12 @@ export function LocationSection({ profile, onProfileChange, onProfileReload, onS
                 type="button"
                 onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
                 className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
-                  profile.country && profile.country !== 'United States'
+                  profile.country
                     ? 'text-white' 
                     : 'text-[#9CA3AF]'
                 }`}
               >
-                {/* Treat database default 'United States' as unselected for display */}
-                {profile.country && profile.country !== 'United States' 
+                {profile.country 
                   ? countryOptions.find(opt => opt.value === profile.country)?.label || profile.country
                   : 'Select country'}
               </button>
@@ -306,7 +305,7 @@ export function LocationSection({ profile, onProfileChange, onProfileReload, onS
                           setIsCountryDropdownOpen(false)
                         }}
                         className={`w-full px-6 py-2 text-left transition-colors ${
-                          profile.country && profile.country !== 'United States' && profile.country === option.value 
+                          profile.country === option.value 
                             ? 'bg-primary-500/20 text-primary-500 font-semibold' 
                             : 'text-white hover:bg-[#333]'
                         }`}
@@ -330,6 +329,7 @@ export function LocationSection({ profile, onProfileChange, onProfileReload, onS
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
+          recordingPurpose="quick"
           category={visionToRecordingKey('home')}
           instanceId="clarity"
         />
@@ -346,6 +346,7 @@ export function LocationSection({ profile, onProfileChange, onProfileReload, onS
           placeholder="Share what's not going well with your home or living environment, or what you'd like to improve..."
           rows={6}
           storageFolder="profile"
+          recordingPurpose="quick"
           category={visionToRecordingKey('home')}
           instanceId="contrast"
         />      </div>

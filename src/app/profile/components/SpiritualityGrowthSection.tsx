@@ -221,6 +221,7 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
           rows={6}
           onRecordingSaved={handleRecordingSaved}
           storageFolder="profile"
+          recordingPurpose="quick"
           category={visionToRecordingKey('spirituality')}
           instanceId="clarity"
         />
@@ -237,6 +238,7 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
           placeholder="Share what's not going well with your spiritual or growth journey, or what you'd like to improve..."
           rows={6}
           storageFolder="profile"
+          recordingPurpose="quick"
           category={visionToRecordingKey('spirituality')}
           instanceId="contrast"
         />      </div>

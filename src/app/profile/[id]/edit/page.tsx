@@ -601,114 +601,27 @@ export default function ProfileEditPage() {
     await saveProfile(profile)
   }
 
-  // Calculate completed sections
-  // NOTE: Database has defaults for: units='US', country='United States', currency='USD',
-  // has_children=false, passport=false, countries_visited=0, personal_growth_focus=false, legacy_mindset=false
-  // These should NOT count as "user completed this section"
+  // Section is complete only when ALL its fields are filled.
+  // Uses getIncompleteFields (single source of truth) which already handles
+  // database defaults and conditional fields (relationship, children).
   const getCompletedSections = useCallback(() => {
-    // Use the same section IDs as profileSections array
-    const sections = [
-      'personal',
-      'fun',
-      'health',
-      'travel',
-      'love',
-      'family',
-      'social',
-      'home',
-      'work',
-      'money',
-      'stuff',
-      'giving',
-      'spirituality',
-      'photos-notes'
+    const incompleteFields = getIncompleteFields(profile)
+    const incompleteSectionIds = new Set(incompleteFields.map(f => f.sectionId))
+
+    const dataSections = [
+      'personal', 'fun', 'health', 'travel', 'love', 'family',
+      'social', 'home', 'work', 'money', 'stuff', 'giving', 'spirituality'
     ]
 
-    return sections.filter(section => {
-      switch (section) {
-        case 'personal':
-          // Personal section is complete if core fields are filled
-          return profile.first_name && profile.last_name && profile.email && 
-                 profile.phone && profile.date_of_birth && profile.gender
-        case 'love':
-          // Love/Relationship section is complete if relationship status is set
-          // and if not Single, then partner info should be included
-          return profile.relationship_status && 
-                 (profile.relationship_status === 'Single' || 
-                  (profile.partner_name && profile.relationship_length))
-        case 'family':
-          // Family section requires user action beyond defaults
-          // has_children defaults to false, so we need clarity story OR explicit children data
-          const hasChildrenData = profile.has_children === true && 
-                 profile.children && Array.isArray(profile.children) && profile.children.length > 0 && 
-                 profile.children.some(c => c.first_name && c.first_name.trim().length > 0)
-          return hasChildrenData || (profile.clarity_family && profile.clarity_family.trim().length > 0)
-        case 'health':
-          // Health section - units defaults to 'US', don't count that
-          // Require actual user input: height, weight, exercise_frequency, OR clarity story
-          return (profile.height || profile.weight || profile.exercise_frequency ||
-                 (profile.clarity_health && profile.clarity_health.trim().length > 0))
-        case 'home':
-          // Home/Location - country defaults to 'United States', don't count that
-          // Require actual user input beyond default
-          return (profile.living_situation || profile.time_at_location || 
-                 profile.city || profile.state || profile.postal_code ||
-                 (profile.clarity_home && profile.clarity_home.trim().length > 0))
-        case 'work':
-          // Work/Career section is complete if career fields OR clarity story is filled
-          return (profile.employment_type || profile.occupation || profile.company || 
-                 profile.time_in_role || profile.education ||
-                 (profile.clarity_work && profile.clarity_work.trim().length > 0))
-        case 'money':
-          // Money/Financial - currency defaults to 'USD', don't count that
-          // Require actual user input beyond default
-          return (profile.household_income || profile.savings_retirement || 
-                 profile.assets_equity || profile.consumer_debt ||
-                 (profile.clarity_money && profile.clarity_money.trim().length > 0))
-        case 'fun':
-          // Fun section - hobbies defaults to empty array, don't count that
-          return (profile.hobbies && profile.hobbies.length > 0) || 
-                 profile.leisure_time_weekly ||
-                 (profile.clarity_fun && profile.clarity_fun.trim().length > 0)
-        case 'travel':
-          // Travel section - passport defaults to false, countries_visited to 0
-          // Only count if user actually set travel_frequency OR clarity story
-          // passport=true or countries_visited>0 means user changed from default
-          return profile.travel_frequency || 
-                 profile.passport === true ||
-                 (profile.countries_visited != null && profile.countries_visited > 0) ||
-                 (profile.clarity_travel && profile.clarity_travel.trim().length > 0)
-        case 'social':
-          // Social section is complete if any social fields OR clarity story is filled
-          return profile.close_friends_count || 
-                 profile.social_preference ||
-                 (profile.clarity_social && profile.clarity_social.trim().length > 0)
-        case 'stuff':
-          // Stuff/Possessions section is complete if any lifestyle fields OR clarity story is filled
-          return profile.lifestyle_category || 
-                 (profile.clarity_stuff && profile.clarity_stuff.trim().length > 0)
-        case 'spirituality':
-          // Spirituality - personal_growth_focus defaults to false
-          // Only count if user set practice, meditation, OR personal_growth_focus=true, OR clarity story
-          return profile.spiritual_practice || 
-                 profile.meditation_frequency || 
-                 profile.personal_growth_focus === true ||
-                 (profile.clarity_spirituality && profile.clarity_spirituality.trim().length > 0)
-        case 'giving':
-          // Giving - legacy_mindset defaults to false
-          // Only count if user set volunteer, charitable, OR legacy_mindset=true, OR clarity story
-          return profile.volunteer_status || 
-                 profile.charitable_giving || 
-                 profile.legacy_mindset === true ||
-                 (profile.clarity_giving && profile.clarity_giving.trim().length > 0)
-        case 'photos-notes':
-          // Photos/Notes section is complete if any media or notes are added
-          return (profile.version_notes && profile.version_notes.trim().length > 0) || 
-                 (profile.progress_photos && profile.progress_photos.length > 0)
-        default:
-          return false
-      }
-    })
+    const completed = dataSections.filter(section => !incompleteSectionIds.has(section))
+
+    // photos-notes is optional (media excluded from completion)
+    if ((profile.version_notes && profile.version_notes.trim().length > 0) ||
+        (profile.progress_photos && profile.progress_photos.length > 0)) {
+      completed.push('photos-notes')
+    }
+
+    return completed
   }, [profile])
 
   const completedSections = getCompletedSections()

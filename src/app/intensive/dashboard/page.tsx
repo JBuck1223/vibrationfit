@@ -154,7 +154,9 @@ function IntensiveDashboardContent() {
       border: '2px solid #199D67',
       color: '#FFFFFF',
       borderRadius: '12px',
-      padding: '16px',
+      padding: '12px 16px',
+      wordBreak: 'break-word' as const,
+      whiteSpace: 'pre-wrap' as const,
     }
     
     // Handle "just started" toast
