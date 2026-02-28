@@ -6,6 +6,7 @@ import { ProfilePictureUpload } from './ProfilePictureUpload'
 import { UserProfile } from '@/lib/supabase/profile'
 import { User } from 'lucide-react'
 import { getHighlightClass } from './highlight-utils'
+import { formatPhoneDisplay, parsePhoneInput, phoneToE164, phoneToDigits } from '@/lib/phone-format'
 
 interface PersonalInfoSectionProps {
   profile: Partial<UserProfile>
@@ -63,9 +64,8 @@ export function PersonalInfoSection({ profile, onProfileChange, onError, onSave,
     }
   }, [isGenderDropdownOpen, isEthnicityDropdownOpen])
 
-  // NOTE: Phone formatting on initial load was removed because it was triggering
-  // the "Save Changes" button to appear immediately without user edits.
-  // Phone formatting now only happens on user input (handlePhoneChange).
+  // NOTE: Phone formatting uses shared lib/phone-format (same as checkout).
+  // Stored value is E.164 (e.g. +15551234567); display is formatted with country code.
 
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     onProfileChange({ [field]: value })
@@ -79,26 +79,9 @@ export function PersonalInfoSection({ profile, onProfileChange, onError, onSave,
     }
   }
 
-  const formatPhoneNumber = (value: string): string => {
-    // Remove all non-numeric characters
-    const cleaned = value.replace(/\D/g, '')
-    
-    // Limit to 10 digits
-    const limited = cleaned.slice(0, 10)
-    
-    // Format as (XXX) XXX-XXXX
-    if (limited.length <= 3) {
-      return limited
-    } else if (limited.length <= 6) {
-      return `(${limited.slice(0, 3)}) ${limited.slice(3)}`
-    } else {
-      return `(${limited.slice(0, 3)}) ${limited.slice(3, 6)}-${limited.slice(6)}`
-    }
-  }
-
   const handlePhoneChange = (value: string) => {
-    const formatted = formatPhoneNumber(value)
-    handleInputChange('phone', formatted)
+    const digits = parsePhoneInput(value)
+    handleInputChange('phone', phoneToE164(digits) || '')
   }
 
   return (
@@ -169,9 +152,9 @@ export function PersonalInfoSection({ profile, onProfileChange, onError, onSave,
             </label>
             <Input
               type="tel"
-              value={profile.phone || ''}
+              value={formatPhoneDisplay(phoneToDigits(profile.phone))}
               onChange={(e) => handlePhoneChange(e.target.value)}
-              placeholder="(555) 123-4567"
+              placeholder="(555) 000-0000"
               className={`w-full ${getHighlightClass('phone', highlightedField)}`}
             />
           </div>

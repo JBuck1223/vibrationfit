@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { Input, Button, Checkbox } from '@/lib/design-system/components'
 import { Loader2 } from 'lucide-react'
+import { formatPhoneDisplay, parsePhoneInput, phoneToE164 } from '@/lib/phone-format'
 
 interface CheckoutFormProps {
   onSubmit: (accountDetails: AccountDetails) => Promise<{ clientSecret: string; redirectUrl: string } | null>
@@ -28,52 +29,6 @@ export interface AccountDetails {
 function getMembershipBillingPhrase(continuity: 'annual' | '28day', planType: 'solo' | 'household'): string {
   if (continuity === '28day') return planType === 'solo' ? '$99 every 28 days' : '$149 every 28 days'
   return planType === 'solo' ? '$999 per year' : '$1,499 per year'
-}
-
-// Country codes: prefix (digits), E.164 code, national length. Try longer prefixes first.
-const PHONE_COUNTRIES: { prefix: string; code: string; nationalLength: number; format: (n: string) => string }[] = [
-  { prefix: '44', code: '+44', nationalLength: 10, format: n => n.length <= 4 ? n : n.length <= 7 ? `${n.slice(0, 4)} ${n.slice(4)}` : `${n.slice(0, 4)} ${n.slice(4, 7)} ${n.slice(7)}` },
-  { prefix: '33', code: '+33', nationalLength: 9, format: n => n.length <= 1 ? n : [n.slice(0, 1), ...(n.slice(1).match(/.{1,2}/g) || [])].join(' ') },
-  { prefix: '49', code: '+49', nationalLength: 11, format: n => n.length <= 5 ? n : n.length <= 9 ? `${n.slice(0, 5)} ${n.slice(5)}` : `${n.slice(0, 5)} ${n.slice(5, 9)} ${n.slice(9)}` },
-  { prefix: '61', code: '+61', nationalLength: 9, format: n => n.length <= 4 ? n : `${n.slice(0, 4)} ${n.slice(4)}` },
-  { prefix: '1', code: '+1', nationalLength: 10, format: n => n.length <= 3 ? (n.length ? `(${n}` : '') : n.length <= 6 ? `(${n.slice(0, 3)}) ${n.slice(3)}` : `(${n.slice(0, 3)}) ${n.slice(3, 6)}-${n.slice(6)}` },
-]
-
-function getPhoneCountryAndNational(digits: string): { code: string; national: string } | null {
-  const d = digits.replace(/\D/g, '')
-  if (!d.length) return null
-  // Try matching country by prefix (longest first)
-  for (const { prefix, code, nationalLength, format } of PHONE_COUNTRIES) {
-    if (d === prefix || d.startsWith(prefix)) {
-      const national = d.length > prefix.length ? d.slice(prefix.length, prefix.length + nationalLength) : d.slice(prefix.length)
-      return { code, national }
-    }
-  }
-  // No match: treat as US (10 digits)
-  const us = PHONE_COUNTRIES.find(c => c.prefix === '1')!
-  const national = d.slice(0, us.nationalLength)
-  return { code: us.code, national }
-}
-
-function formatPhoneDisplay(digits: string): string {
-  const parsed = getPhoneCountryAndNational(digits)
-  if (!parsed || !parsed.national) return ''
-  const country = PHONE_COUNTRIES.find(c => c.code === parsed!.code)
-  const formatted = country ? country.format(parsed.national) : parsed.national
-  return `${parsed.code} ${formatted}`.trim()
-}
-
-/** Normalize to digits only; cap at 13 (country + national). */
-function parsePhoneInput(value: string): string {
-  return value.replace(/\D/g, '').slice(0, 13)
-}
-
-/** E.164 value for submit: +country + national (e.g. +15551234567). */
-function phoneToE164(digits: string): string {
-  const parsed = getPhoneCountryAndNational(digits)
-  if (!parsed || !parsed.national) return ''
-  const countryDigits = parsed.code.replace('+', '')
-  return `+${countryDigits}${parsed.national}`
 }
 
 export default function CheckoutForm({ onSubmit, isProcessing, submitLabel, submitLabelShort, continuity, planType }: CheckoutFormProps) {

@@ -10,6 +10,7 @@ import { UserProfile } from '@/lib/supabase/profile'
 import { ProfileField } from '../components/ProfileField'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { ProfilePictureUpload, DEFAULT_PROFILE_IMAGE_URL } from '../components/ProfilePictureUpload'
+import { formatPhoneDisplay, phoneToDigits } from '@/lib/phone-format'
 import { 
   User, 
   Heart, 
@@ -454,14 +455,7 @@ export default function ProfileDetailPage() {
 
   const formatPhoneNumber = (phone: string | null | undefined) => {
     if (!phone) return phone
-    // Remove all non-digit characters
-    const digits = phone.replace(/\D/g, '')
-    // Format as (XXX) XXX-XXXX
-    if (digits.length === 10) {
-      return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
-    }
-    // Return original if not 10 digits
-    return phone
+    return formatPhoneDisplay(phoneToDigits(phone)) || phone
   }
 
   const formatDateOfBirth = (dateOfBirth: string | null | undefined) => {
