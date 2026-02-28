@@ -719,7 +719,7 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
     },
     profilePicture: {
       maxSize: 20 * 1024 * 1024, // 20MB for profile pictures
-      types: ['image/jpeg', 'image/png', 'image/webp'],
+      types: ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'],
     },
     customTracks: {
       maxSize: 500 * 1024 * 1024, // 500MB for audio tracks

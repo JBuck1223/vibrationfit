@@ -28,19 +28,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+    // Validate file type (includes HEIC for iPhone)
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json({ 
-        error: 'Invalid file type. Please upload JPG, PNG, or WebP images only.' 
+        error: 'Invalid file type. Please upload JPG, PNG, WebP, or HEIC images only.' 
       }, { status: 400 })
     }
 
-    // Validate file size (5MB max)
-    const maxSize = 5 * 1024 * 1024 // 5MB in bytes
+    // Validate file size (20MB max, matching S3 config)
+    const maxSize = 20 * 1024 * 1024 // 20MB in bytes
     if (file.size > maxSize) {
       return NextResponse.json({ 
-        error: 'File too large. Please upload images smaller than 5MB.' 
+        error: 'File too large. Please upload images smaller than 20MB.' 
       }, { status: 400 })
     }
 
