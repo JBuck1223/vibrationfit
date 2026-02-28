@@ -17,6 +17,7 @@ interface PossessionsLifestyleSectionProps {
   onSave?: () => void
   isSaving?: boolean
   hasUnsavedChanges?: boolean
+  saveError?: string | null
 }
 
 type VehicleOrToy = {
@@ -25,7 +26,7 @@ type VehicleOrToy = {
   ownership_status: 'paid_in_full' | 'own_with_payment' | 'leased' | 'borrowed'
 }
 
-export function PossessionsLifestyleSection({ profile, onProfileChange, onProfileReload, profileId, onSave, isSaving, hasUnsavedChanges = false }: PossessionsLifestyleSectionProps) {
+export function PossessionsLifestyleSection({ profile, onProfileChange, onProfileReload, profileId, onSave, isSaving, hasUnsavedChanges = false, saveError }: PossessionsLifestyleSectionProps) {
   const [isLifestyleCategoryDropdownOpen, setIsLifestyleCategoryDropdownOpen] = useState(false)
   const [openVehicleDropdowns, setOpenVehicleDropdowns] = useState<Map<number, boolean>>(new Map())
   const [openItemDropdowns, setOpenItemDropdowns] = useState<Map<number, boolean>>(new Map())
@@ -569,12 +570,20 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
 
       {/* Save Button - Bottom Right */}
       {onSave && (
-        <div className="flex justify-end mt-6">
-          <SaveButton
-            onClick={onSave}
-            hasUnsavedChanges={hasUnsavedChanges}
-            isSaving={isSaving}
-          />
+        <div className="mt-6">
+          {saveError && hasUnsavedChanges && (
+            <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+              <span className="text-sm text-red-400">{saveError}</span>
+            </div>
+          )}
+          <div className="flex justify-end">
+            <SaveButton
+              onClick={onSave}
+              hasUnsavedChanges={hasUnsavedChanges}
+              isSaving={isSaving}
+              saveError={saveError}
+            />
+          </div>
         </div>
       )}
     </Card>

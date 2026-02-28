@@ -18,6 +18,7 @@ interface PersonalInfoSectionProps {
   hasUnsavedChanges?: boolean
   highlightedField?: string | null
   profileId?: string | null
+  saveError?: string | null
 }
 
 const genderOptions = [
@@ -39,7 +40,7 @@ const ethnicityOptions = [
   { value: 'Prefer not to say', label: 'Prefer not to say' }
 ]
 
-export function PersonalInfoSection({ profile, onProfileChange, onError, onSave, isSaving, hasUnsavedChanges = false, highlightedField, profileId }: PersonalInfoSectionProps) {
+export function PersonalInfoSection({ profile, onProfileChange, onError, onSave, isSaving, hasUnsavedChanges = false, highlightedField, profileId, saveError }: PersonalInfoSectionProps) {
   const [isGenderDropdownOpen, setIsGenderDropdownOpen] = useState(false)
   const [isEthnicityDropdownOpen, setIsEthnicityDropdownOpen] = useState(false)
   const genderDropdownRef = useRef<HTMLDivElement>(null)
@@ -273,12 +274,20 @@ export function PersonalInfoSection({ profile, onProfileChange, onError, onSave,
 
         {/* Save Button - Bottom Right */}
         {onSave && (
-          <div className="flex justify-end mt-6">
-            <SaveButton
-              onClick={onSave}
-              hasUnsavedChanges={hasUnsavedChanges}
-              isSaving={isSaving}
-            />
+          <div className="mt-6">
+            {saveError && hasUnsavedChanges && (
+              <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+                <span className="text-sm text-red-400">{saveError}</span>
+              </div>
+            )}
+            <div className="flex justify-end">
+              <SaveButton
+                onClick={onSave}
+                hasUnsavedChanges={hasUnsavedChanges}
+                isSaving={isSaving}
+                saveError={saveError}
+              />
+            </div>
           </div>
         )}
       </Card>

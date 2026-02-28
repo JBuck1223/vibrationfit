@@ -14,6 +14,7 @@ interface LocationSectionProps {
   onSave?: () => void
   isSaving?: boolean
   hasUnsavedChanges?: boolean
+  saveError?: string | null
 }
 
 const livingSituationOptions = [
@@ -45,7 +46,7 @@ const countryOptions = [
   { value: 'Other', label: 'Other' }
 ]
 
-export function LocationSection({ profile, onProfileChange, onProfileReload, onSave, isSaving, hasUnsavedChanges = false }: LocationSectionProps) {
+export function LocationSection({ profile, onProfileChange, onProfileReload, onSave, isSaving, hasUnsavedChanges = false, saveError }: LocationSectionProps) {
   const [isLivingSituationDropdownOpen, setIsLivingSituationDropdownOpen] = useState(false)
   const [isTimeAtLocationDropdownOpen, setIsTimeAtLocationDropdownOpen] = useState(false)
   const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false)
@@ -342,12 +343,20 @@ export function LocationSection({ profile, onProfileChange, onProfileReload, onS
 
       {/* Save Button - Bottom Right */}
       {onSave && (
-        <div className="flex justify-end mt-6">
-          <SaveButton
-            onClick={onSave}
-            hasUnsavedChanges={hasUnsavedChanges}
-            isSaving={isSaving}
-          />
+        <div className="mt-6">
+          {saveError && hasUnsavedChanges && (
+            <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+              <span className="text-sm text-red-400">{saveError}</span>
+            </div>
+          )}
+          <div className="flex justify-end">
+            <SaveButton
+              onClick={onSave}
+              hasUnsavedChanges={hasUnsavedChanges}
+              isSaving={isSaving}
+              saveError={saveError}
+            />
+          </div>
         </div>
       )}
     </Card>

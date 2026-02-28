@@ -14,6 +14,7 @@ interface PhotosAndNotesSectionProps {
   onSave?: () => void
   isSaving?: boolean
   hasUnsavedChanges?: boolean
+  saveError?: string | null
 }
 
 export const PhotosAndNotesSection: React.FC<PhotosAndNotesSectionProps> = ({
@@ -22,7 +23,8 @@ export const PhotosAndNotesSection: React.FC<PhotosAndNotesSectionProps> = ({
   disabled = false,
   onSave,
   isSaving,
-  hasUnsavedChanges = false
+  hasUnsavedChanges = false,
+  saveError
 }) => {
   const MediaIcon = Camera
   
@@ -42,12 +44,20 @@ export const PhotosAndNotesSection: React.FC<PhotosAndNotesSectionProps> = ({
 
         {/* Save Button - Bottom Right */}
         {onSave && (
-          <div className="flex justify-end mt-6">
-            <SaveButton
-              onClick={onSave}
-              hasUnsavedChanges={hasUnsavedChanges}
-              isSaving={isSaving}
-            />
+          <div className="mt-6">
+            {saveError && hasUnsavedChanges && (
+              <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+                <span className="text-sm text-red-400">{saveError}</span>
+              </div>
+            )}
+            <div className="flex justify-end">
+              <SaveButton
+                onClick={onSave}
+                hasUnsavedChanges={hasUnsavedChanges}
+                isSaving={isSaving}
+                saveError={saveError}
+              />
+            </div>
           </div>
         )}
       </div>

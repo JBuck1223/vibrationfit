@@ -64,15 +64,23 @@ export function RecordingTextarea({
   const quickAnalyserRef = useRef<AnalyserNode | null>(null)
   const quickAnimationFrameRef = useRef<number | null>(null)
 
-  // Auto-resize textarea function
+  // Auto-resize textarea without disrupting scroll position
   const autoResizeTextarea = () => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto'
-      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px'
-    }
+    const textarea = textareaRef.current
+    if (!textarea) return
+
+    // Save page scroll position before the reflow
+    const scrollY = window.scrollY
+
+    // Collapse to measure true content height, then re-expand
+    textarea.style.height = 'auto'
+    textarea.style.height = textarea.scrollHeight + 'px'
+
+    // Restore scroll position so the page doesn't jump
+    window.scrollTo({ top: scrollY, behavior: 'instant' })
   }
 
-  // Auto-resize when value changes
+  // Auto-resize when value changes (covers typing + transcription)
   useEffect(() => {
     autoResizeTextarea()
   }, [value])
@@ -423,7 +431,6 @@ export function RecordingTextarea({
           value={value}
           onChange={(e) => {
             onChange(e.target.value)
-            autoResizeTextarea()
           }}
           placeholder={resolvedPlaceholder}
           rows={rows}
@@ -431,13 +438,12 @@ export function RecordingTextarea({
           className={`w-full min-h-[100px] resize-none overflow-hidden ${className}`}
         />
         
-        {/* Recording Buttons */}
+        {/* Recording Buttons - never disabled by isUploading so clicks can self-heal stuck state */}
         {!showRecorder && !isQuickRecording && (
           <div className="absolute bottom-3 right-1.5 flex gap-2">
             <button
               type="button"
               onClick={() => {
-                // Quick mode: start inline recording immediately
                 if (recordingPurpose === 'quick') {
                   startQuickRecording()
                 } else {
@@ -445,7 +451,7 @@ export function RecordingTextarea({
                   setShowRecorder(true)
                 }
               }}
-              disabled={disabled || isUploading}
+              disabled={disabled}
               className="p-2 bg-neutral-600 hover:bg-white text-white hover:text-neutral-700 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               title="Record audio"
             >
@@ -458,7 +464,7 @@ export function RecordingTextarea({
                   setRecordingMode('video')
                   setShowRecorder(true)
                 }}
-                disabled={disabled || isUploading}
+                disabled={disabled}
                 className="p-2 bg-neutral-600 hover:bg-white text-white hover:text-neutral-700 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Record video"
               >

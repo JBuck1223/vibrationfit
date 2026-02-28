@@ -150,9 +150,12 @@ export default function ProfileEditPage() {
     return profileSections.findIndex(section => section.id === activeSection)
   }
 
-  const handleSectionChange = (sectionId: string) => {
+  const handleSectionChange = async (sectionId: string) => {
+    if (hasUnsavedChanges) {
+      await saveProfile(profile)
+    }
     setActiveSection(sectionId)
-    // Scroll to category grid after DOM updates
+    window.history.replaceState(null, '', `#${sectionId}`)
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         categoryGridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -476,13 +479,15 @@ export default function ProfileEditPage() {
     }
   }, [profileId])
 
-  // Manual save only - no auto-save
   const handleProfileChange = useCallback((updates: Partial<UserProfile>) => {
     const newProfile = { ...profile, ...updates }
     setProfile(newProfile)
     setHasUnsavedChanges(true)
-    // No auto-save - user must click "Save Edits" button
-  }, [profile])
+    if (saveStatus === 'error') {
+      setSaveStatus('idle')
+      setError(null)
+    }
+  }, [profile, saveStatus])
 
   // Version management handlers
   const handleVersionSelect = (versionId: string) => {
@@ -641,7 +646,8 @@ export default function ProfileEditPage() {
       onProfileReload: reloadProfile,
       onError: setError,
       hasUnsavedChanges,
-      highlightedField
+      highlightedField,
+      saveError: saveStatus === 'error' ? (error || 'Save failed') : null
     }
 
     let sectionContent

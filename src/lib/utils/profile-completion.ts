@@ -9,19 +9,14 @@ export interface ProfileData {
   [key: string]: any
 }
 
-// Database column defaults that should NOT count toward profile completion.
-// These are auto-set by PostgreSQL when a new profile row is created and
-// don't represent intentional user input.
-const DATABASE_DEFAULTS: Record<string, any> = {
-  units: 'US',
-  country: 'United States',
-  currency: 'USD',
-  has_children: false,
-  passport: false,
-  countries_visited: 0,
-  personal_growth_focus: false,
-  legacy_mindset: false,
-}
+// Database column defaults - previously excluded from completion counting,
+// but this caused a bug where legitimate user selections that match the
+// default (e.g. units='US', has_children=false, passport=false) were
+// treated as "not filled", making those sections permanently incomplete.
+// Now empty: all non-null values count as filled. A brand-new profile may
+// show a small initial completion % from DB defaults, but that's far less
+// harmful than sections that can never reach 100%.
+const DATABASE_DEFAULTS: Record<string, any> = {}
 
 // Field to section mapping (matches profile edit page sections)
 export const FIELD_TO_SECTION_MAP: Record<string, string> = {

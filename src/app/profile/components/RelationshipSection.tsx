@@ -14,6 +14,7 @@ interface RelationshipSectionProps {
   onSave?: () => void
   isSaving?: boolean
   hasUnsavedChanges?: boolean
+  saveError?: string | null
 }
 
 const relationshipStatusOptions = [
@@ -33,7 +34,7 @@ const relationshipLengthOptions = [
   { value: '10+ years', label: '10+ years' }
 ]
 
-export function RelationshipSection({ profile, onProfileChange, onProfileReload, onSave, isSaving, hasUnsavedChanges = false }: RelationshipSectionProps) {
+export function RelationshipSection({ profile, onProfileChange, onProfileReload, onSave, isSaving, hasUnsavedChanges = false, saveError }: RelationshipSectionProps) {
   const [isRelationshipStatusDropdownOpen, setIsRelationshipStatusDropdownOpen] = useState(false)
   const [isRelationshipLengthDropdownOpen, setIsRelationshipLengthDropdownOpen] = useState(false)
   const relationshipStatusDropdownRef = useRef<HTMLDivElement>(null)
@@ -293,12 +294,20 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload,
 
       {/* Save Button - Bottom Right */}
       {onSave && (
-        <div className="flex justify-end mt-6">
-          <SaveButton
-            onClick={onSave}
-            hasUnsavedChanges={hasUnsavedChanges}
-            isSaving={isSaving}
-          />
+        <div className="mt-6">
+          {saveError && hasUnsavedChanges && (
+            <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+              <span className="text-sm text-red-400">{saveError}</span>
+            </div>
+          )}
+          <div className="flex justify-end">
+            <SaveButton
+              onClick={onSave}
+              hasUnsavedChanges={hasUnsavedChanges}
+              isSaving={isSaving}
+              saveError={saveError}
+            />
+          </div>
         </div>
       )}
     </Card>
