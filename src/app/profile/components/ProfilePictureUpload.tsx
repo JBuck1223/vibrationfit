@@ -155,6 +155,9 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError, 
       })
       setUploadProgress(80)
 
+      // Best-effort profile DB update -- the S3 upload already succeeded,
+      // so always call onImageChange afterwards. The parent component
+      // (account settings, profile edit) handles its own persistence too.
       if (profileId) {
         const { error: updateError } = await supabase
           .from('user_profiles')
@@ -166,24 +169,18 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError, 
           .eq('user_id', user.id)
 
         if (updateError) {
-          console.error('Error updating profile with new picture:', updateError)
-          onError('Failed to update profile')
-          return
+          console.warn('Non-blocking: failed to update user_profiles for profileId:', updateError)
         }
       } else {
-        const { data: activeProfile, error: findError } = await supabase
+        // No profileId -- try to update the active profile, but don't block on failure.
+        // Account settings page doesn't use user_profiles at all.
+        const { data: activeProfile } = await supabase
           .from('user_profiles')
           .select('id')
           .eq('user_id', user.id)
           .eq('is_active', true)
           .eq('is_draft', false)
           .maybeSingle()
-
-        if (findError) {
-          console.error('Error finding active profile:', findError)
-          onError('Failed to find active profile')
-          return
-        }
 
         if (activeProfile?.id) {
           const { error: updateError } = await supabase
@@ -195,25 +192,7 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError, 
             .eq('id', activeProfile.id)
 
           if (updateError) {
-            console.error('Error updating profile with new picture:', updateError)
-            onError('Failed to update profile')
-            return
-          }
-        } else {
-          const { error: createError } = await supabase
-            .from('user_profiles')
-            .insert({
-              user_id: user.id,
-              profile_picture_url: uploadResult.url,
-              is_active: true,
-              is_draft: false,
-              version_number: 1
-            })
-
-          if (createError) {
-            console.error('Error creating profile with picture:', createError)
-            onError('Failed to create profile')
-            return
+            console.warn('Non-blocking: failed to update active profile picture:', updateError)
           }
         }
       }

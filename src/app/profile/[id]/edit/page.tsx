@@ -647,7 +647,7 @@ export default function ProfileEditPage() {
     let sectionContent
     switch (activeSection) {
       case 'personal':
-        sectionContent = <PersonalInfoSection {...commonProps} onSave={handleManualSave} isSaving={isSaving} />
+        sectionContent = <PersonalInfoSection {...commonProps} profileId={profileId} onSave={handleManualSave} isSaving={isSaving} />
         break
       case 'love':
         sectionContent = <RelationshipSection {...commonProps} onSave={handleManualSave} isSaving={isSaving} />
@@ -689,7 +689,7 @@ export default function ProfileEditPage() {
         sectionContent = <GivingLegacySection {...commonProps} onSave={handleManualSave} isSaving={isSaving} />
         break
       default:
-        sectionContent = <PersonalInfoSection {...commonProps} />
+        sectionContent = <PersonalInfoSection {...commonProps} profileId={profileId} />
     }
 
     return (

@@ -17,6 +17,7 @@ interface PersonalInfoSectionProps {
   isSaving?: boolean
   hasUnsavedChanges?: boolean
   highlightedField?: string | null
+  profileId?: string | null
 }
 
 const genderOptions = [
@@ -38,7 +39,7 @@ const ethnicityOptions = [
   { value: 'Prefer not to say', label: 'Prefer not to say' }
 ]
 
-export function PersonalInfoSection({ profile, onProfileChange, onError, onSave, isSaving, hasUnsavedChanges = false, highlightedField }: PersonalInfoSectionProps) {
+export function PersonalInfoSection({ profile, onProfileChange, onError, onSave, isSaving, hasUnsavedChanges = false, highlightedField, profileId }: PersonalInfoSectionProps) {
   const [isGenderDropdownOpen, setIsGenderDropdownOpen] = useState(false)
   const [isEthnicityDropdownOpen, setIsEthnicityDropdownOpen] = useState(false)
   const genderDropdownRef = useRef<HTMLDivElement>(null)
@@ -99,6 +100,7 @@ export function PersonalInfoSection({ profile, onProfileChange, onError, onSave,
             currentImageUrl={profile.profile_picture_url}
             onImageChange={(url) => handleInputChange('profile_picture_url', url)}
             onError={onError}
+            profileId={profileId}
           />
         </div>
         
