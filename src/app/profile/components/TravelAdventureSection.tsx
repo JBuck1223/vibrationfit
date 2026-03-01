@@ -227,22 +227,22 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
 
         {/* Trips I've Taken Table */}
         <div className="bg-neutral-800/50 rounded-lg border border-neutral-700 p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="text-sm font-semibold text-white">Trips I've Taken</h4>
-            <button
-              type="button"
-              onClick={handleTripAdd}
-              className="flex items-center gap-2 px-3 py-1.5 bg-[rgba(57,255,20,0.1)] text-[#39FF14] border-2 border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.2)] active:opacity-80 rounded-lg transition-colors text-sm font-medium"
-            >
-              <Plus className="w-4 h-4" />
-              Add Trip
-            </button>
-          </div>
+          <h4 className="text-sm font-semibold text-white mb-4">Trips I've Taken</h4>
 
           {trips.length === 0 ? (
-            <p className="text-sm text-neutral-400 text-center py-4">
-              Click "Add Trip" to add your first trip
-            </p>
+            <>
+              <p className="text-sm text-neutral-400 text-center py-4">
+                Click "Add Trip" to add your first trip
+              </p>
+              <button
+                type="button"
+                onClick={handleTripAdd}
+                className="flex items-center gap-2 px-3 py-1.5 bg-[rgba(57,255,20,0.1)] text-[#39FF14] border-2 border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.2)] active:opacity-80 rounded-lg transition-colors text-sm font-medium mx-auto"
+              >
+                <Plus className="w-4 h-4" />
+                Add Trip
+              </button>
+            </>
           ) : (
             <div className="space-y-3">
               {trips.map((trip, index) => (
@@ -276,7 +276,7 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
                         value={trip.destination || ''}
                         onChange={(e) => handleTripChange(index, 'destination', e.target.value)}
                         placeholder="e.g., Paris, France"
-                        className="w-full text-sm"
+                        className="w-full"
                       />
                     </div>
 
@@ -289,7 +289,7 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
                         value={trip.year || ''}
                         onChange={(e) => handleTripChange(index, 'year', e.target.value)}
                         placeholder="e.g., 2023"
-                        className="w-full text-sm"
+                        className="w-full"
                       />
                     </div>
 
@@ -302,12 +302,20 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
                         value={trip.duration || ''}
                         onChange={(e) => handleTripChange(index, 'duration', e.target.value)}
                         placeholder="e.g., 1 week, 2 days"
-                        className="w-full text-sm"
+                        className="w-full"
                       />
                     </div>
                   </div>
                 </div>
               ))}
+              <button
+                type="button"
+                onClick={handleTripAdd}
+                className="flex items-center gap-2 px-3 py-1.5 bg-[rgba(57,255,20,0.1)] text-[#39FF14] border-2 border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.2)] active:opacity-80 rounded-lg transition-colors text-sm font-medium w-full justify-center mt-2"
+              >
+                <Plus className="w-4 h-4" />
+                Add Trip
+              </button>
             </div>
           )}
         </div>

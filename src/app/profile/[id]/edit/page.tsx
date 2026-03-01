@@ -150,9 +150,12 @@ export default function ProfileEditPage() {
     return profileSections.findIndex(section => section.id === activeSection)
   }
 
+  const profileRef = useRef<Partial<UserProfile>>({})
+  profileRef.current = profile
+
   const handleSectionChange = async (sectionId: string) => {
     if (hasUnsavedChanges) {
-      await saveProfile(profile)
+      await saveProfile(profileRef.current)
     }
     setActiveSection(sectionId)
     window.history.replaceState(null, '', `#${sectionId}`)
@@ -480,14 +483,11 @@ export default function ProfileEditPage() {
   }, [profileId])
 
   const handleProfileChange = useCallback((updates: Partial<UserProfile>) => {
-    const newProfile = { ...profile, ...updates }
-    setProfile(newProfile)
+    setProfile(prev => ({ ...prev, ...updates }))
     setHasUnsavedChanges(true)
-    if (saveStatus === 'error') {
-      setSaveStatus('idle')
-      setError(null)
-    }
-  }, [profile, saveStatus])
+    setSaveStatus(prev => prev === 'error' ? 'idle' : prev)
+    setError(prev => prev !== null ? null : prev)
+  }, [])
 
   // Version management handlers
   const handleVersionSelect = (versionId: string) => {
@@ -596,15 +596,9 @@ export default function ProfileEditPage() {
     saveAsVersion(false)
   }
 
-  const handleManualSave = async () => {
-    console.log('🔵 handleManualSave called with profile:', {
-      hasVehicles: !!profile.vehicles?.length,
-      hasItems: !!profile.items?.length,
-      vehiclesCount: profile.vehicles?.length || 0,
-      itemsCount: profile.items?.length || 0
-    })
-    await saveProfile(profile)
-  }
+  const handleManualSave = useCallback(async () => {
+    await saveProfile(profileRef.current)
+  }, [saveProfile])
 
   // Section is complete only when ALL its fields are filled.
   // Uses getIncompleteFields (single source of truth) which already handles

@@ -257,22 +257,22 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
 
         {/* Vehicles Table */}
         <div className="bg-neutral-800/50 rounded-lg border border-neutral-700 p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-sm font-semibold text-white">Vehicles</h4>
-              <button
-                type="button"
-                onClick={handleVehicleAdd}
-                className="flex items-center gap-2 px-3 py-1.5 bg-[rgba(57,255,20,0.1)] text-[#39FF14] border-2 border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.2)] active:opacity-80 rounded-lg transition-colors text-sm font-medium"
-              >
-                <Plus className="w-4 h-4" />
-                Add Vehicle
-              </button>
-            </div>
+            <h4 className="text-sm font-semibold text-white mb-4">Vehicles</h4>
 
             {vehicles.length === 0 ? (
-              <p className="text-sm text-neutral-400 text-center py-4">
-                Click "Add Vehicle" to add your first vehicle
-              </p>
+              <>
+                <p className="text-sm text-neutral-400 text-center py-4">
+                  Click "Add Vehicle" to add your first vehicle
+                </p>
+                <button
+                  type="button"
+                  onClick={handleVehicleAdd}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-[rgba(57,255,20,0.1)] text-[#39FF14] border-2 border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.2)] active:opacity-80 rounded-lg transition-colors text-sm font-medium mx-auto"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Vehicle
+                </button>
+              </>
             ) : (
               <div className="space-y-3">
                 {vehicles.map((vehicle, index) => (
@@ -306,7 +306,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
                           value={vehicle.name || ''}
                           onChange={(e) => handleVehicleChange(index, 'name', e.target.value)}
                           placeholder="e.g., 2020 Toyota Camry"
-                          className="w-full text-sm"
+                          className="w-full"
                         />
                       </div>
 
@@ -319,7 +319,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
                           value={vehicle.year_acquired || ''}
                           onChange={(e) => handleVehicleChange(index, 'year_acquired', e.target.value)}
                           placeholder="e.g., 2020"
-                          className="w-full text-sm"
+                          className="w-full"
                         />
                       </div>
 
@@ -395,33 +395,41 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
                     </div>
                   </div>
                 ))}
+                <button
+                  type="button"
+                  onClick={handleVehicleAdd}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-[rgba(57,255,20,0.1)] text-[#39FF14] border-2 border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.2)] active:opacity-80 rounded-lg transition-colors text-sm font-medium w-full justify-center mt-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Vehicle
+                </button>
               </div>
             )}
           </div>
 
         {/* Items Table */}
         <div className="bg-neutral-800/50 rounded-lg border border-neutral-700 p-4">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h4 className="text-sm font-semibold text-white mb-1">Items</h4>
-              <p className="text-xs text-neutral-400">
-                RVs, Boats, Trampolines, or any recreational items you want to list
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={handleItemAdd}
-              className="flex items-center gap-2 px-3 py-1.5 bg-[rgba(57,255,20,0.1)] text-[#39FF14] border-2 border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.2)] active:opacity-80 rounded-lg transition-colors text-sm font-medium"
-            >
-              <Plus className="w-4 h-4" />
-              Add Item
-            </button>
+          <div className="mb-4">
+            <h4 className="text-sm font-semibold text-white mb-1">Items</h4>
+            <p className="text-xs text-neutral-400">
+              RVs, Boats, Trampolines, or any recreational items you want to list
+            </p>
           </div>
 
           {items.length === 0 ? (
-            <p className="text-sm text-neutral-400 text-center py-4">
-              Click "Add Item" to add your first recreational item
-            </p>
+            <>
+              <p className="text-sm text-neutral-400 text-center py-4">
+                Click "Add Item" to add your first recreational item
+              </p>
+              <button
+                type="button"
+                onClick={handleItemAdd}
+                className="flex items-center gap-2 px-3 py-1.5 bg-[rgba(57,255,20,0.1)] text-[#39FF14] border-2 border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.2)] active:opacity-80 rounded-lg transition-colors text-sm font-medium mx-auto"
+              >
+                <Plus className="w-4 h-4" />
+                Add Item
+              </button>
+            </>
           ) : (
             <div className="space-y-3">
               {items.map((item, index) => (
@@ -455,7 +463,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
                         value={item.name || ''}
                         onChange={(e) => handleItemChange(index, 'name', e.target.value)}
                         placeholder="e.g., RV, Boat, Trampoline"
-                        className="w-full text-sm"
+                        className="w-full"
                       />
                     </div>
 
@@ -468,7 +476,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
                         value={item.year_acquired || ''}
                         onChange={(e) => handleItemChange(index, 'year_acquired', e.target.value)}
                         placeholder="e.g., 2020"
-                        className="w-full text-sm"
+                        className="w-full"
                       />
                     </div>
 
@@ -544,6 +552,14 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
                   </div>
                 </div>
               ))}
+              <button
+                type="button"
+                onClick={handleItemAdd}
+                className="flex items-center gap-2 px-3 py-1.5 bg-[rgba(57,255,20,0.1)] text-[#39FF14] border-2 border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.2)] active:opacity-80 rounded-lg transition-colors text-sm font-medium w-full justify-center mt-2"
+              >
+                <Plus className="w-4 h-4" />
+                Add Item
+              </button>
             </div>
           )}
         </div>
@@ -576,9 +592,13 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
               <span className="text-sm text-red-400">{saveError}</span>
             </div>
           )}
-          <div className="flex justify-end">
+          <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
             <SaveButton
-              onClick={onSave}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                onSave?.()
+              }}
               hasUnsavedChanges={hasUnsavedChanges}
               isSaving={isSaving}
               saveError={saveError}
