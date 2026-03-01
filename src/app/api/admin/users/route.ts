@@ -113,13 +113,13 @@ export async function GET(request: NextRequest) {
     const userIds = (users || []).map(u => u.id)
     
     const tokenBalancePromises = userIds.map(uid =>
-      adminDb.rpc('get_user_token_balance', { p_user_id: uid }).single()
-        .then(({ data }) => ({ uid, balance: data?.total_active || 0 }))
+      Promise.resolve(adminDb.rpc('get_user_token_balance', { p_user_id: uid }).single())
+        .then(({ data }) => ({ uid, balance: (data as { total_active?: number } | null)?.total_active || 0 }))
         .catch(() => ({ uid, balance: 0 }))
     )
 
     const storageQuotaPromises = userIds.map(uid =>
-      adminDb.from('user_storage').select('quota_gb').eq('user_id', uid)
+      Promise.resolve(adminDb.from('user_storage').select('quota_gb').eq('user_id', uid))
         .then(({ data }) => ({ uid, quota: (data || []).reduce((sum: number, row: any) => sum + (row.quota_gb || 0), 0) }))
         .catch(() => ({ uid, quota: 0 }))
     )
