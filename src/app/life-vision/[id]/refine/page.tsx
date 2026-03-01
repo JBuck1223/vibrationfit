@@ -304,9 +304,10 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const [vivaRevision, setVivaRevision] = useState('')
   const [isVivaRefining, setIsVivaRefining] = useState(false)
   const [currentRefinementId, setCurrentRefinementId] = useState<string | null>(null)
-  const [addItems, setAddItems] = useState<string[]>([])
+  // Add/Remove items per category so switching category shows the right list
+  const [addItemsByCategory, setAddItemsByCategory] = useState<Record<string, string[]>>({})
   const [addInput, setAddInput] = useState('')
-  const [removeItems, setRemoveItems] = useState<string[]>([])
+  const [removeItemsByCategory, setRemoveItemsByCategory] = useState<Record<string, string[]>>({})
   const [removeInput, setRemoveInput] = useState('')
   const [weaveEnabled, setWeaveEnabled] = useState(false)
   const [weaveStrength, setWeaveStrength] = useState<'light' | 'medium' | 'deep'>('light')
@@ -315,6 +316,24 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const [refinementNotes, setRefinementNotes] = useState('')
   const [viewMode, setViewMode] = useState<'edit' | 'highlight'>('edit')
   const [originalVisionText, setOriginalVisionText] = useState('')
+
+  // Derived: current category's add/remove lists (so Add/Remove sections apply to the category you're on)
+  const addItems = selectedCategory ? (addItemsByCategory[selectedCategory] ?? []) : []
+  const removeItems = selectedCategory ? (removeItemsByCategory[selectedCategory] ?? []) : []
+  const setAddItemsForCategory = (updater: string[] | ((prev: string[]) => string[])) => {
+    if (!selectedCategory) return
+    setAddItemsByCategory(prev => ({
+      ...prev,
+      [selectedCategory]: typeof updater === 'function' ? updater(prev[selectedCategory] ?? []) : updater
+    }))
+  }
+  const setRemoveItemsForCategory = (updater: string[] | ((prev: string[]) => string[])) => {
+    if (!selectedCategory) return
+    setRemoveItemsByCategory(prev => ({
+      ...prev,
+      [selectedCategory]: typeof updater === 'function' ? updater(prev[selectedCategory] ?? []) : updater
+    }))
+  }
 
   const supabase = createClient()
 
@@ -1171,16 +1190,16 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     // Auto-add any pending text in the input fields
     let finalAddItems = [...addItems]
     let finalRemoveItems = [...removeItems]
-    
+
     if (addInput.trim()) {
       finalAddItems.push(addInput.trim())
-      setAddItems(finalAddItems)
+      setAddItemsForCategory(finalAddItems)
       setAddInput('')
     }
-    
+
     if (removeInput.trim()) {
       finalRemoveItems.push(removeInput.trim())
-      setRemoveItems(finalRemoveItems)
+      setRemoveItemsForCategory(finalRemoveItems)
       setRemoveInput('')
     }
     
@@ -1623,7 +1642,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
           <Card>
             <div className={`flex items-center justify-between ${showVivaRefine ? 'mb-6' : ''}`}>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                <div className="hidden md:flex w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center shrink-0">
                   <Wand2 className="w-5 h-5 text-white" />
                 </div>
                 <div>
@@ -1666,7 +1685,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                       type="button"
                       onClick={() => {
                         if (addInput.trim()) {
-                          setAddItems([...addItems, addInput.trim()])
+                          setAddItemsForCategory([...addItems, addInput.trim()])
                           setAddInput('')
                         }
                       }}
@@ -1682,7 +1701,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                     onChange={(e) => setAddInput(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && addInput.trim()) {
-                        setAddItems([...addItems, addInput.trim()])
+                        setAddItemsForCategory([...addItems, addInput.trim()])
                         setAddInput('')
                       }
                     }}
@@ -1700,7 +1719,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                         <div key={index} className="flex items-center justify-between bg-neutral-900/50 border border-neutral-700 rounded-lg px-4 py-2">
                           <span className="text-sm text-white">{item}</span>
                           <button
-                            onClick={() => setAddItems(addItems.filter((_, i) => i !== index))}
+                            onClick={() => setAddItemsForCategory(addItems.filter((_, i) => i !== index))}
                             className="text-red-400 hover:text-red-300 transition-colors"
                           >
                             <X className="w-4 h-4" />
@@ -1719,7 +1738,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                       type="button"
                       onClick={() => {
                         if (removeInput.trim()) {
-                          setRemoveItems([...removeItems, removeInput.trim()])
+                          setRemoveItemsForCategory([...removeItems, removeInput.trim()])
                           setRemoveInput('')
                         }
                       }}
@@ -1735,7 +1754,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                     onChange={(e) => setRemoveInput(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && removeInput.trim()) {
-                        setRemoveItems([...removeItems, removeInput.trim()])
+                        setRemoveItemsForCategory([...removeItems, removeInput.trim()])
                         setRemoveInput('')
                       }
                     }}
@@ -1753,7 +1772,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                         <div key={index} className="flex items-center justify-between bg-neutral-900/50 border border-neutral-700 rounded-lg px-4 py-2">
                           <span className="text-sm text-white">{item}</span>
                           <button
-                            onClick={() => setRemoveItems(removeItems.filter((_, i) => i !== index))}
+                            onClick={() => setRemoveItemsForCategory(removeItems.filter((_, i) => i !== index))}
                             className="text-red-400 hover:text-red-300 transition-colors"
                           >
                             <X className="w-4 h-4" />
