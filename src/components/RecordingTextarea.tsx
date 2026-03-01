@@ -435,12 +435,12 @@ export function RecordingTextarea({
           placeholder={resolvedPlaceholder}
           rows={rows}
           disabled={disabled || isUploading}
-          className={`w-full min-h-[100px] resize-none overflow-hidden ${className}`}
+          className={`w-full min-h-[100px] resize-none overflow-hidden pb-11 pr-10 ${className}`}
         />
         
         {/* Recording Buttons - never disabled by isUploading so clicks can self-heal stuck state */}
         {!showRecorder && !isQuickRecording && (
-          <div className="absolute bottom-3 right-1.5 flex gap-2">
+          <div className="absolute bottom-3 right-1.5 flex gap-2 p-2">
             <button
               type="button"
               onClick={() => {
@@ -476,7 +476,7 @@ export function RecordingTextarea({
         
         {/* Quick Mode: Inline Recording Indicator */}
         {isQuickRecording && (
-          <div className="absolute bottom-3 right-1.5 flex items-center gap-2">
+          <div className="absolute bottom-3 right-1.5 flex items-center gap-2 p-2">
             <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/30 rounded-full">
               <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
               

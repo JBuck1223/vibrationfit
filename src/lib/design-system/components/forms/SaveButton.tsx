@@ -12,7 +12,7 @@ interface SaveButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElem
 }
 
 export const SaveButton = React.forwardRef<HTMLButtonElement, SaveButtonProps>(
-  ({ hasUnsavedChanges = false, isSaving = false, saveError, disabled, className = '', ...props }, ref) => {
+  ({ hasUnsavedChanges = false, isSaving = false, saveError, disabled, className = '', onClick, ...props }, ref) => {
     const primaryGreen = tokens.colors.primary[500]
     const black = tokens.colors.neutral[0]
     const lightGreenBg = `rgba(57, 255, 20, 0.15)`
@@ -128,6 +128,12 @@ export const SaveButton = React.forwardRef<HTMLButtonElement, SaveButtonProps>(
       )
     }
 
+    const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault()
+      e.stopPropagation()
+      onClick?.(e)
+    }
+
     return (
       <button
         ref={ref}
@@ -137,6 +143,7 @@ export const SaveButton = React.forwardRef<HTMLButtonElement, SaveButtonProps>(
         style={currentStyle}
         onMouseEnter={() => hasUnsavedChanges && setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        onClick={handleClick}
         {...props}
       >
         {content}

@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Card, Button, Spinner, Container, Stack, PageHero, CategoryGrid, IconList, InsufficientTokensDialog } from '@/lib/design-system/components'
 import { ProfileStateCard } from '@/lib/design-system/profile-cards'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
-import { Sparkles, ArrowLeft, ArrowRight, ChevronDown, User, Lightbulb, Wand2 } from 'lucide-react'
+import { Sparkles, ArrowLeft, ArrowRight, ChevronDown, User, Lightbulb, Wand2, RefreshCw } from 'lucide-react'
 import { VISION_CATEGORIES, getVisionCategory, getCategoryStateField, getCategoryStoryField, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
 import { getFilteredQuestionsForCategory } from '@/lib/life-vision/ideal-state-questions'
 
@@ -37,6 +37,10 @@ export default function CategoryPage() {
   
   // Track completion across all categories for the grid
   const [completedCategoryKeys, setCompletedCategoryKeys] = useState<string[]>([])
+  const [isSaving, setIsSaving] = useState(false)
+  const [restoredDraft, setRestoredDraft] = useState(false)
+
+  const DRAFT_STORAGE_KEY = `life-vision-new-draft-${categoryKey}`
 
   const category = getVisionCategory(categoryKey)
   if (!category) {
@@ -57,6 +61,22 @@ export default function CategoryPage() {
   useEffect(() => {
     loadExistingData()
   }, [categoryKey])
+
+  // Persist draft to localStorage (debounced) so refresh or tab recovery doesn't lose content
+  const draftTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => {
+    if (!freeFlowText.trim()) return
+    draftTimeoutRef.current = setTimeout(() => {
+      try {
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem(DRAFT_STORAGE_KEY, freeFlowText)
+        }
+      } catch (_) { /* ignore */ }
+    }, 800)
+    return () => {
+      if (draftTimeoutRef.current) clearTimeout(draftTimeoutRef.current)
+    }
+  }, [freeFlowText, categoryKey])
 
   const loadExistingData = async () => {
     try {
@@ -131,6 +151,16 @@ export default function CategoryPage() {
           setFreeFlowText(categoryState.ideal_state)
         }
       }
+
+      // Restore unsaved draft from localStorage if present (e.g. after refresh or tab recovery)
+      try {
+        const draft = typeof window !== 'undefined' ? window.localStorage.getItem(DRAFT_STORAGE_KEY) : null
+        if (draft && draft.trim().length > 0) {
+          setFreeFlowText(draft)
+          setRestoredDraft(true)
+          // Keep draft in localStorage until they successfully save (cleared in handleSaveAndContinue)
+        }
+      } catch (_) { /* ignore */ }
       
       // Load completion status for all categories for the grid
       const { data: allCategoryStates } = await supabase
@@ -215,6 +245,8 @@ export default function CategoryPage() {
       return
     }
 
+    setIsSaving(true)
+    setError(null)
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Unauthorized')
@@ -237,6 +269,11 @@ export default function CategoryPage() {
 
       if (updateError) throw updateError
 
+      // Clear draft from localStorage after successful save
+      try {
+        if (typeof window !== 'undefined') window.localStorage.removeItem(DRAFT_STORAGE_KEY)
+      } catch (_) { /* ignore */ }
+
       // Navigate to next category or assembly
       if (nextCategory) {
         router.push(`/life-vision/new/category/${nextCategory.key}`)
@@ -245,7 +282,9 @@ export default function CategoryPage() {
       }
     } catch (err) {
       console.error('Error saving ideal state:', err)
-      setError('Failed to save your vision')
+      setError('Failed to save your vision. Try again or refresh and save again.')
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -486,6 +525,15 @@ export default function CategoryPage() {
           </Card>
         )}
 
+        {/* Restored draft notice */}
+        {restoredDraft && (
+          <Card className="bg-primary-500/10 border border-primary-500/30 p-4">
+            <p className="text-sm text-primary-400">
+              Unsaved content was restored. Click Save and Continue to keep it.
+            </p>
+          </Card>
+        )}
+
         {/* Inspiration Questions */}
         {inspirationQuestions.length > 0 && (
           <Card variant="elevated" className="p-6">
@@ -512,28 +560,31 @@ export default function CategoryPage() {
               </span>
             </label>
             
-            {/* Get Me Started Button */}
-            {freeFlowText.trim().length < 50 && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleGetMeStarted}
-                disabled={isGeneratingStarter}
-                className="flex-shrink-0 whitespace-nowrap"
-              >
-                {isGeneratingStarter ? (
-                  <>
-                    <Spinner size="sm" className="mr-2" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Wand2 className="w-4 h-4 mr-2" />
-                    Get Me Started
-                  </>
-                )}
-              </Button>
-            )}
+            {/* VIVA Starter / Regenerate Button */}
+            <Button
+              variant="accent"
+              size="sm"
+              onClick={handleGetMeStarted}
+              disabled={isGeneratingStarter}
+              className="flex-shrink-0 whitespace-nowrap"
+            >
+              {isGeneratingStarter ? (
+                <>
+                  <Spinner size="sm" className="mr-2" />
+                  Generating...
+                </>
+              ) : freeFlowText.trim().length >= 50 || completedCategoryKeys.includes(categoryKey) ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Regenerate
+                </>
+              ) : (
+                <>
+                  <Wand2 className="w-4 h-4 mr-2" />
+                  Get Me Started
+                </>
+              )}
+            </Button>
           </div>
           
           {/* Streaming indicator */}
@@ -559,16 +610,29 @@ export default function CategoryPage() {
         </Card>
 
         {/* Save and Continue */}
-        <Card variant="elevated" className="p-6">
+        <Card variant="elevated" className="p-6" onClick={(e) => e.stopPropagation()}>
           <Button
             variant="primary"
             size="lg"
-            onClick={handleSaveAndContinue}
-            disabled={!freeFlowText.trim()}
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              handleSaveAndContinue()
+            }}
+            disabled={!freeFlowText.trim() || isSaving}
             className="w-full"
           >
-            Save and Continue
-            <ArrowRight className="w-4 h-4 md:w-5 md:h-5 ml-2" />
+            {isSaving ? (
+              <>
+                <Spinner size="sm" className="mr-2" />
+                Saving...
+              </>
+            ) : (
+              <>
+                Save and Continue
+                <ArrowRight className="w-4 h-4 md:w-5 md:h-5 ml-2" />
+              </>
+            )}
           </Button>
         </Card>
       </Stack>

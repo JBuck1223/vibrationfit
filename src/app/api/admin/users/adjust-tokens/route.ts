@@ -20,9 +20,9 @@ export async function POST(req: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    if (adminAccount?.role !== 'super_admin') {
-      console.log('Token adjustment denied - not super_admin:', { userId: user.id, role: adminAccount?.role })
-      return NextResponse.json({ error: 'Super admin access required' }, { status: 403 })
+    if (adminAccount?.role !== 'super_admin' && adminAccount?.role !== 'admin') {
+      console.log('Token adjustment denied - not admin:', { userId: user.id, role: adminAccount?.role })
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
 
     const { userId, delta } = await req.json()

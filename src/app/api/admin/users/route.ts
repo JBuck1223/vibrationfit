@@ -109,10 +109,38 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Merge intensive data into users
+    // Fetch token balances and storage quotas for all users in parallel
+    const userIds = (users || []).map(u => u.id)
+    
+    const tokenBalancePromises = userIds.map(uid =>
+      adminDb.rpc('get_user_token_balance', { p_user_id: uid }).single()
+        .then(({ data }) => ({ uid, balance: data?.total_active || 0 }))
+        .catch(() => ({ uid, balance: 0 }))
+    )
+
+    const storageQuotaPromises = userIds.map(uid =>
+      adminDb.from('user_storage').select('quota_gb').eq('user_id', uid)
+        .then(({ data }) => ({ uid, quota: (data || []).reduce((sum: number, row: any) => sum + (row.quota_gb || 0), 0) }))
+        .catch(() => ({ uid, quota: 0 }))
+    )
+
+    const [tokenResults, storageResults] = await Promise.all([
+      Promise.all(tokenBalancePromises),
+      Promise.all(storageQuotaPromises),
+    ])
+
+    const tokenMap: Record<string, number> = {}
+    for (const t of tokenResults) tokenMap[t.uid] = t.balance
+
+    const storageMap: Record<string, number> = {}
+    for (const s of storageResults) storageMap[s.uid] = s.quota
+
+    // Merge intensive data, token balances, and storage quotas into users
     const enrichedUsers = (users || []).map(u => ({
       ...u,
       is_admin: u.role === 'admin' || u.role === 'super_admin',
+      tokens_remaining: tokenMap[u.id] || 0,
+      storage_quota_gb: storageMap[u.id] || 0,
       intensive_active_status: intensiveMap[u.id]?.active_status || null,
       intensive_active_id: intensiveMap[u.id]?.active_id || null,
       intensive_completed_count: intensiveMap[u.id]?.completed_count || 0,

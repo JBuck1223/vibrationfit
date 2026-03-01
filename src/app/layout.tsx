@@ -4,6 +4,7 @@ import '@/styles/brand.css'
 import { GlobalLayout } from '@/components/GlobalLayout'
 import { AuthProvider } from '@/components/AuthProvider'
 import { TrackingProvider } from '@/components/TrackingProvider'
+import { AppErrorHandling } from '@/components/AppErrorHandling'
 import { ASSETS } from '@/lib/storage/s3-storage-presigned'
 import { Toaster } from 'sonner'
 
@@ -47,9 +48,11 @@ export default function RootLayout({
       >
         <AuthProvider>
           <TrackingProvider>
+          <AppErrorHandling>
           <GlobalLayout>
             {children}
           </GlobalLayout>
+          </AppErrorHandling>
           </TrackingProvider>
           <Toaster 
             position="top-right"

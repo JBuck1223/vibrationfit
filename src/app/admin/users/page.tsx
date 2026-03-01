@@ -85,10 +85,10 @@ function UsersAdminContent() {
     ))
   }
 
-  const updateUserStorage = (userId: string, quota: number) => {
+  const updateUserStorage = (userId: string, addedGb: number) => {
     setUsers(prev => prev.map(user => 
       user.id === userId 
-        ? { ...user, storage_quota_gb: quota }
+        ? { ...user, storage_quota_gb: (user.storage_quota_gb || 0) + addedGb }
         : user
     ))
   }
@@ -451,7 +451,7 @@ function UsersAdminContent() {
                   <div className="flex items-center gap-2 w-full">
                     <Input
                       type="number"
-                      placeholder="GB quota"
+                      placeholder="+ GB to add"
                       className="flex-1 min-w-0"
                       value={adjustStorage[user.id] ?? ''}
                       onChange={(e) => setAdjustStorage(prev => ({ ...prev, [user.id]: parseInt(e.target.value || '0', 10) }))}
@@ -459,20 +459,30 @@ function UsersAdminContent() {
                     <Button
                       variant="outline"
                       size="sm"
+                      disabled={!((adjustStorage[user.id] ?? 0) > 0)}
                       className="whitespace-nowrap flex-shrink-0"
                       onClick={async () => {
                         const quota = adjustStorage[user.id] ?? 0
-                        if (!quota) return
-                        const res = await fetch('/api/admin/users/adjust-storage', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ userId: user.id, storageQuotaGb: quota })
-                        })
-                        if (res.ok) {
-                          updateUserStorage(user.id, quota)
+                        if (!quota || quota <= 0) return
+                        try {
+                          const res = await fetch('/api/admin/users/adjust-storage', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({ userId: user.id, storageQuotaGb: quota })
+                          })
+                          if (res.ok) {
+                            updateUserStorage(user.id, quota)
+                            setAdjustStorage(prev => ({ ...prev, [user.id]: 0 }))
+                          } else {
+                            const errorData = await res.json().catch(() => ({ error: 'Unknown error' }))
+                            alert(`Failed to add storage: ${errorData.error || 'Unknown error'}`)
+                          }
+                        } catch (error: any) {
+                          alert(`Error: ${error.message || 'Failed to add storage'}`)
                         }
                       }}
-                    >Set Storage</Button>
+                    >Add Storage</Button>
                   </div>
                   <Button
                     variant="outline"
@@ -665,7 +675,7 @@ function UsersAdminContent() {
                   <div className="flex items-center gap-2 w-full">
                     <Input
                       type="number"
-                      placeholder="GB quota"
+                      placeholder="+ GB to add"
                       className="flex-1 min-w-0"
                       value={adjustStorage[user.id] ?? ''}
                       onChange={(e) => setAdjustStorage(prev => ({ ...prev, [user.id]: parseInt(e.target.value || '0', 10) }))}
@@ -673,20 +683,30 @@ function UsersAdminContent() {
                     <Button
                       variant="outline"
                       size="sm"
+                      disabled={!((adjustStorage[user.id] ?? 0) > 0)}
                       className="whitespace-nowrap flex-shrink-0"
                       onClick={async () => {
                         const quota = adjustStorage[user.id] ?? 0
-                        if (!quota) return
-                        const res = await fetch('/api/admin/users/adjust-storage', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ userId: user.id, storageQuotaGb: quota })
-                        })
-                        if (res.ok) {
-                          updateUserStorage(user.id, quota)
+                        if (!quota || quota <= 0) return
+                        try {
+                          const res = await fetch('/api/admin/users/adjust-storage', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({ userId: user.id, storageQuotaGb: quota })
+                          })
+                          if (res.ok) {
+                            updateUserStorage(user.id, quota)
+                            setAdjustStorage(prev => ({ ...prev, [user.id]: 0 }))
+                          } else {
+                            const errorData = await res.json().catch(() => ({ error: 'Unknown error' }))
+                            alert(`Failed to add storage: ${errorData.error || 'Unknown error'}`)
+                          }
+                        } catch (error: any) {
+                          alert(`Error: ${error.message || 'Failed to add storage'}`)
                         }
                       }}
-                    >Set Storage</Button>
+                    >Add Storage</Button>
                   </div>
 
                   {/* Enrollment feedback */}
