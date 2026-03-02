@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { AlertCircle, X } from 'lucide-react'
+import { logClientError } from '@/lib/logger/client'
 
 const LOG_PREFIX = '[VibrationFit Global Error]'
 
@@ -25,6 +26,7 @@ export function GlobalErrorCapture() {
       const detail = event.error?.stack ?? event.filename ? `${event.filename}:${event.lineno}` : undefined
       lastGlobalError = { message, stack: event.error?.stack, type: 'error' }
       console.error(LOG_PREFIX, 'Uncaught error:', message, detail || '', event.error)
+      logClientError({ message, stack: event.error?.stack, type: 'error' })
       setBanner({ message, detail, type: 'error' })
       return false
     }
@@ -35,6 +37,7 @@ export function GlobalErrorCapture() {
       const detail = err?.stack
       lastGlobalError = { message, stack: err?.stack, type: 'rejection' }
       console.error(LOG_PREFIX, 'Unhandled rejection:', message, detail || '', err)
+      logClientError({ message, stack: err?.stack, type: 'rejection' })
       setBanner({ message, detail, type: 'rejection' })
     }
 

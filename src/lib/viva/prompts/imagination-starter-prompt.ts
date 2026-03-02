@@ -1,16 +1,16 @@
 /**
  * Imagination Starter Prompt
  * 
- * Generates a draft "Get Me Started" text for the imagination step.
+ * Generates activated, present-tense imagination text for the vision builder.
  * Uses raw profile data (state) and category-specific facts
- * to create a starting point the user can edit and expand.
+ * to create vision text the user can personalize.
  * 
  * KEY PHILOSOPHY:
- * - Use their RAW language (no pre-processed AI content)
- * - Identify challenges from state and flip to positive WITHIN this prompt
- * - Output is meant to be EDITED, not final
- * - Leave room for expansion - don't be "complete"
- * - Natural, conversational voice they'll want to personalize
+ * - Use their RAW details (names, places, activities) — not pre-processed AI content
+ * - Transform all challenges into present-tense declarations
+ * - Output is powerful and activated — no questions, no hedging, no weak endings
+ * - Declarative, certain, embodied — as if this life already exists
+ * - Natural, confident voice grounded in their real specifics
  * 
  * Used by: /api/viva/imagination-starter
  */
@@ -159,57 +159,84 @@ export function buildImaginationStarterPrompt(
   const questionCount = richness === 'minimal' ? 2 : richness === 'moderate' ? 3 : 4
   const selectedQuestions = inspirationQuestions.slice(0, questionCount).join('\n- ')
   
-  return `You are helping someone write their ideal ${categoryLabel} life vision. Generate a DRAFT starting point they will EDIT and EXPAND.
+  return `You generate imagination text for someone's ${categoryLabel} life vision through three phases: CLEANSE, EXPAND, EMBODY.
 
 PERSPECTIVE: ${pronoun}
 CATEGORY: ${categoryLabel}
 EMOTIONAL TARGET: ${emotionalTarget}
 
 ═══════════════════════════════════════════════════════════════
-RAW INPUT FROM THEIR PROFILE (use their words and details)
+RAW INPUT FROM THEIR PROFILE (mine for real details)
 ═══════════════════════════════════════════════════════════════
 
 ${stateText ? `CURRENT STATE (their description of where they are now):
 "${stateText}"
 
-Use their current state to understand what's working and what they want to change.
-Transform challenges into positive vision while preserving what's already good.
+Extract: names, places, activities, relationships, numbers, real specifics.
+Every challenge or gap becomes something they HAVE now.
+Everything already working gets amplified with vivid, embodied language.
 ` : ''}${profileContext ? `GROUNDING FACTS:
 ${profileContext}
 
-` : ''}${selectedQuestions ? `INSPIRATION QUESTIONS (weave themes naturally):
+` : ''}${selectedQuestions ? `INSPIRATION THEMES (weave as confident statements — NEVER as questions):
 - ${selectedQuestions}
 
 ` : ''}═══════════════════════════════════════════════════════════════
-YOUR TASK
+LENGTH MATCH (CRITICAL)
 ═══════════════════════════════════════════════════════════════
 
-LENGTH MATCH (CRITICAL):
 Input richness: ${richness} (~${totalWords} words of input)
 ${lengthGuidance}
 
-Do NOT compress their ideas. If they wrote about multiple topics, address each one.
+Do NOT compress their ideas. If they described multiple topics, address each one.
 Do NOT pad with generic filler if input is brief.
 
-Write a DRAFT imagination text that:
+═══════════════════════════════════════════════════════════════
+PHASE 1: CLEANSE — Strip all low-vibration language
+═══════════════════════════════════════════════════════════════
 
-1. USES THEIR WORDS - borrow phrasing from their state description heavily
-2. FLIPS CHALLENGES TO POSITIVE - identify challenges from their state description and transform to positive
-3. GROUNDS IN FACTS - use their actual details (names, places, numbers)
-4. PRESENT TENSE - everything is happening NOW
-5. LEAVES ROOM - this is a starting point, not a finished vision
+As you compose, ensure ZERO instances of:
 
-VOICE GUIDELINES:
-- Conversational and warm, not formal or "vision-y"
-- Mix short punchy statements with flowing descriptions
-- Include sensory details where natural (what they see, feel, hear)
-- Avoid generic phrases like "I am grateful for..." or "I manifest..."
-- Sound like a friend describing their amazing life, not an affirmation
+- Questions of any kind — no "?", no "what else...", no "how can I...", no "I wonder..."
+- Comparison / before-after — no "I no longer...", "unlike before...", "I used to...", "despite..."
+- Hedging / seeking — no "I'm learning...", "I'm finding...", "I'm starting to...", "sometimes"
+- Future / wanting — no "I will", "I want", "I hope", "someday"
+- Weak closings — no "this is just the beginning", "I can't wait to see", "the possibilities feel endless"
+- Contrast connectors — no "Of course...", "However...", "But...", "Although..."
+- Process framing — no "It's not about X, it's about Y" — just say Y
 
-CRITICAL - THIS IS A DRAFT:
-- Don't try to be "complete" - leave threads they'll want to expand
-- Include a question or two they might want to answer (e.g., "...and [what else brings me joy?]")
-- Make it good enough to excite them, imperfect enough they'll want to add their voice
+═══════════════════════════════════════════════════════════════
+PHASE 2: EXPAND — Make it bigger, more vivid, more alive
+═══════════════════════════════════════════════════════════════
 
-OUTPUT: Just the draft text. No headers, labels, or explanations.`
+Take their real details and INFUSE them with imagination and sensory richness:
+
+- Sounds: the clink of glasses, laughter echoing, the hum of an engine, music low in the background
+- Touch/temperature: sun on skin, cool breeze, the weight of a child in your arms, warm mug in hand
+- Sight: colors, light, landscapes, the look on someone's face
+- Smell/taste: coffee, salt air, simmering food, fresh earth
+
+Add emotional voltage — words that carry charge:
+"electric", "alive", "lit up", "buzzing", "deep", "free", "powerful", "easy", "rich"
+
+Stay grounded in THEIR material. Do not invent details they didn't provide.
+Expand what's there — don't add filler or generic affirmation-speak.
+
+═══════════════════════════════════════════════════════════════
+PHASE 3: EMBODY — Make it land in the bones
+═══════════════════════════════════════════════════════════════
+
+Every sentence must feel like something this person would say while LIVING this life.
+
+- Present tense only. Declarative. Certain.
+- Mix short punchy lines with flowing cinematic paragraphs
+- Gratitude is felt through deep satisfaction, never announced ("I'm so grateful..." → never)
+- End with ONE powerful closing sentence that locks in the FEELING
+  — a deep exhale, certain and settled, not a trailing thought
+
+ENERGY TEST (apply to every sentence):
+"Would someone who already HAS this life say it this way?"
+If not, rewrite until the answer is a full-body YES.
+
+OUTPUT: Just the vision text. No headers, labels, phases, or explanations.`
 }

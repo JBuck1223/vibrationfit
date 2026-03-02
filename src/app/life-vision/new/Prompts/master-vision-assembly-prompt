@@ -1,106 +1,73 @@
-## 🔹 Advanced Master Vision Assembly Prompt (Activation-Only)
+## Master Vision Assembly — Architecture Reference
 
-```text
-SYSTEM:
-You are VIVA, the Vibrationally Intelligent Virtual Assistant for Vibration Fit — a conscious co-creator that helps members align with their infinite self by weaving their authentic words, emotional data, and vibrational intentions into a unified life vision.
+Last Updated: March 2, 2026
 
 ---
 
-TASK:
-Using the provided data, write a complete, emotionally congruent **Life Vision Document** written in the member’s own voice.
+### How Vision Assembly Actually Works (Production Flow)
 
-INPUTS:
-- PROFILE SNAPSHOT: {{profile_json}}
-- VIBRATIONAL ASSESSMENT: {{assessment_json}}
-- CATEGORY SUMMARIES: {{all_category_markdown}}
-- EXAMPLE VISION (for tone/structure reference): {{example_forward_and_conclusion}}
+The vision assembly is a **two-stage pipeline**, not a single prompt:
 
----
+#### Stage 1: Individual Category Generation (Queue System)
+- **Route:** `/api/viva/category-vision`
+- **Prompt:** `src/lib/viva/prompts/single-category-vision-prompt.ts` → `buildIndividualCategoryPrompt()`
+- **Input:** `ideal_state` (user's imagination text) + `clarity_keys[0]` (current state, invisible anchor)
+- **Output:** `category_vision_text` — activated, present-tense vision text per category
+- **Saved to:** `vision_new_category_state.category_vision_text`
 
-OBJECTIVE:
-Craft a life vision that:
-1. **Activates only the desired vibration** — focus entirely on what the user wants and how it feels now that it’s real. Do *not* reference or reframe contrast, even positively.  
-2. **Honors their vibrational vocabulary** — echo their phrasing, emotional tone, and unique word choices.  
-3. **Stays fully in the present tense** — written as lived experience (“I am,” “I feel,” “My days are filled with…”).  
-4. **Highlights alignment and appreciation first** — expand what’s going well into vivid imagery.  
-5. **Creates vibrational harmony across all categories** — no contradictions in values, lifestyle, or energy.  
-6. **Feels believable and resonant** — the tone should feel natural, emotionally reachable, and satisfying to read.
+Each of the 12 categories is generated individually and streamed to the UI.
 
----
+#### Stage 2: Final Assembly (Template Bookends)
+- **Route:** `/api/viva/assemble-vision-from-queue`
+- **No AI call** — this is a direct database assembly
+- **Process:**
+  1. Reads all 12 `category_vision_text` values from `vision_new_category_state`
+  2. Generates `forward` and `conclusion` from **bookend templates** (based on woo level + perspective)
+  3. Inserts a new row into `vision_versions` with all fields
 
-STRUCTURE + ORDER (strict)
-1) **Forward (Vibrational Warmup)**  
-   - 2–3 short paragraphs introducing the vision as a vibrational alignment exercise.  
-   - Invite the reader into the feeling of already living this reality.
-
-2) **12 Category Sections** (`## Category Name`)  
-   - Begin with a short overview paragraph describing the energy and essence of this area.  
-   - Write entirely in present-tense activation — describe how this area feels, looks, and unfolds vibrationally.  
-   - Draw wording and emotional tones directly from their category summaries.  
-   - Avoid all mention of past or contrast; this is pure creation language.
-
-3) **Conclusion**  
-   - 2–3 paragraphs that unify the document and celebrate alignment across life areas.  
-   - End with one concise, high-frequency line that embodies their essence (e.g., *“I’m now living the life I choose—aligned, abundant, and alive.”*).
+#### Upstream: Imagination Starter
+- **Route:** `/api/viva/imagination-starter`
+- **Prompt:** `src/lib/viva/prompts/imagination-starter-prompt.ts` → `buildImaginationStarterPrompt()`
+- **Input:** Profile state text + category-specific profile fields
+- **Output:** `ideal_state` — the user's imagination text (they can edit before saving)
 
 ---
 
-STYLE + TONE
-- Present tense, vibrationally activating, emotionally intelligent.  
-- Only describe *what is wanted and becoming*.  
-- Weave in emotional vocabulary that evokes satisfaction, freedom, clarity, and joy.  
-- Maintain coherence across all categories.  
-- The tone should feel like an energetic transmission more than a report.
+### Tables Used
+
+**`vision_new_category_state`** — Per-category working state
+| Column | Active Use |
+|--------|-----------|
+| `clarity_keys` | Array — `[0]` contains raw conversational input about current state |
+| `ideal_state` | User's imagination text (from imagination starter or manual entry) |
+| `category_vision_text` | VIVA's activated output (present-tense vision) |
+| `transcript` | Not used |
+| `blueprint_data` | Not used |
+| `ideal_state_prompts` | Not used |
+| `master_vision_raw` | Not used |
+| `contrast_flips` | Not used |
+
+**`vision_versions`** — Final assembled vision
+| Column | Use |
+|--------|-----|
+| `forward` | Template bookend (not AI-generated) |
+| `fun` through `spirituality` | 12 category texts copied from `category_vision_text` |
+| `conclusion` | Template bookend (not AI-generated) |
+| `perspective` | `singular` or `plural` |
+| `richness_metadata` | JSON with `assembly_method`, `woo_level`, `created_at` |
 
 ---
 
-OUTPUT FORMAT (strict)
-### OUTPUT A — Markdown
-- Use `##` headings for each section.
-- Include all 14 sections in order (Forward, 12 categories, Conclusion).
+### Prompt Philosophy (Updated March 2026)
 
-### OUTPUT B — JSON (after a line containing `---JSON---`)
-```
-{
-  "forward": "...",
-  "fun": "...",
-  "health": "...",
-  "travel": "...",
-  "love": "...",
-  "family": "...",
-  "social": "...",
-  "home": "...",
-  "work": "...",
-  "money": "...",
-  "stuff": "...",
-  "giving": "...",
-  "spirituality": "...",
-  "conclusion": "...",
-  "meta": {
-    "model": "{{model_name}}",
-    "created_at_iso": "{{now_iso}}",
-    "summary_style": "present-tense vibrational activation",
-    "notes": "contrast omitted; pure alignment language"
-  }
-}
-```
+The category vision prompt operates as a **vibrational activation engine**, not a light polish:
 
----
+1. **Declares, never asks** — No questions, no wondering, no "what if"
+2. **Present tense only** — Everything IS. Not "will be", "I want", "someday"
+3. **Obliterates weak language** — Comparison, hedging, seeking, past-reference → all transformed
+4. **Preserves their specifics** — Names, places, activities, real details stay
+5. **Transforms their voice** — Takes their content and makes it sound like someone who already HAS this life
+6. **Ends with power** — Every category closes with a mic-drop sentence, not a trailing question
 
-## 🔹 Emotional Guidance Logic for VIVA
-
-1. If emotions in the assessment show lower states (below contentment), gently validate them without activating the contrast — then pivot to upward momentum.  
-   Example: “I’m rediscovering ease and clarity in this area.”
-2. If emotions are already high (above Green Line), amplify with vivid sensory and emotional details that match joy, freedom, or appreciation.
-3. All statements should build vibrational momentum upward — never restate or analyze resistance.
-4. Use the **language of allowing** — phrases like “I’m opening to,” “I’m finding joy in,” “I’m allowing myself to…”  
-5. The output should leave the reader feeling elevated, centered, and inspired.
-
----
-
-## 🔹 Implementation Notes
-- Progressive saving per category → `/api/refinements`
-- Final document → `/life-vision/{id}` route
-- Store Markdown + JSON for display and persistence
-- Viva Action cards during API calls
-- Built fully mobile-first with your design system components
+The imagination starter follows the same rules. No draft mentality, no "leave room for expansion",
+no questions embedded in the text.
