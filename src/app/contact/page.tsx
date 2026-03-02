@@ -3,9 +3,11 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button, Card, Input, Textarea, Container, Stack, PageHero } from '@/lib/design-system/components'
+import { formatPhoneDisplay, parsePhoneInput, phoneToDigits } from '@/lib/phone-format'
 import { useTracking } from '@/components/TrackingProvider'
+import { createClient } from '@/lib/supabase/client'
 import { CheckCircle } from 'lucide-react'
 
 export default function ContactPage() {
@@ -20,7 +22,37 @@ export default function ContactPage() {
     message: '',
   })
 
+  // Prefill name, email, phone for logged-in users
+  useEffect(() => {
+    let mounted = true
+    async function fillFromAccount() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user || !mounted) return
+      const { data: account } = await supabase
+        .from('user_accounts')
+        .select('first_name, last_name, email, phone')
+        .eq('id', user.id)
+        .maybeSingle()
+      if (!mounted) return
+      setFormData((prev) => ({
+        ...prev,
+        first_name: account?.first_name ?? prev.first_name,
+        last_name: account?.last_name ?? prev.last_name,
+        email: account?.email ?? user.email ?? prev.email,
+        phone: account?.phone ? formatPhoneDisplay(phoneToDigits(account.phone)) : prev.phone,
+      }))
+    }
+    fillFromAccount()
+    return () => { mounted = false }
+  }, [])
+
   function handleChange(field: string, value: string) {
+    if (field === 'phone') {
+      const digits = parsePhoneInput(value)
+      setFormData((prev) => ({ ...prev, phone: formatPhoneDisplay(digits) }))
+      return
+    }
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
@@ -95,7 +127,7 @@ export default function ContactPage() {
             <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs md:text-sm font-medium mb-2">First Name *</label>
+                  <label className="block text-sm font-medium mb-2">First Name *</label>
                   <Input
                     value={formData.first_name}
                     onChange={(e) => handleChange('first_name', e.target.value)}
@@ -147,16 +179,19 @@ export default function ContactPage() {
                 />
               </div>
 
-              <button
+              <Button
                 type="submit"
+                variant="primary"
+                size="md"
+                fullWidth
                 disabled={loading}
-                className="w-full bg-primary-500 hover:bg-primary-600 text-white font-semibold py-3.5 px-7 rounded-full shadow-[0_4px_14px_rgba(0,0,0,0.25)] hover:shadow-[0_6px_20px_rgba(25,157,103,0.4)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full"
               >
                 {loading ? 'Sending...' : 'Send Message'}
-              </button>
+              </Button>
 
               <p className="text-xs md:text-sm text-neutral-500 text-center">
-                We'll respond within 24 hours. By submitting, you agree to receive emails from Vibration Fit.
+                We typically respond within 24 hours. By submitting, you agree to receive emails from Vibration Fit.
               </p>
             </form>
           </Card>
