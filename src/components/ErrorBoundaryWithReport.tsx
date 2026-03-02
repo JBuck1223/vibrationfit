@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { AlertCircle, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react'
+import { logClientError } from '@/lib/logger/client'
 
 const LOG_PREFIX = '[VibrationFit Error Boundary]'
 
@@ -37,6 +38,12 @@ export class ErrorBoundaryWithReport extends React.Component<ErrorBoundaryWithRe
     if (errorInfo.componentStack) {
       console.error(LOG_PREFIX, 'Component stack:', errorInfo.componentStack)
     }
+    logClientError({
+      message: error.message,
+      stack: error.stack,
+      type: 'error',
+      label: this.props.label,
+    })
   }
 
   handleRetry = () => {

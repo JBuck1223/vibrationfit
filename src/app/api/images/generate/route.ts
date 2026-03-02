@@ -2,6 +2,9 @@
 // API endpoint for VIVA image generation
 
 import { NextRequest, NextResponse } from 'next/server'
+
+// Image generation (fal/DALL-E) often takes 20-60s; avoid Vercel killing the request
+export const maxDuration = 120
 import { createClient } from '@/lib/supabase/server'
 import { generateImage, generateVisionBoardImage, generateJournalImage, editImage } from '@/lib/services/imageService'
 import { validateTokenBalance, getDefaultTokenEstimate } from '@/lib/tokens/tracking'

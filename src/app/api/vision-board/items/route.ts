@@ -3,6 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 import { generateImage } from '@/lib/services/imageService'
 import { LIFE_CATEGORY_KEYS } from '@/lib/design-system/vision-categories'
 
+// Image generation (fal/DALL-E) often takes 20-60s; avoid Vercel killing the request
+export const maxDuration = 120
+
 /**
  * GET /api/vision-board/items
  * Fetch all vision board items for the authenticated user

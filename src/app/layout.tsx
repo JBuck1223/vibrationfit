@@ -14,7 +14,13 @@ export const metadata: Metadata = {
     default: 'Vibration Fit',
   },
   description: "The SaaS platform for conscious creation. Build your vision, align daily, and actualize your dreams.",
-  // Let Next.js automatically use the favicon.ico from the app directory
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: '16x16 32x32 48x48' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
+    apple: '/apple-icon.png',
+  },
   openGraph: {
     title: "Vibration Fit - Above the Green Line",
     description: "The SaaS platform for conscious creation. Build your vision, align daily, and actualize your dreams.",
