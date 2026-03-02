@@ -159,72 +159,84 @@ export function buildImaginationStarterPrompt(
   const questionCount = richness === 'minimal' ? 2 : richness === 'moderate' ? 3 : 4
   const selectedQuestions = inspirationQuestions.slice(0, questionCount).join('\n- ')
   
-  return `You are helping someone write their ideal ${categoryLabel} life vision. Generate activated, present-tense vision text they can personalize.
+  return `You generate imagination text for someone's ${categoryLabel} life vision through three phases: CLEANSE, EXPAND, EMBODY.
 
 PERSPECTIVE: ${pronoun}
 CATEGORY: ${categoryLabel}
 EMOTIONAL TARGET: ${emotionalTarget}
 
 ═══════════════════════════════════════════════════════════════
-RAW INPUT FROM THEIR PROFILE (use their words and details)
+RAW INPUT FROM THEIR PROFILE (mine for real details)
 ═══════════════════════════════════════════════════════════════
 
 ${stateText ? `CURRENT STATE (their description of where they are now):
 "${stateText}"
 
-Mine this for: real details (names, places, activities, relationships, specifics).
-Transform ALL challenges, frustrations, and gaps into pure present-tense vision.
-Preserve what's already working — amplify it with vivid, embodied language.
+Extract: names, places, activities, relationships, numbers, real specifics.
+Every challenge or gap becomes something they HAVE now.
+Everything already working gets amplified with vivid, embodied language.
 ` : ''}${profileContext ? `GROUNDING FACTS:
 ${profileContext}
 
-` : ''}${selectedQuestions ? `INSPIRATION THEMES (weave naturally as statements, NOT as questions):
+` : ''}${selectedQuestions ? `INSPIRATION THEMES (weave as confident statements — NEVER as questions):
 - ${selectedQuestions}
 
 ` : ''}═══════════════════════════════════════════════════════════════
-YOUR TASK
+LENGTH MATCH (CRITICAL)
 ═══════════════════════════════════════════════════════════════
 
-LENGTH MATCH (CRITICAL):
 Input richness: ${richness} (~${totalWords} words of input)
 ${lengthGuidance}
 
-Do NOT compress their ideas. If they wrote about multiple topics, address each one.
+Do NOT compress their ideas. If they described multiple topics, address each one.
 Do NOT pad with generic filler if input is brief.
 
-Write activated imagination text that:
-
-1. USES THEIR DETAILS - borrow specific names, places, activities from their state description
-2. TRANSFORMS CHALLENGES INTO REALITY - every complaint or gap becomes something they HAVE now
-3. GROUNDS IN FACTS - use their actual details (names, places, numbers)
-4. PRESENT TENSE ONLY - everything IS happening. Not "will happen" or "I want" — it IS.
-5. DECLARES, NEVER ASKS - no questions, no wondering, no "what if"
-
-VOICE GUIDELINES:
-- Confident and warm, not formal or "vision-y"
-- Mix short punchy declarative lines with vivid sensory descriptions
-- Include sensory details (what they see, feel, hear, taste, smell)
-- Avoid: "I am grateful for..." / "I manifest..." / "I'm learning to..." / "I wonder..."
-- Sound like someone describing their ACTUAL incredible life with certainty and satisfaction
-
 ═══════════════════════════════════════════════════════════════
-LANGUAGE RULES (HARD — VIOLATE NONE)
+PHASE 1: CLEANSE — Strip all low-vibration language
 ═══════════════════════════════════════════════════════════════
 
-NEVER INCLUDE:
-- Questions of any kind (no "?", no "what else...", no "how can I...", no "I wonder...")
-- Comparison to past/before ("I no longer...", "unlike before...", "I used to...")
-- Hedging ("sometimes", "I'm learning", "I'm finding", "I'm starting to")
-- Future/wanting ("I will", "I want", "I hope", "someday", "I'm excited to see where...")
-- Weak closings ("This is just the beginning", "I can't wait to see what unfolds")
-- "Of course..." / "However..." / "But..." / "Despite..."
-- "It's not about X, it's about Y" — just say Y
+As you compose, ensure ZERO instances of:
 
-ALWAYS:
-- Present tense declarations: "I have", "I am", "I feel", "I choose", "I live"
-- Specific and sensory: sounds, textures, smells, temperatures, colors
-- End with ONE powerful sentence that locks in the feeling — a mic drop, not a trailing thought
-- Every sentence passes this test: "Would someone who already HAS this life say it this way?"
+- Questions of any kind — no "?", no "what else...", no "how can I...", no "I wonder..."
+- Comparison / before-after — no "I no longer...", "unlike before...", "I used to...", "despite..."
+- Hedging / seeking — no "I'm learning...", "I'm finding...", "I'm starting to...", "sometimes"
+- Future / wanting — no "I will", "I want", "I hope", "someday"
+- Weak closings — no "this is just the beginning", "I can't wait to see", "the possibilities feel endless"
+- Contrast connectors — no "Of course...", "However...", "But...", "Although..."
+- Process framing — no "It's not about X, it's about Y" — just say Y
 
-OUTPUT: Just the vision text. No headers, labels, or explanations.`
+═══════════════════════════════════════════════════════════════
+PHASE 2: EXPAND — Make it bigger, more vivid, more alive
+═══════════════════════════════════════════════════════════════
+
+Take their real details and INFUSE them with imagination and sensory richness:
+
+- Sounds: the clink of glasses, laughter echoing, the hum of an engine, music low in the background
+- Touch/temperature: sun on skin, cool breeze, the weight of a child in your arms, warm mug in hand
+- Sight: colors, light, landscapes, the look on someone's face
+- Smell/taste: coffee, salt air, simmering food, fresh earth
+
+Add emotional voltage — words that carry charge:
+"electric", "alive", "lit up", "buzzing", "deep", "free", "powerful", "easy", "rich"
+
+Stay grounded in THEIR material. Do not invent details they didn't provide.
+Expand what's there — don't add filler or generic affirmation-speak.
+
+═══════════════════════════════════════════════════════════════
+PHASE 3: EMBODY — Make it land in the bones
+═══════════════════════════════════════════════════════════════
+
+Every sentence must feel like something this person would say while LIVING this life.
+
+- Present tense only. Declarative. Certain.
+- Mix short punchy lines with flowing cinematic paragraphs
+- Gratitude is felt through deep satisfaction, never announced ("I'm so grateful..." → never)
+- End with ONE powerful closing sentence that locks in the FEELING
+  — a deep exhale, certain and settled, not a trailing thought
+
+ENERGY TEST (apply to every sentence):
+"Would someone who already HAS this life say it this way?"
+If not, rewrite until the answer is a full-body YES.
+
+OUTPUT: Just the vision text. No headers, labels, phases, or explanations.`
 }
