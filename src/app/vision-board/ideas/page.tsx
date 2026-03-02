@@ -415,7 +415,7 @@ export default function VisionBoardIdeasPage() {
                       <div className="flex items-start gap-3">
                         {wasAdded ? (
                           <div className="w-6 h-6 rounded-md border-2 border-primary-500 bg-primary-500 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <Check className="w-4 h-4 text-white" />
+                            <Check className="w-4 h-4 text-black" />
                           </div>
                         ) : (
                           <div className={`

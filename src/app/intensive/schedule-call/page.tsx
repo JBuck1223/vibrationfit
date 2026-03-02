@@ -19,6 +19,7 @@ import {
   Stack,
   PageHero
 } from '@/lib/design-system/components'
+import { formatPhoneDisplay, parsePhoneInput, phoneToE164, phoneToDigits } from '@/lib/phone-format'
 
 const CALIBRATION_CALL_VIDEO =
   'https://media.vibrationfit.com/site-assets/video/intensive/12-book-a-call-1080p.mp4'
@@ -82,19 +83,10 @@ export default function ScheduleCallPage() {
     timezone: 'America/New_York'
   })
 
-  // Format phone number as (XXX) XXX-XXXX
-  const formatPhoneNumber = (value: string): string => {
-    if (!value) return ''
-    const cleaned = value.replace(/\D/g, '')
-    const limited = cleaned.slice(0, 10)
-    
-    if (limited.length <= 3) {
-      return limited
-    } else if (limited.length <= 6) {
-      return `(${limited.slice(0, 3)}) ${limited.slice(3)}`
-    } else {
-      return `(${limited.slice(0, 3)}) ${limited.slice(3, 6)}-${limited.slice(6)}`
-    }
+  // Phone: same formatting as personal information (step 1) - country code + national format via shared lib
+  const handlePhoneChange = (value: string) => {
+    const digits = parsePhoneInput(value)
+    setContactInfo(prev => ({ ...prev, phone: formatPhoneDisplay(digits) }))
   }
   
   // Completion states
@@ -157,7 +149,7 @@ export default function ScheduleCallPage() {
       setContactInfo(prev => ({
         ...prev,
         email: accountData?.email || user.email || '',
-        phone: formatPhoneNumber(rawPhone)
+        phone: formatPhoneDisplay(phoneToDigits(rawPhone))
       }))
 
       await loadAvailableStaff()
@@ -311,8 +303,9 @@ export default function ScheduleCallPage() {
   }
 
   const handleSchedule = async () => {
-    if (!selectedDate || !selectedTime || !contactInfo.email || !contactInfo.phone) {
-      alert('Please fill in all fields')
+    const phoneDigits = phoneToDigits(contactInfo.phone)
+    if (!selectedDate || !selectedTime || !contactInfo.email || !contactInfo.phone || phoneDigits.length < 10) {
+      alert('Please fill in all fields including a valid phone number')
       return
     }
 
@@ -400,7 +393,7 @@ export default function ScheduleCallPage() {
           meeting_type: MEETING_TYPE,
           video_session_id: videoSessionId,
           contact_email: contactInfo.email,
-          contact_phone: contactInfo.phone,
+          contact_phone: phoneToE164(contactInfo.phone),
           status: 'confirmed'
         })
         .select()
@@ -680,9 +673,9 @@ export default function ScheduleCallPage() {
                   <label className="block text-sm font-medium mb-2">Phone Number</label>
                   <Input
                     type="tel"
-                    placeholder="(555) 123-4567"
+                    placeholder="+1 (555) 123-4567"
                     value={contactInfo.phone}
-                    onChange={(e) => setContactInfo(prev => ({ ...prev, phone: formatPhoneNumber(e.target.value) }))}
+                    onChange={(e) => handlePhoneChange(e.target.value)}
                   />
                 </div>
               </div>
@@ -692,7 +685,7 @@ export default function ScheduleCallPage() {
                 variant="primary"
                 size="lg"
                 onClick={handleSchedule}
-                disabled={!selectedDate || !selectedTime || !contactInfo.email || !contactInfo.phone || saving}
+                disabled={!selectedDate || !selectedTime || !contactInfo.email || !contactInfo.phone || phoneToDigits(contactInfo.phone).length < 10 || saving}
                 className="w-full"
               >
                 {saving ? (

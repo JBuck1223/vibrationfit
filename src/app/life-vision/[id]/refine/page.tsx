@@ -1542,7 +1542,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
         <PageHero
           eyebrow={draftVision?.household_id ? "THE LIFE WE CHOOSE" : "THE LIFE I CHOOSE"}
           title={draftVision?.household_id ? "Refine Our Life Vision" : "Refine Life Vision"}
-          subtitle="Select a category and let VIVA help you refine your vision through intelligent conversation"
+          subtitle="Select a category and let VIVA help you refine your vision."
         >
           {/* Version Info & Status Badges */}
           {draftVision && (

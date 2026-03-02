@@ -9,6 +9,7 @@ import {
   Badge,
   StatusBadge,
   Spinner,
+  SaveButton,
   AutoResizeTextarea,
   WarningConfirmationDialog,
   Icon,
@@ -18,16 +19,13 @@ import {
 } from '@/lib/design-system/components'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import {
-  Save,
-  CheckCircle,
   Circle,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
   Check,
-  AlertCircle,
-  Loader2
+  AlertCircle
 } from 'lucide-react'
 
 interface VisionData {
@@ -62,6 +60,7 @@ export default function ManualLifeVisionPage() {
   const [error, setError] = useState<string | null>(null)
   const [activeSection, setActiveSection] = useState('forward')
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [showCommitDialog, setShowCommitDialog] = useState(false)
   const [showDraftDialog, setShowDraftDialog] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
@@ -220,6 +219,7 @@ export default function ManualLifeVisionPage() {
 
   // Handle field change
   const handleFieldChange = (field: keyof VisionData, value: string) => {
+    setHasUnsavedChanges(true)
     setVisionData(prev => ({
       ...prev,
       [field]: value
@@ -314,6 +314,8 @@ export default function ManualLifeVisionPage() {
 
       setLastSaved(new Date())
       setSaveStatus('saved')
+      setHasUnsavedChanges(false)
+      setError(null)
 
       // Clear save status after 2 seconds
       setTimeout(() => {
@@ -432,25 +434,13 @@ export default function ManualLifeVisionPage() {
         {/* Save Status */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
-            {saveStatus === 'saving' && (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
-                <span className="text-sm text-primary-500">Saving...</span>
-              </>
-            )}
-            {saveStatus === 'saved' && (
-              <>
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span className="text-sm text-green-500">Saved</span>
-              </>
-            )}
-            {saveStatus === 'error' && (
+            {saveStatus === 'error' && error && (
               <>
                 <AlertCircle className="w-4 h-4 text-red-500" />
                 <span className="text-sm text-red-500">Save failed</span>
               </>
             )}
-            {lastSaved && saveStatus === 'idle' && (
+            {lastSaved && saveStatus === 'idle' && !hasUnsavedChanges && (
               <span className="text-sm text-neutral-500">
                 Last saved: {lastSaved.toLocaleTimeString()}
               </span>
@@ -598,17 +588,14 @@ export default function ManualLifeVisionPage() {
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 mt-6">
-            <Button
-              variant="primary"
-              size="md"
+            <SaveButton
+              saveLabel="Save Draft"
+              hasUnsavedChanges={hasUnsavedChanges}
+              isSaving={saving}
+              saveError={saveStatus === 'error' ? error : null}
               onClick={handleSaveDraft}
-              loading={saving}
-              disabled={saving}
               className="flex-1 sm:flex-initial"
-            >
-              <Save className="w-4 h-4 mr-2" />
-              Save Draft
-            </Button>
+            />
             {visionData.id && (
               <Button
                 variant="secondary"

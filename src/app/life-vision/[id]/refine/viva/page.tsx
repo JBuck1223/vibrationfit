@@ -34,6 +34,7 @@ import {
   Button, 
   Badge, 
   Spinner,
+  SaveButton,
   Textarea,
   AutoResizeTextarea,
   Icon,
@@ -1491,7 +1492,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
         <PageHero
           eyebrow={draftVision?.household_id ? "THE LIFE WE CHOOSE" : "THE LIFE I CHOOSE"}
           title="Refine Life Vision"
-          subtitle="Select a category and let VIVA help you refine your vision through intelligent conversation"
+          subtitle="Select a category and let VIVA help you refine your vision."
         >
           {/* Version Info & Status Badges */}
           {draftVision && (
@@ -2125,20 +2126,20 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                 
                 {/* Centered Save Button */}
                 <div className="flex justify-center mt-4 md:mt-5 lg:mt-6">
-                  <Button
+                  <SaveButton
+                    saveLabel="Save Refinement"
+                    hasUnsavedChanges={
+                      !!(
+                        selectedCategory &&
+                        draftVision &&
+                        currentRefinement.trim() !==
+                          ((draftVision[selectedCategory as keyof VisionData] as string) || '').trim()
+                      )
+                    }
+                    isSaving={isDraftSaving}
                     onClick={saveDraft}
-                    disabled={isDraftSaving}
-                    variant="accent"
-                    size="sm"
-                    className="flex items-center gap-2"
-                  >
-                    {isDraftSaving ? (
-                      <Spinner variant="secondary" size="sm" />
-                    ) : (
-                      <Save className="w-4 h-4" />
-                    )}
-                    Save Refinement
-                  </Button>
+                    disabled={!selectedCategory || !draftVision || !currentRefinement.trim()}
+                  />
                 </div>
               </Card>
             </div>

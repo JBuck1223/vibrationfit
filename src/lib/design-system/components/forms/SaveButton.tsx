@@ -26,6 +26,8 @@ export const SaveButton = React.forwardRef<HTMLButtonElement, SaveButtonProps>(
     const lightGreenBg = `rgba(57, 255, 20, 0.15)`
     const lightGreenBorder = `rgba(57, 255, 20, 0.4)`
     const transparent = 'transparent'
+    const neutral500 = tokens.colors.neutral[500]
+    const neutral700 = tokens.colors.neutral[700]
 
     const [justSaved, setJustSaved] = React.useState(false)
     const [isHovered, setIsHovered] = React.useState(false)
@@ -50,12 +52,14 @@ export const SaveButton = React.forwardRef<HTMLButtonElement, SaveButtonProps>(
       className
     )
     
+    // Grayed-out "Saved" state when idle (no unsaved changes)
     const savedStyle: React.CSSProperties = {
-      backgroundColor: lightGreenBg,
-      color: primaryGreen,
-      borderColor: lightGreenBorder,
+      backgroundColor: `${neutral700}40`,
+      color: neutral500,
+      borderColor: `${neutral500}60`,
       borderRadius: tokens.borderRadius.full,
-      transition: `all ${tokens.durations[300]} ${tokens.easings['in-out']}`
+      transition: `all ${tokens.durations[300]} ${tokens.easings['in-out']}`,
+      cursor: 'default'
     }
 
     const justSavedStyle: React.CSSProperties = {
@@ -65,6 +69,15 @@ export const SaveButton = React.forwardRef<HTMLButtonElement, SaveButtonProps>(
       borderRadius: tokens.borderRadius.full,
       transition: `all ${tokens.durations[300]} ${tokens.easings['in-out']}`,
       boxShadow: `0 0 12px rgba(57, 255, 20, 0.3)`
+    }
+    
+    // Hover state when there are unsaved changes (light green ghost)
+    const saveHoverStyle: React.CSSProperties = {
+      backgroundColor: lightGreenBg,
+      color: primaryGreen,
+      borderColor: lightGreenBorder,
+      borderRadius: tokens.borderRadius.full,
+      transition: `all ${tokens.durations[300]} ${tokens.easings['in-out']}`
     }
     
     const saveStyle: React.CSSProperties = {
@@ -119,7 +132,7 @@ export const SaveButton = React.forwardRef<HTMLButtonElement, SaveButtonProps>(
         </>
       )
     } else if (hasUnsavedChanges) {
-      currentStyle = isHovered ? savedStyle : saveStyle
+      currentStyle = isHovered ? saveHoverStyle : saveStyle
       content = (
         <>
           <Save className="w-4 h-4" />
@@ -146,7 +159,7 @@ export const SaveButton = React.forwardRef<HTMLButtonElement, SaveButtonProps>(
       <button
         ref={ref}
         type="button"
-        disabled={disabled || isSaving}
+        disabled={disabled || isSaving || !hasUnsavedChanges}
         className={baseClasses}
         style={currentStyle}
         onMouseEnter={() => hasUnsavedChanges && setIsHovered(true)}
