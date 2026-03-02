@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { cn } from '../shared-utils'
 
 interface SelectOption {
@@ -23,16 +24,49 @@ interface SelectProps {
 export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
   ({ label, options, placeholder = 'Select...', value, onChange, error, helperText, disabled = false, className = '' }, ref) => {
     const [isOpen, setIsOpen] = useState(false)
+    const [dropdownRect, setDropdownRect] = useState<{ top: number; left: number; width: number } | null>(null)
     const containerRef = useRef<HTMLDivElement>(null)
+    const triggerRef = useRef<HTMLDivElement>(null)
+    const dropdownRef = useRef<HTMLDivElement>(null)
 
     const selectedOption = options.find(opt => opt.value === value)
     const displayValue = selectedOption?.label || placeholder
 
+    const updateDropdownRect = () => {
+      if (triggerRef.current) {
+        const rect = triggerRef.current.getBoundingClientRect()
+        setDropdownRect({
+          top: rect.bottom + 4,
+          left: rect.left,
+          width: rect.width,
+        })
+      }
+    }
+
+    useLayoutEffect(() => {
+      if (isOpen && !disabled) {
+        updateDropdownRect()
+      } else {
+        setDropdownRect(null)
+      }
+    }, [isOpen, disabled])
+
+    useEffect(() => {
+      if (!isOpen) return
+      const onScrollOrResize = () => updateDropdownRect()
+      window.addEventListener('scroll', onScrollOrResize, true)
+      window.addEventListener('resize', onScrollOrResize)
+      return () => {
+        window.removeEventListener('scroll', onScrollOrResize, true)
+        window.removeEventListener('resize', onScrollOrResize)
+      }
+    }, [isOpen])
+
     useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
-        if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-          setIsOpen(false)
-        }
+        const target = event.target as Node
+        if (containerRef.current?.contains(target) || dropdownRef.current?.contains(target)) return
+        setIsOpen(false)
       }
       
       if (isOpen) {
@@ -57,13 +91,13 @@ export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
           </label>
         )}
         
-        <div className="relative">
+        <div className="relative" ref={triggerRef}>
           <button
             type="button"
             onClick={() => !disabled && setIsOpen(!isOpen)}
             disabled={disabled}
             className={cn(
-              'w-full pl-6 pr-12 py-3 rounded-xl border-2 hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left',
+              'w-full pl-4 pr-12 py-3 rounded-xl border-2 hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left',
               'bg-[#404040]',
               disabled && 'opacity-50 cursor-not-allowed',
               !selectedOption && 'text-[#9CA3AF]',
@@ -83,33 +117,45 @@ export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
           </div>
         </div>
 
-        {isOpen && !disabled && (
+        {isOpen && !disabled && typeof document !== 'undefined' && createPortal(
           <>
-            <div 
-              className="fixed inset-0 z-40" 
+            <div
+              className="fixed inset-0 z-[60]"
               onClick={() => setIsOpen(false)}
+              aria-hidden
             />
-            <div className="absolute z-50 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
-              {options.map((option) => {
-                const isSelected = option.value === value
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => handleSelect(option.value)}
-                    className={cn(
-                      'w-full px-6 py-2 text-left transition-colors',
-                      isSelected
-                        ? 'bg-primary-500/20 text-primary-500 font-semibold'
-                        : 'text-white hover:bg-[#333]'
-                    )}
-                  >
-                    {option.label}
-                  </button>
-                )
-              })}
-            </div>
-          </>
+            {dropdownRect && (
+              <div
+                ref={dropdownRef}
+                className="fixed z-[60] py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain"
+                style={{
+                  top: dropdownRect.top,
+                  left: dropdownRect.left,
+                  width: dropdownRect.width,
+                }}
+              >
+                {options.map((option) => {
+                  const isSelected = option.value === value
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => handleSelect(option.value)}
+                      className={cn(
+                        'w-full px-4 py-2 text-left transition-colors',
+                        isSelected
+                          ? 'bg-primary-500/20 text-primary-500 font-semibold'
+                          : 'text-white hover:bg-[#333]'
+                      )}
+                    >
+                      {option.label}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </>,
+          document.body
         )}
 
         {error && (

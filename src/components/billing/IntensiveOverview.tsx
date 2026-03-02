@@ -1,6 +1,7 @@
 'use client'
 
 import { Card, Badge, Button } from '@/lib/design-system/components'
+import Link from 'next/link'
 import { Zap, CheckCircle, Clock, Calendar, Mail } from 'lucide-react'
 import { formatPrice } from '@/lib/billing/config'
 
@@ -66,10 +67,10 @@ export default function IntensiveOverview({ intensive }: Props) {
 
   return (
     <Card className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Zap className="w-5 h-5 text-[#39FF14]" />
-          <h3 className="text-lg font-bold text-white">{intensive.productName}</h3>
+      <div className="flex items-start sm:items-center justify-between gap-4 mb-6">
+        <div className="flex items-start gap-3 min-w-0">
+          <Zap className="w-5 h-5 text-[#39FF14] flex-shrink-0 mt-0.5" />
+          <h3 className="text-lg font-bold text-white leading-tight">{intensive.productName}</h3>
         </div>
         {getStatusBadge(intensive.completionStatus)}
       </div>
@@ -150,11 +151,13 @@ export default function IntensiveOverview({ intensive }: Props) {
 
       <Button
         variant="ghost"
-        className="w-full text-neutral-400 hover:text-white"
-        onClick={() => window.location.href = 'mailto:support@vibrationfit.com?subject=Intensive%20Billing%20Inquiry'}
+        fullWidth
+        asChild
       >
-        <Mail className="w-4 h-4 mr-2" />
-        Contact Support
+        <Link href="/support/tickets" className="inline-flex items-center justify-center gap-2">
+          <Mail className="w-4 h-4" />
+          Contact Support
+        </Link>
       </Button>
     </Card>
   )

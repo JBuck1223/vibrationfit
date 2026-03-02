@@ -335,15 +335,16 @@ export default function VibeTribeNewPage() {
                     {lifeCategories.map((category) => {
                       const isSelected = selectedCategories.includes(category.key)
                       return (
-                        <CategoryCard 
-                          key={category.key} 
-                          category={category} 
-                          selected={isSelected} 
+                        <CategoryCard
+                          key={category.key}
+                          category={category}
+                          selected={isSelected}
                           onClick={() => handleCategoryToggle(category.key)}
                           variant="outlined"
                           selectionStyle="border"
                           iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
                           selectedIconColor="#39FF14"
+                          allowLabelWrap={category.key === 'spirituality'}
                           className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.5)]' : '!bg-transparent !border-[#333]'}
                         />
                       )

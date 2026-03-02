@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { sendEmail } from '@/lib/email/aws-ses'
 import { generateSessionInvitationEmail } from '@/lib/email/templates'
+import { formatDateInTimeZone, DEFAULT_DISPLAY_TIMEZONE } from '@/lib/format/timezone'
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -41,6 +42,17 @@ export async function POST(
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
 
+    // Resolve timezone for display: staff's timezone if session has staff_id, else default
+    let timeZone = DEFAULT_DISPLAY_TIMEZONE
+    if (session.staff_id) {
+      const { data: staff } = await supabase
+        .from('staff')
+        .select('timezone')
+        .eq('id', session.staff_id)
+        .single()
+      if (staff?.timezone) timeZone = staff.timezone
+    }
+
     // Check if user is the host
     if (session.host_user_id !== user.id) {
       return NextResponse.json({ error: 'Only the host can resend invitations' }, { status: 403 })
@@ -60,6 +72,8 @@ export async function POST(
     const scheduledAt = new Date(session.scheduled_at)
     const joinLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'}/session/${session.id}?email=${encodeURIComponent(participant.email)}`
 
+    const { date: scheduledDate, time: scheduledTime } = formatDateInTimeZone(scheduledAt, timeZone)
+
     // Generate email
     const emailData = await generateSessionInvitationEmail({
       participantName: participant.name || participant.email,
@@ -67,17 +81,8 @@ export async function POST(
       hostName,
       sessionTitle: session.title,
       sessionDescription: session.description,
-      scheduledDate: scheduledAt.toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      }),
-      scheduledTime: scheduledAt.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZoneName: 'short',
-      }),
+      scheduledDate,
+      scheduledTime,
       durationMinutes: session.scheduled_duration_minutes,
       joinLink,
     })
@@ -134,6 +139,17 @@ export async function GET(
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
 
+    // Resolve timezone for display: staff's timezone if session has staff_id, else default
+    let timeZone = DEFAULT_DISPLAY_TIMEZONE
+    if (session.staff_id) {
+      const { data: staff } = await supabase
+        .from('staff')
+        .select('timezone')
+        .eq('id', session.staff_id)
+        .single()
+      if (staff?.timezone) timeZone = staff.timezone
+    }
+
     // Check if user is the host
     if (session.host_user_id !== user.id) {
       return NextResponse.json({ error: 'Only the host can view invitations' }, { status: 403 })
@@ -153,6 +169,8 @@ export async function GET(
     const scheduledAt = new Date(session.scheduled_at)
     const joinLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'}/session/${session.id}?email=${encodeURIComponent(participant.email)}`
 
+    const { date: scheduledDate, time: scheduledTime } = formatDateInTimeZone(scheduledAt, timeZone)
+
     // Generate email preview
     const emailData = await generateSessionInvitationEmail({
       participantName: participant.name || participant.email,
@@ -160,17 +178,8 @@ export async function GET(
       hostName,
       sessionTitle: session.title,
       sessionDescription: session.description,
-      scheduledDate: scheduledAt.toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      }),
-      scheduledTime: scheduledAt.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZoneName: 'short',
-      }),
+      scheduledDate,
+      scheduledTime,
       durationMinutes: session.scheduled_duration_minutes,
       joinLink,
     })

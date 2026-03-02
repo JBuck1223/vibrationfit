@@ -11,6 +11,7 @@ import { createClient as createServerClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 import { triggerEvent } from '@/lib/messaging/events'
+import { getPaymentPlanLabel } from '@/lib/intensive/utils'
 
 type OrderInsertParams = {
   userId: string
@@ -924,6 +925,7 @@ export async function POST(request: NextRequest) {
             name: session.customer_details?.name || customerEmail?.split('@')[0] || '',
             firstName: session.customer_details?.name?.split(' ')[0] || customerEmail?.split('@')[0] || '',
             paymentPlan,
+            paymentPlanLabel: getPaymentPlanLabel(paymentPlan),
           }).catch(err => console.error('triggerEvent intensive.purchased error:', err))
         }
         
@@ -1351,6 +1353,7 @@ export async function POST(request: NextRequest) {
             name: session.customer_details?.name || customerEmail?.split('@')[0] || '',
             firstName: session.customer_details?.name?.split(' ')[0] || customerEmail?.split('@')[0] || '',
             paymentPlan: intensivePaymentPlan,
+            paymentPlanLabel: getPaymentPlanLabel(intensivePaymentPlan),
           }).catch(err => console.error('triggerEvent intensive.purchased error:', err))
         }
         
@@ -2054,6 +2057,7 @@ export async function POST(request: NextRequest) {
             orderId: order.id,
             intensiveId: intensiveOrderItem.id,
             paymentPlan: plan,
+            paymentPlanLabel: getPaymentPlanLabel(plan),
           }).catch(() => {})
         }
         break

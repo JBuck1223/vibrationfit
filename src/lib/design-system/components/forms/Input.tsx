@@ -7,10 +7,13 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string
   error?: string
   helperText?: string
+  /** Shown at the start of the input when the field has a value (e.g. "$" for currency) */
+  prefix?: string
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, helperText, className = '', ...props }, ref) => {
+  ({ label, error, helperText, prefix, className = '', ...props }, ref) => {
+    const showPrefix = prefix && props.value != null && String(props.value).trim() !== ''
     return (
       <div className="space-y-2 w-full">
         {label && (
@@ -18,18 +21,26 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             {label}
           </label>
         )}
-        <input
-          ref={ref}
-          className={cn(
-            'w-full px-4 py-3 text-base bg-[#404040] border-2 rounded-xl text-white placeholder-[#9CA3AF]',
-            'focus:outline-none transition-all duration-200',
-            error 
-              ? 'border-[#FF0040] focus:border-[#FF0040]' 
-              : 'border-[#666666] focus:border-[#39FF14]',
-            className
+        <div className="relative">
+          {showPrefix && (
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white pointer-events-none">
+              {prefix}
+            </span>
           )}
-          {...props}
-        />
+          <input
+            ref={ref}
+            className={cn(
+              'w-full px-4 py-3 text-base bg-[#404040] border-2 rounded-xl text-white placeholder-[#9CA3AF]',
+              'focus:outline-none transition-all duration-200',
+              showPrefix && 'pl-7',
+              error 
+                ? 'border-[#FF0040] focus:border-[#FF0040]' 
+                : 'border-[#666666] focus:border-[#39FF14]',
+              className
+            )}
+            {...props}
+          />
+        </div>
         {error && (
           <p className="text-sm text-[#FF0040]">{error}</p>
         )}

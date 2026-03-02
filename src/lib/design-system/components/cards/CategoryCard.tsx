@@ -22,6 +22,8 @@ interface CategoryCardProps extends React.HTMLAttributes<HTMLDivElement> {
   selectedIconColor?: string
   textSize?: 'xs' | 'sm'
   selectionStyle?: 'ring' | 'border'
+  /** When true, label can wrap to 2 lines (e.g. "Spirituality" on small screens) */
+  allowLabelWrap?: boolean
 }
 
 export const CategoryCard = React.forwardRef<HTMLDivElement, CategoryCardProps>(
@@ -35,6 +37,7 @@ export const CategoryCard = React.forwardRef<HTMLDivElement, CategoryCardProps>(
     selectedIconColor = tokens.colors.primary[500], // Selected: green
     textSize = 'xs',
     selectionStyle = 'ring',
+    allowLabelWrap = false,
     className = '', 
     ...props 
   }, ref) => {
@@ -73,7 +76,7 @@ export const CategoryCard = React.forwardRef<HTMLDivElement, CategoryCardProps>(
         onClick={onClick}
         {...props}
       >
-        <div className="flex flex-col items-center gap-0.5 md:gap-1 justify-center h-full">
+        <div className={cn('flex flex-col items-center gap-0.5 md:gap-1 justify-center h-full', allowLabelWrap && 'min-w-0')}>
           <IconComponent 
             size={20}
             color={selected ? selectedIconColor : iconColor}
@@ -82,7 +85,8 @@ export const CategoryCard = React.forwardRef<HTMLDivElement, CategoryCardProps>(
           />
           <span className={cn(
             textSizeClass,
-            'font-medium text-center leading-tight text-neutral-300 break-words hyphens-auto'
+            'font-medium text-center leading-tight text-neutral-300 break-words hyphens-auto',
+            allowLabelWrap && 'min-w-0 w-full px-0.5'
           )}>
             {category.label}
           </span>

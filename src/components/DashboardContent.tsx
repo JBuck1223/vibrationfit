@@ -48,6 +48,7 @@ import {
   Video,
   UsersRound,
   Award,
+  CalendarPlus,
 } from 'lucide-react'
 
 interface DashboardContentProps {
@@ -71,6 +72,11 @@ export default function DashboardContent({ user, profileData, visionData, vision
   const [showCelebration, setShowCelebration] = useState(false)
   const [earnedActivationBadges, setEarnedActivationBadges] = useState<Set<string>>(new Set())
   const [activationDays, setActivationDays] = useState(0)
+  const [calibrationCall, setCalibrationCall] = useState<{
+    show: boolean
+    session?: { id: string | null; title: string; scheduled_at: string; join_link: string }
+  } | null>(null)
+  const [countdown, setCountdown] = useState<{ days: number; hours: number; minutes: number } | null>(null)
   
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -136,6 +142,46 @@ export default function DashboardContent({ user, profileData, visionData, vision
     }
     fetchMapAndBadges()
   }, [])
+
+  // Fetch calibration call for post-intensive dashboard (show until call is completed)
+  useEffect(() => {
+    async function fetchCalibrationCall() {
+      try {
+        const res = await fetch('/api/dashboard/calibration-call')
+        if (res.ok) {
+          const data = await res.json()
+          setCalibrationCall(data)
+        }
+      } catch (error) {
+        console.error('Error fetching calibration call:', error)
+      }
+    }
+    fetchCalibrationCall()
+  }, [])
+
+  // Countdown to calibration call (updates every minute)
+  useEffect(() => {
+    if (!calibrationCall?.session?.scheduled_at) {
+      setCountdown(null)
+      return
+    }
+    const scheduled = new Date(calibrationCall.session.scheduled_at).getTime()
+    const update = () => {
+      const now = Date.now()
+      const diff = Math.max(0, scheduled - now)
+      if (diff <= 0) {
+        setCountdown({ days: 0, hours: 0, minutes: 0 })
+        return
+      }
+      const days = Math.floor(diff / (24 * 60 * 60 * 1000))
+      const hours = Math.floor((diff % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000))
+      const minutes = Math.floor((diff % (60 * 60 * 1000)) / (60 * 1000))
+      setCountdown({ days, hours, minutes })
+    }
+    update()
+    const interval = setInterval(update, 60 * 1000)
+    return () => clearInterval(interval)
+  }, [calibrationCall?.session?.scheduled_at])
   // Calculate completion percentage manually (same logic as profile API)
   const calculateCompletionManually = (profileData: any): number => {
     if (!profileData) return 0
@@ -225,6 +271,36 @@ export default function DashboardContent({ user, profileData, visionData, vision
   // Profile completion call-to-action
   const profileCompletePercentage = completionPercentage
 
+  // Build and download ICS for Add to Calendar (Calibration Call)
+  const handleAddToCalendar = () => {
+    if (!calibrationCall?.session?.scheduled_at) return
+    const start = new Date(calibrationCall.session.scheduled_at)
+    const end = new Date(start.getTime() + 45 * 60 * 1000) // 45 min default
+    const formatICSDate = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+    const title = calibrationCall.session.title || 'Calibration Call'
+    const desc = `Your 1-on-1 vision calibration session. Join: ${calibrationCall.session.join_link}`
+    const ics = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//VibrationFit//Calibration Call//EN',
+      'BEGIN:VEVENT',
+      `DTSTART:${formatICSDate(start)}`,
+      `DTEND:${formatICSDate(end)}`,
+      `SUMMARY:${title.replace(/,/g, '\\,').replace(/;/g, '\\;')}`,
+      `DESCRIPTION:${desc.replace(/,/g, '\\,').replace(/;/g, '\\;').replace(/\n/g, '\\n')}`,
+      calibrationCall.session.join_link ? `URL:${calibrationCall.session.join_link}` : '',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].filter(Boolean).join('\r\n')
+    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'Calibration-Call.ics'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <>
       {/* Unlock Celebration Modal */}
@@ -241,7 +317,66 @@ export default function DashboardContent({ user, profileData, visionData, vision
             subtitle="Run your MAP and stay connected."
           />
 
-        {/* MAP Card - My Activation Plan */}
+        {/* Calibration Call booking card (post-intensive; hides once call is completed) */}
+        {calibrationCall?.show && calibrationCall?.session && (
+          <Card className="relative overflow-hidden p-0 border-2 border-[#00FFFF]/40">
+            <div className="absolute inset-0 opacity-5 bg-[#00FFFF]" />
+            <div className="relative z-10 p-4 md:p-6 lg:p-8">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-[#00FFFF]/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Calendar className="w-6 h-6 text-[#00FFFF]" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-white mb-1">Calibration Call</h2>
+                    <p className="text-neutral-400 text-sm mb-2">Your 1-on-1 vision calibration session</p>
+                    {calibrationCall.session.scheduled_at && (
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-neutral-300 mb-3">
+                        <span className="flex items-center gap-1.5">
+                          <CalendarDays className="w-4 h-4 text-[#00FFFF]" />
+                          {formatDate(calibrationCall.session.scheduled_at)}
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <Clock className="w-4 h-4 text-[#00FFFF]" />
+                          {mounted && new Date(calibrationCall.session.scheduled_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    )}
+                    {countdown !== null && (countdown.days > 0 || countdown.hours > 0 || countdown.minutes > 0) && (
+                      <div className="flex flex-wrap gap-3 text-sm">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#00FFFF]/10 border border-[#00FFFF]/30 text-[#00FFFF] font-mono">
+                          <span className="font-bold">{countdown.days}</span> {countdown.days === 1 ? 'Day' : 'Days'}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#00FFFF]/10 border border-[#00FFFF]/30 text-[#00FFFF] font-mono">
+                          <span className="font-bold">{countdown.hours}</span> {countdown.hours === 1 ? 'Hour' : 'Hours'}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#00FFFF]/10 border border-[#00FFFF]/30 text-[#00FFFF] font-mono">
+                          <span className="font-bold">{countdown.minutes}</span> {countdown.minutes === 1 ? 'Minute' : 'Minutes'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex flex-col items-stretch md:items-end gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+                    <Button variant="primary" asChild className="w-full sm:w-auto whitespace-nowrap">
+                      <Link href={calibrationCall.session.join_link} className="flex items-center justify-center gap-2">
+                        <Video className="w-5 h-5" />
+                        {calibrationCall.session.id ? 'Join Call' : 'View Details'}
+                      </Link>
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleAddToCalendar} className="w-full sm:w-auto whitespace-nowrap">
+                      <CalendarPlus className="w-4 h-4" />
+                      Add to Calendar
+                    </Button>
+                  </div>
+                  <p className="text-xs text-neutral-500 text-center md:text-right">You can join up to 10 minutes before the scheduled time.</p>
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+
         {/* MAP Card - My Activation Plan */}
           <Card className="relative overflow-hidden p-0">
             {/* Background map pattern */}

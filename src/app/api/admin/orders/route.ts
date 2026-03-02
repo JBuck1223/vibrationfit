@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { checkIsAdmin } from '@/middleware/admin'
 import { triggerEvent } from '@/lib/messaging/events'
+import { getPaymentPlanLabel } from '@/lib/intensive/utils'
 
 // ─── GET: list orders + email status ────────────────────────────────────────
 export async function GET(request: NextRequest) {
@@ -209,6 +210,7 @@ export async function POST(request: NextRequest) {
       name: fullName || firstName,
       firstName,
       paymentPlan,
+      paymentPlanLabel: getPaymentPlanLabel(paymentPlan),
       orderId: order.id,
       intensiveId: intensiveItem?.id || '',
     })

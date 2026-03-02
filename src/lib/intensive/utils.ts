@@ -5,6 +5,16 @@
 
 import { createClient } from '@/lib/supabase/server'
 
+/** Human-readable label for email templates and UI (full -> Paid in Full, 2pay -> 2 Payment Plan, etc.) */
+export function getPaymentPlanLabel(plan: string): string {
+  switch (plan) {
+    case 'full': return 'Paid in Full'
+    case '2pay': return '2 Payment Plan'
+    case '3pay': return '3 Payment Plan'
+    default: return plan || 'Paid in Full'
+  }
+}
+
 export interface IntensiveData {
   id: string
   payment_plan: string

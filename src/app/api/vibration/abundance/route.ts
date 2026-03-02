@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { date, valueType, amount, visionCategory, entryCategory, note } = body ?? {}
+    const { date, valueType, amount, visionCategory, entryCategory, note, imageUrl } = body ?? {}
 
     if (!date || !valueType || !note) {
       return NextResponse.json({ error: 'Date, type, and note are required.' }, { status: 400 })
@@ -42,6 +42,7 @@ export async function POST(request: Request) {
         vision_category: visionCategory ?? null,
         entry_category: entryCategory ?? null,
         note,
+        image_url: imageUrl ?? null,
       })
       .select()
       .single()
