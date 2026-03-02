@@ -197,7 +197,7 @@ export const userNavigationGroups: NavGroup[] = [
         name: 'Abundance Tracker',
         href: '/abundance-tracker',
         icon: DollarSign,
-        description: 'Track abundance and prosperity',
+        description: 'Dashboard and log for abundance moments',
       },
       {
         name: 'Badges',

@@ -15,7 +15,7 @@ import {
   CategoryGrid,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
-import { ArrowRight, Eye, Sparkles, Target, Compass, Lightbulb } from 'lucide-react'
+import { ArrowRight, Eye, Sparkles, Target, Compass, Lightbulb, RotateCcw } from 'lucide-react'
 import { VISION_CATEGORIES, getCategoryStateField, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
 import { createClient } from '@/lib/supabase/client'
 
@@ -43,6 +43,9 @@ export default function VIVALifeVisionLandingPage() {
   const [visionStatus, setVisionStatus] = useState<'none' | 'in_progress' | 'completed'>('none')
   // Track completed categories for the CategoryGrid
   const [completedCategoryKeys, setCompletedCategoryKeys] = useState<string[]>([])
+  const [hasExistingVision, setHasExistingVision] = useState(false)
+  const [isStartingFresh, setIsStartingFresh] = useState(false)
+  const [showStartFreshConfirm, setShowStartFreshConfirm] = useState(false)
   
   // Categories without forward and conclusion for the grid
   const categoriesWithout = VISION_CATEGORIES.filter(
@@ -135,20 +138,84 @@ export default function VIVALifeVisionLandingPage() {
         .map(([key]) => key)
       setCompletedCategoryKeys(completed)
       
+      // Check if a completed vision exists in vision_versions
+      const { data: existingVision } = await supabase
+        .from('vision_versions')
+        .select('id')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      setHasExistingVision(!!existingVision)
+
       // Determine vision status based on actual vision work
       // Only count vision_new_category_state entries (not profile state fallback)
       if (!checklist?.vision_built) {
-        const hasActualVisionProgress = categoryStates && categoryStates.length > 0
-        if (hasActualVisionProgress) {
-          setVisionStatus('in_progress')
+        if (existingVision) {
+          setVisionStatus('completed')
+        } else {
+          const hasActualVisionProgress = categoryStates && categoryStates.length > 0
+          if (hasActualVisionProgress) {
+            setVisionStatus('in_progress')
+          }
         }
-        // Otherwise remains 'none'
       }
       
       setLoading(false)
     } catch (err) {
       console.error('Error loading progress:', err)
       setLoading(false)
+    }
+  }
+
+  const allCategoriesCompleted = completedCategoryKeys.length === 12
+
+  const handleStartFresh = async () => {
+    setIsStartingFresh(true)
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // Clear all vision_new_category_state rows for this user
+      await supabase
+        .from('vision_new_category_state')
+        .delete()
+        .eq('user_id', user.id)
+
+      // Cancel any active vision_generation_batches
+      await supabase
+        .from('vision_generation_batches')
+        .update({ 
+          status: 'cancelled', 
+          error_message: 'User started fresh',
+          completed_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id)
+        .in('status', ['pending', 'processing', 'retrying'])
+
+      // Clear all localStorage drafts
+      const categories = VISION_CATEGORIES.filter(cat => cat.order > 0 && cat.order < 13)
+      categories.forEach(cat => {
+        try {
+          window.localStorage.removeItem(`life-vision-new-draft-${cat.key}`)
+        } catch (_) { /* ignore */ }
+      })
+
+      // Reset local state
+      setProgress({})
+      setCompletedCategoryKeys([])
+      setVisionStatus('none')
+      setHasExistingVision(false)
+      setShowStartFreshConfirm(false)
+
+      // Navigate to first category
+      router.push('/life-vision/new/category/fun')
+    } catch (err) {
+      console.error('Error starting fresh:', err)
+    } finally {
+      setIsStartingFresh(false)
     }
   }
 
@@ -272,6 +339,19 @@ export default function VIVALifeVisionLandingPage() {
                 Life Vision Hub
               </Button>
             )}
+
+            {/* Start Fresh - only when all 12 categories completed and a vision exists */}
+            {allCategoriesCompleted && hasExistingVision && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowStartFreshConfirm(true)}
+                className="text-neutral-400 hover:text-white"
+              >
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Start Fresh
+              </Button>
+            )}
           </div>
         </PageHero>
 
@@ -379,6 +459,53 @@ export default function VIVALifeVisionLandingPage() {
 
 
       </Stack>
+
+      {/* Start Fresh Confirmation Dialog */}
+      {showStartFreshConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <Card variant="elevated" className="max-w-md w-full border-2 border-neutral-600">
+            <Stack gap="md">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <RotateCcw className="w-5 h-5 text-red-400" />
+                </div>
+                <h3 className="text-lg font-bold text-white">Start Fresh?</h3>
+              </div>
+              <p className="text-sm text-neutral-300 leading-relaxed">
+                This will clear all your imagination text across all 12 categories so you can go through the process again with fresh input. Your previous Life Vision document will still be available.
+              </p>
+              <div className="flex gap-3 justify-end pt-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowStartFreshConfirm(false)}
+                  disabled={isStartingFresh}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={handleStartFresh}
+                  disabled={isStartingFresh}
+                >
+                  {isStartingFresh ? (
+                    <>
+                      <Spinner size="sm" className="mr-2" />
+                      Clearing...
+                    </>
+                  ) : (
+                    <>
+                      <RotateCcw className="mr-2 h-4 w-4" />
+                      Start Fresh
+                    </>
+                  )}
+                </Button>
+              </div>
+            </Stack>
+          </Card>
+        </div>
+      )}
     </Container>
   )
 }

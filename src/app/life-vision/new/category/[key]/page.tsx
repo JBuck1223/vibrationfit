@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Card, Button, Spinner, Container, Stack, PageHero, CategoryGrid, IconList, InsufficientTokensDialog } from '@/lib/design-system/components'
 import { ProfileStateCard } from '@/lib/design-system/profile-cards'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
-import { Sparkles, ArrowLeft, ArrowRight, ChevronDown, User, Lightbulb, Wand2, RefreshCw } from 'lucide-react'
+import { Sparkles, ArrowLeft, ArrowRight, ChevronDown, User, Lightbulb, Wand2, RefreshCw, Trash2 } from 'lucide-react'
 import { VISION_CATEGORIES, getVisionCategory, getCategoryStateField, getCategoryStoryField, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
 import { getFilteredQuestionsForCategory } from '@/lib/life-vision/ideal-state-questions'
 
@@ -262,7 +262,8 @@ export default function CategoryPage() {
           category: categoryKey,
           ideal_state: freeFlowText.trim(),
           clarity_keys: stateValue ? [stateValue] : [],
-          contrast_flips: []
+          contrast_flips: [],
+          category_vision_text: null
         }, {
           onConflict: 'user_id,category'
         })
@@ -285,6 +286,33 @@ export default function CategoryPage() {
       setError('Failed to save your vision. Try again or refresh and save again.')
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleClearCategory = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // Clear the saved data for this category
+      await supabase
+        .from('vision_new_category_state')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('category', categoryKey)
+
+      // Clear localStorage draft
+      try {
+        window.localStorage.removeItem(DRAFT_STORAGE_KEY)
+      } catch (_) { /* ignore */ }
+
+      // Reset local state
+      setFreeFlowText('')
+      setRestoredDraft(false)
+      setCompletedCategoryKeys(prev => prev.filter(k => k !== categoryKey))
+    } catch (err) {
+      console.error('Error clearing category:', err)
+      setError('Failed to clear category data')
     }
   }
 
@@ -587,6 +615,19 @@ export default function CategoryPage() {
             </Button>
           </div>
           
+          {/* Clear & Start Over for completed categories */}
+          {completedCategoryKeys.includes(categoryKey) && !isGeneratingStarter && (
+            <div className="flex justify-end mb-3">
+              <button
+                onClick={handleClearCategory}
+                className="text-xs text-neutral-500 hover:text-red-400 transition-colors flex items-center gap-1"
+              >
+                <Trash2 className="w-3 h-3" />
+                Clear & Start Over
+              </button>
+            </div>
+          )}
+
           {/* Streaming indicator */}
           {isGeneratingStarter && (
             <div className="mb-3 p-3 rounded-lg bg-secondary-500/10 border border-secondary-500/30">
