@@ -21,7 +21,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { intensivePaymentPlan, continuityPlan, planType, promoCode, referralSource, campaignName } = await request.json()
+    const { intensivePaymentPlan, continuityPlan, planType, promoCode, referralSource, campaignName, intensiveLevel } = await request.json()
+    const isPremium = intensiveLevel === 'premium'
 
     // Validate inputs
     if (!intensivePaymentPlan || !continuityPlan) {
@@ -57,14 +58,32 @@ export async function POST(request: NextRequest) {
     // SOLUTION: Create intensive as one-time payment (clear to customer)
     // Vision Pro subscription will be created separately in webhook after intensive completes
     
-    // 1. Intensive Product - Select based on plan type and payment plan
+    // 1. Intensive Product - Select based on plan type, payment plan, and level
     let intensivePriceId: string | undefined
     let intensiveQuantity = 1
 
-    if (selectedPlanType === 'household') {
+    if (isPremium) {
+      // Premium Intensive - full pay only
+      if (selectedPlanType === 'household') {
+        intensivePriceId = process.env.STRIPE_PRICE_PREMIUM_HOUSEHOLD_INTENSIVE_FULL
+        if (!intensivePriceId) {
+          return NextResponse.json(
+            { error: 'STRIPE_PRICE_PREMIUM_HOUSEHOLD_INTENSIVE_FULL not configured' },
+            { status: 500 }
+          )
+        }
+      } else {
+        intensivePriceId = process.env.STRIPE_PRICE_PREMIUM_INTENSIVE_FULL
+        if (!intensivePriceId) {
+          return NextResponse.json(
+            { error: 'STRIPE_PRICE_PREMIUM_INTENSIVE_FULL not configured' },
+            { status: 500 }
+          )
+        }
+      }
+    } else if (selectedPlanType === 'household') {
       // Household Intensive Prices
       if (intensivePaymentPlan === 'full') {
-        // $699 one-time
         intensivePriceId = process.env.STRIPE_PRICE_HOUSEHOLD_INTENSIVE_FULL
         if (!intensivePriceId) {
           return NextResponse.json(
@@ -73,7 +92,6 @@ export async function POST(request: NextRequest) {
           )
         }
       } else if (intensivePaymentPlan === '2pay') {
-        // $349.50 × 2 payments
         intensivePriceId = process.env.STRIPE_PRICE_HOUSEHOLD_INTENSIVE_2PAY
         if (!intensivePriceId) {
           return NextResponse.json(
@@ -81,8 +99,7 @@ export async function POST(request: NextRequest) {
             { status: 500 }
           )
         }
-      } else { // 3pay
-        // $233 × 3 payments
+      } else {
         intensivePriceId = process.env.STRIPE_PRICE_HOUSEHOLD_INTENSIVE_3PAY
         if (!intensivePriceId) {
           return NextResponse.json(
@@ -94,7 +111,6 @@ export async function POST(request: NextRequest) {
     } else {
       // Solo Intensive Prices
       if (intensivePaymentPlan === 'full') {
-        // $499 one-time
         intensivePriceId = process.env.STRIPE_PRICE_INTENSIVE_FULL
         if (!intensivePriceId) {
           return NextResponse.json(
@@ -103,7 +119,6 @@ export async function POST(request: NextRequest) {
           )
         }
       } else if (intensivePaymentPlan === '2pay') {
-        // $249.50 × 2 payments
         intensivePriceId = process.env.STRIPE_PRICE_INTENSIVE_2PAY
         if (!intensivePriceId) {
           return NextResponse.json(
@@ -111,8 +126,7 @@ export async function POST(request: NextRequest) {
             { status: 500 }
           )
         }
-      } else { // 3pay
-        // $166.33 × 3 payments
+      } else {
         intensivePriceId = process.env.STRIPE_PRICE_INTENSIVE_3PAY
         if (!intensivePriceId) {
           return NextResponse.json(
@@ -253,16 +267,17 @@ You can cancel anytime before the first billing to avoid charges.`
       metadata: {
         product_type: 'combined_intensive_continuity',
         purchase_type: 'intensive',
-        intensive_payment_plan: intensivePaymentPlan,
+        intensive_payment_plan: isPremium ? 'full' : intensivePaymentPlan,
         continuity_plan: continuityPlan,
-        continuity_price_id: continuityPriceId, // Store for webhook
-        plan_type: selectedPlanType, // 'solo' or 'household'
+        continuity_price_id: continuityPriceId,
+        plan_type: selectedPlanType,
         source: 'combined_checkout',
-        payment_plan: intensivePaymentPlan,
-        promo_code: promoCode || '', // Store promo code for webhook
-        is_free_intensive: promoCode ? 'true' : 'false', // Flag for free intensive
-        referral_source: referralSource || '', // Affiliate/referral tracking
-        campaign_name: campaignName || '', // Campaign tracking
+        payment_plan: isPremium ? 'full' : intensivePaymentPlan,
+        promo_code: promoCode || '',
+        is_free_intensive: promoCode ? 'true' : 'false',
+        referral_source: referralSource || '',
+        campaign_name: campaignName || '',
+        ...(isPremium ? { intensive_level: 'premium' } : {}),
       },
       
       // Apply promo code if provided, otherwise allow manual entry

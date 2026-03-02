@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { stripe } from '@/lib/stripe/config'
 
 export async function POST(request: NextRequest) {
@@ -21,10 +22,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing target tier' }, { status: 400 })
     }
 
-    // Get target tier details
     const { data: targetTier } = await supabase
       .from('membership_tiers')
-      .select('id, name, stripe_price_id, tier_type, billing_interval, plan_category')
+      .select('id, name, stripe_price_id, tier_type, billing_interval, plan_category, is_household_plan')
       .eq('id', targetTierId)
       .eq('is_active', true)
       .maybeSingle()
@@ -37,7 +37,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Plan not available for purchase' }, { status: 400 })
     }
 
-    // Get current subscription
     const { data: subscription } = await supabase
       .from('customer_subscriptions')
       .select('id, stripe_subscription_id, membership_tier_id')
@@ -55,7 +54,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Already on this plan' }, { status: 400 })
     }
 
-    // Get the main subscription item (first non-addon item)
     const stripeSub = await stripe.subscriptions.retrieve(subscription.stripe_subscription_id)
     const mainItem = stripeSub.items.data.find(item => {
       const meta = item.price.metadata || {}
@@ -66,7 +64,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unable to find main subscription item' }, { status: 500 })
     }
 
-    // Update the subscription with the new price
     const updatedSub = await stripe.subscriptions.update(subscription.stripe_subscription_id, {
       items: [{
         id: mainItem.id,
@@ -76,7 +73,6 @@ export async function POST(request: NextRequest) {
       cancel_at_period_end: false,
     })
 
-    // Update local DB
     await supabase
       .from('customer_subscriptions')
       .update({
@@ -87,16 +83,78 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', subscription.id)
 
+    let householdCreated = false
+
+    if (targetTier.is_household_plan) {
+      try {
+        householdCreated = await createHouseholdForUser(user.id, user.email || '')
+      } catch (householdErr) {
+        console.error('Household creation error (non-blocking):', householdErr)
+      }
+    }
+
     return NextResponse.json({
       success: true,
       newTier: targetTier.name,
       newTierType: targetTier.tier_type,
       subscriptionId: updatedSub.id,
+      householdCreated,
     })
   } catch (error) {
     console.error('Change plan error:', error)
     return NextResponse.json({ error: 'Failed to change plan' }, { status: 500 })
   }
+}
+
+async function createHouseholdForUser(userId: string, email: string): Promise<boolean> {
+  const serviceClient = createServiceClient()
+
+  const { data: existingMember } = await serviceClient
+    .from('household_members')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .limit(1)
+    .maybeSingle()
+
+  if (existingMember) return false
+
+  const householdName = `${email.split('@')[0] || 'My'}'s Household`
+
+  const { data: household, error: householdError } = await serviceClient
+    .from('households')
+    .insert({
+      admin_user_id: userId,
+      name: householdName,
+      max_members: 2,
+      shared_tokens_enabled: true,
+    })
+    .select()
+    .single()
+
+  if (householdError || !household) {
+    console.error('Failed to create household:', householdError)
+    return false
+  }
+
+  await serviceClient.from('household_members').insert({
+    household_id: household.id,
+    user_id: userId,
+    role: 'admin',
+    status: 'active',
+    joined_at: new Date().toISOString(),
+  })
+
+  await serviceClient
+    .from('user_profiles')
+    .update({
+      household_id: household.id,
+      is_household_admin: true,
+    })
+    .eq('user_id', userId)
+
+  console.log('Household created via plan change:', household.id)
+  return true
 }
 
 /**

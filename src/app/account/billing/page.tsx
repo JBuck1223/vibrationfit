@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Container, Stack, PageHero, Button, Spinner } from '@/lib/design-system/components'
-import { ChevronLeft, Zap, CreditCard } from 'lucide-react'
+import { ChevronLeft, Zap, CreditCard, Users } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { Suspense } from 'react'
 import IntensiveOverview from '@/components/billing/IntensiveOverview'
 import PlanOverview from '@/components/billing/PlanOverview'
+import HouseholdSection from '@/components/billing/HouseholdSection'
 import AddOnsList from '@/components/billing/AddOnsList'
 import PaymentMethodsList from '@/components/billing/PaymentMethodsList'
 import InvoiceHistory from '@/components/billing/InvoiceHistory'
@@ -29,6 +30,7 @@ function BillingContent() {
 
   const [membership, setMembership] = useState<any>(null)
   const [intensive, setIntensive] = useState<any>(null)
+  const [household, setHousehold] = useState<any>(null)
   const [paymentMethods, setPaymentMethods] = useState<any[]>([])
   const [invoices, setInvoices] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -40,11 +42,12 @@ function BillingContent() {
   const fetchAll = useCallback(async () => {
     setLoading(true)
     try {
-      const [membershipRes, intensiveRes, pmRes, invoicesRes] = await Promise.all([
+      const [membershipRes, intensiveRes, pmRes, invoicesRes, householdRes] = await Promise.all([
         fetch('/api/billing/membership'),
         fetch('/api/billing/intensive'),
         fetch('/api/billing/payment-methods'),
         fetch('/api/billing/invoices'),
+        fetch('/api/household?includeMembers=true'),
       ])
 
       const [membershipData, intensiveData, pmData, invoicesData] = await Promise.all([
@@ -54,8 +57,11 @@ function BillingContent() {
         invoicesRes.json(),
       ])
 
+      const householdData = householdRes.ok ? await householdRes.json() : null
+
       setMembership(membershipData)
       setIntensive(intensiveData.intensive || null)
+      setHousehold(householdData?.household ? householdData : null)
       setPaymentMethods(pmData.paymentMethods || [])
       setInvoices(invoicesData.invoices || [])
     } catch {
@@ -155,6 +161,17 @@ function BillingContent() {
           isCanceling={isCanceling}
           isResuming={isResuming}
         />
+
+        {household && (
+          <>
+            <SectionHeader icon={Users} title="Household" />
+            <HouseholdSection
+              data={household}
+              billingInterval={membership?.subscription?.tier?.billingInterval || '28day'}
+              onRefresh={fetchAll}
+            />
+          </>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <AddOnsList

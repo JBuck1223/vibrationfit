@@ -11,6 +11,7 @@ import { IntensiveSidebar } from '@/components/IntensiveSidebar'
 import { IntensiveLockedOverlay } from '@/components/IntensiveLockedOverlay'
 import { getPageType } from '@/lib/navigation'
 import { getActiveIntensiveClient, IntensiveData } from '@/lib/intensive/utils-client'
+import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
 import { createClient } from '@/lib/supabase/client'
 
 interface GlobalLayoutProps {
@@ -112,6 +113,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
   const [settingsComplete, setSettingsComplete] = useState(false)
   const [loadingIntensive, setLoadingIntensive] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
   
   // Listen for auth state changes (login/logout)
   useEffect(() => {
@@ -131,6 +133,12 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
         // Check auth state (getSession reads from cookie - no network call to Supabase Auth)
         const { data: { session } } = await supabase.auth.getSession()
         setIsAuthenticated(!!session)
+        
+        // Check super admin status — super admins bypass all intensive locking
+        if (session?.user) {
+          const { isSuperAdmin: superAdmin } = await checkSuperAdminAccess(supabase)
+          setIsSuperAdmin(superAdmin)
+        }
         
         const intensive = await getActiveIntensiveClient()
         setIntensiveMode(!!intensive)
@@ -229,7 +237,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
               <PageLayout>
                 {children}
               </PageLayout>
-              {!isAccessible && <IntensiveLockedOverlay />}
+              {!isAccessible && !isSuperAdmin && <IntensiveLockedOverlay />}
             </div>
           </div>
         )

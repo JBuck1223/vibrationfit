@@ -44,6 +44,7 @@ export function AIImageGenerator({
     type === 'vision_board' ? 'landscape_4_3' : 'square'
   )
   const [customDescription, setCustomDescription] = useState<string>('')
+  const [customJournalDescription, setCustomJournalDescription] = useState<string>(journalText || '')
   const [loadingMessageIndex, setLoadingMessageIndex] = useState(0)
   const [mode, setMode] = useState<'generate' | 'edit'>('generate')
   const [baseImage, setBaseImage] = useState<File | null>(null)
@@ -119,6 +120,13 @@ export function AIImageGenerator({
     }
   }, [type, title, description, visionText])
 
+  // Auto-populate journal description when journalText changes
+  useEffect(() => {
+    if (type === 'journal' && journalText) {
+      setCustomJournalDescription(journalText)
+    }
+  }, [type, journalText])
+
   // Handle file preview for edit mode (with HEIC/HEIF conversion)
   useEffect(() => {
     if (baseImage) {
@@ -180,8 +188,8 @@ export function AIImageGenerator({
           return
         }
       } else if (type === 'journal') {
-        if (!journalText) {
-          toast.error('Journal text is required for journal image generation')
+        if (!customJournalDescription.trim()) {
+          toast.error('Please describe the image you want to generate')
           return
         }
       } else {
@@ -206,7 +214,7 @@ export function AIImageGenerator({
         if (type === 'vision_board') {
           finalPrompt = customDescription || (title && description ? `${title}. ${description}` : visionText || '')
         } else if (type === 'journal') {
-          finalPrompt = journalText || ''
+          finalPrompt = customJournalDescription.trim()
         } else {
           finalPrompt = prompt.trim()
         }
@@ -408,18 +416,17 @@ export function AIImageGenerator({
               />
             </div>
           ) : type === 'journal' ? (
-            <div className="mb-4 p-4 bg-secondary-500/10 rounded-lg border border-secondary-500/20">
-              <p className="text-sm text-secondary-400 mb-2">
-                <strong>Journal Image Generation:</strong>
-              </p>
-              {mood && (
-                <p className="text-sm text-neutral-300 mb-2">
-                  <strong>Mood:</strong> {mood}
-                </p>
-              )}
-              <p className="text-sm text-neutral-300">
-                <strong>Journal Text:</strong> {journalText || 'Not provided'}
-              </p>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-neutral-200 mb-2">
+                Image Description
+              </label>
+              <Textarea
+                value={customJournalDescription}
+                onChange={(e) => setCustomJournalDescription(e.target.value)}
+                placeholder="Describe the image you want to create based on your journal entry..."
+                className="min-h-[100px]"
+                disabled={generating}
+              />
             </div>
           ) : (
             <Textarea
@@ -593,7 +600,7 @@ export function AIImageGenerator({
                 generating ||
                 (mode === 'edit' && (!baseImage || !editPrompt.trim())) ||
                 (mode === 'generate' && type === 'vision_board' && !customDescription.trim()) ||
-                (mode === 'generate' && type === 'journal' && !journalText)
+                (mode === 'generate' && type === 'journal' && !customJournalDescription.trim())
               }
               className="flex-1"
               variant="primary"

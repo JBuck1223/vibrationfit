@@ -25,6 +25,7 @@ function getIntensiveProduct(
   continuityPlan: 'annual' | '28day',
   planType: 'solo' | 'household',
   tiers?: MembershipTier[],
+  isPremium?: boolean,
 ): CheckoutProduct {
   const isSolo = planType === 'solo'
 
@@ -35,9 +36,14 @@ function getIntensiveProduct(
     'household-full': { amount: 69900, envKey: 'STRIPE_PRICE_HOUSEHOLD_INTENSIVE_FULL' },
     'household-2pay': { amount: 34950, envKey: 'STRIPE_PRICE_HOUSEHOLD_INTENSIVE_2PAY' },
     'household-3pay': { amount: 23300, envKey: 'STRIPE_PRICE_HOUSEHOLD_INTENSIVE_3PAY' },
+    'premium-solo-full': { amount: 300000, envKey: 'STRIPE_PRICE_PREMIUM_INTENSIVE_FULL' },
+    'premium-household-full': { amount: 420000, envKey: 'STRIPE_PRICE_PREMIUM_HOUSEHOLD_INTENSIVE_FULL' },
   }
 
-  const intensiveTier = tierLookup(tiers, isSolo ? TIER_TYPES.INTENSIVE : TIER_TYPES.INTENSIVE_HOUSEHOLD)
+  const intensiveTierType = isPremium
+    ? (isSolo ? 'intensive_premium' : 'intensive_premium_household')
+    : (isSolo ? TIER_TYPES.INTENSIVE : TIER_TYPES.INTENSIVE_HOUSEHOLD)
+  const intensiveTier = tierLookup(tiers, intensiveTierType)
   const intensiveTokens = intensiveTier
     ? (intensiveTier.monthly_token_grant || intensiveTier.annual_token_grant)
     : 0
@@ -48,39 +54,56 @@ function getIntensiveProduct(
   const continuityTier = tierLookup(tiers, continuityTierType)
   const continuityFeatures = (continuityTier?.features as string[] | undefined) || []
 
-  const priceKey = `${planType}-${paymentPlan}`
+  const priceKey = isPremium ? `premium-${planType}-full` : `${planType}-${paymentPlan}`
   const { amount, envKey } = priceMap[priceKey]
 
-  const planLabel = paymentPlan === 'full'
+  const effectivePaymentPlan = isPremium ? 'full' : paymentPlan
+  const planLabel = effectivePaymentPlan === 'full'
     ? 'One-time payment'
-    : paymentPlan === '2pay'
+    : effectivePaymentPlan === '2pay'
       ? '2 payments'
       : '3 payments'
 
+  const productName = isPremium ? 'Premium Activation Intensive' : 'Vision Activation Intensive'
+  const productKey = isPremium ? 'intensive_premium' : 'intensive'
+
   return {
-    key: `intensive-${planType}-${paymentPlan}`,
-    name: 'Vision Activation Intensive',
+    key: `${isPremium ? 'premium-' : ''}intensive-${planType}-${effectivePaymentPlan}`,
+    name: productName,
     description: `${isSolo ? 'Solo' : 'Household'} - ${planLabel}`,
-    mode: paymentPlan === 'full' ? 'payment' : 'subscription',
+    mode: effectivePaymentPlan === 'full' ? 'payment' : 'subscription',
     amount,
     currency: 'usd',
-    features: [
-      'Full Activation Intensive experience',
-      intensiveTokens > 0
-        ? `${formatTokensShort(intensiveTokens)} VIVA tokens included`
-        : 'VIVA tokens included',
-      `Vision Pro ${continuityPlan === 'annual' ? 'Annual' : '28-Day'} starts billing Day 56`,
-      ...continuityFeatures.slice(0, 5),
-    ],
+    features: isPremium
+      ? [
+          '1:1 or small-group deep dive',
+          'Custom vibration / practice plan',
+          'Priority or private support',
+          intensiveTokens > 0
+            ? `${formatTokensShort(intensiveTokens)} VIVA tokens included`
+            : 'VIVA tokens included',
+          `Vision Pro 28-Day starts billing Day 56`,
+          ...continuityFeatures.slice(0, 3),
+        ]
+      : [
+          'Self-paced activation intensive',
+          'Group Q&A / community',
+          intensiveTokens > 0
+            ? `${formatTokensShort(intensiveTokens)} VIVA tokens included`
+            : 'VIVA tokens included',
+          `Vision Pro ${continuityPlan === 'annual' ? 'Annual' : '28-Day'} starts billing Day 56`,
+          ...continuityFeatures.slice(0, 5),
+        ],
     redirectAfterSuccess: '/intensive/dashboard',
     getPriceEnvKey: () => process.env[envKey],
     metadata: {
       product_type: 'combined_intensive_continuity',
       purchase_type: 'intensive',
-      intensive_payment_plan: paymentPlan,
+      intensive_payment_plan: effectivePaymentPlan,
       continuity_plan: continuityPlan,
       plan_type: planType,
       source: 'custom_checkout',
+      ...(isPremium ? { intensive_level: 'premium' } : {}),
     },
   }
 }
@@ -140,12 +163,13 @@ export function resolveCheckoutProduct(
 ): CheckoutProduct | null {
   const { product, plan, continuity, planType, packKey } = params
 
-  if (product === 'intensive') {
+  if (product === 'intensive' || product === 'intensive_premium') {
     return getIntensiveProduct(
       (plan as 'full' | '2pay' | '3pay') || 'full',
-      (continuity as 'annual' | '28day') || 'annual',
+      (continuity as 'annual' | '28day') || '28day',
       (planType as 'solo' | 'household') || 'solo',
       tiers,
+      product === 'intensive_premium',
     )
   }
 

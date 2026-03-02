@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { Card, Badge, Button, Spinner } from '@/lib/design-system/components'
-import { CreditCard, Calendar, Coins, HardDrive, AlertTriangle, RotateCcw, ArrowUpRight } from 'lucide-react'
-import { formatPrice, formatTokensShort, formatStorage } from '@/lib/billing/config'
+import { CreditCard, Calendar, Coins, HardDrive, AlertTriangle, RotateCcw, ArrowUpRight, Users } from 'lucide-react'
+import { formatPrice, formatTokensShort, formatStorage, PRICING } from '@/lib/billing/config'
 import { toast } from 'sonner'
 
 type SubscriptionData = {
@@ -34,6 +34,15 @@ type UpcomingInvoice = {
   currency: string
   nextPaymentAttempt: string | null
 }
+
+type TierInfo = { id: string; price: number }
+
+type ProrationPreview = {
+  immediateAmount: number
+  lines: Array<{ description: string; amount: number }>
+}
+
+type UpgradeFlow = 'annual' | 'household'
 
 type Props = {
   subscription: SubscriptionData | null
@@ -71,11 +80,10 @@ export default function PlanOverview({
   isResuming,
 }: Props) {
   const [upgradeState, setUpgradeState] = useState<'idle' | 'previewing' | 'confirming' | 'upgrading'>('idle')
-  const [annualTierCache, setAnnualTierCache] = useState<{ id: string; price: number } | null>(null)
-  const [prorationPreview, setProrationPreview] = useState<{
-    immediateAmount: number
-    lines: Array<{ description: string; amount: number }>
-  } | null>(null)
+  const [activeFlow, setActiveFlow] = useState<UpgradeFlow | null>(null)
+  const [tiersCache, setTiersCache] = useState<any[] | null>(null)
+  const [prorationPreview, setProrationPreview] = useState<ProrationPreview | null>(null)
+  const [targetTier, setTargetTier] = useState<TierInfo | null>(null)
 
   if (!subscription || !subscription.tier) {
     return (
@@ -98,33 +106,48 @@ export default function PlanOverview({
   const tokenGrant = tier.billingInterval === 'year' ? tier.annualTokenGrant : tier.monthlyTokenGrant
   const price = tier.billingInterval === 'year' ? (tier.priceYearly || tier.priceMonthly) : tier.priceMonthly
   const intervalLabel = tier.billingInterval === 'year' ? '/year' : '/28 days'
+  const isSoloPlan = !tier.isHouseholdPlan
 
-  const fetchAnnualTier = async () => {
-    if (annualTierCache) return annualTierCache
-    const tiersRes = await fetch('/api/admin/membership-tiers')
-    const tiersData = await tiersRes.json()
-    const found = (tiersData.tiers || []).find(
-      (t: any) => t.is_active && t.tier_type === (tier.isHouseholdPlan ? 'vision_pro_household_annual' : 'vision_pro_annual')
-    )
-    if (!found) return null
-    const cached = { id: found.id, price: found.price_yearly || found.price_monthly }
-    setAnnualTierCache(cached)
-    return cached
+  const fetchTiers = async (): Promise<any[]> => {
+    if (tiersCache) return tiersCache
+    const res = await fetch('/api/billing/tiers')
+    const data = await res.json()
+    const tiers = data.tiers || []
+    setTiersCache(tiers)
+    return tiers
   }
 
-  const annualPrice = annualTierCache?.price ?? 99900
+  const findTier = async (tierType: string): Promise<TierInfo | null> => {
+    const tiers = await fetchTiers()
+    const found = tiers.find((t: any) => t.tier_type === tierType)
+    if (!found) return null
+    return { id: found.id, price: found.price_yearly || found.price_monthly }
+  }
 
-  const handleUpgradeClick = async () => {
+  const getAnnualTierType = () =>
+    tier.isHouseholdPlan ? 'vision_pro_household_annual' : 'vision_pro_annual'
+
+  const getHouseholdTierType = () =>
+    is28Day ? 'vision_pro_household_28day' : 'vision_pro_household_annual'
+
+  const annualFallbackPrice = tier.isHouseholdPlan ? PRICING.HOUSEHOLD_ANNUAL : PRICING.SOLO_ANNUAL
+  const householdFallbackPrice = is28Day ? PRICING.HOUSEHOLD_28DAY : PRICING.HOUSEHOLD_ANNUAL
+
+  const handleUpgradeClick = async (flow: UpgradeFlow) => {
+    setActiveFlow(flow)
     setUpgradeState('previewing')
     try {
-      const annualTier = await fetchAnnualTier()
-      if (!annualTier) {
-        toast.error('Annual plan not found')
+      const tierType = flow === 'annual' ? getAnnualTierType() : getHouseholdTierType()
+      const found = await findTier(tierType)
+      if (!found) {
+        toast.error(`${flow === 'annual' ? 'Annual' : 'Household'} plan not found`)
         setUpgradeState('idle')
+        setActiveFlow(null)
         return
       }
+      setTargetTier(found)
 
-      const previewRes = await fetch(`/api/billing/change-plan?targetTierId=${annualTier.id}`)
+      const previewRes = await fetch(`/api/billing/change-plan?targetTierId=${found.id}`)
       const previewData = await previewRes.json()
 
       if (previewRes.ok) {
@@ -136,27 +159,23 @@ export default function PlanOverview({
       } else {
         toast.error(previewData.error || 'Unable to preview upgrade')
         setUpgradeState('idle')
+        setActiveFlow(null)
       }
     } catch {
       toast.error('Failed to load upgrade details')
       setUpgradeState('idle')
+      setActiveFlow(null)
     }
   }
 
   const handleUpgradeConfirm = async () => {
+    if (!targetTier || !activeFlow) return
     setUpgradeState('upgrading')
     try {
-      const annualTier = await fetchAnnualTier()
-      if (!annualTier) {
-        toast.error('Annual plan not found')
-        setUpgradeState('idle')
-        return
-      }
-
       const res = await fetch('/api/billing/change-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetTierId: annualTier.id }),
+        body: JSON.stringify({ targetTierId: targetTier.id }),
       })
 
       if (!res.ok) {
@@ -164,15 +183,108 @@ export default function PlanOverview({
         throw new Error(data.error || 'Failed to upgrade')
       }
 
-      toast.success('Upgraded to Annual plan')
-      setUpgradeState('idle')
-      setProrationPreview(null)
-      setAnnualTierCache(null)
+      const successMsg = activeFlow === 'annual' ? 'Upgraded to Annual plan' : 'Upgraded to Household plan'
+      toast.success(successMsg)
+      resetUpgradeState()
       onRefresh()
     } catch (err: any) {
       toast.error(err.message)
       setUpgradeState('idle')
+      setActiveFlow(null)
     }
+  }
+
+  const resetUpgradeState = () => {
+    setUpgradeState('idle')
+    setActiveFlow(null)
+    setProrationPreview(null)
+    setTargetTier(null)
+    setTiersCache(null)
+  }
+
+  const renderUpgradeBlock = (
+    flow: UpgradeFlow,
+    label: string,
+    sublabel: string,
+    buttonText: string,
+    icon: React.ReactNode,
+    borderColor: string,
+    bgColor: string,
+  ) => {
+    const isActive = activeFlow === flow
+
+    if (upgradeState === 'idle' || !isActive) {
+      if (upgradeState !== 'idle' && !isActive) return null
+      return (
+        <div className={`${bgColor} border ${borderColor} rounded-xl p-4 flex items-center justify-between`}>
+          <div>
+            <p className="text-sm font-medium text-white">{label}</p>
+            <p className="text-xs text-neutral-400">{sublabel}</p>
+          </div>
+          <Button variant="primary" size="sm" onClick={() => handleUpgradeClick(flow)}>
+            {buttonText}
+            {icon}
+          </Button>
+        </div>
+      )
+    }
+
+    if (upgradeState === 'previewing' && isActive) {
+      return (
+        <div className={`${bgColor} border ${borderColor} rounded-xl p-4 flex items-center justify-center gap-2`}>
+          <Spinner size="sm" />
+          <span className="text-sm text-neutral-400">Calculating upgrade cost...</span>
+        </div>
+      )
+    }
+
+    if (upgradeState === 'confirming' && isActive && prorationPreview) {
+      const forwardPrice = targetTier?.price ?? 0
+      const forwardLabel = flow === 'annual' || !is28Day ? '/year' : '/28 days'
+      return (
+        <div className={`${bgColor} border ${borderColor} rounded-xl p-4`}>
+          <p className="text-sm font-medium text-white mb-2">Upgrade Summary</p>
+          {prorationPreview.lines.map((line, i) => (
+            <div key={i} className="flex justify-between text-xs text-neutral-400 mb-1">
+              <span className="truncate mr-4">{line.description}</span>
+              <span className={line.amount < 0 ? 'text-green-400' : ''}>
+                {line.amount < 0 ? '-' : ''}{formatPrice(Math.abs(line.amount))}
+              </span>
+            </div>
+          ))}
+          <div className="flex justify-between text-sm font-medium text-white mt-2 pt-2 border-t border-neutral-800">
+            <span>Due today</span>
+            <span>
+              {prorationPreview.immediateAmount > 0
+                ? formatPrice(prorationPreview.immediateAmount)
+                : 'Credit applied'}
+            </span>
+          </div>
+          <p className="text-xs text-neutral-500 mt-2">
+            Then {formatPrice(forwardPrice)}{forwardLabel} going forward.
+          </p>
+          <div className="flex gap-2 mt-3">
+            <Button variant="ghost" size="sm" className="flex-1" onClick={resetUpgradeState}>
+              Cancel
+            </Button>
+            <Button variant="primary" size="sm" className="flex-1" onClick={handleUpgradeConfirm}>
+              Confirm Upgrade
+            </Button>
+          </div>
+        </div>
+      )
+    }
+
+    if (upgradeState === 'upgrading' && isActive) {
+      return (
+        <div className={`${bgColor} border ${borderColor} rounded-xl p-4 flex items-center justify-center gap-2`}>
+          <Spinner size="sm" />
+          <span className="text-sm text-neutral-400">Upgrading your plan...</span>
+        </div>
+      )
+    }
+
+    return null
   }
 
   return (
@@ -251,73 +363,26 @@ export default function PlanOverview({
         </div>
       )}
 
-      {is28Day && !subscription.cancelAtPeriodEnd && (
-        <div className="mb-6">
-          {upgradeState === 'idle' && (
-            <div className="bg-[#39FF14]/5 border border-[#39FF14]/20 rounded-xl p-4 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-white">Switch to Annual</p>
-                <p className="text-xs text-neutral-400">
-                  {formatPrice(annualPrice)}/year
-                </p>
-              </div>
-              <Button variant="primary" size="sm" onClick={handleUpgradeClick}>
-                Upgrade to Annual
-                <ArrowUpRight className="w-4 h-4 ml-1" />
-              </Button>
-            </div>
+      {!subscription.cancelAtPeriodEnd && (
+        <div className="space-y-3 mb-6">
+          {is28Day && renderUpgradeBlock(
+            'annual',
+            'Switch to Annual',
+            `${formatPrice(annualFallbackPrice)}/year`,
+            'Upgrade to Annual',
+            <ArrowUpRight className="w-4 h-4 ml-1" />,
+            'border-[#39FF14]/20',
+            'bg-[#39FF14]/5',
           )}
 
-          {upgradeState === 'previewing' && (
-            <div className="bg-[#39FF14]/5 border border-[#39FF14]/20 rounded-xl p-4 flex items-center justify-center gap-2">
-              <Spinner size="sm" />
-              <span className="text-sm text-neutral-400">Calculating upgrade cost...</span>
-            </div>
-          )}
-
-          {upgradeState === 'confirming' && prorationPreview && (
-            <div className="bg-[#39FF14]/5 border border-[#39FF14]/20 rounded-xl p-4">
-              <p className="text-sm font-medium text-white mb-2">Upgrade Summary</p>
-              {prorationPreview.lines.map((line, i) => (
-                <div key={i} className="flex justify-between text-xs text-neutral-400 mb-1">
-                  <span className="truncate mr-4">{line.description}</span>
-                  <span className={line.amount < 0 ? 'text-green-400' : ''}>
-                    {line.amount < 0 ? '-' : ''}{formatPrice(Math.abs(line.amount))}
-                  </span>
-                </div>
-              ))}
-              <div className="flex justify-between text-sm font-medium text-white mt-2 pt-2 border-t border-neutral-800">
-                <span>Due today</span>
-                <span>
-                  {prorationPreview.immediateAmount > 0
-                    ? formatPrice(prorationPreview.immediateAmount)
-                    : 'Credit applied'}
-                </span>
-              </div>
-              <p className="text-xs text-neutral-500 mt-2">
-                Then {formatPrice(annualPrice)}/year going forward.
-              </p>
-              <div className="flex gap-2 mt-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => { setUpgradeState('idle'); setProrationPreview(null) }}
-                >
-                  Cancel
-                </Button>
-                <Button variant="primary" size="sm" className="flex-1" onClick={handleUpgradeConfirm}>
-                  Confirm Upgrade
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {upgradeState === 'upgrading' && (
-            <div className="bg-[#39FF14]/5 border border-[#39FF14]/20 rounded-xl p-4 flex items-center justify-center gap-2">
-              <Spinner size="sm" />
-              <span className="text-sm text-neutral-400">Upgrading your plan...</span>
-            </div>
+          {isSoloPlan && renderUpgradeBlock(
+            'household',
+            'Switch to Household',
+            `${formatPrice(householdFallbackPrice)}${is28Day ? '/28 days' : '/year'} \u00b7 2 members included`,
+            'Upgrade to Household',
+            <Users className="w-4 h-4 ml-1" />,
+            'border-[#00FFFF]/20',
+            'bg-[#00FFFF]/5',
           )}
         </div>
       )}

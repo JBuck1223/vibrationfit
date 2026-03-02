@@ -148,7 +148,7 @@ export const INTAKE_QUESTIONS: IntakeQuestion[] = [
     type: 'rating',
     label: 'Journey Capturing',
     questionPre: 'How well are you capturing your conscious creation journey (thoughts, synchronicities, patterns) over time?',
-    questionPost: 'How well are you capturing your conscious creation journey (thoughts, synchronicities, patterns) over time?',
+    questionPost: 'Do you feel equipped to capture your conscious creation journey, thoughts, synchronicity patterns, over time?',
     min: 0,
     max: 10,
     showInPre: true,

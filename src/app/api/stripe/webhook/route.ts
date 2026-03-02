@@ -338,7 +338,10 @@ export async function POST(request: NextRequest) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
         
-        if (session.mode === 'subscription') {
+        // Check if this is an intensive combined checkout (handled by block 3 below)
+        const isIntensiveCombined = session.metadata?.product_type === 'combined_intensive_continuity'
+        
+        if (session.mode === 'subscription' && !isIntensiveCombined) {
           const subscriptionId = session.subscription as string
           const customerId = session.customer as string
           const userId = session.metadata?.user_id
@@ -557,10 +560,10 @@ export async function POST(request: NextRequest) {
           })
         }
         
-        // Handle $499 Vision Activation Intensive purchases (standalone or combined)
-        // This handles both standalone intensive purchases AND combined checkout (full payment mode)
-        if ((session.mode === 'payment' && session.metadata?.purchase_type === 'intensive') ||
-            (session.mode === 'payment' && session.metadata?.product_type === 'combined_intensive_continuity')) {
+        // Handle standalone intensive purchases ONLY (no continuity plan)
+        // Combined intensive + Vision Pro is handled by block 3 below
+        if (session.mode === 'payment' && session.metadata?.purchase_type === 'intensive' &&
+            session.metadata?.product_type !== 'combined_intensive_continuity') {
           const existingUserId = session.metadata.user_id
           const paymentPlan = session.metadata.payment_plan || 'full'
           const customerEmail = session.customer_details?.email
@@ -779,8 +782,8 @@ export async function POST(request: NextRequest) {
 
                 console.log('✅ Vision Pro subscription created:', visionProSubscription.id)
 
-                // Create subscription record
-                const { data: newSubscription } = await supabase.from('customer_subscriptions').insert({
+                // Create subscription record (use admin client to bypass RLS in webhook context)
+                const { data: newSubscription, error: subInsertError } = await supabaseAdmin.from('customer_subscriptions').insert({
                   user_id: userId,
                   membership_tier_id: tier.id,
                   stripe_customer_id: customerId,
@@ -794,6 +797,12 @@ export async function POST(request: NextRequest) {
                 })
                 .select()
                 .single()
+
+                if (subInsertError) {
+                  console.error('❌ Failed to create customer_subscriptions record (block2):', subInsertError)
+                } else {
+                  console.log('✅ customer_subscriptions record created:', newSubscription?.id)
+                }
 
                 await supabaseAdmin.from('user_accounts').update({
                   membership_tier_id: tier.id,
@@ -1093,7 +1102,8 @@ export async function POST(request: NextRequest) {
             subscriptionId = visionProSubId
             
             // Create subscription record using Vision Pro subscription (has 56-day trial)
-            const { data: newSubscription } = await supabase.from('customer_subscriptions').insert({
+            // Use admin client to bypass RLS in webhook context
+            const { data: newSubscription, error: subInsertError } = await supabaseAdmin.from('customer_subscriptions').insert({
               user_id: userId,
               membership_tier_id: tier.id,
               stripe_customer_id: customerId,
@@ -1108,7 +1118,11 @@ export async function POST(request: NextRequest) {
             .select()
             .single()
 
-            console.log('✅ Vision Pro subscription record created:', visionProSubId)
+            if (subInsertError) {
+              console.error('❌ Failed to create customer_subscriptions record (block3):', subInsertError)
+            } else {
+              console.log('✅ Vision Pro subscription record created:', visionProSubId)
+            }
             customerSubscriptionId = newSubscription?.id || null
 
             await supabaseAdmin.from('user_accounts').update({
@@ -1905,7 +1919,8 @@ export async function POST(request: NextRequest) {
 
                 console.log('Vision Pro subscription created:', visionProSubscription.id)
 
-                const { data: newSubscription } = await supabase.from('customer_subscriptions').insert({
+                // Use admin client to bypass RLS in webhook context
+                const { data: newSubscription, error: subInsertError } = await supabaseAdmin.from('customer_subscriptions').insert({
                   user_id: userId,
                   membership_tier_id: tier.id,
                   stripe_customer_id: customerId,
@@ -1921,6 +1936,12 @@ export async function POST(request: NextRequest) {
                 })
                 .select()
                 .single()
+
+                if (subInsertError) {
+                  console.error('❌ Failed to create customer_subscriptions record (payment_intent.succeeded):', subInsertError)
+                } else {
+                  console.log('✅ customer_subscriptions record created:', newSubscription?.id)
+                }
 
                 await supabaseAdmin.from('user_accounts').update({
                   membership_tier_id: tier.id,
