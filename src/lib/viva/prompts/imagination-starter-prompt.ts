@@ -1,16 +1,16 @@
 /**
  * Imagination Starter Prompt
  * 
- * Generates a draft "Get Me Started" text for the imagination step.
+ * Generates activated, present-tense imagination text for the vision builder.
  * Uses raw profile data (state) and category-specific facts
- * to create a starting point the user can edit and expand.
+ * to create vision text the user can personalize.
  * 
  * KEY PHILOSOPHY:
- * - Use their RAW language (no pre-processed AI content)
- * - Identify challenges from state and flip to positive WITHIN this prompt
- * - Output is meant to be EDITED, not final
- * - Leave room for expansion - don't be "complete"
- * - Natural, conversational voice they'll want to personalize
+ * - Use their RAW details (names, places, activities) — not pre-processed AI content
+ * - Transform all challenges into present-tense declarations
+ * - Output is powerful and activated — no questions, no hedging, no weak endings
+ * - Declarative, certain, embodied — as if this life already exists
+ * - Natural, confident voice grounded in their real specifics
  * 
  * Used by: /api/viva/imagination-starter
  */
@@ -159,7 +159,7 @@ export function buildImaginationStarterPrompt(
   const questionCount = richness === 'minimal' ? 2 : richness === 'moderate' ? 3 : 4
   const selectedQuestions = inspirationQuestions.slice(0, questionCount).join('\n- ')
   
-  return `You are helping someone write their ideal ${categoryLabel} life vision. Generate a DRAFT starting point they will EDIT and EXPAND.
+  return `You are helping someone write their ideal ${categoryLabel} life vision. Generate activated, present-tense vision text they can personalize.
 
 PERSPECTIVE: ${pronoun}
 CATEGORY: ${categoryLabel}
@@ -172,12 +172,13 @@ RAW INPUT FROM THEIR PROFILE (use their words and details)
 ${stateText ? `CURRENT STATE (their description of where they are now):
 "${stateText}"
 
-Use their current state to understand what's working and what they want to change.
-Transform challenges into positive vision while preserving what's already good.
+Mine this for: real details (names, places, activities, relationships, specifics).
+Transform ALL challenges, frustrations, and gaps into pure present-tense vision.
+Preserve what's already working — amplify it with vivid, embodied language.
 ` : ''}${profileContext ? `GROUNDING FACTS:
 ${profileContext}
 
-` : ''}${selectedQuestions ? `INSPIRATION QUESTIONS (weave themes naturally):
+` : ''}${selectedQuestions ? `INSPIRATION THEMES (weave naturally as statements, NOT as questions):
 - ${selectedQuestions}
 
 ` : ''}═══════════════════════════════════════════════════════════════
@@ -191,25 +192,39 @@ ${lengthGuidance}
 Do NOT compress their ideas. If they wrote about multiple topics, address each one.
 Do NOT pad with generic filler if input is brief.
 
-Write a DRAFT imagination text that:
+Write activated imagination text that:
 
-1. USES THEIR WORDS - borrow phrasing from their state description heavily
-2. FLIPS CHALLENGES TO POSITIVE - identify challenges from their state description and transform to positive
+1. USES THEIR DETAILS - borrow specific names, places, activities from their state description
+2. TRANSFORMS CHALLENGES INTO REALITY - every complaint or gap becomes something they HAVE now
 3. GROUNDS IN FACTS - use their actual details (names, places, numbers)
-4. PRESENT TENSE - everything is happening NOW
-5. LEAVES ROOM - this is a starting point, not a finished vision
+4. PRESENT TENSE ONLY - everything IS happening. Not "will happen" or "I want" — it IS.
+5. DECLARES, NEVER ASKS - no questions, no wondering, no "what if"
 
 VOICE GUIDELINES:
-- Conversational and warm, not formal or "vision-y"
-- Mix short punchy statements with flowing descriptions
-- Include sensory details where natural (what they see, feel, hear)
-- Avoid generic phrases like "I am grateful for..." or "I manifest..."
-- Sound like a friend describing their amazing life, not an affirmation
+- Confident and warm, not formal or "vision-y"
+- Mix short punchy declarative lines with vivid sensory descriptions
+- Include sensory details (what they see, feel, hear, taste, smell)
+- Avoid: "I am grateful for..." / "I manifest..." / "I'm learning to..." / "I wonder..."
+- Sound like someone describing their ACTUAL incredible life with certainty and satisfaction
 
-CRITICAL - THIS IS A DRAFT:
-- Don't try to be "complete" - leave threads they'll want to expand
-- Include a question or two they might want to answer (e.g., "...and [what else brings me joy?]")
-- Make it good enough to excite them, imperfect enough they'll want to add their voice
+═══════════════════════════════════════════════════════════════
+LANGUAGE RULES (HARD — VIOLATE NONE)
+═══════════════════════════════════════════════════════════════
 
-OUTPUT: Just the draft text. No headers, labels, or explanations.`
+NEVER INCLUDE:
+- Questions of any kind (no "?", no "what else...", no "how can I...", no "I wonder...")
+- Comparison to past/before ("I no longer...", "unlike before...", "I used to...")
+- Hedging ("sometimes", "I'm learning", "I'm finding", "I'm starting to")
+- Future/wanting ("I will", "I want", "I hope", "someday", "I'm excited to see where...")
+- Weak closings ("This is just the beginning", "I can't wait to see what unfolds")
+- "Of course..." / "However..." / "But..." / "Despite..."
+- "It's not about X, it's about Y" — just say Y
+
+ALWAYS:
+- Present tense declarations: "I have", "I am", "I feel", "I choose", "I live"
+- Specific and sensory: sounds, textures, smells, temperatures, colors
+- End with ONE powerful sentence that locks in the feeling — a mic drop, not a trailing thought
+- Every sentence passes this test: "Would someone who already HAS this life say it this way?"
+
+OUTPUT: Just the vision text. No headers, labels, or explanations.`
 }

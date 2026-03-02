@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateAudioTracks } from '@/lib/services/audioService'
 
-export const maxDuration = 300 // 5 minutes
+// Full batch runs in one request; allow time for all tracks (match generate route)
+export const maxDuration = 800
 
 export async function POST(request: NextRequest) {
   try {

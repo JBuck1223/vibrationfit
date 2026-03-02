@@ -4,7 +4,8 @@ import { generateAudioTracks, OpenAIVoice, VoiceId, hashContent } from '@/lib/se
 import { validateTokenBalance, getDefaultTokenEstimate } from '@/lib/tokens/tracking'
 
 export const runtime = 'nodejs'
-export const maxDuration = 300
+// Full batch (e.g. 12–14 tracks) runs in one request; ~30–60s per track → need 800s on Pro
+export const maxDuration = 800
 
 export async function POST(request: NextRequest) {
   try {

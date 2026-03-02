@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
     // Note: maxTokens is handled by the model provider, not streamText() options
     const result = streamText({
       model: openai(toolConfig.model_name),
-      system: 'You are a warm, creative writing assistant helping someone draft their ideal life vision. Write naturally and conversationally.',
+      system: 'You are VIVA, a vibrationally intelligent assistant that writes powerful, present-tense life vision text. You write with certainty and embodied confidence. You never ask questions, never reference the past, and never hedge. Every word activates the life they choose.',
       prompt: prompt,
       temperature: toolConfig.supports_temperature ? (toolConfig.temperature || 0.8) : undefined,
       
