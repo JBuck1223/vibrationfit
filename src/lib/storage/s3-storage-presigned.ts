@@ -770,7 +770,11 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
     },
   }
 
-  const { maxSize, types } = rules[folder]
+  const folderRules = (rules as Record<string, { maxSize: number; types: string[] }>)[folder]
+  if (!folderRules) {
+    return { valid: false, error: `Unknown folder: ${folder}` }
+  }
+  const { maxSize, types } = folderRules
 
   if (file.size > maxSize) {
     return { valid: false, error: `File too large. Max: ${maxSize / 1024 / 1024}MB` }
