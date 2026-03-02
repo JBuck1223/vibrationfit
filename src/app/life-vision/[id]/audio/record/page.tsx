@@ -33,6 +33,7 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
   const [activeSection, setActiveSection] = useState<string>('forward')
   const [creatingFullTrack, setCreatingFullTrack] = useState(false)
   const [hasFullTrack, setHasFullTrack] = useState(false)
+  const [intensiveId, setIntensiveId] = useState<string | null>(null)
 
   useEffect(() => {
     ;(async () => {
@@ -48,6 +49,20 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
 
   async function loadData() {
     const supabase = createClient()
+
+    // Check if user is in an active intensive
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const { data: checklist } = await supabase
+        .from('intensive_checklist')
+        .select('intensive_id')
+        .eq('user_id', user.id)
+        .in('status', ['pending', 'in_progress'])
+        .maybeSingle()
+      if (checklist) {
+        setIntensiveId(checklist.intensive_id)
+      }
+    }
 
     // Load vision
     const { data: v } = await supabase
@@ -225,6 +240,17 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
         })
 
       if (trackError) throw trackError
+
+      // Mark Step 8 complete on intensive checklist (first recording is sufficient)
+      if (intensiveId && recordings.size === 0) {
+        await supabase
+          .from('intensive_checklist')
+          .update({
+            voice_recording_completed: true,
+            voice_recording_completed_at: new Date().toISOString()
+          })
+          .eq('intensive_id', intensiveId)
+      }
 
       // Update local state
       setRecordings(new Map(recordings.set(sectionKey, { url: s3Url, duration })))

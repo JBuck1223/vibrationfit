@@ -23,7 +23,7 @@ const STEP_DEFINITIONS = [
   { step: 5, name: 'Build Vision', checklistField: 'vision_built' },
   { step: 6, name: 'Refine Vision', checklistField: 'vision_refined' },
   { step: 7, name: 'Generate Audio', checklistField: 'audio_generated' },
-  { step: 8, name: 'Record Voice', checklistField: 'audio_generated' }, // Optional, shares with 7
+  { step: 8, name: 'Record Voice', checklistField: 'voice_recording_completed' },
   { step: 9, name: 'Audio Mix', checklistField: 'audios_generated' },
   { step: 10, name: 'Vision Board', checklistField: 'vision_board_completed' },
   { step: 11, name: 'Journal', checklistField: 'first_journal_entry' },
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
         await advanceStep7_GenerateAudio(adminClient, userId, now)
         break
       case 8:
-        // Step 8 is optional and shares completion with step 7
+        // Step 8 is optional - admin advance marks it as completed (recorded)
         break
       case 9:
         await advanceStep9_AudioMix(adminClient, userId, now)
@@ -924,7 +924,7 @@ export async function GET(request: NextRequest) {
       step5: !!checklist.vision_built,
       step6: !!checklist.vision_refined,
       step7: !!checklist.audio_generated,
-      step8: !!checklist.audio_generated, // Shares with 7
+      step8: !!checklist.voice_recording_completed || !!checklist.voice_recording_skipped,
       step9: !!checklist.audios_generated,
       step10: !!checklist.vision_board_completed,
       step11: !!checklist.first_journal_entry,

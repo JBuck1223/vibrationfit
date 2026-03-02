@@ -35,6 +35,7 @@ import {
   Button, 
   Badge, 
   Spinner,
+  SaveButton,
   Textarea,
   AutoResizeTextarea,
   Icon,
@@ -58,6 +59,7 @@ import {
   getDraftCategories
 } from '@/lib/life-vision/draft-helpers'
 import { calculateVersionNumber } from '@/lib/life-vision/version-helpers'
+import { getRefinementHistory } from '@/lib/life-vision/refinement-helpers'
 
 interface VisionData {
   id: string
@@ -292,6 +294,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const [initializationStep, setInitializationStep] = useState<string>('')
   const chatEndRef = useRef<HTMLDivElement>(null)
   const previousCategoryRef = useRef<string | null>(null)
+  const selectedCategoryRef = useRef<string | null>(null)
   const [availableConversations, setAvailableConversations] = useState<any[]>([])
   const [showConversationSelector, setShowConversationSelector] = useState(false)
   const isLoadingConversationRef = useRef(false)
@@ -588,6 +591,29 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       }
     }
   }, [searchParams, draftVision, vision])
+
+  // Load Add/Remove lists from last saved refinement when selecting a category (so they show when you return)
+  useEffect(() => {
+    if (!draftVision?.id || !selectedCategory) return
+
+    selectedCategoryRef.current = selectedCategory
+    const categoryToLoad = selectedCategory
+    getRefinementHistory(draftVision.id, categoryToLoad)
+      .then((history) => {
+        const latest = history[0]
+        if (!latest?.refinement_inputs) return
+        const add = latest.refinement_inputs.add ?? []
+        const remove = latest.refinement_inputs.remove ?? []
+        if (add.length === 0 && remove.length === 0) return
+        // Only update if user is still on this category (avoid race when switching fast)
+        const stillSelected = selectedCategoryRef.current === categoryToLoad
+        if (stillSelected) {
+          setAddItemsByCategory((prev) => ({ ...prev, [categoryToLoad]: add }))
+          setRemoveItemsByCategory((prev) => ({ ...prev, [categoryToLoad]: remove }))
+        }
+      })
+      .catch((err) => console.error('Load refinement add/remove for category:', err))
+  }, [draftVision?.id, selectedCategory])
 
   // Reset chat when category changes AND look up existing conversation
   useEffect(() => {
@@ -1606,7 +1632,11 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                   selectionStyle="border"
                   iconColor={isRefined ? colors.energy.yellow[500] : (selectedCategory === category.key ? "#39FF14" : "#FFFFFF")}
                   selectedIconColor={isRefined ? colors.energy.yellow[500] : "#39FF14"}
-                  className={selectedCategory === category.key ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : ''}
+                  className={selectedCategory === category.key
+                    ? isRefined
+                      ? '!bg-[#FFFF00]/20 !border-[#FFFF00]/30 hover:!bg-[#FFFF00]/10'
+                      : '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]'
+                    : ''}
                   onClick={() => {
                     setSelectedCategory(category.key)
                     
@@ -1640,8 +1670,8 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       {selectedCategory && (
         <div className="space-y-6">
           <Card>
-            <div className={`flex items-center justify-between ${showVivaRefine ? 'mb-6' : ''}`}>
-              <div className="flex items-center gap-3">
+            <div className={`flex flex-col gap-3 md:flex-row md:items-center md:justify-between ${showVivaRefine ? 'mb-6' : ''}`}>
+              <div className="flex flex-col items-center text-center md:flex-row md:items-center md:gap-3 md:text-left">
                 <div className="hidden md:flex w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center shrink-0">
                   <Wand2 className="w-5 h-5 text-white" />
                 </div>
@@ -1656,7 +1686,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                 onClick={() => setShowVivaRefine(!showVivaRefine)}
                 variant="outline"
                 size="sm"
-                className="flex items-center gap-2"
+                className="flex items-center justify-center gap-2 self-center md:self-auto"
               >
                 {showVivaRefine ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                 {showVivaRefine ? 'Hide' : 'Show'} Tool
@@ -2108,20 +2138,20 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                 
                 {/* Centered Save Button */}
                 <div className="flex justify-center mt-4 md:mt-5 lg:mt-6">
-                  <Button
+                  <SaveButton
+                    saveLabel="Save Refinement"
+                    hasUnsavedChanges={
+                      !!(
+                        selectedCategory &&
+                        draftVision &&
+                        currentRefinement.trim() !==
+                          ((draftVision[selectedCategory as keyof VisionData] as string) || '').trim()
+                      )
+                    }
+                    isSaving={isDraftSaving}
                     onClick={saveDraft}
-                    disabled={isDraftSaving}
-                    variant="accent"
-                    size="sm"
-                    className="flex items-center gap-2"
-                  >
-                    {isDraftSaving ? (
-                      <Spinner variant="secondary" size="sm" />
-                    ) : (
-                      <Save className="w-4 h-4" />
-                    )}
-                    Save Refinement
-                  </Button>
+                    disabled={!selectedCategory || !draftVision || !currentRefinement.trim()}
+                  />
                 </div>
               </Card>
             </div>

@@ -343,23 +343,15 @@ export default function VisionBoardIdeasPage() {
   }
 
   const renderSuggestionsSection = () => (
-    <>
+    <Stack gap="lg">
       {/* Selection Counter and Add Button */}
-      <Card className="p-4 sticky top-4 z-10 bg-[#1F1F1F]/95 backdrop-blur-sm border-primary-500/20">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Badge variant="info" className="text-base px-4 py-2">
-              {selectedItems.size} selected
-            </Badge>
-            <span className="text-sm text-neutral-400">
-              Choose items to add to your vision board
-            </span>
-          </div>
+      <Card className="p-6 md:p-8 sticky top-4 z-10 bg-[#1F1F1F]/95 backdrop-blur-sm border-primary-500/20">
+        <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:justify-end">
           <Button
             onClick={handleAddToBoard}
             disabled={selectedItems.size === 0 || addingToBoard}
             variant="primary"
-            className="gap-2"
+            className="gap-2 w-full sm:w-auto justify-center"
           >
             {addingToBoard ? (
               <>
@@ -379,7 +371,7 @@ export default function VisionBoardIdeasPage() {
       {/* Suggestions by Category */}
       <Stack gap="lg">
         {visionSuggestions.map((categoryData) => (
-          <Card key={categoryData.category} className="p-6">
+          <Card key={categoryData.category} className="p-6 md:p-8">
             <Stack gap="md">
               <div className="flex items-center gap-3 mb-4 flex-wrap">
                 <h3 className="text-xl font-semibold text-white">
@@ -462,23 +454,20 @@ export default function VisionBoardIdeasPage() {
       </Stack>
 
       {/* Bottom Add Button */}
-      <Card className="p-4 bg-[#1F1F1F]/95">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-neutral-400">
-            {selectedItems.size} items selected
-          </span>
+      <Card className="p-6 md:p-8 bg-[#1F1F1F]/95">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-4">
           <Button
             onClick={handleAddToBoard}
             disabled={selectedItems.size === 0 || addingToBoard}
             variant="primary"
-            className="gap-2"
+            className="gap-2 w-full sm:w-auto justify-center"
           >
             <Plus className="w-4 h-4" />
             Add to Board ({selectedItems.size})
           </Button>
         </div>
       </Card>
-    </>
+    </Stack>
   )
 
   // Initial state - before generation or with existing suggestions
@@ -502,7 +491,7 @@ export default function VisionBoardIdeasPage() {
             )}
           </PageHero>
           
-          <Card className="p-6">
+          <Card className="p-6 md:p-8">
             <Stack gap="md">
               <div className="text-center">
                 <h3 className="text-lg font-semibold text-white mb-2">
@@ -529,12 +518,12 @@ export default function VisionBoardIdeasPage() {
                 </div>
               )}
 
-              <div className="flex gap-3 justify-center pt-4">
+              <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
                 <Button 
                   onClick={fetchVisionAndGenerateSuggestions} 
                   variant="primary"
                   size="lg"
-                  className="gap-2"
+                  className="gap-2 w-full sm:w-auto justify-center"
                   disabled={selectedCategories.length === 0}
                 >
                   <Sparkles className="w-5 h-5" />
@@ -543,11 +532,11 @@ export default function VisionBoardIdeasPage() {
                 {visionSuggestions.length > 0 && (
                   <Button 
                     onClick={() => {
-                      // Scroll to suggestions
                       document.getElementById('suggestions')?.scrollIntoView({ behavior: 'smooth' })
                     }}
                     variant="outline"
                     size="lg"
+                    className="w-full sm:w-auto justify-center"
                   >
                     View Existing Suggestions
                   </Button>
@@ -558,10 +547,10 @@ export default function VisionBoardIdeasPage() {
 
           {/* Show existing suggestions if any */}
           {visionSuggestions.length > 0 && (
-            <>
+            <div>
               <div id="suggestions" className="scroll-mt-8" />
               {renderSuggestionsSection()}
-            </>
+            </div>
           )}
         </Stack>
       </Container>

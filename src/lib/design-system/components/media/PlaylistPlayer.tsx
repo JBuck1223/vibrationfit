@@ -324,13 +324,18 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
                   className="bg-[#2A2A2A] text-white px-3 py-1 rounded-lg text-lg font-semibold text-center focus:outline-none focus:ring-2 focus:ring-primary-500 max-w-md"
                 />
               ) : (
-                <div className="relative group/title">
-                  <h3 className="text-white font-semibold text-lg text-center">
+                <div
+                  className="relative group/title"
+                  onClick={onRename ? handleStartEdit : undefined}
+                  role={onRename ? 'button' : undefined}
+                  tabIndex={onRename ? 0 : undefined}
+                >
+                  <h3 className={`text-white font-semibold text-lg text-center${onRename ? ' cursor-pointer' : ''}`}>
                     {setName}
                   </h3>
                   {onRename && (
                     <Edit2
-                      className="w-4 h-4 text-neutral-400 hover:text-white cursor-pointer opacity-0 group-hover/title:opacity-100 transition-opacity absolute top-1/2 -translate-y-1/2 -right-6"
+                      className="w-4 h-4 text-neutral-400 hover:text-white cursor-pointer opacity-100 md:opacity-0 md:group-hover/title:opacity-100 transition-opacity absolute top-1/2 -translate-y-1/2 -right-6"
                       onClick={handleStartEdit}
                     />
                   )}

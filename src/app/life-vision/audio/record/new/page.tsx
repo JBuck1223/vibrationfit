@@ -53,7 +53,7 @@ export default function AudioRecordNewPage() {
       // Check if in intensive mode
       const { data: checklist } = await supabase
         .from('intensive_checklist')
-        .select('id, intensive_id, audio_generated, audio_generated_at, voice_recording_skipped, voice_recording_skipped_at')
+        .select('id, intensive_id, audio_generated, audio_generated_at, voice_recording_completed, voice_recording_completed_at, voice_recording_skipped, voice_recording_skipped_at')
         .eq('user_id', user.id)
         .in('status', ['pending', 'in_progress'])
         .maybeSingle()
@@ -62,39 +62,14 @@ export default function AudioRecordNewPage() {
         setIsIntensiveMode(true)
         setIntensiveId(checklist.intensive_id)
         
-        // Check if user already skipped this step
-        if (checklist.voice_recording_skipped) {
+        if (checklist.voice_recording_completed) {
+          setIsAlreadyCompleted(true)
+          setHasActualRecordings(true)
+          setCompletedAt(checklist.voice_recording_completed_at)
+        } else if (checklist.voice_recording_skipped) {
           setIsAlreadyCompleted(true)
           setWasSkipped(true)
           setCompletedAt(checklist.voice_recording_skipped_at)
-        }
-      }
-
-      // Check for actual user voice recordings (Step 8 is complete if user recorded OR skipped)
-      const { count: voiceRecordingCount } = await supabase
-        .from('audio_tracks')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('voice_id', 'user_voice')
-        .eq('status', 'completed')
-      
-      if ((voiceRecordingCount || 0) > 0) {
-        setIsAlreadyCompleted(true)
-        setHasActualRecordings(true)
-        setWasSkipped(false) // Override skipped if they have actual recordings
-        // Use the most recent recording date as completion date
-        const { data: latestRecording } = await supabase
-          .from('audio_tracks')
-          .select('created_at')
-          .eq('user_id', user.id)
-          .eq('voice_id', 'user_voice')
-          .eq('status', 'completed')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single()
-        
-        if (latestRecording) {
-          setCompletedAt(latestRecording.created_at)
         }
       }
 

@@ -84,6 +84,8 @@ interface IntensiveChecklist {
   // Phase 4: Audio (Steps 7-9)
   audio_generated: boolean
   audio_generated_at: string | null
+  voice_recording_completed: boolean
+  voice_recording_completed_at: string | null
   voice_recording_skipped: boolean
   voice_recording_skipped_at: string | null
   audios_generated: boolean
@@ -133,9 +135,10 @@ function IntensiveDashboardContent() {
   const [timeRemaining, setTimeRemaining] = useState<string>('')
   const [hoursRemaining, setHoursRemaining] = useState<number>(72)
   const [settingsComplete, setSettingsComplete] = useState(false) // Step 1 from user_accounts
-  const [hasVoiceRecordings, setHasVoiceRecordings] = useState(false) // Step 8: actual user voice recordings
+  const [settingsCompletedAt, setSettingsCompletedAt] = useState<string | null>(null)
   const [assessmentInProgressId, setAssessmentInProgressId] = useState<string | null>(null)
   const [assessmentLatestCompletedId, setAssessmentLatestCompletedId] = useState<string | null>(null)
+  const [activeVisionId, setActiveVisionId] = useState<string | null>(null)
   const toastShownRef = useRef(false) // Prevent duplicate toasts
 
   useEffect(() => {
@@ -233,7 +236,7 @@ function IntensiveDashboardContent() {
       // Check Step 1 (Settings) completion from user_accounts
       const { data: accountData } = await supabase
         .from('user_accounts')
-        .select('first_name, last_name, email, phone, profile_picture_url')
+        .select('first_name, last_name, email, phone, profile_picture_url, updated_at')
         .eq('id', user.id)
         .single()
 
@@ -242,8 +245,11 @@ function IntensiveDashboardContent() {
         const hasLastName = !!accountData.last_name?.trim()
         const hasEmail = !!accountData.email?.trim()
         const hasPhone = !!accountData.phone?.trim()
-        // Profile picture is optional but tracked
-        setSettingsComplete(hasFirstName && hasLastName && hasEmail && hasPhone)
+        const isComplete = hasFirstName && hasLastName && hasEmail && hasPhone
+        setSettingsComplete(isComplete)
+        if (isComplete && accountData.updated_at) {
+          setSettingsCompletedAt(accountData.updated_at)
+        }
       }
 
       // Get active intensive checklist (source of truth)
@@ -285,6 +291,8 @@ function IntensiveDashboardContent() {
             vision_refined_at: showComplete ? mockTimestamp : null,
             audio_generated: showComplete ? true : false,
             audio_generated_at: showComplete ? mockTimestamp : null,
+            voice_recording_completed: showComplete ? true : false,
+            voice_recording_completed_at: showComplete ? mockTimestamp : null,
             audios_generated: showComplete ? true : false,
             audios_generated_at: showComplete ? mockTimestamp : null,
             vision_board_completed: showComplete ? true : false,
@@ -337,16 +345,16 @@ function IntensiveDashboardContent() {
         setIntensive(intensiveData)
       }
 
-      // Check for actual user voice recordings (Step 8)
-      // User recordings have voice_id = 'user_voice'
-      const { count: voiceRecordingCount } = await supabase
-        .from('audio_tracks')
-        .select('*', { count: 'exact', head: true })
+      // Active life vision ID for View links (e.g. Generate Vision Audio -> audio sets)
+      const { data: activeVision } = await supabase
+        .from('vision_versions')
+        .select('id')
         .eq('user_id', user.id)
-        .eq('voice_id', 'user_voice')
-        .eq('status', 'completed')
-      
-      setHasVoiceRecordings((voiceRecordingCount || 0) > 0)
+        .eq('is_active', true)
+        .eq('is_draft', false)
+        .is('household_id', null)
+        .maybeSingle()
+      if (activeVision?.id) setActiveVisionId(activeVision.id)
 
       // Verify Vision Board completion (Step 10)
       // If vision_board_completed is false but user has items in all 12 categories, mark complete
@@ -422,6 +430,11 @@ function IntensiveDashboardContent() {
     }
   }
 
+  const parseUtcTimestamp = (ts: string) => {
+    const utc = ts.endsWith('Z') || ts.includes('+') ? ts : ts + 'Z'
+    return new Date(utc)
+  }
+
   // 72 hours in milliseconds
   const INTENSIVE_DURATION_MS = 72 * 60 * 60 * 1000
 
@@ -481,7 +494,7 @@ function IntensiveDashboardContent() {
         icon: Settings,
         phase: 'Setup',
         completed: settingsComplete,
-        completedAt: null,
+        completedAt: settingsCompletedAt,
         href: '/account/settings',
         viewHref: '/account/settings',
         locked: false
@@ -575,7 +588,7 @@ function IntensiveDashboardContent() {
         completed: checklist.audio_generated,
         completedAt: checklist.audio_generated_at,
         href: '/life-vision/audio/generate/new',
-        viewHref: '/life-vision',
+        viewHref: activeVisionId ? `/life-vision/${activeVisionId}/audio/sets` : '/life-vision',
         locked: !checklist.vision_refined
       },
       {
@@ -585,8 +598,8 @@ function IntensiveDashboardContent() {
         description: 'Optionally record sections in your own voice',
         icon: Mic,
         phase: 'Audio',
-        completed: hasVoiceRecordings || checklist.voice_recording_skipped || checklist.audios_generated, // Complete if recorded OR explicitly skipped OR moved past (Step 9 complete)
-        completedAt: hasVoiceRecordings ? checklist.audio_generated_at : checklist.voice_recording_skipped_at,
+        completed: checklist.voice_recording_completed || checklist.voice_recording_skipped || checklist.audios_generated,
+        completedAt: checklist.voice_recording_completed_at || checklist.voice_recording_skipped_at,
         href: '/life-vision/audio/record/new',
         viewHref: '/life-vision',
         locked: !checklist.audio_generated,
@@ -603,7 +616,7 @@ function IntensiveDashboardContent() {
         completedAt: checklist.audios_generated_at,
         href: '/life-vision/audio/mix/new',
         viewHref: '/life-vision',
-        locked: !(hasVoiceRecordings || checklist.voice_recording_skipped)
+        locked: !checklist.audio_generated || !(checklist.voice_recording_completed || checklist.voice_recording_skipped)
       },
       
       // Phase 5: Activation (Steps 10-12)
@@ -955,7 +968,7 @@ function IntensiveDashboardContent() {
                               <p className="text-xs md:text-sm text-neutral-400 mt-1">{step.description}</p>
                               {step.completedAt && (
                                 <p className="text-xs text-primary-500 mt-1">
-                                  Completed {new Date(step.completedAt).toLocaleString()}
+                                  Completed {parseUtcTimestamp(step.completedAt).toLocaleString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                                 </p>
                               )}
                             </div>

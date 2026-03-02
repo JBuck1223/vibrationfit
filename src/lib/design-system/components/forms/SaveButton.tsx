@@ -9,10 +9,18 @@ interface SaveButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElem
   hasUnsavedChanges?: boolean
   isSaving?: boolean
   saveError?: string | null
+  /** Label when there are unsaved changes (default: "Save") */
+  saveLabel?: React.ReactNode
+  /** Label when saved / no unsaved changes (default: "Saved") */
+  savedLabel?: React.ReactNode
+  /** Label while saving (default: "Saving...") */
+  savingLabel?: React.ReactNode
+  /** Label for retry when there was an error (default: "Retry Save") */
+  retryLabel?: React.ReactNode
 }
 
 export const SaveButton = React.forwardRef<HTMLButtonElement, SaveButtonProps>(
-  ({ hasUnsavedChanges = false, isSaving = false, saveError, disabled, className = '', onClick, ...props }, ref) => {
+  ({ hasUnsavedChanges = false, isSaving = false, saveError, saveLabel = 'Save', savedLabel = 'Saved', savingLabel = 'Saving...', retryLabel = 'Retry Save', disabled, className = '', onClick, ...props }, ref) => {
     const primaryGreen = tokens.colors.primary[500]
     const black = tokens.colors.neutral[0]
     const lightGreenBg = `rgba(57, 255, 20, 0.15)`
@@ -91,7 +99,7 @@ export const SaveButton = React.forwardRef<HTMLButtonElement, SaveButtonProps>(
       content = (
         <>
           <AlertCircle className="w-4 h-4" />
-          Retry Save
+          {retryLabel}
         </>
       )
     } else if (isSaving) {
@@ -99,7 +107,7 @@ export const SaveButton = React.forwardRef<HTMLButtonElement, SaveButtonProps>(
       content = (
         <>
           <Loader2 className="w-4 h-4 animate-spin" />
-          Saving...
+          {savingLabel}
         </>
       )
     } else if (justSaved) {
@@ -107,7 +115,7 @@ export const SaveButton = React.forwardRef<HTMLButtonElement, SaveButtonProps>(
       content = (
         <>
           <CheckCircle className="w-4 h-4" />
-          Saved
+          {savedLabel}
         </>
       )
     } else if (hasUnsavedChanges) {
@@ -115,7 +123,7 @@ export const SaveButton = React.forwardRef<HTMLButtonElement, SaveButtonProps>(
       content = (
         <>
           <Save className="w-4 h-4" />
-          Save
+          {saveLabel}
         </>
       )
     } else {
@@ -123,7 +131,7 @@ export const SaveButton = React.forwardRef<HTMLButtonElement, SaveButtonProps>(
       content = (
         <>
           <CheckCircle className="w-4 h-4" />
-          Saved
+          {savedLabel}
         </>
       )
     }
