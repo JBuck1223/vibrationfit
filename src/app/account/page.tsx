@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react'
 import { Container, Stack, PageHero, Card, Button, Spinner } from '@/lib/design-system/components'
-import { User, Settings, Key, CreditCard, Shield, Trash2, ChevronRight, Mail, Phone, Upload } from 'lucide-react'
+import { User, Key, CreditCard, Shield, Trash2, ChevronRight, Mail, Phone, Upload, Pencil } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import NextImage from 'next/image'
@@ -123,13 +123,12 @@ export default function AccountDashboardPage() {
                 />
               )}
             </div>
-            
+
             {/* Account Info */}
             <div className="flex-1 min-w-0">
               <h2 className="text-xl font-bold text-white truncate">
                 {account?.full_name || account?.first_name || 'Welcome'}
               </h2>
-              
               <div className="mt-2 space-y-1">
                 {account?.email && (
                   <div className="flex items-center gap-2 text-sm text-neutral-400">
@@ -145,10 +144,12 @@ export default function AccountDashboardPage() {
                 )}
               </div>
             </div>
+          </div>
 
-            {/* Edit Button */}
+          {/* Edit Button - own line below */}
+          <div className="mt-4 pt-4 border-t border-neutral-800 flex justify-end">
             <Button variant="secondary" size="sm" onClick={() => router.push('/account/settings')}>
-              <Settings className="w-4 h-4 mr-2" />
+              <Pencil className="w-4 h-4 mr-2" />
               Edit
             </Button>
           </div>

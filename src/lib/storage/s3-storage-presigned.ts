@@ -27,6 +27,8 @@ export const USER_FOLDERS = {
   intensiveCalibrationRecordings: 'intensive/calibration-recordings',
   // Vibe Tribe social
   vibeTribe: 'vibe-tribe',
+  // Abundance tracker
+  abundance: 'abundance',
   // Stories (for life vision and vision board)
   storyAudioRecordings: 'stories/audio-recordings',
 } as const

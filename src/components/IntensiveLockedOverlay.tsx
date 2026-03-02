@@ -64,16 +64,8 @@ export function IntensiveLockedOverlay() {
         accountData.email?.trim() && 
         accountData.phone?.trim())
 
-      // Check for actual user voice recordings (Step 8)
-      const { count: voiceRecordingCount } = await supabase
-        .from('audio_tracks')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('voice_id', 'user_voice')
-        .eq('status', 'completed')
-      
-      // Step 8 is complete if user recorded OR skipped
-      const step8Complete = (voiceRecordingCount || 0) > 0 || !!checklist.voice_recording_skipped
+      // Step 8 completion from checklist fields
+      const step8Complete = !!checklist.voice_recording_completed || !!checklist.voice_recording_skipped
 
       // Determine next step (14-step flow)
       const steps = [

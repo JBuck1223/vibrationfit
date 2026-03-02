@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { HelpCircle, Upload, Sparkles } from 'lucide-react'
 import {
   Container,
   Card,
@@ -11,23 +12,25 @@ import {
   Stack,
   DatePicker,
   PageHero,
+  Modal,
+  CategoryCard,
 } from '@/lib/design-system/components'
+import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
+import { FileUpload } from '@/components/FileUpload'
+import { AIImageGenerator } from '@/components/AIImageGenerator'
+import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
+import { createClient } from '@/lib/supabase/client'
+import { colors } from '@/lib/design-system/tokens'
 
 const VALUE_TYPES = [
   { value: 'money', label: 'Money' },
   { value: 'value', label: 'Value (intangible)' },
 ]
 
-const VISION_CATEGORY_OPTIONS = [
-  { value: 'money', label: 'Money & Wealth' },
-  { value: 'work', label: 'Business & Work' },
-  { value: 'social', label: 'Social & Friendship' },
-  { value: 'family', label: 'Family & Parenting' },
-  { value: 'love', label: 'Love & Partnership' },
-  { value: 'fun', label: 'Fun & Recreation' },
-  { value: 'health', label: 'Health & Vitality' },
-  { value: 'spirituality', label: 'Expansion & Spirituality' },
-]
+// Same 12 life categories as vibe-tribe (exclude forward & conclusion)
+const visionCategoriesForAbundance = VISION_CATEGORIES.filter(
+  (cat) => cat.key !== 'forward' && cat.key !== 'conclusion'
+).sort((a, b) => a.order - b.order)
 
 const ENTRY_CATEGORY_OPTIONS = [
   { value: 'gift', label: 'Gift' },
@@ -38,6 +41,29 @@ const ENTRY_CATEGORY_OPTIONS = [
   { value: 'support', label: 'Support / Kindness' },
   { value: 'synchronicity', label: 'Synchronicity' },
 ]
+
+function formatAmountWithCommas(value: string): string {
+  if (!value) return ''
+  const stripped = value.replace(/,/g, '')
+  const parts = stripped.split('.')
+  const intPart = parts[0].replace(/\D/g, '') || '0'
+  const decPart = parts[1]?.replace(/\D/g, '').slice(0, 2) ?? ''
+  const withCommas = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  const formatted = decPart ? `${withCommas}.${decPart}` : withCommas
+  return stripped.endsWith('.') ? `${formatted}.` : formatted
+}
+
+function parseAmountInput(value: string): string {
+  if (!value) return ''
+  const stripped = value.replace(/,/g, '')
+  const parts = stripped.split('.')
+  const intPart = parts[0].replace(/\D/g, '') || '0'
+  const decPart = parts[1]?.replace(/\D/g, '').slice(0, 2) ?? ''
+  const hasTrailingDot = stripped.endsWith('.')
+  if (decPart) return `${intPart}.${decPart}`
+  if (hasTrailingDot) return `${intPart}.`
+  return intPart
+}
 
 export default function AbundanceLogPage() {
   const today = new Date().toISOString().split('T')[0]
@@ -50,6 +76,10 @@ export default function AbundanceLogPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [helpOpen, setHelpOpen] = useState(false)
+  const [imageSource, setImageSource] = useState<'upload' | 'ai' | null>(null)
+  const [file, setFile] = useState<File | null>(null)
+  const [aiGeneratedImageUrl, setAiGeneratedImageUrl] = useState<string | null>(null)
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -58,6 +88,21 @@ export default function AbundanceLogPage() {
     setErrorMessage(null)
 
     try {
+      let imageUrl: string | undefined
+      if (imageSource === 'upload' && file) {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          setErrorMessage('Please log in to upload an image.')
+          setIsSubmitting(false)
+          return
+        }
+        const result = await uploadUserFile('abundance', file, user.id)
+        imageUrl = result.url
+      } else if (imageSource === 'ai' && aiGeneratedImageUrl) {
+        imageUrl = aiGeneratedImageUrl
+      }
+
       const response = await fetch('/api/vibration/abundance', {
         method: 'POST',
         headers: {
@@ -66,10 +111,11 @@ export default function AbundanceLogPage() {
         body: JSON.stringify({
           date,
           valueType,
-          amount: amount ? Number(amount) : undefined,
+          amount: amount ? Number(amount.replace(/,/g, '')) : undefined,
           visionCategory: visionCategory || undefined,
           entryCategory: entryCategory || undefined,
           note,
+          imageUrl,
         }),
       })
 
@@ -85,6 +131,9 @@ export default function AbundanceLogPage() {
       setVisionCategory('')
       setEntryCategory('')
       setDate(today)
+      setImageSource(null)
+      setFile(null)
+      setAiGeneratedImageUrl(null)
     } catch (error) {
       console.error(error)
       setErrorMessage(error instanceof Error ? error.message : 'Something went wrong.')
@@ -102,12 +151,6 @@ export default function AbundanceLogPage() {
         />
         <Card>
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="text-sm text-neutral-400 text-center italic">
-              {valueType === 'money'
-                ? 'Money entries require an amount. Value entries can capture intangible appreciation without a dollar value.'
-                : 'Value entries celebrate intangible abundance—share the story in the note and add an amount if you want to track it numerically.'}
-            </div>
-
             <div className="grid gap-4 md:grid-cols-3">
               <DatePicker
                 label="Date"
@@ -118,22 +161,36 @@ export default function AbundanceLogPage() {
               />
 
               <Select
-                label="Type"
+                label="Track as:"
                 value={valueType}
                 onChange={(value) => setValueType(value as 'money' | 'value')}
                 options={VALUE_TYPES}
               />
 
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                label="Amount"
-                placeholder={valueType === 'money' ? '0.00' : 'Optional amount'}
-                value={amount}
-                onChange={(event) => setAmount(event.target.value)}
-                required={valueType === 'money'}
-              />
+              <div className="w-full">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-neutral-200">
+                    Amount
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setHelpOpen(true)}
+                    className="text-neutral-400 hover:text-white transition-colors p-0.5 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    aria-label="Help: Money vs Value"
+                  >
+                    <HelpCircle className="w-4 h-4" />
+                  </button>
+                </div>
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder={valueType === 'money' ? '0.00' : 'Optional amount'}
+                  value={formatAmountWithCommas(amount)}
+                  onChange={(event) => setAmount(parseAmountInput(event.target.value))}
+                  required={valueType === 'money'}
+                  prefix="$"
+                />
+              </div>
             </div>
 
             <Textarea
@@ -145,22 +202,140 @@ export default function AbundanceLogPage() {
               required
             />
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div>
               <Select
-                label="Vision Category"
-                value={visionCategory}
-                onChange={(value) => setVisionCategory(value)}
-                options={VISION_CATEGORY_OPTIONS}
-                placeholder="No specific vision category"
-              />
-
-              <Select
-                label="Entry Category"
+                label="Kind of abundance:"
                 value={entryCategory}
                 onChange={(value) => setEntryCategory(value)}
                 options={ENTRY_CATEGORY_OPTIONS}
-                placeholder="Select entry category (optional)"
+                placeholder="Abundance type (optional)"
               />
+            </div>
+
+            <div>
+              <p className="text-sm text-neutral-400 mb-3 text-center">
+                Select categories for your abundance entry (optional)
+              </p>
+              <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
+                {visionCategoriesForAbundance.map((category) => {
+                  const isSelected = visionCategory === category.key
+                  return (
+                    <CategoryCard
+                      key={category.key}
+                      category={category}
+                      selected={isSelected}
+                      onClick={() => setVisionCategory(isSelected ? '' : category.key)}
+                      variant="outlined"
+                      selectionStyle="border"
+                      iconColor={isSelected ? '#39FF14' : '#FFFFFF'}
+                      selectedIconColor="#39FF14"
+                      className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : '!bg-transparent !border-[#333]'}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Image (Optional) - same pattern as vision-board/new */}
+            <div>
+              <label className="block text-sm font-medium text-neutral-200 mb-3">
+                Image (optional)
+              </label>
+              <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                <Button
+                  type="button"
+                  variant={imageSource === 'upload' ? 'primary' : 'outline'}
+                  size="sm"
+                  onClick={() => {
+                    setImageSource('upload')
+                    setAiGeneratedImageUrl(null)
+                  }}
+                  className="w-full sm:flex-1"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload Image
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImageSource('ai')
+                    setFile(null)
+                  }}
+                  style={
+                    imageSource === 'ai'
+                      ? {
+                          backgroundColor: colors.semantic.premium,
+                          borderColor: colors.semantic.premium,
+                        }
+                      : {
+                          borderColor: colors.semantic.premium,
+                          color: colors.semantic.premium,
+                        }
+                  }
+                  className={`w-full sm:flex-1 inline-flex items-center justify-center rounded-full transition-all duration-300 py-3.5 px-7 text-sm font-medium border-2 ${
+                    imageSource === 'ai'
+                      ? 'text-white hover:opacity-90'
+                      : 'bg-transparent hover:bg-[#BF00FF]/10'
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Generate with VIVA
+                </button>
+              </div>
+
+              {imageSource === 'upload' && (
+                <FileUpload
+                  dragDrop
+                  accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
+                  multiple={false}
+                  maxFiles={1}
+                  maxSize={10}
+                  value={file ? [file] : []}
+                  onChange={(files) => setFile(files[0] || null)}
+                  onUpload={(files) => setFile(files[0] || null)}
+                  dragDropText="Click to upload or drag and drop"
+                  dragDropSubtext="PNG, JPG, WEBP, or HEIC (max 10MB)"
+                  previewSize="lg"
+                />
+              )}
+
+              {imageSource === 'ai' && (
+                <>
+                  <AIImageGenerator
+                    type="vision_board"
+                    onImageGenerated={(url) => setAiGeneratedImageUrl(url)}
+                    title=""
+                    description={note}
+                    visionText={note || 'An abundance moment to celebrate.'}
+                  />
+                  {aiGeneratedImageUrl && (
+                    <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800 mt-4">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                        <img
+                          src={aiGeneratedImageUrl}
+                          alt="VIVA generated"
+                          className="w-20 h-20 object-cover rounded-lg mx-auto sm:mx-0"
+                        />
+                        <div className="flex-1 text-center sm:text-left">
+                          <p className="text-sm font-medium text-white">Generated with VIVA</p>
+                          <p className="text-xs text-neutral-400">
+                            <span className="text-green-400">Auto-selected for this entry</span>
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setAiGeneratedImageUrl(null)}
+                          className="w-full sm:w-auto"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
             {successMessage && (
@@ -181,6 +356,22 @@ export default function AbundanceLogPage() {
               </Button>
             </div>
           </form>
+
+          <Modal
+            isOpen={helpOpen}
+            onClose={() => setHelpOpen(false)}
+            title="Money vs Value (intangible)"
+            size="md"
+          >
+            <div className="space-y-4 text-sm text-neutral-300">
+              <p>
+                <strong className="text-white">Money</strong> entries require an amount.
+              </p>
+              <p>
+                <strong className="text-white">Value (intangible)</strong> entries celebrate intangible abundance—share the story in the note and add an amount if you want to track it numerically.
+              </p>
+            </div>
+          </Modal>
         </Card>
       </Stack>
     </Container>

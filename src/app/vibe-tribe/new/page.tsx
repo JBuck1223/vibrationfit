@@ -317,15 +317,17 @@ export default function VibeTribeNewPage() {
                 <button
                   type="button"
                   onClick={() => setShowCategories(!showCategories)}
-                  className="flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-colors"
+                  className="flex items-start sm:items-center gap-2 text-sm text-neutral-400 hover:text-white transition-colors text-left"
                 >
-                  {showCategories ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                  Life Categories (pick 1-3 that fit)
-                  {selectedCategories.length > 0 && (
-                    <span className="bg-[#39FF14]/20 text-[#39FF14] px-2 py-0.5 rounded-full text-xs">
-                      {selectedCategories.length} selected
-                    </span>
-                  )}
+                  {showCategories ? <ChevronUp className="w-4 h-4 flex-shrink-0 mt-0.5 sm:mt-0" /> : <ChevronDown className="w-4 h-4 flex-shrink-0 mt-0.5 sm:mt-0" />}
+                  <span className="inline-flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
+                    <span>Life Categories (pick 1-3 that fit)</span>
+                    {selectedCategories.length > 0 && (
+                      <span className="bg-[#39FF14]/20 text-[#39FF14] px-2 py-0.5 rounded-full text-xs">
+                        {selectedCategories.length} selected
+                      </span>
+                    )}
+                  </span>
                 </button>
                 
                 {showCategories && (
@@ -333,15 +335,16 @@ export default function VibeTribeNewPage() {
                     {lifeCategories.map((category) => {
                       const isSelected = selectedCategories.includes(category.key)
                       return (
-                        <CategoryCard 
-                          key={category.key} 
-                          category={category} 
-                          selected={isSelected} 
+                        <CategoryCard
+                          key={category.key}
+                          category={category}
+                          selected={isSelected}
                           onClick={() => handleCategoryToggle(category.key)}
                           variant="outlined"
                           selectionStyle="border"
                           iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
                           selectedIconColor="#39FF14"
+                          allowLabelWrap={category.key === 'spirituality'}
                           className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.5)]' : '!bg-transparent !border-[#333]'}
                         />
                       )

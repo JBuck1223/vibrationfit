@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createOneOnOneRoom, createGroupRoom, createAlignmentGymRoom, createWebinarRoom, createHostToken, getRoomUrl } from '@/lib/video/daily'
 import { sendEmail } from '@/lib/email/aws-ses'
 import { generateSessionInvitationEmail } from '@/lib/email/templates'
+import { formatDateInTimeZone, DEFAULT_DISPLAY_TIMEZONE } from '@/lib/format/timezone'
 import type { CreateSessionRequest, CreateSessionResponse, VideoSession, VideoSessionType } from '@/lib/video/types'
 
 export async function POST(request: NextRequest) {
@@ -145,6 +146,18 @@ export async function POST(request: NextRequest) {
         ? `${process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'}/session/${session.id}?email=${encodeURIComponent(body.participant_email)}`
         : `${process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'}/session/${session.id}`
 
+      // Resolve timezone for email: staff's timezone if provided, else default
+      let timeZone = DEFAULT_DISPLAY_TIMEZONE
+      if (body.staff_id) {
+        const { data: staff } = await supabase
+          .from('staff')
+          .select('timezone')
+          .eq('id', body.staff_id)
+          .single()
+        if (staff?.timezone) timeZone = staff.timezone
+      }
+      const { date: scheduledDate, time: scheduledTime } = formatDateInTimeZone(scheduledAt, timeZone)
+
       // Send immediate invitation email
       if (body.participant_email) {
         try {
@@ -154,17 +167,8 @@ export async function POST(request: NextRequest) {
             hostName,
             sessionTitle: body.title,
             sessionDescription: body.description,
-            scheduledDate: scheduledAt.toLocaleDateString('en-US', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            }),
-            scheduledTime: scheduledAt.toLocaleTimeString('en-US', {
-              hour: '2-digit',
-              minute: '2-digit',
-              timeZoneName: 'short',
-            }),
+            scheduledDate,
+            scheduledTime,
             durationMinutes,
             joinLink,
           })

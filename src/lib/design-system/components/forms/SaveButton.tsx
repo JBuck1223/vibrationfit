@@ -9,15 +9,25 @@ interface SaveButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElem
   hasUnsavedChanges?: boolean
   isSaving?: boolean
   saveError?: string | null
+  /** Label when there are unsaved changes (default: "Save") */
+  saveLabel?: React.ReactNode
+  /** Label when saved / no unsaved changes (default: "Saved") */
+  savedLabel?: React.ReactNode
+  /** Label while saving (default: "Saving...") */
+  savingLabel?: React.ReactNode
+  /** Label for retry when there was an error (default: "Retry Save") */
+  retryLabel?: React.ReactNode
 }
 
 export const SaveButton = React.forwardRef<HTMLButtonElement, SaveButtonProps>(
-  ({ hasUnsavedChanges = false, isSaving = false, saveError, disabled, className = '', onClick, ...props }, ref) => {
+  ({ hasUnsavedChanges = false, isSaving = false, saveError, saveLabel = 'Save', savedLabel = 'Saved', savingLabel = 'Saving...', retryLabel = 'Retry Save', disabled, className = '', onClick, ...props }, ref) => {
     const primaryGreen = tokens.colors.primary[500]
     const black = tokens.colors.neutral[0]
     const lightGreenBg = `rgba(57, 255, 20, 0.15)`
     const lightGreenBorder = `rgba(57, 255, 20, 0.4)`
     const transparent = 'transparent'
+    const neutral500 = tokens.colors.neutral[500]
+    const neutral700 = tokens.colors.neutral[700]
 
     const [justSaved, setJustSaved] = React.useState(false)
     const [isHovered, setIsHovered] = React.useState(false)
@@ -42,12 +52,14 @@ export const SaveButton = React.forwardRef<HTMLButtonElement, SaveButtonProps>(
       className
     )
     
+    // Grayed-out "Saved" state when idle (no unsaved changes)
     const savedStyle: React.CSSProperties = {
-      backgroundColor: lightGreenBg,
-      color: primaryGreen,
-      borderColor: lightGreenBorder,
+      backgroundColor: `${neutral700}40`,
+      color: neutral500,
+      borderColor: `${neutral500}60`,
       borderRadius: tokens.borderRadius.full,
-      transition: `all ${tokens.durations[300]} ${tokens.easings['in-out']}`
+      transition: `all ${tokens.durations[300]} ${tokens.easings['in-out']}`,
+      cursor: 'default'
     }
 
     const justSavedStyle: React.CSSProperties = {
@@ -57,6 +69,15 @@ export const SaveButton = React.forwardRef<HTMLButtonElement, SaveButtonProps>(
       borderRadius: tokens.borderRadius.full,
       transition: `all ${tokens.durations[300]} ${tokens.easings['in-out']}`,
       boxShadow: `0 0 12px rgba(57, 255, 20, 0.3)`
+    }
+    
+    // Hover state when there are unsaved changes (light green ghost)
+    const saveHoverStyle: React.CSSProperties = {
+      backgroundColor: lightGreenBg,
+      color: primaryGreen,
+      borderColor: lightGreenBorder,
+      borderRadius: tokens.borderRadius.full,
+      transition: `all ${tokens.durations[300]} ${tokens.easings['in-out']}`
     }
     
     const saveStyle: React.CSSProperties = {
@@ -91,7 +112,7 @@ export const SaveButton = React.forwardRef<HTMLButtonElement, SaveButtonProps>(
       content = (
         <>
           <AlertCircle className="w-4 h-4" />
-          Retry Save
+          {retryLabel}
         </>
       )
     } else if (isSaving) {
@@ -99,7 +120,7 @@ export const SaveButton = React.forwardRef<HTMLButtonElement, SaveButtonProps>(
       content = (
         <>
           <Loader2 className="w-4 h-4 animate-spin" />
-          Saving...
+          {savingLabel}
         </>
       )
     } else if (justSaved) {
@@ -107,15 +128,15 @@ export const SaveButton = React.forwardRef<HTMLButtonElement, SaveButtonProps>(
       content = (
         <>
           <CheckCircle className="w-4 h-4" />
-          Saved
+          {savedLabel}
         </>
       )
     } else if (hasUnsavedChanges) {
-      currentStyle = isHovered ? savedStyle : saveStyle
+      currentStyle = isHovered ? saveHoverStyle : saveStyle
       content = (
         <>
           <Save className="w-4 h-4" />
-          Save
+          {saveLabel}
         </>
       )
     } else {
@@ -123,7 +144,7 @@ export const SaveButton = React.forwardRef<HTMLButtonElement, SaveButtonProps>(
       content = (
         <>
           <CheckCircle className="w-4 h-4" />
-          Saved
+          {savedLabel}
         </>
       )
     }
@@ -138,7 +159,7 @@ export const SaveButton = React.forwardRef<HTMLButtonElement, SaveButtonProps>(
       <button
         ref={ref}
         type="button"
-        disabled={disabled || isSaving}
+        disabled={disabled || isSaving || !hasUnsavedChanges}
         className={baseClasses}
         style={currentStyle}
         onMouseEnter={() => hasUnsavedChanges && setIsHovered(true)}

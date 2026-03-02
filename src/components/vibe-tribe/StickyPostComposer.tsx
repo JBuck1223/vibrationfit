@@ -322,6 +322,7 @@ export function StickyPostComposer({ userId, onPostCreated }: StickyPostComposer
                           selectionStyle="border"
                           iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
                           selectedIconColor="#39FF14"
+                          allowLabelWrap={category.key === 'spirituality'}
                           className={`!p-2 ${isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.5)]' : '!bg-transparent !border-[#333]'}`}
                         />
                       )

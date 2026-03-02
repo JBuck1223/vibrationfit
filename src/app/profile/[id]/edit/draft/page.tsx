@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import {  Button, Badge, Card, WarningConfirmationDialog, Container, Stack, PageHero } from '@/lib/design-system/components'
+import {  Button, Badge, Card, WarningConfirmationDialog, Container, Stack, PageHero, SaveButton } from '@/lib/design-system/components'
 import ProfileVersionManager from '@/components/ProfileVersionManager'
 import VersionStatusIndicator from '@/components/VersionStatusIndicator'
 import VersionActionToolbar from '@/components/VersionActionToolbar'
@@ -38,6 +38,7 @@ export default function ProfileEditPage() {
   const [error, setError] = useState<string | null>(null)
   const [completionPercentage, setCompletionPercentage] = useState(0)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [versions, setVersions] = useState<any[]>([])
   const [showVersions, setShowVersions] = useState(false)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
@@ -229,7 +230,8 @@ export default function ProfileEditPage() {
       setSaveStatus('saved')
       setLastSaved(new Date())
       setError(null)
-      
+      setHasUnsavedChanges(false)
+
       // Refresh versions list
       await fetchVersions()
 
@@ -289,6 +291,7 @@ export default function ProfileEditPage() {
       setSaveStatus('saved')
       setLastSaved(new Date())
       setError(null)
+      setHasUnsavedChanges(false)
 
       // Clear save status after 2 seconds
       setTimeout(() => {
@@ -307,6 +310,7 @@ export default function ProfileEditPage() {
   const handleProfileChange = useCallback((updates: Partial<UserProfile>) => {
     const newProfile = { ...profile, ...updates }
     setProfile(newProfile)
+    setHasUnsavedChanges(true)
     // No auto-save - user must click "Save Edits" button
   }, [profile])
 
@@ -666,25 +670,13 @@ export default function ProfileEditPage() {
         <div className="mb-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
-              {saveStatus === 'saving' && (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
-                  <span className="text-sm text-primary-500">Saving...</span>
-                </>
-              )}
-              {saveStatus === 'saved' && (
-                <>
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="text-sm text-green-500">Saved</span>
-                </>
-              )}
-              {saveStatus === 'error' && (
+              {saveStatus === 'error' && error && (
                 <>
                   <AlertCircle className="w-4 h-4 text-red-500" />
                   <span className="text-sm text-red-500">Save failed</span>
                 </>
               )}
-              {lastSaved && saveStatus === 'idle' && (
+              {lastSaved && saveStatus === 'idle' && !hasUnsavedChanges && (
                 <span className="text-sm text-neutral-500">
                   Last saved: {lastSaved.toLocaleTimeString()}
                 </span>
@@ -719,15 +711,14 @@ export default function ProfileEditPage() {
                 View
               </Button>
               
-              <Button
+              <SaveButton
+                saveLabel="Save Draft"
+                hasUnsavedChanges={hasUnsavedChanges}
+                isSaving={isSaving}
+                saveError={saveStatus === 'error' ? error : null}
                 onClick={handleSaveClick}
-                disabled={isSaving}
-                size="sm"
-                className="flex items-center gap-2 font-semibold w-full sm:w-auto"
-              >
-                <Save className="w-4 h-4" />
-                {isSaving ? 'Saving...' : 'Save Draft'}
-              </Button>
+                className="w-full sm:w-auto"
+              />
               
               {currentVersionId && (
                 <VersionActionToolbar

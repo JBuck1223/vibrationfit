@@ -175,15 +175,8 @@ export function IntensiveSidebar() {
       setIntensiveStarted(!!checklist.started_at)
       setStartedAt(checklist.started_at || null)
 
-      // Check for actual user voice recordings (Step 8)
-      const { count: voiceRecordingCount } = await supabase
-        .from('audio_tracks')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('voice_id', 'user_voice')
-        .eq('status', 'completed')
-      
-      const hasVoiceRecordings = (voiceRecordingCount || 0) > 0
+      // Step 8 completion from checklist fields
+      const voiceRecordingDone = !!checklist.voice_recording_completed || !!checklist.voice_recording_skipped
 
       // Verify Vision Board completion (Step 10)
       // If vision_board_completed is false but user has items in all 12 categories, mark complete
@@ -343,7 +336,7 @@ export function IntensiveSidebar() {
           href: '/life-vision/audio/record/new', 
           icon: Mic,
           phase: 'Audio',
-          completed: hasVoiceRecordings || !!checklist.voice_recording_skipped, // Complete if recorded OR skipped
+          completed: voiceRecordingDone,
           locked: !checklist.audio_generated,
           optional: true
         },
@@ -355,7 +348,7 @@ export function IntensiveSidebar() {
           icon: Sliders,
           phase: 'Audio',
           completed: !!checklist.audios_generated,
-          locked: !checklist.audio_generated 
+          locked: !checklist.audio_generated || !voiceRecordingDone
         },
 
         // Phase 5: Activation

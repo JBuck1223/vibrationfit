@@ -1,7 +1,28 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { stripe } from '@/lib/stripe/config'
 import type Stripe from 'stripe'
+
+function mapTierToResponse(tier: any): any {
+  if (!tier) return null
+  return {
+    id: tier.id,
+    name: tier.name,
+    description: tier.description,
+    tierType: tier.tier_type,
+    priceMonthly: tier.price_monthly,
+    priceYearly: tier.price_yearly,
+    billingInterval: tier.billing_interval,
+    monthlyTokenGrant: tier.monthly_token_grant,
+    annualTokenGrant: tier.annual_token_grant,
+    storageQuotaGb: tier.storage_quota_gb,
+    features: tier.features,
+    planCategory: tier.plan_category,
+    isHouseholdPlan: tier.is_household_plan,
+    includedSeats: tier.included_seats,
+  }
+}
 
 export async function GET() {
   try {
@@ -13,7 +34,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: subscription } = await supabase
+    let subscription: any = (await supabase
       .from('customer_subscriptions')
       .select(`
         *,
@@ -23,7 +44,65 @@ export async function GET() {
       .or('status.eq.active,status.eq.trialing,status.eq.past_due')
       .order('current_period_end', { ascending: false })
       .limit(1)
-      .maybeSingle()
+      .maybeSingle()).data
+
+    // If no subscription in DB but Stripe is configured, try to sync from Stripe (e.g. webhook missed or old signup)
+    if (!subscription && stripe && user.email) {
+      const customers = await stripe.customers.list({ email: user.email, limit: 1 }).catch(() => ({ data: [] }))
+      const customerId = customers.data[0]?.id
+      if (customerId) {
+        const stripeSubs = await stripe.subscriptions.list({
+          customer: customerId,
+          status: 'all',
+          limit: 10,
+        }).catch(() => ({ data: [] }))
+        const stripeSub = stripeSubs.data.find(
+          (s) => s.status === 'active' || s.status === 'trialing' || s.status === 'past_due'
+        )
+        if (stripeSub) {
+          const mainItem = stripeSub.items.data.find(
+            (item) => !(item.price.metadata?.addon_type === 'tokens' || item.price.metadata?.addon_type === 'storage')
+          ) || stripeSub.items.data[0]
+          const priceId = mainItem?.price.id
+          if (priceId) {
+            const admin = createAdminClient()
+            const { data: tierByPrice } = await admin
+              .from('membership_tiers')
+              .select('id')
+              .eq('stripe_price_id', priceId)
+              .maybeSingle()
+            if (tierByPrice) {
+              await admin.from('customer_subscriptions').upsert({
+                user_id: user.id,
+                membership_tier_id: tierByPrice.id,
+                stripe_customer_id: customerId,
+                stripe_subscription_id: stripeSub.id,
+                stripe_price_id: priceId,
+                status: stripeSub.status,
+                current_period_start: new Date(stripeSub.current_period_start * 1000).toISOString(),
+                current_period_end: new Date(stripeSub.current_period_end * 1000).toISOString(),
+                cancel_at_period_end: stripeSub.cancel_at_period_end,
+                trial_start: stripeSub.trial_start ? new Date(stripeSub.trial_start * 1000).toISOString() : null,
+                trial_end: stripeSub.trial_end ? new Date(stripeSub.trial_end * 1000).toISOString() : null,
+              }, {
+                onConflict: 'stripe_subscription_id',
+                ignoreDuplicates: false,
+              })
+              const refetched = (await supabase
+                .from('customer_subscriptions')
+                .select(`
+                  *,
+                  tier:membership_tiers(*)
+                `)
+                .eq('user_id', user.id)
+                .eq('stripe_subscription_id', stripeSub.id)
+                .maybeSingle()).data
+              subscription = refetched
+            }
+          }
+        }
+      }
+    }
 
     if (!subscription) {
       return NextResponse.json({
@@ -32,6 +111,22 @@ export async function GET() {
         upcomingInvoice: null,
         defaultPaymentMethod: null,
       })
+    }
+
+    // If subscription exists but tier is null (e.g. RLS hides inactive tier), fetch tier with admin for display
+    let tierData = subscription.tier ? mapTierToResponse(subscription.tier) : null
+    if (!tierData && subscription.membership_tier_id) {
+      try {
+        const admin = createAdminClient()
+        const { data: tierRow } = await admin
+          .from('membership_tiers')
+          .select('*')
+          .eq('id', subscription.membership_tier_id)
+          .single()
+        tierData = mapTierToResponse(tierRow)
+      } catch {
+        // keep tierData null
+      }
     }
 
     let addons: any[] = []
@@ -120,22 +215,7 @@ export async function GET() {
         cancelAtPeriodEnd: subscription.cancel_at_period_end,
         canceledAt: subscription.canceled_at,
         stripeSubscriptionId: subscription.stripe_subscription_id,
-        tier: subscription.tier ? {
-          id: subscription.tier.id,
-          name: subscription.tier.name,
-          description: subscription.tier.description,
-          tierType: subscription.tier.tier_type,
-          priceMonthly: subscription.tier.price_monthly,
-          priceYearly: subscription.tier.price_yearly,
-          billingInterval: subscription.tier.billing_interval,
-          monthlyTokenGrant: subscription.tier.monthly_token_grant,
-          annualTokenGrant: subscription.tier.annual_token_grant,
-          storageQuotaGb: subscription.tier.storage_quota_gb,
-          features: subscription.tier.features,
-          planCategory: subscription.tier.plan_category,
-          isHouseholdPlan: subscription.tier.is_household_plan,
-          includedSeats: subscription.tier.included_seats,
-        } : null,
+        tier: tierData,
       },
       addons,
       upcomingInvoice,
