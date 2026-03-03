@@ -16,6 +16,7 @@ import {
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowRight, Eye, Sparkles, Target, Compass, Lightbulb, RotateCcw } from 'lucide-react'
 import { VISION_CATEGORIES, getCategoryStateField, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
+import { CategoryGrid } from '@/lib/design-system/components/cards'
 import { createClient } from '@/lib/supabase/client'
 
 const VISION_INTRO_VIDEO =
