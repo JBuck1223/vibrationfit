@@ -275,20 +275,6 @@ export default function VIVALifeVisionLandingPage() {
             />
           </div>
 
-          {/* Category Grid - Progress Tracker */}
-          <div className="mb-6">
-            <CategoryGrid
-              categories={categoriesWithout}
-              selectedCategories={[]}
-              completedCategories={completedCategoryKeys}
-              onCategoryClick={(key: string) => router.push(`/life-vision/new/category/${key}`)}
-              mode="completion"
-              layout="12-column"
-              withCard={true}
-              className="!bg-black/40 backdrop-blur-sm"
-            />
-          </div>
-
           {/* Action Button - Different for intensive vs non-intensive */}
           <div className="flex flex-col gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
             {isIntensiveMode ? (
@@ -340,8 +326,8 @@ export default function VIVALifeVisionLandingPage() {
               </Button>
             )}
 
-            {/* Start Fresh - only when all 12 categories completed and a vision exists */}
-            {allCategoriesCompleted && hasExistingVision && (
+            {/* Start Fresh - available when a vision has been generated */}
+            {hasExistingVision && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -354,6 +340,18 @@ export default function VIVALifeVisionLandingPage() {
             )}
           </div>
         </PageHero>
+
+        {/* Category Grid - Progress Tracker (full width, outside PageHero) */}
+        <CategoryGrid
+          categories={categoriesWithout}
+          selectedCategories={[]}
+          completedCategories={completedCategoryKeys}
+          onCategoryClick={(key: string) => router.push(`/life-vision/new/category/${key}`)}
+          mode="completion"
+          layout="12-column"
+          withCard={true}
+          className="!bg-black/40 backdrop-blur-sm"
+        />
 
         {/* What is a Life Vision? */}
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
