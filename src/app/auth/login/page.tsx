@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, Input, Button } from '@/lib/design-system'
+import { Eye, EyeOff } from 'lucide-react'
 import Image from 'next/image'
 import { ASSETS } from '@/lib/storage/s3-storage-presigned'
 
@@ -33,6 +34,24 @@ export default function LoginPage() {
     }
   }, [])
 
+  const getLoginErrorMessage = (error: { message?: string; code?: string } | null, fallback: string): string => {
+    if (!error?.message) return fallback
+    const msg = error.message
+    if (msg === 'Failed to fetch' || msg.includes('fetch') || msg.includes('network') || msg.includes('NetworkError')) {
+      return 'Connection error. Please check your internet and try again.'
+    }
+    if (msg === 'Invalid login credentials' || msg.toLowerCase().includes('invalid login') || error.code === 'invalid_credentials') {
+      return 'Incorrect email or password. Please try again.'
+    }
+    if (msg.includes('Email not confirmed')) {
+      return 'Please confirm your email address before signing in. Check your inbox for the verification link.'
+    }
+    if (msg.includes('User not found') || msg.toLowerCase().includes('user not found')) {
+      return 'No account found with this email. Please check the address or sign up.'
+    }
+    return msg
+  }
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -53,7 +72,7 @@ export default function LoginPage() {
       clearTimeout(timeoutId)
 
       if (error) {
-        setError(error.message)
+        setError(getLoginErrorMessage(error, 'Sign-in failed. Please try again.'))
         setLoading(false)
       } else {
         // Check if user has active intensive
@@ -79,7 +98,8 @@ export default function LoginPage() {
         // Don't set loading to false here - let navigation handle it
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred')
+      const message = err instanceof Error ? err.message : 'An unexpected error occurred'
+      setError(getLoginErrorMessage({ message }, 'An unexpected error occurred. Please try again.'))
       setLoading(false)
     }
   }
@@ -227,23 +247,15 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
               className="absolute right-3 top-1/2 -translate-y-1/2 translate-y-1 text-neutral-400 hover:text-neutral-300 transition-colors"
             >
-              {showPassword ? (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-                </svg>
-              ) : (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-              )}
+              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
           </div>
 
           {error && (
-            <div className="bg-error-600/10 border border-error-600 text-error-600 px-4 py-3 rounded-lg">
+            <div className="bg-error-600/10 border border-error-600 px-4 py-3 rounded-lg !text-[#FF0040]">
               {error}
             </div>
           )}

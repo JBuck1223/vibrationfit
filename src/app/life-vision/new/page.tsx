@@ -12,7 +12,6 @@ import {
   PageHero,
   Spinner,
   IntensiveCompletionBanner,
-  CategoryGrid,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowRight, Eye, Sparkles, Target, Compass, Lightbulb, RotateCcw } from 'lucide-react'

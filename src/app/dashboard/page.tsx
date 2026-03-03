@@ -121,6 +121,77 @@ export default async function DashboardPage() {
   
   const storageQuotaGB = storageQuotaData?.[0]?.total_quota_gb || 5 // Default to 5GB if no quota found
 
+  // Fetch calibration call server-side so the card renders with initial load (no client lag)
+  let calibrationCall: { show: boolean; session?: { id: string | null; title: string; scheduled_at: string; join_link: string } } | null = null
+  try {
+    const { data: checklist } = await supabase
+      .from('intensive_checklist')
+      .select('id, call_scheduled, calibration_call_completed, call_scheduled_time')
+      .eq('user_id', user.id)
+      .eq('call_scheduled', true)
+      .eq('calibration_call_completed', false)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (checklist) {
+      let sessionIds: string[] = []
+      const { data: byUserId } = await supabase
+        .from('video_session_participants')
+        .select('session_id')
+        .eq('user_id', user.id)
+      if (byUserId?.length) sessionIds = byUserId.map((p: { session_id: string }) => p.session_id)
+      if (sessionIds.length === 0 && user.email) {
+        const { data: byEmail } = await supabase
+          .from('video_session_participants')
+          .select('session_id')
+          .eq('email', user.email)
+        if (byEmail?.length) sessionIds = byEmail.map((p: { session_id: string }) => p.session_id)
+      }
+
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'
+      const fallbackSession = {
+        id: null,
+        title: 'Calibration Call',
+        scheduled_at: checklist.call_scheduled_time,
+        join_link: `${appUrl}/intensive/call-prep`,
+      }
+
+      if (sessionIds.length === 0) {
+        calibrationCall = { show: true, session: fallbackSession }
+      } else {
+        const { data: session } = await supabase
+          .from('video_sessions')
+          .select('id, title, scheduled_at')
+          .in('id', sessionIds)
+          .eq('status', 'scheduled')
+          .gte('scheduled_at', new Date().toISOString())
+          .order('scheduled_at', { ascending: true })
+          .limit(1)
+          .maybeSingle()
+
+        if (!session) {
+          calibrationCall = { show: true, session: fallbackSession }
+        } else {
+          const joinLink = `${appUrl}/session/${session.id}${user.email ? `?email=${encodeURIComponent(user.email)}` : ''}`
+          calibrationCall = {
+            show: true,
+            session: {
+              id: session.id,
+              title: session.title,
+              scheduled_at: session.scheduled_at,
+              join_link: joinLink,
+            },
+          }
+        }
+      }
+    } else {
+      calibrationCall = { show: false }
+    }
+  } catch (e) {
+    console.error('Error fetching calibration call for dashboard:', e)
+  }
+
   return (
     <DashboardContent 
       user={user}
@@ -133,6 +204,7 @@ export default async function DashboardPage() {
       audioSetsCount={audioSetsCount || 0}
       refinementsCount={refinementsCount || 0}
       storageQuotaGB={storageQuotaGB}
+      initialCalibrationCall={calibrationCall}
     />
   )
 }
