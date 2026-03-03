@@ -260,7 +260,7 @@ function VisionTesterContent() {
             <div className="relative">
               <select
                 value={selectedCategory}
-                onChange={e => setSelectedCategory(e.target.value)}
+                onChange={e => setSelectedCategory(e.target.value as typeof selectedCategory)}
                 className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-sm appearance-none cursor-pointer focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500"
               >
                 {LIFE_CATEGORIES.map(cat => (
