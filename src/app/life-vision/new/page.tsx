@@ -12,7 +12,6 @@ import {
   PageHero,
   Spinner,
   IntensiveCompletionBanner,
-  CategoryGrid,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowRight, Eye, Sparkles, Target, Compass, Lightbulb } from 'lucide-react'
@@ -205,20 +204,6 @@ export default function VIVALifeVisionLandingPage() {
               thumbnailUrl={VISION_INTRO_POSTER}
               context="single"
               className="w-full"
-            />
-          </div>
-
-          {/* Category Grid - Progress Tracker */}
-          <div className="mb-6">
-            <CategoryGrid
-              categories={categoriesWithout}
-              selectedCategories={[]}
-              completedCategories={completedCategoryKeys}
-              onCategoryClick={(key: string) => router.push(`/life-vision/new/category/${key}`)}
-              mode="completion"
-              layout="12-column"
-              withCard={true}
-              className="!bg-black/40 backdrop-blur-sm"
             />
           </div>
 
