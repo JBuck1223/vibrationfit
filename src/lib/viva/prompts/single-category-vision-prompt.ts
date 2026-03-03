@@ -12,7 +12,8 @@ import { VisionCategoryKey } from '@/lib/design-system/vision-categories'
 export interface IndividualCategoryParams {
   categoryKey: VisionCategoryKey
   categoryLabel: string
-  idealStateText: string
+  getMeStartedText: string
+  imaginationText?: string
   currentStateText?: string
   perspective?: 'singular' | 'plural'
 }
@@ -223,41 +224,72 @@ Alignment is natural. I return to it easily.`
 /**
  * Builds prompt for individual category generation (used by queue system)
  * 
+ * Takes two member inputs:
+ * - getMeStartedText: VIVA-generated starting point from profile data
+ * - imaginationText: User's own expanded dream life description
+ * Both are treated as primary source material.
+ * 
  * @param categoryKey - The category key (e.g., 'fun', 'health')
  * @param categoryLabel - The category label (e.g., 'Fun', 'Health')
- * @param idealStateText - User's imagination text (PRIMARY SOURCE)
- * @param currentStateText - Current state text from profile (holistic description of where they are now)
- * @param _scenes - Array of scene objects (not used in polish mode)
- * @param _blueprintData - Blueprint data (not used in polish mode)
- * @param _transcript - Raw transcript (not used in polish mode)
- * @param _activeVisionCategoryText - Existing active vision for this category (not used in polish mode)
+ * @param getMeStartedText - VIVA starter text (from Get Me Started)
+ * @param imaginationText - User's own imagination text (from Imagination box)
+ * @param currentStateText - Current state text from profile (invisible anchor)
  * @param perspective - 'singular' or 'plural'
  * @returns Complete prompt string for single category generation
  */
 export function buildIndividualCategoryPrompt(
   categoryKey: string,
   categoryLabel: string,
-  idealStateText: string,
+  getMeStartedText: string,
+  imaginationText: string,
   currentStateText: string,
-  _scenes: any[], // Not used in polish mode
-  _blueprintData: any, // Not used in polish mode
-  _transcript: string, // Not used in polish mode
-  _activeVisionCategoryText: string | null, // Not used in polish mode
   perspective: 'singular' | 'plural' = 'singular'
 ): string {
   const categoryMicroTuning = CATEGORY_MICRO_TUNING[categoryKey] || ''
   const pronoun = perspective === 'plural' ? 'we/our' : 'I/my'
+
+  const hasBothInputs = getMeStartedText?.trim() && imaginationText?.trim()
+  const hasOnlyStarter = getMeStartedText?.trim() && !imaginationText?.trim()
+  const hasOnlyImagination = !getMeStartedText?.trim() && imaginationText?.trim()
+
+  let primarySourceSection = ''
+  if (hasBothInputs) {
+    primarySourceSection = `═══════════════════════════════════════════════════════════════
+SOURCE 1: GET ME STARTED TEXT (VIVA-generated from their profile)
+═══════════════════════════════════════════════════════════════
+
+${getMeStartedText}
+
+═══════════════════════════════════════════════════════════════
+SOURCE 2: THEIR IMAGINATION (user-written — THIS IS THE HIGHEST PRIORITY)
+═══════════════════════════════════════════════════════════════
+
+${imaginationText}
+
+MERGE STRATEGY: The imagination text is the member's own voice and vision.
+Treat it as the PRIMARY authority. Use the starter text for supporting details
+and sensory texture, but when they conflict, the imagination text wins.
+Their words > VIVA's words. Always.`
+  } else if (hasOnlyImagination) {
+    primarySourceSection = `═══════════════════════════════════════════════════════════════
+PRIMARY SOURCE: THE MEMBER'S IMAGINATION
+═══════════════════════════════════════════════════════════════
+
+${imaginationText}`
+  } else {
+    primarySourceSection = `═══════════════════════════════════════════════════════════════
+PRIMARY SOURCE: GET ME STARTED TEXT
+═══════════════════════════════════════════════════════════════
+
+${getMeStartedText || '(No text provided)'}`
+  }
 
   return `You are VIVA. You transform raw imagination text into a vibrationally activated Life I Choose vision through three phases: CLEANSE, EXPAND, EMBODY.
 
 CATEGORY: ${categoryLabel}
 PERSPECTIVE: ${pronoun}
 
-═══════════════════════════════════════════════════════════════
-PRIMARY SOURCE: THE MEMBER'S IMAGINATION TEXT
-═══════════════════════════════════════════════════════════════
-
-${idealStateText || '(No imagination text provided)'}
+${primarySourceSection}
 
 ═══════════════════════════════════════════════════════════════
 INVISIBLE ANCHORS (DO NOT QUOTE OR INSERT — let these SHAPE the output)
@@ -307,53 +339,72 @@ WEAK CLOSINGS — Cut them off at the knees.
   "It's not about X, it's about Y" → just say Y.
 
 ═══════════════════════════════════════════════════════════════
-PHASE 2: EXPAND
+PHASE 2: EXPAND — Make it vivid, specific, and REAL
 ═══════════════════════════════════════════════════════════════
 
-Now make it BIGGER. The cleaned text has the right topics — your job is to
-infuse it with imagination, sensory richness, and emotional voltage.
+Take the cleaned material and make it richer — but GROUNDED, not flowery.
+The expansion must come from THEIR real life, not from generic inspiration.
 
-KEEP their specifics: names, places, activities, real details from their life.
+RULE #1: SPECIFICS OVER ABSTRACTIONS (most important rule)
+Their real names, places, routines, and details ARE the vision.
+- "Miss Kelly watches the kids" > "our support system helps out"
+- "I eat pizza and desserts and don't make any food wrong" > "I nourish my body wisely"
+- "Oliver, Adeline, and Eloise" > "the kids"
+- "zip lining in Florida" > "thrilling adventures"
+If they named it, YOU name it. If they described a specific routine, KEEP that routine.
 
-ADD:
-- Sensory texture — sounds, smells, temperatures, colors, physical sensations
-  (the clink of glasses, the warmth of sun on skin, the hum of an engine, the weight of a child in your arms)
-- Cinematic moments — one or two vivid scenes that make the reader SEE this life
-- Emotional voltage — words that carry CHARGE: "electric", "alive", "lit up", "buzzing", "deep", "free"
-- Specificity over abstraction — "Tuesday mornings on the back porch with black coffee" beats "I enjoy relaxing"
+RULE #2: SENSORY EXPANSION (add texture to THEIR moments)
+Add sensory detail to scenes THEY described — don't invent new scenes:
+- Sounds: wooden spoons clacking, kids laughing upstairs, the hum of the boat engine
+- Touch: sun on skin, cool water, the weight of a child on your hip, sand between toes
+- Smell/taste: coffee brewing, salt air, garlic sizzling, fresh-cut grass
+- Sight: specific colors, light, the look on someone's face, a specific view
 
-DO NOT:
-- Invent specifics they didn't provide (stay grounded in THEIR material)
-- Add generic filler or affirmation-speak ("I am a magnet for abundance")
-- Pad length artificially — expand what's THERE, don't add fluff
-- Compress their detailed ideas into one generic paragraph
+RULE #3: KEEP THEIR RAW VOICE
+If they said something powerful in their own way, USE IT — don't pretty it up.
+"I don't believe food is bad" is MORE powerful than "I have a balanced relationship with nourishment."
+"He streams consciousness" is BETTER than "he is deeply connected to source energy."
+Preserve their authentic phrasing. Their words carry more charge than polished ones.
+
+EXPAND MEANS:
+- Turn a flat statement into a lived moment with sensory detail
+- Add the physical sensation of what they're describing
+- Make the reader SEE a specific scene, not a concept
+
+EXPAND DOES NOT MEAN:
+- Replace their words with fancier synonyms
+- Add metaphors ("tapestry", "dance", "symphony", "testament to", "expression of")
+- Use inspirational poster language ("limitless potential", "ignite our spirit", "boundless energy")
+- Insert affirmation-speak ("I am a magnet for...", "the universe provides...", "every moment is a gift")
+- Lose a single real name, place, or specific detail they provided
+- Turn a direct statement into a flowery paragraph
 
 ═══════════════════════════════════════════════════════════════
-PHASE 3: EMBODY
+PHASE 3: EMBODY — Land it in the body
 ═══════════════════════════════════════════════════════════════
 
-Final pass. Every sentence must land in the body. The reader should FEEL this
-life in their bones when they read it aloud.
+Final pass. The reader should FEEL this life when they read it aloud.
+It should sound like a real person talking about their real life with deep satisfaction.
 
 VOICE:
-- Present tense only. Declarative. Certain.
-- Mix short punchy lines with vivid flowing paragraphs
+- Present tense. Declarative. Certain. SPECIFIC.
+- Mix short punchy lines ("I love my body.") with vivid sensory paragraphs
 - No more than ONE paragraph may start with the same 1-3 word opening
-- Gratitude is felt through satisfaction and presence, never announced
-  ("I'm so grateful..." → DELETE. Let the satisfaction speak.)
+- Gratitude is felt through satisfaction, never announced ("I'm so grateful..." → never)
+- It must sound like THIS PERSON, not a life coach or a greeting card
+
+AUTHENTICITY TEST (critical):
+Read the output and ask: "Could I tell who this person is from reading this?"
+If it's so generic it could apply to anyone, it fails. Rewrite with THEIR details.
 
 CLOSING:
 - End with ONE powerful sentence that locks in the FEELING of this category
 - It should land like a deep exhale — certain, settled, alive
 - No trailing questions, no "just the beginning", no open loops
-- Examples of strong closes:
-  "This is the life I choose, and it feels exactly right."
-  "Every part of this lights me up."
-  "I live this fully, and it feeds my soul."
 
 ENERGY TEST (apply to every sentence):
-"Would someone who already HAS this life say it this way?"
-If not, rewrite until the answer is a full-body YES.
+"Would this specific person say it this way while living this life?"
+If it sounds like a motivational poster instead of a real human, rewrite it.
 
 ${categoryMicroTuning ? `EMOTIONAL TONE FOR ${categoryLabel.toUpperCase()}:
 ${categoryMicroTuning}

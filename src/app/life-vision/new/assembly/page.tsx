@@ -173,15 +173,15 @@ export default function AssemblyPage() {
       // Get all category texts
       const { data: categoryStates } = await supabase
         .from('vision_new_category_state')
-        .select('category, clarity_keys, ideal_state, blueprint_data, category_vision_text, contrast_flips')
+        .select('category, clarity_keys, get_me_started_text, imagination_text, category_vision_text')
         .eq('user_id', user.id)
         .in('category', categoryKeys)
 
-      // Check readiness for each category (simplified: just need ideal_state)
+      // Check readiness for each category (simplified: just need get_me_started_text)
       const readyCategories = categoryKeys.filter(key => {
         const state = categoryStates?.find(cs => cs.category === key)
-        const hasIdealState = state?.ideal_state && state.ideal_state.trim().length > 0
-        return hasIdealState
+        const hasGetMeStartedText = state?.get_me_started_text && state.get_me_started_text.trim().length > 0
+        return hasGetMeStartedText
       })
 
       if (readyCategories.length < 12) {
@@ -383,11 +383,9 @@ export default function AssemblyPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               categoryKey,
-              idealStateText: state?.ideal_state || '',
+              getMeStartedText: state?.get_me_started_text || '',
+              imaginationText: state?.imagination_text || '',
               currentStateText: state?.clarity_keys?.[0] || '',
-              scenes: [],
-              blueprintData: null,
-              transcript: '',
               perspective
             }),
             signal: abortControllerRef.current?.signal
@@ -507,11 +505,9 @@ export default function AssemblyPage() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 categoryKey,
-                idealStateText: state?.ideal_state || '',
+                getMeStartedText: state?.get_me_started_text || '',
+                imaginationText: state?.imagination_text || '',
                 currentStateText: state?.clarity_keys?.[0] || '',
-                scenes: [],
-                blueprintData: null,
-                transcript: '',
                 perspective
               }),
               signal: abortControllerRef.current?.signal

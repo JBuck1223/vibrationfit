@@ -12,7 +12,8 @@ const ADMIN_ROUTES = [
   '/admin/users',
   '/admin/token-usage',
   '/admin/analytics',
-  '/admin/settings'
+  '/admin/settings',
+  '/admin/vision-tester'
 ]
 
 // Fallback admin emails (used during migration or if DB check fails)
