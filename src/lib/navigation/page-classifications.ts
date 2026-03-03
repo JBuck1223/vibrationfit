@@ -72,6 +72,7 @@ export const PAGE_CLASSIFICATIONS = {
     '/daily-paper/new',
     '/daily-paper/resources',
     '/abundance-tracker',
+    '/abundance-tracker/new',
     
     // Profile & Account
     '/profile',

@@ -2,6 +2,99 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createVibrationalEventFromSource } from '@/lib/vibration/service'
 
+export async function GET() {
+  try {
+    const supabase = await createClient()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { data: events, error: fetchError } = await supabase
+      .from('abundance_events')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('date', { ascending: false })
+
+    if (fetchError) {
+      return NextResponse.json({ error: fetchError.message }, { status: 500 })
+    }
+
+    const allEvents = events || []
+
+    const now = new Date()
+    const startOfWeek = new Date(now)
+    startOfWeek.setDate(now.getDate() - now.getDay())
+    startOfWeek.setHours(0, 0, 0, 0)
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+
+    const weekStr = startOfWeek.toISOString().split('T')[0]
+    const monthStr = startOfMonth.toISOString().split('T')[0]
+
+    let totalAmount = 0
+    let moneyCount = 0
+    let valueCount = 0
+    let weekAmount = 0
+    let weekCount = 0
+    let monthAmount = 0
+    let monthCount = 0
+
+    const entryBreakdown: Record<string, { count: number; amount: number }> = {}
+    const visionBreakdown: Record<string, { count: number; amount: number }> = {}
+
+    for (const ev of allEvents) {
+      const amt = Number(ev.amount) || 0
+      totalAmount += amt
+
+      if (ev.value_type === 'money') moneyCount++
+      else valueCount++
+
+      if (ev.date >= weekStr) {
+        weekAmount += amt
+        weekCount++
+      }
+      if (ev.date >= monthStr) {
+        monthAmount += amt
+        monthCount++
+      }
+
+      const eCat = ev.entry_category || 'uncategorized'
+      if (!entryBreakdown[eCat]) entryBreakdown[eCat] = { count: 0, amount: 0 }
+      entryBreakdown[eCat].count++
+      entryBreakdown[eCat].amount += amt
+
+      const vCat = ev.vision_category || 'uncategorized'
+      if (!visionBreakdown[vCat]) visionBreakdown[vCat] = { count: 0, amount: 0 }
+      visionBreakdown[vCat].count++
+      visionBreakdown[vCat].amount += amt
+    }
+
+    return NextResponse.json({
+      summary: {
+        totalAmount,
+        totalCount: allEvents.length,
+        moneyCount,
+        valueCount,
+      },
+      timePeriods: {
+        week: { amount: weekAmount, count: weekCount },
+        month: { amount: monthAmount, count: monthCount },
+        allTime: { amount: totalAmount, count: allEvents.length },
+      },
+      entryBreakdown,
+      visionBreakdown,
+      recentEvents: allEvents.slice(0, 10),
+    })
+  } catch (error) {
+    console.error('Error fetching abundance data:', error)
+    return NextResponse.json({ error: 'Failed to fetch abundance data.' }, { status: 500 })
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()

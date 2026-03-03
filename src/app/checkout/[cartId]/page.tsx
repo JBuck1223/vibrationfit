@@ -149,7 +149,7 @@ export default function CartCheckoutPage() {
     if (!product) return { submitLabel: 'Complete Purchase', submitLabelShort: undefined }
     const todayCents = Math.max(0, product.amount - (promoDiscount?.amountOff || 0))
     const todayDollars = todayCents % 100 === 0 ? (todayCents / 100).toString() : (todayCents / 100).toFixed(2)
-    const isIntensive = product.key?.startsWith('intensive-')
+    const isIntensive = product.key?.startsWith('intensive-') || product.key?.startsWith('premium-intensive-')
     return {
       submitLabel: isIntensive ? `Pay $${todayDollars} and Start the Activation Intensive` : `Pay $${todayDollars}`,
       submitLabelShort: `Pay $${todayDollars}`,

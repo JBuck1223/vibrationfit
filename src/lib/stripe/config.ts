@@ -12,7 +12,7 @@ export const stripe = process.env.STRIPE_SECRET_KEY
   : null
 
 export const STRIPE_CONFIG = {
-  publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '',
+  publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
   webhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
   
   // HORMOZI PRICING MODEL
@@ -21,6 +21,10 @@ export const STRIPE_CONFIG = {
     intensive_full: process.env.STRIPE_PRICE_INTENSIVE_FULL, // $499 one-time
     intensive_2pay: process.env.STRIPE_PRICE_INTENSIVE_2PAY, // $249.50 × 2
     intensive_3pay: process.env.STRIPE_PRICE_INTENSIVE_3PAY, // $166.33 × 3
+    
+    // Premium Activation Intensive (full pay only)
+    premium_intensive_full: process.env.STRIPE_PRICE_PREMIUM_INTENSIVE_FULL, // $3,000 one-time
+    premium_household_intensive_full: process.env.STRIPE_PRICE_PREMIUM_HOUSEHOLD_INTENSIVE_FULL, // $4,200 one-time
     
     // Vision Pro Annual (default continuity)
     annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL, // $999/year (5M tokens upfront)

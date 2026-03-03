@@ -138,6 +138,7 @@ function IntensiveDashboardContent() {
   const [settingsCompletedAt, setSettingsCompletedAt] = useState<string | null>(null)
   const [assessmentInProgressId, setAssessmentInProgressId] = useState<string | null>(null)
   const [assessmentLatestCompletedId, setAssessmentLatestCompletedId] = useState<string | null>(null)
+  const [isSuperAdminUser, setIsSuperAdminUser] = useState(false)
   const [activeVisionId, setActiveVisionId] = useState<string | null>(null)
   const toastShownRef = useRef(false) // Prevent duplicate toasts
 
@@ -223,6 +224,7 @@ function IntensiveDashboardContent() {
       // Guard: ensure user has set a password before accessing intensive
       // Super admins bypass this check
       const { isSuperAdmin } = await checkSuperAdminAccess(supabase)
+      setIsSuperAdminUser(isSuperAdmin)
       if (!isSuperAdmin) {
         const hasPassword = await checkUserHasPassword(supabase, user)
         if (!hasPassword) {
@@ -270,40 +272,55 @@ function IntensiveDashboardContent() {
           // Check for preview mode: ?preview=complete shows completion screen
           const showComplete = previewMode === 'complete'
           const mockTimestamp = new Date().toISOString()
-          
+
+          // Set mock intensive purchase for super_admin testing
+          setIntensive({
+            id: 'super-admin-test',
+            payment_plan: 'admin',
+            activation_deadline: null,
+            started_at: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+            completion_status: 'in_progress',
+            completed_at: null,
+            created_at: mockTimestamp,
+          })
+
           // Set mock data for super_admin testing
+          // All steps are marked false so they show as "not completed" (no checkmarks)
+          // The isSuperAdminUser flag in getSteps() will unlock all of them for navigation
           setSettingsComplete(true)
           setChecklist({
             id: 'super-admin-test',
             intensive_id: 'super-admin-test',
             user_id: user.id,
             status: 'in_progress',
-            started_at: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(), // 48 hours ago
-            intake_completed: showComplete ? true : true,
+            started_at: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+            intake_completed: showComplete,
             intake_completed_at: showComplete ? mockTimestamp : null,
-            profile_completed: showComplete ? true : true,
+            profile_completed: showComplete,
             profile_completed_at: showComplete ? mockTimestamp : null,
-            assessment_completed: showComplete ? true : true,
+            assessment_completed: showComplete,
             assessment_completed_at: showComplete ? mockTimestamp : null,
-            vision_built: showComplete ? true : false,
+            vision_built: showComplete,
             vision_built_at: showComplete ? mockTimestamp : null,
-            vision_refined: showComplete ? true : false,
+            vision_refined: showComplete,
             vision_refined_at: showComplete ? mockTimestamp : null,
-            audio_generated: showComplete ? true : false,
+            audio_generated: showComplete,
             audio_generated_at: showComplete ? mockTimestamp : null,
+            voice_recording_skipped: false,
+            voice_recording_skipped_at: null,
             voice_recording_completed: showComplete ? true : false,
             voice_recording_completed_at: showComplete ? mockTimestamp : null,
             audios_generated: showComplete ? true : false,
             audios_generated_at: showComplete ? mockTimestamp : null,
-            vision_board_completed: showComplete ? true : false,
+            vision_board_completed: showComplete,
             vision_board_completed_at: showComplete ? mockTimestamp : null,
-            first_journal_entry: showComplete ? true : false,
+            first_journal_entry: showComplete,
             first_journal_entry_at: showComplete ? mockTimestamp : null,
-            call_scheduled: showComplete ? true : false,
+            call_scheduled: showComplete,
             call_scheduled_at: showComplete ? mockTimestamp : null,
-            activation_protocol_completed: showComplete ? true : false,
+            activation_protocol_completed: showComplete,
             activation_protocol_completed_at: showComplete ? mockTimestamp : null,
-            unlock_completed: showComplete ? true : false,
+            unlock_completed: showComplete,
             unlock_completed_at: showComplete ? mockTimestamp : null,
           } as IntensiveChecklist)
           setLoading(false)
@@ -484,7 +501,7 @@ function IntensiveDashboardContent() {
   const getSteps = (): IntensiveStep[] => {
     if (!checklist) return []
 
-    return [
+    const steps: IntensiveStep[] = [
       // Phase 1: Setup (Steps 1-2)
       {
         id: 'settings',
@@ -688,6 +705,13 @@ function IntensiveDashboardContent() {
         locked: !checklist.activation_protocol_completed
       }
     ]
+
+    // Super admins can access all steps regardless of completion order
+    if (isSuperAdminUser) {
+      return steps.map(step => ({ ...step, locked: false }))
+    }
+
+    return steps
   }
 
   const getProgress = () => {

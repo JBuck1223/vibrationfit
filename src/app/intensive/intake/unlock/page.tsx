@@ -281,7 +281,7 @@ export default function IntensiveUnlockPage() {
     
     // For yes/no questions, check the value differently
     if (questionId === 'has_vision_board' && formData[questionId] === 'yes_both') {
-      return `Our score for you is "Yes, both physical and digital", as you have ${stats.vision_board_items_count} item${stats.vision_board_items_count !== 1 ? 's' : ''} on your digital vision board with easy downloads to print for a physical board.`
+      return `Our choice for you is Yes, both physical and digital, because you have a digital board and access to a downloadable PDF.`
     }
     
     if (questionId === 'has_audio_tracks' && formData[questionId] === 'yes') {
@@ -307,7 +307,7 @@ export default function IntensiveUnlockPage() {
       case 'vision_board_management':
         return `Our score for you is 10/10, as you have ${stats.vision_board_items_count} item${stats.vision_board_items_count !== 1 ? 's' : ''} on your vision board with easy management and downloads.`
       case 'journey_capturing':
-        return `Our score for you is 10/10, as you have ${stats.journal_entries_count} journal entr${stats.journal_entries_count !== 1 ? 'ies' : 'y'}.`
+        return `Our score for you is 10/10, as you have ${stats.profile_versions_count} profile version${stats.profile_versions_count !== 1 ? 's' : ''}, ${stats.assessment_completed_count} assessment${stats.assessment_completed_count !== 1 ? 's' : ''}, ${stats.visions_count} life vision${stats.visions_count !== 1 ? 's' : ''}, ${stats.vision_board_items_count} vision board item${stats.vision_board_items_count !== 1 ? 's' : ''}, and ${stats.journal_entries_count} journal entr${stats.journal_entries_count !== 1 ? 'ies' : 'y'}.`
       case 'roadmap_clarity':
         return `Our score for you is 10/10, as you have an active activation protocol to activate your life vision.`
       case 'transformation_tracking':
@@ -586,6 +586,7 @@ export default function IntensiveUnlockPage() {
   const MultipleChoiceSelector = ({ question, displayNumber }: { question: IntakeQuestion, displayNumber: number }) => {
     const baselineValue = baseline[question.id] as string | null
     const statsInfo = getStatsForQuestion(question.id)
+    const scoreExplanation = getScoreExplanation(question.id)
 
     return (
       <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30 overflow-hidden">
@@ -615,9 +616,14 @@ export default function IntensiveUnlockPage() {
         {statsInfo && (
           <div className="mb-4 md:ml-10 p-3 bg-neutral-800/30 rounded-lg border border-neutral-700/50">
             <div className="text-xs text-neutral-400 mb-2 font-medium">Your Activity:</div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 mb-2">
               {statsInfo}
             </div>
+            {scoreExplanation && (
+              <p className="text-xs text-primary-400 mt-2 font-medium">
+                {scoreExplanation}
+              </p>
+            )}
           </div>
         )}
 

@@ -357,7 +357,9 @@ export async function POST(request: NextRequest) {
       // Look up the DB product ID for the order_item FK
       const productKey = product === 'intensive'
         ? (planType === 'household' ? 'intensive_household' : 'intensive')
-        : product === 'token-pack' ? 'tokens' : product
+        : product === 'intensive_premium'
+          ? (planType === 'household' ? 'intensive_premium_household' : 'intensive_premium')
+          : product === 'token-pack' ? 'tokens' : product
       const { data: dbProd } = await supabaseAdmin
         .from('products')
         .select('id')
@@ -380,7 +382,7 @@ export async function POST(request: NextRequest) {
         }).select('id').single()
         if (oiErr) {
           console.error('Failed to create order_item:', oiErr)
-        } else if (orderItem && (product === 'intensive' || fullMetadata?.product_type === 'combined_intensive_continuity')) {
+        } else if (orderItem && (product === 'intensive' || product === 'intensive_premium' || fullMetadata?.product_type === 'combined_intensive_continuity')) {
           await supabaseAdmin.from('intensive_checklist').insert({
             intensive_id: orderItem.id,
             user_id: userId,

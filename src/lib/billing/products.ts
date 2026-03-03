@@ -52,12 +52,13 @@ export async function resolveProduct(
 ): Promise<CheckoutProduct | null> {
   const { product, plan, continuity, planType, packKey } = params
 
-  if (product === 'intensive') {
+  if (product === 'intensive' || product === 'intensive_premium') {
     return resolveIntensiveProduct(
-      (plan as 'full' | '2pay' | '3pay') || 'full',
-      (continuity as 'annual' | '28day') || 'annual',
+      product === 'intensive_premium' ? 'full' : ((plan as 'full' | '2pay' | '3pay') || 'full'),
+      (continuity as 'annual' | '28day') || '28day',
       (planType as 'solo' | 'household') || 'solo',
       supabase,
+      product === 'intensive_premium',
     )
   }
 
@@ -73,10 +74,13 @@ async function resolveIntensiveProduct(
   continuityPlan: 'annual' | '28day',
   planTypeStr: 'solo' | 'household',
   supabase?: SupabaseClient,
+  isPremium?: boolean,
 ): Promise<CheckoutProduct | null> {
   const sb = await getSupabase(supabase)
   const isSolo = planTypeStr === 'solo'
-  const productKey = isSolo ? 'intensive' : 'intensive_household'
+  const productKey = isPremium
+    ? (isSolo ? 'intensive_premium' : 'intensive_premium_household')
+    : (isSolo ? 'intensive' : 'intensive_household')
 
   const { data: dbProduct } = await sb
     .from('products')
@@ -105,7 +109,9 @@ async function resolveIntensiveProduct(
     : paymentPlan === '2pay' ? '2 payments'
     : '3 payments'
 
-  const intensiveTierType = isSolo ? 'intensive' : 'intensive_household'
+  const intensiveTierType = isPremium
+    ? (isSolo ? 'intensive_premium' : 'intensive_premium_household')
+    : (isSolo ? 'intensive' : 'intensive_household')
   const { data: intensiveTier } = await sb
     .from('membership_tiers')
     .select('monthly_token_grant, annual_token_grant, storage_quota_gb, features')
@@ -129,18 +135,27 @@ async function resolveIntensiveProduct(
   const stripePriceId = price.stripe_price_id || (stripePriceEnvKey ? process.env[stripePriceEnvKey] : null) || null
 
   return {
-    key: `intensive-${planTypeStr}-${paymentPlan}`,
+    key: `${isPremium ? 'premium-' : ''}intensive-${planTypeStr}-${paymentPlan}`,
     name: dbProduct.name,
     description: `${isSolo ? 'Solo' : 'Household'} - ${planLabel}`,
     mode: paymentPlan === 'full' ? 'payment' : 'subscription',
     amount: price.unit_amount,
     currency: price.currency || 'usd',
-    features: [
-      'Full Activation Intensive experience',
-      `${formatTokensShort(intensiveTokens)} VIVA tokens included`,
-      `Vision Pro ${continuityPlan === 'annual' ? 'Annual' : '28-Day'} starts billing Day 56`,
-      ...continuityFeatures.slice(0, 5),
-    ],
+    features: isPremium
+      ? [
+          '1:1 or small-group deep dive',
+          'Custom vibration / practice plan',
+          'Priority or private support',
+          `${formatTokensShort(intensiveTokens)} VIVA tokens included`,
+          `Vision Pro 28-Day starts billing Day 56`,
+          ...continuityFeatures.slice(0, 3),
+        ]
+      : [
+          'Full Activation Intensive experience',
+          `${formatTokensShort(intensiveTokens)} VIVA tokens included`,
+          `Vision Pro ${continuityPlan === 'annual' ? 'Annual' : '28-Day'} starts billing Day 56`,
+          ...continuityFeatures.slice(0, 5),
+        ],
     redirectAfterSuccess: '/intensive/start',
     stripePriceId,
     stripePriceEnvKey,
@@ -151,6 +166,7 @@ async function resolveIntensiveProduct(
       continuity_plan: continuityPlan,
       plan_type: planTypeStr,
       source: 'custom_checkout',
+      ...(isPremium ? { intensive_level: 'premium' } : {}),
     },
   }
 }
