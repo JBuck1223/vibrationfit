@@ -333,20 +333,6 @@ export default function CategoryPage() {
           title={category.label}
           subtitle={category.description}
         >
-          {/* Category Grid */}
-          <div className="mb-6">
-            <CategoryGrid
-              categories={categoriesWithout}
-              selectedCategories={[categoryKey]}
-              completedCategories={completedCategoryKeys}
-              onCategoryClick={(key: string) => router.push(`/life-vision/new/category/${key}`)}
-              mode="completion"
-              layout="12-column"
-              withCard={true}
-              className="!bg-black/40 backdrop-blur-sm"
-            />
-          </div>
-
           {/* Mobile Navigation Buttons */}
           <div className="flex md:hidden gap-2">
             <Button
@@ -371,6 +357,18 @@ export default function CategoryPage() {
             </Button>
           </div>
         </PageHero>
+
+        {/* Categories bar - full width under hero */}
+        <CategoryGrid
+          categories={categoriesWithout}
+          selectedCategories={[categoryKey]}
+          completedCategories={completedCategoryKeys}
+          onCategoryClick={(key: string) => router.push(`/life-vision/new/category/${key}`)}
+          mode="completion"
+          layout="12-column"
+          withCard={true}
+          className="!bg-black/40 backdrop-blur-sm w-full"
+        />
 
         {/* Context Card - Profile Details + Current State */}
         {(profileData || fullProfile) && (

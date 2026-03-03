@@ -12,6 +12,7 @@ import {
   PageHero,
   Spinner,
   IntensiveCompletionBanner,
+  CategoryGrid,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowRight, Eye, Sparkles, Target, Compass, Lightbulb, RotateCcw } from 'lucide-react'
@@ -331,7 +332,6 @@ export default function VIVALifeVisionLandingPage() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowStartFreshConfirm(true)}
-                className="text-neutral-400 hover:text-white"
               >
                 <RotateCcw className="mr-2 h-4 w-4" />
                 Start Fresh
@@ -339,6 +339,18 @@ export default function VIVALifeVisionLandingPage() {
             )}
           </div>
         </PageHero>
+
+        {/* Categories bar - full width under hero */}
+        <CategoryGrid
+          categories={categoriesWithout}
+          selectedCategories={[]}
+          completedCategories={completedCategoryKeys}
+          onCategoryClick={(key: string) => router.push(`/life-vision/new/category/${key}`)}
+          mode="completion"
+          layout="12-column"
+          withCard={true}
+          className="!bg-black/40 backdrop-blur-sm w-full"
+        />
 
         {/* What is a Life Vision? */}
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">

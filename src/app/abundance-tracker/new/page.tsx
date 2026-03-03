@@ -1,8 +1,9 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import Link from 'next/link'
-import { HelpCircle, Upload, Sparkles, ArrowLeft } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { HelpCircle, Upload, Sparkles } from 'lucide-react'
 import {
   Container,
   Card,
@@ -70,7 +71,7 @@ export default function AbundanceNewEntryPage() {
   const [date, setDate] = useState(today)
   const [valueType, setValueType] = useState<'money' | 'value'>('money')
   const [amount, setAmount] = useState('')
-  const [visionCategory, setVisionCategory] = useState('')
+  const [visionCategories, setVisionCategories] = useState<string[]>([])
   const [entryCategory, setEntryCategory] = useState('')
   const [note, setNote] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -80,6 +81,10 @@ export default function AbundanceNewEntryPage() {
   const [imageSource, setImageSource] = useState<'upload' | 'ai' | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [aiGeneratedImageUrl, setAiGeneratedImageUrl] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const router = useRouter()
+
+  const ACCEPT_IMAGES = 'image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif'
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -112,7 +117,7 @@ export default function AbundanceNewEntryPage() {
           date,
           valueType,
           amount: amount ? Number(amount.replace(/,/g, '')) : undefined,
-          visionCategory: visionCategory || undefined,
+          visionCategories: visionCategories.length > 0 ? visionCategories : undefined,
           entryCategory: entryCategory || undefined,
           note,
           imageUrl,
@@ -128,12 +133,13 @@ export default function AbundanceNewEntryPage() {
       setNote('')
       setAmount('')
       setValueType('money')
-      setVisionCategory('')
+      setVisionCategories([])
       setEntryCategory('')
       setDate(today)
       setImageSource(null)
       setFile(null)
       setAiGeneratedImageUrl(null)
+      router.push('/abundance-tracker')
     } catch (error) {
       console.error(error)
       setErrorMessage(error instanceof Error ? error.message : 'Something went wrong.')
@@ -145,22 +151,26 @@ export default function AbundanceNewEntryPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <div>
-          <Link
-            href="/abundance-tracker"
-            className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-colors mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
-          </Link>
-          <PageHero
-            title="Log Abundance Moment"
-            subtitle="Capture gifts, synchronicities, and abundance flowing to you right now."
-          />
-        </div>
+        <PageHero
+          title="Log Abundance Moment"
+          subtitle="Capture gifts, synchronicities, and abundance flowing to you right now."
+        >
+          <div className="flex justify-center">
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+            >
+              <Link href="/abundance-tracker">
+                Abundance Dashboard
+              </Link>
+            </Button>
+          </div>
+        </PageHero>
         <Card>
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2">
               <DatePicker
                 label="Date"
                 value={date}
@@ -169,17 +179,10 @@ export default function AbundanceNewEntryPage() {
                 required
               />
 
-              <Select
-                label="Track as:"
-                value={valueType}
-                onChange={(value) => setValueType(value as 'money' | 'value')}
-                options={VALUE_TYPES}
-              />
-
               <div className="w-full">
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm font-medium text-neutral-200">
-                    Amount
+                    Track as:
                   </label>
                   <button
                     type="button"
@@ -190,6 +193,17 @@ export default function AbundanceNewEntryPage() {
                     <HelpCircle className="w-4 h-4" />
                   </button>
                 </div>
+                <Select
+                  value={valueType}
+                  onChange={(value) => setValueType(value as 'money' | 'value')}
+                  options={VALUE_TYPES}
+                />
+              </div>
+
+              <div className="w-full">
+                <label className="block text-sm font-medium text-neutral-200 mb-2">
+                  Amount
+                </label>
                 <Input
                   type="text"
                   inputMode="decimal"
@@ -198,6 +212,16 @@ export default function AbundanceNewEntryPage() {
                   onChange={(event) => setAmount(parseAmountInput(event.target.value))}
                   required={valueType === 'money'}
                   prefix="$"
+                />
+              </div>
+
+              <div className="w-full">
+                <Select
+                  label="Kind of abundance:"
+                  value={entryCategory}
+                  onChange={(value) => setEntryCategory(value)}
+                  options={ENTRY_CATEGORY_OPTIONS}
+                  placeholder="Abundance type (optional)"
                 />
               </div>
             </div>
@@ -212,28 +236,22 @@ export default function AbundanceNewEntryPage() {
             />
 
             <div>
-              <Select
-                label="Kind of abundance:"
-                value={entryCategory}
-                onChange={(value) => setEntryCategory(value)}
-                options={ENTRY_CATEGORY_OPTIONS}
-                placeholder="Abundance type (optional)"
-              />
-            </div>
-
-            <div>
               <p className="text-sm text-neutral-400 mb-3 text-center">
                 Select categories for your abundance entry (optional)
               </p>
               <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
                 {visionCategoriesForAbundance.map((category) => {
-                  const isSelected = visionCategory === category.key
+                  const isSelected = visionCategories.includes(category.key)
                   return (
                     <CategoryCard
                       key={category.key}
                       category={category}
                       selected={isSelected}
-                      onClick={() => setVisionCategory(isSelected ? '' : category.key)}
+                      onClick={() => {
+                        setVisionCategories((prev) =>
+                          isSelected ? prev.filter((k) => k !== category.key) : [...prev, category.key]
+                        )
+                      }}
                       variant="outlined"
                       selectionStyle="border"
                       iconColor={isSelected ? '#39FF14' : '#FFFFFF'}
@@ -249,6 +267,22 @@ export default function AbundanceNewEntryPage() {
               <label className="block text-sm font-medium text-neutral-200 mb-3">
                 Image (optional)
               </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={ACCEPT_IMAGES}
+                className="hidden"
+                aria-hidden
+                onChange={(e) => {
+                  const chosen = e.target.files?.[0]
+                  if (chosen) {
+                    setFile(chosen)
+                    setImageSource('upload')
+                    setAiGeneratedImageUrl(null)
+                  }
+                  e.target.value = ''
+                }}
+              />
               <div className="flex flex-col sm:flex-row gap-2 mb-4">
                 <Button
                   type="button"
@@ -257,6 +291,7 @@ export default function AbundanceNewEntryPage() {
                   onClick={() => {
                     setImageSource('upload')
                     setAiGeneratedImageUrl(null)
+                    fileInputRef.current?.click()
                   }}
                   className="w-full sm:flex-1"
                 >
@@ -294,7 +329,7 @@ export default function AbundanceNewEntryPage() {
               {imageSource === 'upload' && (
                 <FileUpload
                   dragDrop
-                  accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
+                  accept={ACCEPT_IMAGES}
                   multiple={false}
                   maxFiles={1}
                   maxSize={10}
@@ -358,17 +393,19 @@ export default function AbundanceNewEntryPage() {
               </div>
             )}
 
-            <div className="flex justify-end">
-              <Button type="submit" variant="primary" loading={isSubmitting}>
-                {isSubmitting ? 'Logging...' : 'Log Abundance Moment'}
-              </Button>
+            <div className="border-t-2 border-[#333] pt-6 mt-6">
+              <div className="flex justify-end">
+                <Button type="submit" variant="primary" loading={isSubmitting}>
+                  {isSubmitting ? 'Saving...' : 'Save Abundance Moment'}
+                </Button>
+              </div>
             </div>
           </form>
 
           <Modal
             isOpen={helpOpen}
             onClose={() => setHelpOpen(false)}
-            title="Money vs Value (intangible)"
+            title="Money vs Value"
             size="md"
           >
             <div className="space-y-4 text-sm text-neutral-300">
@@ -376,7 +413,7 @@ export default function AbundanceNewEntryPage() {
                 <strong className="text-white">Money</strong> entries require an amount.
               </p>
               <p>
-                <strong className="text-white">Value (intangible)</strong> entries celebrate intangible abundance—share the story in the note and add an amount if you want to track it numerically.
+                <strong className="text-white">Value</strong> entries celebrate intangible abundance—share the story in the note and add an amount if you want to track it numerically.
               </p>
             </div>
           </Modal>

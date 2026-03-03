@@ -153,8 +153,12 @@ CRITICAL REQUIREMENTS:
     }
 
     if (!result.success) {
+      const errMsg = result.error || 'Image generation failed'
+      if (errMsg === 'Forbidden' || errMsg.includes('fal') || errMsg.includes('credentials')) {
+        console.warn('Image generation failed (likely FAL_KEY or fal.ai access):', errMsg)
+      }
       return NextResponse.json(
-        { error: result.error || 'Image generation failed' },
+        { error: errMsg },
         { status: result.error === 'Insufficient tokens' ? 402 : 500 }
       )
     }

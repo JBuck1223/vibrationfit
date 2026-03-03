@@ -67,10 +67,15 @@ export async function GET() {
       entryBreakdown[eCat].count++
       entryBreakdown[eCat].amount += amt
 
-      const vCat = ev.vision_category || 'uncategorized'
-      if (!visionBreakdown[vCat]) visionBreakdown[vCat] = { count: 0, amount: 0 }
-      visionBreakdown[vCat].count++
-      visionBreakdown[vCat].amount += amt
+      const vCats = ev.vision_category
+        ? ev.vision_category.split(',').map((s: string) => s.trim()).filter(Boolean)
+        : ['uncategorized']
+      for (const vCat of vCats) {
+        const key = vCat || 'uncategorized'
+        if (!visionBreakdown[key]) visionBreakdown[key] = { count: 0, amount: 0 }
+        visionBreakdown[key].count++
+        visionBreakdown[key].amount += amt
+      }
     }
 
     return NextResponse.json({
@@ -108,7 +113,11 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { date, valueType, amount, visionCategory, entryCategory, note, imageUrl } = body ?? {}
+    const { date, valueType, amount, visionCategory, visionCategories, entryCategory, note, imageUrl } = body ?? {}
+    const visionCategoryValue =
+      Array.isArray(visionCategories) && visionCategories.length > 0
+        ? visionCategories.join(',')
+        : visionCategory ?? null
 
     if (!date || !valueType || !note) {
       return NextResponse.json({ error: 'Date, type, and note are required.' }, { status: 400 })
@@ -125,18 +134,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Money entries require a valid amount.' }, { status: 400 })
     }
 
+    // Insert without image_url so the request succeeds even if the column doesn't exist yet (migration not run).
+    const insertPayload = {
+      user_id: user.id,
+      date,
+      value_type: valueType,
+      amount: amount ?? null,
+      vision_category: visionCategoryValue,
+      entry_category: entryCategory ?? null,
+      note,
+    }
+
     const { data: abundanceEvent, error: insertError } = await supabase
       .from('abundance_events')
-      .insert({
-        user_id: user.id,
-        date,
-        value_type: valueType,
-        amount: amount ?? null,
-        vision_category: visionCategory ?? null,
-        entry_category: entryCategory ?? null,
-        note,
-        image_url: imageUrl ?? null,
-      })
+      .insert(insertPayload)
       .select()
       .single()
 
@@ -144,7 +155,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: insertError?.message || 'Failed to log abundance event.' }, { status: 500 })
     }
 
-    const categoryValue = visionCategory || 'abundance'
+    // If an image URL was provided, try to update the row (fails silently if image_url column doesn't exist).
+    if (imageUrl != null && imageUrl !== '') {
+      const { error: updateError } = await supabase
+        .from('abundance_events')
+        .update({ image_url: imageUrl })
+        .eq('id', abundanceEvent.id)
+      if (updateError) {
+        console.warn('abundance_events.image_url update skipped (column may not exist):', updateError.message)
+      } else {
+        ;(abundanceEvent as Record<string, unknown>).image_url = imageUrl
+      }
+    }
+
+    const categoryValue = visionCategoryValue || 'abundance'
 
     const numericAmount = typeof amount === 'number' && !Number.isNaN(amount) ? amount : null
 

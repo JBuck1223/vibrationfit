@@ -24,6 +24,7 @@ import {
   Card,
   Stack,
   PageHero,
+  Button,
   TrackingMilestoneCard,
 } from '@/lib/design-system/components'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
@@ -173,19 +174,24 @@ export default function AbundanceDashboardPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-          <PageHero
-            title="Abundance Tracker"
-            subtitle="Your abundance at a glance. Notice what's flowing to you."
-          />
-          <Link
-            href="/abundance-tracker/new"
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-[#39FF14] hover:bg-[#39FF14]/90 text-black font-semibold text-sm px-6 py-3 transition-all duration-300 hover:-translate-y-0.5 shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            Log Abundance Moment
-          </Link>
-        </div>
+        <PageHero
+          title="Abundance Tracker"
+          subtitle="Your abundance at a glance. Notice what's flowing to you."
+        >
+          <div className="flex justify-center">
+            <Button
+              asChild
+              variant="primary"
+              size="sm"
+              className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+            >
+              <Link href="/abundance-tracker/new">
+                <Plus className="w-4 h-4 shrink-0" />
+                <span>Log Abundance Moment</span>
+              </Link>
+            </Button>
+          </div>
+        </PageHero>
 
         {loading ? (
           <div className="text-center py-16">
@@ -202,13 +208,12 @@ export default function AbundanceDashboardPage() {
               Start tracking the gifts, synchronicities, and abundance flowing into your life.
               Every moment you notice builds your appreciation muscle.
             </p>
-            <Link
-              href="/abundance-tracker/new"
-              className="inline-flex items-center gap-2 rounded-full bg-[#39FF14] hover:bg-[#39FF14]/90 text-black font-semibold text-sm px-6 py-3 transition-all duration-300 hover:-translate-y-0.5"
-            >
-              <Plus className="w-4 h-4" />
-              Log Your First Moment
-            </Link>
+            <Button asChild variant="primary" size="md" className="hover:-translate-y-0.5">
+              <Link href="/abundance-tracker/new" className="inline-flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                Log Your First Moment
+              </Link>
+            </Button>
           </Card>
         ) : (
           <>
@@ -323,9 +328,9 @@ export default function AbundanceDashboardPage() {
                 <h2 className="text-lg font-bold text-white mb-5">Recent Abundance Moments</h2>
                 <div className="divide-y divide-neutral-800">
                   {data.recentEvents.map((event) => {
-                    const VisionIcon = event.vision_category
-                      ? getVisionIcon(event.vision_category)
-                      : null
+                    const eventVisionCategories = event.vision_category
+                      ? event.vision_category.split(',').map((s) => s.trim()).filter(Boolean)
+                      : []
                     return (
                       <div key={event.id} className="py-4 first:pt-0 last:pb-0">
                         <div className="flex items-start gap-3">
@@ -351,12 +356,18 @@ export default function AbundanceDashboardPage() {
                                   {ENTRY_LABELS[event.entry_category]?.label || event.entry_category}
                                 </span>
                               )}
-                              {event.vision_category && VisionIcon && (
-                                <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-neutral-800 text-neutral-400">
-                                  <VisionIcon className="w-3 h-3" />
-                                  {getVisionLabel(event.vision_category)}
-                                </span>
-                              )}
+                              {eventVisionCategories.map((catKey) => {
+                                const VisionIcon = getVisionIcon(catKey)
+                                return (
+                                  <span
+                                    key={catKey}
+                                    className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-neutral-800 text-neutral-400"
+                                  >
+                                    <VisionIcon className="w-3 h-3" />
+                                    {getVisionLabel(catKey)}
+                                  </span>
+                                )
+                              })}
                             </div>
                           </div>
                           {event.amount != null && Number(event.amount) > 0 && (
