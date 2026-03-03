@@ -28,8 +28,9 @@ export default function CategoryPage() {
     hasStateData: boolean
   } | null>(null)
   
-  // Imagination state
-  const [freeFlowText, setFreeFlowText] = useState('')
+  // Get Me Started + Imagination state
+  const [getMeStartedText, setGetMeStartedText] = useState('')
+  const [imaginationText, setImaginationText] = useState('')
   const [inspirationQuestions, setInspirationQuestions] = useState<string[]>([])
   const [isGeneratingStarter, setIsGeneratingStarter] = useState(false)
   const [showInsufficientTokens, setShowInsufficientTokens] = useState(false)
@@ -40,7 +41,8 @@ export default function CategoryPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [restoredDraft, setRestoredDraft] = useState(false)
 
-  const DRAFT_STORAGE_KEY = `life-vision-new-draft-${categoryKey}`
+  const DRAFT_STARTER_KEY = `life-vision-new-starter-${categoryKey}`
+  const DRAFT_IMAGINATION_KEY = `life-vision-new-imagination-${categoryKey}`
 
   const category = getVisionCategory(categoryKey)
   if (!category) {
@@ -62,21 +64,22 @@ export default function CategoryPage() {
     loadExistingData()
   }, [categoryKey])
 
-  // Persist draft to localStorage (debounced) so refresh or tab recovery doesn't lose content
+  // Persist drafts to localStorage (debounced) so refresh or tab recovery doesn't lose content
   const draftTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
-    if (!freeFlowText.trim()) return
+    if (!getMeStartedText.trim() && !imaginationText.trim()) return
     draftTimeoutRef.current = setTimeout(() => {
       try {
         if (typeof window !== 'undefined') {
-          window.localStorage.setItem(DRAFT_STORAGE_KEY, freeFlowText)
+          if (getMeStartedText.trim()) window.localStorage.setItem(DRAFT_STARTER_KEY, getMeStartedText)
+          if (imaginationText.trim()) window.localStorage.setItem(DRAFT_IMAGINATION_KEY, imaginationText)
         }
       } catch (_) { /* ignore */ }
     }, 800)
     return () => {
       if (draftTimeoutRef.current) clearTimeout(draftTimeoutRef.current)
     }
-  }, [freeFlowText, categoryKey])
+  }, [getMeStartedText, imaginationText, categoryKey])
 
   const loadExistingData = async () => {
     try {
@@ -128,48 +131,43 @@ export default function CategoryPage() {
       const filteredQuestions = getFilteredQuestionsForCategory(categoryKey, profile || {})
       setInspirationQuestions(filteredQuestions.map(q => q.text))
 
-      // Load existing ideal_state from vision_new_category_state table
+      // Load existing data from vision_new_category_state table
       const { data: categoryState } = await supabase
         .from('vision_new_category_state')
-        .select('ideal_state')
+        .select('get_me_started_text, imagination_text')
         .eq('user_id', user.id)
         .eq('category', categoryKey)
         .maybeSingle()
 
-      if (categoryState?.ideal_state) {
-        // Try to parse as old JSON format first
-        try {
-          const parsed = JSON.parse(categoryState.ideal_state)
-          if (typeof parsed === 'object' && parsed !== null) {
-            // Convert old individual answers to free-flow text
-            setFreeFlowText(Object.values(parsed).filter(Boolean).join('\n\n'))
-          } else {
-            setFreeFlowText(categoryState.ideal_state)
-          }
-        } catch {
-          // Not JSON, use as-is (new text format)
-          setFreeFlowText(categoryState.ideal_state)
-        }
+      if (categoryState?.get_me_started_text) {
+        setGetMeStartedText(categoryState.get_me_started_text)
+      }
+      if (categoryState?.imagination_text) {
+        setImaginationText(categoryState.imagination_text)
       }
 
-      // Restore unsaved draft from localStorage if present (e.g. after refresh or tab recovery)
+      // Restore unsaved drafts from localStorage if present (e.g. after refresh or tab recovery)
       try {
-        const draft = typeof window !== 'undefined' ? window.localStorage.getItem(DRAFT_STORAGE_KEY) : null
-        if (draft && draft.trim().length > 0) {
-          setFreeFlowText(draft)
+        const starterDraft = typeof window !== 'undefined' ? window.localStorage.getItem(DRAFT_STARTER_KEY) : null
+        const imaginationDraft = typeof window !== 'undefined' ? window.localStorage.getItem(DRAFT_IMAGINATION_KEY) : null
+        if (starterDraft && starterDraft.trim().length > 0) {
+          setGetMeStartedText(starterDraft)
           setRestoredDraft(true)
-          // Keep draft in localStorage until they successfully save (cleared in handleSaveAndContinue)
+        }
+        if (imaginationDraft && imaginationDraft.trim().length > 0) {
+          setImaginationText(imaginationDraft)
+          setRestoredDraft(true)
         }
       } catch (_) { /* ignore */ }
       
       // Load completion status for all categories for the grid
       const { data: allCategoryStates } = await supabase
         .from('vision_new_category_state')
-        .select('category, ideal_state')
+        .select('category, get_me_started_text')
         .eq('user_id', user.id)
       
       const completed = allCategoryStates
-        ?.filter(state => state.ideal_state && state.ideal_state.trim().length > 0)
+        ?.filter(state => state.get_me_started_text && state.get_me_started_text.trim().length > 0)
         .map(state => state.category) || []
       
       setCompletedCategoryKeys(completed)
@@ -208,7 +206,7 @@ export default function CategoryPage() {
         throw new Error(errorData.error || `Failed to generate starter (${response.status})`)
       }
 
-      // Stream the response into the textarea
+      // Stream the response into the Get Me Started textarea
       const reader = response.body?.getReader()
       const decoder = new TextDecoder()
       let fullText = ''
@@ -220,7 +218,7 @@ export default function CategoryPage() {
           
           const chunk = decoder.decode(value, { stream: true })
           fullText += chunk
-          setFreeFlowText(fullText)
+          setGetMeStartedText(fullText)
         }
       }
 
@@ -228,7 +226,7 @@ export default function CategoryPage() {
       const finalChunk = decoder.decode()
       if (finalChunk) {
         fullText += finalChunk
-        setFreeFlowText(fullText)
+        setGetMeStartedText(fullText)
       }
 
     } catch (err) {
@@ -240,8 +238,8 @@ export default function CategoryPage() {
   }
 
   const handleSaveAndContinue = async () => {
-    if (!freeFlowText.trim()) {
-      setError('Please describe your ideal state before continuing')
+    if (!getMeStartedText.trim() && !imaginationText.trim()) {
+      setError('Please use Get Me Started or write your imagination before continuing')
       return
     }
 
@@ -251,7 +249,7 @@ export default function CategoryPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Unauthorized')
 
-      // Save to database - save both ideal_state and state from profile (for assembly compatibility)
+      // Save to database - both fields + clarity_keys from profile
       const stateField = getCategoryStateField(categoryKey)
       const stateValue = fullProfile?.[stateField] || ''
       
@@ -260,9 +258,9 @@ export default function CategoryPage() {
         .upsert({
           user_id: user.id,
           category: categoryKey,
-          ideal_state: freeFlowText.trim(),
+          get_me_started_text: getMeStartedText.trim() || null,
+          imagination_text: imaginationText.trim() || null,
           clarity_keys: stateValue ? [stateValue] : [],
-          contrast_flips: [],
           category_vision_text: null
         }, {
           onConflict: 'user_id,category'
@@ -270,9 +268,12 @@ export default function CategoryPage() {
 
       if (updateError) throw updateError
 
-      // Clear draft from localStorage after successful save
+      // Clear drafts from localStorage after successful save
       try {
-        if (typeof window !== 'undefined') window.localStorage.removeItem(DRAFT_STORAGE_KEY)
+        if (typeof window !== 'undefined') {
+          window.localStorage.removeItem(DRAFT_STARTER_KEY)
+          window.localStorage.removeItem(DRAFT_IMAGINATION_KEY)
+        }
       } catch (_) { /* ignore */ }
 
       // Navigate to next category or assembly
@@ -301,13 +302,15 @@ export default function CategoryPage() {
         .eq('user_id', user.id)
         .eq('category', categoryKey)
 
-      // Clear localStorage draft
+      // Clear localStorage drafts
       try {
-        window.localStorage.removeItem(DRAFT_STORAGE_KEY)
+        window.localStorage.removeItem(DRAFT_STARTER_KEY)
+        window.localStorage.removeItem(DRAFT_IMAGINATION_KEY)
       } catch (_) { /* ignore */ }
 
       // Reset local state
-      setFreeFlowText('')
+      setGetMeStartedText('')
+      setImaginationText('')
       setRestoredDraft(false)
       setCompletedCategoryKeys(prev => prev.filter(k => k !== categoryKey))
     } catch (err) {
@@ -574,19 +577,18 @@ export default function CategoryPage() {
           </Card>
         )}
 
-        {/* Free Flow Textarea */}
+        {/* Section 1: Get Me Started */}
         <Card variant="elevated" className="p-6">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
             <label className="block">
               <span className="text-lg font-semibold text-white mb-2 block">
-                Your Dream Life in {category.label}
+                Get Me Started
               </span>
               <span className="text-sm text-neutral-400 block">
-                Write freely about your ideal state. No structure required—just let it flow!
+                VIVA builds a starting point from your profile. Edit freely to make it yours.
               </span>
             </label>
             
-            {/* VIVA Starter / Regenerate Button */}
             <Button
               variant="accent"
               size="sm"
@@ -599,7 +601,7 @@ export default function CategoryPage() {
                   <Spinner size="sm" className="mr-2" />
                   Generating...
                 </>
-              ) : freeFlowText.trim().length >= 50 || completedCategoryKeys.includes(categoryKey) ? (
+              ) : getMeStartedText.trim().length >= 50 || completedCategoryKeys.includes(categoryKey) ? (
                 <>
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Regenerate
@@ -631,20 +633,43 @@ export default function CategoryPage() {
             <div className="mb-3 p-3 rounded-lg bg-secondary-500/10 border border-secondary-500/30">
               <p className="text-sm text-secondary-400 flex items-center">
                 <Sparkles className="w-4 h-4 mr-2 animate-pulse" />
-                VIVA is creating a draft based on your profile... Feel free to edit as it appears!
+                VIVA is building your starting point from your profile...
               </p>
             </div>
           )}
           
           <RecordingTextarea
-            value={freeFlowText}
-            onChange={(value) => setFreeFlowText(value)}
-            placeholder={`Describe your dream ${category.label.toLowerCase()} life...\n\nWhat does it look like? How does it feel? What are you doing? Who are you with?`}
-            className="min-h-[300px] w-full"
-            rows={12}
+            value={getMeStartedText}
+            onChange={(value) => setGetMeStartedText(value)}
+            placeholder={`Press "Get Me Started" and VIVA will create a starting point from your ${category.label.toLowerCase()} profile data...`}
+            className="min-h-[200px] w-full"
+            rows={8}
           />
           <p className="text-xs text-neutral-500 mt-2">
-            {freeFlowText.trim().split(/\s+/).filter(Boolean).length} words
+            {getMeStartedText.trim().split(/\s+/).filter(Boolean).length} words
+          </p>
+        </Card>
+
+        {/* Section 2: Imagination */}
+        <Card variant="elevated" className="p-6 border-2 border-accent-500/20">
+          <label className="block mb-4">
+            <span className="text-lg font-semibold text-white mb-2 block">
+              Unleash Your Imagination
+            </span>
+            <span className="text-sm text-neutral-400 block">
+              Dream bigger. What does your absolute dream {category.label.toLowerCase()} life look like? Go beyond what exists today.
+            </span>
+          </label>
+          
+          <RecordingTextarea
+            value={imaginationText}
+            onChange={(value) => setImaginationText(value)}
+            placeholder={`Let your imagination run wild...\n\nIf there were no limits, what would your ${category.label.toLowerCase()} life look like? What experiences, feelings, and realities would you create?`}
+            className="min-h-[250px] w-full"
+            rows={10}
+          />
+          <p className="text-xs text-neutral-500 mt-2">
+            {imaginationText.trim().split(/\s+/).filter(Boolean).length} words
           </p>
         </Card>
 
@@ -658,7 +683,7 @@ export default function CategoryPage() {
               e.stopPropagation()
               handleSaveAndContinue()
             }}
-            disabled={!freeFlowText.trim() || isSaving}
+            disabled={(!getMeStartedText.trim() && !imaginationText.trim()) || isSaving}
             className="w-full"
           >
             {isSaving ? (

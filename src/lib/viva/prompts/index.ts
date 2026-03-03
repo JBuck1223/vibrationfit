@@ -55,12 +55,6 @@ export {
 // Ideal State Questions (Step 2: Unleash Imagination)
 // Now using static questions from @/lib/life-vision/ideal-state-questions
 
-// Blueprint Prompt (Step 3: Being/Doing/Receiving generation)
-export {
-  buildBlueprintPrompt,
-  type BeingDoingReceivingLoop,
-} from './blueprint-prompt'
-
 // Final Assembly Prompt (Step 6: Forward/Conclusion generation)
 export { buildFinalAssemblyPrompt } from './final-assembly-prompt'
 

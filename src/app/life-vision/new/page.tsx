@@ -86,7 +86,7 @@ export default function VIVALifeVisionLandingPage() {
       // Get all category states
       const { data: categoryStates } = await supabase
         .from('vision_new_category_state')
-        .select('category, clarity_keys, ideal_state, blueprint_data')
+        .select('category, clarity_keys, get_me_started_text')
         .eq('user_id', user.id)
 
       // Also get user profile to check for profile state as fallback
@@ -104,8 +104,8 @@ export default function VIVALifeVisionLandingPage() {
       categoryStates?.forEach(state => {
         progressMap[state.category] = {
           hasClarity: !!(state.clarity_keys && Array.isArray(state.clarity_keys) && state.clarity_keys.length > 0),
-          hasImagination: !!state.ideal_state,
-          hasBlueprint: !!state.blueprint_data
+          hasImagination: !!state.get_me_started_text,
+          hasBlueprint: false
         }
       })
       
@@ -132,7 +132,7 @@ export default function VIVALifeVisionLandingPage() {
       setProgress(progressMap)
       
       // Set completed category keys for the CategoryGrid
-      // Match category page logic: completed = has ideal_state (hasImagination)
+      // Match category page logic: completed = has get_me_started_text (hasImagination)
       const completed = Object.entries(progressMap)
         .filter(([_, prog]) => prog.hasImagination)
         .map(([key]) => key)
@@ -221,7 +221,7 @@ export default function VIVALifeVisionLandingPage() {
 
   const handleGetStarted = async () => {
     // Find first incomplete category
-    // Match category page logic: completed = has ideal_state (hasImagination)
+    // Match category page logic: completed = has get_me_started_text (hasImagination)
     const categories = VISION_CATEGORIES.filter(cat => cat.order > 0 && cat.order < 13)
     const firstIncomplete = categories.find(cat => {
       const prog = progress[cat.key]
@@ -326,8 +326,8 @@ export default function VIVALifeVisionLandingPage() {
               </Button>
             )}
 
-            {/* Start Fresh - only when all 12 categories completed and a vision exists */}
-            {allCategoriesCompleted && hasExistingVision && (
+            {/* Start Fresh - available when a vision has been generated */}
+            {hasExistingVision && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -340,7 +340,7 @@ export default function VIVALifeVisionLandingPage() {
           </div>
         </PageHero>
 
-        {/* Categories bar - full width under hero */}
+        {/* Categories bar - progress tracker under hero */}
         <CategoryGrid
           categories={categoriesWithout}
           selectedCategories={[]}

@@ -217,6 +217,13 @@ const systemSections: AdminSection[] = [
     color: 'text-[#8B5CF6]',
   },
   {
+    title: 'Vision Tester',
+    description: 'Compare vision output across models',
+    href: '/admin/vision-tester',
+    icon: Target,
+    color: 'text-accent-500',
+  },
+  {
     title: 'Vibrational Events',
     description: 'Event source management',
     href: '/admin/vibrational-event/sources',

@@ -32,11 +32,9 @@ export async function POST(request: NextRequest) {
     categoryKey = body.categoryKey || 'unknown'
     
     const {
-      idealStateText = '',
+      getMeStartedText = '',
+      imaginationText = '',
       currentStateText = '',
-      scenes = [],
-      blueprintData = null,
-      transcript = '',
       perspective = 'singular'
     } = body
 
@@ -65,18 +63,15 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`[CategoryVision] Starting ${categoryKey} (streaming)`)
-    console.log(`[CategoryVision] Input sizes: ideal=${idealStateText?.length || 0}, state=${currentStateText?.length || 0}`)
+    console.log(`[CategoryVision] Input sizes: getMeStarted=${getMeStartedText?.length || 0}, imagination=${imaginationText?.length || 0}, state=${currentStateText?.length || 0}`)
 
     // Build the prompt
     const prompt = buildIndividualCategoryPrompt(
       categoryKey,
       category.label,
-      idealStateText,
+      getMeStartedText,
+      imaginationText,
       currentStateText,
-      Array.isArray(scenes) ? scenes : [],
-      blueprintData,
-      transcript,
-      null, // activeVisionCategoryText not used in polish mode
       perspective as 'singular' | 'plural'
     )
 

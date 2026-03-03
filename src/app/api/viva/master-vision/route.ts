@@ -222,24 +222,7 @@ export async function POST(request: NextRequest) {
 
     // Richness metadata removed - no longer computed or stored
 
-    // SAFETY: Save raw output to database before returning
-    try {
-      await supabase
-        .from('vision_new_category_state')
-        .upsert({
-          user_id: user.id,
-          category: '_master',
-          master_vision_raw: fullOutput,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,category'
-        })
-      
-      console.log('[Master Vision] Saved raw output to database for safety')
-    } catch (saveError) {
-      console.error('[Master Vision] Failed to save raw output:', saveError)
-      // Don't fail the request if saving fails
-    }
+    // master_vision_raw column has been dropped — raw output no longer saved to category_state
 
     // V5: Get user's voice profile for woo level
     // NOTE: Perspective should be passed from the calling page or default to 'singular'

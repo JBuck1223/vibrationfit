@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     // Get all category states to check what's already done
     const { data: categoryStates } = await supabase
       .from('vision_new_category_state')
-      .select('category, category_vision_text, ideal_state, clarity_keys, contrast_flips, blueprint_data')
+      .select('category, category_vision_text, get_me_started_text, imagination_text, clarity_keys')
       .eq('user_id', job.user_id)
       .in('category', categoryKeys)
 
@@ -186,11 +186,9 @@ export async function POST(request: NextRequest) {
         },
         body: JSON.stringify({
           categoryKey: nextCategory,
-          idealStateText: state?.ideal_state || '',
-          currentStateText: '',
-          scenes: scenesByCategory[nextCategory] || [],
-          blueprintData: state?.blueprint_data || null,
-          transcript: '',
+          getMeStartedText: state?.get_me_started_text || '',
+          imaginationText: state?.imagination_text || '',
+          currentStateText: state?.clarity_keys?.[0] || '',
           perspective
         })
       })

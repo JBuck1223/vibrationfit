@@ -206,37 +206,63 @@ As you compose, ensure ZERO instances of:
 - Process framing — no "It's not about X, it's about Y" — just say Y
 
 ═══════════════════════════════════════════════════════════════
-PHASE 2: EXPAND — Make it bigger, more vivid, more alive
+PHASE 2: EXPAND — Make it vivid, specific, and REAL
 ═══════════════════════════════════════════════════════════════
 
-Take their real details and INFUSE them with imagination and sensory richness:
+Take the cleaned material and make it richer — but GROUNDED, not flowery.
+The expansion must come from THEIR real life, not from generic inspiration.
 
-- Sounds: the clink of glasses, laughter echoing, the hum of an engine, music low in the background
-- Touch/temperature: sun on skin, cool breeze, the weight of a child in your arms, warm mug in hand
-- Sight: colors, light, landscapes, the look on someone's face
-- Smell/taste: coffee, salt air, simmering food, fresh earth
+RULE #1: SPECIFICS OVER ABSTRACTIONS (most important rule)
+Their real names, places, routines, and details ARE the vision.
+- If they named a person (partner, child, friend, nanny) → USE THE NAME
+- If they described a specific activity → KEEP that activity, add sensory detail
+- If they said something raw and real → PRESERVE IT. Their words > your polish.
+WRONG: replace "Miss Kelly watches the kids" with "our support system helps out"
+WRONG: replace "I eat pizza" with "I nourish my body with intention"
+RIGHT: keep their specifics, add the FEEL of the moment around them
 
-Add emotional voltage — words that carry charge:
-"electric", "alive", "lit up", "buzzing", "deep", "free", "powerful", "easy", "rich"
+RULE #2: SENSORY EXPANSION (add texture to THEIR moments, don't invent new ones)
+- Sounds: wooden spoons clacking, kids laughing, the hum of a boat engine
+- Touch: sun on skin, sand between toes, the weight of a child on your hip
+- Smell/taste: coffee brewing, salt air, garlic sizzling
+- Sight: specific colors, light quality, a specific view they'd recognize
 
-Stay grounded in THEIR material. Do not invent details they didn't provide.
-Expand what's there — don't add filler or generic affirmation-speak.
+RULE #3: KEEP THEIR RAW VOICE
+If they said something powerful in their own words, USE IT as-is.
+"I don't believe food is bad" is MORE powerful than "I have a balanced relationship with nourishment."
+Do NOT replace direct, real language with fancier synonyms or flowery metaphors.
+
+EXPAND DOES NOT MEAN:
+- Replace their words with fancier synonyms
+- Add metaphors ("tapestry", "dance", "symphony", "testament to")
+- Use inspirational poster language ("limitless potential", "boundless energy", "ignite our spirit")
+- Insert affirmation-speak ("the universe provides", "every moment is a gift")
+- Lose a single real name, place, or detail they provided
 
 ═══════════════════════════════════════════════════════════════
-PHASE 3: EMBODY — Make it land in the bones
+PHASE 3: EMBODY — Land it in the body
 ═══════════════════════════════════════════════════════════════
 
-Every sentence must feel like something this person would say while LIVING this life.
+The reader should FEEL this life when they read it aloud.
+It should sound like a real person talking about their real life with deep satisfaction.
 
-- Present tense only. Declarative. Certain.
-- Mix short punchy lines with flowing cinematic paragraphs
-- Gratitude is felt through deep satisfaction, never announced ("I'm so grateful..." → never)
-- End with ONE powerful closing sentence that locks in the FEELING
-  — a deep exhale, certain and settled, not a trailing thought
+VOICE:
+- Present tense. Declarative. Certain. SPECIFIC.
+- Mix short punchy lines with vivid sensory paragraphs
+- Gratitude felt through satisfaction, never announced ("I'm so grateful..." → never)
+- Must sound like THIS PERSON, not a life coach or greeting card
+
+AUTHENTICITY TEST:
+Read the output and ask: "Could I tell who this person is from reading this?"
+If it's so generic it could apply to anyone, it fails. Rewrite with THEIR details.
+
+CLOSING:
+- End with ONE powerful sentence that locks in the FEELING
+- A deep exhale — certain, settled, alive. Not a trailing thought.
 
 ENERGY TEST (apply to every sentence):
-"Would someone who already HAS this life say it this way?"
-If not, rewrite until the answer is a full-body YES.
+"Would this specific person say it this way while living this life?"
+If it sounds like a motivational poster instead of a real human, rewrite it.
 
 OUTPUT: Just the vision text. No headers, labels, phases, or explanations.`
 }

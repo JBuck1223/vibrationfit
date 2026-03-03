@@ -438,6 +438,7 @@ export const adminNavigation: NavItem[] = [
     description: 'Configure AI models and pricing',
     children: [
       { name: 'AI Model Config', href: '/admin/ai-models', icon: Wand2, description: 'Configure AI model settings' },
+      { name: 'Vision Tester', href: '/admin/vision-tester', icon: Target, description: 'Compare vision output across AI models' },
     ]
   },
   
