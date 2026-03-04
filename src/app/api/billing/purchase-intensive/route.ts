@@ -162,9 +162,9 @@ export async function POST(request: NextRequest) {
         .from('orders')
         .insert({
           user_id: user.id,
-          stripe_payment_intent_id: typeof paidInvoice.payment_intent === 'string'
-            ? paidInvoice.payment_intent
-            : paidInvoice.payment_intent?.id || null,
+          stripe_payment_intent_id: typeof (paidInvoice as any).payment_intent === 'string'
+            ? (paidInvoice as any).payment_intent
+            : (paidInvoice as any).payment_intent?.id || null,
           total_amount: finalAmount,
           currency: 'usd',
           status: 'completed',

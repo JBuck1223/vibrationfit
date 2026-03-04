@@ -194,7 +194,7 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
         </div>
         <div className="flex items-center gap-2">
           {paidSeats > 0 && (
-            <Badge variant="default" className="text-xs">
+            <Badge variant="neutral" className="text-xs">
               {paidSeats} add-on seat{paidSeats > 1 ? 's' : ''}
             </Badge>
           )}
