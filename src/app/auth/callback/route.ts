@@ -15,7 +15,9 @@ export async function GET(request: Request) {
   const code = requestUrl.searchParams.get('code')
   const tokenHash = requestUrl.searchParams.get('token_hash')
   const type = requestUrl.searchParams.get('type')
+  const returnTo = requestUrl.searchParams.get('returnTo')
   const origin = requestUrl.origin
+  const defaultRedirect = returnTo && returnTo.startsWith('/') ? `${origin}${returnTo}` : `${origin}/dashboard`
 
   const supabase = await createClient()
 
@@ -49,7 +51,7 @@ export async function GET(request: Request) {
       }
     }
 
-    return NextResponse.redirect(`${origin}/dashboard`)
+    return NextResponse.redirect(defaultRedirect)
   }
 
   // Handle magic link token verification
@@ -86,7 +88,7 @@ export async function GET(request: Request) {
       }
     }
 
-    return NextResponse.redirect(`${origin}/dashboard`)
+    return NextResponse.redirect(defaultRedirect)
   }
 
   return NextResponse.redirect(`${origin}/auth/login`)
