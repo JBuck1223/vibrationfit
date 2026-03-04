@@ -149,16 +149,17 @@ export default function IntensiveOverview({ intensive }: Props) {
         </div>
       )}
 
-      <Button
-        variant="ghost"
-        fullWidth
-        asChild
-      >
-        <Link href="/support/tickets" className="inline-flex items-center justify-center gap-2">
-          <Mail className="w-4 h-4" />
-          Contact Support
-        </Link>
-      </Button>
+      <div className="flex justify-center">
+        <Button
+          variant="ghost"
+          asChild
+        >
+          <Link href="/support/tickets" className="inline-flex items-center justify-center gap-2">
+            <Mail className="w-4 h-4" />
+            Contact Support
+          </Link>
+        </Button>
+      </div>
     </Card>
   )
 }

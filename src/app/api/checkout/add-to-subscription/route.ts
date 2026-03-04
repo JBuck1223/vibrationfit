@@ -20,11 +20,11 @@ export async function POST(request: NextRequest) {
     }
 
     const { addonType, quantity } = (await request.json()) as {
-      addonType: 'tokens' | 'storage'
+      addonType: 'tokens' | 'storage' | 'seats'
       quantity: number
     }
 
-    if (!addonType || !['tokens', 'storage'].includes(addonType)) {
+    if (!addonType || !['tokens', 'storage', 'seats'].includes(addonType)) {
       return NextResponse.json({ error: 'Invalid addon type' }, { status: 400 })
     }
 

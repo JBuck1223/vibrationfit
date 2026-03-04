@@ -90,19 +90,10 @@ export default function HouseholdSettingsPage() {
     }
   }
 
-  async function handleToggleSharedTokens() {
+  async function _handleToggleSharedTokens_deprecated() {
     try {
-      const newValue = !household.household.shared_tokens_enabled
-      
-      const response = await fetch('/api/household', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shared_tokens_enabled: newValue })
-      })
-
-      if (response.ok) {
-        await loadHouseholdData()
-      }
+      // Shared tokens are now always enabled for households
+      console.warn('Shared tokens toggle deprecated - always enabled')
     } catch (error) {
       console.error('Error updating settings:', error)
     }
@@ -193,31 +184,16 @@ export default function HouseholdSettingsPage() {
             )}
           </div>
 
-        {/* Shared Tokens Toggle (Admin Only) */}
-        {isAdmin && (
-          <div className="p-4 md:p-6 bg-primary-500/10 rounded-xl border border-primary-500/20">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 md:gap-0">
-              <div>
-                <h3 className="text-base md:text-lg font-semibold mb-1">Shared Token Pool</h3>
-                <p className="text-xs md:text-sm text-neutral-400">
-                  Allow members to use your tokens when they run out
-                </p>
-              </div>
-                <button
-                  onClick={handleToggleSharedTokens}
-                  className={`relative w-14 h-7 rounded-full transition-colors ${
-                    householdInfo.shared_tokens_enabled ? 'bg-primary-500' : 'bg-neutral-600'
-                  }`}
-                >
-                  <span
-                    className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform ${
-                      householdInfo.shared_tokens_enabled ? 'translate-x-7' : ''
-                    }`}
-                  />
-                </button>
-            </div>
+        {/* Shared Token Pool Info */}
+        <div className="p-4 md:p-6 bg-primary-500/10 rounded-xl border border-primary-500/20">
+          <div className="flex items-center gap-2">
+            <h3 className="text-base md:text-lg font-semibold">Shared Token Pool</h3>
+            <Badge variant="success" className="text-xs">Active</Badge>
           </div>
-        )}
+          <p className="text-xs md:text-sm text-neutral-400 mt-1">
+            All household members share one token pool from the plan owner
+          </p>
+        </div>
       </Card>
 
         {/* Members List */}

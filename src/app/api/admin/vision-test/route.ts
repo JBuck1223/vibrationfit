@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { streamText } from 'ai'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { checkIsAdmin } from '@/middleware/admin'
+import { isUserAdmin } from '@/lib/supabase/admin'
 import { gateway } from '@/lib/ai/gateway'
 import { buildIndividualCategoryPrompt } from '@/lib/viva/prompts/single-category-vision-prompt'
 import {
@@ -30,8 +30,7 @@ export async function POST(request: NextRequest) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
     }
 
-    const isAdmin = await checkIsAdmin(supabase, user)
-    if (!isAdmin) {
+    if (!isUserAdmin(user)) {
       return new Response(JSON.stringify({ error: 'Admin access required' }), { status: 403 })
     }
 

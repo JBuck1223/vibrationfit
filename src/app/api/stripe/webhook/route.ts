@@ -863,28 +863,26 @@ export async function POST(request: NextRequest) {
                 // Create household if plan_type is 'household'
                 const planType = session.metadata?.plan_type
                 if (planType === 'household') {
-                  console.log('🏠 Creating household for user:', userId)
+                  console.log('Creating household for user:', userId)
                   
                   try {
-                    // Create household record
                     const { data: household, error: householdError } = await supabaseAdmin
                       .from('households')
                       .insert({
                         admin_user_id: userId,
                         name: `${customerEmail?.split('@')[0] || 'My'}'s Household`,
-                        max_members: 2, // Household plans come with 2 seats
-                        shared_tokens_enabled: true, // Default to shared tokens for households
+                        max_members: 2,
+                        shared_tokens_enabled: true,
                       })
                       .select()
                       .single()
 
                     if (householdError) {
-                      console.error('❌ Failed to create household:', householdError)
+                      console.error('Failed to create household:', householdError)
                     } else {
-                      console.log('✅ Household created:', household.id)
+                      console.log('Household created:', household.id)
 
-                      // Update user profile with household info
-                      const { error: profileError } = await supabaseAdmin
+                      await supabaseAdmin
                         .from('user_profiles')
                         .upsert({
                           user_id: userId,
@@ -894,14 +892,7 @@ export async function POST(request: NextRequest) {
                           onConflict: 'user_id',
                         })
 
-                      if (profileError) {
-                        console.error('❌ Failed to update user profile with household:', profileError)
-                      } else {
-                        console.log('✅ User profile updated with household info')
-                      }
-
-                      // Add admin as first household member
-                      const { error: memberError } = await supabaseAdmin
+                      await supabaseAdmin
                         .from('household_members')
                         .insert({
                           household_id: household.id,
@@ -910,21 +901,32 @@ export async function POST(request: NextRequest) {
                           joined_at: new Date().toISOString(),
                         })
 
-                      if (memberError) {
-                        console.error('❌ Failed to add admin to household_members:', memberError)
-                      } else {
-                        console.log('✅ Admin added to household_members')
+                      // Auto-invite partner if info was provided at checkout
+                      const pFirstName = session.metadata?.partner_first_name
+                      const pLastName = session.metadata?.partner_last_name
+                      const pEmail = session.metadata?.partner_email
+                      if (pFirstName && pLastName && pEmail) {
+                        const { invitePartnerToHousehold } = await import('@/lib/supabase/household')
+                        await invitePartnerToHousehold({
+                          supabaseAdmin,
+                          householdId: household.id,
+                          adminUserId: userId,
+                          adminName: session.customer_details?.name || customerEmail?.split('@')[0] || '',
+                          adminEmail: customerEmail || '',
+                          householdName: household.name,
+                          partnerFirstName: pFirstName,
+                          partnerLastName: pLastName,
+                          partnerEmail: pEmail,
+                        })
                       }
                     }
                   } catch (householdError) {
-                    console.error('❌ Error in household creation:', householdError)
-                    // Don't break - subscription is still valid
+                    console.error('Error in household creation:', householdError)
                   }
                 }
               }
             } catch (visionProError) {
               console.error('Failed to create Vision Pro subscription:', visionProError)
-              // Don't break - intensive purchase is still valid, Vision Pro can be added manually
             }
           }
 
@@ -1134,28 +1136,26 @@ export async function POST(request: NextRequest) {
             // Create household if plan_type is 'household'
             const planType = session.metadata?.plan_type
             if (planType === 'household') {
-              console.log('🏠 Creating household for user:', userId)
+              console.log('Creating household for user:', userId)
               
               try {
-                // Create household record
                 const { data: household, error: householdError } = await supabaseAdmin
                   .from('households')
                   .insert({
                     admin_user_id: userId,
                     name: `${customerEmail?.split('@')[0] || 'My'}'s Household`,
-                    max_members: 2, // Household plans come with 2 seats
-                    shared_tokens_enabled: true, // Default to shared tokens for households
+                    max_members: 2,
+                    shared_tokens_enabled: true,
                   })
                   .select()
                   .single()
 
                 if (householdError) {
-                  console.error('❌ Failed to create household:', householdError)
+                  console.error('Failed to create household:', householdError)
                 } else {
-                  console.log('✅ Household created:', household.id)
+                  console.log('Household created:', household.id)
 
-                  // Update user profile with household info
-                  const { error: profileError } = await supabaseAdmin
+                  await supabaseAdmin
                     .from('user_profiles')
                     .upsert({
                       user_id: userId,
@@ -1165,14 +1165,7 @@ export async function POST(request: NextRequest) {
                       onConflict: 'user_id',
                     })
 
-                  if (profileError) {
-                    console.error('❌ Failed to update user profile with household:', profileError)
-                  } else {
-                    console.log('✅ User profile updated with household info')
-                  }
-
-                  // Add admin as first household member
-                  const { error: memberError } = await supabaseAdmin
+                  await supabaseAdmin
                     .from('household_members')
                     .insert({
                       household_id: household.id,
@@ -1181,20 +1174,31 @@ export async function POST(request: NextRequest) {
                       joined_at: new Date().toISOString(),
                     })
 
-                  if (memberError) {
-                    console.error('❌ Failed to add admin to household_members:', memberError)
-                  } else {
-                    console.log('✅ Admin added to household_members')
+                  // Auto-invite partner if info was provided at checkout
+                  const pFirstName = session.metadata?.partner_first_name
+                  const pLastName = session.metadata?.partner_last_name
+                  const pEmail = session.metadata?.partner_email
+                  if (pFirstName && pLastName && pEmail) {
+                    const { invitePartnerToHousehold } = await import('@/lib/supabase/household')
+                    await invitePartnerToHousehold({
+                      supabaseAdmin,
+                      householdId: household.id,
+                      adminUserId: userId,
+                      adminName: session.customer_details?.name || customerEmail?.split('@')[0] || '',
+                      adminEmail: customerEmail || '',
+                      householdName: household.name,
+                      partnerFirstName: pFirstName,
+                      partnerLastName: pLastName,
+                      partnerEmail: pEmail,
+                    })
                   }
                 }
               } catch (householdError) {
-                console.error('❌ Error in household creation:', householdError)
-                // Don't break - subscription is still valid
+                console.error('Error in household creation:', householdError)
               }
             }
           } catch (scheduleError) {
             console.error('Failed to create subscription schedule:', scheduleError)
-            // Don't break - intensive purchase is still valid
           }
 
           // 2. Create Intensive Order Item (only Intensive is in checkout)
@@ -1630,6 +1634,7 @@ export async function POST(request: NextRequest) {
                 console.log(`Granted ${tokensToGrant} token addon tokens for user ${subscription.user_id}`)
               }
             }
+
           }
         }
         break
@@ -2014,6 +2019,25 @@ export async function POST(request: NextRequest) {
                         role: 'admin',
                         joined_at: new Date().toISOString(),
                       })
+
+                      // Auto-invite partner if info was provided at checkout
+                      const pFirstName = meta.partner_first_name
+                      const pLastName = meta.partner_last_name
+                      const pEmail = meta.partner_email
+                      if (pFirstName && pLastName && pEmail) {
+                        const { invitePartnerToHousehold } = await import('@/lib/supabase/household')
+                        await invitePartnerToHousehold({
+                          supabaseAdmin,
+                          householdId: household.id,
+                          adminUserId: userId,
+                          adminName: name || email?.split('@')[0] || '',
+                          adminEmail: email || '',
+                          householdName: household.name,
+                          partnerFirstName: pFirstName,
+                          partnerLastName: pLastName,
+                          partnerEmail: pEmail,
+                        })
+                      }
                     }
                   } catch (householdErr) {
                     console.error('Household creation error:', householdErr)

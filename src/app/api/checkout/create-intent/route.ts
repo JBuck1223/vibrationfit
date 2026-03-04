@@ -33,6 +33,9 @@ export async function POST(request: NextRequest) {
       cartSessionId,
       visitorId,
       sessionId,
+      partnerFirstName,
+      partnerLastName,
+      partnerEmail,
     } = body as {
       name: string
       email: string
@@ -49,6 +52,9 @@ export async function POST(request: NextRequest) {
       cartSessionId?: string
       visitorId?: string
       sessionId?: string
+      partnerFirstName?: string
+      partnerLastName?: string
+      partnerEmail?: string
     }
 
     if (!name || !email || !product) {
@@ -106,6 +112,9 @@ export async function POST(request: NextRequest) {
         cart_session_id: cartSessionId || '',
         visitor_id: visitorId || '',
         session_id: sessionId || '',
+        ...(partnerFirstName ? { partner_first_name: partnerFirstName } : {}),
+        ...(partnerLastName ? { partner_last_name: partnerLastName } : {}),
+        ...(partnerEmail ? { partner_email: partnerEmail } : {}),
         ...checkoutProduct.metadata,
       }
       let stripeCustomerId: string | null = null

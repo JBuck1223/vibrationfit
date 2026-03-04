@@ -13,6 +13,7 @@ import AddOnsList from '@/components/billing/AddOnsList'
 import PaymentMethodsList from '@/components/billing/PaymentMethodsList'
 import InvoiceHistory from '@/components/billing/InvoiceHistory'
 import AddCardForm from '@/components/billing/AddCardForm'
+import CancelMembershipDialog from '@/components/billing/CancelMembershipDialog'
 
 function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
   return (
@@ -38,6 +39,7 @@ function BillingContent() {
   const [isCanceling, setIsCanceling] = useState(false)
   const [isResuming, setIsResuming] = useState(false)
   const [showAddCard, setShowAddCard] = useState(false)
+  const [showCancelDialog, setShowCancelDialog] = useState(false)
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
@@ -83,9 +85,9 @@ function BillingContent() {
     }
   }, [searchParams, fetchAll, router])
 
-  const handleCancel = async () => {
-    if (!confirm('Are you sure you want to cancel your membership? You will retain access until the end of your billing period.')) return
+  const handleCancelClick = () => setShowCancelDialog(true)
 
+  const handleConfirmCancel = async () => {
     setIsCanceling(true)
     try {
       const res = await fetch('/api/billing/cancel', { method: 'POST' })
@@ -94,6 +96,7 @@ function BillingContent() {
         throw new Error(data.error || 'Failed to cancel')
       }
       toast.success('Membership set to cancel at end of billing period')
+      setShowCancelDialog(false)
       fetchAll()
     } catch (err: any) {
       toast.error(err.message)
@@ -155,7 +158,7 @@ function BillingContent() {
         <PlanOverview
           subscription={membership?.subscription || null}
           upcomingInvoice={membership?.upcomingInvoice || null}
-          onCancel={handleCancel}
+          onCancel={handleCancelClick}
           onResume={handleResume}
           onRefresh={fetchAll}
           isCanceling={isCanceling}
@@ -193,6 +196,13 @@ function BillingContent() {
 
         <InvoiceHistory invoices={invoices} />
       </Stack>
+
+      <CancelMembershipDialog
+        isOpen={showCancelDialog}
+        onClose={() => setShowCancelDialog(false)}
+        onConfirmCancel={handleConfirmCancel}
+        isCanceling={isCanceling}
+      />
     </Container>
   )
 }

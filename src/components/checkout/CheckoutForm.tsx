@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { Input, Button, Checkbox } from '@/lib/design-system/components'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Users } from 'lucide-react'
 import { formatPhoneDisplay, parsePhoneInput, phoneToE164 } from '@/lib/phone-format'
 
 interface CheckoutFormProps {
@@ -24,6 +24,9 @@ export interface AccountDetails {
   lastName: string
   email: string
   phone: string
+  partnerFirstName?: string
+  partnerLastName?: string
+  partnerEmail?: string
 }
 
 function getMembershipBillingPhrase(continuity: 'annual' | '28day', planType: 'solo' | 'household'): string {
@@ -41,10 +44,15 @@ export default function CheckoutForm({ onSubmit, isProcessing, submitLabel, subm
     ? `I understand and agree to the charges shown, including that my Vision Pro membership will begin billing on Day 56 at ${membershipBillingPhrase} and that I'm covered by the 16‑week guarantee.`
     : "I agree to the charges shown, including Vision Pro billing starting on Day 56 at my selected plan, covered by the 16‑week guarantee."
 
+  const isHousehold = planType === 'household'
+
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
+  const [partnerFirstName, setPartnerFirstName] = useState('')
+  const [partnerLastName, setPartnerLastName] = useState('')
+  const [partnerEmail, setPartnerEmail] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [generalError, setGeneralError] = useState('')
   const [agreedToTerms, setAgreedToTerms] = useState(false)
@@ -56,6 +64,14 @@ export default function CheckoutForm({ onSubmit, isProcessing, submitLabel, subm
     if (!lastName.trim()) newErrors.lastName = 'Last name is required'
     if (!email.trim()) newErrors.email = 'Email is required'
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = 'Invalid email address'
+
+    if (isHousehold) {
+      if (!partnerFirstName.trim()) newErrors.partnerFirstName = 'Partner first name is required'
+      if (!partnerLastName.trim()) newErrors.partnerLastName = 'Partner last name is required'
+      if (!partnerEmail.trim()) newErrors.partnerEmail = 'Partner email is required'
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(partnerEmail)) newErrors.partnerEmail = 'Invalid email address'
+      else if (partnerEmail.trim().toLowerCase() === email.trim().toLowerCase()) newErrors.partnerEmail = 'Partner email must be different from yours'
+    }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -84,10 +100,20 @@ export default function CheckoutForm({ onSubmit, isProcessing, submitLabel, subm
       return
     }
 
-    // Call parent to create the intent (user account + PaymentIntent/Subscription)
     const name = [firstName.trim(), lastName.trim()].filter(Boolean).join(' ')
     const phoneE164 = phoneToE164(phone)
-    const result = await onSubmit({ name, firstName: firstName.trim(), lastName: lastName.trim(), email, phone: phoneE164 })
+    const result = await onSubmit({
+      name,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email,
+      phone: phoneE164,
+      ...(isHousehold ? {
+        partnerFirstName: partnerFirstName.trim(),
+        partnerLastName: partnerLastName.trim(),
+        partnerEmail: partnerEmail.trim().toLowerCase(),
+      } : {}),
+    })
     if (!result) return // Parent handles error display
 
     const returnUrl = result.redirectUrl.startsWith('http')
@@ -152,6 +178,42 @@ export default function CheckoutForm({ onSubmit, isProcessing, submitLabel, subm
           autoComplete="tel"
         />
       </div>
+
+      {isHousehold && (
+        <div className="border-2 border-[#39FF14]/20 rounded-2xl p-5 space-y-4 bg-[#39FF14]/5">
+          <div className="flex items-center gap-2 mb-1">
+            <Users className="w-5 h-5 text-[#39FF14]" />
+            <h3 className="text-lg font-bold text-white">Second Household Member</h3>
+          </div>
+          <p className="text-sm text-neutral-400">
+            Your household plan includes 2 logins. We&apos;ll send your partner an invitation to create their account.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Input
+              label="Partner first name"
+              value={partnerFirstName}
+              onChange={(e) => setPartnerFirstName(e.target.value)}
+              error={errors.partnerFirstName}
+              placeholder="First name"
+            />
+            <Input
+              label="Partner last name"
+              value={partnerLastName}
+              onChange={(e) => setPartnerLastName(e.target.value)}
+              error={errors.partnerLastName}
+              placeholder="Last name"
+            />
+          </div>
+          <Input
+            label="Partner email"
+            type="email"
+            value={partnerEmail}
+            onChange={(e) => setPartnerEmail(e.target.value)}
+            error={errors.partnerEmail}
+            placeholder="partner@example.com"
+          />
+        </div>
+      )}
 
       {/* Stripe Payment Element - min-height so Link row has room on mobile */}
       <div>

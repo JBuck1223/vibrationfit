@@ -22,18 +22,18 @@ import { LifeCategoryKey } from '@/lib/design-system/vision-categories'
  * These ground the imagination in real facts from their life
  */
 export const CATEGORY_PROFILE_FIELDS: Record<LifeCategoryKey, string[]> = {
-  fun: ['hobbies', 'leisure_time_weekly'],
-  health: ['exercise_frequency', 'height', 'weight', 'health_conditions', 'medications'],
-  travel: ['travel_frequency', 'passport', 'countries_visited'],
-  love: ['relationship_status', 'relationship_length', 'partner_name'],
-  family: ['has_children', 'number_of_children', 'children_ages', 'first_name'],
-  social: ['close_friends_count', 'social_preference', 'first_name'],
-  home: ['living_situation', 'time_at_location', 'city', 'state', 'country'],
-  work: ['employment_type', 'occupation', 'company', 'time_in_role'],
-  money: ['household_income', 'savings_retirement', 'assets_equity', 'consumer_debt'],
-  stuff: ['lifestyle_category', 'vehicles', 'items'],
-  giving: ['volunteer_status', 'charitable_giving', 'legacy_mindset'],
-  spirituality: ['spiritual_practice', 'meditation_frequency', 'personal_growth_focus']
+  fun: ['hobbies'],
+  health: [],
+  travel: ['passport', 'trips'],
+  love: ['partner_name'],
+  family: ['children', 'first_name'],
+  social: ['first_name'],
+  home: ['city', 'state'],
+  work: ['occupation', 'company'],
+  money: [],
+  stuff: ['vehicles', 'items'],
+  giving: [],
+  spirituality: ['spiritual_practice']
 }
 
 /**
@@ -199,11 +199,14 @@ As you compose, ensure ZERO instances of:
 
 - Questions of any kind — no "?", no "what else...", no "how can I...", no "I wonder..."
 - Comparison / before-after — no "I no longer...", "unlike before...", "I used to...", "despite..."
+- Removal language — no "is gone", "replaced by", "no more", "behind me" (these imply a past problem existed)
+- Temporal contrast — no "now" used to imply change from before. "I now feel..." means "I didn't before." Just state it.
 - Hedging / seeking — no "I'm learning...", "I'm finding...", "I'm starting to...", "sometimes"
 - Future / wanting — no "I will", "I want", "I hope", "someday"
 - Weak closings — no "this is just the beginning", "I can't wait to see", "the possibilities feel endless"
 - Contrast connectors — no "Of course...", "However...", "But...", "Although..."
 - Process framing — no "It's not about X, it's about Y" — just say Y
+- Clinical data — NEVER include height, weight, body measurements, or medical data. A vision is not a chart.
 
 ═══════════════════════════════════════════════════════════════
 PHASE 2: EXPAND — Make it vivid, specific, and REAL

@@ -1,6 +1,7 @@
 // Household management types and utilities
 import { createClient } from './server'
 import { createServiceClient } from './service'
+import { SupabaseClient } from '@supabase/supabase-js'
 
 // =====================================================================
 // TYPES
@@ -306,7 +307,7 @@ export async function createHousehold(params: {
       stripe_subscription_id: params.stripeSubscriptionId,
       subscription_status: 'trialing',
       max_members: params.planType === 'solo' ? 1 : 6,
-      shared_tokens_enabled: false
+      shared_tokens_enabled: true
     })
     .select()
     .single()
@@ -520,9 +521,9 @@ export async function convertToSoloHousehold(
       admin_user_id: userId,
       name: 'My Account',
       plan_type: 'solo',
-      subscription_status: 'incomplete', // Needs to subscribe
+      subscription_status: 'incomplete',
       max_members: 1,
-      shared_tokens_enabled: false
+      shared_tokens_enabled: true
     })
     .select()
     .single()
@@ -667,4 +668,89 @@ export async function deductTokens(
   
   return { success: true, usedSharedTokens: true }
 }
+
+/**
+ * Invite a partner to a household and send them an onboarding email.
+ * Works with a provided supabaseAdmin client (for webhook/service contexts).
+ */
+export async function invitePartnerToHousehold(params: {
+  supabaseAdmin: SupabaseClient
+  householdId: string
+  adminUserId: string
+  adminName: string
+  adminEmail: string
+  householdName: string
+  partnerFirstName: string
+  partnerLastName: string
+  partnerEmail: string
+}): Promise<{ success: boolean; invitationToken?: string; error?: string }> {
+  const {
+    supabaseAdmin,
+    householdId,
+    adminUserId,
+    adminName,
+    adminEmail,
+    householdName,
+    partnerFirstName,
+    partnerLastName,
+    partnerEmail,
+  } = params
+
+  try {
+    const invitationToken = crypto.randomUUID()
+
+    const { data: invitation, error: inviteError } = await supabaseAdmin
+      .from('household_invitations')
+      .insert({
+        household_id: householdId,
+        invited_email: partnerEmail,
+        invited_by: adminUserId,
+        invitation_token: invitationToken,
+        status: 'pending',
+      })
+      .select()
+      .single()
+
+    if (inviteError || !invitation) {
+      console.error('Failed to create household invitation:', inviteError)
+      return { success: false, error: 'Failed to create invitation' }
+    }
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://vibrationfit.com'
+    const invitationLink = `${appUrl}/household/invite/${invitationToken}`
+
+    const { sendEmail } = await import('@/lib/email/aws-ses')
+    const { generateHouseholdInvitationEmail } = await import('@/lib/email/templates/household-invitation')
+
+    const emailContent = await generateHouseholdInvitationEmail({
+      inviterName: adminName,
+      inviterEmail: adminEmail,
+      householdName,
+      invitationLink,
+      expiresInDays: 7,
+    })
+
+    await sendEmail({
+      to: partnerEmail,
+      subject: emailContent.subject,
+      htmlBody: emailContent.htmlBody,
+      textBody: emailContent.textBody,
+    })
+
+    console.log(`Household invitation email sent to partner: ${partnerEmail}`)
+
+    const { triggerEvent } = await import('@/lib/messaging/events')
+    triggerEvent('household.invited', {
+      email: partnerEmail,
+      name: `${partnerFirstName} ${partnerLastName}`.trim(),
+      userId: adminUserId,
+    }).catch((err) => console.error('triggerEvent household.invited error:', err))
+
+    return { success: true, invitationToken }
+  } catch (error) {
+    console.error('Error inviting partner to household:', error)
+    return { success: false, error: 'Failed to invite partner' }
+  }
+}
+
 

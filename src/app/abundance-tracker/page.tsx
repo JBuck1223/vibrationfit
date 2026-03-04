@@ -327,7 +327,11 @@ export default function AbundanceDashboardPage() {
                       ? getVisionIcon(event.vision_category)
                       : null
                     return (
-                      <div key={event.id} className="py-4 first:pt-0 last:pb-0">
+                      <Link
+                        key={event.id}
+                        href={`/abundance-tracker/${event.id}`}
+                        className="block py-4 first:pt-0 last:pb-0 hover:bg-neutral-800/30 -mx-2 px-2 rounded-lg transition-colors"
+                      >
                         <div className="flex items-start gap-3">
                           <div className="w-9 h-9 rounded-lg bg-neutral-800 flex items-center justify-center shrink-0 mt-0.5">
                             {event.value_type === 'money' ? (
@@ -365,7 +369,7 @@ export default function AbundanceDashboardPage() {
                             </span>
                           )}
                         </div>
-                      </div>
+                      </Link>
                     )
                   })}
                 </div>

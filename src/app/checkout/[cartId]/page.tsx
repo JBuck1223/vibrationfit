@@ -323,6 +323,8 @@ export default function CartCheckoutPage() {
                 isProcessing={isProcessing}
                 submitLabel={submitLabel}
                 submitLabelShort={submitLabelShort}
+                continuity={(cart?.items?.[0]?.continuity as 'annual' | '28day') || undefined}
+                planType={(cart?.items?.[0]?.plan_type as 'solo' | 'household') || undefined}
               />
             </Card>
           </div>

@@ -318,10 +318,29 @@ export async function getAddonDescription(
  * Resolve the Stripe price ID for an add-on. Checks DB first, then env var.
  */
 export async function resolveStripePriceId(
-  addonType: 'tokens' | 'storage',
+  addonType: 'tokens' | 'storage' | 'seats',
   billingInterval: '28day' | 'annual',
   supabase?: SupabaseClient,
 ): Promise<string | undefined> {
+  if (addonType === 'seats') {
+    return resolveSeatPriceId(billingInterval)
+  }
   const addon = await getAddonPrice(addonType, billingInterval, supabase)
   return addon?.stripePriceId || undefined
+}
+
+const SEAT_PRICE_KEYS: Record<string, string> = {
+  '28day': 'STRIPE_PRICE_SEAT_ADDON_28DAY',
+  'annual': 'STRIPE_PRICE_SEAT_ADDON_ANNUAL',
+}
+
+function resolveSeatPriceId(billingInterval: '28day' | 'annual'): string | undefined {
+  const envKey = SEAT_PRICE_KEYS[billingInterval]
+  if (!envKey) return undefined
+  const isSandbox = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')
+  if (isSandbox) {
+    const sandboxVal = process.env[`SANDBOX_${envKey}`]
+    if (sandboxVal?.trim()) return sandboxVal.trim()
+  }
+  return process.env[envKey]?.trim() || undefined
 }

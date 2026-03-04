@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict BgaVFla6tm6gePB7AxVNpXvXw0Qv3zCfZCkxQerxHHfVmiZWjCTyIJd4dbsib73
+\restrict hfW5s9Zt3Wa4rvvkcvLU1bYazX5uhSqe7ctxaMAsTnaQSta67mh0WWCjOSu2J5B
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Homebrew)
@@ -338,7 +338,9 @@ CREATE TYPE public.membership_tier_type AS ENUM (
     'household_addon_28day',
     'household_addon_annual',
     'intensive',
-    'intensive_household'
+    'intensive_household',
+    'intensive_premium',
+    'intensive_premium_household'
 );
 
 
@@ -2595,6 +2597,8 @@ CREATE TABLE public.intensive_checklist (
     unlock_completed_at timestamp without time zone,
     voice_recording_skipped boolean DEFAULT false,
     voice_recording_skipped_at timestamp with time zone,
+    voice_recording_completed boolean DEFAULT false,
+    voice_recording_completed_at timestamp with time zone,
     CONSTRAINT intensive_checklist_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'in_progress'::text, 'completed'::text])))
 );
 
@@ -2711,6 +2715,20 @@ COMMENT ON COLUMN public.intensive_checklist.voice_recording_skipped IS 'True if
 --
 
 COMMENT ON COLUMN public.intensive_checklist.voice_recording_skipped_at IS 'Timestamp when user skipped Step 8';
+
+
+--
+-- Name: COLUMN intensive_checklist.voice_recording_completed; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.intensive_checklist.voice_recording_completed IS 'True if user recorded their voice in Step 8 (Record Voice)';
+
+
+--
+-- Name: COLUMN intensive_checklist.voice_recording_completed_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.intensive_checklist.voice_recording_completed_at IS 'Timestamp when user completed their first voice recording in Step 8';
 
 
 --
@@ -3227,48 +3245,79 @@ CREATE FUNCTION public.get_user_token_balance(p_user_id uuid) RETURNS jsonb
     LANGUAGE plpgsql STABLE SECURITY DEFINER
     AS $$
 DECLARE
+  v_grant_user_id UUID;
+  v_household_id UUID;
+  v_household_user_ids UUID[];
   v_total_granted BIGINT;
   v_total_used BIGINT;
   v_total_expired BIGINT;
   v_active_balance BIGINT;
   v_grants JSONB;
 BEGIN
-  -- Calculate total granted from unexpired grants
+  -- Check if user is in an active household
+  SELECT up.household_id INTO v_household_id
+  FROM user_profiles up
+  WHERE up.user_id = p_user_id
+    AND up.household_id IS NOT NULL;
+
+  IF v_household_id IS NOT NULL THEN
+    -- Get the admin (bill-payer) of this household
+    SELECT h.admin_user_id INTO v_grant_user_id
+    FROM households h
+    WHERE h.id = v_household_id;
+
+    -- All active members share usage against the admin's grants
+    SELECT ARRAY_AGG(hm.user_id) INTO v_household_user_ids
+    FROM household_members hm
+    WHERE hm.household_id = v_household_id
+      AND hm.status = 'active';
+
+    -- Safety: if array is null, fall back to just the requesting user
+    IF v_household_user_ids IS NULL THEN
+      v_household_user_ids := ARRAY[p_user_id];
+    END IF;
+  ELSE
+    -- Solo user: grants and usage are their own
+    v_grant_user_id := p_user_id;
+    v_household_user_ids := ARRAY[p_user_id];
+  END IF;
+
+  -- Unexpired grants (from the grant owner = admin or self)
   SELECT COALESCE(SUM(tokens_used), 0)
   INTO v_total_granted
   FROM token_transactions
-  WHERE user_id = p_user_id
-    AND action_type IN ('subscription_grant', 'renewal_grant', 'trial_grant', 'token_pack_purchase', 'pack_purchase', 'admin_grant')
+  WHERE user_id = v_grant_user_id
+    AND action_type IN ('subscription_grant', 'renewal_grant', 'trial_grant',
+                        'token_pack_purchase', 'pack_purchase', 'admin_grant')
     AND tokens_used > 0
-    AND (expires_at IS NULL OR expires_at > NOW()); -- Only count unexpired
-  
-  -- Calculate total expired
+    AND (expires_at IS NULL OR expires_at > NOW());
+
+  -- Expired grants (from the grant owner)
   SELECT COALESCE(SUM(tokens_used), 0)
   INTO v_total_expired
   FROM token_transactions
-  WHERE user_id = p_user_id
+  WHERE user_id = v_grant_user_id
     AND action_type IN ('subscription_grant', 'renewal_grant', 'trial_grant', 'admin_grant')
     AND tokens_used > 0
     AND expires_at IS NOT NULL
-    AND expires_at <= NOW(); -- Expired grants
-  
-  -- Calculate total used from token_usage
+    AND expires_at <= NOW();
+
+  -- Total usage from ALL household members (or just the solo user)
   SELECT COALESCE(SUM(tokens_used), 0)
   INTO v_total_used
   FROM token_usage
-  WHERE user_id = p_user_id
+  WHERE user_id = ANY(v_household_user_ids)
     AND success = true
-    AND action_type NOT IN ('admin_grant', 'subscription_grant', 'renewal_grant', 'trial_grant', 'token_pack_purchase', 'pack_purchase', 'admin_deduct');
-  
-  -- Active balance = unexpired grants - usage
+    AND action_type NOT IN ('admin_grant', 'subscription_grant', 'renewal_grant',
+                            'trial_grant', 'token_pack_purchase', 'pack_purchase',
+                            'admin_deduct');
+
   v_active_balance := v_total_granted - v_total_used;
-  
-  -- Ensure balance never goes negative
   IF v_active_balance < 0 THEN
     v_active_balance := 0;
   END IF;
-  
-  -- Get grants summary (grouped by type)
+
+  -- Grants summary (from grant owner)
   SELECT JSONB_AGG(
     JSONB_BUILD_OBJECT(
       'action_type', action_type,
@@ -3279,24 +3328,27 @@ BEGIN
   )
   INTO v_grants
   FROM (
-    SELECT 
+    SELECT
       action_type,
       SUM(tokens_used) as total_granted,
       MAX(expires_at) as expires_at
     FROM token_transactions
-    WHERE user_id = p_user_id
-      AND action_type IN ('subscription_grant', 'renewal_grant', 'trial_grant', 'token_pack_purchase', 'pack_purchase', 'admin_grant')
+    WHERE user_id = v_grant_user_id
+      AND action_type IN ('subscription_grant', 'renewal_grant', 'trial_grant',
+                          'token_pack_purchase', 'pack_purchase', 'admin_grant')
       AND tokens_used > 0
     GROUP BY action_type
     ORDER BY MAX(created_at)
   ) grants_summary;
-  
+
   RETURN JSONB_BUILD_OBJECT(
     'total_active', v_active_balance,
     'total_granted', v_total_granted,
     'total_used', v_total_used,
     'total_expired', v_total_expired,
-    'grants', COALESCE(v_grants, '[]'::jsonb)
+    'grants', COALESCE(v_grants, '[]'::jsonb),
+    'is_household_shared', v_household_id IS NOT NULL,
+    'grant_owner_id', v_grant_user_id
   );
 END;
 $$;
@@ -3306,7 +3358,7 @@ $$;
 -- Name: FUNCTION get_user_token_balance(p_user_id uuid); Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON FUNCTION public.get_user_token_balance(p_user_id uuid) IS 'Calculate user token balance from token_transactions and token_usage (simple: unexpired grants - usage)';
+COMMENT ON FUNCTION public.get_user_token_balance(p_user_id uuid) IS 'Shared-pool model: household members resolve to admin grants minus all members usage. Solo users unchanged.';
 
 
 --
@@ -3583,7 +3635,6 @@ DECLARE
   v_expires_at TIMESTAMPTZ;
   v_action_type token_action_type;
 BEGIN
-  -- Get tier configuration
   SELECT * INTO v_tier
   FROM membership_tiers
   WHERE id = p_tier_id;
@@ -3592,22 +3643,20 @@ BEGIN
     RAISE EXCEPTION 'Tier not found: %', p_tier_id;
   END IF;
   
-  -- Calculate current balance
   SELECT (get_user_token_balance(p_user_id)->>'total_active')::INTEGER
   INTO v_current_balance;
   
-  -- Determine grant amount and expiration based on billing interval
   IF v_tier.billing_interval = 'year' THEN
     v_grant_amount := v_tier.annual_token_grant;
     v_expires_at := NOW() + INTERVAL '364 days';
     v_action_type := 'subscription_grant';
   ELSIF v_tier.billing_interval = 'month' THEN
     v_grant_amount := v_tier.monthly_token_grant;
-    v_expires_at := NOW() + INTERVAL '84 days'; -- 28-day grants expire after 3 cycles
+    v_expires_at := NOW() + INTERVAL '84 days';
     v_action_type := 'subscription_grant';
   ELSIF v_tier.billing_interval = 'one-time' THEN
     v_grant_amount := v_tier.monthly_token_grant;
-    v_expires_at := NULL; -- Intensive tokens never expire
+    v_expires_at := NULL;
     v_action_type := 'trial_grant';
   ELSE
     RAISE EXCEPTION 'Unknown billing interval: %', v_tier.billing_interval;
@@ -3615,7 +3664,6 @@ BEGIN
   
   v_new_balance := v_current_balance + v_grant_amount;
   
-  -- Insert token grant into token_transactions with expiration
   INSERT INTO token_transactions (
     user_id,
     action_type,
@@ -3627,8 +3675,8 @@ BEGIN
   ) VALUES (
     p_user_id,
     v_action_type,
-    -v_grant_amount, -- Negative because it's a grant
-    v_grant_amount, -- Initial remaining equals granted
+    -v_grant_amount,
+    v_grant_amount,
     p_subscription_id,
     jsonb_build_object(
       'tier_id', p_tier_id,
@@ -3640,10 +3688,9 @@ BEGIN
     v_expires_at
   );
   
-  -- Insert storage grant
   INSERT INTO user_storage (
     user_id,
-    storage_quota_gb,
+    quota_gb,
     subscription_id,
     metadata
   ) VALUES (
@@ -3658,8 +3705,7 @@ BEGIN
   )
   ON CONFLICT (user_id, subscription_id)
   DO UPDATE SET
-    storage_quota_gb = EXCLUDED.storage_quota_gb,
-    updated_at = NOW(),
+    quota_gb = EXCLUDED.quota_gb,
     metadata = EXCLUDED.metadata;
   
   RETURN jsonb_build_object(
@@ -3717,14 +3763,39 @@ $$;
 CREATE FUNCTION public.handle_new_user() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
+DECLARE
+  v_first_name text;
+  v_last_name text;
+  v_full_name text;
+  v_phone text;
 BEGIN
-  INSERT INTO public.user_accounts (id, email, first_name, last_name)
+  -- Try explicit first_name / last_name first
+  v_first_name := NEW.raw_user_meta_data->>'first_name';
+  v_last_name  := NEW.raw_user_meta_data->>'last_name';
+
+  -- Fall back to splitting full_name if individual names are missing
+  IF v_first_name IS NULL AND v_last_name IS NULL THEN
+    v_full_name := TRIM(COALESCE(NEW.raw_user_meta_data->>'full_name', ''));
+    IF v_full_name != '' THEN
+      v_first_name := SPLIT_PART(v_full_name, ' ', 1);
+      -- Everything after the first space becomes last_name
+      IF POSITION(' ' IN v_full_name) > 0 THEN
+        v_last_name := TRIM(SUBSTRING(v_full_name FROM POSITION(' ' IN v_full_name) + 1));
+      END IF;
+    END IF;
+  END IF;
+
+  v_phone := NEW.raw_user_meta_data->>'phone';
+
+  INSERT INTO public.user_accounts (id, email, first_name, last_name, phone)
   VALUES (
-    NEW.id, 
-    NEW.email, 
-    NEW.raw_user_meta_data->>'first_name',
-    NEW.raw_user_meta_data->>'last_name'
+    NEW.id,
+    NEW.email,
+    NULLIF(TRIM(v_first_name), ''),
+    NULLIF(TRIM(v_last_name), ''),
+    NULLIF(TRIM(v_phone), '')
   );
+
   RETURN NEW;
 END;
 $$;
@@ -5509,13 +5580,16 @@ CREATE FUNCTION realtime.build_prepared_statement_sql(prepared_statement_name te
 CREATE FUNCTION realtime."cast"(val text, type_ regtype) RETURNS jsonb
     LANGUAGE plpgsql IMMUTABLE
     AS $$
-    declare
-      res jsonb;
-    begin
-      execute format('select to_jsonb(%L::'|| type_::text || ')', val)  into res;
-      return res;
-    end
-    $$;
+declare
+  res jsonb;
+begin
+  if type_::text = 'bytea' then
+    return to_jsonb(val);
+  end if;
+  execute format('select to_jsonb(%L::'|| type_::text || ')', val) into res;
+  return res;
+end
+$$;
 
 
 --
@@ -7483,6 +7557,7 @@ CREATE TABLE public.abundance_events (
     entry_category text,
     note text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
+    image_url text,
     CONSTRAINT abundance_events_value_type_check CHECK ((value_type = ANY (ARRAY['money'::text, 'value'::text])))
 );
 
@@ -9091,6 +9166,9 @@ CREATE TABLE public.household_members (
     status text DEFAULT 'active'::text,
     joined_at timestamp with time zone DEFAULT now(),
     removed_at timestamp with time zone,
+    is_addon_seat boolean DEFAULT false,
+    seat_number integer,
+    stripe_subscription_item_id text,
     CONSTRAINT household_members_role_check CHECK ((role = ANY (ARRAY['admin'::text, 'member'::text]))),
     CONSTRAINT household_members_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'active'::text, 'removed'::text])))
 );
@@ -9101,6 +9179,27 @@ CREATE TABLE public.household_members (
 --
 
 COMMENT ON TABLE public.household_members IS 'Tracks household membership with simplified RLS policies to avoid circular references';
+
+
+--
+-- Name: COLUMN household_members.is_addon_seat; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.household_members.is_addon_seat IS 'True for members beyond the 2 included household seats (paid add-on seats)';
+
+
+--
+-- Name: COLUMN household_members.seat_number; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.household_members.seat_number IS 'Seat position in the household (1-2 are included, 3+ are add-ons)';
+
+
+--
+-- Name: COLUMN household_members.stripe_subscription_item_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.household_members.stripe_subscription_item_id IS 'Stripe subscription item ID for the seat add-on (only for add-on seats)';
 
 
 --
@@ -9116,7 +9215,7 @@ CREATE TABLE public.households (
     subscription_status text DEFAULT 'active'::text,
     plan_type text DEFAULT 'household'::text,
     max_members integer DEFAULT 6,
-    shared_tokens_enabled boolean DEFAULT false,
+    shared_tokens_enabled boolean DEFAULT true,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
     CONSTRAINT households_plan_type_check CHECK ((plan_type = ANY (ARRAY['solo'::text, 'household'::text]))),
@@ -10329,8 +10428,8 @@ CREATE TABLE public.user_profiles (
     ethnicity text,
     relationship_status text,
     relationship_length text,
-    has_children boolean DEFAULT false,
-    units text DEFAULT 'US'::text,
+    has_children boolean,
+    units text,
     height numeric(5,2),
     weight numeric(6,2),
     exercise_frequency text,
@@ -10339,12 +10438,12 @@ CREATE TABLE public.user_profiles (
     city text,
     state text,
     postal_code text,
-    country text DEFAULT 'United States'::text,
+    country text,
     employment_type text,
     occupation text,
     company text,
     time_in_role text,
-    currency text DEFAULT 'USD'::text,
+    currency text,
     household_income text,
     savings_retirement text,
     assets_equity text,
@@ -10354,57 +10453,45 @@ CREATE TABLE public.user_profiles (
     partner_name text,
     version_notes text,
     progress_photos text[],
-    clarity_love text,
-    clarity_family text,
-    clarity_work text,
-    clarity_money text,
-    clarity_home text,
-    clarity_health text,
-    clarity_fun text,
-    clarity_travel text,
-    clarity_social text,
-    clarity_stuff text,
-    clarity_giving text,
-    clarity_spirituality text,
     hobbies text[] DEFAULT '{}'::text[],
     leisure_time_weekly text,
     travel_frequency public.travel_frequency,
-    passport boolean DEFAULT false NOT NULL,
-    countries_visited integer DEFAULT 0 NOT NULL,
+    passport boolean,
+    countries_visited integer,
     close_friends_count text,
     social_preference public.social_preference,
     lifestyle_category public.lifestyle_category,
     primary_vehicle text,
     spiritual_practice text,
     meditation_frequency text,
-    personal_growth_focus boolean DEFAULT false NOT NULL,
+    personal_growth_focus boolean,
     volunteer_status text,
     charitable_giving text,
-    legacy_mindset boolean DEFAULT false NOT NULL,
+    legacy_mindset boolean,
     story_recordings jsonb DEFAULT '[]'::jsonb NOT NULL,
     is_draft boolean DEFAULT false,
     is_active boolean DEFAULT false,
     parent_version_id uuid,
     education text,
     education_description text,
-    contrast_fun text,
-    contrast_health text,
-    contrast_travel text,
-    contrast_love text,
-    contrast_family text,
-    contrast_social text,
-    contrast_home text,
-    contrast_work text,
-    contrast_money text,
-    contrast_stuff text,
-    contrast_giving text,
-    contrast_spirituality text,
     vehicles jsonb DEFAULT '[]'::jsonb,
     items jsonb DEFAULT '[]'::jsonb,
     has_vehicle boolean DEFAULT false,
     trips jsonb DEFAULT '[]'::jsonb,
     children jsonb DEFAULT '[]'::jsonb,
     parent_id uuid,
+    state_fun text,
+    state_health text,
+    state_travel text,
+    state_love text,
+    state_family text,
+    state_social text,
+    state_home text,
+    state_work text,
+    state_money text,
+    state_stuff text,
+    state_giving text,
+    state_spirituality text,
     CONSTRAINT user_profiles_assets_equity_check CHECK ((assets_equity = ANY (ARRAY['<10,000'::text, '10,000-24,999'::text, '25,000-49,999'::text, '50,000-99,999'::text, '100,000-249,999'::text, '250,000-499,999'::text, '500,000-999,999'::text, '1,000,000+'::text, 'Prefer not to say'::text]))),
     CONSTRAINT user_profiles_consumer_debt_check CHECK ((consumer_debt = ANY (ARRAY['None'::text, 'Under 10,000'::text, '10,000-24,999'::text, '25,000-49,999'::text, '50,000-99,999'::text, '100,000-249,999'::text, '250,000-499,999'::text, '500,000-999,999'::text, '1,000,000+'::text, 'Prefer not to say'::text]))),
     CONSTRAINT user_profiles_countries_visited_check CHECK ((countries_visited >= 0)),
@@ -10444,90 +10531,6 @@ COMMENT ON COLUMN public.user_profiles.version_notes IS 'Optional notes about th
 --
 
 COMMENT ON COLUMN public.user_profiles.progress_photos IS 'Array of URLs to progress photos (optional)';
-
-
---
--- Name: COLUMN user_profiles.clarity_love; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.clarity_love IS 'What''s going well in Love?';
-
-
---
--- Name: COLUMN user_profiles.clarity_family; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.clarity_family IS 'What''s going well in Family?';
-
-
---
--- Name: COLUMN user_profiles.clarity_work; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.clarity_work IS 'What''s going well in Work?';
-
-
---
--- Name: COLUMN user_profiles.clarity_money; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.clarity_money IS 'What''s going well in Money?';
-
-
---
--- Name: COLUMN user_profiles.clarity_home; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.clarity_home IS 'What''s going well in Home?';
-
-
---
--- Name: COLUMN user_profiles.clarity_health; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.clarity_health IS 'What''s going well in Health?';
-
-
---
--- Name: COLUMN user_profiles.clarity_fun; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.clarity_fun IS 'What''s going well in Fun?';
-
-
---
--- Name: COLUMN user_profiles.clarity_travel; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.clarity_travel IS 'What''s going well in Travel?';
-
-
---
--- Name: COLUMN user_profiles.clarity_social; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.clarity_social IS 'What''s going well in Social?';
-
-
---
--- Name: COLUMN user_profiles.clarity_stuff; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.clarity_stuff IS 'What''s going well in Stuff?';
-
-
---
--- Name: COLUMN user_profiles.clarity_giving; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.clarity_giving IS 'What''s going well in Giving?';
-
-
---
--- Name: COLUMN user_profiles.clarity_spirituality; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.clarity_spirituality IS 'What''s going well in Spirituality?';
 
 
 --
@@ -10664,90 +10667,6 @@ COMMENT ON COLUMN public.user_profiles.parent_version_id IS 'Reference to the ve
 
 
 --
--- Name: COLUMN user_profiles.contrast_fun; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.contrast_fun IS 'What''s not going well in Fun?';
-
-
---
--- Name: COLUMN user_profiles.contrast_health; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.contrast_health IS 'What''s not going well in Health?';
-
-
---
--- Name: COLUMN user_profiles.contrast_travel; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.contrast_travel IS 'What''s not going well in Travel?';
-
-
---
--- Name: COLUMN user_profiles.contrast_love; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.contrast_love IS 'What''s not going well in Love?';
-
-
---
--- Name: COLUMN user_profiles.contrast_family; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.contrast_family IS 'What''s not going well in Family?';
-
-
---
--- Name: COLUMN user_profiles.contrast_social; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.contrast_social IS 'What''s not going well in Social?';
-
-
---
--- Name: COLUMN user_profiles.contrast_home; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.contrast_home IS 'What''s not going well in Home?';
-
-
---
--- Name: COLUMN user_profiles.contrast_work; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.contrast_work IS 'What''s not going well in Work?';
-
-
---
--- Name: COLUMN user_profiles.contrast_money; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.contrast_money IS 'What''s not going well in Money?';
-
-
---
--- Name: COLUMN user_profiles.contrast_stuff; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.contrast_stuff IS 'What''s not going well in Stuff?';
-
-
---
--- Name: COLUMN user_profiles.contrast_giving; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.contrast_giving IS 'What''s not going well in Giving?';
-
-
---
--- Name: COLUMN user_profiles.contrast_spirituality; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_profiles.contrast_spirituality IS 'What''s not going well in Spirituality?';
-
-
---
 -- Name: COLUMN user_profiles.vehicles; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -10787,6 +10706,90 @@ COMMENT ON COLUMN public.user_profiles.children IS 'Array of child objects: [{fi
 --
 
 COMMENT ON COLUMN public.user_profiles.parent_id IS 'References the profile version this was created from (for drafts and clones)';
+
+
+--
+-- Name: COLUMN user_profiles.state_fun; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_profiles.state_fun IS 'Current state of Fun & Recreation';
+
+
+--
+-- Name: COLUMN user_profiles.state_health; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_profiles.state_health IS 'Current state of Health & Wellness';
+
+
+--
+-- Name: COLUMN user_profiles.state_travel; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_profiles.state_travel IS 'Current state of Travel & Adventure';
+
+
+--
+-- Name: COLUMN user_profiles.state_love; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_profiles.state_love IS 'Current state of Love & Relationships';
+
+
+--
+-- Name: COLUMN user_profiles.state_family; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_profiles.state_family IS 'Current state of Family';
+
+
+--
+-- Name: COLUMN user_profiles.state_social; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_profiles.state_social IS 'Current state of Social & Friends';
+
+
+--
+-- Name: COLUMN user_profiles.state_home; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_profiles.state_home IS 'Current state of Home & Living';
+
+
+--
+-- Name: COLUMN user_profiles.state_work; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_profiles.state_work IS 'Current state of Work & Career';
+
+
+--
+-- Name: COLUMN user_profiles.state_money; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_profiles.state_money IS 'Current state of Money & Finances';
+
+
+--
+-- Name: COLUMN user_profiles.state_stuff; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_profiles.state_stuff IS 'Current state of Stuff & Lifestyle';
+
+
+--
+-- Name: COLUMN user_profiles.state_giving; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_profiles.state_giving IS 'Current state of Giving & Legacy';
+
+
+--
+-- Name: COLUMN user_profiles.state_spirituality; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_profiles.state_spirituality IS 'Current state of Spirituality & Growth';
 
 
 --
@@ -11398,16 +11401,12 @@ CREATE TABLE public.vision_new_category_state (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
     category character varying(50) NOT NULL,
-    transcript text,
-    ideal_state text,
-    blueprint_data jsonb,
+    get_me_started_text text,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
-    ideal_state_prompts jsonb DEFAULT '[]'::jsonb,
-    master_vision_raw text,
     clarity_keys jsonb DEFAULT '[]'::jsonb,
-    contrast_flips jsonb DEFAULT '[]'::jsonb,
     category_vision_text text,
+    imagination_text text,
     CONSTRAINT vision_new_category_state_category_check CHECK (((category)::text = ANY ((ARRAY['fun'::character varying, 'health'::character varying, 'travel'::character varying, 'love'::character varying, 'family'::character varying, 'social'::character varying, 'home'::character varying, 'work'::character varying, 'money'::character varying, 'stuff'::character varying, 'giving'::character varying, 'spirituality'::character varying, '_master'::character varying])::text[])))
 );
 
@@ -11420,38 +11419,10 @@ COMMENT ON TABLE public.vision_new_category_state IS 'Stores per-category vision
 
 
 --
--- Name: COLUMN vision_new_category_state.transcript; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN vision_new_category_state.get_me_started_text; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.vision_new_category_state.transcript IS 'Step 1: User audio/text transcript';
-
-
---
--- Name: COLUMN vision_new_category_state.ideal_state; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.vision_new_category_state.ideal_state IS 'Step 2: User imagination/ideal state answers';
-
-
---
--- Name: COLUMN vision_new_category_state.blueprint_data; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.vision_new_category_state.blueprint_data IS 'Step 3: Being/Doing/Receiving loops as JSONB';
-
-
---
--- Name: COLUMN vision_new_category_state.ideal_state_prompts; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.vision_new_category_state.ideal_state_prompts IS 'Step 2: AI-generated imagination prompts. Array of {title, prompt, focus} objects';
-
-
---
--- Name: COLUMN vision_new_category_state.master_vision_raw; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.vision_new_category_state.master_vision_raw IS 'Raw AI output from master vision assembly (full markdown+JSON) - stored once per user';
+COMMENT ON COLUMN public.vision_new_category_state.get_me_started_text IS 'AI-generated starter text from current state profile data (Cleanse/Expand/Embody)';
 
 
 --
@@ -11462,17 +11433,17 @@ COMMENT ON COLUMN public.vision_new_category_state.clarity_keys IS 'Array of cla
 
 
 --
--- Name: COLUMN vision_new_category_state.contrast_flips; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.vision_new_category_state.contrast_flips IS 'Array of contrast flips from profile for this category';
-
-
---
 -- Name: COLUMN vision_new_category_state.category_vision_text; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.vision_new_category_state.category_vision_text IS 'Generated vision text for this category (from queue system)';
+
+
+--
+-- Name: COLUMN vision_new_category_state.imagination_text; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.vision_new_category_state.imagination_text IS 'User-written imagination text describing their dream life for this category';
 
 
 --
@@ -11839,70 +11810,6 @@ PARTITION BY RANGE (inserted_at);
 
 
 --
--- Name: messages_2026_02_22; Type: TABLE; Schema: realtime; Owner: -
---
-
-CREATE TABLE realtime.messages_2026_02_22 (
-    topic text NOT NULL,
-    extension text NOT NULL,
-    payload jsonb,
-    event text,
-    private boolean DEFAULT false,
-    updated_at timestamp without time zone DEFAULT now() NOT NULL,
-    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
-    id uuid DEFAULT gen_random_uuid() NOT NULL
-);
-
-
---
--- Name: messages_2026_02_24; Type: TABLE; Schema: realtime; Owner: -
---
-
-CREATE TABLE realtime.messages_2026_02_24 (
-    topic text NOT NULL,
-    extension text NOT NULL,
-    payload jsonb,
-    event text,
-    private boolean DEFAULT false,
-    updated_at timestamp without time zone DEFAULT now() NOT NULL,
-    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
-    id uuid DEFAULT gen_random_uuid() NOT NULL
-);
-
-
---
--- Name: messages_2026_02_25; Type: TABLE; Schema: realtime; Owner: -
---
-
-CREATE TABLE realtime.messages_2026_02_25 (
-    topic text NOT NULL,
-    extension text NOT NULL,
-    payload jsonb,
-    event text,
-    private boolean DEFAULT false,
-    updated_at timestamp without time zone DEFAULT now() NOT NULL,
-    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
-    id uuid DEFAULT gen_random_uuid() NOT NULL
-);
-
-
---
--- Name: messages_2026_02_26; Type: TABLE; Schema: realtime; Owner: -
---
-
-CREATE TABLE realtime.messages_2026_02_26 (
-    topic text NOT NULL,
-    extension text NOT NULL,
-    payload jsonb,
-    event text,
-    private boolean DEFAULT false,
-    updated_at timestamp without time zone DEFAULT now() NOT NULL,
-    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
-    id uuid DEFAULT gen_random_uuid() NOT NULL
-);
-
-
---
 -- Name: messages_2026_02_27; Type: TABLE; Schema: realtime; Owner: -
 --
 
@@ -11923,6 +11830,86 @@ CREATE TABLE realtime.messages_2026_02_27 (
 --
 
 CREATE TABLE realtime.messages_2026_02_28 (
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL
+);
+
+
+--
+-- Name: messages_2026_03_01; Type: TABLE; Schema: realtime; Owner: -
+--
+
+CREATE TABLE realtime.messages_2026_03_01 (
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL
+);
+
+
+--
+-- Name: messages_2026_03_02; Type: TABLE; Schema: realtime; Owner: -
+--
+
+CREATE TABLE realtime.messages_2026_03_02 (
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL
+);
+
+
+--
+-- Name: messages_2026_03_03; Type: TABLE; Schema: realtime; Owner: -
+--
+
+CREATE TABLE realtime.messages_2026_03_03 (
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL
+);
+
+
+--
+-- Name: messages_2026_03_04; Type: TABLE; Schema: realtime; Owner: -
+--
+
+CREATE TABLE realtime.messages_2026_03_04 (
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL
+);
+
+
+--
+-- Name: messages_2026_03_05; Type: TABLE; Schema: realtime; Owner: -
+--
+
+CREATE TABLE realtime.messages_2026_03_05 (
     topic text NOT NULL,
     extension text NOT NULL,
     payload jsonb,
@@ -12141,34 +12128,6 @@ CREATE TABLE supabase_migrations.seed_files (
 
 
 --
--- Name: messages_2026_02_22; Type: TABLE ATTACH; Schema: realtime; Owner: -
---
-
-ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_02_22 FOR VALUES FROM ('2026-02-22 00:00:00') TO ('2026-02-23 00:00:00');
-
-
---
--- Name: messages_2026_02_24; Type: TABLE ATTACH; Schema: realtime; Owner: -
---
-
-ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_02_24 FOR VALUES FROM ('2026-02-24 00:00:00') TO ('2026-02-25 00:00:00');
-
-
---
--- Name: messages_2026_02_25; Type: TABLE ATTACH; Schema: realtime; Owner: -
---
-
-ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_02_25 FOR VALUES FROM ('2026-02-25 00:00:00') TO ('2026-02-26 00:00:00');
-
-
---
--- Name: messages_2026_02_26; Type: TABLE ATTACH; Schema: realtime; Owner: -
---
-
-ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_02_26 FOR VALUES FROM ('2026-02-26 00:00:00') TO ('2026-02-27 00:00:00');
-
-
---
 -- Name: messages_2026_02_27; Type: TABLE ATTACH; Schema: realtime; Owner: -
 --
 
@@ -12180,6 +12139,41 @@ ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_02_27
 --
 
 ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_02_28 FOR VALUES FROM ('2026-02-28 00:00:00') TO ('2026-03-01 00:00:00');
+
+
+--
+-- Name: messages_2026_03_01; Type: TABLE ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_03_01 FOR VALUES FROM ('2026-03-01 00:00:00') TO ('2026-03-02 00:00:00');
+
+
+--
+-- Name: messages_2026_03_02; Type: TABLE ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_03_02 FOR VALUES FROM ('2026-03-02 00:00:00') TO ('2026-03-03 00:00:00');
+
+
+--
+-- Name: messages_2026_03_03; Type: TABLE ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_03_03 FOR VALUES FROM ('2026-03-03 00:00:00') TO ('2026-03-04 00:00:00');
+
+
+--
+-- Name: messages_2026_03_04; Type: TABLE ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_03_04 FOR VALUES FROM ('2026-03-04 00:00:00') TO ('2026-03-05 00:00:00');
+
+
+--
+-- Name: messages_2026_03_05; Type: TABLE ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_03_05 FOR VALUES FROM ('2026-03-05 00:00:00') TO ('2026-03-06 00:00:00');
 
 
 --
@@ -13550,38 +13544,6 @@ ALTER TABLE ONLY realtime.messages
 
 
 --
--- Name: messages_2026_02_22 messages_2026_02_22_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
---
-
-ALTER TABLE ONLY realtime.messages_2026_02_22
-    ADD CONSTRAINT messages_2026_02_22_pkey PRIMARY KEY (id, inserted_at);
-
-
---
--- Name: messages_2026_02_24 messages_2026_02_24_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
---
-
-ALTER TABLE ONLY realtime.messages_2026_02_24
-    ADD CONSTRAINT messages_2026_02_24_pkey PRIMARY KEY (id, inserted_at);
-
-
---
--- Name: messages_2026_02_25 messages_2026_02_25_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
---
-
-ALTER TABLE ONLY realtime.messages_2026_02_25
-    ADD CONSTRAINT messages_2026_02_25_pkey PRIMARY KEY (id, inserted_at);
-
-
---
--- Name: messages_2026_02_26 messages_2026_02_26_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
---
-
-ALTER TABLE ONLY realtime.messages_2026_02_26
-    ADD CONSTRAINT messages_2026_02_26_pkey PRIMARY KEY (id, inserted_at);
-
-
---
 -- Name: messages_2026_02_27 messages_2026_02_27_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
 --
 
@@ -13595,6 +13557,46 @@ ALTER TABLE ONLY realtime.messages_2026_02_27
 
 ALTER TABLE ONLY realtime.messages_2026_02_28
     ADD CONSTRAINT messages_2026_02_28_pkey PRIMARY KEY (id, inserted_at);
+
+
+--
+-- Name: messages_2026_03_01 messages_2026_03_01_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages_2026_03_01
+    ADD CONSTRAINT messages_2026_03_01_pkey PRIMARY KEY (id, inserted_at);
+
+
+--
+-- Name: messages_2026_03_02 messages_2026_03_02_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages_2026_03_02
+    ADD CONSTRAINT messages_2026_03_02_pkey PRIMARY KEY (id, inserted_at);
+
+
+--
+-- Name: messages_2026_03_03 messages_2026_03_03_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages_2026_03_03
+    ADD CONSTRAINT messages_2026_03_03_pkey PRIMARY KEY (id, inserted_at);
+
+
+--
+-- Name: messages_2026_03_04 messages_2026_03_04_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages_2026_03_04
+    ADD CONSTRAINT messages_2026_03_04_pkey PRIMARY KEY (id, inserted_at);
+
+
+--
+-- Name: messages_2026_03_05 messages_2026_03_05_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages_2026_03_05
+    ADD CONSTRAINT messages_2026_03_05_pkey PRIMARY KEY (id, inserted_at);
 
 
 --
@@ -14980,6 +14982,13 @@ CREATE INDEX idx_household_invitations_status ON public.household_invitations US
 --
 
 CREATE INDEX idx_household_invitations_token ON public.household_invitations USING btree (invitation_token);
+
+
+--
+-- Name: idx_household_members_addon_seat; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_household_members_addon_seat ON public.household_members USING btree (household_id) WHERE (is_addon_seat = true);
 
 
 --
@@ -16383,13 +16392,6 @@ CREATE INDEX idx_vision_focus_vision ON public.vision_focus USING btree (vision_
 
 
 --
--- Name: idx_vision_new_category_state_blueprint; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_vision_new_category_state_blueprint ON public.vision_new_category_state USING gin (blueprint_data);
-
-
---
 -- Name: idx_vision_new_category_state_clarity_keys; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -16397,24 +16399,10 @@ CREATE INDEX idx_vision_new_category_state_clarity_keys ON public.vision_new_cat
 
 
 --
--- Name: idx_vision_new_category_state_contrast_flips; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_vision_new_category_state_contrast_flips ON public.vision_new_category_state USING gin (contrast_flips);
-
-
---
 -- Name: idx_vision_new_category_state_created; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_vision_new_category_state_created ON public.vision_new_category_state USING btree (created_at DESC);
-
-
---
--- Name: idx_vision_new_category_state_prompts; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_vision_new_category_state_prompts ON public.vision_new_category_state USING gin (ideal_state_prompts);
 
 
 --
@@ -16628,34 +16616,6 @@ CREATE INDEX messages_inserted_at_topic_index ON ONLY realtime.messages USING bt
 
 
 --
--- Name: messages_2026_02_22_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: -
---
-
-CREATE INDEX messages_2026_02_22_inserted_at_topic_idx ON realtime.messages_2026_02_22 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
-
-
---
--- Name: messages_2026_02_24_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: -
---
-
-CREATE INDEX messages_2026_02_24_inserted_at_topic_idx ON realtime.messages_2026_02_24 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
-
-
---
--- Name: messages_2026_02_25_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: -
---
-
-CREATE INDEX messages_2026_02_25_inserted_at_topic_idx ON realtime.messages_2026_02_25 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
-
-
---
--- Name: messages_2026_02_26_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: -
---
-
-CREATE INDEX messages_2026_02_26_inserted_at_topic_idx ON realtime.messages_2026_02_26 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
-
-
---
 -- Name: messages_2026_02_27_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: -
 --
 
@@ -16667,6 +16627,41 @@ CREATE INDEX messages_2026_02_27_inserted_at_topic_idx ON realtime.messages_2026
 --
 
 CREATE INDEX messages_2026_02_28_inserted_at_topic_idx ON realtime.messages_2026_02_28 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
+
+
+--
+-- Name: messages_2026_03_01_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: -
+--
+
+CREATE INDEX messages_2026_03_01_inserted_at_topic_idx ON realtime.messages_2026_03_01 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
+
+
+--
+-- Name: messages_2026_03_02_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: -
+--
+
+CREATE INDEX messages_2026_03_02_inserted_at_topic_idx ON realtime.messages_2026_03_02 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
+
+
+--
+-- Name: messages_2026_03_03_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: -
+--
+
+CREATE INDEX messages_2026_03_03_inserted_at_topic_idx ON realtime.messages_2026_03_03 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
+
+
+--
+-- Name: messages_2026_03_04_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: -
+--
+
+CREATE INDEX messages_2026_03_04_inserted_at_topic_idx ON realtime.messages_2026_03_04 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
+
+
+--
+-- Name: messages_2026_03_05_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: -
+--
+
+CREATE INDEX messages_2026_03_05_inserted_at_topic_idx ON realtime.messages_2026_03_05 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
 
 
 --
@@ -16733,62 +16728,6 @@ CREATE UNIQUE INDEX vector_indexes_name_bucket_id_idx ON storage.vector_indexes 
 
 
 --
--- Name: messages_2026_02_22_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: -
---
-
-ALTER INDEX realtime.messages_inserted_at_topic_index ATTACH PARTITION realtime.messages_2026_02_22_inserted_at_topic_idx;
-
-
---
--- Name: messages_2026_02_22_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
---
-
-ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_02_22_pkey;
-
-
---
--- Name: messages_2026_02_24_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: -
---
-
-ALTER INDEX realtime.messages_inserted_at_topic_index ATTACH PARTITION realtime.messages_2026_02_24_inserted_at_topic_idx;
-
-
---
--- Name: messages_2026_02_24_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
---
-
-ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_02_24_pkey;
-
-
---
--- Name: messages_2026_02_25_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: -
---
-
-ALTER INDEX realtime.messages_inserted_at_topic_index ATTACH PARTITION realtime.messages_2026_02_25_inserted_at_topic_idx;
-
-
---
--- Name: messages_2026_02_25_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
---
-
-ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_02_25_pkey;
-
-
---
--- Name: messages_2026_02_26_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: -
---
-
-ALTER INDEX realtime.messages_inserted_at_topic_index ATTACH PARTITION realtime.messages_2026_02_26_inserted_at_topic_idx;
-
-
---
--- Name: messages_2026_02_26_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
---
-
-ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_02_26_pkey;
-
-
---
 -- Name: messages_2026_02_27_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: -
 --
 
@@ -16814,6 +16753,76 @@ ALTER INDEX realtime.messages_inserted_at_topic_index ATTACH PARTITION realtime.
 --
 
 ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_02_28_pkey;
+
+
+--
+-- Name: messages_2026_03_01_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_inserted_at_topic_index ATTACH PARTITION realtime.messages_2026_03_01_inserted_at_topic_idx;
+
+
+--
+-- Name: messages_2026_03_01_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_03_01_pkey;
+
+
+--
+-- Name: messages_2026_03_02_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_inserted_at_topic_index ATTACH PARTITION realtime.messages_2026_03_02_inserted_at_topic_idx;
+
+
+--
+-- Name: messages_2026_03_02_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_03_02_pkey;
+
+
+--
+-- Name: messages_2026_03_03_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_inserted_at_topic_index ATTACH PARTITION realtime.messages_2026_03_03_inserted_at_topic_idx;
+
+
+--
+-- Name: messages_2026_03_03_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_03_03_pkey;
+
+
+--
+-- Name: messages_2026_03_04_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_inserted_at_topic_index ATTACH PARTITION realtime.messages_2026_03_04_inserted_at_topic_idx;
+
+
+--
+-- Name: messages_2026_03_04_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_03_04_pkey;
+
+
+--
+-- Name: messages_2026_03_05_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_inserted_at_topic_index ATTACH PARTITION realtime.messages_2026_03_05_inserted_at_topic_idx;
+
+
+--
+-- Name: messages_2026_03_05_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_03_05_pkey;
 
 
 --
@@ -19983,6 +19992,13 @@ CREATE POLICY "Users can delete own visions" ON public.vision_versions FOR DELET
 
 
 --
+-- Name: abundance_events Users can delete their abundance events; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can delete their abundance events" ON public.abundance_events FOR DELETE USING ((auth.uid() = user_id));
+
+
+--
 -- Name: assessment_responses Users can delete their own assessment responses; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20101,6 +20117,13 @@ CREATE POLICY "Users can delete their scenes" ON public.scenes FOR DELETE USING 
 --
 
 CREATE POLICY "Users can insert media metadata" ON public.media_metadata FOR INSERT TO authenticated WITH CHECK ((auth.uid() = user_id));
+
+
+--
+-- Name: user_badges Users can insert own badges; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can insert own badges" ON public.user_badges FOR INSERT TO authenticated WITH CHECK ((auth.uid() = user_id));
 
 
 --
@@ -22053,5 +22076,5 @@ CREATE EVENT TRIGGER pgrst_drop_watch ON sql_drop
 -- PostgreSQL database dump complete
 --
 
-\unrestrict BgaVFla6tm6gePB7AxVNpXvXw0Qv3zCfZCkxQerxHHfVmiZWjCTyIJd4dbsib73
+\unrestrict hfW5s9Zt3Wa4rvvkcvLU1bYazX5uhSqe7ctxaMAsTnaQSta67mh0WWCjOSu2J5B
 

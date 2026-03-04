@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { intensivePaymentPlan, continuityPlan, planType, promoCode, referralSource, campaignName, intensiveLevel } = await request.json()
+    const { intensivePaymentPlan, continuityPlan, planType, promoCode, referralSource, campaignName, intensiveLevel, partnerFirstName, partnerLastName, partnerEmail } = await request.json()
     const isPremium = intensiveLevel === 'premium'
 
     // Validate inputs
@@ -278,6 +278,9 @@ You can cancel anytime before the first billing to avoid charges.`
         referral_source: referralSource || '',
         campaign_name: campaignName || '',
         ...(isPremium ? { intensive_level: 'premium' } : {}),
+        ...(partnerFirstName ? { partner_first_name: partnerFirstName } : {}),
+        ...(partnerLastName ? { partner_last_name: partnerLastName } : {}),
+        ...(partnerEmail ? { partner_email: partnerEmail } : {}),
       },
       
       // Apply promo code if provided, otherwise allow manual entry
