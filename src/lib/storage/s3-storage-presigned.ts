@@ -764,6 +764,10 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
         'video/mp4', 'video/quicktime', 'video/webm',
       ],
     },
+    abundance: {
+      maxSize: 10 * 1024 * 1024, // 10MB for abundance tracker images
+      types: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'],
+    },
     storyAudioRecordings: {
       maxSize: 1024 * 1024 * 1024, // 1GB for story audio recordings
       types: ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg'],

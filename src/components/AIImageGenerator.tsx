@@ -273,11 +273,23 @@ export function AIImageGenerator({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),
+        credentials: 'same-origin',
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || `Failed to ${mode === 'edit' ? 'edit' : 'generate'} image`)
+        const errorData = await response.json().catch(() => ({}))
+        const msg = errorData.error || `Failed to ${mode === 'edit' ? 'edit' : 'generate'} image`
+        const isForbiddenOrUnavailable =
+          response.status === 403 ||
+          msg === 'Forbidden' ||
+          (response.status === 500 && (msg.includes('Forbidden') || msg.includes('fal') || msg.includes('credentials')))
+        if (isForbiddenOrUnavailable) {
+          throw new Error('VIVA image generation is unavailable right now. Please use Upload Image instead.')
+        }
+        if (response.status === 402 || (errorData.tokensRemaining !== undefined && msg.toLowerCase().includes('token'))) {
+          throw new Error('Not enough tokens to generate an image. Please use Upload Image or add tokens.')
+        }
+        throw new Error(msg)
       }
 
       const data = await response.json()
