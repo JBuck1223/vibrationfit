@@ -160,6 +160,11 @@ export default function DailyPaperViewPage({
               <p className="text-lg font-semibold text-white">
                 {formatEntryDate(entry.entry_date)}
               </p>
+              {entry.updated_at && entry.created_at && entry.updated_at !== entry.created_at && (
+                <p className="text-xs uppercase tracking-[0.3em] text-neutral-500">
+                  Updated: {new Date(entry.updated_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                </p>
+              )}
             </section>
 
             <section className="space-y-4">

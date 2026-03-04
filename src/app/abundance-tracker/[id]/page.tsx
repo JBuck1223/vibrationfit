@@ -11,7 +11,6 @@ import {
   Spinner,
   DeleteConfirmationDialog,
   Text,
-  Inline,
 } from '@/lib/design-system/components'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { OptimizedImage } from '@/components/OptimizedImage'
@@ -72,6 +71,7 @@ interface AbundanceEvent {
   entry_category: string | null
   note: string
   created_at: string
+  updated_at?: string
   image_url?: string | null
 }
 
@@ -152,27 +152,19 @@ export default function AbundanceEventPage({ params }: { params: Promise<{ id: s
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <PageHero
-          title="Abundance Moment"
-          subtitle={new Date(event.date + 'T00:00:00').toLocaleDateString('en-US', {
-            weekday: 'long',
-            month: 'long',
-            day: 'numeric',
-            year: 'numeric',
-          })}
-        >
+        <PageHero title="Abundance Entry">
           <div className="flex justify-center">
             <Button variant="ghost" size="sm" onClick={() => router.push('/abundance-tracker')}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Abundance Tracker
+              <DollarSign className="w-4 h-4 mr-2" />
+              Abundance Dashboard
             </Button>
           </div>
         </PageHero>
 
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
           <Stack gap="xl">
-            {/* Entry date - same styling as daily-paper [id] */}
-            <section className="space-y-4">
+            {/* Entry date */}
+            <section className="space-y-2">
               <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
                 Entry date
               </Text>
@@ -183,19 +175,93 @@ export default function AbundanceEventPage({ params }: { params: Promise<{ id: s
                   year: 'numeric',
                 })}
               </p>
+              {event.updated_at && event.updated_at !== event.created_at && (
+                <p className="text-xs uppercase tracking-[0.3em] text-neutral-500">
+                  Updated: {new Date(event.updated_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                </p>
+              )}
+            </section>
+
+            {/* Amount */}
+            <section className="space-y-2">
+              <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                Amount
+              </Text>
+              <p className="text-lg font-semibold text-white">
+                {event.amount != null && Number(event.amount) > 0
+                  ? formatCurrency(Number(event.amount))
+                  : '—'}
+              </p>
+            </section>
+
+            {/* Abundance (Money or Value) */}
+            <section className="space-y-2">
+              <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                Abundance
+              </Text>
+              <p className="text-lg font-semibold text-white inline-flex items-center gap-2">
+                {event.value_type === 'money' ? (
+                  <DollarSign className="w-5 h-5 text-[#39FF14]" />
+                ) : (
+                  <Heart className="w-5 h-5 text-[#BF00FF]" />
+                )}
+                {event.value_type === 'money' ? 'Money' : 'Value'}
+              </p>
+            </section>
+
+            {/* Kind of abundance */}
+            <section className="space-y-2">
+              <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                Kind of abundance
+              </Text>
+              <p className="text-lg font-semibold text-white inline-flex items-center gap-2">
+                {entryLabel ? (
+                  <>
+                    <EntryIcon className="w-5 h-5 text-neutral-400" />
+                    {entryLabel}
+                  </>
+                ) : (
+                  '—'
+                )}
+              </p>
             </section>
 
             {/* Note */}
-            <section className="space-y-4">
+            <section className="space-y-2">
               <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
                 Note
               </Text>
-              <p className="text-neutral-300 whitespace-pre-wrap">{event.note}</p>
+              <p className="text-neutral-300 whitespace-pre-wrap">{event.note || '—'}</p>
+            </section>
+
+            {/* Categories */}
+            <section className="space-y-2">
+              <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                Categories
+              </Text>
+              {eventVisionCategories.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {eventVisionCategories.map((catKey) => {
+                    const VisionIcon = getVisionIcon(catKey)
+                    return (
+                      <span
+                        key={catKey}
+                        className="inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded-full bg-[#161616] border border-[#1F1F1F] text-neutral-300"
+                      >
+                        <VisionIcon className="w-4 h-4" />
+                        {getVisionLabel(catKey)}
+                      </span>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="text-neutral-500">—</p>
+              )}
             </section>
 
             {/* Image */}
             {event.image_url && (
-              <section className="space-y-4">
+              <section className="space-y-2">
                 <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
                   Image
                 </Text>
@@ -211,79 +277,6 @@ export default function AbundanceEventPage({ params }: { params: Promise<{ id: s
                 </div>
               </section>
             )}
-
-            {/* Type, amount, kind - inline tags (form-style section) */}
-            <section className="space-y-4">
-              <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-                Type and details
-              </Text>
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded-full bg-[#161616] border border-[#1F1F1F] text-neutral-300">
-                  {event.value_type === 'money' ? (
-                    <DollarSign className="w-4 h-4 text-[#39FF14]" />
-                  ) : (
-                    <Heart className="w-4 h-4 text-[#BF00FF]" />
-                  )}
-                  {event.value_type === 'money' ? 'Money' : 'Value'}
-                </span>
-                {event.amount != null && Number(event.amount) > 0 && (
-                  <span className="text-lg font-semibold text-[#39FF14] tabular-nums">
-                    {formatCurrency(Number(event.amount))}
-                  </span>
-                )}
-                {entryLabel && (
-                  <span className="inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded-full bg-[#161616] border border-[#1F1F1F] text-neutral-400">
-                    <EntryIcon className="w-4 h-4" />
-                    {entryLabel}
-                  </span>
-                )}
-                {eventVisionCategories.map((catKey) => {
-                  const VisionIcon = getVisionIcon(catKey)
-                  return (
-                    <span
-                      key={catKey}
-                      className="inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded-full bg-[#161616] border border-[#1F1F1F] text-neutral-400"
-                    >
-                      <VisionIcon className="w-4 h-4" />
-                      {getVisionLabel(catKey)}
-                    </span>
-                  )
-                })}
-              </div>
-            </section>
-
-            {/* Created, Kind, Categories - form-style block */}
-            <div className="rounded-2xl border border-[#1F1F1F] bg-[#161616] p-4 md:p-5 space-y-4">
-              <Inline className="items-center gap-4 md:gap-6 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs uppercase tracking-[0.3em] text-neutral-500">Created:</span>
-                  <span className="text-sm font-semibold text-white">
-                    {new Date(event.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </span>
-                </div>
-                {entryLabel && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs uppercase tracking-[0.3em] text-neutral-500">Kind of abundance:</span>
-                    <span className="text-sm font-semibold text-white">{entryLabel}</span>
-                  </div>
-                )}
-                {eventVisionCategories.length > 0 && (
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs uppercase tracking-[0.3em] text-neutral-500">Categories:</span>
-                    <div className="flex flex-wrap gap-2">
-                      {eventVisionCategories.map((catKey) => (
-                        <span
-                          key={catKey}
-                          className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full"
-                        >
-                          {getVisionLabel(catKey)}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </Inline>
-            </div>
 
             {/* Actions */}
             <div className="flex flex-row items-center gap-2 sm:gap-3 sm:justify-end pt-2">

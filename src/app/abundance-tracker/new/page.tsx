@@ -3,7 +3,7 @@
 import React, { useState, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { HelpCircle, Upload, Sparkles } from 'lucide-react'
+import { HelpCircle, Upload, Sparkles, Save } from 'lucide-react'
 import {
   Container,
   Card,
@@ -12,6 +12,8 @@ import {
   Textarea,
   Select,
   Stack,
+  Text,
+  Inline,
   DatePicker,
   PageHero,
   Modal,
@@ -22,7 +24,6 @@ import { FileUpload } from '@/components/FileUpload'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
-import { colors } from '@/lib/design-system/tokens'
 
 const VALUE_TYPES = [
   { value: 'money', label: 'Money' },
@@ -168,26 +169,48 @@ export default function AbundanceNewEntryPage() {
             </Button>
           </div>
         </PageHero>
-        <Card>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2">
-              <DatePicker
-                label="Date"
-                value={date}
-                maxDate={today}
-                onChange={(dateString: string) => setDate(dateString)}
-                required
-              />
 
-              <div className="w-full">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-neutral-200">
-                    Track as:
-                  </label>
+        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+          <form onSubmit={handleSubmit}>
+            <Stack gap="xl">
+              {/* Entry date - journal/new style */}
+              <div className="rounded-2xl border border-[#1F1F1F] bg-[#161616] p-4 md:p-5">
+                <Inline className="items-center gap-4 md:gap-6">
+                  <div className="space-y-1.5">
+                    <p className="text-xs uppercase tracking-[0.3em] text-neutral-500">
+                      Entry date
+                    </p>
+                    <p className="text-lg font-semibold text-white">
+                      {date
+                        ? new Intl.DateTimeFormat(undefined, {
+                            month: 'long',
+                            day: 'numeric',
+                            year: 'numeric',
+                          }).format(new Date(`${date}T00:00:00`))
+                        : '—'}
+                    </p>
+                  </div>
+                  <div className="ml-auto w-full md:w-auto">
+                    <DatePicker
+                      value={date}
+                      maxDate={today}
+                      onChange={(dateString: string) => setDate(dateString)}
+                      className="w-full md:w-auto"
+                    />
+                  </div>
+                </Inline>
+              </div>
+
+              {/* Track as (Money / Value) */}
+              <section className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                    Track as
+                  </Text>
                   <button
                     type="button"
                     onClick={() => setHelpOpen(true)}
-                    className="text-neutral-400 hover:text-white transition-colors p-0.5 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="p-0.5 rounded-full text-neutral-400 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500"
                     aria-label="Help: Money vs Value"
                   >
                     <HelpCircle className="w-4 h-4" />
@@ -198,208 +221,222 @@ export default function AbundanceNewEntryPage() {
                   onChange={(value) => setValueType(value as 'money' | 'value')}
                   options={VALUE_TYPES}
                 />
-              </div>
+              </section>
 
-              <div className="w-full">
-                <label className="block text-sm font-medium text-neutral-200 mb-2">
+              {/* Amount */}
+              <section className="space-y-4">
+                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
                   Amount
-                </label>
+                </Text>
                 <Input
                   type="text"
                   inputMode="decimal"
-                  placeholder={valueType === 'money' ? '0.00' : 'Optional amount'}
+                  placeholder={valueType === 'money' ? '$' : 'Optional amount'}
                   value={formatAmountWithCommas(amount)}
                   onChange={(event) => setAmount(parseAmountInput(event.target.value))}
                   required={valueType === 'money'}
                   prefix="$"
+                  className="!bg-[#404040] !border-[#333]"
                 />
-              </div>
+              </section>
 
-              <div className="w-full">
+              {/* Kind of abundance */}
+              <section className="space-y-4">
+                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                  Kind of abundance
+                </Text>
                 <Select
-                  label="Kind of abundance:"
                   value={entryCategory}
                   onChange={(value) => setEntryCategory(value)}
                   options={ENTRY_CATEGORY_OPTIONS}
                   placeholder="Abundance type (optional)"
                 />
-              </div>
-            </div>
+              </section>
 
-            <Textarea
-              label="Note"
-              placeholder="Describe this abundance moment in present-tense appreciation."
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-              rows={4}
-              required
-            />
+              {/* Note */}
+              <section className="space-y-4">
+                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                  Note
+                </Text>
+                <Textarea
+                  placeholder="Describe this abundance moment in present-tense appreciation."
+                  value={note}
+                  onChange={(event) => setNote(event.target.value)}
+                  rows={4}
+                  required
+                  className="!bg-[#404040] !border-[#333]"
+                />
+              </section>
 
-            <div>
-              <p className="text-sm text-neutral-400 mb-3 text-center">
-                Select categories for your abundance entry (optional)
-              </p>
-              <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
-                {visionCategoriesForAbundance.map((category) => {
-                  const isSelected = visionCategories.includes(category.key)
-                  return (
-                    <CategoryCard
-                      key={category.key}
-                      category={category}
-                      selected={isSelected}
+              {/* Vision categories - journal/new style */}
+              <section className="space-y-4">
+                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                  Vision categories (optional)
+                </Text>
+                <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
+                  {visionCategoriesForAbundance.map((category) => {
+                    const isSelected = visionCategories.includes(category.key)
+                    return (
+                      <CategoryCard
+                        key={category.key}
+                        category={category}
+                        selected={isSelected}
+                        onClick={() => {
+                          setVisionCategories((prev) =>
+                            isSelected ? prev.filter((k) => k !== category.key) : [...prev, category.key]
+                          )
+                        }}
+                        variant="outlined"
+                        selectionStyle="border"
+                        iconColor={isSelected ? '#39FF14' : '#FFFFFF'}
+                        selectedIconColor="#39FF14"
+                        className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : '!bg-transparent !border-[#333]'}
+                      />
+                    )
+                  })}
+                </div>
+              </section>
+
+              {/* Image (optional) - journal/new dashed block */}
+              <section className="space-y-4">
+                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                  Image (optional)
+                </Text>
+                <div className="rounded-2xl border border-dashed border-[#333] bg-[#131313] p-5 md:p-6 flex flex-col gap-4">
+                  <div className="flex flex-col sm:flex-row gap-2 items-center justify-center">
+                    <Button
+                      type="button"
+                      variant={imageSource === 'upload' ? 'primary' : 'outline'}
+                      size="sm"
                       onClick={() => {
-                        setVisionCategories((prev) =>
-                          isSelected ? prev.filter((k) => k !== category.key) : [...prev, category.key]
-                        )
+                        setImageSource('upload')
+                        setAiGeneratedImageUrl(null)
+                        fileInputRef.current?.click()
                       }}
-                      variant="outlined"
-                      selectionStyle="border"
-                      iconColor={isSelected ? '#39FF14' : '#FFFFFF'}
-                      selectedIconColor="#39FF14"
-                      className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : '!bg-transparent !border-[#333]'}
+                      className="w-full sm:flex-1 sm:max-w-[200px]"
+                    >
+                      <Upload className="w-5 h-5 mr-2 flex-shrink-0" />
+                      Upload Image
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={imageSource === 'ai' ? 'accent' : 'outline-purple'}
+                      size="sm"
+                      onClick={() => {
+                        setImageSource('ai')
+                        setFile(null)
+                      }}
+                      className="w-full sm:flex-1 sm:max-w-[200px]"
+                    >
+                      <Sparkles className="w-5 h-5 mr-2 flex-shrink-0" />
+                      Generate with VIVA
+                    </Button>
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept={ACCEPT_IMAGES}
+                    className="hidden"
+                    aria-hidden
+                    onChange={(e) => {
+                      const chosen = e.target.files?.[0]
+                      if (chosen) {
+                        setFile(chosen)
+                        setImageSource('upload')
+                        setAiGeneratedImageUrl(null)
+                      }
+                      e.target.value = ''
+                    }}
+                  />
+                  {imageSource === 'upload' && (
+                    <FileUpload
+                      dragDrop
+                      accept={ACCEPT_IMAGES}
+                      multiple={false}
+                      maxFiles={1}
+                      maxSize={10}
+                      value={file ? [file] : []}
+                      onChange={(files) => setFile(files[0] || null)}
+                      onUpload={(files) => setFile(files[0] || null)}
+                      dragDropText="Click to upload or drag and drop"
+                      dragDropSubtext="PNG, JPG, WEBP, or HEIC (max 10MB)"
+                      previewSize="lg"
                     />
-                  )
-                })}
-              </div>
-            </div>
+                  )}
+                  {imageSource === 'ai' && (
+                    <>
+                      <AIImageGenerator
+                        type="vision_board"
+                        onImageGenerated={(url) => setAiGeneratedImageUrl(url)}
+                        title=""
+                        description={note}
+                        visionText={note || 'An abundance moment to celebrate.'}
+                      />
+                      {aiGeneratedImageUrl && (
+                        <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800 mt-4">
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                            <img
+                              src={aiGeneratedImageUrl}
+                              alt="VIVA generated"
+                              className="w-20 h-20 object-cover rounded-lg mx-auto sm:mx-0"
+                            />
+                            <div className="flex-1 text-center sm:text-left">
+                              <p className="text-sm font-medium text-white">Generated with VIVA</p>
+                              <p className="text-xs text-neutral-400">
+                                <span className="text-green-400">Auto-selected for this entry</span>
+                              </p>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setAiGeneratedImageUrl(null)}
+                              className="w-full sm:w-auto"
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </section>
 
-            <div>
-              <label className="block text-sm font-medium text-neutral-200 mb-3">
-                Image (optional)
-              </label>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept={ACCEPT_IMAGES}
-                className="hidden"
-                aria-hidden
-                onChange={(e) => {
-                  const chosen = e.target.files?.[0]
-                  if (chosen) {
-                    setFile(chosen)
-                    setImageSource('upload')
-                    setAiGeneratedImageUrl(null)
-                  }
-                  e.target.value = ''
-                }}
-              />
-              <div className="flex flex-col sm:flex-row gap-2 mb-4">
+              {successMessage && (
+                <div className="rounded-xl border border-[#199D67]/40 bg-[#199D67]/10 px-4 py-3 text-sm text-[#A8E5CE]">
+                  {successMessage}
+                </div>
+              )}
+
+              {errorMessage && (
+                <div className="rounded-xl border border-[#D03739]/40 bg-[#D03739]/10 px-4 py-3 text-sm text-[#FFB4B4]">
+                  {errorMessage}
+                </div>
+              )}
+
+              <div className="flex flex-row gap-2 sm:gap-3 justify-end pt-2">
                 <Button
                   type="button"
-                  variant={imageSource === 'upload' ? 'primary' : 'outline'}
+                  variant="danger"
                   size="sm"
-                  onClick={() => {
-                    setImageSource('upload')
-                    setAiGeneratedImageUrl(null)
-                    fileInputRef.current?.click()
-                  }}
-                  className="w-full sm:flex-1"
+                  onClick={() => router.push('/abundance-tracker')}
+                  className="flex-1 sm:flex-none sm:w-auto"
                 >
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Image
+                  Cancel
                 </Button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setImageSource('ai')
-                    setFile(null)
-                  }}
-                  style={
-                    imageSource === 'ai'
-                      ? {
-                          backgroundColor: colors.semantic.premium,
-                          borderColor: colors.semantic.premium,
-                        }
-                      : {
-                          borderColor: colors.semantic.premium,
-                          color: colors.semantic.premium,
-                        }
-                  }
-                  className={`w-full sm:flex-1 inline-flex items-center justify-center rounded-full transition-all duration-300 py-3.5 px-7 text-sm font-medium border-2 ${
-                    imageSource === 'ai'
-                      ? 'text-white hover:opacity-90'
-                      : 'bg-transparent hover:bg-[#BF00FF]/10'
-                  }`}
+                <Button
+                  type="submit"
+                  size="sm"
+                  loading={isSubmitting}
+                  disabled={isSubmitting}
+                  className="flex-1 sm:flex-none sm:w-auto"
                 >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Generate with VIVA
-                </button>
-              </div>
-
-              {imageSource === 'upload' && (
-                <FileUpload
-                  dragDrop
-                  accept={ACCEPT_IMAGES}
-                  multiple={false}
-                  maxFiles={1}
-                  maxSize={10}
-                  value={file ? [file] : []}
-                  onChange={(files) => setFile(files[0] || null)}
-                  onUpload={(files) => setFile(files[0] || null)}
-                  dragDropText="Click to upload or drag and drop"
-                  dragDropSubtext="PNG, JPG, WEBP, or HEIC (max 10MB)"
-                  previewSize="lg"
-                />
-              )}
-
-              {imageSource === 'ai' && (
-                <>
-                  <AIImageGenerator
-                    type="vision_board"
-                    onImageGenerated={(url) => setAiGeneratedImageUrl(url)}
-                    title=""
-                    description={note}
-                    visionText={note || 'An abundance moment to celebrate.'}
-                  />
-                  {aiGeneratedImageUrl && (
-                    <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800 mt-4">
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                        <img
-                          src={aiGeneratedImageUrl}
-                          alt="VIVA generated"
-                          className="w-20 h-20 object-cover rounded-lg mx-auto sm:mx-0"
-                        />
-                        <div className="flex-1 text-center sm:text-left">
-                          <p className="text-sm font-medium text-white">Generated with VIVA</p>
-                          <p className="text-xs text-neutral-400">
-                            <span className="text-green-400">Auto-selected for this entry</span>
-                          </p>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setAiGeneratedImageUrl(null)}
-                          className="w-full sm:w-auto"
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            {successMessage && (
-              <div className="bg-primary-500/10 border border-primary-500/40 rounded-xl p-4 text-sm text-primary-200">
-                {successMessage}
-              </div>
-            )}
-
-            {errorMessage && (
-              <div className="bg-red-500/10 border border-red-500/40 rounded-xl p-4 text-sm text-red-200">
-                {errorMessage}
-              </div>
-            )}
-
-            <div className="border-t-2 border-[#333] pt-6 mt-6">
-              <div className="flex justify-end">
-                <Button type="submit" variant="primary" loading={isSubmitting}>
-                  {isSubmitting ? 'Saving...' : 'Save Abundance Moment'}
+                  <Save className="w-4 h-4 mr-2" />
+                  {isSubmitting ? 'Saving...' : 'Save'}
                 </Button>
               </div>
-            </div>
+            </Stack>
           </form>
 
           <Modal
