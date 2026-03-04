@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Button, Textarea, Card, Spinner } from '@/lib/design-system/components'
-import { Sparkles, Image as ImageIcon, Loader2, X, Undo2 } from 'lucide-react'
+import { Sparkles, Image as ImageIcon, Loader2, X, Undo2, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 
 // Dimension/aspect ratio options
@@ -731,14 +731,15 @@ export function AIImageGenerator({
                     setGeneratedImage(null)
                     setOriginalImage(null)
                   }}
-                  variant="outline"
+                  variant="outline-purple"
                   className="flex-1"
                 >
+                  <RefreshCw className="w-4 h-4 mr-2" />
                   Generate Another
                 </Button>
                 <Button
                   onClick={handleEditGeneratedImage}
-                  variant="outline"
+                  variant="outline-purple"
                   className="flex-1"
                 >
                   <ImageIcon className="w-4 h-4 mr-2" />

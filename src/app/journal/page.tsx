@@ -283,6 +283,33 @@ export default function JournalPage() {
 
   const entryCount = entries.length
 
+  // Entry date for stats (prefer entry.date, else date part of created_at)
+  const getEntryDate = (entry: JournalEntry) => {
+    if (entry.date) return entry.date
+    return entry.created_at.slice(0, 10)
+  }
+
+  const thisWeekCount = entries.filter(entry => {
+    const d = new Date(getEntryDate(entry) + 'T00:00:00')
+    const now = new Date()
+    const weekAgo = new Date(now)
+    weekAgo.setDate(weekAgo.getDate() - 7)
+    return d >= weekAgo && d <= now
+  }).length
+
+  const currentStreak = (() => {
+    const recordedDays = new Set(entries.map(e => getEntryDate(e)))
+    let cursor = new Date()
+    let streak = 0
+    while (true) {
+      const key = cursor.toISOString().slice(0, 10)
+      if (!recordedDays.has(key)) break
+      streak += 1
+      cursor.setDate(cursor.getDate() - 1)
+    }
+    return streak
+  })()
+
   // Filter entries by selected categories
   const filteredEntries = entries.filter(entry => {
     const categoryMatch = selectedCategories.includes('all') || 
@@ -320,20 +347,14 @@ export default function JournalPage() {
             value={entryCount}
             theme="primary"
           />
-          
           <TrackingMilestoneCard
-            label="Today"
-            value={entries.filter(entry => {
-              const today = new Date()
-              const entryDate = new Date(entry.created_at)
-              return entryDate.toDateString() === today.toDateString()
-            }).length}
+            label="This Week"
+            value={thisWeekCount}
             theme="secondary"
           />
-          
           <TrackingMilestoneCard
-            label="Media Files"
-            value={entries.reduce((total, entry) => total + (entry.image_urls?.length || 0), 0)}
+            label="Current Streak"
+            value={`${currentStreak} ${currentStreak === 1 ? 'day' : 'days'}`}
             theme="accent"
           />
         </div>
@@ -561,32 +582,39 @@ export default function JournalPage() {
                       return null
                     })()}
 
-                    {/* Title */}
-                    <h3 className="text-base md:text-lg font-semibold text-white break-words line-clamp-2">
-                      {entry.title || 'Untitled Entry'}
-                    </h3>
+                    {/* Title + Entry - one card */}
+                    <div className="rounded-2xl border border-[#1F1F1F] bg-[#161616] p-4 md:p-5 space-y-3">
+                      <h3 className="text-base md:text-lg font-semibold text-white break-words line-clamp-2">
+                        {entry.title || 'Untitled Entry'}
+                      </h3>
+                      {entry.content && (
+                        <p className="text-sm text-neutral-400 line-clamp-3 whitespace-pre-line">
+                          {entry.content.length > 200 ? `${entry.content.substring(0, 200)}...` : entry.content}
+                        </p>
+                      )}
+                    </div>
 
-                    {/* Content Preview */}
-                    {entry.content && (
-                      <p className="text-sm text-neutral-400 line-clamp-3">
-                        {entry.content}
-                      </p>
-                    )}
-
-                    {/* Categories - Show All */}
+                    {/* Categories - same card style as daily-paper */}
                     {entry.categories && entry.categories.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {entry.categories.map((categoryKey: string) => {
-                          const categoryInfo = VISION_CATEGORIES.find(c => c.key === categoryKey)
-                          return (
-                            <span
-                              key={categoryKey}
-                              className="text-xs bg-primary-500/20 text-primary-500 px-2 py-0.5 rounded-full"
-                            >
-                              {categoryInfo ? categoryInfo.label : categoryKey}
-                            </span>
-                          )
-                        })}
+                      <div className="rounded-2xl border border-[#1F1F1F] bg-[#161616] p-4 md:p-5">
+                        <div className="flex flex-row flex-wrap gap-4 md:gap-6 items-center justify-start">
+                          <div className="flex flex-row items-center gap-2 flex-wrap">
+                            <span className="text-xs uppercase tracking-[0.3em] text-neutral-500">Categories:</span>
+                            <div className="flex flex-wrap gap-2 items-center">
+                              {entry.categories.map((categoryKey: string) => {
+                                const categoryInfo = VISION_CATEGORIES.find(c => c.key === categoryKey)
+                                return (
+                                  <span
+                                    key={categoryKey}
+                                    className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full"
+                                  >
+                                    {categoryInfo ? categoryInfo.label : categoryKey}
+                                  </span>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     )}
 
@@ -612,19 +640,19 @@ export default function JournalPage() {
             /* List View - Mobile-First Design */
             <div className="space-y-3 md:space-y-4">
               {filteredEntries.map((entry) => (
-                <Card 
-                  key={entry.id} 
-                  id={`entry-${entry.id}`} 
-                  className="hover:border-primary-500 transition-all duration-200 scroll-mt-8 cursor-pointer"
+                <Card
+                  key={entry.id}
+                  id={`entry-${entry.id}`}
+                  className="hover:border-primary-500/50 transition-all duration-200 hover:-translate-y-1 scroll-mt-8 cursor-pointer"
                   onClick={() => router.push(`/journal/${entry.id}`)}
                 >
-                  <div className="flex flex-col md:flex-row gap-3 md:gap-4">
-                    {/* Image - 300px wide, maintain aspect ratio, max 1:1 */}
-                    <div className="relative flex-shrink-0 w-full md:w-[300px] md:max-h-[300px] flex items-center justify-center rounded-lg overflow-hidden bg-neutral-800">
+                  <div className="flex flex-col md:flex-row gap-3 md:gap-4 md:items-stretch">
+                    {/* Image - hidden on mobile, same height as content on desktop */}
+                    <div className="hidden md:block relative flex-shrink-0 w-full aspect-square max-w-[180px] md:w-[160px] md:max-w-none md:aspect-square md:h-auto min-h-0 rounded-lg overflow-hidden bg-neutral-800">
                       {(() => {
                         if (!entry.image_urls || entry.image_urls.length === 0) {
                           return (
-                            <div className="w-full h-full flex items-center justify-center">
+                            <div className="absolute inset-0 flex items-center justify-center">
                               <FileText className="w-8 h-8 md:w-6 md:h-6 text-neutral-600" />
                             </div>
                           )
@@ -643,13 +671,13 @@ export default function JournalPage() {
                             : getThumbnailUrl(videoUrl)
                           
                           return (
-                            <div className="w-full h-full flex items-center justify-center">
+                            <div className="absolute inset-0">
                               <OptimizedVideo
                                 url={videoUrl}
                                 thumbnailUrl={thumbnailUrl}
                                 context="list"
                                 lazy={true}
-                                className="w-full max-w-full max-h-full [&>div]:w-auto [&>div]:h-auto [&>div]:max-w-full [&>div]:max-h-full [&_video]:object-contain [&_video]:w-auto [&_video]:h-auto [&_video]:max-w-full [&_video]:max-h-full [&_video]:!aspect-auto"
+                                className="w-full h-full [&>div]:w-full [&>div]:h-full [&_video]:object-cover [&_video]:w-full [&_video]:h-full"
                               />
                             </div>
                           )
@@ -669,19 +697,19 @@ export default function JournalPage() {
                             const imagesToShow = imageUrls.slice(0, 4) // Show up to 4 images
                             return (
                               <div 
-                                className="w-full h-full rounded-lg"
+                                className="absolute inset-0 rounded-lg"
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   openLightbox(entry.image_urls, 0)
                                 }}
                               >
-                                <div className={`grid ${imageCount === 2 ? 'grid-cols-2' : imageCount === 3 ? 'grid-cols-2' : 'grid-cols-2'} gap-0.5 h-full`}>
+                                <div className={`grid h-full w-full ${imageCount === 2 ? 'grid-cols-2' : imageCount === 3 ? 'grid-cols-2' : 'grid-cols-2'} gap-0.5`}>
                                   {imagesToShow.map((imageUrl, idx) => (
-                                    <div key={idx} className="relative bg-neutral-800">
+                                    <div key={idx} className="relative bg-neutral-800 min-h-0">
                                       <JournalImage
                                         src={imageUrl}
                                         alt={`Entry preview ${idx + 1}`}
-                                        className="w-full h-full object-cover aspect-square"
+                                        className="w-full h-full object-cover min-h-0"
                                         loading="lazy"
                                       />
                                       {idx === 3 && imageCount > 4 && (
@@ -696,13 +724,13 @@ export default function JournalPage() {
                             )
                           }
                           
-                          // Single image
+                          // Single image - fill container, cover
                           return (
-                            <div className="w-full h-full flex items-center justify-center">
+                            <div className="absolute inset-0">
                               <JournalImage
                                 src={imageUrls[0]}
                                 alt={entry.title || 'Entry preview'}
-                                className="max-w-full max-h-full w-auto h-auto object-contain"
+                                className="w-full h-full object-cover"
                                 loading="lazy"
                               />
                             </div>
@@ -713,46 +741,65 @@ export default function JournalPage() {
                       })()}
                     </div>
 
-                    {/* Entry Details - Mobile-first layout */}
-                    <div className="flex-1 min-w-0">
-                      <div className="space-y-4">
-                        {/* Title and Content */}
-                        <div>
-                          <h3 className="text-xl font-semibold text-white mb-2">{entry.title || 'Untitled Entry'}</h3>
-                          {entry.content && (
-                            <p className="text-neutral-300">
-                              {entry.content.length > 200 ? `${entry.content.substring(0, 200)}...` : entry.content}
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Created Date and Categories */}
-                        <div className="flex flex-wrap items-center gap-4">
-                          {/* Created Date */}
-                          <div className="flex items-center gap-2 text-sm">
-                            <span className="font-medium text-white">Created:</span>
-                            <span className="text-white px-3 py-1 border-2 border-neutral-600 rounded-lg">{new Date(entry.created_at).toLocaleDateString()}</span>
-                          </div>
-
-                          {/* Categories */}
-                          {entry.categories && entry.categories.length > 0 && (
-                            <div className="flex flex-wrap items-center gap-2">
-                              <h3 className="text-sm font-medium text-white">Categories:</h3>
-                              {entry.categories.map((categoryKey: string) => {
-                                const categoryInfo = VISION_CATEGORIES.find(c => c.key === categoryKey)
-                                return (
-                                  <span
-                                    key={categoryKey}
-                                    className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full"
-                                  >
-                                    {categoryInfo ? categoryInfo.label : categoryKey}
-                                  </span>
-                                )
-                              })}
+                    {/* Entry Details - same card style as daily-paper list */}
+                    <div className="flex-1 min-w-0 space-y-3">
+                      {/* Mobile: Date - right-aligned with banner */}
+                      <div className="relative -mt-1 md:hidden">
+                        <div className="flex justify-end">
+                          <div className="relative inline-block">
+                            <div className="absolute inset-y-0 left-0 right-0 bg-primary-500/10 rounded" />
+                            <div className="relative text-sm text-primary-500/80 font-medium text-right uppercase tracking-wider px-2 py-1">
+                              {new Date(entry.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                             </div>
-                          )}
+                          </div>
                         </div>
                       </div>
+
+                      {/* Desktop: Created date above Title + Entry (same as daily-paper list) */}
+                      <div className="hidden md:block">
+                        <div className="flex justify-end">
+                          <div className="relative inline-block">
+                            <div className="absolute inset-y-0 left-0 right-0 bg-primary-500/10 rounded" />
+                            <div className="relative text-sm text-primary-500/80 font-medium text-right uppercase tracking-wider px-2 py-1">
+                              {new Date(entry.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Title + Entry - one card */}
+                      <div className="rounded-2xl border border-[#1F1F1F] bg-[#161616] p-4 md:p-5 space-y-3">
+                        <h3 className="text-base md:text-lg font-semibold text-white break-words line-clamp-2">{entry.title || 'Untitled Entry'}</h3>
+                        {entry.content && (
+                          <p className="text-sm text-neutral-400 line-clamp-3 md:line-clamp-none md:text-neutral-300 whitespace-pre-line">
+                            {entry.content.length > 200 ? `${entry.content.substring(0, 200)}...` : entry.content}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Categories - card (date is above Title+Entry on desktop) */}
+                      {entry.categories && entry.categories.length > 0 && (
+                        <div className="rounded-2xl border border-[#1F1F1F] bg-[#161616] p-4 md:p-5">
+                          <div className="flex flex-row flex-wrap gap-4 md:gap-6 items-center justify-start">
+                            <div className="flex flex-row items-center gap-2 flex-wrap">
+                              <span className="text-xs uppercase tracking-[0.3em] text-neutral-500">Categories:</span>
+                              <div className="flex flex-wrap gap-2 items-center">
+                                {entry.categories.map((categoryKey: string) => {
+                                  const categoryInfo = VISION_CATEGORIES.find(c => c.key === categoryKey)
+                                  return (
+                                    <span
+                                      key={categoryKey}
+                                      className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full"
+                                    >
+                                      {categoryInfo ? categoryInfo.label : categoryKey}
+                                    </span>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Action Buttons - Right side */}
