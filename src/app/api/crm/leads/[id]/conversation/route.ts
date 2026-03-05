@@ -110,7 +110,7 @@ export async function GET(
       conversation: allMessages,
       lead: {
         id: lead.id,
-        name: lead.name,
+        name: [lead.first_name, lead.last_name].filter(Boolean).join(' ') || lead.email,
         email: lead.email,
         phone: lead.phone,
         status: lead.status,

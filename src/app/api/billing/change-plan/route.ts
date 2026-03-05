@@ -3,6 +3,27 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { stripe } from '@/lib/stripe/config'
 
+const TIER_TYPE_TO_ENV_KEY: Record<string, string> = {
+  vision_pro_annual: 'STRIPE_PRICE_ANNUAL',
+  vision_pro_28day: 'STRIPE_PRICE_28DAY',
+  vision_pro_household_annual: 'STRIPE_PRICE_HOUSEHOLD_ANNUAL',
+  vision_pro_household_28day: 'STRIPE_PRICE_HOUSEHOLD_28DAY',
+}
+
+function resolveStripePriceId(tier: { stripe_price_id: string | null; tier_type: string }): string | null {
+  if (tier.stripe_price_id) return tier.stripe_price_id
+  const baseKey = TIER_TYPE_TO_ENV_KEY[tier.tier_type]
+  if (!baseKey) return null
+  const isSandbox = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')
+  if (isSandbox) {
+    const sandboxVal = process.env[`SANDBOX_${baseKey}`]
+    if (sandboxVal) return sandboxVal.trim()
+  }
+  return process.env[baseKey]?.trim()
+    || process.env[`NEXT_PUBLIC_${baseKey}`]?.trim()
+    || null
+}
+
 export async function POST(request: NextRequest) {
   try {
     if (!stripe) {
@@ -16,7 +37,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { targetTierId } = (await request.json()) as { targetTierId: string }
+    const { targetTierId, partnerFirstName, partnerLastName, partnerEmail } = (await request.json()) as {
+      targetTierId: string
+      partnerFirstName?: string
+      partnerLastName?: string
+      partnerEmail?: string
+    }
 
     if (!targetTierId) {
       return NextResponse.json({ error: 'Missing target tier' }, { status: 400 })
@@ -33,8 +59,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Target plan not found' }, { status: 404 })
     }
 
-    if (!targetTier.stripe_price_id) {
-      return NextResponse.json({ error: 'Plan not available for purchase' }, { status: 400 })
+    const stripePriceId = resolveStripePriceId(targetTier)
+    if (!stripePriceId) {
+      return NextResponse.json({ error: 'Stripe price not configured for this plan' }, { status: 400 })
     }
 
     const { data: subscription } = await supabase
@@ -64,30 +91,89 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unable to find main subscription item' }, { status: 500 })
     }
 
-    const updatedSub = await stripe.subscriptions.update(subscription.stripe_subscription_id, {
-      items: [{
-        id: mainItem.id,
-        price: targetTier.stripe_price_id,
-      }],
-      proration_behavior: 'create_prorations',
-      cancel_at_period_end: false,
-    })
+    let updatedSub: Awaited<ReturnType<typeof stripe.subscriptions.update>>
+
+    try {
+      updatedSub = await stripe.subscriptions.update(subscription.stripe_subscription_id, {
+        items: [{
+          id: mainItem.id,
+          price: stripePriceId,
+        }],
+        proration_behavior: 'create_prorations',
+        cancel_at_period_end: false,
+      })
+    } catch {
+      updatedSub = await stripe.subscriptions.update(subscription.stripe_subscription_id, {
+        items: [
+          { id: mainItem.id, deleted: true },
+          { price: stripePriceId },
+        ],
+        proration_behavior: 'create_prorations',
+        cancel_at_period_end: false,
+      })
+    }
 
     await supabase
       .from('customer_subscriptions')
       .update({
         membership_tier_id: targetTierId,
-        stripe_price_id: targetTier.stripe_price_id,
+        stripe_price_id: stripePriceId,
         cancel_at_period_end: false,
         canceled_at: null,
       })
       .eq('id', subscription.id)
 
     let householdCreated = false
+    let partnerInvited = false
 
     if (targetTier.is_household_plan) {
       try {
         householdCreated = await createHouseholdForUser(user.id, user.email || '')
+
+        if (householdCreated && partnerFirstName && partnerLastName && partnerEmail) {
+          const serviceClient = createServiceClient()
+          const { data: household } = await serviceClient
+            .from('household_members')
+            .select('household_id')
+            .eq('user_id', user.id)
+            .eq('status', 'active')
+            .single()
+
+          if (household) {
+            const { data: hData } = await serviceClient
+              .from('households')
+              .select('id, name')
+              .eq('id', household.household_id)
+              .single()
+
+            if (hData) {
+              const { data: profile } = await serviceClient
+                .from('user_profiles')
+                .select('first_name, last_name')
+                .eq('user_id', user.id)
+                .eq('is_active', true)
+                .maybeSingle()
+
+              const adminName = profile?.first_name
+                ? `${profile.first_name} ${profile.last_name || ''}`.trim()
+                : user.email?.split('@')[0] || ''
+
+              const { invitePartnerToHousehold } = await import('@/lib/supabase/household')
+              const inviteResult = await invitePartnerToHousehold({
+                supabaseAdmin: serviceClient,
+                householdId: hData.id,
+                adminUserId: user.id,
+                adminName,
+                adminEmail: user.email || '',
+                householdName: hData.name,
+                partnerFirstName,
+                partnerLastName,
+                partnerEmail,
+              })
+              partnerInvited = inviteResult.success
+            }
+          }
+        }
       } catch (householdErr) {
         console.error('Household creation error (non-blocking):', householdErr)
       }
@@ -99,6 +185,7 @@ export async function POST(request: NextRequest) {
       newTierType: targetTier.tier_type,
       subscriptionId: updatedSub.id,
       householdCreated,
+      partnerInvited,
     })
   } catch (error) {
     console.error('Change plan error:', error)
@@ -180,13 +267,18 @@ export async function GET(request: NextRequest) {
 
     const { data: targetTier } = await supabase
       .from('membership_tiers')
-      .select('stripe_price_id')
+      .select('stripe_price_id, tier_type')
       .eq('id', targetTierId)
       .eq('is_active', true)
       .maybeSingle()
 
-    if (!targetTier?.stripe_price_id) {
+    if (!targetTier) {
       return NextResponse.json({ error: 'Target plan not found' }, { status: 404 })
+    }
+
+    const resolvedPriceId = resolveStripePriceId(targetTier)
+    if (!resolvedPriceId) {
+      return NextResponse.json({ error: 'Stripe price not configured for this plan' }, { status: 400 })
     }
 
     const { data: subscription } = await supabase
@@ -212,35 +304,69 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unable to preview' }, { status: 500 })
     }
 
-    const invoice = await stripe.invoices.createPreview({
-      customer: subscription.stripe_customer_id,
-      subscription: subscription.stripe_subscription_id,
-      subscription_details: {
-        items: [{
-          id: mainItem.id,
-          price: targetTier.stripe_price_id,
-        }],
-        proration_behavior: 'create_prorations',
-      },
-    })
+    let invoice: Awaited<ReturnType<typeof stripe.invoices.createPreview>>
+
+    try {
+      invoice = await stripe.invoices.createPreview({
+        customer: subscription.stripe_customer_id,
+        subscription: subscription.stripe_subscription_id,
+        subscription_details: {
+          items: [{
+            id: mainItem.id,
+            price: resolvedPriceId,
+          }],
+          proration_behavior: 'create_prorations',
+        },
+      })
+    } catch (firstErr: any) {
+      console.log('Proration preview attempt 1 failed, trying cross-product fallback:', firstErr?.message)
+      try {
+        invoice = await stripe.invoices.createPreview({
+          customer: subscription.stripe_customer_id,
+          subscription: subscription.stripe_subscription_id,
+          subscription_details: {
+            items: [
+              { id: mainItem.id, deleted: true },
+              { price: resolvedPriceId },
+            ],
+            proration_behavior: 'create_prorations',
+          },
+        })
+      } catch (secondErr: any) {
+        console.error('Proration preview both attempts failed:', {
+          attempt1: firstErr?.message,
+          attempt2: secondErr?.message,
+          customer: subscription.stripe_customer_id,
+          subscription: subscription.stripe_subscription_id,
+          targetPrice: resolvedPriceId,
+          mainItemId: mainItem.id,
+          currentPrice: mainItem.price.id,
+        })
+        const msg = secondErr?.message || firstErr?.message || 'Failed to preview proration'
+        return NextResponse.json({ error: msg }, { status: 500 })
+      }
+    }
 
     const isProration = (line: typeof invoice.lines.data[number]) =>
       line.parent?.invoice_item_details?.proration ||
       line.parent?.subscription_item_details?.proration
-    const prorationItems = invoice.lines.data.filter(isProration)
-    const prorationAmount = prorationItems.reduce((sum, line) => sum + line.amount, 0)
+    let relevantLines = invoice.lines.data.filter(isProration)
+    if (relevantLines.length === 0) {
+      relevantLines = invoice.lines.data
+    }
+    const totalAmount = relevantLines.reduce((sum, line) => sum + line.amount, 0)
 
     return NextResponse.json({
-      prorationAmount,
+      prorationAmount: totalAmount,
       currency: invoice.currency,
-      immediateAmount: Math.max(0, prorationAmount),
-      lines: prorationItems.map(line => ({
+      immediateAmount: Math.max(0, totalAmount),
+      lines: relevantLines.map(line => ({
         description: line.description,
         amount: line.amount,
       })),
     })
-  } catch (error) {
-    console.error('Proration preview error:', error)
-    return NextResponse.json({ error: 'Failed to preview proration' }, { status: 500 })
+  } catch (error: any) {
+    console.error('Proration preview error:', error?.message || error)
+    return NextResponse.json({ error: error?.message || 'Failed to preview proration' }, { status: 500 })
   }
 }

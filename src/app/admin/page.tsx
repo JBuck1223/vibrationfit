@@ -28,6 +28,7 @@ import {
   GitBranch,
   Send,
   ShoppingBag,
+  Ticket,
 } from 'lucide-react'
 
 interface AdminSection {
@@ -87,6 +88,13 @@ const crmSections: AdminSection[] = [
     href: '/admin/orders',
     icon: ShoppingBag,
     color: 'text-green-400',
+  },
+  {
+    title: 'Coupons',
+    description: 'Manage coupon codes & discounts',
+    href: '/admin/coupons',
+    icon: Ticket,
+    color: 'text-[#39FF14]',
   },
 ]
 
@@ -246,6 +254,13 @@ const intensiveSections: AdminSection[] = [
     href: '/admin/intensive/tester',
     icon: TestTube,
     color: 'text-secondary-500',
+  },
+  {
+    title: 'Calendar',
+    description: 'View and manage calendar',
+    href: '/admin/calendar',
+    icon: Calendar,
+    color: 'text-[#00FFFF]',
   },
 ]
 

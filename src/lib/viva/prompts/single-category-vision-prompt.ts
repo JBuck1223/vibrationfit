@@ -30,7 +30,7 @@ Permission.
 Tone calibration:
 • Lightness
 • Spontaneity
-• Play without justification
+• Pure, natural play
 
 Avoid:
 • Earned joy
@@ -78,9 +78,8 @@ Freedom to be fully myself — emotionally, creatively, sexually, and spirituall
 
 Tone calibration:
 • Mutual allowance
-• Encouragement over expectation
-• Desire without dependency
-• Passion without pressure
+• Encouragement and ease
+• Deep desire and natural passion
 
 Avoid:
 • Validation seeking
@@ -88,7 +87,7 @@ Avoid:
 • Sacrifice framing
 
 Internal guide:
-This relationship expands who I am. I do not shrink, perform, or manage myself here.`,
+This relationship expands who I am. I am fully myself here — open, alive, and adored.`,
 
   family: `Primary emotional target:
 Emotional freedom and mutual allowance.
@@ -104,7 +103,7 @@ Avoid:
 • Martyrdom
 
 Internal guide:
-I am free to enjoy my family without carrying emotional weight that is not mine.`,
+I am free to enjoy my family. I am light, present, and fully here.`,
 
   social: `Primary emotional target:
 Freedom to be authentic.
@@ -120,7 +119,7 @@ Avoid:
 • Managing dynamics
 
 Internal guide:
-I am wanted for who I am, not for what I provide.`,
+I am deeply wanted and cherished for exactly who I am.`,
 
   home: `Primary emotional target:
 Safety and ease.
@@ -136,7 +135,7 @@ Avoid:
 • Perfection pressure
 
 Internal guide:
-My home supports me. It does not demand from me.`,
+My home supports me, holds me, and inspires me.`,
 
   work: `Primary emotional target:
 Creative freedom and feeling seen and valued.
@@ -145,7 +144,7 @@ Tone calibration:
 • Self-directed flow
 • Appreciation without dependence
 • Impact without urgency
-• Choice over obligation
+• Full creative choice
 
 Avoid:
 • Grind culture
@@ -186,7 +185,7 @@ Avoid:
 • Attachment
 
 Internal guide:
-Things support my life. They do not define it.`,
+Things enrich my life and amplify my joy.`,
 
   giving: `Primary emotional target:
 Overflow.
@@ -202,7 +201,7 @@ Avoid:
 • Saving others
 
 Internal guide:
-I give because I want to, not because I should.`,
+I give from fullness and genuine desire.`,
 
   spirituality: `Primary emotional target:
 Freedom of alignment.
@@ -337,6 +336,13 @@ WEAK CLOSINGS — Cut them off at the knees.
   "I can't wait to see what unfolds..." → gone.
   "The possibilities feel endless..." → gone.
   "It's not about X, it's about Y" → just say Y.
+
+NEGATIVE FRAMING — This is an INCLUSION-BASED universe. Only name what you're including.
+  Do NOT name the absence of something negative. State what IS present.
+  "There is no conflict..." → "Everything flows in harmony."
+  "It never drains me..." → "It energizes me."
+  "The feeling of X slipping through the cracks is a distant memory" → DELETE entirely. Just describe the abundance.
+  "free from..." / "without the weight of..." / "no longer burdened by..." → gone. Describe the lightness directly.
 
 ═══════════════════════════════════════════════════════════════
 PHASE 2: EXPAND — Make it vivid, specific, and REAL

@@ -118,8 +118,8 @@ async function calculateAccurateTokenCost(
 
 /**
  * Check if user has sufficient tokens before allowing an AI action (server-side)
- * Returns null if user has enough tokens, or an error response object if insufficient
- * NOW SUPPORTS HOUSEHOLD TOKEN SHARING
+ * Returns null if user has enough tokens, or an error response object if insufficient.
+ * Household members automatically resolve to the shared pool via get_user_token_balance.
  */
 export async function validateTokenBalance(
   userId: string, 
@@ -129,91 +129,28 @@ export async function validateTokenBalance(
   try {
     const supabase = supabaseClient || await createServerClient()
     
-    // Get token balance - calculated as: SUM(unexpired grants) - SUM(usage)
     const { data: balanceData, error: balanceError } = await supabase
       .rpc('get_user_token_balance', { p_user_id: userId })
       .single()
     
     if (balanceError) {
       console.error('Error getting token balance:', balanceError)
-      // Fail open - allow request to proceed
       return null
     }
     
     const tokensRemaining = (balanceData as any)?.total_active || 0
 
-    // Check if user has sufficient tokens individually
     if (tokensRemaining >= estimatedTokens) {
-      return null // User has sufficient tokens from their own balance
+      return null
     }
 
-    // ===== NEW: Check household token sharing =====
-    // Get user's household info from user_accounts
-    const { data: account } = await supabase
-      .from('user_accounts')
-      .select(`
-        household_id,
-        allow_shared_tokens,
-        household:households!user_accounts_household_id_fkey(
-          admin_user_id,
-          shared_tokens_enabled
-        )
-      `)
-      .eq('id', userId)
-      .single()
-
-    if (!account?.household_id) {
-      // User not in household, cannot use shared tokens
-      return {
-        error: 'Insufficient tokens remaining',
-        tokensRemaining,
-        status: 402 // Payment Required
-      }
+    return {
+      error: 'Insufficient tokens remaining',
+      tokensRemaining,
+      status: 402
     }
-
-    const household = account.household as any
-    
-    // Check if household token sharing is enabled
-    if (!household?.shared_tokens_enabled || !account.allow_shared_tokens) {
-      return {
-        error: 'Insufficient tokens remaining',
-        tokensRemaining,
-        status: 402
-      }
-    }
-
-    // Don't let admin try to pull from themselves (infinite loop protection)
-    if (household.admin_user_id === userId) {
-      return {
-        error: 'Insufficient tokens remaining',
-        tokensRemaining,
-        status: 402
-      }
-    }
-
-    // Get household token summary
-    const { data: tokenSummary } = await supabase
-      .from('household_token_summary')
-      .select('household_tokens_remaining')
-      .eq('household_id', account.household_id)
-      .single()
-
-    const householdTokens = tokenSummary?.household_tokens_remaining || 0
-
-    // Check if household has enough cumulative tokens
-    if (householdTokens < estimatedTokens) {
-      return {
-        error: 'Insufficient household tokens remaining',
-        tokensRemaining: householdTokens,
-        status: 402
-      }
-    }
-
-    // Household has enough tokens - allow the operation
-    return null
   } catch (error) {
     console.error('Error validating token balance:', error)
-    // On error, allow request to proceed (fail open rather than blocking)
     return null
   }
 }

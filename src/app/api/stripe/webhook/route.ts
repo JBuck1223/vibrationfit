@@ -12,6 +12,7 @@ import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 import { triggerEvent } from '@/lib/messaging/events'
 import { getPaymentPlanLabel } from '@/lib/intensive/utils'
+import { toTitleCase } from '@/lib/utils'
 
 type OrderInsertParams = {
   userId: string
@@ -586,14 +587,14 @@ export async function POST(request: NextRequest) {
             } else {
               const customerName = session.customer_details?.name || ''
               const nameParts = customerName.trim().split(' ')
-              const firstName = nameParts[0] || undefined
-              const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : undefined
+              const firstName = nameParts[0] ? toTitleCase(nameParts[0]) : undefined
+              const lastName = nameParts.length > 1 ? toTitleCase(nameParts.slice(1).join(' ')) : undefined
 
               const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
                 email: customerEmail,
                 email_confirm: true,
                 user_metadata: {
-                  full_name: customerName || undefined,
+                  full_name: [firstName, lastName].filter(Boolean).join(' ') || undefined,
                   first_name: firstName,
                   last_name: lastName,
                   phone: session.customer_details?.phone || undefined,
@@ -633,13 +634,12 @@ export async function POST(request: NextRequest) {
 
           console.log('✅ User ID confirmed:', userId)
 
-          // Ensure user_accounts has name/phone from Stripe customer details
           const intensiveCustomerName = session.customer_details?.name || ''
           if (intensiveCustomerName || session.customer_details?.phone) {
             const parts = intensiveCustomerName.trim().split(' ')
             await supabaseAdmin.from('user_accounts').update({
-              ...(parts[0] ? { first_name: parts[0] } : {}),
-              ...(parts.length > 1 ? { last_name: parts.slice(1).join(' ') } : {}),
+              ...(parts[0] ? { first_name: toTitleCase(parts[0]) } : {}),
+              ...(parts.length > 1 ? { last_name: toTitleCase(parts.slice(1).join(' ')) } : {}),
               ...(session.customer_details?.phone ? { phone: session.customer_details.phone } : {}),
             }).eq('id', userId)
           }
@@ -728,6 +728,15 @@ export async function POST(request: NextRequest) {
             intensive_id: intensiveOrderItem.id,
             user_id: userId,
           })
+
+          const isPremiumBlock2 = session.metadata?.intensive_level === 'premium' || session.metadata?.promo_package === 'premium_promo'
+          if (isPremiumBlock2) {
+            await Promise.resolve(supabaseAdmin.from('premium_coaching_sessions').insert({
+              intensive_id: intensiveOrderItem.id,
+              user_id: userId,
+              order_id: order.id,
+            })).catch(err => console.error('Failed to create premium coaching record (block2):', err))
+          }
 
           console.log('✅ Intensive order item created:', {
             userId,
@@ -863,28 +872,26 @@ export async function POST(request: NextRequest) {
                 // Create household if plan_type is 'household'
                 const planType = session.metadata?.plan_type
                 if (planType === 'household') {
-                  console.log('🏠 Creating household for user:', userId)
+                  console.log('Creating household for user:', userId)
                   
                   try {
-                    // Create household record
                     const { data: household, error: householdError } = await supabaseAdmin
                       .from('households')
                       .insert({
                         admin_user_id: userId,
                         name: `${customerEmail?.split('@')[0] || 'My'}'s Household`,
-                        max_members: 2, // Household plans come with 2 seats
-                        shared_tokens_enabled: true, // Default to shared tokens for households
+                        max_members: 2,
+                        shared_tokens_enabled: true,
                       })
                       .select()
                       .single()
 
                     if (householdError) {
-                      console.error('❌ Failed to create household:', householdError)
+                      console.error('Failed to create household:', householdError)
                     } else {
-                      console.log('✅ Household created:', household.id)
+                      console.log('Household created:', household.id)
 
-                      // Update user profile with household info
-                      const { error: profileError } = await supabaseAdmin
+                      await supabaseAdmin
                         .from('user_profiles')
                         .upsert({
                           user_id: userId,
@@ -894,14 +901,7 @@ export async function POST(request: NextRequest) {
                           onConflict: 'user_id',
                         })
 
-                      if (profileError) {
-                        console.error('❌ Failed to update user profile with household:', profileError)
-                      } else {
-                        console.log('✅ User profile updated with household info')
-                      }
-
-                      // Add admin as first household member
-                      const { error: memberError } = await supabaseAdmin
+                      await supabaseAdmin
                         .from('household_members')
                         .insert({
                           household_id: household.id,
@@ -910,21 +910,32 @@ export async function POST(request: NextRequest) {
                           joined_at: new Date().toISOString(),
                         })
 
-                      if (memberError) {
-                        console.error('❌ Failed to add admin to household_members:', memberError)
-                      } else {
-                        console.log('✅ Admin added to household_members')
+                      // Auto-invite partner if info was provided at checkout
+                      const pFirstName = session.metadata?.partner_first_name
+                      const pLastName = session.metadata?.partner_last_name
+                      const pEmail = session.metadata?.partner_email
+                      if (pFirstName && pLastName && pEmail) {
+                        const { invitePartnerToHousehold } = await import('@/lib/supabase/household')
+                        await invitePartnerToHousehold({
+                          supabaseAdmin,
+                          householdId: household.id,
+                          adminUserId: userId,
+                          adminName: session.customer_details?.name || customerEmail?.split('@')[0] || '',
+                          adminEmail: customerEmail || '',
+                          householdName: household.name,
+                          partnerFirstName: pFirstName,
+                          partnerLastName: pLastName,
+                          partnerEmail: pEmail,
+                        })
                       }
                     }
                   } catch (householdError) {
-                    console.error('❌ Error in household creation:', householdError)
-                    // Don't break - subscription is still valid
+                    console.error('Error in household creation:', householdError)
                   }
                 }
               }
             } catch (visionProError) {
               console.error('Failed to create Vision Pro subscription:', visionProError)
-              // Don't break - intensive purchase is still valid, Vision Pro can be added manually
             }
           }
 
@@ -1001,14 +1012,14 @@ export async function POST(request: NextRequest) {
             } else {
               const customerName = session.customer_details?.name || ''
               const nameParts = customerName.trim().split(' ')
-              const firstName = nameParts[0] || undefined
-              const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : undefined
+              const firstName = nameParts[0] ? toTitleCase(nameParts[0]) : undefined
+              const lastName = nameParts.length > 1 ? toTitleCase(nameParts.slice(1).join(' ')) : undefined
 
               const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
                 email: customerEmail,
                 email_confirm: true,
                 user_metadata: {
-                  full_name: customerName || undefined,
+                  full_name: [firstName, lastName].filter(Boolean).join(' ') || undefined,
                   first_name: firstName,
                   last_name: lastName,
                   phone: session.customer_details?.phone || undefined,
@@ -1041,13 +1052,12 @@ export async function POST(request: NextRequest) {
             break
           }
 
-          // Ensure user_accounts has name/phone from Stripe customer details
           const combinedCustomerName = session.customer_details?.name || ''
           if (combinedCustomerName || session.customer_details?.phone) {
             const parts = combinedCustomerName.trim().split(' ')
             await supabaseAdmin.from('user_accounts').update({
-              ...(parts[0] ? { first_name: parts[0] } : {}),
-              ...(parts.length > 1 ? { last_name: parts.slice(1).join(' ') } : {}),
+              ...(parts[0] ? { first_name: toTitleCase(parts[0]) } : {}),
+              ...(parts.length > 1 ? { last_name: toTitleCase(parts.slice(1).join(' ')) } : {}),
               ...(session.customer_details?.phone ? { phone: session.customer_details.phone } : {}),
             }).eq('id', userId)
           }
@@ -1134,28 +1144,26 @@ export async function POST(request: NextRequest) {
             // Create household if plan_type is 'household'
             const planType = session.metadata?.plan_type
             if (planType === 'household') {
-              console.log('🏠 Creating household for user:', userId)
+              console.log('Creating household for user:', userId)
               
               try {
-                // Create household record
                 const { data: household, error: householdError } = await supabaseAdmin
                   .from('households')
                   .insert({
                     admin_user_id: userId,
                     name: `${customerEmail?.split('@')[0] || 'My'}'s Household`,
-                    max_members: 2, // Household plans come with 2 seats
-                    shared_tokens_enabled: true, // Default to shared tokens for households
+                    max_members: 2,
+                    shared_tokens_enabled: true,
                   })
                   .select()
                   .single()
 
                 if (householdError) {
-                  console.error('❌ Failed to create household:', householdError)
+                  console.error('Failed to create household:', householdError)
                 } else {
-                  console.log('✅ Household created:', household.id)
+                  console.log('Household created:', household.id)
 
-                  // Update user profile with household info
-                  const { error: profileError } = await supabaseAdmin
+                  await supabaseAdmin
                     .from('user_profiles')
                     .upsert({
                       user_id: userId,
@@ -1165,14 +1173,7 @@ export async function POST(request: NextRequest) {
                       onConflict: 'user_id',
                     })
 
-                  if (profileError) {
-                    console.error('❌ Failed to update user profile with household:', profileError)
-                  } else {
-                    console.log('✅ User profile updated with household info')
-                  }
-
-                  // Add admin as first household member
-                  const { error: memberError } = await supabaseAdmin
+                  await supabaseAdmin
                     .from('household_members')
                     .insert({
                       household_id: household.id,
@@ -1181,20 +1182,31 @@ export async function POST(request: NextRequest) {
                       joined_at: new Date().toISOString(),
                     })
 
-                  if (memberError) {
-                    console.error('❌ Failed to add admin to household_members:', memberError)
-                  } else {
-                    console.log('✅ Admin added to household_members')
+                  // Auto-invite partner if info was provided at checkout
+                  const pFirstName = session.metadata?.partner_first_name
+                  const pLastName = session.metadata?.partner_last_name
+                  const pEmail = session.metadata?.partner_email
+                  if (pFirstName && pLastName && pEmail) {
+                    const { invitePartnerToHousehold } = await import('@/lib/supabase/household')
+                    await invitePartnerToHousehold({
+                      supabaseAdmin,
+                      householdId: household.id,
+                      adminUserId: userId,
+                      adminName: session.customer_details?.name || customerEmail?.split('@')[0] || '',
+                      adminEmail: customerEmail || '',
+                      householdName: household.name,
+                      partnerFirstName: pFirstName,
+                      partnerLastName: pLastName,
+                      partnerEmail: pEmail,
+                    })
                   }
                 }
               } catch (householdError) {
-                console.error('❌ Error in household creation:', householdError)
-                // Don't break - subscription is still valid
+                console.error('Error in household creation:', householdError)
               }
             }
           } catch (scheduleError) {
             console.error('Failed to create subscription schedule:', scheduleError)
-            // Don't break - intensive purchase is still valid
           }
 
           // 2. Create Intensive Order Item (only Intensive is in checkout)
@@ -1302,6 +1314,15 @@ export async function POST(request: NextRequest) {
             user_id: userId,
           })
 
+          const isPremiumCombined = session.metadata?.intensive_level === 'premium' || session.metadata?.promo_package === 'premium_promo'
+          if (isPremiumCombined) {
+            await Promise.resolve(supabaseAdmin.from('premium_coaching_sessions').insert({
+              intensive_id: intensiveOrderItem.id,
+              user_id: userId,
+              order_id: order.id,
+            })).catch(err => console.error('Failed to create premium coaching record (combined):', err))
+          }
+
           const { data: result, error: grantError } = await supabase
             .rpc('grant_trial_tokens', {
               p_user_id: userId,
@@ -1361,14 +1382,16 @@ export async function POST(request: NextRequest) {
             deadline: activationDeadline.toISOString(),
           })
 
-          triggerEvent('intensive.purchased', {
+          const isPremiumIntensive = session.metadata?.intensive_level === 'premium'
+          const intensiveEventName = isPremiumIntensive ? 'intensive_premium.purchased' : 'intensive.purchased'
+          triggerEvent(intensiveEventName, {
             email: customerEmail || '',
             userId,
             name: session.customer_details?.name || customerEmail?.split('@')[0] || '',
             firstName: session.customer_details?.name?.split(' ')[0] || customerEmail?.split('@')[0] || '',
             paymentPlan: intensivePaymentPlan,
             paymentPlanLabel: getPaymentPlanLabel(intensivePaymentPlan),
-          }).catch(err => console.error('triggerEvent intensive.purchased error:', err))
+          }).catch(err => console.error(`triggerEvent ${intensiveEventName} error:`, err))
         }
         
         break
@@ -1630,6 +1653,7 @@ export async function POST(request: NextRequest) {
                 console.log(`Granted ${tokensToGrant} token addon tokens for user ${subscription.user_id}`)
               }
             }
+
           }
         }
         break
@@ -1708,7 +1732,7 @@ export async function POST(request: NextRequest) {
         if (!product || (!purchaseType && !productType)) {
           break
         }
-        const isIntensive = product === 'intensive' || productType === 'combined_intensive_continuity'
+        const isIntensive = product === 'intensive' || product === 'intensive_premium' || productType === 'combined_intensive_continuity'
 
         const { data: existingOrder } = await supabaseAdmin
           .from('orders')
@@ -1738,8 +1762,8 @@ export async function POST(request: NextRequest) {
 
         let userId: string
         const nameParts = (name || '').trim().split(' ')
-        const firstName = nameParts[0] || null
-        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : null
+        const firstName = nameParts[0] ? toTitleCase(nameParts[0]) : null
+        const lastName = nameParts.length > 1 ? toTitleCase(nameParts.slice(1).join(' ')) : null
 
         const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers()
         const existingUser = existingUsers?.users?.find((u: { email?: string }) => u.email === email)
@@ -1751,7 +1775,7 @@ export async function POST(request: NextRequest) {
             password: randomBytes(32).toString('hex'),
             email_confirm: true,
             user_metadata: {
-              full_name: name || undefined,
+              full_name: [firstName, lastName].filter(Boolean).join(' ') || undefined,
               first_name: firstName || undefined,
               last_name: lastName || undefined,
               phone: phone || undefined,
@@ -1765,11 +1789,10 @@ export async function POST(request: NextRequest) {
         }
 
         await supabaseAdmin.from('user_profiles').upsert(
-          { user_id: userId, full_name: name, phone: phone || null },
+          { user_id: userId, full_name: [firstName, lastName].filter(Boolean).join(' ') || name, phone: phone || null },
           { onConflict: 'user_id' }
         )
 
-        // Ensure user_accounts has name/phone data
         if (firstName || lastName || phone) {
           await supabaseAdmin.from('user_accounts').update({
             ...(firstName ? { first_name: firstName } : {}),
@@ -1859,6 +1882,15 @@ export async function POST(request: NextRequest) {
             intensive_id: intensiveOrderItem.id,
             user_id: userId,
           })
+
+          const isPremium = product === 'intensive_premium' || meta.intensive_level === 'premium' || meta.promo_package === 'premium_promo'
+          if (isPremium) {
+            await Promise.resolve(supabaseAdmin.from('premium_coaching_sessions').insert({
+              intensive_id: intensiveOrderItem.id,
+              user_id: userId,
+              order_id: order.id,
+            })).catch(err => console.error('Failed to create premium coaching record:', err))
+          }
         }
 
         if (promoCode) {
@@ -2014,6 +2046,25 @@ export async function POST(request: NextRequest) {
                         role: 'admin',
                         joined_at: new Date().toISOString(),
                       })
+
+                      // Auto-invite partner if info was provided at checkout
+                      const pFirstName = meta.partner_first_name
+                      const pLastName = meta.partner_last_name
+                      const pEmail = meta.partner_email
+                      if (pFirstName && pLastName && pEmail) {
+                        const { invitePartnerToHousehold } = await import('@/lib/supabase/household')
+                        await invitePartnerToHousehold({
+                          supabaseAdmin,
+                          householdId: household.id,
+                          adminUserId: userId,
+                          adminName: name || email?.split('@')[0] || '',
+                          adminEmail: email || '',
+                          householdName: household.name,
+                          partnerFirstName: pFirstName,
+                          partnerLastName: pLastName,
+                          partnerEmail: pEmail,
+                        })
+                      }
                     }
                   } catch (householdErr) {
                     console.error('Household creation error:', householdErr)
@@ -2070,7 +2121,9 @@ export async function POST(request: NextRequest) {
         }
 
         if (isIntensive && intensiveOrderItem) {
-          triggerEvent('intensive.purchased', {
+          const isPremiumIntensive = product === 'intensive_premium' || meta.intensive_level === 'premium'
+          const intensiveEventName = isPremiumIntensive ? 'intensive_premium.purchased' : 'intensive.purchased'
+          triggerEvent(intensiveEventName, {
             email: email || '',
             userId,
             name: name || email?.split('@')[0] || '',

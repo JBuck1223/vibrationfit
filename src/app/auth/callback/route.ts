@@ -15,9 +15,15 @@ export async function GET(request: Request) {
   const code = requestUrl.searchParams.get('code')
   const tokenHash = requestUrl.searchParams.get('token_hash')
   const type = requestUrl.searchParams.get('type')
+  const returnTo = requestUrl.searchParams.get('returnTo')
   const origin = requestUrl.origin
+  const defaultRedirect = returnTo && returnTo.startsWith('/') ? `${origin}${returnTo}` : `${origin}/dashboard`
 
   const supabase = await createClient()
+
+  const setupPasswordUrl = returnTo
+    ? `${origin}/auth/setup-password?returnTo=${encodeURIComponent(returnTo)}`
+    : `${origin}/auth/setup-password`
 
   // Handle PKCE code exchange (standard flow)
   if (code) {
@@ -29,8 +35,7 @@ export async function GET(request: Request) {
       const needsPassword = user.user_metadata?.has_password !== true
 
       if (needsPassword) {
-        // setup-password checks DB for intensive enrollment itself
-        return NextResponse.redirect(`${origin}/auth/setup-password`)
+        return NextResponse.redirect(setupPasswordUrl)
       }
 
       // Already has password -- check DB for intensive
@@ -49,7 +54,7 @@ export async function GET(request: Request) {
       }
     }
 
-    return NextResponse.redirect(`${origin}/dashboard`)
+    return NextResponse.redirect(defaultRedirect)
   }
 
   // Handle magic link token verification
@@ -68,7 +73,7 @@ export async function GET(request: Request) {
       const needsPassword = data.user.user_metadata?.has_password !== true
 
       if (needsPassword) {
-        return NextResponse.redirect(`${origin}/auth/setup-password`)
+        return NextResponse.redirect(setupPasswordUrl)
       }
 
       const adminClient = getAdminClient()
@@ -86,7 +91,7 @@ export async function GET(request: Request) {
       }
     }
 
-    return NextResponse.redirect(`${origin}/dashboard`)
+    return NextResponse.redirect(defaultRedirect)
   }
 
   return NextResponse.redirect(`${origin}/auth/login`)

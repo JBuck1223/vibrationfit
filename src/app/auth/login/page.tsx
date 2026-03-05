@@ -1,14 +1,22 @@
 'use client'
 
 import { createClient } from '@/lib/supabase/client'
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Card, Input, Button } from '@/lib/design-system'
+import { Suspense, useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Card, Input, Button, Spinner } from '@/lib/design-system'
 import { Eye, EyeOff } from 'lucide-react'
 import Image from 'next/image'
 import { ASSETS } from '@/lib/storage/s3-storage-presigned'
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-[60vh]"><Spinner variant="primary" size="lg" /></div>}>
+      <LoginForm />
+    </Suspense>
+  )
+}
+
+function LoginForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -21,6 +29,8 @@ export default function LoginPage() {
   const [codeLoading, setCodeLoading] = useState(false)
   const [showCodeEntry, setShowCodeEntry] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const returnTo = searchParams.get('returnTo')
   const supabase = createClient()
 
   // If redirected with magic link errors (e.g., otp_expired), auto-switch to code entry
@@ -33,6 +43,27 @@ export default function LoginPage() {
       setError('Your link may have expired or been pre-opened. Enter the 6-digit code from your email.')
     }
   }, [])
+
+  const redirectAfterLogin = async () => {
+    if (returnTo && returnTo.startsWith('/')) {
+      router.push(returnTo)
+      return
+    }
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const { data: intensiveChecklist } = await supabase
+        .from('intensive_checklist')
+        .select('id, status, started_at')
+        .eq('user_id', user.id)
+        .in('status', ['pending', 'in_progress'])
+        .maybeSingle()
+      if (intensiveChecklist) {
+        router.push(intensiveChecklist.started_at ? '/intensive/dashboard' : '/intensive/start')
+        return
+      }
+    }
+    router.push('/dashboard')
+  }
 
   const getLoginErrorMessage = (error: { message?: string; code?: string } | null, fallback: string): string => {
     if (!error?.message) return fallback
@@ -75,27 +106,7 @@ export default function LoginPage() {
         setError(getLoginErrorMessage(error, 'Sign-in failed. Please try again.'))
         setLoading(false)
       } else {
-        // Check if user has active intensive
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          const { data: intensiveChecklist } = await supabase
-            .from('intensive_checklist')
-            .select('id, status, started_at')
-            .eq('user_id', user.id)
-            .in('status', ['pending', 'in_progress'])
-            .maybeSingle()
-          
-          if (intensiveChecklist) {
-            if (!intensiveChecklist.started_at) {
-              router.push('/intensive/start')
-            } else {
-              router.push('/intensive/dashboard')
-            }
-            return
-          }
-        }
-        router.push('/dashboard')
-        // Don't set loading to false here - let navigation handle it
+        await redirectAfterLogin()
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'An unexpected error occurred'
@@ -123,10 +134,13 @@ export default function LoginPage() {
         setError('Request timed out. Please try again.')
       }, 30000) // 30 second timeout
 
+      const callbackUrl = returnTo
+        ? `${window.location.origin}/auth/callback?returnTo=${encodeURIComponent(returnTo)}`
+        : `${window.location.origin}/auth/callback`
       const { data, error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: callbackUrl,
         },
       })
 
@@ -181,28 +195,7 @@ export default function LoginPage() {
         return
       }
 
-      // Small delay to ensure session is established, then check for intensive
-      setTimeout(async () => {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          const { data: intensiveChecklist } = await supabase
-            .from('intensive_checklist')
-            .select('id, status, started_at')
-            .eq('user_id', user.id)
-            .in('status', ['pending', 'in_progress'])
-            .maybeSingle()
-          
-          if (intensiveChecklist) {
-            if (!intensiveChecklist.started_at) {
-              router.push('/intensive/start')
-            } else {
-              router.push('/intensive/dashboard')
-            }
-            return
-          }
-        }
-        router.push('/dashboard')
-      }, 300)
+      setTimeout(() => redirectAfterLogin(), 300)
     } catch (err) {
       setError(`Unexpected error: ${err instanceof Error ? err.message : 'Unknown error'}`)
       setCodeLoading(false)

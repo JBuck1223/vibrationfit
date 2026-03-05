@@ -12,11 +12,18 @@ export default function HouseholdSettingsPage() {
   const [error, setError] = useState('')
   
   // Invite form
+  const [inviteFirstName, setInviteFirstName] = useState('')
+  const [inviteLastName, setInviteLastName] = useState('')
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviting, setInviting] = useState(false)
   const [inviteError, setInviteError] = useState('')
   const [inviteSuccess, setInviteSuccess] = useState('')
   
+  // Household name editing
+  const [editingName, setEditingName] = useState(false)
+  const [newHouseholdName, setNewHouseholdName] = useState('')
+  const [savingName, setSavingName] = useState(false)
+
   // Delete confirmation dialog
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [invitationToDelete, setInvitationToDelete] = useState<string | null>(null)
@@ -58,7 +65,10 @@ export default function HouseholdSettingsPage() {
   }
 
   async function handleInviteMember() {
-    if (!inviteEmail) return
+    if (!inviteFirstName.trim() || !inviteLastName.trim() || !inviteEmail.trim()) {
+      setInviteError('First name, last name, and email are all required')
+      return
+    }
     
     setInviting(true)
     setInviteError('')
@@ -68,7 +78,11 @@ export default function HouseholdSettingsPage() {
       const response = await fetch('/api/household/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: inviteEmail })
+        body: JSON.stringify({
+          firstName: inviteFirstName.trim(),
+          lastName: inviteLastName.trim(),
+          email: inviteEmail.trim().toLowerCase(),
+        })
       })
 
       const data = await response.json()
@@ -78,10 +92,11 @@ export default function HouseholdSettingsPage() {
         return
       }
 
-      // Success!
-      setInviteSuccess(`✅ Invitation sent to ${inviteEmail}!`)
+      setInviteSuccess(`Invitation sent to ${inviteFirstName.trim()}!`)
+      setInviteFirstName('')
+      setInviteLastName('')
       setInviteEmail('')
-      await loadHouseholdData() // Reload to show pending invitation
+      await loadHouseholdData()
       
     } catch (error) {
       setInviteError('Failed to send invitation')
@@ -90,21 +105,23 @@ export default function HouseholdSettingsPage() {
     }
   }
 
-  async function handleToggleSharedTokens() {
+  async function handleSaveHouseholdName() {
+    if (!newHouseholdName.trim()) return
+    setSavingName(true)
     try {
-      const newValue = !household.household.shared_tokens_enabled
-      
-      const response = await fetch('/api/household', {
+      const res = await fetch('/api/household', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shared_tokens_enabled: newValue })
+        body: JSON.stringify({ name: newHouseholdName.trim() }),
       })
-
-      if (response.ok) {
+      if (res.ok) {
+        setEditingName(false)
         await loadHouseholdData()
       }
-    } catch (error) {
-      console.error('Error updating settings:', error)
+    } catch (err) {
+      console.error('Error saving household name:', err)
+    } finally {
+      setSavingName(false)
     }
   }
 
@@ -183,41 +200,58 @@ export default function HouseholdSettingsPage() {
         <Card variant="elevated" className="p-4 md:p-6 lg:p-8">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 md:mb-6 gap-3 md:gap-0">
           <div>
-            <h2 className="text-xl md:text-2xl font-semibold mb-1">{householdInfo.name}</h2>
+            {editingName ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  value={newHouseholdName}
+                  onChange={(e) => setNewHouseholdName(e.target.value)}
+                  className="text-xl font-semibold"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveHouseholdName()
+                    if (e.key === 'Escape') setEditingName(false)
+                  }}
+                />
+                <Button size="sm" onClick={handleSaveHouseholdName} loading={savingName} disabled={!newHouseholdName.trim()}>
+                  Save
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setEditingName(false)}>
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl md:text-2xl font-semibold mb-1">{householdInfo.name}</h2>
+                {isAdmin && (
+                  <button
+                    onClick={() => { setNewHouseholdName(householdInfo.name); setEditingName(true) }}
+                    className="text-neutral-500 hover:text-primary-500 transition-colors"
+                    title="Rename household"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                  </button>
+                )}
+              </div>
+            )}
             <p className="text-xs md:text-sm text-neutral-400">
               {members?.length || 0} of {householdInfo.max_members} members
             </p>
           </div>
-            {isAdmin && (
+            {isAdmin && !editingName && (
               <Badge variant="premium">Admin</Badge>
             )}
           </div>
 
-        {/* Shared Tokens Toggle (Admin Only) */}
-        {isAdmin && (
-          <div className="p-4 md:p-6 bg-primary-500/10 rounded-xl border border-primary-500/20">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 md:gap-0">
-              <div>
-                <h3 className="text-base md:text-lg font-semibold mb-1">Shared Token Pool</h3>
-                <p className="text-xs md:text-sm text-neutral-400">
-                  Allow members to use your tokens when they run out
-                </p>
-              </div>
-                <button
-                  onClick={handleToggleSharedTokens}
-                  className={`relative w-14 h-7 rounded-full transition-colors ${
-                    householdInfo.shared_tokens_enabled ? 'bg-primary-500' : 'bg-neutral-600'
-                  }`}
-                >
-                  <span
-                    className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform ${
-                      householdInfo.shared_tokens_enabled ? 'translate-x-7' : ''
-                    }`}
-                  />
-                </button>
-            </div>
+        {/* Shared Token Pool Info */}
+        <div className="p-4 md:p-6 bg-primary-500/10 rounded-xl border border-primary-500/20">
+          <div className="flex items-center gap-2">
+            <h3 className="text-base md:text-lg font-semibold">Shared Token Pool</h3>
+            <Badge variant="success" className="text-xs">Active</Badge>
           </div>
-        )}
+          <p className="text-xs md:text-sm text-neutral-400 mt-1">
+            All household members share one token pool from the plan owner
+          </p>
+        </div>
       </Card>
 
         {/* Members List */}
@@ -264,10 +298,24 @@ export default function HouseholdSettingsPage() {
           <Card variant="elevated" className="p-4 md:p-6 lg:p-8">
           <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">Invite Member</h2>
           
-          <div className="flex flex-col md:flex-row gap-3 md:gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+              <Input
+                type="text"
+                placeholder="First name"
+                value={inviteFirstName}
+                onChange={(e) => setInviteFirstName(e.target.value)}
+              />
+              <Input
+                type="text"
+                placeholder="Last name"
+                value={inviteLastName}
+                onChange={(e) => setInviteLastName(e.target.value)}
+              />
+          </div>
+          <div className="flex flex-col md:flex-row gap-3 md:gap-4 mt-3 md:mt-4">
               <Input
                 type="email"
-                placeholder="Enter email address"
+                placeholder="Email address"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
                 className="flex-1"
@@ -276,7 +324,7 @@ export default function HouseholdSettingsPage() {
               size="sm"
               onClick={handleInviteMember}
               loading={inviting}
-              disabled={!inviteEmail || inviting}
+              disabled={!inviteFirstName.trim() || !inviteLastName.trim() || !inviteEmail.trim() || inviting}
               className="w-full md:w-auto"
             >
               Send Invitation

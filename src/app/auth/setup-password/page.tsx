@@ -1,13 +1,15 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button, Card, Container, Input } from '@/lib/design-system/components'
 import { Lock, CheckCircle, Eye, EyeOff, Clock, Loader2 } from 'lucide-react'
 
 export default function SetupPasswordPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const returnTo = searchParams.get('returnTo')
 
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -19,6 +21,12 @@ export default function SetupPasswordPage() {
   const [success, setSuccess] = useState(false)
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [hasIntensive, setHasIntensive] = useState(false)
+
+  function getPostPasswordRedirect(hasActiveIntensive: boolean): string {
+    if (returnTo && returnTo.startsWith('/')) return returnTo
+    if (hasActiveIntensive) return '/intensive/start'
+    return '/dashboard'
+  }
 
   useEffect(() => {
     const checkUser = async () => {
@@ -35,7 +43,6 @@ export default function SetupPasswordPage() {
 
       setUserEmail(user.email || null)
 
-      // Check DB for active intensive enrollment
       const { data: checklist } = await supabase
         .from('intensive_checklist')
         .select('id')
@@ -45,13 +52,8 @@ export default function SetupPasswordPage() {
 
       setHasIntensive(!!checklist)
 
-      // If user already has a password, redirect based on DB state
       if (user.user_metadata?.has_password === true) {
-        if (checklist) {
-          window.location.href = '/intensive/start'
-        } else {
-          window.location.href = '/dashboard'
-        }
+        window.location.href = getPostPasswordRedirect(!!checklist)
         return
       }
 
@@ -92,11 +94,7 @@ export default function SetupPasswordPage() {
       setSuccess(true)
 
       setTimeout(() => {
-        if (hasIntensive) {
-          window.location.href = '/intensive/start'
-        } else {
-          window.location.href = '/dashboard'
-        }
+        window.location.href = getPostPasswordRedirect(hasIntensive)
       }, 1500)
     } catch (err: any) {
       console.error('Password setup error:', err)
@@ -127,7 +125,9 @@ export default function SetupPasswordPage() {
           Welcome to Vibration Fit
         </h1>
         <p className="text-base md:text-lg text-neutral-300">
-          {hasIntensive
+          {returnTo?.includes('/household/invite')
+            ? 'Create your password to accept your household invitation.'
+            : hasIntensive
             ? 'Create your password to start your 72-Hour Activation.'
             : 'Set your password to secure your account'}
         </p>
@@ -141,7 +141,7 @@ export default function SetupPasswordPage() {
             </div>
             <h2 className="text-xl md:text-2xl font-bold mb-2">Password Set</h2>
             <p className="text-sm md:text-base text-neutral-300">
-              Redirecting to your {hasIntensive ? 'intensive' : 'dashboard'}...
+              Redirecting{returnTo?.includes('/household/invite') ? ' to your invitation' : hasIntensive ? ' to your intensive' : ' to your dashboard'}...
             </p>
           </div>
         ) : (

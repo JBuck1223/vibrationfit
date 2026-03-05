@@ -3,11 +3,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Card, Button, Spinner, Container, Stack, PageHero, CategoryGrid, IconList, InsufficientTokensDialog } from '@/lib/design-system/components'
+import { Card, Button, Spinner, Container, Stack, PageHero, CategoryGrid, IconList, InsufficientTokensDialog, VIVALoadingOverlay } from '@/lib/design-system/components'
 import { ProfileStateCard } from '@/lib/design-system/profile-cards'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { Sparkles, ArrowLeft, ArrowRight, ChevronDown, User, Lightbulb, Wand2, RefreshCw, Trash2 } from 'lucide-react'
-import { VISION_CATEGORIES, getVisionCategory, getCategoryStateField, getCategoryStoryField, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
+import { VISION_CATEGORIES, getVisionCategory, getCategoryStateField, getCategoryStoryField, visionToRecordingKey, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
 import { getFilteredQuestionsForCategory } from '@/lib/life-vision/ideal-state-questions'
 
 export default function CategoryPage() {
@@ -21,6 +21,7 @@ export default function CategoryPage() {
   const [fullProfile, setFullProfile] = useState<any>(null)
   const [showProfileDetails, setShowProfileDetails] = useState(false)
   const [showContextCard, setShowContextCard] = useState(false)
+  const [showInspirationQuestions, setShowInspirationQuestions] = useState(false)
   const [profileData, setProfileData] = useState<{
     story: string
     hasStory: boolean
@@ -182,6 +183,7 @@ export default function CategoryPage() {
 
   const handleGetMeStarted = async () => {
     setIsGeneratingStarter(true)
+    setGetMeStartedText('')
     setError(null)
     
     try {
@@ -563,17 +565,37 @@ export default function CategoryPage() {
           </Card>
         )}
 
-        {/* Inspiration Questions */}
+        {/* Inspiration Questions (toggle) */}
         {inspirationQuestions.length > 0 && (
-          <Card variant="elevated" className="p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Lightbulb className="w-5 h-5 text-primary-500" />
-              <h2 className="text-xl font-semibold text-white">Questions to Inspire You</h2>
-            </div>
-            <p className="text-sm text-neutral-400 mb-4">
-              Use these questions as inspiration, but feel free to write about anything that excites you!
-            </p>
-            <IconList items={inspirationQuestions} />
+          <Card variant="elevated">
+            <button
+              onClick={() => setShowInspirationQuestions(!showInspirationQuestions)}
+              className={`w-full flex items-center justify-between gap-3 ${showInspirationQuestions ? 'pb-4 border-b border-neutral-700' : ''}`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Lightbulb className="w-5 h-5 text-primary-500" />
+                </div>
+                <div className="text-left">
+                  <h2 className="text-lg font-bold text-white">Questions to Inspire You</h2>
+                  <p className="text-xs text-neutral-400 mt-0.5">Tap to explore prompts for your imagination</p>
+                </div>
+              </div>
+              <ChevronDown 
+                className={`w-5 h-5 text-neutral-400 transition-transform duration-300 ${
+                  showInspirationQuestions ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+            
+            {showInspirationQuestions && (
+              <div className="pt-4">
+                <p className="text-sm text-neutral-400 mb-4">
+                  Use these as inspiration, but feel free to write about anything that excites you!
+                </p>
+                <IconList items={inspirationQuestions} />
+              </div>
+            )}
           </Card>
         )}
 
@@ -628,23 +650,31 @@ export default function CategoryPage() {
             </div>
           )}
 
-          {/* Streaming indicator */}
-          {isGeneratingStarter && (
-            <div className="mb-3 p-3 rounded-lg bg-secondary-500/10 border border-secondary-500/30">
-              <p className="text-sm text-secondary-400 flex items-center">
-                <Sparkles className="w-4 h-4 mr-2 animate-pulse" />
-                VIVA is building your starting point from your profile...
-              </p>
-            </div>
-          )}
-          
-          <RecordingTextarea
-            value={getMeStartedText}
-            onChange={(value) => setGetMeStartedText(value)}
-            placeholder={`Press "Get Me Started" and VIVA will create a starting point from your ${category.label.toLowerCase()} profile data...`}
-            className="min-h-[200px] w-full"
-            rows={8}
-          />
+          <div className="relative">
+            <VIVALoadingOverlay
+              isVisible={isGeneratingStarter && !getMeStartedText.trim()}
+              messages={[
+                `VIVA is reading your ${category.label.toLowerCase()} profile...`,
+                'Activating your vision language...',
+                'Building your starting point...',
+              ]}
+              cycleDuration={3000}
+              showProgressBar={false}
+              size="sm"
+              className="rounded-xl"
+            />
+            <RecordingTextarea
+              value={getMeStartedText}
+              onChange={(value) => setGetMeStartedText(value)}
+              placeholder={`Press "Get Me Started" and VIVA will create a starting point from your ${category.label.toLowerCase()} profile data...`}
+              className="min-h-[200px] w-full"
+              rows={8}
+              storageFolder="lifeVision"
+              recordingPurpose="quick"
+              category={visionToRecordingKey(categoryKey)}
+              instanceId="get-me-started"
+            />
+          </div>
           <p className="text-xs text-neutral-500 mt-2">
             {getMeStartedText.trim().split(/\s+/).filter(Boolean).length} words
           </p>
@@ -667,6 +697,10 @@ export default function CategoryPage() {
             placeholder={`Let your imagination run wild...\n\nIf there were no limits, what would your ${category.label.toLowerCase()} life look like? What experiences, feelings, and realities would you create?`}
             className="min-h-[250px] w-full"
             rows={10}
+            storageFolder="lifeVision"
+            recordingPurpose="quick"
+            category={visionToRecordingKey(categoryKey)}
+            instanceId="imagination"
           />
           <p className="text-xs text-neutral-500 mt-2">
             {imaginationText.trim().split(/\s+/).filter(Boolean).length} words

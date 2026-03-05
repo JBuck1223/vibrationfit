@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAIToolConfig, buildOpenAIParams } from '@/lib/ai/database-config'
-import OpenAI from 'openai'
+import { gatewayClient, VISION_MODEL } from '@/lib/ai/gateway'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 import { buildMasterVisionPrompt, MASTER_VISION_SHARED_SYSTEM_PROMPT } from '@/lib/viva/prompts'
 // V5: Import bookend templates for forward/conclusion
@@ -13,9 +13,6 @@ import { assessmentToVisionKey } from '@/lib/design-system/vision-categories'
 export const maxDuration = 780 // 13 minutes in seconds (under 800s Pro limit)
 export const runtime = 'nodejs'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
 
 /**
  * ============================
@@ -91,8 +88,9 @@ export async function POST(request: NextRequest) {
       { role: 'user' as const, content: prompt }
     ]
     const openaiParams = buildOpenAIParams(toolConfig, messages)
+    openaiParams.model = VISION_MODEL
 
-    console.log('[Master Vision] Starting OpenAI call with max_tokens:', openaiParams[toolConfig.max_tokens_param])
+    console.log('[Master Vision] Starting Gemini call with max_tokens:', openaiParams[toolConfig.max_tokens_param])
     console.log('[Master Vision] Prompt length:', prompt.length, 'characters')
 
     // Add timeout as a safety net (20 minutes - longer than maxDuration to catch edge cases)
@@ -109,7 +107,7 @@ export async function POST(request: NextRequest) {
       console.log('[Master Vision] Making OpenAI API call...')
       // Call OpenAI with abort signal for timeout
       // The OpenAI SDK should respect the abort signal
-      completion = await openai.chat.completions.create(
+      completion = await gatewayClient.chat.completions.create(
         openaiParams,
         {
           signal: controller.signal

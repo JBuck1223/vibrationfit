@@ -4,192 +4,126 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import {
   getUserHousehold,
-  createHouseholdInvitation,
-  acceptHouseholdInvitation
+  invitePartnerToHousehold,
 } from '@/lib/supabase/household'
-import { sendEmail } from '@/lib/email/aws-ses'
-import { generateHouseholdInvitationEmail } from '@/lib/email/templates/household-invitation'
-import { triggerEvent } from '@/lib/messaging/events'
 
 // =====================================================================
 // POST /api/household/invite - Create invitation (admin only)
+// Creates auth account + magic link so partner can onboard seamlessly.
 // =====================================================================
 
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
-    
-    // Get authenticated user
+
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get request body
     const body = await request.json()
-    const { email } = body
+    const { email, firstName, lastName } = body as {
+      email?: string
+      firstName?: string
+      lastName?: string
+    }
+
+    if (!firstName?.trim() || !lastName?.trim()) {
+      return NextResponse.json({ error: 'First name and last name are required' }, { status: 400 })
+    }
 
     if (!email || typeof email !== 'string') {
-      return NextResponse.json(
-        { error: 'Email is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Email is required' }, { status: 400 })
     }
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { error: 'Invalid email format' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 })
     }
 
-    // Get user's household
+    const serviceClient = createServiceClient()
+
     const household = await getUserHousehold(user.id)
     if (!household) {
-      return NextResponse.json(
-        { error: 'Household not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Household not found' }, { status: 404 })
     }
 
-    // Check if user is admin
     if (household.admin_user_id !== user.id) {
       return NextResponse.json(
         { error: 'Only household admin can invite members' },
-        { status: 403 }
+        { status: 403 },
       )
     }
 
-    // Check if household is at max capacity
-    const { data: members } = await supabase
+    const { data: members } = await serviceClient
       .from('household_members')
       .select('id')
       .eq('household_id', household.id)
       .eq('status', 'active')
-    
+
     if (members && members.length >= household.max_members) {
       return NextResponse.json(
         { error: `Household is at maximum capacity (${household.max_members} members)` },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
-    // Check if email is already invited or a member
-    const { data: existingInvite } = await supabase
+    const { data: existingInvite } = await serviceClient
       .from('household_invitations')
       .select('id')
       .eq('household_id', household.id)
-      .eq('invited_email', email)
+      .eq('invited_email', email.trim().toLowerCase())
       .eq('status', 'pending')
-      .single()
+      .maybeSingle()
 
     if (existingInvite) {
       return NextResponse.json(
         { error: 'This email already has a pending invitation' },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
-    // Check if user with this email is already a member
-    const { data: existingUser } = await supabase
-      .from('auth.users')
-      .select('id')
-      .eq('email', email)
-      .single()
-
-    if (existingUser) {
-      const { data: existingMember } = await supabase
-        .from('household_members')
-        .select('id')
-        .eq('household_id', household.id)
-        .eq('user_id', existingUser.id)
-        .eq('status', 'active')
-        .single()
-
-      if (existingMember) {
-        return NextResponse.json(
-          { error: 'This user is already a member of your household' },
-          { status: 400 }
-        )
-      }
-    }
-
-    // Create invitation
-    const invitation = await createHouseholdInvitation({
-      householdId: household.id,
-      invitedEmail: email,
-      invitedBy: user.id
-    })
-
-    if (!invitation) {
-      return NextResponse.json(
-        { error: 'Failed to create invitation' },
-        { status: 500 }
-      )
-    }
-
-    // Get inviter profile for email
-    const { data: inviterProfile } = await supabase
-      .from('user_profiles')
+    const { data: inviterAccount } = await serviceClient
+      .from('user_accounts')
       .select('first_name, last_name')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
+      .eq('id', user.id)
       .maybeSingle()
 
-    const inviterName = inviterProfile?.first_name 
-      ? `${inviterProfile.first_name} ${inviterProfile.last_name || ''}`.trim()
+    const inviterName = inviterAccount?.first_name
+      ? `${inviterAccount.first_name} ${inviterAccount.last_name || ''}`.trim()
       : user.email?.split('@')[0] || 'A VibrationFit user'
 
-    // Send invitation email via AWS SES
-    try {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://vibrationfit.com'
-      const invitationLink = `${appUrl}/household/invite/${invitation.invitation_token}`
-      
-      const emailContent = await generateHouseholdInvitationEmail({
-        inviterName,
-        inviterEmail: user.email || '',
-        householdName: household.name,
-        invitationLink,
-        expiresInDays: 7, // Invitations expire in 7 days
-      })
+    const result = await invitePartnerToHousehold({
+      supabaseAdmin: serviceClient,
+      householdId: household.id,
+      adminUserId: user.id,
+      adminName: inviterName,
+      adminEmail: user.email || '',
+      householdName: household.name,
+      partnerFirstName: firstName?.trim(),
+      partnerLastName: lastName?.trim(),
+      partnerEmail: email.trim().toLowerCase(),
+    })
 
-      await sendEmail({
-        to: email,
-        subject: emailContent.subject,
-        htmlBody: emailContent.htmlBody,
-        textBody: emailContent.textBody,
-      })
-
-      console.log('✅ Household invitation email sent to:', email)
-    } catch (emailError) {
-      console.error('❌ Failed to send invitation email:', emailError)
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.error || 'Failed to create invitation' },
+        { status: 500 },
+      )
     }
 
-    triggerEvent('household.invited', { email }).catch((err) =>
-      console.error('triggerEvent error:', err)
-    )
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://vibrationfit.com'
 
     return NextResponse.json({
       invitation: {
-        id: invitation.id,
-        invited_email: invitation.invited_email,
-        status: invitation.status,
-        expires_at: invitation.expires_at
+        invited_email: email.trim().toLowerCase(),
+        status: 'pending',
       },
-      // Include invitation URL (useful if email fails or for testing)
-      invitation_url: `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL}/household/invite/${invitation.invitation_token}`
+      invitation_url: `${appUrl}/household/invite/${result.invitationToken}`,
     })
   } catch (error) {
     console.error('Error in POST /api/household/invite:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 

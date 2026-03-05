@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
 import {
   Container,
   Stack,
@@ -22,7 +23,20 @@ import {
   Edit,
   Trash2,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+
+interface AbundanceEvent {
+  id: string
+  user_id: string
+  date: string
+  value_type: 'money' | 'value'
+  amount: number | null
+  vision_category: string | null
+  entry_category: string | null
+  note: string
+  created_at: string
+  updated_at?: string
+  image_url?: string | null
+}
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', {
@@ -41,20 +55,6 @@ function getVisionLabel(key: string): string {
 function getVisionIcon(key: string) {
   const cat = VISION_CATEGORIES.find((c) => c.key === key)
   return cat?.icon || DollarSign
-}
-
-interface AbundanceEvent {
-  id: string
-  user_id: string
-  date: string
-  value_type: 'money' | 'value'
-  amount: number | null
-  vision_category: string | null
-  entry_category: string | null
-  note: string
-  created_at: string
-  updated_at?: string
-  image_url?: string | null
 }
 
 export default function AbundanceEventPage({ params }: { params: Promise<{ id: string }> }) {

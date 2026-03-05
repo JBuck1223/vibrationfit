@@ -223,23 +223,23 @@ export default function AcceptInvitationPage() {
           </div>
 
           <div className="p-6 bg-primary-500/10 rounded-xl border border-primary-500/20 mb-6">
-            <h3 className="font-semibold mb-3">What's included:</h3>
+            <h3 className="font-semibold mb-3">What you get:</h3>
             <ul className="space-y-2 text-sm text-neutral-300">
               <li className="flex items-start gap-2">
                 <span className="text-primary-500 mt-0.5">✓</span>
-                <span>Access to household features and resources</span>
+                <span>Full access to the VibrationFit platform</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-primary-500 mt-0.5">✓</span>
-                <span>Your own individual token balance</span>
+                <span>Shared household token pool for VIVA and all creation tools</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-primary-500 mt-0.5">✓</span>
-                <span>Option to use shared household tokens when needed</span>
+                <span>Your own Life Vision, journal, and progress tracking</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-primary-500 mt-0.5">✓</span>
-                <span>Track your progress alongside household members</span>
+                <span>Transform alongside your household</span>
               </li>
             </ul>
           </div>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { calculateProfileCompletion } from '@/lib/utils/profile-completion'
+import { toTitleCase } from '@/lib/utils'
 
 // Account-level fields that should be stored in user_accounts table (or computed from it)
 // Note: full_name is excluded because it's a generated column in user_accounts (computed from first_name + last_name)
@@ -31,6 +32,9 @@ function separateAccountFields(data: any): { accountData: any, profileData: any 
 async function updateUserAccount(supabase: any, userId: string, accountData: any): Promise<void> {
   if (!accountData || Object.keys(accountData).length === 0) return
   
+  if (accountData.first_name) accountData.first_name = toTitleCase(accountData.first_name)
+  if (accountData.last_name) accountData.last_name = toTitleCase(accountData.last_name)
+
   try {
     const { error } = await supabase
       .from('user_accounts')

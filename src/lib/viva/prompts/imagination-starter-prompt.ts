@@ -22,35 +22,35 @@ import { LifeCategoryKey } from '@/lib/design-system/vision-categories'
  * These ground the imagination in real facts from their life
  */
 export const CATEGORY_PROFILE_FIELDS: Record<LifeCategoryKey, string[]> = {
-  fun: ['hobbies', 'leisure_time_weekly'],
-  health: ['exercise_frequency', 'height', 'weight', 'health_conditions', 'medications'],
-  travel: ['travel_frequency', 'passport', 'countries_visited'],
-  love: ['relationship_status', 'relationship_length', 'partner_name'],
-  family: ['has_children', 'number_of_children', 'children_ages', 'first_name'],
-  social: ['close_friends_count', 'social_preference', 'first_name'],
-  home: ['living_situation', 'time_at_location', 'city', 'state', 'country'],
-  work: ['employment_type', 'occupation', 'company', 'time_in_role'],
-  money: ['household_income', 'savings_retirement', 'assets_equity', 'consumer_debt'],
-  stuff: ['lifestyle_category', 'vehicles', 'items'],
-  giving: ['volunteer_status', 'charitable_giving', 'legacy_mindset'],
-  spirituality: ['spiritual_practice', 'meditation_frequency', 'personal_growth_focus']
+  fun: ['hobbies'],
+  health: [],
+  travel: ['passport', 'trips'],
+  love: ['partner_name'],
+  family: ['children', 'first_name'],
+  social: ['first_name'],
+  home: ['city', 'state'],
+  work: ['occupation', 'company'],
+  money: [],
+  stuff: ['vehicles', 'items'],
+  giving: [],
+  spirituality: ['spiritual_practice']
 }
 
 /**
  * Category-specific emotional targets to guide the tone
  */
 const CATEGORY_EMOTIONAL_TARGETS: Record<LifeCategoryKey, string> = {
-  fun: 'Permission and lightness - fun is allowed without justification',
+  fun: 'Permission and lightness - fun flows naturally and fully',
   health: 'Freedom of movement, energy, and enjoyment - my body supports my joy',
   travel: 'Expansion through experience - curiosity, wonder, and flow',
-  love: 'Freedom to be fully myself - mutual allowance and passion without pressure',
-  family: 'Emotional freedom and joyful presence - without carrying weight that isn\'t mine',
-  social: 'Freedom to be authentic - wanted for who I am, not what I provide',
-  home: 'Safety and ease - my home supports me, it doesn\'t demand from me',
+  love: 'Freedom to be fully myself - mutual allowance, deep passion, and ease',
+  family: 'Emotional freedom and joyful presence - light, connected, and fully here',
+  social: 'Freedom to be authentic - deeply wanted and cherished for who I am',
+  home: 'Safety and ease - my home supports me, holds me, and inspires me',
   work: 'Creative freedom and feeling valued - I choose how and when I create',
   money: 'Freedom of choice - ease, spaciousness, and calm confidence',
-  stuff: 'Ease and enjoyment - things support my life, they don\'t define it',
-  giving: 'Overflow - I give because I want to, not because I should',
+  stuff: 'Ease and enjoyment - things enrich my life and amplify my joy',
+  giving: 'Overflow - I give from fullness and genuine desire',
   spirituality: 'Freedom of alignment - soft knowing, trust, and presence'
 }
 
@@ -199,11 +199,15 @@ As you compose, ensure ZERO instances of:
 
 - Questions of any kind — no "?", no "what else...", no "how can I...", no "I wonder..."
 - Comparison / before-after — no "I no longer...", "unlike before...", "I used to...", "despite..."
+- Removal language — no "is gone", "replaced by", "no more", "behind me" (these imply a past problem existed)
+- Temporal contrast — no "now" used to imply change from before. "I now feel..." means "I didn't before." Just state it.
 - Hedging / seeking — no "I'm learning...", "I'm finding...", "I'm starting to...", "sometimes"
 - Future / wanting — no "I will", "I want", "I hope", "someday"
 - Weak closings — no "this is just the beginning", "I can't wait to see", "the possibilities feel endless"
 - Contrast connectors — no "Of course...", "However...", "But...", "Although..."
 - Process framing — no "It's not about X, it's about Y" — just say Y
+- Clinical data — NEVER include height, weight, body measurements, or medical data. A vision is not a chart.
+- Negative framing — no "never demands", "doesn't drain", "no longer weighs on me", "free from", "there is no conflict", "there is no tension", "there is no struggle". Do NOT name the absence of something negative. State what IS present, not what isn't. This is an inclusion-based universe — only name what you're including. "There is no conflict" → "Everything flows in harmony." "It never drains me" → "It energizes me."
 
 ═══════════════════════════════════════════════════════════════
 PHASE 2: EXPAND — Make it vivid, specific, and REAL

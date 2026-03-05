@@ -14,6 +14,7 @@ interface OrderSummaryProps {
   promoDiscount: { label: string; amountOff: number } | null
   onValidatePromo: () => void
   validatingPromo: boolean
+  hidePromoInput?: boolean
 }
 
 function formatDollars(cents: number): string {
@@ -55,6 +56,7 @@ export default function OrderSummary({
   promoDiscount,
   onValidatePromo,
   validatingPromo,
+  hidePromoInput = false,
 }: OrderSummaryProps) {
   const paymentPlan = (product.metadata?.intensive_payment_plan as 'full' | '2pay' | '3pay') || 'full'
   // For 2-pay/3-pay, product.amount is the per-installment amount; full total = amount * numPayments
@@ -70,7 +72,9 @@ export default function OrderSummary({
 
   const isIntensive =
     product.metadata?.purchase_type === 'intensive' ||
-    product.key?.startsWith('intensive-')
+    product.key?.startsWith('intensive-') ||
+    product.key?.startsWith('premium-intensive-')
+  const isPremiumIntensive = product.metadata?.intensive_level === 'premium'
   const continuity = (product.metadata?.continuity_plan as 'annual' | '28day') || '28day'
   const planType = (product.metadata?.plan_type as 'solo' | 'household') || 'solo'
 
@@ -130,7 +134,9 @@ export default function OrderSummary({
       {isIntensive ? (
         <>
           <h2 className="text-xl font-bold text-white mb-1">Order + Renewal Summary</h2>
-          <p className="text-lg font-semibold text-neutral-200 mb-1">Vision Activation Intensive</p>
+          <p className="text-lg font-semibold text-neutral-200 mb-1">
+            {isPremiumIntensive ? 'Activation Intensive + Premium Coaching' : 'Vision Activation Intensive'}
+          </p>
           <p className="text-sm text-neutral-400 mb-6">
             {planTypeLabel} – {paymentPlanLabel}
           </p>
@@ -140,6 +146,12 @@ export default function OrderSummary({
               <Check className="w-4 h-4 text-[#39FF14] mt-0.5 flex-shrink-0" />
               <span className="text-neutral-300">Full Activation Intensive experience</span>
             </li>
+            {isPremiumIntensive && (
+              <li className="flex items-start gap-2 text-sm">
+                <Check className="w-4 h-4 text-[#BF00FF] mt-0.5 flex-shrink-0" />
+                <span className="text-neutral-300">10 Private 1:1 Coaching Sessions</span>
+              </li>
+            )}
             <li className="flex items-start gap-2 text-sm">
               <Check className="w-4 h-4 text-[#39FF14] mt-0.5 flex-shrink-0" />
               <span className="text-neutral-300">{formatTokensShort(intensiveTokens)} VIVA tokens included</span>
@@ -172,7 +184,9 @@ export default function OrderSummary({
 
           <div className="border-t border-[#333] pt-4 mb-4">
             <p className="text-sm font-semibold text-white mb-2 leading-snug">Today&apos;s charge</p>
-            <p className="text-sm text-neutral-300 mb-1 leading-snug">Vision Activation Intensive – {planTypeLabel}</p>
+            <p className="text-sm text-neutral-300 mb-1 leading-snug">
+              {isPremiumIntensive ? 'Activation Intensive + Premium Coaching' : 'Vision Activation Intensive'} – {planTypeLabel}
+            </p>
             {paymentPlan === 'full' ? (
               <p className="text-lg font-bold text-white leading-snug mb-2 py-0.5">{formatDollars(intensiveTotalAmount)}</p>
             ) : (
@@ -213,26 +227,27 @@ export default function OrderSummary({
       )}
 
       <div className="border-t border-[#333] pt-4 space-y-3">
-        {/* Promo code */}
-        <div className="flex justify-center">
-          <div className="flex gap-2 w-full items-center">
-            <Input
-              placeholder="Promo code"
-              value={promoCode}
-              onChange={(e) => onPromoCodeChange(e.target.value)}
-              className="!py-2 !text-sm flex-1 min-w-0 h-10"
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onValidatePromo}
-              disabled={!promoCode.trim() || validatingPromo}
-              className="flex-shrink-0 h-10"
-            >
-              {validatingPromo ? '...' : 'Apply'}
-            </Button>
+        {!hidePromoInput && (
+          <div className="flex justify-center">
+            <div className="flex gap-2 w-full items-center">
+              <Input
+                placeholder="Promo code"
+                value={promoCode}
+                onChange={(e) => onPromoCodeChange(e.target.value)}
+                className="!py-2 !text-sm flex-1 min-w-0 h-10"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onValidatePromo}
+                disabled={!promoCode.trim() || validatingPromo}
+                className="flex-shrink-0 h-10"
+              >
+                {validatingPromo ? '...' : 'Apply'}
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Line items - only for non-intensive */}
         {!isIntensive && (
@@ -266,8 +281,26 @@ export default function OrderSummary({
         )}
       </div>
 
+      {/* Guarantee badges */}
+      {isIntensive && (
+        <div className="mt-6 pt-4 border-t border-[#333]">
+          <div className="flex items-center justify-center gap-4">
+            <img
+              src="https://media.vibrationfit.com/site-assets/brand/guarantees/72-hour-activation-guarantee.png"
+              alt="72 Hour Activation Guarantee"
+              className="w-20 h-20 object-contain"
+            />
+            <img
+              src="https://media.vibrationfit.com/site-assets/brand/guarantees/membership-guarantee.png"
+              alt="16-Week Membership Guarantee"
+              className="w-20 h-20 object-contain"
+            />
+          </div>
+        </div>
+      )}
+
       {/* Trust signals */}
-      <div className="mt-6 pt-4 border-t border-[#333] flex items-center gap-2 text-xs text-neutral-500">
+      <div className="mt-4 flex items-center justify-center gap-2 text-xs text-neutral-500">
         <ShieldCheck className="w-4 h-4 flex-shrink-0" />
         <span>Secured by Stripe. Your payment info never touches our servers.</span>
       </div>

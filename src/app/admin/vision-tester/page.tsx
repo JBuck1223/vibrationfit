@@ -1,9 +1,8 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { AdminWrapper } from '@/components/AdminWrapper'
 import { Container, Card, Button, Spinner } from '@/lib/design-system/components'
-import { createClient } from '@/lib/supabase/client'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { Play, RotateCcw, Clock, FileText, ChevronDown } from 'lucide-react'
 
@@ -21,7 +20,10 @@ const AVAILABLE_MODELS: TestModel[] = [
   { id: 'gpt-4.1', name: 'GPT-4.1', provider: 'OpenAI', description: 'Latest OpenAI' },
   { id: 'claude-sonnet-4-5', name: 'Claude Sonnet 4.5', provider: 'Anthropic', description: 'Top recommendation' },
   { id: 'claude-opus-4-5', name: 'Claude Opus 4.5', provider: 'Anthropic', description: 'Premium tier' },
-  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google', description: 'Strong alternative' },
+  { id: 'google/gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro', provider: 'Google', description: 'Newest, most advanced' },
+  { id: 'google/gemini-3-flash', name: 'Gemini 3 Flash', provider: 'Google', description: 'Pro reasoning, flash speed' },
+  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google', description: 'Your current winner' },
+  { id: 'google/gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google', description: 'Best price-performance' },
 ]
 
 interface GenerationResult {
@@ -41,8 +43,6 @@ interface UserOption {
 }
 
 function VisionTesterContent() {
-  const supabase = createClient()
-
   const [users, setUsers] = useState<UserOption[]>([])
   const [usersLoaded, setUsersLoaded] = useState(false)
   const [loadingUsers, setLoadingUsers] = useState(false)
@@ -54,43 +54,35 @@ function VisionTesterContent() {
   const [isGenerating, setIsGenerating] = useState(false)
   const abortControllersRef = useRef<AbortController[]>([])
 
-  const loadUsers = useCallback(async () => {
-    if (usersLoaded) return
-    setLoadingUsers(true)
-    try {
-      const { data } = await supabase
-        .from('user_profiles')
-        .select('user_id, first_name, partner_name, city, state')
-        .eq('is_active', true)
-        .eq('is_draft', false)
-        .order('updated_at', { ascending: false })
-        .limit(50)
-
-      if (data) {
-        const { data: accounts } = await supabase
-          .from('user_accounts')
-          .select('id, email')
-          .in('id', data.map(p => p.user_id))
-
-        const emailMap = new Map(accounts?.map(a => [a.id, a.email]) || [])
-
-        const options: UserOption[] = data.map(p => ({
-          id: p.user_id,
-          email: emailMap.get(p.user_id) || 'unknown',
-          name: [p.first_name, p.city && p.state ? `(${p.city}, ${p.state})` : ''].filter(Boolean).join(' '),
-        }))
-        setUsers(options)
-        if (options.length > 0 && !selectedUserId) {
-          setSelectedUserId(options[0].id)
+  useEffect(() => {
+    async function fetchUsers() {
+      setLoadingUsers(true)
+      try {
+        const res = await fetch('/api/admin/users')
+        if (!res.ok) {
+          console.error('Failed to load users:', res.status)
+          return
         }
+        const { users: fetchedUsers } = await res.json()
+
+        if (fetchedUsers && fetchedUsers.length > 0) {
+          const mapped: UserOption[] = fetchedUsers.map((u: any) => ({
+            id: u.id,
+            email: u.email || 'unknown',
+            name: u.full_name || u.first_name || u.email || 'Unknown',
+          }))
+          setUsers(mapped)
+          setSelectedUserId(mapped[0].id)
+        }
+      } catch (err) {
+        console.error('Failed to load users:', err)
+      } finally {
+        setLoadingUsers(false)
+        setUsersLoaded(true)
       }
-    } catch (err) {
-      console.error('Failed to load users:', err)
-    } finally {
-      setLoadingUsers(false)
-      setUsersLoaded(true)
     }
-  }, [usersLoaded, supabase, selectedUserId])
+    fetchUsers()
+  }, [])
 
   const toggleModel = (modelId: string) => {
     setSelectedModels(prev => {
@@ -235,12 +227,8 @@ function VisionTesterContent() {
               <select
                 value={selectedUserId}
                 onChange={e => setSelectedUserId(e.target.value)}
-                onFocus={loadUsers}
                 className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-sm appearance-none cursor-pointer focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500"
               >
-                {!usersLoaded && !loadingUsers && (
-                  <option value="">Click to load users...</option>
-                )}
                 {loadingUsers && (
                   <option value="">Loading users...</option>
                 )}

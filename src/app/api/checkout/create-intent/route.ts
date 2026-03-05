@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes } from 'crypto'
 import { stripe } from '@/lib/stripe/config'
+import { findOrCreateStripeCustomerByEmail } from '@/lib/stripe/customer'
 import { createClient } from '@supabase/supabase-js'
+import { createClient as createServerClient } from '@/lib/supabase/server'
 import Stripe from 'stripe'
+import { toTitleCase } from '@/lib/utils'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -33,6 +36,10 @@ export async function POST(request: NextRequest) {
       cartSessionId,
       visitorId,
       sessionId,
+      partnerFirstName,
+      partnerLastName,
+      partnerEmail,
+      promoPackage,
     } = body as {
       name: string
       email: string
@@ -44,11 +51,15 @@ export async function POST(request: NextRequest) {
       planType?: string
       packKey?: string
       promoCode?: string
+      promoPackage?: 'standard_promo' | 'premium_promo'
       referralSource?: string
       campaignName?: string
       cartSessionId?: string
       visitorId?: string
       sessionId?: string
+      partnerFirstName?: string
+      partnerLastName?: string
+      partnerEmail?: string
     }
 
     if (!name || !email || !product) {
@@ -70,6 +81,17 @@ export async function POST(request: NextRequest) {
 
     if (!checkoutProduct) {
       return NextResponse.json({ error: 'Invalid product configuration' }, { status: 400 })
+    }
+
+    if (promoPackage === 'standard_promo') {
+      checkoutProduct.amount = 100
+      checkoutProduct.mode = 'payment'
+    }
+    if (promoPackage) {
+      checkoutProduct.metadata.promo_package = promoPackage
+    }
+    if (promoPackage === 'premium_promo') {
+      checkoutProduct.metadata.intensive_level = 'premium'
     }
 
     // ------------------------------------------------------------------
@@ -106,6 +128,9 @@ export async function POST(request: NextRequest) {
         cart_session_id: cartSessionId || '',
         visitor_id: visitorId || '',
         session_id: sessionId || '',
+        ...(partnerFirstName ? { partner_first_name: partnerFirstName } : {}),
+        ...(partnerLastName ? { partner_last_name: partnerLastName } : {}),
+        ...(partnerEmail ? { partner_email: partnerEmail } : {}),
         ...checkoutProduct.metadata,
       }
       let stripeCustomerId: string | null = null
@@ -159,14 +184,16 @@ export async function POST(request: NextRequest) {
     } else {
       const tempPassword = hasPassword ? password! : randomBytes(32).toString('hex')
       const tempNameParts = (name || '').trim().split(' ')
+      const tcFirst = tempNameParts[0] ? toTitleCase(tempNameParts[0]) : undefined
+      const tcLast = tempNameParts.length > 1 ? toTitleCase(tempNameParts.slice(1).join(' ')) : undefined
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password: tempPassword,
         email_confirm: true,
         user_metadata: {
-          full_name: name || undefined,
-          first_name: tempNameParts[0] || undefined,
-          last_name: tempNameParts.length > 1 ? tempNameParts.slice(1).join(' ') : undefined,
+          full_name: [tcFirst, tcLast].filter(Boolean).join(' ') || undefined,
+          first_name: tcFirst,
+          last_name: tcLast,
           phone: phone || undefined,
         },
       })
@@ -183,10 +210,9 @@ export async function POST(request: NextRequest) {
       { onConflict: 'user_id' }
     )
 
-    // Sync name and phone to user_accounts (trigger may have missed full_name split)
     const nameParts = (name || '').trim().split(' ')
-    const firstName = nameParts[0] || null
-    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : null
+    const firstName = nameParts[0] ? toTitleCase(nameParts[0]) : null
+    const lastName = nameParts.length > 1 ? toTitleCase(nameParts.slice(1).join(' ')) : null
     await supabaseAdmin.from('user_accounts').update({
       first_name: firstName,
       last_name: lastName,
@@ -301,10 +327,12 @@ export async function POST(request: NextRequest) {
       }
 
       if (couponResult?.valid && couponResult.coupon && discountAmount > 0) {
+        const isMultiPay = plan === '2pay' || plan === '3pay'
+        const duration = isMultiPay ? 'forever' as const : 'once' as const
         const stripeCoupon = await stripe.coupons.create(
           couponResult.coupon.discount_type === 'percent'
-            ? { percent_off: couponResult.coupon.discount_value, duration: 'once' }
-            : { amount_off: discountAmount, currency: 'usd', duration: 'once' },
+            ? { percent_off: couponResult.coupon.discount_value, duration }
+            : { amount_off: discountAmount, currency: 'usd', duration },
         );
         (subParams as any).coupon = stripeCoupon.id
       }
@@ -387,6 +415,146 @@ export async function POST(request: NextRequest) {
             intensive_id: orderItem.id,
             user_id: userId,
           })
+        }
+      }
+    }
+
+    // ------------------------------------------------------------------
+    // 7b. For intensive subscriptions (2pay/3pay): create Vision Pro
+    //     subscription with 56-day trial + grant trial tokens
+    //     (mirrors what the webhook does for payment-mode intensives)
+    // ------------------------------------------------------------------
+    const isIntensiveProduct = product === 'intensive' || product === 'intensive_premium' || fullMetadata?.product_type === 'combined_intensive_continuity'
+    if (isIntensiveProduct && order) {
+      const continuityPlan = continuity || '28day'
+      const continuityPriceId = continuityPlan === 'annual'
+        ? process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL
+        : process.env.NEXT_PUBLIC_STRIPE_PRICE_28DAY
+
+      if (continuityPriceId && stripe) {
+        try {
+          const supabase = await createServerClient()
+          const tierType = continuityPlan === 'annual' ? 'vision_pro_annual' : 'vision_pro_28day'
+          const { data: tier } = await supabase
+            .from('membership_tiers')
+            .select('id')
+            .eq('tier_type', tierType)
+            .single()
+
+          if (tier) {
+            const visionProSubscription = await stripe.subscriptions.create({
+              customer: stripeCustomerId,
+              items: [{ price: continuityPriceId, quantity: 1 }],
+              trial_period_days: 56,
+              metadata: {
+                product_type: 'vision_pro_continuity',
+                tier_type: tierType,
+                intensive_payment_plan: plan || 'full',
+                continuity_plan: continuityPlan,
+                billing_starts_day: '56',
+              },
+            })
+
+            const { data: newSub } = await supabaseAdmin.from('customer_subscriptions').insert({
+              user_id: userId,
+              membership_tier_id: tier.id,
+              stripe_customer_id: stripeCustomerId,
+              stripe_subscription_id: visionProSubscription.id,
+              stripe_price_id: continuityPriceId,
+              status: 'trialing' as any,
+              current_period_start: new Date((visionProSubscription as any).current_period_start * 1000).toISOString(),
+              current_period_end: new Date((visionProSubscription as any).current_period_end * 1000).toISOString(),
+              trial_start: new Date().toISOString(),
+              trial_end: new Date(Date.now() + (56 * 24 * 60 * 60 * 1000)).toISOString(),
+              order_id: order.id,
+            }).select('id').single()
+
+            await supabaseAdmin.from('user_accounts').update({
+              membership_tier_id: tier.id,
+            }).eq('id', userId)
+
+            // Find the intensive order_item to grant trial tokens
+            const { data: intensiveOI } = await supabaseAdmin
+              .from('order_items')
+              .select('id')
+              .eq('order_id', order.id)
+              .limit(1)
+              .single()
+
+            if (intensiveOI) {
+              const { error: grantError } = await supabase.rpc('grant_trial_tokens', {
+                p_user_id: userId,
+                p_intensive_id: intensiveOI.id,
+              })
+              if (grantError) {
+                console.error('Failed to grant trial tokens (subscription path):', grantError)
+              }
+
+              if (newSub?.id) {
+                await supabaseAdmin.from('customer_subscriptions')
+                  .update({ order_item_id: intensiveOI.id })
+                  .eq('id', newSub.id)
+              }
+            }
+
+            // Create household if plan type is 'household'
+            if (planType === 'household') {
+              try {
+                const { data: household, error: householdError } = await supabaseAdmin
+                  .from('households')
+                  .insert({
+                    admin_user_id: userId,
+                    name: `${email?.split('@')[0] || 'My'}'s Household`,
+                    max_members: 2,
+                    shared_tokens_enabled: true,
+                  })
+                  .select()
+                  .single()
+
+                if (!householdError && household) {
+                  await supabaseAdmin.from('user_profiles').upsert(
+                    { user_id: userId, household_id: household.id, is_household_admin: true },
+                    { onConflict: 'user_id' }
+                  )
+                  await supabaseAdmin.from('household_members').insert({
+                    household_id: household.id,
+                    user_id: userId,
+                    role: 'admin',
+                    joined_at: new Date().toISOString(),
+                  })
+
+                  if (partnerFirstName && partnerLastName && partnerEmail) {
+                    const { invitePartnerToHousehold } = await import('@/lib/supabase/household')
+                    await invitePartnerToHousehold({
+                      supabaseAdmin,
+                      householdId: household.id,
+                      adminUserId: userId,
+                      adminName: name || email?.split('@')[0] || '',
+                      adminEmail: email || '',
+                      householdName: household.name,
+                      partnerFirstName,
+                      partnerLastName,
+                      partnerEmail,
+                    })
+                  }
+                }
+              } catch (householdErr) {
+                console.error('Household creation error (subscription path):', householdErr)
+              }
+            }
+
+            // Create premium coaching checklist if this is a premium intensive
+            const isPremium = product === 'intensive_premium' || promoPackage === 'premium_promo' || fullMetadata?.intensive_level === 'premium'
+            if (isPremium && intensiveOI) {
+              await Promise.resolve(supabaseAdmin.from('premium_coaching_sessions').insert({
+                intensive_id: intensiveOI.id,
+                user_id: userId,
+                order_id: order.id,
+              })).catch(err => console.error('Failed to create premium coaching record:', err))
+            }
+          }
+        } catch (vpError) {
+          console.error('Failed to create Vision Pro subscription (subscription path):', vpError)
         }
       }
     }
