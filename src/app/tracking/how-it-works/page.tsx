@@ -6,6 +6,7 @@ import {
   Users,
   CheckCircle,
   ArrowLeft,
+  ChevronDown,
 } from 'lucide-react'
 import Link from 'next/link'
 import {
@@ -92,23 +93,119 @@ export default function HowItWorksPage() {
         >
           <Button variant="ghost" size="sm" asChild>
             <Link href="/tracking">
-              <ArrowLeft className="w-4 h-4" />
-              Back to Tracking
+              <ArrowLeft className="w-5 h-5" />
+              Tracking Dashboard
             </Link>
           </Button>
         </PageHero>
 
+        {/* How Your Four Core Metrics Work */}
+        <Card className="p-0 overflow-hidden border-[#333]">
+          <details className="group">
+            <summary className="flex items-center gap-2 cursor-pointer list-none py-3 px-4 md:px-6 hover:bg-white/[0.02] transition-colors rounded-2xl">
+              <ChevronDown className="w-4 h-4 shrink-0 text-neutral-500 transition-transform duration-200 group-open:rotate-180" />
+              <div className="min-w-0">
+                <span className="text-base font-semibold text-white block">How Your Four Core Metrics Work</span>
+                <span className="text-sm text-neutral-400">VibrationFit tracks four kinds of engagement. Each answers a different question:</span>
+              </div>
+            </summary>
+            <div className="px-4 md:px-6 lg:px-8 pb-4 md:pb-6 lg:pb-8 pt-1">
+          <p className="text-neutral-400 text-sm mb-6">
+            VibrationFit tracks four kinds of engagement. Each answers a different question:
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            <Card className="p-5 md:p-6 border-[#333] h-full flex flex-col">
+              <h3 className="text-base font-semibold text-white mb-2 flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-[#39FF14] flex-shrink-0" />
+                Creations – &quot;What have I built?&quot;
+              </h3>
+              <p className="text-sm text-neutral-300 mb-3 flex-1">
+                Counts assets you&apos;ve created: Life Visions, Audio Sets, Vision Board items, Journal entries, Daily Papers, and Abundance Tracker entries.
+              </p>
+              <p className="text-xs text-neutral-500">
+                <span className="text-neutral-400">Recent:</span> last 30 days · <span className="text-neutral-400">Lifetime:</span> all-time creations
+              </p>
+            </Card>
+            <Card className="p-5 md:p-6 border-[#333] h-full flex flex-col">
+              <h3 className="text-base font-semibold text-white mb-2 flex items-center gap-2">
+                <Play className="w-5 h-5 text-[#39FF14] flex-shrink-0" />
+                Activations – &quot;How many times did I run my practice?&quot;
+              </h3>
+              <p className="text-sm text-neutral-300 mb-2">
+                Counts meaningful practice reps, such as:
+              </p>
+              <ul className="text-sm text-neutral-300 list-disc list-outside pl-5 space-y-1 mb-3 flex-1">
+                <li>Playing a Vision Audio (most of the track)</li>
+                <li>Creating a Journal or Daily Paper entry</li>
+                <li>Logging an Abundance event</li>
+                <li>Creating or actualizing a Vision Board item</li>
+                <li>Attending an Alignment Gym session</li>
+                <li>Posting in Vibe Tribe</li>
+              </ul>
+              <p className="text-xs text-neutral-500">
+                <span className="text-neutral-400">Recent:</span> last 30 days · <span className="text-neutral-400">Lifetime:</span> all-time activations
+              </p>
+            </Card>
+            <Card className="p-5 md:p-6 border-[#333] h-full flex flex-col">
+              <h3 className="text-base font-semibold text-white mb-2 flex items-center gap-2">
+                <Heart className="w-5 h-5 text-[#39FF14] flex-shrink-0" />
+                Connections – &quot;How much am I engaging with the community?&quot;
+              </h3>
+              <p className="text-sm text-neutral-300 mb-3 flex-1">
+                Counts your interactions in Vibe Tribe: posts, comments, and hearts.
+              </p>
+              <p className="text-xs text-neutral-500">
+                <span className="text-neutral-400">Recent:</span> this week (last 7 days) · <span className="text-neutral-400">Lifetime:</span> all-time interactions
+              </p>
+            </Card>
+            <Card className="p-5 md:p-6 border-[#333] h-full flex flex-col">
+              <h3 className="text-base font-semibold text-white mb-2 flex items-center gap-2">
+                <Users className="w-5 h-5 text-[#39FF14] flex-shrink-0" />
+                Sessions – &quot;How often am I showing up to live coaching?&quot;
+              </h3>
+              <p className="text-sm text-neutral-300 mb-3 flex-1">
+                Counts Alignment Gym sessions you attend live or via replay.
+              </p>
+              <p className="text-xs text-neutral-500">
+                <span className="text-neutral-400">Recent:</span> last 4 weeks (goal: 1 per week) · <span className="text-neutral-400">Lifetime:</span> all-time sessions attended
+              </p>
+            </Card>
+          </div>
+          <Card className="p-5 md:p-6 border-[#333] mt-6">
+            <p className="text-sm text-neutral-400 mb-4">
+              Some actions move more than one metric on purpose. For example:
+            </p>
+            <ul className="text-sm text-neutral-300 space-y-1 mb-4">
+              <li>One Alignment Gym session = +1 Activation and +1 Session</li>
+              <li>One Daily Paper entry = +1 Creation and +1 Activation</li>
+              <li>One Vibe Tribe post = +1 Activation and +1 Connection</li>
+            </ul>
+            <p className="text-sm text-neutral-300">
+              Together, these four numbers give you a clear picture of how consistently you&apos;re creating, activating, connecting, and showing up – not just thinking about your practice.
+            </p>
+          </Card>
+            </div>
+          </details>
+        </Card>
+
         {/* About overlaps */}
-        <Card className="p-5 md:p-6 bg-gradient-to-r from-[#39FF14]/5 to-[#00FFFF]/5 border-[#39FF14]/20">
-          <h2 className="text-base font-bold text-white mb-2">
-            Why do some activities show up in multiple metrics?
-          </h2>
+        <Card className="p-0 overflow-hidden border-[#333] bg-gradient-to-r from-[#39FF14]/5 to-[#00FFFF]/5 border-[#39FF14]/20">
+          <details className="group">
+            <summary className="flex items-center gap-2 cursor-pointer list-none py-3 px-4 md:px-6 hover:bg-white/[0.02] transition-colors rounded-2xl">
+              <ChevronDown className="w-4 h-4 shrink-0 text-neutral-500 transition-transform duration-200 group-open:rotate-180" />
+              <span className="text-base font-semibold text-white">
+                Why do some activities show up in multiple metrics?
+              </span>
+            </summary>
+            <div className="px-4 md:px-6 lg:px-8 pb-4 md:pb-6 lg:pb-8 pt-1">
           <p className="text-sm text-neutral-300 leading-relaxed">
             That is by design. Each metric answers a different question about your practice.
             For example, attending an Alignment Gym session adds +1 Session <strong>and</strong> +1 Activation.
             Creating a journal entry adds +1 Creation <strong>and</strong> +1 Activation.
             The overlap means every angle of your practice gets credit.
           </p>
+            </div>
+          </details>
         </Card>
 
         {/* The 4 Metrics */}
@@ -240,8 +337,8 @@ export default function HowItWorksPage() {
         <div className="text-center pb-8">
           <Button variant="ghost" size="sm" asChild>
             <Link href="/tracking">
-              <ArrowLeft className="w-4 h-4" />
-              Back to Tracking
+              <ArrowLeft className="w-5 h-5" />
+              Tracking Dashboard
             </Link>
           </Button>
         </div>

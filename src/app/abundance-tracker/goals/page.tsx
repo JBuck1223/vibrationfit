@@ -12,12 +12,14 @@ import {
   Input,
   Text,
   Select,
+  DatePicker,
 } from '@/lib/design-system/components'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
 import { colors } from '@/lib/design-system/tokens'
 import {
   getPeriodKey,
   formatPeriodLabel,
+  formatPeriodForGoalLabel,
   buildCustomPeriodKey,
   type PeriodType,
 } from '@/lib/abundance/period-utils'
@@ -234,69 +236,84 @@ export default function AbundanceGoalsPage() {
           </div>
         ) : (
           <>
-            {/* Set goal - centered, goal-setting layout */}
-            <Card variant="outlined" className="w-full max-w-2xl mx-auto bg-[#101010] border-[#1F1F1F] overflow-hidden">
-              <div className="p-6 md:p-8">
-                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6 md:gap-8">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#39FF14]/15 border border-[#39FF14]/30">
-                      <Target className="h-6 w-6 text-[#39FF14]" />
-                    </div>
-                    <div>
-                      <h2 className="text-lg font-semibold text-white">Set your goal</h2>
-                      <p className="text-sm text-neutral-400">Choose a period and the amount you want to actualize.</p>
-                    </div>
+            {/* Set goal - 3 steps */}
+            <Card variant="outlined" className="w-full max-w-2xl mx-auto bg-[#1F1F1F] border-2 border-[#333]">
+              <div className="space-y-6 flex flex-col items-center text-center">
+                {/* 1. Select time period */}
+                <section className="space-y-2.5 w-full flex flex-col items-center">
+                  <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                    Select time period
+                  </Text>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {PERIOD_OPTIONS.map(({ value, label }) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => {
+                          setPeriodType(value)
+                          if (value !== 'custom') setPeriodKey(getPeriodKey(now, value))
+                        }}
+                        className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                          periodType === value
+                            ? 'bg-[#39FF14] text-black'
+                            : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700 hover:text-white border border-neutral-700'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
                   </div>
-                </div>
-
-                <div className="mt-8 grid gap-8 md:grid-cols-2">
-                  <section className="space-y-3">
-                    <Text size="sm" className="text-neutral-400 uppercase tracking-[0.2em]">
-                      Time period
-                    </Text>
-                    <div className="flex flex-wrap gap-2">
-                      {PERIOD_OPTIONS.map(({ value, label }) => (
-                        <button
-                          key={value}
-                          type="button"
-                          onClick={() => {
-                            setPeriodType(value)
-                            if (value !== 'custom') setPeriodKey(getPeriodKey(now, value))
-                          }}
-                          className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                            periodType === value
-                              ? 'bg-[#39FF14] text-black'
-                              : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700 hover:text-white border border-neutral-700'
-                          }`}
-                        >
-                          {label}
-                        </button>
-                      ))}
+                  {periodType === 'custom' && (
+                    <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                      <DatePicker
+                        value={customStart}
+                        onChange={(dateString: string) => setCustomStart(dateString)}
+                        className="w-full sm:w-auto"
+                      />
+                      <span className="text-neutral-500">to</span>
+                      <DatePicker
+                        value={customEnd}
+                        onChange={(dateString: string) => setCustomEnd(dateString)}
+                        minDate={customStart || undefined}
+                        className="w-full sm:w-auto"
+                      />
                     </div>
-                    {periodType === 'custom' && (
-                      <div className="flex flex-wrap items-center gap-2 pt-2">
-                        <input
-                          type="date"
-                          value={customStart}
-                          onChange={(e) => setCustomStart(e.target.value)}
-                          className="rounded-xl border-2 border-[#333] bg-[#404040] px-4 py-2.5 text-sm text-white"
-                        />
-                        <span className="text-neutral-500">to</span>
-                        <input
-                          type="date"
-                          value={customEnd}
-                          onChange={(e) => setCustomEnd(e.target.value)}
-                          className="rounded-xl border-2 border-[#333] bg-[#404040] px-4 py-2.5 text-sm text-white"
-                        />
+                  )}
+                  {periodType !== 'custom' && (
+                    <div className="pt-4 pb-2">
+                      <div className="rounded-2xl border-2 py-2.5 px-5 inline-block bg-[#39FF14]/10" style={{ borderColor: 'rgba(57, 255, 20, 0.3)' }}>
+                        <p className="text-white font-semibold text-base">
+                          {formatPeriodForGoalLabel(periodType, periodKey)}
+                        </p>
                       </div>
-                    )}
-                  </section>
+                    </div>
+                  )}
+                  {periodType === 'custom' && customStart && customEnd && (
+                    <div className="pt-4 pb-2">
+                      <div className="rounded-2xl border-2 py-2.5 px-5 inline-block max-w-xs bg-[#39FF14]/10" style={{ borderColor: 'rgba(57, 255, 20, 0.3)' }}>
+                        <p className="text-white font-semibold text-base">
+                          {formatPeriodForGoalLabel('custom', buildCustomPeriodKey(customStart, customEnd))}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {periodType === 'custom' && !customStart && !customEnd && (
+                    <div className="pt-4 pb-2">
+                      <div className="rounded-2xl border-2 py-2.5 px-5 inline-block bg-[#39FF14]/10" style={{ borderColor: 'rgba(57, 255, 20, 0.3)' }}>
+                        <p className="text-neutral-500 font-medium text-sm">Custom range</p>
+                      </div>
+                    </div>
+                  )}
+                </section>
 
-                  <section className="space-y-3">
-                    <Text size="sm" className="text-neutral-400 uppercase tracking-[0.2em]">
-                      Goal amount
-                    </Text>
-                    <div className="flex flex-wrap items-center gap-3">
+                {/* 2. Choose amount */}
+                {(() => {
+                  const canSetGoal = periodType !== 'custom' || (customStart && customEnd)
+                  return canSetGoal ? (
+                    <section className="space-y-2.5 flex flex-col items-center">
+                      <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                        Choose amount
+                      </Text>
                       <Input
                         type="text"
                         inputMode="decimal"
@@ -304,46 +321,55 @@ export default function AbundanceGoalsPage() {
                         value={formatAmountWithCommas(goalInput)}
                         onChange={(e) => setGoalInput(parseAmountInput(e.target.value))}
                         prefix="$"
-                        className="!bg-[#404040] !border-[#333] max-w-[200px]"
+                        className="!bg-[#404040] !border-2 !border-[#333] max-w-[200px]"
                       />
+                    </section>
+                  ) : null
+                })()}
+
+                {/* 3. Save goal */}
+                {(() => {
+                  const canSetGoal = periodType !== 'custom' || (customStart && customEnd)
+                  return canSetGoal ? (
+                    <section className="space-y-2.5 flex flex-col items-center">
                       <Button
                         variant="primary"
                         size="sm"
                         onClick={handleSaveGoal}
-                        disabled={saving || (periodType === 'custom' && (!customStart || !customEnd))}
+                        disabled={saving}
                         className="flex items-center gap-2"
                       >
                         <Save className="w-4 h-4" />
                         {saving ? 'Saving...' : 'Save goal'}
                       </Button>
-                    </div>
-                  </section>
-                </div>
+                    </section>
+                  ) : null
+                })()}
               </div>
             </Card>
 
             {/* Metrics row */}
             {summary && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card variant="outlined" className="p-4 bg-[#101010] border-[#1F1F1F]">
+                <Card variant="outlined" className="p-4 bg-[#1F1F1F]">
                   <p className="text-xs uppercase tracking-[0.3em] text-neutral-400 underline underline-offset-4 decoration-[#333] mb-1">Goal</p>
-                  <p className="text-xl font-bold text-white tabular-nums">
+                  <p className="text-xl font-bold tabular-nums" style={{ color: colors.primary[500] }}>
                     {formatCurrency(summary.goalAmount)}
                   </p>
                 </Card>
-                <Card variant="outlined" className="p-4 bg-[#101010] border-[#1F1F1F]">
+                <Card variant="outlined" className="p-4 bg-[#1F1F1F]">
                   <p className="text-xs uppercase tracking-[0.3em] text-neutral-400 underline underline-offset-4 decoration-[#333] mb-1">Money</p>
                   <p className="text-xl font-bold tabular-nums" style={{ color: MONEY_COLOR }}>
                     {formatCurrency(summary.moneyTotal)}
                   </p>
                 </Card>
-                <Card variant="outlined" className="p-4 bg-[#101010] border-[#1F1F1F]">
+                <Card variant="outlined" className="p-4 bg-[#1F1F1F]">
                   <p className="text-xs uppercase tracking-[0.3em] text-neutral-400 underline underline-offset-4 decoration-[#333] mb-1">Value</p>
                   <p className="text-xl font-bold tabular-nums" style={{ color: VALUE_COLOR }}>
                     {formatCurrency(summary.valueTotal)}
                   </p>
                 </Card>
-                <Card variant="outlined" className="p-4 bg-[#101010] border-[#1F1F1F]">
+                <Card variant="outlined" className="p-4 bg-[#1F1F1F]">
                   <p className="text-xs uppercase tracking-[0.3em] text-neutral-400 underline underline-offset-4 decoration-[#333] mb-1">Left to go</p>
                   <p className="text-xl font-bold text-white tabular-nums">
                     {formatCurrency(summary.leftToGo)}
@@ -369,7 +395,7 @@ export default function AbundanceGoalsPage() {
 
             {/* Pie chart */}
             {summary && (pieData.length > 0 || summary.goalAmount > 0) && (
-              <Card variant="outlined" className="p-6 bg-[#101010] border-[#1F1F1F]">
+              <Card variant="outlined" className="p-6 bg-[#1F1F1F]">
                 <h3 className="text-sm uppercase tracking-[0.3em] text-neutral-400 underline underline-offset-4 decoration-[#333] mb-4">Goal vs actual</h3>
                 {pieData.length > 0 ? (
                   <div className="h-[280px]">
@@ -447,7 +473,7 @@ export default function AbundanceGoalsPage() {
                         { value: 'all', label: 'All' },
                         ...LIFE_CATEGORIES_FOR_FILTER.map((c) => ({ value: c.key, label: c.label })),
                       ]}
-                      className="min-w-[140px] !bg-[#404040] !border-[#333]"
+                      className="min-w-[140px]"
                     />
                   </div>
                   <Button asChild variant="outline" size="sm" className="shrink-0">
@@ -471,7 +497,7 @@ export default function AbundanceGoalsPage() {
                     <Card
                       key={goal.id}
                       variant="outlined"
-                      className="p-4 bg-[#101010] border-[#1F1F1F]"
+                      className="p-4 bg-[#1F1F1F]"
                     >
                       <p className="text-xs uppercase tracking-[0.2em] text-neutral-500 mb-1">
                         {formatPeriodLabel(goal.period_type, goal.period_key)}

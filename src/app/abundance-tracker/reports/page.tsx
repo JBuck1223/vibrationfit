@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
-import { Container, Card, Stack, PageHero, Button, Text } from '@/lib/design-system/components'
+import { Container, Card, Stack, PageHero, Button, Text, DatePicker } from '@/lib/design-system/components'
 import { colors } from '@/lib/design-system/tokens'
 import { getEntryCategoryDisplay } from '@/lib/abundance/entry-categories'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
@@ -185,18 +185,19 @@ export default function AbundanceReportsPage() {
           {period !== 'custom' && (
             <div className="flex flex-wrap items-center gap-3">
               {period === 'month' && (
-              <input
-                type="month"
-                value={periodKey}
-                onChange={(e) => setPeriodKey(e.target.value)}
-                className="rounded-xl border-2 border-[#333] bg-[#404040] px-4 py-3 text-white"
-              />
+                <DatePicker
+                  value={periodKey ? `${periodKey}-01` : ''}
+                  onChange={(dateString) => {
+                    if (dateString) setPeriodKey(dateString.slice(0, 7))
+                  }}
+                  className="w-full min-w-[180px] max-w-[220px]"
+                />
               )}
               {period === 'quarter' && (
                 <select
                   value={periodKey}
                   onChange={(e) => setPeriodKey(e.target.value)}
-                  className="rounded-xl border-2 border-[#333] bg-[#404040] px-4 py-3 text-white"
+                  className="rounded-xl border-2 border-[#666666] bg-[#404040] px-4 py-3 text-white focus:border-[#39FF14] focus:outline-none transition-colors min-w-[140px]"
                 >
                   {[1, 2, 3, 4].map((q) => (
                     <option key={q} value={`${now.getFullYear()}-Q${q}`}>
@@ -214,7 +215,7 @@ export default function AbundanceReportsPage() {
                 <select
                   value={periodKey}
                   onChange={(e) => setPeriodKey(e.target.value)}
-                  className="rounded-xl border-2 border-[#333] bg-[#404040] px-4 py-3 text-white"
+                  className="rounded-xl border-2 border-[#666666] bg-[#404040] px-4 py-3 text-white focus:border-[#39FF14] focus:outline-none transition-colors min-w-[100px]"
                 >
                   {Array.from({ length: 5 }, (_, i) => now.getFullYear() - i).map((y) => (
                     <option key={y} value={String(y)}>{y}</option>
@@ -226,18 +227,17 @@ export default function AbundanceReportsPage() {
 
           {period === 'custom' && (
             <div className="flex flex-wrap items-center gap-3">
-              <input
-                type="date"
+              <DatePicker
                 value={customStart}
-                onChange={(e) => setCustomStart(e.target.value)}
-                className="rounded-xl border-2 border-[#333] bg-[#404040] px-4 py-3 text-white"
+                onChange={(dateString) => setCustomStart(dateString)}
+                className="w-full min-w-[160px] max-w-[200px]"
               />
               <span className="text-neutral-500">to</span>
-              <input
-                type="date"
+              <DatePicker
                 value={customEnd}
-                onChange={(e) => setCustomEnd(e.target.value)}
-                className="rounded-xl border-2 border-[#333] bg-[#404040] px-4 py-3 text-white"
+                onChange={(dateString) => setCustomEnd(dateString)}
+                minDate={customStart || undefined}
+                className="w-full min-w-[160px] max-w-[200px]"
               />
               <Button variant="primary" size="sm" onClick={runCustomReport}>
                 Generate report
@@ -274,15 +274,15 @@ export default function AbundanceReportsPage() {
             <Card variant="outlined" className="p-6 bg-[#101010] border-[#1F1F1F]">
               <h3 className="text-sm uppercase tracking-[0.3em] text-neutral-400 underline underline-offset-4 decoration-[#333] mb-4">Money vs Value</h3>
               {moneyValuePieData.length > 0 ? (
-                <div className="h-[280px]">
+                <div className="h-[280px] w-full min-w-0 overflow-hidden">
                   <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
+                    <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
                       <Pie
                         data={moneyValuePieData}
                         cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={100}
+                        cy="45%"
+                        innerRadius={50}
+                        outerRadius={75}
                         paddingAngle={2}
                         dataKey="value"
                         nameKey="name"
@@ -300,7 +300,7 @@ export default function AbundanceReportsPage() {
                           borderRadius: '8px',
                         }}
                       />
-                      <Legend />
+                      <Legend layout="vertical" verticalAlign="bottom" align="center" wrapperStyle={{ paddingTop: 8 }} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
@@ -339,15 +339,15 @@ export default function AbundanceReportsPage() {
                 </div>
               </div>
               {categoryPieData.length > 0 ? (
-                <div className="h-[280px]">
+                <div className="h-[320px] w-full min-w-0 overflow-hidden">
                   <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
+                    <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
                       <Pie
                         data={categoryPieData}
                         cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={100}
+                        cy="40%"
+                        innerRadius={50}
+                        outerRadius={75}
                         paddingAngle={2}
                         dataKey="value"
                         nameKey="name"
@@ -365,7 +365,7 @@ export default function AbundanceReportsPage() {
                           borderRadius: '8px',
                         }}
                       />
-                      <Legend />
+                      <Legend layout="vertical" verticalAlign="bottom" align="center" wrapperStyle={{ paddingTop: 8 }} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>

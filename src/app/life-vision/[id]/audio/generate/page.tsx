@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { Button, Card, Spinner, Badge, Container, Stack, VersionBadge, StatusBadge, PageHero, TrackingMilestoneCard } from '@/lib/design-system/components'
 import { PlaylistPlayer } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
-import { Headphones, CheckCircle, Play, CalendarDays, Mic, Clock, Eye, ListMusic, Music, AudioLines, Disc3, Layers, X } from 'lucide-react'
+import { Headphones, CheckCircle, Play, CalendarDays, Mic, Clock, Eye, ListMusic, Music, Waves, Disc3, Layers, X } from 'lucide-react'
 import Link from 'next/link'
 import { getVisionCategoryKeys, VISION_CATEGORIES } from '@/lib/design-system'
 import { ChevronDown } from 'lucide-react'
@@ -408,7 +408,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                     className="uppercase tracking-[0.25em]" 
                   />
                   <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
-                    <CalendarDays className="w-4 h-4 text-neutral-500" />
+                    <CalendarDays className="w-5 h-5 text-neutral-500" />
                     <span className="font-medium">Created:</span>
                     <span>{new Date(vision.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                   </div>
@@ -419,32 +419,33 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
               <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 max-w-5xl mx-auto">
                 <Button variant="outline" size="sm" asChild className="w-full">
                   <Link href={`/life-vision/${visionId}/audio/mix`} className="flex items-center justify-center gap-2">
-                    <Music className="w-4 h-4" />
+                    <Music className="w-5 h-5" />
                     <span>Create Mix</span>
                   </Link>
                 </Button>
                 <Button variant="outline" size="sm" asChild className="w-full">
                   <Link href={`/life-vision/${visionId}/audio/sets`} className="flex items-center justify-center gap-2">
-                    <ListMusic className="w-4 h-4" />
+                    <ListMusic className="w-5 h-5" />
                     <span>Audio Sets</span>
                   </Link>
                 </Button>
                 <Button variant="outline" size="sm" asChild className="w-full">
                   <Link href={`/life-vision/${visionId}/audio/record`} className="flex items-center justify-center gap-2">
-                    <Mic className="w-4 h-4" />
+                    <Mic className="w-5 h-5" />
                     <span>Record</span>
                   </Link>
                 </Button>
                 <Button variant="outline" size="sm" asChild className="w-full">
                   <Link href={`/life-vision/${visionId}/audio/queue`} className="flex items-center justify-center gap-2">
-                    <Clock className="w-4 h-4" />
+                    <Clock className="w-5 h-5" />
                     <span>Queue</span>
                   </Link>
                 </Button>
                 <Button variant="outline" size="sm" asChild className="w-full col-span-2 lg:col-span-1">
                   <Link href={`/life-vision/${visionId}`} className="flex items-center justify-center gap-2">
-                    <Eye className="w-4 h-4" />
-                    <span>Vision</span>
+                    <Eye className="w-5 h-5" />
+                    <span className="lg:hidden">Vision</span>
+                    <span className="hidden lg:inline">View Vision</span>
                   </Link>
                 </Button>
               </div>
@@ -667,7 +668,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                     </>
                   ) : (
                     <>
-                      <AudioLines className="w-4 h-4 mr-2" />
+                      <Waves className="w-5 h-5 mr-2" />
                       Generate {generateAllSections ? 'All 14 Sections' : `${selectedVoiceSections.length} Section${selectedVoiceSections.length !== 1 ? 's' : ''}`}
                     </>
                   )}
@@ -693,7 +694,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                     {selectedVoiceSetId ? (
                       <>
                         <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary-500/20 text-primary-500">
-                          <AudioLines className="w-5 h-5 md:w-6 md:h-6" />
+                          <Waves className="w-5 h-5 md:w-6 md:h-6" />
                         </div>
                         <div className="text-left flex-1 min-w-0">
                           <div className="font-semibold truncate">
@@ -734,7 +735,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                           <div className="flex items-start gap-4">
                             {/* Icon with background */}
                             <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary-500/20 text-primary-500">
-                              <AudioLines className="w-6 h-6" />
+                              <Waves className="w-6 h-6" />
                             </div>
                             
                             {/* Content */}
@@ -789,7 +790,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                   tracks={selectedSetTracks}
                   setIcon={
                     <div className="p-2 rounded-lg bg-primary-500/20 text-primary-500">
-                      <AudioLines className="w-6 h-6" />
+                      <Waves className="w-6 h-6" />
                     </div>
                   }
                   setName={existingVoiceSets.find(s => s.id === selectedVoiceSetId)?.name || 

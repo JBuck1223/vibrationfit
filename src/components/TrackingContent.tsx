@@ -203,32 +203,6 @@ export default function TrackingContent({ user, profileData, visionData, visionB
             subtitle="Review your progress, streaks, and performance across time."
           />
 
-          {/* Tools Callout - Daily Paper & Abundance Tracker */}
-          <Card className="p-6 bg-gradient-to-r from-[#39FF14]/10 to-[#00FFFF]/10 border-[#39FF14]/30">
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-white mb-2">Practice Tools</h3>
-                <p className="text-sm text-neutral-300">
-                  Track your daily activations and abundance with these practice tools.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <Button variant="outline" size="sm" asChild>
-                  <Link href="/daily-paper" className="flex items-center gap-2">
-                    <FileText className="w-4 h-4" />
-                    Daily Paper
-                  </Link>
-                </Button>
-                <Button variant="outline" size="sm" asChild>
-                  <Link href="/abundance-tracker" className="flex items-center gap-2">
-                    <DollarSign className="w-4 h-4" />
-                    Abundance Tracker
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          </Card>
-
           {/* Retention Metrics - The 4 Core Tiles */}
           <RetentionDashboard />
 

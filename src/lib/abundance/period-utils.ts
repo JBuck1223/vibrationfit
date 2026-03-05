@@ -112,3 +112,45 @@ export function formatPeriodLabel(periodType: PeriodType, periodKey: string): st
   }
   return periodKey
 }
+
+/** Display string for "Setting goal for X": March (month), 2026 (year), March 9th–15th (week), January – March 2026 (quarter), custom range. */
+export function formatPeriodForGoalLabel(
+  periodType: PeriodType,
+  periodKey: string
+): string {
+  if (periodType === 'week') {
+    const range = getPeriodStartEnd(periodType, periodKey)
+    if (!range) return periodKey
+    const startParsed = parseISO(range.start)
+    const endParsed = parseISO(range.end)
+    if (!isValid(startParsed) || !isValid(endParsed)) return periodKey
+    const sameMonth = startParsed.getMonth() === endParsed.getMonth() && startParsed.getFullYear() === endParsed.getFullYear()
+    return sameMonth
+      ? `${format(startParsed, 'MMMM do')}–${format(endParsed, 'do, yyyy')}`
+      : `${format(startParsed, 'MMMM do')} – ${format(endParsed, 'MMMM do, yyyy')}`
+  }
+  if (periodType === 'month') {
+    const d = parseISO(periodKey + '-01')
+    return isValid(d) ? format(d, 'MMMM') : periodKey
+  }
+  if (periodType === 'quarter') {
+    const range = getPeriodStartEnd(periodType, periodKey)
+    if (!range) return periodKey
+    const startParsed = parseISO(range.start)
+    const endParsed = parseISO(range.end)
+    if (!isValid(startParsed) || !isValid(endParsed)) return periodKey
+    return `${format(startParsed, 'MMMM')} – ${format(endParsed, 'MMMM yyyy')}`
+  }
+  if (periodType === 'year') {
+    return periodKey
+  }
+  if (periodType === 'custom') {
+    const parts = periodKey.split('_')
+    if (parts.length !== 2) return periodKey
+    const startParsed = parseISO(parts[0])
+    const endParsed = parseISO(parts[1])
+    if (!isValid(startParsed) || !isValid(endParsed)) return periodKey
+    return `${format(startParsed, 'MMM d')} – ${format(endParsed, 'MMM d, yyyy')}`
+  }
+  return periodKey
+}

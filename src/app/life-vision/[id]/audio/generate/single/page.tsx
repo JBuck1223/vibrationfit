@@ -481,7 +481,7 @@ export default function SingleTrackGeneratorPage() {
                     className="uppercase tracking-[0.25em]" 
                   />
                   <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
-                    <CalendarDays className="w-4 h-4 text-neutral-500" />
+                    <CalendarDays className="w-5 h-5 text-neutral-500" />
                     <span className="font-medium">Created:</span>
                     <span>{new Date(vision.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                   </div>
@@ -492,25 +492,25 @@ export default function SingleTrackGeneratorPage() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 max-w-4xl mx-auto">
                 <Button variant="outline" size="sm" asChild className="w-full">
                   <Link href={`/life-vision/${visionId}/audio/generate`} className="flex items-center justify-center gap-2">
-                    <Music className="w-4 h-4" />
+                    <Music className="w-5 h-5" />
                     <span>Full Generator</span>
                   </Link>
                 </Button>
                 <Button variant="outline" size="sm" asChild className="w-full">
                   <Link href={`/life-vision/${visionId}/audio/sets`} className="flex items-center justify-center gap-2">
-                    <ListMusic className="w-4 h-4" />
+                    <ListMusic className="w-5 h-5" />
                     <span>Audio Sets</span>
                   </Link>
                 </Button>
                 <Button variant="outline" size="sm" asChild className="w-full">
                   <Link href={`/life-vision/${visionId}/audio/queue`} className="flex items-center justify-center gap-2">
-                    <Headphones className="w-4 h-4" />
+                    <Headphones className="w-5 h-5" />
                     <span>Queue</span>
                   </Link>
                 </Button>
                 <Button variant="outline" size="sm" asChild className="w-full">
                   <Link href={`/life-vision/${visionId}`} className="flex items-center justify-center gap-2">
-                    <Eye className="w-4 h-4" />
+                    <Eye className="w-5 h-5" />
                     <span>View Vision</span>
                   </Link>
                 </Button>

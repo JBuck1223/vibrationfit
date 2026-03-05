@@ -16,9 +16,10 @@ import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowRight, Music, Headphones, Sparkles, Waves, Brain, Volume2 } from 'lucide-react'
 import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
 
-// Placeholder video URL - replace with actual audio intro video
 const AUDIO_INTRO_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/placeholder.mp4'
+  'https://media.vibrationfit.com/site-assets/video/intensive/07-audio-generation-1080p.mp4'
+const AUDIO_INTRO_POSTER =
+  'https://media.vibrationfit.com/site-assets/video/intensive/07-audio-generation-thumb.0000000.jpg'
 
 export default function AudioNewPage() {
   const router = useRouter()
@@ -73,6 +74,7 @@ export default function AudioNewPage() {
           <div className="mx-auto w-full max-w-3xl">
             <OptimizedVideo
               url={AUDIO_INTRO_VIDEO}
+              thumbnailUrl={AUDIO_INTRO_POSTER}
               context="single"
               className="w-full"
             />
