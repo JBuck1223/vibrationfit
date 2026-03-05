@@ -13,6 +13,7 @@ import {
   Text,
 } from '@/lib/design-system/components'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
+import { getEntryCategoryDisplay } from '@/lib/abundance/entry-categories'
 import { OptimizedImage } from '@/components/OptimizedImage'
 import {
   ArrowLeft,
@@ -20,27 +21,8 @@ import {
   Heart,
   Edit,
   Trash2,
-  Gift,
-  Tag,
-  Briefcase,
-  Coins,
-  TrendingUp,
-  HandHeart,
-  Zap,
-  Search,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
-
-const ENTRY_LABELS: Record<string, { label: string; icon: React.ElementType }> = {
-  gift: { label: 'Gift', icon: Gift },
-  discount: { label: 'Discount', icon: Tag },
-  income: { label: 'Income', icon: Briefcase },
-  found_money: { label: 'Found Money', icon: Coins },
-  opportunity: { label: 'Opportunity', icon: TrendingUp },
-  support: { label: 'Support / Kindness', icon: HandHeart },
-  synchronicity: { label: 'Synchronicity', icon: Zap },
-  uncategorized: { label: 'Uncategorized', icon: Search },
-}
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', {
@@ -146,8 +128,7 @@ export default function AbundanceEventPage({ params }: { params: Promise<{ id: s
   const eventVisionCategories = event.vision_category
     ? event.vision_category.split(',').map((s) => s.trim()).filter(Boolean)
     : []
-  const EntryIcon = event.entry_category ? ENTRY_LABELS[event.entry_category]?.icon ?? DollarSign : DollarSign
-  const entryLabel = event.entry_category ? ENTRY_LABELS[event.entry_category]?.label ?? event.entry_category : null
+  const { label: entryLabel, icon: EntryIcon } = getEntryCategoryDisplay(event.entry_category)
 
   return (
     <Container size="xl">

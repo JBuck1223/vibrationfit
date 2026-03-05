@@ -24,6 +24,8 @@ import {
   List,
   ChevronDown,
   Eye,
+  Target,
+  BarChart3,
 } from 'lucide-react'
 import {
   Container,
@@ -34,6 +36,7 @@ import {
   TrackingMilestoneCard,
 } from '@/lib/design-system/components'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
+import { ENTRY_LABELS, ABUNDANCE_ENTRY_CATEGORIES, getEntryCategoryDisplay } from '@/lib/abundance/entry-categories'
 
 interface AbundanceEvent {
   id: string
@@ -62,17 +65,6 @@ interface AbundanceData {
   entryBreakdown: Record<string, { count: number; amount: number }>
   visionBreakdown: Record<string, { count: number; amount: number }>
   recentEvents: AbundanceEvent[]
-}
-
-const ENTRY_LABELS: Record<string, { label: string; icon: React.ElementType }> = {
-  gift: { label: 'Gift', icon: Gift },
-  discount: { label: 'Discount', icon: Tag },
-  income: { label: 'Income', icon: Briefcase },
-  found_money: { label: 'Found Money', icon: Coins },
-  opportunity: { label: 'Opportunity', icon: TrendingUp },
-  support: { label: 'Support / Kindness', icon: HandHeart },
-  synchronicity: { label: 'Synchronicity', icon: Zap },
-  uncategorized: { label: 'Uncategorized', icon: Search },
 }
 
 function formatCurrency(value: number): string {
@@ -193,7 +185,7 @@ export default function AbundanceDashboardPage() {
           title="Abundance Tracker"
           subtitle="Your abundance at a glance. Acknowledge what's flowing to you."
         >
-          <div className="flex justify-center">
+          <div className="flex flex-wrap justify-center gap-2">
             <Button
               asChild
               variant="primary"
@@ -203,6 +195,28 @@ export default function AbundanceDashboardPage() {
               <Link href="/abundance-tracker/new">
                 <Plus className="w-4 h-4 shrink-0" />
                 <span>Abundance Entry</span>
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+            >
+              <Link href="/abundance-tracker/goals">
+                <Target className="w-4 h-4 shrink-0" />
+                <span>Goals</span>
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+            >
+              <Link href="/abundance-tracker/reports">
+                <BarChart3 className="w-4 h-4 shrink-0" />
+                <span>Reports</span>
               </Link>
             </Button>
           </div>
@@ -371,7 +385,7 @@ export default function AbundanceDashboardPage() {
                           onClick={() => setShowKindDropdown(!showKindDropdown)}
                           className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-neutral-800 rounded-full hover:bg-neutral-700 transition-colors border border-neutral-700"
                         >
-                          {selectedEntryCategories.includes('all') || selectedEntryCategories.length === 0
+                            {selectedEntryCategories.includes('all') || selectedEntryCategories.length === 0
                             ? 'All'
                             : selectedEntryCategories.length === 1
                               ? (ENTRY_LABELS[selectedEntryCategories[0]]?.label ?? selectedEntryCategories[0])
@@ -396,9 +410,8 @@ export default function AbundanceDashboardPage() {
                                 {selectedEntryCategories.includes('all') ? 'Deselect all' : 'Select all'}
                               </button>
                             </div>
-                            {Object.entries(ENTRY_LABELS)
-                              .filter(([k]) => k !== 'uncategorized')
-                              .map(([key, { label }]) => {
+                            {ABUNDANCE_ENTRY_CATEGORIES
+                              .map(({ value: key, label }) => {
                                 const isSelected = selectedEntryCategories.includes(key) || selectedEntryCategories.includes('all')
                                 return (
                                   <button
@@ -570,7 +583,7 @@ export default function AbundanceDashboardPage() {
                                 </span>
                                 {event.entry_category && (
                                   <span className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full">
-                                    {ENTRY_LABELS[event.entry_category]?.label || event.entry_category}
+                                    {getEntryCategoryDisplay(event.entry_category).label}
                                   </span>
                                 )}
                               </div>
@@ -645,7 +658,7 @@ export default function AbundanceDashboardPage() {
                           </span>
                           {event.entry_category && (
                             <span className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full shrink-0">
-                              {ENTRY_LABELS[event.entry_category]?.label || event.entry_category}
+                              {getEntryCategoryDisplay(event.entry_category).label}
                             </span>
                           )}
                           <span className="text-lg font-bold text-[#39FF14] tabular-nums shrink-0 ml-auto">

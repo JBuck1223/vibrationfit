@@ -20,6 +20,7 @@ import {
   Spinner,
 } from '@/lib/design-system/components'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
+import { ABUNDANCE_ENTRY_CATEGORIES } from '@/lib/abundance/entry-categories'
 import { FileUpload } from '@/components/FileUpload'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
@@ -33,16 +34,6 @@ const VALUE_TYPES = [
 const visionCategoriesForAbundance = VISION_CATEGORIES.filter(
   (cat) => cat.key !== 'forward' && cat.key !== 'conclusion'
 ).sort((a, b) => a.order - b.order)
-
-const ENTRY_CATEGORY_OPTIONS = [
-  { value: 'gift', label: 'Gift' },
-  { value: 'discount', label: 'Discount' },
-  { value: 'income', label: 'Income' },
-  { value: 'found_money', label: 'Found Money' },
-  { value: 'opportunity', label: 'Opportunity' },
-  { value: 'support', label: 'Support / Kindness' },
-  { value: 'synchronicity', label: 'Synchronicity' },
-]
 
 function formatAmountWithCommas(value: string): string {
   if (!value) return ''
@@ -291,7 +282,7 @@ export default function AbundanceEditEntryPage({ params }: { params: Promise<{ i
                 <Select
                   value={entryCategory}
                   onChange={(value) => setEntryCategory(value)}
-                  options={ENTRY_CATEGORY_OPTIONS}
+                  options={ABUNDANCE_ENTRY_CATEGORIES.map(({ value, label }) => ({ value, label }))}
                   placeholder="Abundance type (optional)"
                 />
               </section>
