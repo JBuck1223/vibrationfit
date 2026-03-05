@@ -68,7 +68,7 @@ const VISION_CATEGORIES = [
   { key: 'conclusion', label: 'Conclusion', icon: CheckCircle, description: 'Integration & completion' },
 ]
 
-export default function PremiumActivationPage() {
+export function PremiumActivationContent({ forcePromo }: { forcePromo?: string } = {}) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [planType, setPlanType] = useState<'solo' | 'household'>('solo')
   const [activationTier, setActivationTier] = useState<'premium' | 'standard'>('premium')
@@ -82,7 +82,7 @@ export default function PremiumActivationPage() {
   const [burgerTimer, setBurgerTimer] = useState<NodeJS.Timeout | null>(null)
   const [progressInterval, setProgressInterval] = useState<NodeJS.Timeout | null>(null)
   const [currentHash, setCurrentHash] = useState<string>('')
-  const [promoCode, setPromoCode] = useState<string | null>(null)
+  const [promoCode, setPromoCode] = useState<string | null>(forcePromo || null)
   const { byType, tokenGrant, storageQuota } = useMembershipTiers()
   const [referralSource, setReferralSource] = useState<string | null>(null)
   const [campaignName, setCampaignName] = useState<string | null>(null)
@@ -92,11 +92,10 @@ export default function PremiumActivationPage() {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search)
       
-      // Promo code
+      // Promo code (URL param overrides forcePromo if both present)
       const promo = params.get('promo')
       if (promo) {
         setPromoCode(promo)
-        console.log('🎉 Promo code applied:', promo)
       }
       
       // Affiliate/referral source
@@ -284,31 +283,56 @@ export default function PremiumActivationPage() {
     setBurgerOrderCanceled(false)
   }
 
-  const getPaymentAmount = () => {
-    if (activationTier === 'premium') {
-      return planType === 'solo' ? '3,000' : '4,200'
-    }
-    const prices = planType === 'solo' 
-      ? { full: 499, twoPayment: 249.50, threePayment: 166.33 }
-      : { full: 699, twoPayment: 349.50, threePayment: 233 }
-    
-    switch (paymentPlan) {
-      case 'full': return prices.full.toFixed(2).replace('.00', '')
-      case '2pay': return prices.twoPayment.toFixed(2)
-      case '3pay': return prices.threePayment.toFixed(2)
-      default: return prices.full.toFixed(2).replace('.00', '')
-    }
+  const isSolo = planType === 'solo'
+  const isPromo = !!promoCode
+
+  const pricing = {
+    standard: {
+      original: isSolo ? 499 : 699,
+      promo: 1,
+      plans: isSolo
+        ? { full: 499, '2pay': 249.50, '3pay': 166.33 }
+        : { full: 699, '2pay': 349.50, '3pay': 233 },
+    },
+    premium: {
+      original: isSolo ? 3000 : 4200,
+      promo: isSolo ? 499 : 699,
+      plans: isPromo
+        ? (isSolo ? { full: 499, '2pay': 249.50 } : { full: 699, '2pay': 349.50 })
+        : (isSolo ? { full: 3000, '2pay': 1500 } : { full: 4200, '2pay': 2100 }),
+    },
   }
-  
-  const getIntensiveTotal = () => {
-    if (activationTier === 'premium') {
-      return planType === 'solo' ? '3,000' : '4,200'
-    }
-    return planType === 'solo' ? '499' : '699'
-  }
+
+  const activePricing = pricing[activationTier]
+  const effectiveTotal = isPromo ? activePricing.promo : activePricing.original
+  const effectiveInstallment = activePricing.plans[paymentPlan as keyof typeof activePricing.plans]
+    ?? activePricing.plans.full
+
+  const fmt = (n: number) => n % 1 === 0 ? n.toLocaleString() : n.toFixed(2)
+
+  const getPaymentAmount = () => fmt(effectiveInstallment)
+  const getIntensiveTotal = () => fmt(effectiveTotal)
   
   const getVisionProMonthlyPrice = () => {
     return planType === 'solo' ? '99' : '149'
+  }
+
+  const getVisionProTokensForPeriod = (period: 'annual' | '28day') => {
+    const tierType = period === 'annual'
+      ? (isSolo ? TIER_TYPES.ANNUAL : TIER_TYPES.HOUSEHOLD_ANNUAL)
+      : (isSolo ? TIER_TYPES.MONTHLY_28DAY : TIER_TYPES.HOUSEHOLD_28DAY)
+    return tokenGrant(tierType)
+  }
+
+  const getVisionProStorageForPeriod = (period: 'annual' | '28day') => {
+    const tierType = period === 'annual'
+      ? (isSolo ? TIER_TYPES.ANNUAL : TIER_TYPES.HOUSEHOLD_ANNUAL)
+      : (isSolo ? TIER_TYPES.MONTHLY_28DAY : TIER_TYPES.HOUSEHOLD_28DAY)
+    return storageQuota(tierType)
+  }
+
+  const getPlanSeatsText = () => {
+    return isSolo ? '1 seat' : '2 seats included'
   }
 
   const handleIntensivePurchase = async () => {
@@ -322,19 +346,27 @@ export default function PremiumActivationPage() {
         ? document.cookie.match(/(?:^|; )vf_session_id=([^;]*)/)?.[1] || undefined
         : undefined
 
-      const productKey = activationTier === 'premium' ? 'intensive_premium' : 'intensive'
-      const effectivePlan = activationTier === 'premium' ? 'full' : paymentPlan
+      const isPromoActive = !!promoCode
+      const productKey = isPromoActive ? 'intensive' : (activationTier === 'premium' ? 'intensive_premium' : 'intensive')
+      const effectivePlan = isPromoActive && activationTier === 'standard' ? 'full' : paymentPlan
+
+      const cartItem: Record<string, string | undefined> = {
+        product_key: productKey,
+        plan: effectivePlan,
+        continuity: '28day',
+        plan_type: planType,
+        intensive_level: activationTier === 'premium' ? 'premium' : undefined,
+      }
+
+      if (isPromoActive) {
+        cartItem.promo_package = activationTier === 'premium' ? 'premium_promo' : 'standard_promo'
+      }
 
       const res = await fetch('/api/cart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          items: [{
-            product_key: productKey,
-            plan: effectivePlan,
-            continuity: '28day',
-            plan_type: planType,
-          }],
+          items: [cartItem],
           promoCode: promoCode || undefined,
           referralSource: referralSource || undefined,
           campaignName: campaignName || undefined,
@@ -1655,7 +1687,7 @@ export default function PremiumActivationPage() {
                 </div>
 
                 {/* ACTIVATION TIER SELECTION */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 w-full">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-8 w-full mt-4">
 
                   {/* ACTIVATION INTENSIVE CARD */}
                   <Card
@@ -1666,13 +1698,11 @@ export default function PremiumActivationPage() {
                     }`}
                     onClick={() => setActivationTier('standard')}
                   >
-                    {activationTier === 'standard' && (
-                      <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                        <div className="bg-[#39FF14] text-black px-4 py-1 text-sm font-bold rounded-full shadow-lg shadow-[#39FF14]/30">
-                          Most Popular
-                        </div>
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
+                      <div className="bg-[#39FF14] text-black px-4 py-1 text-sm font-bold rounded-full shadow-lg whitespace-nowrap">
+                        Most Popular
                       </div>
-                    )}
+                    </div>
 
                     <div className="flex items-center gap-3 mb-4">
                       <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
@@ -1686,12 +1716,30 @@ export default function PremiumActivationPage() {
                     </div>
 
                     <div className="mb-4">
-                      <div className="inline-flex items-baseline gap-2">
-                        <span className="text-4xl md:text-5xl font-bold text-white">
-                          ${planType === 'solo' ? '499' : '699'}
-                        </span>
-                        <span className="text-lg text-neutral-400">today</span>
-                      </div>
+                      {isPromo ? (
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl md:text-3xl font-bold text-white/40 line-through">
+                            ${fmt(pricing.standard.original)}
+                          </span>
+                          <span className="text-4xl md:text-5xl font-bold text-[#39FF14]">
+                            ${fmt(pricing.standard.promo)}
+                          </span>
+                          <span className="text-lg text-white/60">today</span>
+                        </div>
+                      ) : (
+                        <div className="inline-flex items-center gap-2">
+                          <span className="text-4xl md:text-5xl font-bold text-white">
+                            ${activationTier === 'standard'
+                              ? fmt(pricing.standard.plans[paymentPlan as keyof typeof pricing.standard.plans] ?? pricing.standard.original)
+                              : fmt(pricing.standard.original)}
+                          </span>
+                          <span className="text-lg text-white/60">
+                            {paymentPlan !== 'full' && activationTier === 'standard'
+                              ? `× ${paymentPlan === '2pay' ? '2' : '3'}`
+                              : 'today'}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <p className="text-sm text-[#39FF14] font-medium mb-6">
@@ -1717,7 +1765,40 @@ export default function PremiumActivationPage() {
                       ))}
                     </div>
 
-                    <div className="pt-4 border-t border-neutral-700/50">
+                    {/* PAYMENT OPTIONS inside standard card */}
+                    {activationTier === 'standard' && !isPromo && (
+                      <div className="pt-4 mt-2 border-t border-neutral-700/50">
+                        <p className="text-xs text-neutral-400 text-center mb-3">Payment Plan</p>
+                        <div className="flex flex-row gap-2 justify-center flex-wrap">
+                          <Button
+                            variant={paymentPlan === 'full' ? 'primary' : 'outline'}
+                            size="sm"
+                            className="px-3 py-1.5 text-xs"
+                            onClick={(e: React.MouseEvent) => { e.stopPropagation(); setPaymentPlan('full') }}
+                          >
+                            Pay in Full
+                          </Button>
+                          <Button
+                            variant={paymentPlan === '2pay' ? 'primary' : 'outline'}
+                            size="sm"
+                            className="px-3 py-1.5 text-xs"
+                            onClick={(e: React.MouseEvent) => { e.stopPropagation(); setPaymentPlan('2pay') }}
+                          >
+                            2 Payments
+                          </Button>
+                          <Button
+                            variant={paymentPlan === '3pay' ? 'primary' : 'outline'}
+                            size="sm"
+                            className="px-3 py-1.5 text-xs"
+                            onClick={(e: React.MouseEvent) => { e.stopPropagation(); setPaymentPlan('3pay') }}
+                          >
+                            3 Payments
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="pt-4 border-t border-neutral-700/50 mt-2">
                       <p className="text-xs text-neutral-400 text-center">
                         Then ${getVisionProMonthlyPrice()} every 28 days starting Day 56
                       </p>
@@ -1731,15 +1812,13 @@ export default function PremiumActivationPage() {
                         ? 'border-2 border-[#BF00FF] bg-gradient-to-br from-[#BF00FF]/10 to-[#8B5CF6]/5 scale-[1.02] ring-2 ring-[#BF00FF]/50'
                         : 'border border-neutral-700 opacity-70 hover:opacity-90 hover:border-neutral-500'
                     }`}
-                    onClick={() => { setActivationTier('premium'); setPaymentPlan('full') }}
+                    onClick={() => { setActivationTier('premium'); if (paymentPlan === '3pay') setPaymentPlan('full') }}
                   >
-                    {activationTier === 'premium' && (
-                      <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                        <div className="bg-[#BF00FF] text-white px-4 py-1 text-sm font-bold rounded-full shadow-lg shadow-[#BF00FF]/30">
-                          Maximum Results
-                        </div>
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
+                      <div className="bg-[#BF00FF] text-white px-4 py-1 text-sm font-bold rounded-full shadow-lg whitespace-nowrap">
+                        Maximum Results
                       </div>
-                    )}
+                    </div>
 
                     <div className="flex items-center gap-3 mb-4">
                       <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
@@ -1753,12 +1832,28 @@ export default function PremiumActivationPage() {
                     </div>
 
                     <div className="mb-4">
-                      <div className="inline-flex items-baseline gap-2">
-                        <span className="text-4xl md:text-5xl font-bold text-white">
-                          ${planType === 'solo' ? '3,000' : '4,200'}
-                        </span>
-                        <span className="text-lg text-neutral-400">today</span>
-                      </div>
+                      {isPromo ? (
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl md:text-3xl font-bold text-white/40 line-through">
+                            ${fmt(pricing.premium.original)}
+                          </span>
+                          <span className="text-4xl md:text-5xl font-bold text-[#BF00FF]">
+                            ${fmt(pricing.premium.plans[paymentPlan === '2pay' && activationTier === 'premium' ? '2pay' : 'full'])}
+                          </span>
+                          <span className="text-lg text-white/60">
+                            {paymentPlan === '2pay' && activationTier === 'premium' ? '× 2' : 'today'}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="inline-flex items-center gap-2">
+                          <span className="text-4xl md:text-5xl font-bold text-white">
+                            ${fmt(pricing.premium.plans[paymentPlan === '2pay' && activationTier === 'premium' ? '2pay' : 'full'])}
+                          </span>
+                          <span className="text-lg text-white/60">
+                            {paymentPlan === '2pay' && activationTier === 'premium' ? '× 2' : 'today'}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="bg-[#39FF14]/5 border border-[#39FF14]/20 rounded-xl p-3 mb-5">
@@ -1768,7 +1863,7 @@ export default function PremiumActivationPage() {
                       </div>
                     </div>
 
-                    <p className="text-xs text-[#BF00FF] font-semibold uppercase tracking-wider mb-3">+ 10 Private 1:1 Coaching Sessions</p>
+                    <p className="text-sm text-[#BF00FF] font-bold uppercase tracking-wider mb-3">+ 10 Private 1:1 Coaching Sessions</p>
 
                     <div className="space-y-3 mb-6">
                       {[
@@ -1787,7 +1882,32 @@ export default function PremiumActivationPage() {
                       ))}
                     </div>
 
-                    <div className="pt-4 border-t border-neutral-700/50">
+                    {/* PAYMENT OPTIONS inside premium card */}
+                    {activationTier === 'premium' && (
+                      <div className="pt-4 mt-2 border-t border-neutral-700/50">
+                        <p className="text-xs text-neutral-400 text-center mb-3">Payment Plan</p>
+                        <div className="flex flex-row gap-2 justify-center flex-wrap">
+                          <Button
+                            variant={paymentPlan === 'full' ? 'primary' : 'outline'}
+                            size="sm"
+                            className="px-3 py-1.5 text-xs"
+                            onClick={(e: React.MouseEvent) => { e.stopPropagation(); setPaymentPlan('full') }}
+                          >
+                            Pay in Full
+                          </Button>
+                          <Button
+                            variant={paymentPlan === '2pay' ? 'primary' : 'outline'}
+                            size="sm"
+                            className="px-3 py-1.5 text-xs"
+                            onClick={(e: React.MouseEvent) => { e.stopPropagation(); setPaymentPlan('2pay') }}
+                          >
+                            2 Payments
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="pt-4 border-t border-neutral-700/50 mt-2">
                       <p className="text-xs text-neutral-400 text-center">
                         Then ${getVisionProMonthlyPrice()} every 28 days starting Day 56
                       </p>
@@ -1795,38 +1915,50 @@ export default function PremiumActivationPage() {
                   </Card>
                 </div>
 
-                {/* PAYMENT OPTIONS - Standard only */}
-                {activationTier === 'standard' && (
-                  <Stack align="center" gap="md">
-                    <h3 className="text-lg font-bold text-white">Payment Options</h3>
-                    <div className="flex flex-row gap-2 justify-center flex-wrap">
-                      <Button
-                        variant={paymentPlan === 'full' ? 'primary' : 'outline'}
-                        size="md"
-                        className="px-2 py-2 text-xs flex-shrink-0"
-                        onClick={() => setPaymentPlan('full')}
-                      >
-                        Pay in Full
-                      </Button>
-                      <Button
-                        variant={paymentPlan === '2pay' ? 'primary' : 'outline'}
-                        size="md"
-                        className="px-2 py-2 text-xs flex-shrink-0"
-                        onClick={() => setPaymentPlan('2pay')}
-                      >
-                        2 Payments
-                      </Button>
-                      <Button
-                        variant={paymentPlan === '3pay' ? 'primary' : 'outline'}
-                        size="md"
-                        className="px-2 py-2 text-xs flex-shrink-0"
-                        onClick={() => setPaymentPlan('3pay')}
-                      >
-                        3 Payments
-                      </Button>
+                {/* VISION PRO 28-DAY MEMBERSHIP CARD */}
+                <div className="max-w-xl mx-auto w-full">
+                  <div className="text-center mb-6">
+                    <Text size="base" className="text-neutral-400">
+                      Your membership after 8 free weeks:
+                    </Text>
+                  </div>
+                  <Card className="relative border-2 border-[#39FF14] bg-gradient-to-br from-[#39FF14]/10 to-[#14B8A6]/5">
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                      <div className="bg-[#39FF14] text-black px-4 py-1 text-sm font-bold rounded-full shadow-lg">
+                        Included After Day 56
+                      </div>
                     </div>
-                  </Stack>
-                )}
+                    <div className="text-center mb-6">
+                      <Zap className="w-10 h-10 text-[#39FF14] mx-auto mb-3" />
+                      <h3 className="text-2xl font-bold text-white mb-1">Vision Pro 28-Day</h3>
+                      <Text size="sm" className="text-neutral-400">Flexible billing cycle {getPlanSeatsText()}</Text>
+                    </div>
+
+                    <div className="text-center mb-6">
+                      <div className="inline-flex items-baseline gap-2 mb-1">
+                        <span className="text-4xl font-bold text-white">${getVisionProMonthlyPrice()}</span>
+                        <span className="text-lg text-neutral-400">/28 days</span>
+                      </div>
+                      <div className="text-neutral-500 text-sm">
+                        Billed every 4 weeks starting Day 56
+                      </div>
+                    </div>
+
+                    <div className="space-y-2.5 mb-4">
+                      {[
+                        `${formatTokensShort(getVisionProTokensForPeriod('28day'))} VIVA tokens per 28 days + ${getVisionProStorageForPeriod('28day')}GB storage`,
+                        `Unused tokens roll over (max ${byType(isSolo ? TIER_TYPES.MONTHLY_28DAY : TIER_TYPES.HOUSEHOLD_28DAY)?.rollover_max_cycles ?? 3} cycles)`,
+                        '16-week satisfaction guarantee from today',
+                        'Switch or cancel anytime before Day 56',
+                      ].map((feature, idx) => (
+                        <div key={idx} className="flex items-start gap-2.5">
+                          <Check className="w-4 h-4 text-[#39FF14] flex-shrink-0 mt-0.5" />
+                          <span className="text-neutral-200 text-sm">{feature}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                </div>
 
                     {/* SEPARATOR */}
                     <div className="w-full h-px bg-neutral-600"></div>
@@ -1844,8 +1976,20 @@ export default function PremiumActivationPage() {
                             </Badge>
                           )}
                           <div className="text-white text-center text-sm md:text-base">
-                            {promoCode ? (
-                              <><strong>Today:</strong> <span className="text-[#39FF14] font-bold">$1</span> payment verification + FREE {activationTier === 'premium' ? 'Premium' : ''} Activation + 8 weeks included.</>
+                            {promoCode && activationTier === 'standard' ? (
+                              <><strong>Today:</strong> <span className="text-[#39FF14] font-bold">$1</span> payment verification + FREE Activation + 8 weeks included.</>
+                            ) : promoCode && activationTier === 'premium' && paymentPlan === '2pay' ? (
+                              <>
+                                <strong>Today:</strong> <span className="text-[#BF00FF] font-bold">${planType === 'solo' ? '249.50' : '349.50'}</span> for Premium Activation + Coaching + 8 weeks included.<br />
+                                <strong>In 4 weeks:</strong> ${planType === 'solo' ? '249.50' : '349.50'} (final payment)
+                              </>
+                            ) : promoCode && activationTier === 'premium' ? (
+                              <><strong>Today:</strong> <span className="text-[#BF00FF] font-bold">${planType === 'solo' ? '499' : '699'}</span> for Premium Activation + Coaching + 8 weeks included.</>
+                            ) : activationTier === 'premium' && paymentPlan === '2pay' ? (
+                              <>
+                                <strong>Today:</strong> ${getPaymentAmount()} for the Premium Activation + 8 weeks included.<br />
+                                <strong>In 4 weeks:</strong> ${getPaymentAmount()} (final payment)
+                              </>
                             ) : activationTier === 'premium' ? (
                               <><strong>Today:</strong> ${getIntensiveTotal()} for the Premium Activation + 8 weeks included.</>
                             ) : paymentPlan === 'full' ? (
@@ -1889,7 +2033,7 @@ export default function PremiumActivationPage() {
                         onClick={handleIntensivePurchase}
                         disabled={isLoading}
                       >
-                        {isLoading ? 'Processing...' : promoCode ? 'Pay $1 & Start My Activation' : 'Start My Activation'}
+                        {isLoading ? 'Processing...' : `Pay $${getPaymentAmount()} & Start My Activation`}
                       </Button>
                       <p className="flex items-center justify-center gap-2 text-xs text-[#39FF14] text-center mt-2">
                         <ShoppingCart className="w-3.5 h-3.5" />
@@ -2646,4 +2790,8 @@ export default function PremiumActivationPage() {
 
       </Stack>
   )
+}
+
+export default function PremiumActivationPage() {
+  return <PremiumActivationContent />
 }

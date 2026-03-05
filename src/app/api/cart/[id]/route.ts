@@ -54,15 +54,25 @@ export async function GET(
         planType: item.plan_type,
         packKey: item.pack_key,
       }, tiers || undefined)
+
+      let resolvedAmount = product?.amount ?? 0
+      let resolvedName = product?.name ?? ''
+      if (item.promo_package === 'standard_promo') {
+        resolvedAmount = 100
+        resolvedName = 'Activation Intensive (Promo)'
+      } else if (item.promo_package === 'premium_promo') {
+        resolvedName = 'Premium Activation + Coaching (Promo)'
+      }
+
       return {
         ...item,
         resolved: product
           ? {
               key: product.key,
-              name: product.name,
+              name: resolvedName,
               description: product.description,
-              mode: product.mode,
-              amount: product.amount,
+              mode: item.promo_package === 'standard_promo' ? 'payment' as const : product.mode,
+              amount: resolvedAmount,
               currency: product.currency,
               features: product.features,
             }

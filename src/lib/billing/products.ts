@@ -54,7 +54,7 @@ export async function resolveProduct(
 
   if (product === 'intensive' || product === 'intensive_premium') {
     return resolveIntensiveProduct(
-      product === 'intensive_premium' ? 'full' : ((plan as 'full' | '2pay' | '3pay') || 'full'),
+      (plan as 'full' | '2pay' | '3pay') || 'full',
       (continuity as 'annual' | '28day') || '28day',
       (planType as 'solo' | 'household') || 'solo',
       supabase,

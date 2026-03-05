@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
       partnerFirstName,
       partnerLastName,
       partnerEmail,
+      promoPackage,
     } = body as {
       name: string
       email: string
@@ -47,6 +48,7 @@ export async function POST(request: NextRequest) {
       planType?: string
       packKey?: string
       promoCode?: string
+      promoPackage?: 'standard_promo' | 'premium_promo'
       referralSource?: string
       campaignName?: string
       cartSessionId?: string
@@ -76,6 +78,17 @@ export async function POST(request: NextRequest) {
 
     if (!checkoutProduct) {
       return NextResponse.json({ error: 'Invalid product configuration' }, { status: 400 })
+    }
+
+    if (promoPackage === 'standard_promo') {
+      checkoutProduct.amount = 100
+      checkoutProduct.mode = 'payment'
+    }
+    if (promoPackage) {
+      checkoutProduct.metadata.promo_package = promoPackage
+    }
+    if (promoPackage === 'premium_promo') {
+      checkoutProduct.metadata.intensive_level = 'premium'
     }
 
     // ------------------------------------------------------------------
@@ -310,10 +323,12 @@ export async function POST(request: NextRequest) {
       }
 
       if (couponResult?.valid && couponResult.coupon && discountAmount > 0) {
+        const isMultiPay = plan === '2pay' || plan === '3pay'
+        const duration = isMultiPay ? 'forever' as const : 'once' as const
         const stripeCoupon = await stripe.coupons.create(
           couponResult.coupon.discount_type === 'percent'
-            ? { percent_off: couponResult.coupon.discount_value, duration: 'once' }
-            : { amount_off: discountAmount, currency: 'usd', duration: 'once' },
+            ? { percent_off: couponResult.coupon.discount_value, duration }
+            : { amount_off: discountAmount, currency: 'usd', duration },
         );
         (subParams as any).coupon = stripeCoupon.id
       }

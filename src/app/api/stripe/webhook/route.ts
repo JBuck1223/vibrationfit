@@ -1365,14 +1365,16 @@ export async function POST(request: NextRequest) {
             deadline: activationDeadline.toISOString(),
           })
 
-          triggerEvent('intensive.purchased', {
+          const isPremiumIntensive = session.metadata?.intensive_level === 'premium'
+          const intensiveEventName = isPremiumIntensive ? 'intensive_premium.purchased' : 'intensive.purchased'
+          triggerEvent(intensiveEventName, {
             email: customerEmail || '',
             userId,
             name: session.customer_details?.name || customerEmail?.split('@')[0] || '',
             firstName: session.customer_details?.name?.split(' ')[0] || customerEmail?.split('@')[0] || '',
             paymentPlan: intensivePaymentPlan,
             paymentPlanLabel: getPaymentPlanLabel(intensivePaymentPlan),
-          }).catch(err => console.error('triggerEvent intensive.purchased error:', err))
+          }).catch(err => console.error(`triggerEvent ${intensiveEventName} error:`, err))
         }
         
         break
@@ -1713,7 +1715,7 @@ export async function POST(request: NextRequest) {
         if (!product || (!purchaseType && !productType)) {
           break
         }
-        const isIntensive = product === 'intensive' || productType === 'combined_intensive_continuity'
+        const isIntensive = product === 'intensive' || product === 'intensive_premium' || productType === 'combined_intensive_continuity'
 
         const { data: existingOrder } = await supabaseAdmin
           .from('orders')
@@ -2094,7 +2096,9 @@ export async function POST(request: NextRequest) {
         }
 
         if (isIntensive && intensiveOrderItem) {
-          triggerEvent('intensive.purchased', {
+          const isPremiumIntensive = product === 'intensive_premium' || meta.intensive_level === 'premium'
+          const intensiveEventName = isPremiumIntensive ? 'intensive_premium.purchased' : 'intensive.purchased'
+          triggerEvent(intensiveEventName, {
             email: email || '',
             userId,
             name: name || email?.split('@')[0] || '',
