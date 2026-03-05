@@ -731,11 +731,11 @@ export async function POST(request: NextRequest) {
 
           const isPremiumBlock2 = session.metadata?.intensive_level === 'premium' || session.metadata?.promo_package === 'premium_promo'
           if (isPremiumBlock2) {
-            await supabaseAdmin.from('premium_coaching_sessions').insert({
+            await Promise.resolve(supabaseAdmin.from('premium_coaching_sessions').insert({
               intensive_id: intensiveOrderItem.id,
               user_id: userId,
               order_id: order.id,
-            }).catch(err => console.error('Failed to create premium coaching record (block2):', err))
+            })).catch(err => console.error('Failed to create premium coaching record (block2):', err))
           }
 
           console.log('✅ Intensive order item created:', {
@@ -1317,11 +1317,11 @@ export async function POST(request: NextRequest) {
 
           const isPremiumCombined = session.metadata?.intensive_level === 'premium' || session.metadata?.promo_package === 'premium_promo'
           if (isPremiumCombined) {
-            await supabaseAdmin.from('premium_coaching_sessions').insert({
+            await Promise.resolve(supabaseAdmin.from('premium_coaching_sessions').insert({
               intensive_id: intensiveOrderItem.id,
               user_id: userId,
               order_id: order.id,
-            }).catch(err => console.error('Failed to create premium coaching record (combined):', err))
+            })).catch(err => console.error('Failed to create premium coaching record (combined):', err))
           }
 
           const { data: result, error: grantError } = await supabase
@@ -1887,11 +1887,11 @@ export async function POST(request: NextRequest) {
 
           const isPremium = product === 'intensive_premium' || meta.intensive_level === 'premium' || meta.promo_package === 'premium_promo'
           if (isPremium) {
-            await supabaseAdmin.from('premium_coaching_sessions').insert({
+            await Promise.resolve(supabaseAdmin.from('premium_coaching_sessions').insert({
               intensive_id: intensiveOrderItem.id,
               user_id: userId,
               order_id: order.id,
-            }).catch(err => console.error('Failed to create premium coaching record:', err))
+            })).catch(err => console.error('Failed to create premium coaching record:', err))
           }
         }
 

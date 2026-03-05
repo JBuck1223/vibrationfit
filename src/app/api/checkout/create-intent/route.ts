@@ -544,11 +544,11 @@ export async function POST(request: NextRequest) {
             // Create premium coaching checklist if this is a premium intensive
             const isPremium = product === 'intensive_premium' || promoPackage === 'premium_promo' || fullMetadata?.intensive_level === 'premium'
             if (isPremium && intensiveOI) {
-              await supabaseAdmin.from('premium_coaching_sessions').insert({
+              await Promise.resolve(supabaseAdmin.from('premium_coaching_sessions').insert({
                 intensive_id: intensiveOI.id,
                 user_id: userId,
                 order_id: order.id,
-              }).catch(err => console.error('Failed to create premium coaching record:', err))
+              })).catch(err => console.error('Failed to create premium coaching record:', err))
             }
           }
         } catch (vpError) {
