@@ -191,7 +191,7 @@ export default function AbundanceDashboardPage() {
       <Stack gap="lg">
         <PageHero
           title="Abundance Tracker"
-          subtitle="Your abundance at a glance. Notice what's flowing to you."
+          subtitle="Your abundance at a glance. Acknowledge what's flowing to you."
         >
           <div className="flex justify-center">
             <Button
@@ -202,7 +202,7 @@ export default function AbundanceDashboardPage() {
             >
               <Link href="/abundance-tracker/new">
                 <Plus className="w-4 h-4 shrink-0" />
-                <span>Log Abundance Moment</span>
+                <span>Abundance Entry</span>
               </Link>
             </Button>
           </div>
@@ -622,139 +622,38 @@ export default function AbundanceDashboardPage() {
                     })}
                   </div>
                 ) : (
-                  /* List View - same structure as journal */
-                  <div className="space-y-3 md:space-y-4">
-                    {filteredRecentEvents.map((event) => {
-                      const eventVisionCategories = event.vision_category
-                        ? event.vision_category.split(',').map((s) => s.trim()).filter(Boolean)
-                        : []
-                      return (
-                        <Card
-                          key={event.id}
-                          className="hover:border-primary-500/50 transition-all duration-200 hover:-translate-y-1 scroll-mt-8 cursor-pointer"
-                          onClick={() => router.push(`/abundance-tracker/${event.id}`)}
-                        >
-                          <div className="space-y-3 md:space-y-4">
-                            {/* Date banner - desktop only, full width at top so image aligns with amount card */}
-                            <div className="hidden md:block relative -mt-1">
-                              <div className="flex justify-end">
-                                <div className="relative inline-block">
-                                  <div className="absolute inset-y-0 left-0 right-0 bg-primary-500/10 rounded" />
-                                  <div className="relative text-sm text-primary-500/80 font-medium text-right uppercase tracking-wider px-2 py-1">
-                                    {new Date(event.date + 'T00:00:00').toLocaleDateString('en-US', {
-                                      month: 'short',
-                                      day: 'numeric',
-                                      year: 'numeric',
-                                    })}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="flex flex-col md:flex-row gap-3 md:gap-4 md:items-stretch">
-                              {/* Image - hidden on mobile; on desktop starts at top of this row (amount card) */}
-                              <div className="hidden md:block relative flex-shrink-0 w-full aspect-square max-w-[180px] md:w-[160px] md:max-w-none md:aspect-square md:h-auto min-h-0 rounded-lg overflow-hidden bg-neutral-800">
-                                {event.image_url && !imageErrors[event.id] ? (
-                                  <img
-                                    src={event.image_url}
-                                    alt=""
-                                    className="w-full h-full object-cover"
-                                    loading="lazy"
-                                    onError={() => setImageErrors((prev) => ({ ...prev, [event.id]: true }))}
-                                  />
-                                ) : (
-                                  <div className="absolute inset-0 flex items-center justify-center">
-                                    {event.value_type === 'money' ? (
-                                      <DollarSign className="w-8 h-8 text-[#39FF14]/60" />
-                                    ) : (
-                                      <Heart className="w-8 h-8 text-[#BF00FF]/60" />
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Content - on mobile includes date; on desktop date is above so image lines up with amount card */}
-                              <div className="flex-1 min-w-0 space-y-3">
-                                {/* Date banner - mobile only */}
-                                <div className="relative -mt-1 md:hidden">
-                                  <div className="flex justify-end">
-                                    <div className="relative inline-block">
-                                      <div className="absolute inset-y-0 left-0 right-0 bg-primary-500/10 rounded" />
-                                      <div className="relative text-sm text-primary-500/80 font-medium text-right uppercase tracking-wider px-2 py-1">
-                                        {new Date(event.date + 'T00:00:00').toLocaleDateString('en-US', {
-                                          month: 'short',
-                                          day: 'numeric',
-                                          year: 'numeric',
-                                        })}
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Amount card - its own card above description */}
-                                <div className="rounded-2xl border border-[#1F1F1F] bg-[#161616] p-4 md:p-5 space-y-3">
-                                  {(event.amount != null && Number(event.amount) > 0) && (
-                                    <p className="text-2xl md:text-3xl font-bold text-[#39FF14] tabular-nums">
-                                      {formatCurrency(Number(event.amount))}
-                                    </p>
-                                  )}
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <span className={`text-sm px-3 py-1 rounded-full ${
-                                      event.value_type === 'money' ? 'bg-[#39FF14]/20 text-[#39FF14]' : 'bg-[#BF00FF]/20 text-[#BF00FF]'
-                                    }`}>
-                                      {event.value_type === 'money' ? 'Money' : 'Value'}
-                                    </span>
-                                    {event.entry_category && (
-                                      <span className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full">
-                                        {ENTRY_LABELS[event.entry_category]?.label || event.entry_category}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-
-                                {/* Description card */}
-                                <div className="rounded-2xl border border-[#1F1F1F] bg-[#161616] p-4 md:p-5">
-                                  <p className="text-sm text-neutral-400 line-clamp-3 md:line-clamp-none md:text-neutral-300 whitespace-pre-line">
-                                    {event.note || 'No note'}
-                                  </p>
-                                </div>
-
-                                {/* Vision categories */}
-                                {eventVisionCategories.length > 0 && (
-                                  <div className="rounded-2xl border border-[#1F1F1F] bg-[#161616] p-4 md:p-5">
-                                    <div className="flex flex-row flex-wrap gap-4 md:gap-6 items-center justify-start">
-                                      <div className="flex flex-row items-center gap-2 flex-wrap">
-                                        <span className="text-xs uppercase tracking-[0.3em] text-neutral-500">Categories:</span>
-                                        <div className="flex flex-wrap gap-2 items-center">
-                                          {eventVisionCategories.map((catKey) => (
-                                            <span
-                                              key={catKey}
-                                              className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full"
-                                            >
-                                              {getVisionLabel(catKey)}
-                                            </span>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-
-                            {/* View Entry button - right side (journal style) */}
-                            <div className="flex-shrink-0 md:flex-shrink-0 w-full md:w-auto flex items-center" onClick={(e) => e.stopPropagation()}>
-                              <Button asChild variant="ghost" size="sm" className="w-full md:w-auto">
-                                <Link href={`/abundance-tracker/${event.id}`}>
-                                  <Eye className="w-4 h-4 mr-2" />
-                                  View Entry
-                                </Link>
-                              </Button>
-                            </div>
-                          </div>
-                          </div>
-                        </Card>
-                      )
-                    })}
+                  /* List View - date, amount, money/value, kind only */
+                  <div className="space-y-2">
+                    {filteredRecentEvents.map((event) => (
+                      <Card
+                        key={event.id}
+                        className="hover:border-primary-500/50 transition-all duration-200 cursor-pointer"
+                        onClick={() => router.push(`/abundance-tracker/${event.id}`)}
+                      >
+                        <div className="flex flex-wrap items-center gap-3 md:gap-6">
+                          <span className="text-sm text-primary-500/90 font-medium uppercase tracking-wider shrink-0">
+                            {new Date(event.date + 'T00:00:00').toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
+                          </span>
+                          <span className={`text-sm px-3 py-1 rounded-full shrink-0 ${
+                            event.value_type === 'money' ? 'bg-[#39FF14]/20 text-[#39FF14]' : 'bg-[#BF00FF]/20 text-[#BF00FF]'
+                          }`}>
+                            {event.value_type === 'money' ? 'Money' : 'Value'}
+                          </span>
+                          {event.entry_category && (
+                            <span className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full shrink-0">
+                              {ENTRY_LABELS[event.entry_category]?.label || event.entry_category}
+                            </span>
+                          )}
+                          <span className="text-lg font-bold text-[#39FF14] tabular-nums shrink-0 ml-auto">
+                            {(event.amount != null && Number(event.amount) > 0) ? formatCurrency(Number(event.amount)) : '—'}
+                          </span>
+                        </div>
+                      </Card>
+                    ))}
                   </div>
                 )}
               </>

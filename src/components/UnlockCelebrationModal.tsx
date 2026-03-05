@@ -87,17 +87,19 @@ export function UnlockCelebrationModal({ isOpen, onClose }: UnlockCelebrationMod
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+    <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain">
+      {/* Backdrop - not scrollable, blocks interaction behind */}
+      <div
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm"
         onClick={onClose}
+        aria-hidden
       />
-      
-      {/* Modal */}
-      <div className="relative z-10 w-full max-w-2xl animate-in fade-in zoom-in-95 duration-300">
-        <Card variant="elevated" className="bg-[#0A0A0A] border-[#333] overflow-hidden">
-          {/* Close button */}
+      {/* Scrollable container: top-aligned on mobile so full modal is reachable by scroll */}
+      <div className="relative z-10 flex min-h-full items-start justify-center p-4 pt-6 pb-16 sm:pb-20 md:items-center md:py-8">
+        {/* Modal */}
+        <div className="w-full max-w-2xl shrink-0 animate-in fade-in zoom-in-95 duration-300">
+          <Card variant="elevated" className="bg-[#0A0A0A] border-[#333] overflow-hidden max-h-[calc(100vh-3rem)] sm:max-h-[calc(100vh-4rem)] flex flex-col">
+          {/* Close button - fixed in card so always visible */}
           <button
             onClick={onClose}
             className="absolute top-4 right-4 p-2 rounded-full hover:bg-neutral-800 transition-colors z-10"
@@ -106,6 +108,8 @@ export function UnlockCelebrationModal({ isOpen, onClose }: UnlockCelebrationMod
             <X className="w-5 h-5 text-neutral-400" />
           </button>
 
+          {/* Scrollable body so modal content is fully visible on small screens */}
+          <div className="overflow-y-auto overscroll-contain flex-1 min-h-0 -webkit-overflow-scrolling-touch">
           {/* Header */}
           <div className="text-center pt-8 pb-6 px-6">
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
@@ -155,7 +159,9 @@ export function UnlockCelebrationModal({ isOpen, onClose }: UnlockCelebrationMod
               Enter My Dashboard
             </Button>
           </div>
+          </div>
         </Card>
+        </div>
       </div>
     </div>
   )
