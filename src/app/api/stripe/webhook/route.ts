@@ -729,6 +729,15 @@ export async function POST(request: NextRequest) {
             user_id: userId,
           })
 
+          const isPremiumBlock2 = session.metadata?.intensive_level === 'premium' || session.metadata?.promo_package === 'premium_promo'
+          if (isPremiumBlock2) {
+            await supabaseAdmin.from('premium_coaching_sessions').insert({
+              intensive_id: intensiveOrderItem.id,
+              user_id: userId,
+              order_id: order.id,
+            }).catch(err => console.error('Failed to create premium coaching record (block2):', err))
+          }
+
           console.log('✅ Intensive order item created:', {
             userId,
             intensiveId: intensiveOrderItem.id,
@@ -1306,6 +1315,15 @@ export async function POST(request: NextRequest) {
             user_id: userId,
           })
 
+          const isPremiumCombined = session.metadata?.intensive_level === 'premium' || session.metadata?.promo_package === 'premium_promo'
+          if (isPremiumCombined) {
+            await supabaseAdmin.from('premium_coaching_sessions').insert({
+              intensive_id: intensiveOrderItem.id,
+              user_id: userId,
+              order_id: order.id,
+            }).catch(err => console.error('Failed to create premium coaching record (combined):', err))
+          }
+
           const { data: result, error: grantError } = await supabase
             .rpc('grant_trial_tokens', {
               p_user_id: userId,
@@ -1866,6 +1884,15 @@ export async function POST(request: NextRequest) {
             intensive_id: intensiveOrderItem.id,
             user_id: userId,
           })
+
+          const isPremium = product === 'intensive_premium' || meta.intensive_level === 'premium' || meta.promo_package === 'premium_promo'
+          if (isPremium) {
+            await supabaseAdmin.from('premium_coaching_sessions').insert({
+              intensive_id: intensiveOrderItem.id,
+              user_id: userId,
+              order_id: order.id,
+            }).catch(err => console.error('Failed to create premium coaching record:', err))
+          }
         }
 
         if (promoCode) {

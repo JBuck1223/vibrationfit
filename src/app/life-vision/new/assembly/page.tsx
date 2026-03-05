@@ -894,7 +894,7 @@ export default function AssemblyPage() {
                 <>
                   <div className="flex justify-center mb-6">
                     <div className="w-16 h-16 bg-primary-500 rounded-full flex items-center justify-center">
-                      <CheckCircle className="w-10 h-10 text-white" />
+                      <CheckCircle className="w-10 h-10 text-black" />
                     </div>
                   </div>
                   <h2 className="text-2xl font-bold text-white mb-3">Your Life Vision is Complete!</h2>

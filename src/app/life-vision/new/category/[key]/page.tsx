@@ -7,7 +7,7 @@ import { Card, Button, Spinner, Container, Stack, PageHero, CategoryGrid, IconLi
 import { ProfileStateCard } from '@/lib/design-system/profile-cards'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { Sparkles, ArrowLeft, ArrowRight, ChevronDown, User, Lightbulb, Wand2, RefreshCw, Trash2 } from 'lucide-react'
-import { VISION_CATEGORIES, getVisionCategory, getCategoryStateField, getCategoryStoryField, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
+import { VISION_CATEGORIES, getVisionCategory, getCategoryStateField, getCategoryStoryField, visionToRecordingKey, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
 import { getFilteredQuestionsForCategory } from '@/lib/life-vision/ideal-state-questions'
 
 export default function CategoryPage() {
@@ -669,6 +669,10 @@ export default function CategoryPage() {
               placeholder={`Press "Get Me Started" and VIVA will create a starting point from your ${category.label.toLowerCase()} profile data...`}
               className="min-h-[200px] w-full"
               rows={8}
+              storageFolder="lifeVision"
+              recordingPurpose="quick"
+              category={visionToRecordingKey(categoryKey)}
+              instanceId="get-me-started"
             />
           </div>
           <p className="text-xs text-neutral-500 mt-2">
@@ -693,6 +697,10 @@ export default function CategoryPage() {
             placeholder={`Let your imagination run wild...\n\nIf there were no limits, what would your ${category.label.toLowerCase()} life look like? What experiences, feelings, and realities would you create?`}
             className="min-h-[250px] w-full"
             rows={10}
+            storageFolder="lifeVision"
+            recordingPurpose="quick"
+            category={visionToRecordingKey(categoryKey)}
+            instanceId="imagination"
           />
           <p className="text-xs text-neutral-500 mt-2">
             {imaginationText.trim().split(/\s+/).filter(Boolean).length} words

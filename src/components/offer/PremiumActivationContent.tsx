@@ -1923,11 +1923,13 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
                     </Text>
                   </div>
                   <Card className="relative border-2 border-[#39FF14] bg-gradient-to-br from-[#39FF14]/10 to-[#14B8A6]/5">
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                      <div className="bg-[#39FF14] text-black px-4 py-1 text-sm font-bold rounded-full shadow-lg">
-                        Included After Day 56
+                    {promoCode !== 'LAUNCH' && (
+                      <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                        <div className="bg-[#39FF14] text-black px-4 py-1 text-sm font-bold rounded-full shadow-lg">
+                          Included After Day 56
+                        </div>
                       </div>
-                    </div>
+                    )}
                     <div className="text-center mb-6">
                       <Zap className="w-10 h-10 text-[#39FF14] mx-auto mb-3" />
                       <h3 className="text-2xl font-bold text-white mb-1">Vision Pro 28-Day</h3>

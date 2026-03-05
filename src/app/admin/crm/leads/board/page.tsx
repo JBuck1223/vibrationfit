@@ -149,7 +149,7 @@ export default function LeadsBoardPage() {
           subtitle={`${leads.length} total leads`}
         >
           <div className="flex flex-col sm:flex-row gap-2 mt-4">
-            <Button variant="primary" size="sm" onClick={() => router.push('/admin/crm/leads?add=true')}>
+            <Button variant="primary" size="sm" onClick={() => router.push('/admin/crm/leads#add')}>
               <Plus className="w-4 h-4 mr-1" />
               Add Lead
             </Button>
