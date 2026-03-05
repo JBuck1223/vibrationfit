@@ -5,7 +5,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Badge, Container, Spinner , Stack, PageHero } from '@/lib/design-system/components'
+import { Button, Card, Badge, Container, Spinner, Stack, PageHero } from '@/lib/design-system/components'
+import { Plus } from 'lucide-react'
 import { Kanban, KanbanColumn, KanbanItem } from '@/components/crm/Kanban'
 
 interface Lead {
@@ -148,6 +149,10 @@ export default function LeadsBoardPage() {
           subtitle={`${leads.length} total leads`}
         >
           <div className="flex flex-col sm:flex-row gap-2 mt-4">
+            <Button variant="primary" size="sm" onClick={() => router.push('/admin/crm/leads?add=true')}>
+              <Plus className="w-4 h-4 mr-1" />
+              Add Lead
+            </Button>
             <Button variant="outline" size="sm" onClick={() => router.push('/admin/crm/leads')}>
               Table View
             </Button>

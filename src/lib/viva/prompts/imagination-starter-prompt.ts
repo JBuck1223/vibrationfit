@@ -40,17 +40,17 @@ export const CATEGORY_PROFILE_FIELDS: Record<LifeCategoryKey, string[]> = {
  * Category-specific emotional targets to guide the tone
  */
 const CATEGORY_EMOTIONAL_TARGETS: Record<LifeCategoryKey, string> = {
-  fun: 'Permission and lightness - fun is allowed without justification',
+  fun: 'Permission and lightness - fun flows naturally and fully',
   health: 'Freedom of movement, energy, and enjoyment - my body supports my joy',
   travel: 'Expansion through experience - curiosity, wonder, and flow',
-  love: 'Freedom to be fully myself - mutual allowance and passion without pressure',
-  family: 'Emotional freedom and joyful presence - without carrying weight that isn\'t mine',
-  social: 'Freedom to be authentic - wanted for who I am, not what I provide',
-  home: 'Safety and ease - my home supports me, it doesn\'t demand from me',
+  love: 'Freedom to be fully myself - mutual allowance, deep passion, and ease',
+  family: 'Emotional freedom and joyful presence - light, connected, and fully here',
+  social: 'Freedom to be authentic - deeply wanted and cherished for who I am',
+  home: 'Safety and ease - my home supports me, holds me, and inspires me',
   work: 'Creative freedom and feeling valued - I choose how and when I create',
   money: 'Freedom of choice - ease, spaciousness, and calm confidence',
-  stuff: 'Ease and enjoyment - things support my life, they don\'t define it',
-  giving: 'Overflow - I give because I want to, not because I should',
+  stuff: 'Ease and enjoyment - things enrich my life and amplify my joy',
+  giving: 'Overflow - I give from fullness and genuine desire',
   spirituality: 'Freedom of alignment - soft knowing, trust, and presence'
 }
 
@@ -207,6 +207,7 @@ As you compose, ensure ZERO instances of:
 - Contrast connectors — no "Of course...", "However...", "But...", "Although..."
 - Process framing — no "It's not about X, it's about Y" — just say Y
 - Clinical data — NEVER include height, weight, body measurements, or medical data. A vision is not a chart.
+- Negative framing — no "never demands", "doesn't drain", "no longer weighs on me", "free from", "there is no conflict", "there is no tension", "there is no struggle". Do NOT name the absence of something negative. State what IS present, not what isn't. This is an inclusion-based universe — only name what you're including. "There is no conflict" → "Everything flows in harmony." "It never drains me" → "It energizes me."
 
 ═══════════════════════════════════════════════════════════════
 PHASE 2: EXPAND — Make it vivid, specific, and REAL
