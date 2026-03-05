@@ -2,7 +2,7 @@
 // Now with STREAMING support for real-time feedback
 import { NextRequest } from 'next/server'
 import { streamText } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { gateway, VISION_MODEL } from '@/lib/ai/gateway'
 import { createClient } from '@/lib/supabase/server'
 import { getAIToolConfig } from '@/lib/ai/database-config'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
     const maxTokens = toolConfig.max_tokens * toolConfig.token_multiplier
     
     const result = streamText({
-      model: openai(toolConfig.model_name),
+      model: gateway(VISION_MODEL),
       system: toolConfig.system_prompt || 'You are VIVA, a vibrationally intelligent assistant that writes beautiful, human-sounding life vision text.',
       prompt: prompt,
       temperature: toolConfig.supports_temperature ? toolConfig.temperature : undefined,

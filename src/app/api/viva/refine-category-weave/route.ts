@@ -6,6 +6,7 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAIToolConfig, buildOpenAIParams } from "@/lib/ai/database-config";
 import OpenAI from "openai";
+import { gatewayClient, VISION_MODEL } from '@/lib/ai/gateway';
 import {
   trackTokenUsage,
   validateTokenBalance,
@@ -20,9 +21,6 @@ import {
 } from "@/lib/viva/prompts/refine-category-vision-prompt";
 import { getVisionCategory, isValidVisionCategory, VisionCategoryKey } from "@/lib/design-system/vision-categories";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 export const runtime = "edge";
 
@@ -193,11 +191,11 @@ export async function POST(req: NextRequest) {
           { role: "user" as const, content: prompt }
         ];
         const openaiParams = buildOpenAIParams(toolConfig, messages, {
-          forceNoJsonMode: true // We want plain text vision output, not JSON
+          forceNoJsonMode: true
         });
+        openaiParams.model = VISION_MODEL
 
-        // Call OpenAI with streaming
-        const completion = await openai.chat.completions.create({
+        const completion = await gatewayClient.chat.completions.create({
           ...openaiParams,
           stream: true,
         }) as unknown as AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>;

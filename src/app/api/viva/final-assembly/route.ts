@@ -10,14 +10,10 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import OpenAI from 'openai'
 import { buildFinalAssemblyPrompt, buildActivationReflectionPrompt } from '@/lib/viva/prompts'
 import { trackTokenUsage } from '@/lib/tokens/tracking'
 import { getAIToolConfig, buildOpenAIParams } from '@/lib/ai/database-config'
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!
-})
+import { gatewayClient, VISION_MODEL } from '@/lib/ai/gateway'
 
 export async function POST(request: NextRequest) {
   try {
@@ -87,10 +83,10 @@ export async function POST(request: NextRequest) {
       }
     ]
     const openaiParams = buildOpenAIParams(toolConfig, messages)
+    openaiParams.model = VISION_MODEL
 
-    // Call OpenAI for Forward/Conclusion generation
     const startTime = Date.now()
-    const completion = await openai.chat.completions.create(openaiParams)
+    const completion = await gatewayClient.chat.completions.create(openaiParams)
 
     const responseTime = Date.now() - startTime
     const result = completion.choices[0]?.message?.content
@@ -150,9 +146,10 @@ export async function POST(request: NextRequest) {
       }
     ]
     const activationParams = buildOpenAIParams(toolConfig, activationMessages)
+    activationParams.model = VISION_MODEL
 
     const activationStartTime = Date.now()
-    const activationCompletion = await openai.chat.completions.create(activationParams)
+    const activationCompletion = await gatewayClient.chat.completions.create(activationParams)
 
     const activationResponseTime = Date.now() - activationStartTime
     const activationResult = activationCompletion.choices[0]?.message?.content

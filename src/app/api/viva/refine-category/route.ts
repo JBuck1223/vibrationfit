@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAIToolConfig, buildOpenAIParams } from "@/lib/ai/database-config";
-import OpenAI from "openai";
+import { gatewayClient, VISION_MODEL } from '@/lib/ai/gateway';
 import {
   trackTokenUsage,
   validateTokenBalance,
@@ -21,9 +21,6 @@ import {
   MASTER_VISION_EXECUTION_RULES,
 } from "@/lib/viva/prompts/master-vision-prompts";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 export const runtime = "edge"; // Use Edge Runtime for faster cold starts
 
@@ -391,9 +388,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       { role: "user" as const, content: prompt },
     ]
     const openaiParams = buildOpenAIParams(toolConfig, messages)
+    openaiParams.model = VISION_MODEL
 
-    // Call OpenAI
-    const completion = await openai.chat.completions.create(openaiParams);
+    const completion = await gatewayClient.chat.completions.create(openaiParams);
 
     const refinedText = completion.choices[0]?.message?.content?.trim();
 

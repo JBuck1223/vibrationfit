@@ -62,7 +62,7 @@ export default function CartCheckoutPage() {
         }
         const data = await res.json()
         setCart(data)
-        const hasPromo = !!data.items?.[0]?.promo_package
+        const hasPromo = !!(data.items?.[0] as any)?.promo_package
         if (data.promoCode && !hasPromo) setPromoCode(data.promoCode)
       } catch {
         setError('Failed to load cart')
@@ -93,8 +93,8 @@ export default function CartCheckoutPage() {
       if (item.plan) metadata.intensive_payment_plan = item.plan
       if (item.continuity) metadata.continuity_plan = item.continuity
       if (item.plan_type) metadata.plan_type = item.plan_type
-      if (item.intensive_level) metadata.intensive_level = item.intensive_level
-      if (item.promo_package === 'premium_promo') metadata.intensive_level = 'premium'
+      if ((item as any).intensive_level) metadata.intensive_level = (item as any).intensive_level
+      if ((item as any).promo_package === 'premium_promo') metadata.intensive_level = 'premium'
       metadata.purchase_type = 'intensive'
     }
     return {
@@ -111,7 +111,7 @@ export default function CartCheckoutPage() {
     }
   }, [cart])
 
-  const hasPromoPackage = !!cart?.items?.[0]?.promo_package
+  const hasPromoPackage = !!(cart?.items?.[0] as any)?.promo_package
 
   // Auto-apply promo when pre-filled from cart (e.g. ?promo=launch2026 from homepage)
   // Skip coupon validation for promo packages — pricing is already baked in.
@@ -223,7 +223,7 @@ export default function CartCheckoutPage() {
           planType: item.plan_type,
           packKey: item.pack_key,
           promoCode: hasPromoPackage ? undefined : (promoCode || undefined),
-          promoPackage: item.promo_package || undefined,
+          promoPackage: (item as any).promo_package || undefined,
           referralSource: cart.referralSource || undefined,
           campaignName: cart.campaignName || undefined,
           cartSessionId: cart.id,
