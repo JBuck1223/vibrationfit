@@ -720,47 +720,41 @@ export async function invitePartnerToHousehold(params: {
     const invitePagePath = `/household/invite/${invitationToken}`
     let invitationLink = `${appUrl}${invitePagePath}`
 
-    // Create Supabase auth account for the partner if they don't have one,
-    // then generate a magic link so they land on setup-password first.
-    const { data: existingUser } = await supabaseAdmin
-      .from('user_profiles')
-      .select('user_id')
-      .eq('email', partnerEmail)
-      .maybeSingle()
+    // Ensure partner has a Supabase auth account.
+    // Try to create - will silently fail if they already exist.
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email: partnerEmail,
+      email_confirm: true,
+      user_metadata: {
+        first_name: partnerFirstName,
+        last_name: partnerLastName,
+        full_name: `${partnerFirstName} ${partnerLastName}`.trim(),
+        invited_to_household: householdId,
+      },
+    })
 
-    if (!existingUser) {
-      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-        email: partnerEmail,
-        email_confirm: true,
-        user_metadata: {
-          first_name: partnerFirstName,
-          last_name: partnerLastName,
-          full_name: `${partnerFirstName} ${partnerLastName}`.trim(),
-          invited_to_household: householdId,
-        },
-      })
+    if (authError && !authError.message?.includes('already been registered')) {
+      console.error('Failed to create partner auth account:', authError)
+    } else if (authData?.user) {
+      console.log('Created partner auth account:', authData.user.id)
+    }
 
-      if (authError) {
-        console.error('Failed to create partner auth account:', authError)
-      } else {
-        console.log('Created partner auth account:', authData.user.id)
+    // Always generate a magic link so the partner lands on
+    // setup-password (if needed) → invite page.
+    const callbackUrl = `${appUrl}/auth/callback?returnTo=${encodeURIComponent(invitePagePath)}`
+    const { data: magicLinkData, error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
+      email: partnerEmail,
+      options: {
+        redirectTo: callbackUrl,
+      },
+    })
 
-        const callbackUrl = `${appUrl}/auth/callback?returnTo=${encodeURIComponent(invitePagePath)}`
-        const { data: magicLinkData, error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
-          type: 'magiclink',
-          email: partnerEmail,
-          options: {
-            redirectTo: callbackUrl,
-          },
-        })
-
-        if (magicLinkError) {
-          console.error('Failed to generate magic link for partner:', magicLinkError)
-        } else if (magicLinkData?.properties?.action_link) {
-          invitationLink = magicLinkData.properties.action_link
-          console.log('Magic link generated for partner:', partnerEmail)
-        }
-      }
+    if (magicLinkError) {
+      console.error('Failed to generate magic link for partner:', magicLinkError)
+    } else if (magicLinkData?.properties?.action_link) {
+      invitationLink = magicLinkData.properties.action_link
+      console.log('Magic link generated for partner:', partnerEmail)
     }
 
     const { sendEmail } = await import('@/lib/email/aws-ses')
