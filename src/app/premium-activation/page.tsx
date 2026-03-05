@@ -1,0 +1,2649 @@
+'use client'
+
+import React, { useState, useEffect } from 'react'
+import { 
+  Sparkles, PartyPopper, Plane, Home, Users, Heart, 
+  Activity, DollarSign, Briefcase, UserPlus, Package, 
+  Gift, Zap, CheckCircle, ArrowRight, Star, Target,
+  Brain, TrendingUp, Shield, Play, Award, Globe, Crown, Check, Clock, User, Dumbbell,
+  Headphones, Image, BookOpen, CalendarDays, Lock, HelpCircle, Eye,
+  RefreshCw, Maximize2, Minimize2, Layers, Smile, Signal, RadioTower,
+  Settings, FileText, ClipboardCheck, Wand2, Music, Mic, Sliders, Calendar, Rocket, Unlock,
+  ShoppingCart
+} from 'lucide-react'
+import { toast } from 'sonner'
+import { OptimizedVideo } from '@/components/OptimizedVideo'
+import { formatTokensShort } from '@/lib/billing/config'
+import { useMembershipTiers, TIER_TYPES } from '@/hooks/useMembershipTiers'
+import {
+  Stack,
+  Inline,
+  Grid,
+  TwoColumn,
+  Cover,
+  Container,
+  Card,
+  FeatureCard,
+  ItemListCard,
+  FlowCards,
+  Button,
+  VIVAButton,
+  Icon,
+  Badge,
+  Video,
+  OfferStack,
+  SwipeableCards,
+  Heading,
+  Text,
+  Title,
+  BulletedList,
+  ListItem,
+} from '@/lib/design-system'
+import {
+  ActionButtons,
+  Frame,
+  Input,
+  Modal,
+  PageLayout,
+  PricingCard,
+  ProofWall,
+  Select,
+} from '@/lib/design-system/components'
+
+// Vision Categories
+const VISION_CATEGORIES = [
+  { key: 'forward', label: 'Forward', icon: Sparkles, description: 'Personal growth & development' },
+  { key: 'fun', label: 'Fun / Recreation', icon: PartyPopper, description: 'Joy & leisure activities' },
+  { key: 'travel', label: 'Travel / Adventure', icon: Plane, description: 'Exploration & experiences' },
+  { key: 'home', label: 'Home / Environment', icon: Home, description: 'Living space & surroundings' },
+  { key: 'family', label: 'Family / Parenting', icon: Users, description: 'Relationships & family' },
+  { key: 'romance', label: 'Love / Romance', icon: Heart, description: 'Intimate relationships' },
+  { key: 'health', label: 'Health / Vitality', icon: Activity, description: 'Physical & mental wellness' },
+  { key: 'money', label: 'Money / Wealth', icon: DollarSign, description: 'Financial abundance' },
+  { key: 'business', label: 'Business / Career', icon: Briefcase, description: 'Professional success' },
+  { key: 'social', label: 'Social / Friends', icon: UserPlus, description: 'Friendships & connections' },
+  { key: 'possessions', label: 'Stuff', icon: Package, description: 'Material abundance' },
+  { key: 'giving', label: 'Giving / Legacy', icon: Gift, description: 'Impact & contribution' },
+  { key: 'spirituality', label: 'Spirituality', icon: Zap, description: 'Inner connection & purpose' },
+  { key: 'conclusion', label: 'Conclusion', icon: CheckCircle, description: 'Integration & completion' },
+]
+
+export default function PremiumActivationPage() {
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [planType, setPlanType] = useState<'solo' | 'household'>('solo')
+  const [activationTier, setActivationTier] = useState<'premium' | 'standard'>('premium')
+  const [paymentPlan, setPaymentPlan] = useState<'full' | '2pay' | '3pay'>('full')
+  const [isLoading, setIsLoading] = useState(false)
+  const [selfCheckAnswers, setSelfCheckAnswers] = useState<boolean[]>([false, false, false, false, false])
+  const [isYesHeld, setIsYesHeld] = useState(false)
+  const [holdProgress, setHoldProgress] = useState(0)
+  const [burgerOrderPlaced, setBurgerOrderPlaced] = useState(false)
+  const [burgerOrderCanceled, setBurgerOrderCanceled] = useState(false)
+  const [burgerTimer, setBurgerTimer] = useState<NodeJS.Timeout | null>(null)
+  const [progressInterval, setProgressInterval] = useState<NodeJS.Timeout | null>(null)
+  const [currentHash, setCurrentHash] = useState<string>('')
+  const [promoCode, setPromoCode] = useState<string | null>(null)
+  const { byType, tokenGrant, storageQuota } = useMembershipTiers()
+  const [referralSource, setReferralSource] = useState<string | null>(null)
+  const [campaignName, setCampaignName] = useState<string | null>(null)
+
+  // Read promo code and affiliate params from URL on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      
+      // Promo code
+      const promo = params.get('promo')
+      if (promo) {
+        setPromoCode(promo)
+        console.log('🎉 Promo code applied:', promo)
+      }
+      
+      // Affiliate/referral source
+      const ref = params.get('ref') || params.get('source') || params.get('affiliate')
+      if (ref) {
+        setReferralSource(ref)
+        console.log('📊 Referral source:', ref)
+      }
+      
+      // Campaign name
+      const campaign = params.get('campaign') || params.get('utm_campaign')
+      if (campaign) {
+        setCampaignName(campaign)
+        console.log('📊 Campaign:', campaign)
+      }
+      
+      // Pre-select plan type (solo or household)
+      const type = params.get('plan') || params.get('type') || params.get('planType')
+      if (type && ['solo', 'household'].includes(type)) {
+        setPlanType(type as 'solo' | 'household')
+        console.log('👥 Plan type:', type)
+      }
+      
+      // Pre-select activation tier if provided
+      const tier = params.get('tier') || params.get('activation')
+      if (tier && ['premium', 'standard'].includes(tier)) {
+        setActivationTier(tier as 'premium' | 'standard')
+      }
+
+    }
+  }, [])
+
+  // Track hash changes
+  useEffect(() => {
+    // Set initial hash
+    if (typeof window !== 'undefined') {
+      setCurrentHash(window.location.hash)
+    }
+
+    // Handle hash changes (e.g., navigating to #pricing)
+    const handleHashChange = () => {
+      if (typeof window !== 'undefined') {
+        setCurrentHash(window.location.hash)
+      }
+    }
+
+    // Handle popstate (browser back/forward buttons)
+    const handlePopState = () => {
+      if (typeof window !== 'undefined') {
+        setCurrentHash(window.location.hash)
+      }
+    }
+
+    // Handle browser back/forward navigation
+    const handlePageShow = () => {
+      if (typeof window !== 'undefined') {
+        setCurrentHash(window.location.hash)
+      }
+    }
+
+    window.addEventListener('pageshow', handlePageShow)
+    window.addEventListener('popstate', handlePopState)
+    window.addEventListener('hashchange', handleHashChange)
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow)
+      window.removeEventListener('popstate', handlePopState)
+      window.removeEventListener('hashchange', handleHashChange)
+    }
+  }, [])
+
+  const calculateChaosScore = () => {
+    const total = selfCheckAnswers.filter(Boolean).length
+    if (total === 0 || total === 1) return { score: total, label: 'Stable', color: '#39FF14' }
+    if (total === 2 || total === 3) return { score: total, label: 'Shaky', color: '#FFB701' }
+    return { score: total, label: 'Chaos', color: '#FF0040' }
+  }
+
+  const getPrescription = () => {
+    const prescriptions = []
+    if (selfCheckAnswers[1]) prescriptions.push('Jump to VIVA Vision (Train)')
+    if (selfCheckAnswers[2]) prescriptions.push('Start My Activation Plan (Tune)')
+    if (selfCheckAnswers[3]) prescriptions.push('Build Vision Board + Journal x3 (Track)')
+    return prescriptions
+  }
+
+  const handleYesMouseDown = () => {
+    setIsYesHeld(true)
+    setHoldProgress(0)
+    setBurgerOrderPlaced(false)
+    setBurgerOrderCanceled(false)
+
+    // Start progress interval (update every 50ms for smooth animation)
+    const interval = setInterval(() => {
+      setHoldProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval)
+          return 100
+        }
+        return prev + (100 / 60) // 60 frames over 3 seconds (3000ms / 50ms)
+      })
+    }, 50)
+    setProgressInterval(interval)
+
+    // Start 3-second timer
+    const timer = setTimeout(() => {
+      // Vibrate on mobile for success
+      if (navigator.vibrate) {
+        navigator.vibrate([100, 50, 100])
+      }
+      setBurgerOrderPlaced(true)
+      setBurgerOrderCanceled(false)
+      setHoldProgress(100)
+    }, 3000)
+    
+    setBurgerTimer(timer)
+  }
+
+  const handleYesMouseUp = () => {
+    // Clear timers
+    if (burgerTimer) {
+      clearTimeout(burgerTimer)
+      setBurgerTimer(null)
+    }
+    if (progressInterval) {
+      clearInterval(progressInterval)
+      setProgressInterval(null)
+    }
+
+    setIsYesHeld(false)
+    
+    // Only cancel if user actually started holding (progress > 0)
+    // and didn't complete (progress < 100)
+    if (holdProgress > 0 && holdProgress < 100) {
+      if (navigator.vibrate) {
+        navigator.vibrate([200, 100, 200])
+      }
+      setBurgerOrderCanceled(true)
+      setBurgerOrderPlaced(false)
+      setHoldProgress(0)
+    } else {
+      // Reset to idle state
+      setHoldProgress(0)
+      setBurgerOrderCanceled(false)
+      setBurgerOrderPlaced(false)
+    }
+  }
+
+  const handleNoClick = () => {
+    // Clear timers
+    if (burgerTimer) {
+      clearTimeout(burgerTimer)
+      setBurgerTimer(null)
+    }
+    if (progressInterval) {
+      clearInterval(progressInterval)
+      setProgressInterval(null)
+    }
+
+    setIsYesHeld(false)
+    setHoldProgress(0)
+    
+    // Cancel order
+    if (navigator.vibrate) {
+      navigator.vibrate([200, 100, 200])
+    }
+    setBurgerOrderCanceled(true)
+    setBurgerOrderPlaced(false)
+  }
+
+  const resetBurgerTest = () => {
+    // Clear any existing timers
+    if (burgerTimer) {
+      clearTimeout(burgerTimer)
+      setBurgerTimer(null)
+    }
+    if (progressInterval) {
+      clearInterval(progressInterval)
+      setProgressInterval(null)
+    }
+    setIsYesHeld(false)
+    setHoldProgress(0)
+    setBurgerOrderPlaced(false)
+    setBurgerOrderCanceled(false)
+  }
+
+  const getPaymentAmount = () => {
+    if (activationTier === 'premium') {
+      return planType === 'solo' ? '3,000' : '4,200'
+    }
+    const prices = planType === 'solo' 
+      ? { full: 499, twoPayment: 249.50, threePayment: 166.33 }
+      : { full: 699, twoPayment: 349.50, threePayment: 233 }
+    
+    switch (paymentPlan) {
+      case 'full': return prices.full.toFixed(2).replace('.00', '')
+      case '2pay': return prices.twoPayment.toFixed(2)
+      case '3pay': return prices.threePayment.toFixed(2)
+      default: return prices.full.toFixed(2).replace('.00', '')
+    }
+  }
+  
+  const getIntensiveTotal = () => {
+    if (activationTier === 'premium') {
+      return planType === 'solo' ? '3,000' : '4,200'
+    }
+    return planType === 'solo' ? '499' : '699'
+  }
+  
+  const getVisionProMonthlyPrice = () => {
+    return planType === 'solo' ? '99' : '149'
+  }
+
+  const handleIntensivePurchase = async () => {
+    setIsLoading(true)
+
+    try {
+      const visitorId = typeof document !== 'undefined'
+        ? document.cookie.match(/(?:^|; )vf_visitor_id=([^;]*)/)?.[1] || undefined
+        : undefined
+      const sessionId = typeof document !== 'undefined'
+        ? document.cookie.match(/(?:^|; )vf_session_id=([^;]*)/)?.[1] || undefined
+        : undefined
+
+      const productKey = activationTier === 'premium' ? 'intensive_premium' : 'intensive'
+      const effectivePlan = activationTier === 'premium' ? 'full' : paymentPlan
+
+      const res = await fetch('/api/cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: [{
+            product_key: productKey,
+            plan: effectivePlan,
+            continuity: '28day',
+            plan_type: planType,
+          }],
+          promoCode: promoCode || undefined,
+          referralSource: referralSource || undefined,
+          campaignName: campaignName || undefined,
+          visitorId,
+          sessionId,
+        }),
+      })
+
+      const data = await res.json()
+      if (data.cartId) {
+        window.location.href = `/checkout/${data.cartId}`
+      } else {
+        toast.error('Failed to create checkout session')
+        setIsLoading(false)
+      }
+    } catch {
+      toast.error('Network error. Please try again.')
+      setIsLoading(false)
+    }
+  }
+
+  return (
+      <Stack gap="lg">
+        
+        {/* Hero Section */}
+        <section>
+          <Cover minHeight="500px" className="!p-0">
+            <Container size="xl" className="w-full">
+              <Stack gap="md" className="items-center">
+                {/* Headline at top */}
+                <div className="text-center">
+                  <Heading level={1} className="text-white leading-tight !mb-0.5 md:!mb-3">
+                    Thoughts become things…<br />so why isn't it working?
+                  </Heading>
+                </div>
+                
+                {/* Two column layout for desktop */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center w-full">
+                  {/* Left column - Content */}
+                  <div className="space-y-6 text-center lg:text-left flex flex-col justify-center">
+                    <Heading level={3} className="text-neutral-200 text-center md:text-center">
+                      Bridge the woo-woo with the how-to.
+                    </Heading>
+                    
+                    <Heading level={4} className="text-[#39FF14] text-center md:text-center">
+                      Activate your Life Vision in <span className="font-bold text-[#39FF14]">72 hours</span>
+                      <br />
+                      with the Activation Intensive.
+                    </Heading>
+                    
+                    <BulletedList className="leading-relaxed lg:text-left lg:ml-6">
+                      <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
+                        Simple 4-part system + MAP: Creations, Activations, Connections, and Sessions, all guided by your My Activation Plan so you always know your next move.
+                      </ListItem>
+                      <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
+                        <strong>Plus Graduate Unlocks:</strong> Advanced audio suite, The Alignment Gym (weekly live coaching), and Vibe Tribe community when you complete your 72‑Hour Activation
+                      </ListItem>
+                      <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
+                        VIVA AI turns contrast into clarity—even if you don't know what you want
+                      </ListItem>
+                      <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
+                        Powered by the 4‑Layer Conscious Creation Writing Architecture inside VIVA Vision
+                      </ListItem>
+                    </BulletedList>
+                    
+                    <div className="flex flex-col items-center md:items-center">
+                      <Button variant="primary" size="xl" className="mt-1 mb-2 md:mt-2" asChild>
+                        <a href="#pricing">
+                          Start the Activation Intensive
+                        </a>
+                      </Button>
+                      <Text size="xs" className="text-neutral-400 text-center">
+                        ${getIntensiveTotal()} today. Includes 8 weeks of Vision Pro. Day 56: auto‑continue at your selected plan.
+                      </Text>
+                    </div>
+                  </div>
+                  
+                  {/* Right column - Video */}
+                  <div className="relative bg-black rounded-xl overflow-hidden shadow-2xl max-w-3xl mx-auto w-full order-first lg:order-last lg:mt-4">
+                    <Video
+                      src="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-1080p.mp4"
+                      poster="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-poster.jpg"
+                      variant="hero"
+                      trackingId="homepage-hero-video"
+                      saveProgress={true}
+                      onMilestoneReached={(milestone, time) => {
+                        // Track milestone for marketing analytics
+                        console.log(`Video milestone: ${milestone}% at ${time}s`)
+                        // TODO: Send to your marketing platform (Facebook Pixel, Google Analytics, etc.)
+                        // Example: fbq('track', 'VideoView', { milestone, time })
+                      }}
+                      onPlay={() => {
+                        console.log('Hero video started playing')
+                        // TODO: Track video play event
+                      }}
+                      onComplete={() => {
+                        console.log('Hero video completed')
+                        // TODO: Track video completion
+                      }}
+                      className="w-full h-auto"
+                    />
+                  </div>
+                </div>
+              </Stack>
+            </Container>
+          </Cover>
+        </section>
+
+        {/* Quote Block Section */}
+        <section>
+          <Container size="xl">
+            <div className="border-l-2 border-[#39FF14] bg-[#39FF14]/5 rounded-r-2xl p-6 md:p-8">
+              <Text size="lg" className="text-neutral-200 italic">
+                Vibrational fitness is your system for conscious creation—so 'thoughts become things' stops being random and starts being repeatable.
+              </Text>
+            </div>
+          </Container>
+        </section>
+
+        {/* Two Column Section with Item List Card */}
+        <section>
+          <Container size="xl">
+            <TwoColumn gap="lg" className="gap-8 md:gap-12">
+              <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 relative overflow-hidden flex items-center">
+                {/* Thunderbolt Background */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
+                  <Zap className="w-48 h-48 md:w-64 md:h-64 text-[#39FF14]" strokeWidth={0.5} />
+                </div>
+                {/* Content */}
+                <div className="relative z-10 w-full">
+                  <Heading level={3} className="text-white text-center mb-8 md:mb-10">
+                    What &quot;active in 72 hours&quot; means
+                </Heading>
+                  <div className="flex flex-col gap-4 items-start mx-auto text-left md:text-left">
+                    <div className="flex items-center gap-3">
+                      <Check className="w-4 h-4 flex-shrink-0 text-[#39FF14]" />
+                      <Text size="sm" className="text-neutral-200 text-left">Profile 70%+ complete</Text>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Check className="w-4 h-4 flex-shrink-0 text-[#39FF14]" />
+                      <Text size="sm" className="text-neutral-200 text-left">84‑question Vibration Assessment submitted</Text>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Check className="w-4 h-4 flex-shrink-0 text-[#39FF14]" />
+                      <Text size="sm" className="text-neutral-200 text-left">12‑category Life Vision completed (with VIVA)</Text>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Check className="w-4 h-4 flex-shrink-0 text-[#39FF14]" />
+                      <Text size="sm" className="text-neutral-200 text-left">First refinement pass saved</Text>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Check className="w-4 h-4 flex-shrink-0 text-[#39FF14]" />
+                      <Text size="sm" className="text-neutral-200 text-left">Vision Audio generated</Text>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Check className="w-4 h-4 flex-shrink-0 text-[#39FF14]" />
+                      <Text size="sm" className="text-neutral-200 text-left">Vision Board built (12 images, 1 per category)</Text>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Check className="w-4 h-4 flex-shrink-0 text-[#39FF14]" />
+                      <Text size="sm" className="text-neutral-200 text-left">1 journal entry logged</Text>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Check className="w-4 h-4 flex-shrink-0 text-[#39FF14]" />
+                      <Text size="sm" className="text-neutral-200 text-left">Calibration Call booked</Text>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 mt-4">
+                    <Check className="w-4 h-4 flex-shrink-0 text-[#39FF14] mt-0.5" />
+                    <Text size="sm" className="text-[#39FF14]/80 text-left italic">
+                      When these are complete, you unlock your <strong className="font-semibold">28‑Day MAP</strong> (My Activation Plan) so you know exactly how to run your Activations, Connections, and Sessions.
+                    </Text>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6">
+                <div className="flex flex-col gap-6">
+                  <div>
+                    <div className="flex items-center gap-4 mb-2">
+                      <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#39FF14]/20 border-2 border-[#39FF14]/30">
+                        <Brain className="w-5 h-5 md:w-6 md:h-6 text-[#39FF14]" />
+                      </div>
+                      <Heading level={4} className="text-white !mb-0">Creations (0–72h)</Heading>
+                    </div>
+                    <Text size="sm" className="text-neutral-300 ml-14 md:ml-16">Complete your 72‑Hour Activation Intensive: profile + 84‑Q assessment + 12‑category Life Vision with VIVA, plus your first audios, board, journals, My Activation Plan, and Calibration Call booked.</Text>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-4 mb-2">
+                      <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#14B8A6]/20 border-2 border-[#14B8A6]/30">
+                        <RadioTower className="w-5 h-5 md:w-6 md:h-6 text-[#14B8A6]" />
+                      </div>
+                      <Heading level={4} className="text-white !mb-0">Activations</Heading>
+                    </div>
+                    <Text size="sm" className="text-neutral-300 ml-14 md:ml-16">Keep your signal aligned as life evolves: follow your My Activation Plan daily, listen to your Vision Audio, and refine your Life Vision and Vision Board as your clarity increases.</Text>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-4 mb-2">
+                      <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#BF00FF]/20 border-2 border-[#BF00FF]/30">
+                        <Heart className="w-5 h-5 md:w-6 md:h-6 text-[#BF00FF]" />
+                      </div>
+                      <Heading level={4} className="text-white !mb-0">Connections</Heading>
+                    </div>
+                    <Text size="sm" className="text-neutral-300 ml-14 md:ml-16">Build visible momentum and proof: share wins, post updates, and celebrate actualizations inside the Vibe Tribe while your dashboard streaks grow.</Text>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-4 mb-2">
+                      <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#FFB701]/20 border-2 border-[#FFB701]/30">
+                        <CalendarDays className="w-5 h-5 md:w-6 md:h-6 text-[#FFB701]" />
+                      </div>
+                      <Heading level={4} className="text-white !mb-0">Sessions</Heading>
+                    </div>
+                    <Text size="sm" className="text-neutral-300 ml-14 md:ml-16">Stay calibrated in real time: attend The Alignment Gym (weekly live coaching) to refine your vision, adjust your MAP, and choose your next aligned actions.</Text>
+                  </div>
+                </div>
+              </div>
+            </TwoColumn>
+          </Container>
+        </section>
+
+        {/* 72-Hour Activation Path */}
+        <section>
+          <Container size="xl">
+            <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+              <Stack gap="md">
+                <Heading level={2} className="text-white text-center !mb-0">
+                  Your 72‑Hour Activation Path
+                </Heading>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Setup */}
+                  <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Settings className="w-5 h-5 text-neutral-400" />
+                      <span className="font-semibold text-white">Setup</span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-neutral-400">
+                        <span className="text-xs font-mono text-neutral-600 w-4">1</span>
+                        <Settings className="w-3.5 h-3.5" />
+                        <span>Account Settings</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-neutral-400">
+                        <span className="text-xs font-mono text-neutral-600 w-4">2</span>
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>Baseline Intake</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Foundation */}
+                  <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
+                    <div className="flex items-center gap-2 mb-3">
+                      <User className="w-5 h-5 text-[#5EC49A]" />
+                      <span className="font-semibold text-white">Foundation</span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-neutral-400">
+                        <span className="text-xs font-mono text-neutral-600 w-4">3</span>
+                        <User className="w-3.5 h-3.5" />
+                        <span>Create Profile</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-neutral-400">
+                        <span className="text-xs font-mono text-neutral-600 w-4">4</span>
+                        <ClipboardCheck className="w-3.5 h-3.5" />
+                        <span>Vibration Assessment</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Vision Creation */}
+                  <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Sparkles className="w-5 h-5 text-[#2DD4BF]" />
+                      <span className="font-semibold text-white">Vision Creation</span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-neutral-400">
+                        <span className="text-xs font-mono text-neutral-600 w-4">5</span>
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Build Life Vision</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-neutral-400">
+                        <span className="text-xs font-mono text-neutral-600 w-4">6</span>
+                        <Wand2 className="w-3.5 h-3.5" />
+                        <span>Refine with VIVA</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Audio */}
+                  <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Music className="w-5 h-5 text-[#8B5CF6]" />
+                      <span className="font-semibold text-white">Audio</span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-neutral-400">
+                        <span className="text-xs font-mono text-neutral-600 w-4">7</span>
+                        <Music className="w-3.5 h-3.5" />
+                        <span>Generate Audio</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-neutral-400">
+                        <span className="text-xs font-mono text-neutral-600 w-4">8</span>
+                        <Mic className="w-3.5 h-3.5" />
+                        <span>Record Voice (Optional)</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-neutral-400">
+                        <span className="text-xs font-mono text-neutral-600 w-4">9</span>
+                        <Sliders className="w-3.5 h-3.5" />
+                        <span>Create Audio Mix</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Activation */}
+                  <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Image className="w-5 h-5 text-[#FFB701]" />
+                      <span className="font-semibold text-white">Activation</span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-neutral-400">
+                        <span className="text-xs font-mono text-neutral-600 w-4">10</span>
+                        <Image className="w-3.5 h-3.5" />
+                        <span>Vision Board</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-neutral-400">
+                        <span className="text-xs font-mono text-neutral-600 w-4">11</span>
+                        <BookOpen className="w-3.5 h-3.5" />
+                        <span>Journal Entry</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-neutral-400">
+                        <span className="text-xs font-mono text-neutral-600 w-4">12</span>
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span>Book Calibration Call</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Completion */}
+                  <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Rocket className="w-5 h-5 text-primary-500" />
+                      <span className="font-semibold text-white">Completion</span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-neutral-400">
+                        <span className="text-xs font-mono text-neutral-600 w-4">13</span>
+                        <Rocket className="w-3.5 h-3.5" />
+                        <span>My Activation Plan</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-neutral-400">
+                        <span className="text-xs font-mono text-neutral-600 w-4">14</span>
+                        <Unlock className="w-3.5 h-3.5" />
+                        <span>Unlock Platform</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* CTA Button */}
+                <div className="text-center">
+                  <Button variant="primary" size="xl" asChild>
+                    <a href="#pricing">
+                      Start the Activation Intensive
+                    </a>
+                  </Button>
+                </div>
+              </Stack>
+            </Card>
+          </Container>
+        </section>
+
+        {/* Dashboard Preview Section */}
+        <section>
+          <Container size="xl">
+            <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
+              <Stack gap="md" className="md:gap-8">
+                  <div className="text-center mb-6">
+                    <Heading level={2} className="text-white mb-2">What you'll see on your dashboard:</Heading>
+                    <Text size="sm" className="text-neutral-400">Your personalized activation journey</Text>
+                  </div>
+                  
+                  {/* Dashboard Preview Container */}
+                  <div className="bg-gradient-to-br from-[#1F1F1F] to-[#0F0F0F] rounded-2xl border-2 border-[#39FF14]/20 p-4 md:p-6 space-y-4 md:space-y-6">
+                    
+                    {/* Header Section - PageHero style */}
+                    <div className="text-center space-y-2">
+                      <Text size="xs" className="text-[#39FF14] uppercase tracking-wider font-semibold">72-Hour Activation Intensive</Text>
+                      <Heading level={4} className="text-white">Your 14-Step Activation Path</Heading>
+                      <Text size="xs" className="text-neutral-400 max-w-md mx-auto">Follow each step in order. Complete all 14 to graduate and unlock your Advanced Audio Suite, Alignment Gym, and Vibe Tribe access.</Text>
+                      <div className="pt-2">
+                        <span className="inline-flex items-center gap-2 bg-[#BF00FF]/20 border border-[#BF00FF]/30 rounded-full px-3 py-1 text-xs font-semibold text-[#BF00FF]">
+                          Current Phase: Foundation · Step 3 of 14
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Countdown & Progress Card */}
+                    <div className="bg-gradient-to-br from-[#39FF14]/10 to-[#14B8A6]/10 border border-[#39FF14]/30 rounded-xl p-4">
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <h5 className="text-sm font-semibold text-white mb-1 flex items-center gap-2">
+                            <Clock className="w-4 h-4" />
+                            Time Remaining
+                          </h5>
+                          <Text size="xl" className="font-bold text-[#39FF14]">68h 23m 45s</Text>
+                          <Text size="xs" className="text-neutral-400 mt-1">Most people activate in 72 hours</Text>
+                        </div>
+                        <div className="text-right">
+                          <Text size="xs" className="text-neutral-400 mb-1">Overall Progress</Text>
+                          <Text size="2xl" className="font-bold text-[#14B8A6]">14%</Text>
+                          <Text size="xs" className="text-neutral-400 mt-1">2 of 14 steps</Text>
+                        </div>
+                      </div>
+                      <div className="w-full bg-neutral-700 rounded-full h-3">
+                        <div className="h-3 rounded-full bg-gradient-to-r from-[#39FF14] to-[#14B8A6]" style={{ width: '14%' }}></div>
+                      </div>
+                    </div>
+                    
+                    {/* Next Step Card - matches actual dashboard style */}
+                    <div className="rounded-xl overflow-hidden border border-[#BF00FF]/30">
+                      <div className="flex">
+                        <div className="w-12 flex-shrink-0 flex items-center justify-center bg-[#BF00FF]">
+                          <span className="text-lg font-bold text-black">3</span>
+                        </div>
+                        <div className="flex-1 p-3 bg-gradient-to-br from-[#BF00FF]/5 to-purple-500/5">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h5 className="text-sm font-bold text-white">Create Your Profile</h5>
+                            <span className="text-[10px] bg-[#BF00FF]/20 text-[#BF00FF] px-2 py-0.5 rounded-full font-semibold">Next Step</span>
+                          </div>
+                          <Text size="xs" className="text-neutral-400 mb-2">Build your comprehensive life profile across all categories</Text>
+                          <button className="text-xs bg-[#39FF14] text-black px-3 py-1.5 rounded-full font-semibold hover:bg-[#39FF14]/80 transition-colors flex items-center gap-1">
+                            Continue <ArrowRight className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Phase Progress - Setup */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <h6 className="text-sm font-bold text-white">Setup</h6>
+                        <span className="text-xs bg-[#39FF14]/20 text-[#39FF14] px-2 py-1 rounded-full">2/2 Complete</span>
+                      </div>
+                      <div className="space-y-2">
+                        {/* Step 1 - Complete */}
+                        <div className="rounded-lg overflow-hidden border border-[#39FF14]/30">
+                          <div className="flex">
+                            <div className="w-10 flex-shrink-0 flex items-center justify-center bg-[#39FF14]">
+                              <span className="text-sm font-bold text-black">1</span>
+                            </div>
+                            <div className="flex-1 p-2 bg-[#39FF14]/5 flex items-center justify-between">
+                              <div>
+                                <Text size="xs" className="font-semibold text-white">Account Settings</Text>
+                                <Text size="xs" className="text-neutral-500">Name, email, phone, photo</Text>
+                              </div>
+                              <CheckCircle className="w-4 h-4 text-[#39FF14]" />
+                            </div>
+                          </div>
+                        </div>
+                        {/* Step 2 - Complete */}
+                        <div className="rounded-lg overflow-hidden border border-[#39FF14]/30">
+                          <div className="flex">
+                            <div className="w-10 flex-shrink-0 flex items-center justify-center bg-[#39FF14]">
+                              <span className="text-sm font-bold text-black">2</span>
+                            </div>
+                            <div className="flex-1 p-2 bg-[#39FF14]/5 flex items-center justify-between">
+                              <div>
+                                <Text size="xs" className="font-semibold text-white">Baseline Intake</Text>
+                                <Text size="xs" className="text-neutral-500">Activation intake questionnaire</Text>
+                              </div>
+                              <CheckCircle className="w-4 h-4 text-[#39FF14]" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Phase Progress - Foundation */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <h6 className="text-sm font-bold text-white">Foundation</h6>
+                        <span className="text-xs bg-neutral-600/50 text-neutral-300 px-2 py-1 rounded-full">0/2 Complete</span>
+                      </div>
+                      <div className="space-y-2">
+                        {/* Step 3 - Active/Unlocked */}
+                        <div className="rounded-lg overflow-hidden border border-[#BF00FF]/30">
+                          <div className="flex">
+                            <div className="w-10 flex-shrink-0 flex items-center justify-center bg-[#BF00FF]">
+                              <span className="text-sm font-bold text-black">3</span>
+                            </div>
+                            <div className="flex-1 p-2 bg-gradient-to-br from-[#BF00FF]/5 to-purple-500/5 flex items-center justify-between">
+                              <div>
+                                <Text size="xs" className="font-semibold text-white">Create Your Profile</Text>
+                                <Text size="xs" className="text-neutral-500">Build your life profile</Text>
+                              </div>
+                              <button className="text-[10px] bg-[#39FF14] text-black px-2 py-1 rounded-full font-semibold">Start</button>
+                            </div>
+                          </div>
+                        </div>
+                        {/* Step 4 - Locked */}
+                        <div className="rounded-lg overflow-hidden border border-neutral-700/50 opacity-50">
+                          <div className="flex">
+                            <div className="w-10 flex-shrink-0 flex items-center justify-center bg-neutral-700">
+                              <span className="text-sm font-bold text-white">4</span>
+                            </div>
+                            <div className="flex-1 p-2 flex items-center justify-between">
+                              <div>
+                                <Text size="xs" className="font-semibold text-neutral-400">Vibration Assessment</Text>
+                                <Text size="xs" className="text-neutral-600">Discover your vibration score</Text>
+                              </div>
+                              <div className="flex items-center gap-1 text-neutral-500">
+                                <Lock className="w-3 h-3" />
+                                <span className="text-[10px]">Locked</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Phase Progress - Vision Creation (collapsed preview) */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <h6 className="text-sm font-bold text-white">Vision Creation</h6>
+                        <span className="text-xs bg-neutral-600/50 text-neutral-300 px-2 py-1 rounded-full">0/2 Complete</span>
+                      </div>
+                      <div className="space-y-2 opacity-50">
+                        <div className="rounded-lg overflow-hidden border border-neutral-700/50">
+                          <div className="flex">
+                            <div className="w-10 flex-shrink-0 flex items-center justify-center bg-neutral-700">
+                              <span className="text-sm font-bold text-white">5</span>
+                            </div>
+                            <div className="flex-1 p-2 flex items-center justify-between">
+                              <div>
+                                <Text size="xs" className="font-semibold text-neutral-400">Build Your Life Vision</Text>
+                                <Text size="xs" className="text-neutral-600">12-category vision with VIVA</Text>
+                              </div>
+                              <div className="flex items-center gap-1 text-neutral-500">
+                                <Lock className="w-3 h-3" />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="rounded-lg overflow-hidden border border-neutral-700/50">
+                          <div className="flex">
+                            <div className="w-10 flex-shrink-0 flex items-center justify-center bg-neutral-700">
+                              <span className="text-sm font-bold text-white">6</span>
+                            </div>
+                            <div className="flex-1 p-2 flex items-center justify-between">
+                              <div>
+                                <Text size="xs" className="font-semibold text-neutral-400">Refine Your Vision</Text>
+                                <Text size="xs" className="text-neutral-600">Enhance with VIVA</Text>
+                              </div>
+                              <div className="flex items-center gap-1 text-neutral-500">
+                                <Lock className="w-3 h-3" />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Remaining Phases Summary */}
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="bg-neutral-800/30 rounded-lg p-2 opacity-50">
+                        <Text size="xs" className="text-neutral-500 font-semibold">Audio</Text>
+                        <Text size="xs" className="text-neutral-600">Steps 7-9</Text>
+                      </div>
+                      <div className="bg-neutral-800/30 rounded-lg p-2 opacity-50">
+                        <Text size="xs" className="text-neutral-500 font-semibold">Activation</Text>
+                        <Text size="xs" className="text-neutral-600">Steps 10-12</Text>
+                      </div>
+                      <div className="bg-neutral-800/30 rounded-lg p-2 opacity-50">
+                        <Text size="xs" className="text-neutral-500 font-semibold">Completion</Text>
+                        <Text size="xs" className="text-neutral-600">Steps 13-14</Text>
+                      </div>
+                    </div>
+                    
+                    {/* Completion Message */}
+                    <div className="text-center bg-gradient-to-r from-[#39FF14]/5 to-[#14B8A6]/5 border border-[#39FF14]/20 rounded-xl p-3">
+                      <Text size="xs" className="text-neutral-300">
+                        <strong className="text-[#39FF14]">Complete all 14 steps</strong> to unlock Advanced Audio Suite, Alignment Gym + Vibe Tribe
+                      </Text>
+                    </div>
+                  </div>
+                  
+                  {/* CTA Button */}
+                  <div className="text-center">
+                    <Button variant="primary" size="xl" asChild>
+                      <a href="#pricing">
+                        Start the Activation Intensive
+                      </a>
+                    </Button>
+                  </div>
+                </Stack>
+            </div>
+          </Container>
+        </section>
+
+        {/* Vision Transformations - From Vision to Actualized Reality */}
+        <section>
+          <Container size="xl">
+            <ProofWall
+              heading="Lock It In and Let It Flow"
+              showHeadingOutside={false}
+              showStoryHighlight={false}
+              items={[
+                {
+                  id: 'homepage-proof',
+                  beforeImage: 'https://media.vibrationfit.com/site-assets/proof-wall/boa-screenshot.jpg',
+                  afterImage: 'https://media.vibrationfit.com/site-assets/proof-wall/business-account-1.jpg',
+                  story: '',
+                },
+              ]}
+            />
+          </Container>
+        </section>
+
+        {/* Vision Transformations - From Vision to Actualized Reality */}
+        <section>
+          <Container size="xl">
+            <Card variant="elevated" className="p-4 md:p-6 lg:p-8 bg-black/40 border-[#39FF14]/20 border-2">
+              <SwipeableCards
+                title="Vision Transformations"
+                subtitle="From Vision to Actualized Reality"
+                cards={[
+                  {
+                    id: 'vision-profit',
+                    activeImage: 'https://media.vibrationfit.com/site-assets/proof-wall/gross-profit-vision.jpg',
+                    activeImageAlt: 'Active vision journal entry outlining gross profit targets',
+                    actualizedImage: 'https://media.vibrationfit.com/site-assets/proof-wall/gross-profit-actualized.jpg',
+                    actualizedImageAlt: 'Actualized proof of gross profit aligned with the vision',
+                    title: '$1M Actualized',
+                    memberNames: ['Jordan Buckingham', 'Vanessa Buckingham'],
+                    content: (
+                      <Stack gap="md" className="text-left text-neutral-300 leading-relaxed">
+                        <Text size="sm" className="text-justify">
+                          We experienced an amazingly awful day that changed our lives forever. We had just gotten married and were living in Japan. We woke up one morning and had no milk, no eggs, no bread, and no money. Our available capital that day was $4.87 (not even enough money to pay the ATM fee). And at the time we owed over $100,000 in debt: student loans, car loans, a dirt bike loan, home improvement loans, family loans, and infinite credit card debt.
+                        </Text>
+                        <Text size="sm" className="text-justify">
+                          But this day was when everything changed vibrationally for us. We could no longer afford to play the vibrational hokey pokey. This is when we decided to fully commit the Vibration Fit Conscious Creation System. We started a new business doing what we loved and added a pretend $1,000,000 bill to our vision board. And boy are we glad we did!
+                        </Text>
+                        <Text size="sm" className="text-justify">
+                          We went from no money in the bank and over 6 figures in debt to completely debt free with 6 figures in the bank. We made our first $1,000,000 in our own business from home. We achieved time, location, financial and inner freedom.
+                        </Text>
+                        <Text size="sm" className="font-semibold text-white">
+                          Our lives were forever changed!
+                        </Text>
+                      </Stack>
+                    ),
+                    showTitleOnCard: false,
+                    showContentOnCard: false,
+                    showModalImages: false
+                  },
+                  {
+                    id: 'vision-italy',
+                    activeImage: 'https://media.vibrationfit.com/site-assets/proof-wall/italy-active.jpg',
+                    activeImageAlt: 'Active vision storyboard showing the Italy dream experience',
+                    actualizedImage: 'https://media.vibrationfit.com/site-assets/proof-wall/italy-actualized.jpg',
+                    actualizedImageAlt: 'Actualized photo from the Italy dream trip',
+                    memberNames: ['Jordan Buckingham', 'Vanessa Buckingham'],
+                    title: 'Exact Italy Destination Actualized (without any planning)',
+                    content: (
+                      <Stack gap="md" className="text-left text-neutral-300 leading-relaxed">
+                        <Text size="sm" className="text-justify">
+                          <span className="text-white font-semibold">😳 You can’t make this stuff up…</span>
+                        </Text>
+                        <Text size="sm" className="text-justify">
+                          <span className="text-white font-semibold">🇮🇹</span> So here we are in Amalfi, sitting at dinner on Day 2 talking about how surreal it is that we’re in Italy marking off another place from our vision board. Jordan pulls up the exact photo from our vision board and we wonder where it was taken. We knew it was somewhere along the Amalfi Coast, but little did we know when we got here that the Amalfi coast is actually 34 miles long and spans across many towns. Jordan asks our waiter if he knows where our vision board photo was taken and he says, “That’s Atrani. Only one minute north of Amalfi.”
+                        </Text>
+                        <Text size="sm" className="text-justify">
+                          <span className="text-white font-semibold">🚙</span> It turned out that we had driven right through Atrani on our way to Ravello earlier that day 😂 And that we were only staying about 12 minutes away the whole time!
+                        </Text>
+                        <Text size="sm" className="text-justify">
+                          <span className="text-white font-semibold">☀️</span> So on Day 3, a bright, beautiful, sunny day, we started the morning off by driving straight to Atrani to get our very own photo in the exact same location as the one we’ve been staring at and dreaming about from our vision board for years!
+                        </Text>
+                        <Text size="sm" className="text-justify">
+                          <span className="text-white font-semibold">😱</span> The first photo is proof of us there, the second one is the photo from our vision board!
+                        </Text>
+                        <Text size="sm" className="text-justify">
+                          <span className="text-white font-semibold">💫</span> This vision stuff truly works… we are constantly surprised and delighted by the Universe! We are across the world and somehow line up with the exact right places, people, and circumstances to experience the place we’ve had on our vision board for years. With no planning ahead of time… Now that’s manifestation at its best!
+                        </Text>
+                      </Stack>
+                    ),
+                    showTitleOnCard: false,
+                    showContentOnCard: false,
+                    showModalImages: false
+                  },
+                  {
+                    id: 'vision-home',
+                    activeImage: 'https://media.vibrationfit.com/site-assets/proof-wall/house-vision.jpg',
+                    activeImageAlt: 'Active vision storyboard for the aligned dream home',
+                    actualizedImage: 'https://media.vibrationfit.com/site-assets/proof-wall/house-actualized.jpg',
+                    actualizedImageAlt: 'Actualized photo of the aligned dream home',
+                    memberNames: ['Jordan Buckingham', 'Vanessa Buckingham'],
+                    title: 'Dream Home Actualized',
+                    content: (
+                      <Stack gap="md" className="text-left text-neutral-300 leading-relaxed">
+                        <Text size="sm" className="text-justify">
+                          We were recently married, living in a tiny apartment in Japan (for what was ultimately a failed business venture), thousands of miles from America when we put this picture of a home in Florida on our vision board.
+                        </Text>
+                        <Text size="sm" className="text-justify">
+                          We had no idea where we ultimately wanted to live, but knew we wanted to be near the beach. As more clarity filled in on what kind of home we wanted, I (Vanessa) wrote a detailed letter to the Universe about what our home would look and feel like.
+                        </Text>
+                        <Text size="sm" className="text-justify">
+                          Jordan found my letter I wrote to the Universe after we moved into our home, thinking I had written a gratitude letter for our house because it described every room and space in detail- then he looked at the date I wrote it - 2 years before we bought our home!
+                        </Text>
+                        <Text size="sm" className="text-justify">
+                          Looking back at the letter and the picture we had on our vision board of our home gives us goose bumps! Everything we envisioned and dreamed about in a home actualized (in the destination of our dreams)- and even better than we imagined!
+                        </Text>
+                      </Stack>
+                    ),
+                    showTitleOnCard: false,
+                    showContentOnCard: false,
+                    showModalImages: false
+                  },
+                  {
+                    id: 'vision-van-life',
+                    activeImage: 'https://media.vibrationfit.com/site-assets/proof-wall/van-board-1.jpg',
+                    activeImageAlt: 'Active vision storyboard featuring the dream van lifestyle',
+                    actualizedImage: 'https://media.vibrationfit.com/site-assets/proof-wall/van-actualized-2.jpg',
+                    actualizedImageAlt: 'Actualized photo showing the dream van lifestyle realized',
+                    memberNames: ['Jordan Buckingham', 'Vanessa Buckingham'],
+                    title: 'Paid CASH for our Minivan',
+                    content: (
+                      <Stack gap="md" className="text-left text-neutral-300 leading-relaxed">
+                        <Text size="sm" className="text-justify">
+                          March 23, 2022: The day we paid CASH for a brand new 2022 White Honda Odyssey Elite mini van! The same one that has been on our vision board for 7 years and on Jordan’s for over a decade! Today is the day it came to fruition. 🚐😍💫
+                        </Text>
+                        <Text size="sm" className="text-justify">
+                          <span className="text-white font-semibold">👶🏼</span> When Oliver was born we knew we needed something bigger for our family of 3. One day while driving to Oliver’s 3 month checkup, we saw a 2011 blue Honda Odyssey with 160,000 miles on the side of the road. We test drove it and the For Sale signs on the doors flew off while we were driving down the road. We took that as a sign (literally) that it was ours. So we paid cash for it and drove it to over 200,000 miles. Sadly, we had to put a lot of money into it to keep it running. It was perfect for what we needed at the time, and fit into our financial situation. Recently though, our mechanic had been driving it more than us 😂
+                        </Text>
+                        <Text size="sm" className="text-justify">
+                          <span className="text-white font-semibold">👨‍👩‍👧‍👦</span> We finally decided the other day after we got our old van out of the shop once again, and that dang engine light came on, that it was time for an upgrade… to something new that we actually felt safe driving our kids around in, and that was more in alignment with where we are now.
+                        </Text>
+                        <Text size="sm" className="text-justify">
+                          <span className="text-white font-semibold">💫</span> We called a few Honda dealerships and finally found one in the exact exterior and interior color we wanted. It wasn’t even showing in their system, but they saw that it was on an incoming delivery. We put a deposit on the new van, went out to drive the old van, and noticed the check engine light went off. It was as if it came on just long enough one last time for us to actually make the decision to go for it on a new car. And that new car was waiting for us!
+                        </Text>
+                        <Text size="sm" className="text-justify">
+                          <span className="text-white font-semibold">🙏🏼</span> We are so grateful for all the miles we had in our old van, and can’t wait for all the memories to come rolling down the road in our vision board car 😍
+                        </Text>
+                      </Stack>
+                    ),
+                    showTitleOnCard: false,
+                    showContentOnCard: false,
+                    showModalImages: false
+                  },
+                  {
+                    id: 'vision-beach-wedding',
+                    activeImage: 'https://media.vibrationfit.com/site-assets/proof-wall/beach-wedding-vision.jpg',
+                    activeImageAlt: 'Active vision storyboard for the aligned beach wedding',
+                    actualizedImage: 'https://media.vibrationfit.com/site-assets/proof-wall/beach-wedding-actualized.jpg',
+                    actualizedImageAlt: 'Actualized photo from the aligned beach wedding',
+                    memberNames: ['Jordan Buckingham', 'Vanessa Buckingham'],
+                    title: 'Dream Wedding Actualized',
+                    content: (
+                      <Stack gap="md" className="text-left text-neutral-300 leading-relaxed">
+                        <Text size="sm" className="text-justify">
+                          We knew we were getting married right away when we met. We were engaged within 6 months of meeting, so naturally we had started dreaming about what kind of wedding we wanted.
+                        </Text>
+                        <Text size="sm" className="text-justify">
+                          We both love the beach, so we talked and dreamed about having a destination wedding at a beach somewhere in the world. We put a random beach wedding photo on our vision board that we found on the internet, and went on with our life.
+                        </Text>
+                        <Text size="sm" className="text-justify">
+                          One thing led to another - I bought a book online called "Destination Weddings" and within that book was a beautiful resort in Cabo, Mexico. We connected with an amazing travel agent online who had booked many similar group trips and she was able to get our group of 40 people an amazing deal for our destination wedding.
+                        </Text>
+                        <Text size="sm" className="text-justify">
+                          When we look back now it is mind-blowing how exact our actual wedding matched our vision board wedding photo! They may have both even been taken in the exact same spot in Cabo, Mexico!
+                        </Text>
+                      </Stack>
+                    ),
+                    showTitleOnCard: false,
+                    showContentOnCard: false,
+                    showModalImages: false
+                  },
+                  {
+                    id: 'vision-japan',
+                    activeImage: 'https://media.vibrationfit.com/site-assets/proof-wall/japan-vision.jpg',
+                    activeImageAlt: 'Active vision storyboard for the Japan alignment trip',
+                    actualizedImage: 'https://media.vibrationfit.com/site-assets/proof-wall/japan-friends.jpg',
+                    actualizedImageAlt: 'Actualized photo from the Japan alignment trip',
+                    memberNames: ['Jordan Buckingham', 'Vanessa Buckingham'],
+                    title: 'Japan Actualized',
+                    content: (
+                      <Stack gap="md" className="text-left text-neutral-300 leading-relaxed">
+                        <Text size="sm" className="text-justify">
+                          Our work at the time was expanding into Japan, and we really wanted to go spearhead the market. We had no money, but we had a dream so we did the most powerful thing we knew to do - added Japan to our vision document and vision board!
+                        </Text>
+                        <Text size="sm" className="text-justify">
+                          One day, we get a call from the owners of the company saying they are picking three couples from the company to sponsor in Japan and we are one of them - they paid for us to live in a luxurious business apartment in Osaka and paid us an extra stipend to offset the expenses while living there - for over a year!
+                        </Text>
+                      </Stack>
+                    ),
+                    showTitleOnCard: false,
+                    showContentOnCard: false,
+                    showModalImages: false
+                  },
+                  {
+                    id: 'vision-australia',
+                    activeImage: 'https://media.vibrationfit.com/site-assets/proof-wall/australia-vision.jpg',
+                    activeImageAlt: 'Active vision storyboard for the Australia alignment adventure',
+                    actualizedImage: 'https://media.vibrationfit.com/site-assets/proof-wall/australia-actualized.jpg',
+                    actualizedImageAlt: 'Actualized photo from the Australia alignment adventure',
+                    memberNames: ['Jordan Buckingham', 'Vanessa Buckingham'],
+                    title: 'Australia Actualized (for a whole month!)',
+                    content: (
+                      <Stack gap="md" className="text-left text-neutral-300 leading-relaxed">
+                        <Text size="sm" className="text-justify">
+                          We had always dreamed of visiting Australia and had it in our vision document and vision board. We were pregnant with our first child, and were free to work from wherever there was internet, so for Christmas, instead of getting gifts for each other, we decided to go on an adventure/babymoon.
+                        </Text>
+                        <Text size="sm" className="text-justify">
+                          We applied for an American Airlines credit card and received enough points to buy our tickets to Australia for free. We had a friend from college who married an Aussie and they were thrilled to host us at their home close to Sydney. We rented a car and drove all the way up the East coast from Sydney to Mackay in a month. We had the most magical time!!
+                        </Text>
+                      </Stack>
+                    ),
+                    showTitleOnCard: false,
+                    showContentOnCard: false,
+                    showModalImages: false
+                  },
+                  {
+                    id: 'vision-fit-couple',
+                    activeImage: 'https://media.vibrationfit.com/site-assets/proof-wall/fit-couple-active.jpg',
+                    activeImageAlt: 'Active vision photo of Jordan and Vanessa focusing on fitness',
+                    actualizedImage: 'https://media.vibrationfit.com/site-assets/proof-wall/fit-3-actualized.jpg',
+                    actualizedImageAlt: 'Actualized photo showing Jordan and Vanessa fit and aligned',
+                    memberNames: ['Jordan Buckingham', 'Vanessa Buckingham'],
+                    title: 'Fit Couple Actualized',
+                    content: (
+                      <Stack gap="md" className="text-left text-neutral-300 leading-relaxed">
+                        <Text size="sm" className="text-justify">
+                          I (Jordan) gained 30 pounds after we had our second child. I was in denial for a while about the extra weight I was holding, but finally got into harmony with wanting a better body. Vanessa and I booked a cruise and I honed in on getting fit before we set sail. We did P90X, went to the gym, and ate healthy. When it was time to board the cruise ship, I had lost the 30 pounds!!
+                        </Text>
+                      </Stack>
+                    ),
+                    showTitleOnCard: false,
+                    showContentOnCard: false,
+                    showModalImages: false
+                  },
+                  {
+                    id: 'vision-mountain-chalet',
+                    activeImage: 'https://media.vibrationfit.com/site-assets/proof-wall/mountain-lodge-active.jpg',
+                    activeImageAlt: 'Active vision storyboard for mountain chalet vacation',
+                    actualizedImage: 'https://media.vibrationfit.com/site-assets/proof-wall/mountain-lodge-actualized.jpg',
+                    actualizedImageAlt: 'Actualized photo from the mountain chalet vacation',
+                    memberNames: ['Jordan Buckingham', 'Vanessa Buckingham'],
+                    title: 'Gifted Family a Mountain Chalet Vacation (in Aspen, CO)',
+                    content: (
+                      <Stack gap="md" className="text-left text-neutral-300 leading-relaxed">
+                        <Text size="sm" className="text-justify">
+                          <span className="text-white font-semibold">😃</span> More vision board items have been marked off the list:
+                        </Text>
+                        <Text size="sm" className="text-justify">
+                          ✅ Rent a chalet in the mountains
+                        </Text>
+                        <Text size="sm" className="text-justify">
+                          ✅ Treat our family
+                        </Text>
+                        <Text size="sm" className="text-justify">
+                          <span className="text-white font-semibold">🥳</span> We celebrated my father in law’s 75th birthday and my step-mom’s retirement together in a chalet on 40 acres near Aspen, Colorado. It was so dreamy! We spent most of the time playing Scrabble indoors, taking in the views from the hot tub (mountains by day, stars by night - even some shooting stars!), watching the deer graze around the property, going to the hot springs, going skiing, eating amazing home-cooked food, playing in the snow, and sledding on one of the hills on the property.
+                        </Text>
+                        <Text size="sm" className="text-justify">
+                          <span className="text-white font-semibold">😁</span> I may have worn my pajamas more than regular clothes and no makeup for the week we were there. It was a wonderful celebration for the family and reset for everyone.
+                        </Text>
+                        <Text size="sm" className="text-justify">
+                          <span className="text-white font-semibold">🏔️</span> My favorite part of the mountains and snow is the peace and silence. It’s so quiet and serene up there that time seems to slow down and appreciation speeds up. The mountains will always hold a special place in our hearts, as will this trip 💙
+                        </Text>
+                      </Stack>
+                    ),
+                    showTitleOnCard: false,
+                    showContentOnCard: false,
+                    showModalImages: false
+                  },
+                  {
+                    id: 'vision-breville',
+                    activeImage: 'https://media.vibrationfit.com/site-assets/proof-wall/breville-active.jpg',
+                    activeImageAlt: 'Active vision photo of Breville coffee maker',
+                    actualizedImage: 'https://media.vibrationfit.com/site-assets/proof-wall/breville-actualized.jpg',
+                    actualizedImageAlt: 'Actualized Breville coffee maker gifted to Jordan and Vanessa',
+                    memberNames: ['Jordan Buckingham', 'Vanessa Buckingham'],
+                    title: 'Breville Coffee Maker Actualized (as a gift!)',
+                    content: (
+                      <Stack gap="md" className="text-left text-neutral-300 leading-relaxed">
+                        <Text size="sm" className="text-justify">
+                          We had this expensive coffee machine on our vision board and in our vision document. In our document we wrote about how amazing it feels to wake up and enjoy a luxurious cup of coffee in the comfort of our own home, and that it tastes even better than Starbucks! The thing was that it never felt like the right time to drop over $400 on a coffee machine.
+                        </Text>
+                        <Text size="sm" className="text-justify">
+                          Then our baby shower came. There was one gift that was very large. We opened it and inside was a much more expensive model of the coffee machine we had put on our vision board! The one our friends gave us was nearly $2,000 and came with all the fancy features!! And we had never even told anyone about wanting this coffee machine. Talk about the Universe delivering something even better!!
+                        </Text>
+                      </Stack>
+                    ),
+                    showTitleOnCard: false,
+                    showContentOnCard: false,
+                    showModalImages: false
+                  }
+                ]}
+                mobileOnly={false}
+                autoScroll
+                autoScrollInterval={7000}
+                desktopCardsPerView={3}
+                swipeThreshold={0.25}
+                hapticFeedback={true}
+                autoSnap={true}
+                showIndicators={true}
+                cardVariant="elevated"
+              />
+            </Card>
+          </Container>
+        </section>
+
+        {/* Why This Works Section */}
+        <section>
+          <Container size="xl">
+            <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
+              <Stack gap="lg" className="md:gap-10">
+                <div className="text-center">
+                  <Heading level={2} className="text-white">
+                    Why This Works (Even If You've Tried Before)
+                  </Heading>
+                </div>
+                
+                <Grid responsiveCols={{ mobile: 1, tablet: 2, desktop: 4 }} gap="lg">
+                  <FeatureCard 
+                    icon={Target} 
+                    title={<span className="text-[#39FF14]">Total Clarity</span>}
+                    iconColor="#39FF14"
+                    variant="elevated"
+                    className="!bg-[#39FF14]/10 !border-[#39FF14]/30"
+                  >
+                    Activate your Life Vision in 72 hours. You leave the Intensive with a complete 12‑category Life Vision, Vision Audio, a 12‑image Vision Board, 1 journal entry, your Calibration Call booked, and your My Activation Plan scheduled.
+                  </FeatureCard>
+
+                  <FeatureCard 
+                    icon={TrendingUp} 
+                    title={<span className="text-[#00FFFF]">Proven System</span>}
+                    iconColor="#00FFFF"
+                    variant="elevated"
+                    className="!bg-[#00FFFF]/10 !border-[#00FFFF]/30"
+                  >
+                    Vibrational fitness is your system for conscious creation. Instead of &quot;trying to manifest,&quot; you follow a simple structure: <strong>Creations</strong>, <strong>Activations</strong>, <strong>Connections</strong>, and <strong>Sessions</strong>, all guided by your My Activation Plan and powered by VIVA&apos;s 4‑Layer Writing Architecture and 5‑Phase Flow across all 12 life categories.
+                  </FeatureCard>
+
+                  <FeatureCard 
+                    icon={Clock} 
+                    title={<span className="text-[#BF00FF]">72‑Hour Activation</span>}
+                    iconColor="#BF00FF"
+                    variant="elevated"
+                    className="!bg-[#BF00FF]/10 !border-[#BF00FF]/30"
+                  >
+                    You don't wait months to feel it working. In the first 72 hours you see concrete outputs on your dashboard: profile + assessment done, vision drafted and refined, audio and board created, journals logged, protocol and call scheduled.
+                  </FeatureCard>
+
+                  <FeatureCard 
+                    icon={CheckCircle} 
+                    title={<span className="text-[#FFFF00]">No Guesswork, Just Reps</span>}
+                    iconColor="#FFFF00"
+                    variant="elevated"
+                    className="!bg-[#FFFF00]/10 !border-[#FFFF00]/30"
+                  >
+                    VIVA asks, you answer. Prompts, checklists, and the My Activation Plan tell you exactly what to do next, every day for 28 days and beyond, so staying aligned becomes a set of simple daily reps, not a mysterious practice you have to invent.
+                  </FeatureCard>
+                </Grid>
+
+                <div className="text-center">
+                  <Button variant="primary" size="xl" asChild>
+                    <a href="#pricing">
+                      Start the Activation Intensive
+                    </a>
+                  </Button>
+                  <Text size="xs" className="text-neutral-400 text-center mt-2">
+                    ${getIntensiveTotal()} today. Includes 8 weeks of Vision Pro. Day 56: auto‑continue at your selected plan.
+                  </Text>
+                </div>
+              </Stack>
+            </div>
+          </Container>
+        </section>
+
+        {/* Offer Stack Section */}
+        <section>
+          <Container size="xl">
+            <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
+              <Stack gap="md" className="md:gap-8">
+                <div className="text-center">
+                  <Heading level={2} className="text-white mb-4">
+                    Exactly What You Get Today
+                  </Heading>
+                  <div className="max-w-2xl mx-auto text-center">
+                    <Text size="lg" className="text-neutral-400">
+                      72‑Hour Activation Intensive + 8 weeks of Vision Pro included
+                    </Text>
+                    <Text size="sm" className="text-neutral-500 mt-1">
+                      (your plan auto‑starts Day 56)
+                    </Text>
+                  </div>
+                </div>
+                
+                <OfferStack
+                  items={[
+                    {
+                      id: 'profile-baseline',
+                      title: 'Profile & Baseline',
+                      description: 'What it is: Your personal snapshot so VIVA can guide you.\nOutcome: Personalized prompts and next steps (no guesswork).\nDone when: Profile is 70%+ complete and your 84‑Q assessment is submitted.',
+                      icon: User,
+                      included: true
+                    },
+                    {
+                      id: 'vibration-assessment',
+                      title: 'Vibration Assessment (84‑Q)',
+                      description: 'What it is: Deep dive on your current vibration.\nOutcome: Map your point of attraction for tailored guidance.\nDone when: All 84 questions are submitted and your score is recorded.',
+                      icon: Brain,
+                      included: true
+                    },
+                    {
+                      id: 'unlock-message',
+                      title: 'The tools below unlock after you complete Profile & Assessment.',
+                      description: '',
+                      icon: null,
+                      included: true,
+                      isMessage: true
+                    },
+                    {
+                      id: 'viva-vision',
+                      title: 'VIVA Vision (Life I Choose)',
+                      description: 'What it is: 12‑category Life Vision builder with VIVA.\nOutcome: Turn "I don\'t know what I want" into a vivid Life I Choose™.\nDone when: First Life Vision draft is completed across all 12 categories with VIVA.',
+                      icon: Sparkles,
+                      included: true,
+                      locked: true
+                    },
+                    {
+                      id: 'vision-refinement',
+                      title: 'Vision Refinement',
+                      description: 'What it is: Polishing pass for clarity and believability.\nOutcome: Tighter language, clear targets, aligned next steps.\nDone when: Your first refinement pass is saved (version 2 live).',
+                      icon: Target,
+                      included: true,
+                      locked: true
+                    },
+                    {
+                      id: 'vision-audio',
+                      title: 'Vision Audio (AM/PM)',
+                      description: 'What it is: Personalized morning and evening tracks.\nOutcome: Daily embodiment of your Life Vision.\nDone when: AM and PM audio files are generated and saved.',
+                      icon: Headphones,
+                      included: true,
+                      locked: true
+                    },
+                    {
+                      id: 'vision-board',
+                      title: 'Vision Board',
+                      description: 'What it is: Visual proof, one image per category.\nOutcome: Desire → In Progress → Actualized pipeline for your goals.\nDone when: 12 images are added (1 per category) and your board is saved.',
+                      icon: Image,
+                      included: true,
+                      locked: true
+                    },
+                    {
+                      id: 'journal',
+                      title: 'Conscious Creation Journal',
+                      description: 'What it is: Multi‑format journal (written, voice, video).\nOutcome: See your progress and patterns as you reflect.\nDone when: 1 entry is logged—so you start your evidence log.',
+                      icon: BookOpen,
+                      included: true,
+                      locked: true
+                    },
+                    {
+                      id: 'calibration-call',
+                      title: '30‑Minute Calibration Call',
+                      description: 'What it is: 1:1 alignment call with a coach.\nOutcome: Review your assets and finalize your My Activation Plan.\nDone when: Your call is booked within the 72‑Hour Intensive and completed within your first 7 days.',
+                      icon: CalendarDays,
+                      included: true,
+                      locked: true
+                    },
+                    {
+                      id: 'activation-protocol',
+                      title: 'My Activation Plan',
+                      description: 'What it is: Your simple daily ritual plan.\nOutcome: Stay in harmony with your vision without guesswork.\nDone when: You and your coach finalize a simple 30‑day My Activation Plan on your Calibration Call.',
+                      icon: Zap,
+                      included: true,
+                      locked: true
+                    },
+                    {
+                      id: 'graduate-unlocks',
+                      title: 'Graduate Unlocks',
+                      description: 'What it is: Rewards that unlock the moment you complete your Activation Checklist.\nOutcome: Extra firepower and support to keep compounding after the Intensive.\nDone when: Your checklist is complete. You\'ll instantly unlock:\n  - Advanced Audio Suite: power tracks, meditation tracks, and solfeggio‑backed "Life I Choose" audios\n  - Vibe Tribe Community: private, tagged feed for wins, struggles, visions, and practices\n  - The Alignment Gym: weekly live group coaching & practice session (first month included)\n  - Graduate Coaching Pass: 1 private "Constraint Clearing" call or Ask‑a‑Coach access in your first 30 days',
+                      icon: Gift,
+                      included: true,
+                      locked: true
+                    },
+                    {
+                      id: '8-weeks-included',
+                      title: '8 Weeks of Vision Pro Included',
+                      description: 'What it is: Full access to VIVA and your Graduate Unlocks. Vibe Tribe, The Alignment Gym, and advanced audios open as soon as you graduate.\nOutcome: Keep compounding after activation before your plan starts.\nDone when: Your access is live now, and your selected plan is scheduled to begin automatically on Day 56 (Annual or Every 28 Days).',
+                      icon: Crown,
+                      included: true
+                    }
+                  ]}
+                  defaultExpanded={['profile-baseline', 'vibration-assessment']}
+                  allowMultiple={true}
+                />
+                
+                <div className="text-center">
+                  <Button variant="primary" size="xl" asChild>
+                    <a href="#pricing">
+                      Start the Activation Intensive
+                    </a>
+                  </Button>
+                </div>
+              </Stack>
+            </div>
+          </Container>
+        </section>
+
+        {/* Meet the Mechanism */}
+        <section>
+          <Container size="xl">
+            <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#333] border-2 rounded-2xl p-4 md:p-6 lg:p-8">
+              <Stack gap="sm" className="md:gap-6" align="center">
+                <div className="text-center space-y-4">
+                  <Heading level={2} className="text-white !mb-0">
+                    Meet the Engine Behind VIVA Vision
+                  </Heading>
+                  <Text size="lg" className="text-neutral-400 font-semibold !mt-4">
+                    The 4‑Layer Conscious Creation Writing Architecture (encoded in VIVA)
+                  </Text>
+                  <Text size="base" className="text-neutral-300 w-full !mt-4">
+                    In 2011, Jordan wrote his first Life I Choose™. In 2014, he did it again—and the same pattern showed up. When Vanessa joined, structure met soul. We realized our writing always followed a hidden creation rhythm—then we taught VIVA to guide anyone through it.
+                  </Text>
+                </div>
+                <Grid responsiveCols={{ mobile: 1, desktop: 4 }} minWidth="200px" gap="sm">
+                  <FeatureCard 
+                    icon={Sparkles} 
+                    title={<><span>Layer 1</span><br /><span className="text-[#39FF14]">5‑Phase Flow</span></>}
+                    iconColor="#39FF14"
+                    variant="outlined"
+                    className="!bg-[#39FF14]/10 !border-[#39FF14]/30"
+                  >
+                    Gratitude → Sensory → Embodiment → Essence → Surrender. This is the emotional arc each vision paragraph follows.
+                  </FeatureCard>
+                  <FeatureCard 
+                    icon={Image} 
+                    title={<><span>Layer 2</span><br /><span className="text-[#14B8A6]">Scene Builder</span></>}
+                    iconColor="#14B8A6"
+                    variant="outlined"
+                    className="!bg-[#14B8A6]/10 !border-[#14B8A6]/30"
+                  >
+                    Turn vague goals into vivid scenes. VIVA prompts for characters, action, setting, and meaning so your vision feels like a real experience.
+                  </FeatureCard>
+                  <FeatureCard 
+                    icon={RefreshCw} 
+                    title={<><span>Layer 3</span><br /><span className="text-[#BF00FF]">Flow Loops</span></>}
+                    iconColor="#BF00FF"
+                    variant="outlined"
+                    className="!bg-[#BF00FF]/10 !border-[#BF00FF]/30"
+                  >
+                    Balance identity, action, and allowing so momentum compounds instead of stalling out.
+                  </FeatureCard>
+                  <FeatureCard 
+                    icon={Maximize2} 
+                    title={<><span>Layer 4</span><br /><span className="text-[#FFB701]">Breathing Pace</span></>}
+                    iconColor="#FFB701"
+                    variant="outlined"
+                    className="!bg-[#FFB701]/10 !border-[#FFB701]/30"
+                  >
+                    Zoom into sensory detail, zoom out to meaning—writing that feels alive (and sticks).
+                  </FeatureCard>
+                </Grid>
+                <Text size="base" className="text-neutral-300 text-center w-full">
+                  VIVA now walks you through this 4-Layer Architecture across all 12 life categories—so in 72 hours you finish "active" with your complete vision, AM/PM vision audios, vision board built, 1 journal entry logged, calibration call booked, and your My Activation Plan scheduled.
+                </Text>
+                <Button variant="primary" size="lg" asChild>
+                  <a href="#pricing">Start the Activation Intensive</a>
+                </Button>
+              </Stack>
+            </div>
+          </Container>
+        </section>
+
+        {/* Guarantees Section */}
+        <section id="our-guarantees">
+          <Container size="xl">
+            <div className="bg-[#1F1F1F] border-[#333] border-2 rounded-2xl p-4 md:p-6 lg:p-8">
+              <Stack gap="xs" className="md:gap-3" align="center">
+                <div className="w-16 h-16 bg-[#FFFF00] rounded-full flex items-center justify-center mb-2">
+                  <Shield className="w-8 h-8 text-black" />
+                </div>
+                <Heading level={2} className="text-center mb-0 md:mb-8">Our Guarantees</Heading>
+                
+                <Grid responsiveCols={{mobile: 1, desktop: 2}} gap="lg" className="w-full md:items-stretch">
+                {/* 72-Hour Activation Guarantee */}
+                <div className="relative mt-28 md:mt-28 md:flex md:flex-col">
+                  <div className="absolute -top-20 md:-top-24 left-1/2 -translate-x-1/2 w-40 h-40 md:w-48 md:h-48 z-10">
+                    <img 
+                      src="https://media.vibrationfit.com/site-assets/brand/guarantees/72-hour-activation-guarantee.png" 
+                      alt="72 Hour Activation Guarantee"
+                      className="w-full h-auto object-contain"
+                      style={{ maxHeight: '100%' }}
+                    />
+                  </div>
+                  <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/10 to-[#14B8A6]/10 border-[#39FF14]/30 !pt-20 md:!pt-24 lg:!pt-24 md:flex-1 md:flex md:flex-col">
+                    <Stack gap="md" align="center" className="pb-4 md:pb-0 md:flex-1">
+                      <Heading level={3} className="text-base md:text-lg lg:text-xl text-white text-center !mb-0">
+                      72‑Hour Activation Guarantee
+                    </Heading>
+                    <div className="text-center">
+                        <p className="text-sm md:text-base text-[#39FF14] font-semibold flex items-center justify-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        Clock starts today
+                      </p>
+                    </div>
+                      <Text size="sm" className="md:text-base text-white text-center">
+                      Complete your Activation Checklist in 72 hours. Not satisfied? Full refund of your ${getIntensiveTotal()} Intensive fee. No questions asked.
+                    </Text>
+                      <Text size="xs" className="md:text-sm text-neutral-300 text-center">
+                      Completion = all of this done within 72 hours:<br />Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), First refinement done, Vision Audio generated, Vision Board built (12 images), 1 journal entry logged, Calibration Call booked, My Activation Plan scheduled
+                    </Text>
+                  </Stack>
+                  </Card>
+                </div>
+
+                {/* Membership Guarantee */}
+                <div className="relative mt-28 md:mt-28 md:flex md:flex-col">
+                  <div className="absolute -top-20 md:-top-24 left-1/2 -translate-x-1/2 w-40 h-40 md:w-48 md:h-48 z-10">
+                    <img 
+                      src="https://media.vibrationfit.com/site-assets/brand/guarantees/membership-guarantee.png"
+                      alt="Membership Guarantee"
+                      className="w-full h-auto object-contain"
+                      style={{ maxHeight: '100%' }}
+                    />
+                  </div>
+                  <Card variant="elevated" className="bg-gradient-to-br from-[#14B8A6]/10 to-[#8B5CF6]/10 border-[#14B8A6]/30 !pt-20 md:!pt-24 lg:!pt-24 md:flex-1 md:flex md:flex-col">
+                    <Stack gap="md" align="center" className="pb-4 md:pb-0 md:flex-1">
+                      <Heading level={3} className="text-base md:text-lg lg:text-xl text-white text-center !mb-0">
+                      Membership Guarantee
+                    </Heading>
+                    <div className="text-center">
+                        <p className="text-sm md:text-base text-[#8B5CF6] font-semibold flex items-center justify-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        Clock starts today
+                      </p>
+                    </div>
+                      <div className="text-sm md:text-base text-white text-center space-y-1">
+                        <p>You have a 16‑week satisfaction guarantee from your checkout date, no matter which plan you choose (Every 28 Days or Annual).</p>
+                      </div>
+                      <div className="text-xs md:text-sm text-neutral-300 text-center space-y-2">
+                        <p className="font-semibold">Not satisfied within your 16‑week window?</p>
+                        <p>If your plan <strong className="font-semibold">hasn't billed yet</strong> (first charge is Day 56), we cancel the upcoming charge and end your membership at the end of the current paid period.</p>
+                        <p>If it <strong className="font-semibold">has billed</strong> inside your 16-week window, we refund that charge and cancel all future renewals.</p>
+                      </div>
+                </Stack>
+                  </Card>
+                </div>
+                </Grid>
+              </Stack>
+          </div>
+          </Container>
+        </section>
+
+        {/* Pricing Section */}
+        <section id="pricing">
+          <Container size="xl">
+            <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
+              <Stack gap="xl" className="md:gap-12">
+                
+                {/* PLAN TYPE TOGGLE */}
+                <div className="flex justify-center">
+                  <div className="inline-flex w-auto items-center gap-1.5 p-1.5 bg-neutral-800/80 backdrop-blur-sm rounded-full border border-neutral-700">
+                    <button
+                      onClick={() => setPlanType('solo')}
+                      className={`px-5 md:px-6 py-3 md:py-3.5 rounded-full font-semibold transition-all duration-300 ${
+                        planType === 'solo'
+                          ? 'bg-[#39FF14] text-black shadow-lg shadow-[#39FF14]/30'
+                          : 'text-neutral-400 hover:text-white hover:bg-neutral-700/50'
+                      }`}
+                    >
+                      <span className="flex flex-col items-center gap-0">
+                        <span className="flex items-center gap-1.5 md:gap-2">
+                          <User className="w-4 h-4" />
+                          <span>Solo</span>
+                          <span className="hidden md:inline">·</span>
+                          <span className="hidden md:inline">1 Login</span>
+                        </span>
+                        <span className="text-xs md:hidden">1 Login</span>
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => setPlanType('household')}
+                      className={`px-5 md:px-6 py-3 md:py-3.5 rounded-full font-semibold transition-all duration-300 ${
+                        planType === 'household'
+                          ? 'bg-[#8B5CF6] text-white shadow-lg shadow-[#8B5CF6]/30'
+                          : 'text-neutral-400 hover:text-white hover:bg-neutral-700/50'
+                      }`}
+                    >
+                      <span className="flex flex-col items-center gap-0">
+                        <span className="flex items-center gap-1.5 md:gap-2">
+                          <Users className="w-4 h-4" />
+                          <span>Household</span>
+                          <span className="hidden md:inline">·</span>
+                          <span className="hidden md:inline">2 Logins</span>
+                        </span>
+                        <span className="text-xs md:hidden">2 Logins</span>
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* CHOOSE YOUR ACTIVATION PATH */}
+                <div className="text-center">
+                  <Heading level={2} className="text-white text-3xl md:text-5xl font-bold mb-6 md:mb-8">
+                    Choose Your Activation Path
+                  </Heading>
+                  <div className="w-full h-px bg-gradient-to-r from-[#39FF14]/0 via-[#39FF14]/60 to-[#39FF14]/0 mx-auto mb-6 md:mb-8"></div>
+                  <div className="max-w-3xl mx-auto space-y-4">
+                    <Text size="xl" className="text-neutral-200">
+                      The Activation Intensive is a complete conscious creation system you install in 72 hours.
+                    </Text>
+                    <Text size="base" className="text-neutral-400">
+                      Add Premium for 10 private coaching sessions to accelerate your results. Both include 8 weeks of Vision Pro, then ${getVisionProMonthlyPrice()} every 28 days.
+                    </Text>
+                  </div>
+                </div>
+
+                {/* ACTIVATION TIER SELECTION */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 w-full">
+
+                  {/* ACTIVATION INTENSIVE CARD */}
+                  <Card
+                    className={`relative cursor-pointer transition-all duration-300 ${
+                      activationTier === 'standard'
+                        ? 'border-2 border-[#39FF14] bg-gradient-to-br from-[#39FF14]/10 to-[#14B8A6]/5 scale-[1.02] ring-2 ring-[#39FF14]/50'
+                        : 'border border-neutral-700 opacity-70 hover:opacity-90 hover:border-neutral-500'
+                    }`}
+                    onClick={() => setActivationTier('standard')}
+                  >
+                    {activationTier === 'standard' && (
+                      <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                        <div className="bg-[#39FF14] text-black px-4 py-1 text-sm font-bold rounded-full shadow-lg shadow-[#39FF14]/30">
+                          Most Popular
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                        activationTier === 'standard' ? 'border-[#39FF14]' : 'border-neutral-500'
+                      }`}>
+                        {activationTier === 'standard' && (
+                          <div className="w-2.5 h-2.5 rounded-full bg-[#39FF14]" />
+                        )}
+                      </div>
+                      <h3 className="text-xl md:text-2xl font-bold text-white">Activation Intensive</h3>
+                    </div>
+
+                    <div className="mb-4">
+                      <div className="inline-flex items-baseline gap-2">
+                        <span className="text-4xl md:text-5xl font-bold text-white">
+                          ${planType === 'solo' ? '499' : '699'}
+                        </span>
+                        <span className="text-lg text-neutral-400">today</span>
+                      </div>
+                    </div>
+
+                    <p className="text-sm text-[#39FF14] font-medium mb-6">
+                      Install a complete conscious creation system in 72 hours.
+                    </p>
+
+                    <div className="space-y-3 mb-6">
+                      {[
+                        'Full 72-Hour Activation Intensive',
+                        '12-category Life Vision built with VIVA',
+                        'Vision Audio (AM/PM), Vision Board, and Journal',
+                        '30-minute Calibration Call with a coach',
+                        'My Activation Plan (your daily roadmap)',
+                        'Graduate Unlocks: Advanced Audio Suite, Alignment Gym, and Vibe Tribe',
+                        `${formatTokensShort(tokenGrant(planType === 'solo' ? TIER_TYPES.INTENSIVE : TIER_TYPES.INTENSIVE_HOUSEHOLD))} VIVA tokens included`,
+                        '8 weeks Vision Pro included',
+                        `${storageQuota(planType === 'solo' ? TIER_TYPES.MONTHLY_28DAY : TIER_TYPES.HOUSEHOLD_28DAY)}GB storage`,
+                      ].map((feature, idx) => (
+                        <div key={idx} className="flex items-start gap-3">
+                          <Check className="w-4 h-4 text-[#39FF14] flex-shrink-0 mt-0.5" />
+                          <span className="text-neutral-200 text-sm">{feature}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="pt-4 border-t border-neutral-700/50">
+                      <p className="text-xs text-neutral-400 text-center">
+                        Then ${getVisionProMonthlyPrice()} every 28 days starting Day 56
+                      </p>
+                    </div>
+                  </Card>
+
+                  {/* PREMIUM ADD-ON CARD */}
+                  <Card
+                    className={`relative cursor-pointer transition-all duration-300 ${
+                      activationTier === 'premium'
+                        ? 'border-2 border-[#BF00FF] bg-gradient-to-br from-[#BF00FF]/10 to-[#8B5CF6]/5 scale-[1.02] ring-2 ring-[#BF00FF]/50'
+                        : 'border border-neutral-700 opacity-70 hover:opacity-90 hover:border-neutral-500'
+                    }`}
+                    onClick={() => { setActivationTier('premium'); setPaymentPlan('full') }}
+                  >
+                    {activationTier === 'premium' && (
+                      <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                        <div className="bg-[#BF00FF] text-white px-4 py-1 text-sm font-bold rounded-full shadow-lg shadow-[#BF00FF]/30">
+                          Maximum Results
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                        activationTier === 'premium' ? 'border-[#BF00FF]' : 'border-neutral-500'
+                      }`}>
+                        {activationTier === 'premium' && (
+                          <div className="w-2.5 h-2.5 rounded-full bg-[#BF00FF]" />
+                        )}
+                      </div>
+                      <h3 className="text-xl md:text-2xl font-bold text-white">Activation Intensive + Premium Coaching</h3>
+                    </div>
+
+                    <div className="mb-4">
+                      <div className="inline-flex items-baseline gap-2">
+                        <span className="text-4xl md:text-5xl font-bold text-white">
+                          ${planType === 'solo' ? '3,000' : '4,200'}
+                        </span>
+                        <span className="text-lg text-neutral-400">today</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#39FF14]/5 border border-[#39FF14]/20 rounded-xl p-3 mb-5">
+                      <div className="flex items-start gap-3">
+                        <Check className="w-4 h-4 text-[#39FF14] flex-shrink-0 mt-0.5" />
+                        <span className="text-neutral-200 text-sm font-medium">Full Activation Intensive included (everything on the left)</span>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-[#BF00FF] font-semibold uppercase tracking-wider mb-3">+ 10 Private 1:1 Coaching Sessions</p>
+
+                    <div className="space-y-3 mb-6">
+                      {[
+                        '2 sessions per week for weeks 1-2 (rapid constraint clearing)',
+                        '1 session per week for weeks 3-8 (deepening and integration)',
+                        'Identify and eliminate vibrational constraints holding you back',
+                        'Personalized practice plan built with your coach each session',
+                        'Deep-dive vision refinement with expert guidance',
+                        'Real-time course correction as your reality shifts',
+                        'Priority support between sessions',
+                      ].map((feature, idx) => (
+                        <div key={idx} className="flex items-start gap-3">
+                          <Check className="w-4 h-4 text-[#BF00FF] flex-shrink-0 mt-0.5" />
+                          <span className="text-neutral-200 text-sm">{feature}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="pt-4 border-t border-neutral-700/50">
+                      <p className="text-xs text-neutral-400 text-center">
+                        Then ${getVisionProMonthlyPrice()} every 28 days starting Day 56
+                      </p>
+                    </div>
+                  </Card>
+                </div>
+
+                {/* PAYMENT OPTIONS - Standard only */}
+                {activationTier === 'standard' && (
+                  <Stack align="center" gap="md">
+                    <h3 className="text-lg font-bold text-white">Payment Options</h3>
+                    <div className="flex flex-row gap-2 justify-center flex-wrap">
+                      <Button
+                        variant={paymentPlan === 'full' ? 'primary' : 'outline'}
+                        size="md"
+                        className="px-2 py-2 text-xs flex-shrink-0"
+                        onClick={() => setPaymentPlan('full')}
+                      >
+                        Pay in Full
+                      </Button>
+                      <Button
+                        variant={paymentPlan === '2pay' ? 'primary' : 'outline'}
+                        size="md"
+                        className="px-2 py-2 text-xs flex-shrink-0"
+                        onClick={() => setPaymentPlan('2pay')}
+                      >
+                        2 Payments
+                      </Button>
+                      <Button
+                        variant={paymentPlan === '3pay' ? 'primary' : 'outline'}
+                        size="md"
+                        className="px-2 py-2 text-xs flex-shrink-0"
+                        onClick={() => setPaymentPlan('3pay')}
+                      >
+                        3 Payments
+                      </Button>
+                    </div>
+                  </Stack>
+                )}
+
+                    {/* SEPARATOR */}
+                    <div className="w-full h-px bg-neutral-600"></div>
+
+                    {/* ORDER SUMMARY & RENEWAL TERMS */}
+                    <Card className="bg-[#1F1F1F]/50 border-[#39FF14]/30 w-full">
+                      <Stack gap="md" className="md:gap-8">
+                        <Heading level={4} className="text-[#39FF14] text-center">Order Summary & Renewal Terms</Heading>
+                        
+                        {/* Order Summary */}
+                        <Stack gap="sm" align="center">
+                          {promoCode && (
+                            <Badge variant="premium" className="mb-2">
+                              {promoCode.toUpperCase()} Applied
+                            </Badge>
+                          )}
+                          <div className="text-white text-center text-sm md:text-base">
+                            {promoCode ? (
+                              <><strong>Today:</strong> <span className="text-[#39FF14] font-bold">$1</span> payment verification + FREE {activationTier === 'premium' ? 'Premium' : ''} Activation + 8 weeks included.</>
+                            ) : activationTier === 'premium' ? (
+                              <><strong>Today:</strong> ${getIntensiveTotal()} for the Premium Activation + 8 weeks included.</>
+                            ) : paymentPlan === 'full' ? (
+                              <><strong>Today:</strong> ${getIntensiveTotal()} for the Activation Intensive + 8 weeks included.</>
+                            ) : paymentPlan === '2pay' ? (
+                              <>
+                                <strong>Today:</strong> ${getPaymentAmount()} for the Activation Intensive + 8 weeks included.<br />
+                                <strong>In 4 weeks:</strong> ${getPaymentAmount()} (final payment)
+                              </>
+                            ) : (
+                              <>
+                                <strong>Today:</strong> ${getPaymentAmount()} for the Activation Intensive + 8 weeks included.<br />
+                                <strong>In 4 weeks:</strong> ${getPaymentAmount()}<br />
+                                <strong>In 8 weeks:</strong> ${getPaymentAmount()} (final payment)
+                              </>
+                            )}
+                          </div>
+                          <p className="text-neutral-400 text-xs text-center">
+                            <Shield className="w-3 h-3 text-[#FFFF00] inline-block align-middle -mt-[2px] mr-1" aria-hidden />
+                            72-Hour Activation Guarantee
+                          </p>
+                          <div className="text-white text-center text-sm md:text-base">
+                            <strong>Day 56:</strong> ${getVisionProMonthlyPrice()} Payment. Renews every 28 days.
+                          </div>
+                          <p className="text-neutral-400 text-xs text-center">
+                            <Shield className="w-3 h-3 text-[#FFFF00] inline-block align-middle -mt-[2px] mr-1" aria-hidden />
+                            16‑week Membership Satisfaction Guarantee from today.
+                          </p>
+                          <div className="flex justify-center text-center">
+                            <div className="text-white text-sm md:text-base max-w-[min(100%,20rem)] mx-auto">
+                              <strong>You can switch or cancel any time before Day 56.</strong>
+                            </div>
+                          </div>
+                        </Stack>
+
+                        {/* CTA BUTTON */}
+                    <div className="flex flex-col items-center">
+                      <Button
+                        variant="primary"
+                        size="xl"
+                        onClick={handleIntensivePurchase}
+                        disabled={isLoading}
+                      >
+                        {isLoading ? 'Processing...' : promoCode ? 'Pay $1 & Start My Activation' : 'Start My Activation'}
+                      </Button>
+                      <p className="flex items-center justify-center gap-2 text-xs text-[#39FF14] text-center mt-2">
+                        <ShoppingCart className="w-3.5 h-3.5" />
+                        Next Step: Secure Checkout
+                      </p>
+                    </div>
+                      </Stack>
+                    </Card>
+
+                    <Card className="bg-black/80 border-[#39FF14]/30 w-full text-center">
+                      <Stack gap="sm" className="md:gap-4" align="center">
+                        <Heading level={4} className="text-white">
+                          Questions?
+                        </Heading>
+                        <Text size="base" className="text-neutral-300">
+                          Email{' '}
+                          <a
+                            href="mailto:team@vibrationfit.com"
+                            className="text-[#39FF14] underline underline-offset-4 hover:text-[#5EC49A] transition-colors"
+                          >
+                            team@vibrationfit.com
+                          </a>{' '}
+                          — first reply within 1 business day.
+                        </Text>
+                        <a
+                          href="#full-faq"
+                          className="text-[#39FF14] hover:text-[#5EC49A] underline underline-offset-4 transition-colors text-sm md:text-base"
+                        >
+                          See Full FAQ
+                        </a>
+                      </Stack>
+                    </Card>
+
+                    {/* FAQ Section */}
+                    <Card className="bg-[#1F1F1F]/50 border-[#39FF14]/30 w-full">
+                      <Stack gap="md">
+                        <div className="text-center">
+                          <Heading level={4} className="text-white font-bold border-b-2 border-[#39FF14] pb-2 inline-block">FAQ's</Heading>
+                        </div>
+                        <Stack gap="sm" className="text-left">
+                          <div>
+                            <div className="flex items-start gap-2 mb-2">
+                              <span className="text-[#39FF14] text-sm mt-0.5">•</span>
+                              <h5 className="text-white font-semibold">When does billing start?</h5>
+                            </div>
+                            <div className="ml-4 mb-0 text-justify">
+                              <p className="text-neutral-300 text-sm">${getIntensiveTotal()} today for the {activationTier === 'premium' ? 'Premium ' : ''}Activation + 8 weeks included. Day 56 your ${getVisionProMonthlyPrice()}/28-day membership begins automatically.</p>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex items-start gap-2 mb-2">
+                              <span className="text-[#39FF14] text-sm mt-0.5">•</span>
+                              <h5 className="text-white font-semibold">Can I switch or cancel my membership before Day 56?</h5>
+                            </div>
+                            <div className="ml-4 mb-0 text-justify">
+                              <p className="text-neutral-300 text-sm">Yes—1‑click switch/cancel anytime before Day 56.</p>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex items-start gap-2 mb-2">
+                              <span className="text-[#39FF14] text-sm mt-0.5">•</span>
+                              <h5 className="text-white font-semibold">When do guarantees start?</h5>
+                            </div>
+                            <div className="ml-4 mb-0 text-justify">
+                              <p className="text-neutral-300 text-sm">All guarantees start from your checkout date. Your 72‑hour window begins the moment you enroll in the Intensive, and your Membership Satisfaction Guarantee runs for 16 weeks from that same checkout date, no matter which plan you choose.</p>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex items-start gap-2 mb-2">
+                              <span className="text-[#39FF14] text-sm mt-0.5">•</span>
+                              <h5 className="text-white font-semibold">What qualifies for the 72‑Hour Activation Guarantee?</h5>
+                            </div>
+                            <div className="ml-4 mb-0 text-justify">
+                              <p className="text-neutral-300 text-sm">Complete your Activation Checklist within 72 hours (profile, assessment, vision, audios, board, journal, Calibration Call, and MAP). If you do that and aren&apos;t satisfied, you get a full refund.</p>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex items-start gap-2 mb-2">
+                              <span className="text-[#39FF14] text-sm mt-0.5">•</span>
+                              <h5 className="text-white font-semibold">What if I'm not satisfied with the membership?</h5>
+                            </div>
+                            <div className="ml-4 mb-0 text-justify">
+                              <p className="text-neutral-300 text-sm">You have a 16‑week satisfaction guarantee from your checkout date, no matter which plan you choose (Every 28 Days or Annual). If you're not satisfied within those 16 weeks, we'll refund your most recent membership charge (if it was billed inside the window) and cancel all future renewals.</p>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex items-start gap-2 mb-2">
+                              <span className="text-[#39FF14] text-sm mt-0.5">•</span>
+                              <h5 className="text-white font-semibold">What if I don't know what I want?</h5>
+                            </div>
+                            <div className="ml-4 mb-0 text-justify">
+                              <p className="text-neutral-300 text-sm">VIVA AI turns contrast into clarity and drafts your 12‑category Life Vision for you.</p>
+                            </div>
+                          </div>
+                        </Stack>
+                        <div className="text-center mt-4 space-y-4">
+                          <a
+                            href="#full-faq"
+                            className="text-[#39FF14] hover:text-[#5EC49A] underline transition-colors cursor-pointer text-sm md:text-base block mb-6"
+                          >
+                            See full FAQ
+                          </a>
+                          <div>
+                            <Button variant="primary" size="xl" asChild>
+                              <a href="#pricing">
+                                Start the Activation Intensive
+                              </a>
+                          </Button>
+                          </div>
+                        </div>
+                      </Stack>
+                    </Card>
+              </Stack>
+          </div>
+          </Container>
+        </section>
+
+        {/* FAQ Section - Full FAQ Placeholder */}
+        <section id="full-faq-placeholder" className="hidden" aria-hidden="true">
+          {/* Reserved for future FAQ content */}
+        </section>
+
+        {/* The Problem: Vibrational Chaos */}
+        <section id="problem">
+          <Container size="xl">
+            <div className="border-[#FF0040]/30 bg-[#FF0040]/5 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
+              <Stack gap="md" className="md:gap-8">
+                <div className="text-center">
+                  <div className="flex flex-wrap justify-center">
+                    <Heading level={2} className="text-white mb-4 text-2xl sm:text-3xl md:text-5xl">
+                  The Problem: <span className="text-[#FF0040]">Vibrational Chaos</span>
+                    </Heading>
+                  </div>
+                  <Text size="lg" className="text-neutral-300 mb-8">
+                    Vibrational chaos = being consistently inconsistent about the same desire.
+                </Text>
+                </div>
+                <Stack gap="md" className="md:gap-8">
+                  {/* Symptoms Section */}
+                  <div className="-mt-4 md:-mt-6">
+                    <Heading level={3} className="text-[#FF0040] text-center mb-4">Symptoms</Heading>
+                    <div className="space-y-3 text-center px-0 md:px-4">
+                      <BulletedList className="inline-flex flex-col items-center gap-2">
+                        <ListItem variant="error" className="text-center max-w-xl">Flip‑flop thoughts: "I want it" ⇄ "I can't have it"</ListItem>
+                        <ListItem variant="error" className="text-center max-w-xl">Toddlers‑with‑scissors beliefs running your mind</ListItem>
+                        <ListItem variant="error" className="text-center max-w-xl">Open loops: start, stop, restart—no dominant signal</ListItem>
+                        <ListItem variant="error" className="text-center max-w-xl">Seeking signs instead of setting structure</ListItem>
+                        <ListItem variant="error" className="text-center max-w-xl">Evidence‑hunting for why it won't work</ListItem>
+                      </BulletedList>
+                    </div>
+              </div>
+
+                  {/* 60-Second Self-Check */}
+                  <div className="bg-[#1F1F1F]/50 rounded-xl p-6 border border-[#FF0040]/30 w-full max-w-5xl mx-auto">
+                    <Heading level={3} className="text-white mb-4 text-center">60‑Second Self‑Check</Heading>
+                    <Text size="sm" className="text-neutral-400 text-center mb-4">Tap Yes/No for each. Your score appears instantly.</Text>
+                    <Text size="sm" className="text-neutral-300 text-center mb-4 font-semibold">In the past 7 days did you...</Text>
+                    <Stack gap="sm" className="items-center">
+                      {[
+                        'Contradict a key desire with doubt?',
+                        'Avoid writing what you want ("I\'m not sure yet")?',
+                        'Start, stop, and "restart Monday"?',
+                        'Consume more than you create (no assets built)?',
+                        'Dismiss a small win as "luck"?'
+                      ].map((question, index) => (
+                        <div key={index} className="flex flex-col items-center gap-3 py-3 border-b border-neutral-700/50 last:border-b-0 w-full">
+                          <Text size="sm" className="text-neutral-300 text-center">{question}</Text>
+                          <div className="flex gap-3">
+                            <button
+                              onClick={() => {
+                                const newAnswers = [...selfCheckAnswers]
+                                newAnswers[index] = true
+                                setSelfCheckAnswers(newAnswers)
+                              }}
+                              className={`px-4 py-2 rounded-full text-sm font-semibold transition-all min-h-[44px] ${
+                                selfCheckAnswers[index]
+                                  ? 'bg-[#39FF14] text-black scale-105 shadow-lg shadow-[#39FF14]/20'
+                                  : 'bg-neutral-700 text-neutral-400 hover:bg-neutral-600'
+                              }`}
+                            >
+                              Yes
+                            </button>
+                            <button
+                              onClick={() => {
+                                const newAnswers = [...selfCheckAnswers]
+                                newAnswers[index] = false
+                                setSelfCheckAnswers(newAnswers)
+                              }}
+                              className={`px-4 py-2 rounded-full text-sm font-semibold transition-all min-h-[44px] ${
+                                selfCheckAnswers[index] === false
+                                  ? 'bg-neutral-800 text-white border-2 border-[#333]'
+                                  : 'bg-neutral-700 text-neutral-400 hover:bg-neutral-600'
+                              }`}
+                            >
+                              No
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      {(() => {
+                        const chaosScore = calculateChaosScore()
+                        const prescriptions = getPrescription()
+                        return (
+                          <div className="space-y-4">
+                            <div 
+                              className={`border-2 rounded-lg p-4 mt-4`}
+                              style={{ borderColor: chaosScore.color }}
+                            >
+                              <Text size="sm" className="text-center">
+                                <strong style={{ color: chaosScore.color }}>Score: {chaosScore.score}/5</strong>
+                                <span className="text-neutral-400 ml-2">= {chaosScore.label}</span>
+                              </Text>
+                            </div>
+                            {prescriptions.length > 0 && (
+                              <div className="bg-[#39FF14]/10 border border-[#39FF14]/30 rounded-lg p-4">
+                                <Text size="sm" className="text-[#39FF14] font-semibold mb-2">Micro‑prescriptions:</Text>
+                                <Stack gap="xs">
+                                  {prescriptions.map((prescription, idx) => (
+                                    <Text key={idx} size="sm" className="text-neutral-300">
+                                      • {prescription}
+                                    </Text>
+                                  ))}
+                                </Stack>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })()}
+                      <div className="text-center mt-6">
+                        <Text size="sm" className="text-neutral-400 text-center mb-3">
+                          Ditch chaos in 72 hours
+                        </Text>
+                        <Button variant="primary" size="md" asChild>
+                          <a href="#pricing">
+                            Start the Activation Intensive
+                          </a>
+                        </Button>
+                      </div>
+                    </Stack>
+                  </div>
+
+
+                  {/* Bridge Section */}
+                  <div className="bg-[#1F1F1F]/50 rounded-xl p-6 border border-[#39FF14]/30 w-full max-w-5xl mx-auto">
+                    <Heading level={3} className="text-[#39FF14] mb-3 text-center">The Fix</Heading>
+                    <Text size="base" className="text-neutral-300 mb-4 text-center">
+                      Chaos is an input problem. Structure fixes inputs.
+                    </Text>
+                    <div className="text-center mb-4">
+                      <Text size="base" className="text-neutral-300 font-semibold">The Conscious Creation System</Text>
+                      <Text size="lg" className="text-[#39FF14] font-bold">Creations → Activations → Connections → Sessions</Text>
+                      <Text size="base" className="text-neutral-300">turns scattered signals into a dominant point of attraction.</Text>
+                    </div>
+                    <Text size="sm" className="text-neutral-300 text-center">
+                      <strong className="text-[#39FF14]">Cost of chaos:</strong> weeks pass, assets = 0.<br />
+                      <strong className="text-[#39FF14]">With structure:</strong> a complete vision, audios, board, and journals in 72 hours, plus your MAP so you know exactly what to do next.
+                    </Text>
+                  </div>
+
+                  {/* CTA */}
+                  <div className="text-center">
+                    <Text size="sm" className="text-neutral-400 text-center mb-3">
+                      Ditch chaos in 72 hours
+                    </Text>
+                    <Button variant="primary" size="lg" asChild>
+                      <a href="#pricing">
+                        Start the Activation Intensive
+                      </a>
+                    </Button>
+                  </div>
+                </Stack>
+              </Stack>
+            </div>
+          </Container>
+        </section>
+
+        {/* The Solution: Conscious Creation System */}
+        <section id="solution">
+          <Container size="xl">
+            <Card variant="outlined" className="border-[#39FF14] bg-[#0F1612]/70 p-4 md:p-6 shadow-[0_18px_60px_rgba(57,255,20,0.12)]">
+              <Stack gap="lg">
+                <div className="text-center w-full space-y-3">
+                  <Heading level={2} className="text-white mb-4 leading-tight">
+                    <span className="block md:inline">The Solution:</span>{' '}
+                    <span className="block md:inline text-[#39FF14]">Conscious Creation, Simplified</span>
+                  </Heading>
+                  <Text size="base" className="text-neutral-200 max-w-3xl mx-auto">
+                    Structure beats "trying." Follow a simple rhythm Creations → Activations → Connections → Sessions so you always know what to do to stay aligned with your Life Vision.
+                  </Text>
+                  <Text size="sm" className="text-neutral-300 tracking-wide max-w-3xl mx-auto">
+                    <strong>Vibrational fitness is your system for conscious creation.</strong> It's doing the reps that keep you aligned with your Life Vision—so your outer world naturally begins to reflect it, again and again and again.
+                  </Text>
+                </div>
+
+                <Grid responsiveCols={{ mobile: 1, desktop: 4 }} gap="lg">
+                  <Card variant="elevated" className="h-full border-[#39FF14]/30 bg-[#39FF14]/6">
+                    <Stack gap="md" className="h-full">
+                      <div className="w-16 h-16 bg-gradient-to-br from-[#39FF14]/25 to-transparent rounded-2xl flex items-center justify-center mx-auto">
+                        <Icon icon={Brain} size="lg" color="#39FF14" />
+                      </div>
+                      <Stack gap="sm" className="text-left items-center">
+                        <Heading level={3} className="text-white text-center uppercase tracking-wide !mb-0">
+                          Creations
+                        </Heading>
+                        <Text size="base" className="text-neutral-400 uppercase tracking-wide text-center -mt-1">(0–72h)</Text>
+                        <Text size="sm" className="text-neutral-300 font-semibold text-center w-full">Your activation checklist</Text>
+                        <BulletedList className="space-y-1 text-neutral-100">
+                          <ListItem variant="success" icon={Check}>Complete your profile and Vibration Assessment</ListItem>
+                          <ListItem variant="success" icon={Check}>Draft your 12‑category Life Vision with VIVA</ListItem>
+                          <ListItem variant="success" icon={Check}>Build your first Vision Board (12 images)</ListItem>
+                          <ListItem variant="success" icon={Check}>Generate your Vision Audio</ListItem>
+                          <ListItem variant="success" icon={Check}>Log your first journal entry (written, voice, or video)</ListItem>
+                        </BulletedList>
+                        <Text size="sm" className="text-neutral-200 text-center">
+                          <strong className="text-[#39FF14]">Done when:</strong> your Vision, board, and audios are created inside Vibration Fit.
+                        </Text>
+                      </Stack>
+                    </Stack>
+                  </Card>
+
+                  <Card variant="elevated" className="h-full border-[#00FFFF]/30 bg-[#00FFFF]/8">
+                    <Stack gap="md" className="h-full">
+                      <div className="w-16 h-16 bg-gradient-to-br from-[#00FFFF]/25 to-transparent rounded-2xl flex items-center justify-center mx-auto">
+                        <Icon icon={RadioTower} size="lg" color="#00FFFF" />
+                      </div>
+                      <Stack gap="sm" className="text-left items-center">
+                        <Heading level={3} className="text-white text-center uppercase tracking-wide !mb-0">
+                          Activations
+                        </Heading>
+                        <Text size="base" className="text-neutral-400 uppercase tracking-wide text-center -mt-1">(ongoing)</Text>
+                        <Text size="sm" className="text-neutral-300 font-semibold text-center w-full">Run your daily MAP (My Activation Plan)</Text>
+                        <BulletedList className="space-y-1">
+                          <ListItem variant="accent" icon={Check} className="!text-[#00FFFF]">Follow your MAP for AM/PM audio listening</ListItem>
+                          <ListItem variant="accent" icon={Check} className="!text-[#00FFFF]">Review your Life Vision on schedule</ListItem>
+                          <ListItem variant="accent" icon={Check} className="!text-[#00FFFF]">Use VIVA prompts whenever contrast shows up</ListItem>
+                          <ListItem variant="accent" icon={Check} className="!text-[#00FFFF]">Keep your daily activation streak going</ListItem>
+                        </BulletedList>
+                        <Text size="sm" className="text-neutral-200 text-center">
+                          <strong className="text-[#00FFFF]">Done when:</strong> daily reps are complete and streak is active (7+ days).
+                        </Text>
+                      </Stack>
+                    </Stack>
+                  </Card>
+
+                  <Card variant="elevated" className="h-full border-[#BF00FF]/30 bg-[#BF00FF]/8">
+                    <Stack gap="md" className="h-full">
+                      <div className="w-16 h-16 bg-gradient-to-br from-[#BF00FF]/25 to-transparent rounded-2xl flex items-center justify-center mx-auto">
+                        <Icon icon={Heart} size="lg" color="#BF00FF" />
+                      </div>
+                      <Stack gap="sm" className="text-left items-center">
+                        <Heading level={3} className="text-white text-center uppercase tracking-wide !mb-0">
+                          Connections
+                        </Heading>
+                        <Text size="base" className="text-neutral-400 uppercase tracking-wide text-center -mt-1">(ongoing)</Text>
+                        <Text size="sm" className="text-neutral-300 font-semibold text-center w-full">Create in community</Text>
+                        <BulletedList className="space-y-1">
+                          <ListItem variant="accent" icon={Check} className="!text-[#BF00FF]">Share wins and realizations in Vibe Tribe</ListItem>
+                          <ListItem variant="accent" icon={Check} className="!text-[#BF00FF]">Comment and send hearts on others' posts</ListItem>
+                          <ListItem variant="accent" icon={Check} className="!text-[#BF00FF]">Post questions when you wobble</ListItem>
+                          <ListItem variant="accent" icon={Check} className="!text-[#BF00FF]">Share actualization stories as they happen</ListItem>
+                        </BulletedList>
+                        <Text size="sm" className="text-neutral-200 text-center">
+                          <strong className="text-[#BF00FF]">Done when:</strong> you've shared at least one post and supported someone else this week.
+                        </Text>
+                      </Stack>
+                    </Stack>
+                  </Card>
+
+                  <Card variant="elevated" className="h-full border-[#FFB701]/30 bg-[#FFB701]/8">
+                    <Stack gap="md" className="h-full">
+                      <div className="w-16 h-16 bg-gradient-to-br from-[#FFB701]/25 to-transparent rounded-2xl flex items-center justify-center mx-auto">
+                        <Icon icon={CalendarDays} size="lg" color="#FFB701" />
+                      </div>
+                      <Stack gap="sm" className="text-left items-center">
+                        <Heading level={3} className="text-white text-center uppercase tracking-wide !mb-0">
+                          Sessions
+                        </Heading>
+                        <Text size="base" className="text-neutral-400 uppercase tracking-wide text-center -mt-1">(live)</Text>
+                        <Text size="sm" className="text-neutral-300 font-semibold text-center w-full">Get real‑time alignment</Text>
+                        <BulletedList className="space-y-1">
+                          <ListItem variant="accent" icon={Check} className="!text-[#FFB701]">Attend The Alignment Gym (weekly live coaching)</ListItem>
+                          <ListItem variant="accent" icon={Check} className="!text-[#FFB701]">Bring your current contrast and questions</ListItem>
+                          <ListItem variant="accent" icon={Check} className="!text-[#FFB701]">Refine your vision and MAP with guidance</ListItem>
+                          <ListItem variant="accent" icon={Check} className="!text-[#FFB701]">Leave with clear next actions</ListItem>
+                        </BulletedList>
+                        <Text size="sm" className="text-neutral-200 text-center">
+                          <strong className="text-[#FFB701]">Done when:</strong> at least one live session attended this month.
+                        </Text>
+                      </Stack>
+                    </Stack>
+                  </Card>
+                </Grid>
+
+                <div className="text-center">
+                  <Button variant="primary" size="lg" asChild>
+                    <a href="#pricing">
+                      Start the Activation Intensive
+                    </a>
+                  </Button>
+                </div>
+              </Stack>
+            </Card>
+          </Container>
+        </section>
+
+        {/* Final CTA */}
+        <section>
+          <Container size="xl">
+            <Card variant="elevated" className="bg-gradient-to-br from-[#39FF14]/15 via-[#00FFFF]/10 to-[#BF00FF]/15 border-[#39FF14]/30 p-4 md:p-6 shadow-[0_20px_60px_rgba(57,255,20,0.18)]">
+              <Stack align="center" gap="lg" className="text-center">
+                <Heading level={2} className="text-white">
+                  <span className="bg-gradient-to-r from-[#39FF14] via-[#00FFFF] to-[#BF00FF] bg-clip-text text-transparent">Welcome Home</span>
+                </Heading>
+                <div className="w-20 h-[2px] md:h-[3px] bg-gradient-to-r from-[#39FF14] via-[#00FFFF] to-[#BF00FF] rounded-full"></div>
+
+                <div className="w-full max-w-5xl mx-auto space-y-6">
+                  <Text size="lg" className="md:text-xl text-neutral-200">
+                    Ditch vibrational chaos. Activate your Life Vision in 72 hours—then keep compounding with Vision Pro.
+                  </Text>
+
+                  <Grid responsiveCols={{ mobile: 1, desktop: 3 }} gap="lg" className="w-full">
+                    <Card variant="glass" className="text-center">
+                      <Stack gap="sm">
+                        <Icon icon={Sparkles} size="lg" color="#39FF14" className="mx-auto" />
+                        <Text size="sm" className="font-semibold text-white">Gain Clarity</Text>
+                        <Text size="sm" className="text-neutral-400">12‑category Life Vision completed with VIVA</Text>
+                      </Stack>
+                    </Card>
+                    <Card variant="glass" className="text-center">
+                      <Stack gap="sm">
+                        <Icon icon={Brain} size="lg" color="#00FFFF" className="mx-auto" />
+                        <Text size="sm" className="font-semibold text-white">Establish Harmony</Text>
+                        <Text size="sm" className="text-neutral-400">Vision Audio + your daily Activations with My Activation Plan</Text>
+                      </Stack>
+                    </Card>
+                    <Card variant="glass" className="text-center">
+                      <Stack gap="sm">
+                        <Icon icon={Target} size="lg" color="#BF00FF" className="mx-auto" />
+                        <Text size="sm" className="font-semibold text-white">Lock It In</Text>
+                        <Text size="sm" className="text-neutral-400">Vision Board built, 1 journal logged (written, voice, or video), dashboard tracking your streaks</Text>
+                      </Stack>
+                    </Card>
+                  </Grid>
+
+                  <Stack gap="sm" align="center">
+                    <Text size="lg" className="text-neutral-300 text-center italic max-w-xl">
+                      <span className="block md:inline">"What would happen if my vision became the dominant signal</span>{' '}
+                      <span className="block md:inline">in my life?"</span>
+                    </Text>
+                    <Text size="lg" className="text-[#39FF14] font-semibold text-center">
+                      Answer: You'd wake up excited, living the life you choose.
+                    </Text>
+                  </Stack>
+                </div>
+
+                <div className="w-full max-w-xl">
+                  <Button variant="primary" size="xl" className="w-full" asChild>
+                    <a href="#pricing">
+                      Start the Activation Intensive
+                    </a>
+                  </Button>
+                  <Text size="xs" className="text-neutral-400 text-center mt-2">
+                    ${getIntensiveTotal()} today. Includes 8 weeks of Vision Pro. Day 56: auto‑continue at your selected plan.
+                  </Text>
+                  <div className="flex flex-col items-center justify-center gap-3 text-xs uppercase tracking-wide text-neutral-400 mt-4">
+                    <div className="flex items-center gap-2">
+                      <Icon icon={Shield} size="sm" className="text-[#39FF14] flex-shrink-0" />
+                      <span className="leading-tight">Covered by the 72‑Hour Activation Guarantee</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Icon icon={Award} size="sm" className="text-[#00FFFF] flex-shrink-0" />
+                      <span className="leading-tight">16‑week Membership Satisfaction Guarantee</span>
+                    </div>
+                  </div>
+                </div>
+              </Stack>
+            </Card>
+          </Container>
+        </section>
+
+        {/* FAQ Section */}
+        <section id="full-faq">
+          <Container size="xl">
+            <Card variant="elevated" className="bg-[#0F1612]/80 border-[#39FF14]/20 p-4 md:p-6 lg:p-8 shadow-[0_24px_60px_rgba(57,255,20,0.12)]">
+              <Stack gap="lg" className="md:gap-10">
+                <div className="text-center space-y-2">
+                  <Heading level={2} className="text-white">
+                    Frequently Asked Questions
+                  </Heading>
+                  <Text size="lg" className="text-neutral-300">
+                    Everything you need to know
+                  </Text>
+                </div>
+                <OfferStack
+                  items={[
+                {
+                  id: 'skeptical',
+                  title: 'What if I\'m skeptical?',
+                  description: 'Good. That\'s why we stack raw proof, a structured mechanism, and guarantees. See the vision transformations (including $0.74 → $1M screenshots), the Conscious Creation System: Creations → Activations → Connections → Sessions, and our 72‑Hour Activation + Membership Guarantees.'
+                },
+                {
+                  id: 'religious',
+                  title: 'Is this religious?',
+                  description: 'No doctrine. No beliefs to adopt. It\'s a practical system with tools and habits. We measure observable outputs (vision built, audio generated, board created, journals logged, call completed) and track your progress over time.'
+                },
+                {
+                  id: 'how-fast',
+                  title: 'How fast is "fast"?',
+                  description: '"Active" in 72 hours means: Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), first refinement done, Vision Audio generated, Vision Board built (12 images), 1 journal entry logged, Calibration Call booked, My Activation Plan scheduled.'
+                },
+                {
+                  id: 'tried-loa',
+                  title: 'What if I\'ve tried LoA and failed?',
+                  description: 'Most people had belief without structure. We give you the mechanism (Creations → Activations → Connections → Sessions), a 72‑Hour Activation to get your Life Vision fully online, and a 28‑Day MAP (My Activation Plan) so you know exactly what to do each day, plus proof and guarantees if you\'re not satisfied.'
+                },
+                {
+                  id: 'dont-know',
+                  title: 'What if I don\'t know what I want?',
+                  description: 'VIVA AI turns contrast into clarity and drafts your 12‑category Life Vision with you using our 4‑Layer Conscious Creation Writing Architecture (encoded in VIVA). You\'ll have a concrete first draft to refine within 72 hours of starting—something that used to take Jordan and Vanessa months to do on their own without VIVA\'s help.'
+                },
+                {
+                  id: 'doesnt-work',
+                  title: 'What if it doesn\'t work for me?',
+                  description: 'You have two layers of protection: a 72‑Hour Activation Guarantee (complete your Activation Checklist in 72 hours; if you\'re not satisfied, you get a full refund of your Intensive fee) and a Membership Satisfaction Guarantee (16 weeks from your checkout date, no matter which plan you choose).'
+                },
+                {
+                  id: 'guarantee-start',
+                  title: 'When do guarantees start?',
+                  description: 'All guarantees start from your checkout date. Your 72‑hour window begins the moment you enroll in the Intensive, and your Membership Satisfaction Guarantee runs for 16 weeks from that same checkout date, no matter which plan you choose.'
+                },
+                {
+                  id: 'guarantee-qualify',
+                  title: 'What qualifies for the 72‑Hour Activation Guarantee?',
+                  description: `Complete your Activation Checklist in 72 hours. Completion = Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), first refinement done, Vision Audio generated, Vision Board built (12 images), 1 journal entry logged, Calibration Call booked, My Activation Plan scheduled. If you complete your Activation Checklist in 72 hours and are not satisfied, you'll get a full refund of your $${getIntensiveTotal()} Intensive fee. No questions asked.`
+                },
+                {
+                  id: 'refunds',
+                  title: 'How do refunds work?',
+                  description: (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">What's covered</p>
+                        <ul className="list-disc marker:text-[#39FF14] pl-5 space-y-1 text-sm text-neutral-300">
+                          <li>
+                            72‑Hour Activation Guarantee: if you complete your Activation Checklist in 72 hours and aren't satisfied, we refund the ${getIntensiveTotal()} Intensive fee. (Completion = Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), First refinement done, Vision Audio generated, Vision Board built (12 images), 1 journal entry logged, Calibration Call booked, My Activation Plan scheduled.)
+                          </li>
+                          <li>
+                            Membership Satisfaction Guarantee: From your checkout date, you have 16 weeks, no matter which plan you choose (Every 28 Days or Annual).
+                            <br /><br />
+                            If your next plan charge hasn't billed yet (first charge is Day 56), we cancel the upcoming charge and end your membership at the end of the current paid period.
+                            <br />
+                            If a plan charge occurred within your 16‑week window, we refund that charge in full and cancel all future renewals.
+                          </li>
+                        </ul>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">How to request</p>
+                        <p className="text-sm text-neutral-300">
+                          When logged in, go to the Support tab (left sidebar on desktop/ under "More" on mobile). If you are logged in, you can click here: <a href="/support" className="text-[#39FF14] underline underline-offset-4 hover:text-[#5EC49A] transition-colors">Support</a>. We reply within 1 business day.
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">How it's paid</p>
+                        <p className="text-sm text-neutral-300">
+                          Refunds go back to the original payment method. Banks typically show the credit in 5–10 business days. (If the original charge is very recent, it can post as a reversal and the original charge disappears.)
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">What happens to access</p>
+                        <p className="text-sm text-neutral-300">
+                          When we refund the Intensive, your account downgrades immediately. Membership refunds cancel future renewals and remove paid features tied to that plan.
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Limits</p>
+                        <p className="text-sm text-neutral-300">
+                          One refund per customer per product. We don't cover currency conversion, bank fees, or taxes outside our control. Abuse or duplicate accounts void guarantees.
+                        </p>
+                      </div>
+                    </div>
+                  )
+                },
+                {
+                  id: 'billing-start',
+                  title: 'When does billing start?',
+                  description: `$${getIntensiveTotal()} today for the Intensive + 8 weeks included. Day 56 your selected plan begins automatically.`
+                },
+                {
+                  id: 'what-is-vibrational-fitness',
+                  title: 'What is Vibrational Fitness?',
+                  description: 'Vibrational fitness is your system for conscious creation. It\'s the practice of using a repeatable structure of Creations, Activations, Connections, and Sessions to stay aligned with your Life Vision, with your MAP showing you exactly what to do so your outer world naturally starts to reflect it.'
+                },
+                {
+                  id: 'switch-cancel',
+                  title: 'Can I switch or cancel before billing starts?',
+                  description: 'Yes—1‑click switch/cancel anytime before Day 56.'
+                },
+                {
+                  id: 'change-plans',
+                  title: 'Can I change plans later?',
+                  description: (
+                    <div className="space-y-4 text-sm text-neutral-300 leading-relaxed">
+                      <p>
+                        <span className="font-semibold text-[#39FF14]">Short answer:</span> Yes. You can switch plans. Here's exactly how it works and why we do it this way.
+                      </p>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Before your first plan charge (Day 56)</p>
+                        <p>
+                          You can switch from Annual to Every 28 Days or vice-versa in one click. Your selection updates instantly; the first charge still occurs on Day 56 at the new plan.
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">After billing starts (Day 56 and beyond)</p>
+                        <ul className="list-disc marker:text-[#39FF14] pl-5 space-y-1">
+                          <li>
+                            <span className="font-semibold text-white">Every 28 Days → Annual:</span> Want to lock in the Annual savings immediately and get access to more tokens and storage? Start your Annual plan today and we'll credit any unused time from your current 28‑day cycle toward your Annual payment. No penalties or extra fees.
+                          </li>
+                          <li>
+                            <span className="font-semibold text-white">Annual → Every 28 Days:</span> Switch effective at your annual renewal. Annual prepay is not split into partial refunds; you keep access through your paid year, then move to 28-day.
+                          </li>
+                        </ul>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Rate-lock (Annual)</p>
+                        <p>
+                          Annual prepay includes a 12-month rate lock—your price won't change during your paid year.
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Pricing cadence</p>
+                        <p>
+                          Every 28 Days bills every four weeks (13 cycles/year). We display savings using a 28-day equivalent for apples-to-apples comparison with Annual.
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Guarantees stay intact when you switch</p>
+                        <p>
+                          Your Membership Satisfaction Guarantee window starts at checkout (today) and runs for 16 weeks, no matter which plan you're on (Every 28 Days or Annual). Switching plans doesn't reset or extend the clock; it only changes what you'll be billed at your next renewal.
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Why we do it this way</p>
+                        <p className="text-sm text-neutral-300">
+                          Letting you switch at renewal gives flexibility without creating billing confusion.
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">How to switch</p>
+                        <p className="text-sm text-neutral-300">
+                          When logged in, under "Settings" &gt; <a href="/account/billing" className="text-[#39FF14] underline underline-offset-4 hover:text-[#5EC49A] transition-colors">"Billing & Subscription"</a>, choose your desired plan change. If you're pre-Day 56, your first charge will run on Day 56 at the selected plan. If you're mid-cycle, the change applies at the next renewal (or immediately for an upgrade to Annual if you choose to prepay now).
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <p>
+                          We'll always show your next charge date and amount before you confirm any change.
+                        </p>
+                        <p>
+                          If we ever change prices for new customers, your annual rate-lock protects you through your paid year.
+                        </p>
+                      </div>
+                    </div>
+                  )
+                },
+                {
+                  id: '5-phase-flow',
+                  title: 'What is the 4‑Layer Conscious Creation Writing Architecture?',
+                  description: (
+                    <div className="space-y-4 text-sm text-neutral-300 leading-relaxed">
+                      <p>
+                        The 4-Layer Conscious Creation Writing Architecture is the energetic blueprint behind The Life I Choose™ vision document. It's how Vibration Fit transforms words on a page into a living, breathing frequency field that your subconscious can align with.
+                      </p>
+                      <p>
+                        Every Life I Choose document follows four interacting layers:
+                      </p>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">The 5-Phase Conscious Creation Flow</p>
+                        <p>
+                          The energetic rhythm of every paragraph. Each section naturally moves from Gratitude → Sensory Detail → Embodiment → Essence → Allowing.
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">The Who / What / Where / Why Framework</p>
+                        <p>
+                          The narrative orientation that gives your vision shape and clarity. It defines who you are being, what you're doing, where you are, and why it matters emotionally.
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">The Being / Doing / Receiving Loops</p>
+                        <p>
+                          The vibrational cycling that keeps your energy balanced. You activate the feeling (Being), express it through aligned action (Doing), and open space to let results flow in (Receiving).
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Micro–Macro Paragraph Breathing</p>
+                        <p>
+                          The emotional pacing that gives your writing life. Your paragraphs expand into vivid sensory scenes (macro) and then contract back into essence (micro), creating a rhythm that feels alive when you read or listen to it.
+                        </p>
+                      </div>
+                      <p>
+                        Together, these four layers turn your writing into a vibrational practice—helping you not just describe your dream life, but tune to it until it becomes your reality.
+                      </p>
+                    </div>
+                  )
+                },
+                {
+                  id: 'tokens-storage',
+                  title: 'How do tokens and storage work?',
+                  description: (
+                    <div className="space-y-4 text-sm text-neutral-300 leading-relaxed">
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Annual token & storage capacity</p>
+                        <p>{formatTokensShort(tokenGrant(TIER_TYPES.ANNUAL))} VIVA tokens/year + {storageQuota(TIER_TYPES.ANNUAL)}GB storage; tokens reset at renewal.</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">28-Day token & storage capacity</p>
+                        <p>{formatTokensShort(tokenGrant(TIER_TYPES.MONTHLY_28DAY))} VIVA tokens per 28 days + {storageQuota(TIER_TYPES.MONTHLY_28DAY)}GB storage; unused tokens roll over (max {byType(TIER_TYPES.MONTHLY_28DAY)?.rollover_max_cycles ?? 3} cycles).</p>
+                      </div>
+                      <p>Both plans can add-on extra tokens or storage for a fee.</p>
+                    </div>
+                  )
+                },
+                {
+                  id: 'billing-cadence',
+                  title: 'Do you charge sales tax/VAT/GST?',
+                  description: (
+                    <div className="space-y-4 text-sm text-neutral-300 leading-relaxed">
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Today</p>
+                        <p>We don't collect sales tax/VAT/GST at checkout right now. The price you see is the price you pay (plus any bank/FX fees your bank may add).</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">If this changes</p>
+                        <p>If a law or your location requires tax in the future, we'll calculate it from your billing address, show it clearly at checkout before you pay, and itemize it on your receipt. We'll notify you ahead of any change.</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Receipts</p>
+                        <p>Your receipt will show a $0.00 tax line while tax collection is not enabled.</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">International buyers</p>
+                        <p>Your bank may add currency conversion or cross-border fees—we don't control those.</p>
+                      </div>
+                      <p>Note: This is not tax advice. If you're required to self-assess/use tax in your jurisdiction, consult your local guidance.</p>
+                    </div>
+                  )
+                }
+              ]}
+                  className="w-full max-w-5xl mx-auto"
+                />
+              </Stack>
+            </Card>
+          </Container>
+        </section>
+
+      </Stack>
+  )
+}

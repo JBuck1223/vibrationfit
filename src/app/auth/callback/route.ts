@@ -21,6 +21,10 @@ export async function GET(request: Request) {
 
   const supabase = await createClient()
 
+  const setupPasswordUrl = returnTo
+    ? `${origin}/auth/setup-password?returnTo=${encodeURIComponent(returnTo)}`
+    : `${origin}/auth/setup-password`
+
   // Handle PKCE code exchange (standard flow)
   if (code) {
     await supabase.auth.exchangeCodeForSession(code)
@@ -31,8 +35,7 @@ export async function GET(request: Request) {
       const needsPassword = user.user_metadata?.has_password !== true
 
       if (needsPassword) {
-        // setup-password checks DB for intensive enrollment itself
-        return NextResponse.redirect(`${origin}/auth/setup-password`)
+        return NextResponse.redirect(setupPasswordUrl)
       }
 
       // Already has password -- check DB for intensive
@@ -70,7 +73,7 @@ export async function GET(request: Request) {
       const needsPassword = data.user.user_metadata?.has_password !== true
 
       if (needsPassword) {
-        return NextResponse.redirect(`${origin}/auth/setup-password`)
+        return NextResponse.redirect(setupPasswordUrl)
       }
 
       const adminClient = getAdminClient()
