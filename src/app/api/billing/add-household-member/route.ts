@@ -104,6 +104,39 @@ export async function POST(request: NextRequest) {
     const INCLUDED_SEATS = 2
     const paidSeatsNeeded = Math.max(0, totalOccupied + 1 - INCLUDED_SEATS)
 
+    // ── Step 1: Provision partner account + household membership FIRST ──
+    const { data: adminAccount } = await serviceClient
+      .from('user_accounts')
+      .select('first_name, last_name')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    const adminName = adminAccount?.first_name
+      ? `${adminAccount.first_name} ${adminAccount.last_name || ''}`.trim()
+      : user.email?.split('@')[0] || ''
+
+    const { invitePartnerToHousehold } = await import('@/lib/supabase/household')
+    const inviteResult = await invitePartnerToHousehold({
+      supabaseAdmin: serviceClient,
+      householdId: household.id,
+      adminUserId: user.id,
+      adminName,
+      adminEmail: user.email || '',
+      householdName: household.name,
+      partnerFirstName: firstName.trim(),
+      partnerLastName: lastName.trim(),
+      partnerEmail: email.trim().toLowerCase(),
+    })
+
+    if (!inviteResult.success) {
+      return NextResponse.json({
+        error: inviteResult.error || 'Failed to provision partner account',
+      }, { status: 500 })
+    }
+
+    const partnerId = inviteResult.partnerId
+
+    // ── Step 2: Charge intensive (assigned to partner, not admin) ──
     let intensiveResult: { success: boolean; invoiceId?: string; waived?: boolean; error?: string } = { success: false }
     try {
       const intensiveUrl = new URL('/api/billing/purchase-intensive', request.url)
@@ -119,6 +152,7 @@ export async function POST(request: NextRequest) {
           partnerFirstName: firstName.trim(),
           partnerLastName: lastName.trim(),
           partnerEmail: email.trim().toLowerCase(),
+          targetUserId: partnerId,
         }),
       })
       intensiveResult = await intensiveRes.json()
@@ -132,6 +166,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to charge intensive fee' }, { status: 500 })
     }
 
+    // ── Step 3: Add seat to subscription if needed ──
     if (paidSeatsNeeded > 0) {
       try {
         const stripeSubscription = await stripe.subscriptions.retrieve(subscription.stripe_subscription_id)
@@ -171,39 +206,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    let partnerInvited = false
-    try {
-      const { data: profile } = await serviceClient
-        .from('user_profiles')
-        .select('first_name, last_name')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .maybeSingle()
-
-      const adminName = profile?.first_name
-        ? `${profile.first_name} ${profile.last_name || ''}`.trim()
-        : user.email?.split('@')[0] || ''
-
-      const { invitePartnerToHousehold } = await import('@/lib/supabase/household')
-      const inviteResult = await invitePartnerToHousehold({
-        supabaseAdmin: serviceClient,
-        householdId: household.id,
-        adminUserId: user.id,
-        adminName,
-        adminEmail: user.email || '',
-        householdName: household.name,
-        partnerFirstName: firstName.trim(),
-        partnerLastName: lastName.trim(),
-        partnerEmail: email.trim().toLowerCase(),
-      })
-      partnerInvited = inviteResult.success
-    } catch (err) {
-      console.error('Invitation send failed (non-blocking):', err)
-    }
-
     return NextResponse.json({
       success: true,
-      partnerInvited,
+      partnerInvited: true,
+      partnerId,
       intensiveWaived: intensiveResult.waived || false,
       paidSeats: paidSeatsNeeded,
       totalMembers: totalOccupied + 1,

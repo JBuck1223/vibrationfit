@@ -305,8 +305,9 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
 
   const activePricing = pricing[activationTier]
   const effectiveTotal = isPromo ? activePricing.promo : activePricing.original
-  const effectiveInstallment = activePricing.plans[paymentPlan as keyof typeof activePricing.plans]
-    ?? activePricing.plans.full
+  const effectiveInstallment = isPromo && activationTier === 'standard'
+    ? activePricing.promo
+    : (activePricing.plans[paymentPlan as keyof typeof activePricing.plans] ?? activePricing.plans.full)
 
   const fmt = (n: number) => n % 1 === 0 ? n.toLocaleString() : n.toFixed(2)
 
@@ -432,9 +433,9 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
                       </ListItem>
                     </BulletedList>
                     
-                    <div className="flex flex-col items-center md:items-center">
-                      <Button variant="primary" size="xl" className="mt-1 mb-2 md:mt-2" asChild>
-                        <a href="#pricing">
+                    <div className="flex flex-col items-center md:items-center w-full">
+                      <Button variant="primary" size="xl" className="mt-1 mb-2 md:mt-2 w-full sm:w-auto min-h-[48px]" asChild>
+                        <a href="#pricing" className="w-full sm:w-auto block text-center">
                           Start the Activation Intensive
                         </a>
                       </Button>
@@ -728,9 +729,9 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
                 </div>
                 
                 {/* CTA Button */}
-                <div className="text-center">
-                  <Button variant="primary" size="xl" asChild>
-                    <a href="#pricing">
+                <div className="text-center w-full">
+                  <Button variant="primary" size="xl" className="w-full sm:w-auto min-h-[48px]" asChild>
+                    <a href="#pricing" className="w-full sm:w-auto block text-center">
                       Start the Activation Intensive
                     </a>
                   </Button>
@@ -956,9 +957,9 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
                   </div>
                   
                   {/* CTA Button */}
-                  <div className="text-center">
-                    <Button variant="primary" size="xl" asChild>
-                      <a href="#pricing">
+                  <div className="text-center w-full">
+                    <Button variant="primary" size="xl" className="w-full sm:w-auto min-h-[48px]" asChild>
+                      <a href="#pricing" className="w-full sm:w-auto block text-center">
                         Start the Activation Intensive
                       </a>
                     </Button>
@@ -1331,9 +1332,9 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
                   </FeatureCard>
                 </Grid>
 
-                <div className="text-center">
-                  <Button variant="primary" size="xl" asChild>
-                    <a href="#pricing">
+                <div className="text-center w-full">
+                  <Button variant="primary" size="xl" className="w-full sm:w-auto min-h-[48px]" asChild>
+                    <a href="#pricing" className="w-full sm:w-auto block text-center">
                       Start the Activation Intensive
                     </a>
                   </Button>
@@ -1465,9 +1466,9 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
                   allowMultiple={true}
                 />
                 
-                <div className="text-center">
-                  <Button variant="primary" size="xl" asChild>
-                    <a href="#pricing">
+                <div className="text-center w-full">
+                  <Button variant="primary" size="xl" className="w-full sm:w-auto min-h-[48px]" asChild>
+                    <a href="#pricing" className="w-full sm:w-auto block text-center">
                       Start the Activation Intensive
                     </a>
                   </Button>
@@ -1534,9 +1535,11 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
                 <Text size="base" className="text-neutral-300 text-center w-full">
                   VIVA now walks you through this 4-Layer Architecture across all 12 life categories—so in 72 hours you finish "active" with your complete vision, AM/PM vision audios, vision board built, 1 journal entry logged, calibration call booked, and your My Activation Plan scheduled.
                 </Text>
-                <Button variant="primary" size="lg" asChild>
-                  <a href="#pricing">Start the Activation Intensive</a>
-                </Button>
+                <div className="w-full">
+                  <Button variant="primary" size="lg" className="w-full sm:w-auto min-h-[48px]" asChild>
+                    <a href="#pricing" className="w-full sm:w-auto block text-center">Start the Activation Intensive</a>
+                  </Button>
+                </div>
               </Stack>
             </div>
           </Container>
@@ -1628,44 +1631,40 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
             <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
               <Stack gap="xl" className="md:gap-12">
                 
-                {/* PLAN TYPE TOGGLE */}
-                <div className="flex justify-center">
-                  <div className="inline-flex w-auto items-center gap-1.5 p-1.5 bg-neutral-800/80 backdrop-blur-sm rounded-full border border-neutral-700">
+                {/* PLAN TYPE TOGGLE - clean 2-col grid on mobile, fills container */}
+                <div className="w-full flex justify-center">
+                  <div className="grid grid-cols-2 gap-2 w-full max-w-md mx-auto md:inline-flex md:w-auto md:max-w-none md:gap-1.5 md:p-1.5 md:rounded-full bg-neutral-800/80 backdrop-blur-sm rounded-2xl p-2 border border-neutral-700">
                     <button
                       onClick={() => setPlanType('solo')}
-                      className={`px-5 md:px-6 py-3 md:py-3.5 rounded-full font-semibold transition-all duration-300 ${
+                      className={`min-h-[48px] px-4 py-3 rounded-xl md:rounded-full font-semibold transition-all duration-300 flex flex-col items-center justify-center gap-0 ${
                         planType === 'solo'
                           ? 'bg-[#39FF14] text-black shadow-lg shadow-[#39FF14]/30'
                           : 'text-neutral-400 hover:text-white hover:bg-neutral-700/50'
                       }`}
                     >
-                      <span className="flex flex-col items-center gap-0">
-                        <span className="flex items-center gap-1.5 md:gap-2">
-                          <User className="w-4 h-4" />
-                          <span>Solo</span>
-                          <span className="hidden md:inline">·</span>
-                          <span className="hidden md:inline">1 Login</span>
-                        </span>
-                        <span className="text-xs md:hidden">1 Login</span>
+                      <span className="flex items-center gap-1.5 md:gap-2">
+                        <User className="w-4 h-4 flex-shrink-0" />
+                        <span>Solo</span>
+                        <span className="hidden md:inline">·</span>
+                        <span className="hidden md:inline">1 Login</span>
                       </span>
+                      <span className="text-xs md:hidden mt-0.5">1 Login</span>
                     </button>
                     <button
                       onClick={() => setPlanType('household')}
-                      className={`px-5 md:px-6 py-3 md:py-3.5 rounded-full font-semibold transition-all duration-300 ${
+                      className={`min-h-[48px] px-4 py-3 rounded-xl md:rounded-full font-semibold transition-all duration-300 flex flex-col items-center justify-center gap-0 ${
                         planType === 'household'
                           ? 'bg-[#8B5CF6] text-white shadow-lg shadow-[#8B5CF6]/30'
                           : 'text-neutral-400 hover:text-white hover:bg-neutral-700/50'
                       }`}
                     >
-                      <span className="flex flex-col items-center gap-0">
-                        <span className="flex items-center gap-1.5 md:gap-2">
-                          <Users className="w-4 h-4" />
-                          <span>Household</span>
-                          <span className="hidden md:inline">·</span>
-                          <span className="hidden md:inline">2 Logins</span>
-                        </span>
-                        <span className="text-xs md:hidden">2 Logins</span>
+                      <span className="flex items-center gap-1.5 md:gap-2">
+                        <Users className="w-4 h-4 flex-shrink-0" />
+                        <span>Household</span>
+                        <span className="hidden md:inline">·</span>
+                        <span className="hidden md:inline">2 Logins</span>
                       </span>
+                      <span className="text-xs md:hidden mt-0.5">2 Logins</span>
                     </button>
                   </div>
                 </div>
@@ -1765,15 +1764,15 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
                       ))}
                     </div>
 
-                    {/* PAYMENT OPTIONS inside standard card */}
+                    {/* PAYMENT OPTIONS inside standard card - grid fills container on mobile */}
                     {activationTier === 'standard' && !isPromo && (
                       <div className="pt-4 mt-2 border-t border-neutral-700/50">
                         <p className="text-xs text-neutral-400 text-center mb-3">Payment Plan</p>
-                        <div className="flex flex-row gap-2 justify-center flex-wrap">
+                        <div className="grid grid-cols-3 gap-2 w-full">
                           <Button
                             variant={paymentPlan === 'full' ? 'primary' : 'outline'}
                             size="sm"
-                            className="px-3 py-1.5 text-xs"
+                            className="min-h-[44px] w-full min-w-0 px-2 py-2 text-xs"
                             onClick={(e: React.MouseEvent) => { e.stopPropagation(); setPaymentPlan('full') }}
                           >
                             Pay in Full
@@ -1781,7 +1780,7 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
                           <Button
                             variant={paymentPlan === '2pay' ? 'primary' : 'outline'}
                             size="sm"
-                            className="px-3 py-1.5 text-xs"
+                            className="min-h-[44px] w-full min-w-0 px-2 py-2 text-xs"
                             onClick={(e: React.MouseEvent) => { e.stopPropagation(); setPaymentPlan('2pay') }}
                           >
                             2 Payments
@@ -1789,7 +1788,7 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
                           <Button
                             variant={paymentPlan === '3pay' ? 'primary' : 'outline'}
                             size="sm"
-                            className="px-3 py-1.5 text-xs"
+                            className="min-h-[44px] w-full min-w-0 px-2 py-2 text-xs"
                             onClick={(e: React.MouseEvent) => { e.stopPropagation(); setPaymentPlan('3pay') }}
                           >
                             3 Payments
@@ -1882,15 +1881,15 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
                       ))}
                     </div>
 
-                    {/* PAYMENT OPTIONS inside premium card */}
+                    {/* PAYMENT OPTIONS inside premium card - grid fills container on mobile */}
                     {activationTier === 'premium' && (
                       <div className="pt-4 mt-2 border-t border-neutral-700/50">
                         <p className="text-xs text-neutral-400 text-center mb-3">Payment Plan</p>
-                        <div className="flex flex-row gap-2 justify-center flex-wrap">
+                        <div className="grid grid-cols-2 gap-2 w-full">
                           <Button
                             variant={paymentPlan === 'full' ? 'primary' : 'outline'}
                             size="sm"
-                            className="px-3 py-1.5 text-xs"
+                            className="min-h-[44px] w-full min-w-0 px-2 py-2 text-xs"
                             onClick={(e: React.MouseEvent) => { e.stopPropagation(); setPaymentPlan('full') }}
                           >
                             Pay in Full
@@ -1898,7 +1897,7 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
                           <Button
                             variant={paymentPlan === '2pay' ? 'primary' : 'outline'}
                             size="sm"
-                            className="px-3 py-1.5 text-xs"
+                            className="min-h-[44px] w-full min-w-0 px-2 py-2 text-xs"
                             onClick={(e: React.MouseEvent) => { e.stopPropagation(); setPaymentPlan('2pay') }}
                           >
                             2 Payments
@@ -2138,12 +2137,12 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
                           >
                             See full FAQ
                           </a>
-                          <div>
-                            <Button variant="primary" size="xl" asChild>
-                              <a href="#pricing">
+                          <div className="w-full">
+                            <Button variant="primary" size="xl" className="w-full sm:w-auto min-h-[48px]" asChild>
+                              <a href="#pricing" className="w-full sm:w-auto block text-center">
                                 Start the Activation Intensive
                               </a>
-                          </Button>
+                            </Button>
                           </div>
                         </div>
                       </Stack>
@@ -2264,12 +2263,12 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
                           </div>
                         )
                       })()}
-                      <div className="text-center mt-6">
+                      <div className="text-center w-full mt-6">
                         <Text size="sm" className="text-neutral-400 text-center mb-3">
                           Ditch chaos in 72 hours
                         </Text>
-                        <Button variant="primary" size="md" asChild>
-                          <a href="#pricing">
+                        <Button variant="primary" size="md" className="w-full sm:w-auto min-h-[48px]" asChild>
+                          <a href="#pricing" className="w-full sm:w-auto block text-center">
                             Start the Activation Intensive
                           </a>
                         </Button>
@@ -2296,12 +2295,12 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
                   </div>
 
                   {/* CTA */}
-                  <div className="text-center">
+                  <div className="text-center w-full">
                     <Text size="sm" className="text-neutral-400 text-center mb-3">
                       Ditch chaos in 72 hours
                     </Text>
-                    <Button variant="primary" size="lg" asChild>
-                      <a href="#pricing">
+                    <Button variant="primary" size="lg" className="w-full sm:w-auto min-h-[48px]" asChild>
+                      <a href="#pricing" className="w-full sm:w-auto block text-center">
                         Start the Activation Intensive
                       </a>
                     </Button>
@@ -2429,9 +2428,9 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
                   </Card>
                 </Grid>
 
-                <div className="text-center">
-                  <Button variant="primary" size="lg" asChild>
-                    <a href="#pricing">
+                <div className="text-center w-full">
+                  <Button variant="primary" size="lg" className="w-full sm:w-auto min-h-[48px]" asChild>
+                    <a href="#pricing" className="w-full sm:w-auto block text-center">
                       Start the Activation Intensive
                     </a>
                   </Button>
@@ -2492,8 +2491,8 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
                 </div>
 
                 <div className="w-full max-w-xl">
-                  <Button variant="primary" size="xl" className="w-full" asChild>
-                    <a href="#pricing">
+                  <Button variant="primary" size="xl" className="w-full min-h-[48px]" asChild>
+                    <a href="#pricing" className="block text-center">
                       Start the Activation Intensive
                     </a>
                   </Button>

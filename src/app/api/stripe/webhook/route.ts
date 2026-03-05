@@ -12,6 +12,7 @@ import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 import { triggerEvent } from '@/lib/messaging/events'
 import { getPaymentPlanLabel } from '@/lib/intensive/utils'
+import { toTitleCase } from '@/lib/utils'
 
 type OrderInsertParams = {
   userId: string
@@ -586,14 +587,14 @@ export async function POST(request: NextRequest) {
             } else {
               const customerName = session.customer_details?.name || ''
               const nameParts = customerName.trim().split(' ')
-              const firstName = nameParts[0] || undefined
-              const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : undefined
+              const firstName = nameParts[0] ? toTitleCase(nameParts[0]) : undefined
+              const lastName = nameParts.length > 1 ? toTitleCase(nameParts.slice(1).join(' ')) : undefined
 
               const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
                 email: customerEmail,
                 email_confirm: true,
                 user_metadata: {
-                  full_name: customerName || undefined,
+                  full_name: [firstName, lastName].filter(Boolean).join(' ') || undefined,
                   first_name: firstName,
                   last_name: lastName,
                   phone: session.customer_details?.phone || undefined,
@@ -633,13 +634,12 @@ export async function POST(request: NextRequest) {
 
           console.log('✅ User ID confirmed:', userId)
 
-          // Ensure user_accounts has name/phone from Stripe customer details
           const intensiveCustomerName = session.customer_details?.name || ''
           if (intensiveCustomerName || session.customer_details?.phone) {
             const parts = intensiveCustomerName.trim().split(' ')
             await supabaseAdmin.from('user_accounts').update({
-              ...(parts[0] ? { first_name: parts[0] } : {}),
-              ...(parts.length > 1 ? { last_name: parts.slice(1).join(' ') } : {}),
+              ...(parts[0] ? { first_name: toTitleCase(parts[0]) } : {}),
+              ...(parts.length > 1 ? { last_name: toTitleCase(parts.slice(1).join(' ')) } : {}),
               ...(session.customer_details?.phone ? { phone: session.customer_details.phone } : {}),
             }).eq('id', userId)
           }
@@ -1012,14 +1012,14 @@ export async function POST(request: NextRequest) {
             } else {
               const customerName = session.customer_details?.name || ''
               const nameParts = customerName.trim().split(' ')
-              const firstName = nameParts[0] || undefined
-              const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : undefined
+              const firstName = nameParts[0] ? toTitleCase(nameParts[0]) : undefined
+              const lastName = nameParts.length > 1 ? toTitleCase(nameParts.slice(1).join(' ')) : undefined
 
               const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
                 email: customerEmail,
                 email_confirm: true,
                 user_metadata: {
-                  full_name: customerName || undefined,
+                  full_name: [firstName, lastName].filter(Boolean).join(' ') || undefined,
                   first_name: firstName,
                   last_name: lastName,
                   phone: session.customer_details?.phone || undefined,
@@ -1052,13 +1052,12 @@ export async function POST(request: NextRequest) {
             break
           }
 
-          // Ensure user_accounts has name/phone from Stripe customer details
           const combinedCustomerName = session.customer_details?.name || ''
           if (combinedCustomerName || session.customer_details?.phone) {
             const parts = combinedCustomerName.trim().split(' ')
             await supabaseAdmin.from('user_accounts').update({
-              ...(parts[0] ? { first_name: parts[0] } : {}),
-              ...(parts.length > 1 ? { last_name: parts.slice(1).join(' ') } : {}),
+              ...(parts[0] ? { first_name: toTitleCase(parts[0]) } : {}),
+              ...(parts.length > 1 ? { last_name: toTitleCase(parts.slice(1).join(' ')) } : {}),
               ...(session.customer_details?.phone ? { phone: session.customer_details.phone } : {}),
             }).eq('id', userId)
           }
@@ -1763,8 +1762,8 @@ export async function POST(request: NextRequest) {
 
         let userId: string
         const nameParts = (name || '').trim().split(' ')
-        const firstName = nameParts[0] || null
-        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : null
+        const firstName = nameParts[0] ? toTitleCase(nameParts[0]) : null
+        const lastName = nameParts.length > 1 ? toTitleCase(nameParts.slice(1).join(' ')) : null
 
         const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers()
         const existingUser = existingUsers?.users?.find((u: { email?: string }) => u.email === email)
@@ -1776,7 +1775,7 @@ export async function POST(request: NextRequest) {
             password: randomBytes(32).toString('hex'),
             email_confirm: true,
             user_metadata: {
-              full_name: name || undefined,
+              full_name: [firstName, lastName].filter(Boolean).join(' ') || undefined,
               first_name: firstName || undefined,
               last_name: lastName || undefined,
               phone: phone || undefined,
@@ -1790,11 +1789,10 @@ export async function POST(request: NextRequest) {
         }
 
         await supabaseAdmin.from('user_profiles').upsert(
-          { user_id: userId, full_name: name, phone: phone || null },
+          { user_id: userId, full_name: [firstName, lastName].filter(Boolean).join(' ') || name, phone: phone || null },
           { onConflict: 'user_id' }
         )
 
-        // Ensure user_accounts has name/phone data
         if (firstName || lastName || phone) {
           await supabaseAdmin.from('user_accounts').update({
             ...(firstName ? { first_name: firstName } : {}),

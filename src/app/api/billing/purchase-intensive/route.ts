@@ -32,12 +32,14 @@ export async function POST(request: NextRequest) {
       partnerFirstName,
       partnerLastName,
       partnerEmail,
+      targetUserId,
     } = body as {
       overrideAmount?: number
       promoCode?: string
       partnerFirstName?: string
       partnerLastName?: string
       partnerEmail?: string
+      targetUserId?: string
     }
 
     const { data: subscription } = await supabase
@@ -104,8 +106,9 @@ export async function POST(request: NextRequest) {
         .select('id')
         .single()
 
+      const checklistUserId = targetUserId || user.id
       if (order) {
-        await createOrderItemAndChecklist(serviceClient, order.id, user.id, 0, promoCode, metadata)
+        await createOrderItemAndChecklist(serviceClient, order.id, checklistUserId, 0, promoCode, metadata)
       }
 
       if (promoCode && couponResult?.valid && couponResult.coupon && couponResult.codeRow) {
@@ -174,8 +177,9 @@ export async function POST(request: NextRequest) {
         .select('id')
         .single()
 
+      const paidChecklistUserId = targetUserId || user.id
       if (order) {
-        await createOrderItemAndChecklist(serviceClient, order.id, user.id, finalAmount, promoCode, metadata)
+        await createOrderItemAndChecklist(serviceClient, order.id, paidChecklistUserId, finalAmount, promoCode, metadata)
       }
 
       if (promoCode && couponResult?.valid && couponResult.coupon && couponResult.codeRow) {

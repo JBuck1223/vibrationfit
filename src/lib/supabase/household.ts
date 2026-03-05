@@ -3,6 +3,8 @@ import { createClient } from './server'
 import { createServiceClient } from './service'
 import { SupabaseClient } from '@supabase/supabase-js'
 
+import { toTitleCase } from '@/lib/utils'
+
 // =====================================================================
 // TYPES
 // =====================================================================
@@ -326,14 +328,14 @@ export async function createHousehold(params: {
     accepted_at: new Date().toISOString()
   })
 
-  // Update user_profiles
+  // Update user_accounts with household link
   await supabase
-    .from('user_profiles')
+    .from('user_accounts')
     .update({
       household_id: data.id,
       is_household_admin: true
     })
-    .eq('user_id', params.adminUserId)
+    .eq('id', params.adminUserId)
 
   return data
 }
@@ -397,38 +399,37 @@ export async function createHouseholdInvitation(params: {
 }
 
 /**
- * Accept household invitation
+ * Accept household invitation.
+ * With the new provisioning model, members are already added at invite time.
+ * This function handles the legacy case where the invitation is still pending.
  */
 export async function acceptHouseholdInvitation(params: {
   invitationToken: string
   userId: string
 }): Promise<{ success: boolean; household?: Household; error?: string }> {
-  const supabase = await createClient()
-  
-  // Get invitation
-  const { data: invitation, error: inviteError } = await supabase
+  const serviceClient = createServiceClient()
+
+  // Look up invitation (accept both 'pending' and 'accepted')
+  const { data: invitation, error: inviteError } = await serviceClient
     .from('household_invitations')
     .select('*')
     .eq('invitation_token', params.invitationToken)
-    .eq('status', 'pending')
+    .in('status', ['pending', 'accepted'])
     .single()
 
   if (inviteError || !invitation) {
     return { success: false, error: 'Invitation not found or expired' }
   }
 
-  // Check if expired
-  if (new Date(invitation.expires_at) < new Date()) {
-    await supabase
+  if (new Date(invitation.expires_at) < new Date() && invitation.status === 'pending') {
+    await serviceClient
       .from('household_invitations')
       .update({ status: 'expired' })
       .eq('id', invitation.id)
-    
     return { success: false, error: 'Invitation has expired' }
   }
 
-  // Get household
-  const { data: household, error: householdError } = await supabase
+  const { data: household, error: householdError } = await serviceClient
     .from('households')
     .select('*')
     .eq('id', invitation.household_id)
@@ -438,38 +439,35 @@ export async function acceptHouseholdInvitation(params: {
     return { success: false, error: 'Household not found' }
   }
 
-  // Add user to household
-  const { error: memberError } = await supabase
-    .from('household_members')
-    .insert({
-      household_id: invitation.household_id,
-      user_id: params.userId,
-      role: 'member',
-      status: 'active',
-      invited_by: invitation.invited_by,
-      accepted_at: new Date().toISOString()
-    })
-
-  if (memberError) {
-    return { success: false, error: 'Failed to add member to household' }
+  // Already accepted (new provisioning model) -- just confirm membership exists
+  if (invitation.status === 'accepted') {
+    return { success: true, household }
   }
 
-  // Update user_profiles
-  await supabase
-    .from('user_profiles')
-    .update({
-      household_id: invitation.household_id,
-      is_household_admin: false
-    })
-    .eq('user_id', params.userId)
+  // Legacy pending invitation -- add member now
+  await serviceClient
+    .from('household_members')
+    .upsert(
+      {
+        household_id: invitation.household_id,
+        user_id: params.userId,
+        role: 'member' as const,
+        status: 'active' as const,
+        invited_by: invitation.invited_by,
+        accepted_at: new Date().toISOString(),
+        joined_at: new Date().toISOString(),
+      },
+      { onConflict: 'household_id,user_id', ignoreDuplicates: false },
+    )
 
-  // Mark invitation as accepted
-  await supabase
+  await serviceClient
+    .from('user_accounts')
+    .update({ household_id: invitation.household_id, is_household_admin: false })
+    .eq('id', params.userId)
+
+  await serviceClient
     .from('household_invitations')
-    .update({
-      status: 'accepted',
-      accepted_at: new Date().toISOString()
-    })
+    .update({ status: 'accepted', accepted_at: new Date().toISOString() })
     .eq('id', invitation.id)
 
   return { success: true, household }
@@ -541,14 +539,14 @@ export async function convertToSoloHousehold(
     accepted_at: new Date().toISOString()
   })
 
-  // Update user_profiles
+  // Update user_accounts with household link
   await supabase
-    .from('user_profiles')
+    .from('user_accounts')
     .update({
       household_id: newHousehold.id,
       is_household_admin: true
     })
-    .eq('user_id', userId)
+    .eq('id', userId)
 
   return { success: true, household: newHousehold }
 }
@@ -680,10 +678,10 @@ export async function invitePartnerToHousehold(params: {
   adminName: string
   adminEmail: string
   householdName: string
-  partnerFirstName: string
-  partnerLastName: string
+  partnerFirstName?: string
+  partnerLastName?: string
   partnerEmail: string
-}): Promise<{ success: boolean; invitationToken?: string; error?: string }> {
+}): Promise<{ success: boolean; invitationToken?: string; partnerId?: string; error?: string }> {
   const {
     supabaseAdmin,
     householdId,
@@ -691,72 +689,130 @@ export async function invitePartnerToHousehold(params: {
     adminName,
     adminEmail,
     householdName,
-    partnerFirstName,
-    partnerLastName,
+    partnerFirstName = '',
+    partnerLastName = '',
     partnerEmail,
   } = params
 
   try {
-    const invitationToken = crypto.randomUUID()
-
-    const { data: invitation, error: inviteError } = await supabaseAdmin
-      .from('household_invitations')
-      .insert({
-        household_id: householdId,
-        invited_email: partnerEmail,
-        invited_by: adminUserId,
-        invitation_token: invitationToken,
-        status: 'pending',
-      })
-      .select()
-      .single()
-
-    if (inviteError || !invitation) {
-      console.error('Failed to create household invitation:', inviteError)
-      return { success: false, error: 'Failed to create invitation' }
-    }
-
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://vibrationfit.com'
-    const invitePagePath = `/household/invite/${invitationToken}`
-    let invitationLink = `${appUrl}${invitePagePath}`
+    const firstName = partnerFirstName ? toTitleCase(partnerFirstName) : ''
+    const lastName = partnerLastName ? toTitleCase(partnerLastName) : ''
+    const fullName = `${firstName} ${lastName}`.trim()
 
-    // Ensure partner has a Supabase auth account.
-    // Try to create - will silently fail if they already exist.
+    // ── 1. Create auth account (handle existing) ──
+    const userMetadata: Record<string, string> = {
+      invited_to_household: householdId,
+    }
+    if (firstName) userMetadata.first_name = firstName
+    if (lastName) userMetadata.last_name = lastName
+    if (fullName) userMetadata.full_name = fullName
+
+    let partnerId: string | null = null
+
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: partnerEmail,
       email_confirm: true,
-      user_metadata: {
-        first_name: partnerFirstName,
-        last_name: partnerLastName,
-        full_name: `${partnerFirstName} ${partnerLastName}`.trim(),
-        invited_to_household: householdId,
-      },
+      user_metadata: userMetadata,
     })
 
-    if (authError && !authError.message?.includes('already been registered')) {
-      console.error('Failed to create partner auth account:', authError)
-    } else if (authData?.user) {
-      console.log('Created partner auth account:', authData.user.id)
+    if (authError) {
+      if (authError.message?.includes('already been registered')) {
+        // Look up existing user by email via user_accounts
+        const { data: existing } = await supabaseAdmin
+          .from('user_accounts')
+          .select('id')
+          .eq('email', partnerEmail)
+          .maybeSingle()
+        partnerId = existing?.id ?? null
+        console.log('Partner already has auth account:', partnerId)
+      } else {
+        console.error('Failed to create partner auth account:', authError)
+        return { success: false, error: 'Failed to create partner account' }
+      }
+    } else {
+      partnerId = authData.user.id
+      console.log('Created partner auth account:', partnerId)
     }
 
-    // Always generate a magic link so the partner lands on
-    // setup-password (if needed) → invite page.
-    const callbackUrl = `${appUrl}/auth/callback?returnTo=${encodeURIComponent(invitePagePath)}`
+    if (!partnerId) {
+      console.error('Could not resolve partner user ID')
+      return { success: false, error: 'Could not resolve partner account' }
+    }
+
+    // ── 2. Provision household membership ──
+    // Update user_accounts with household info (created by handle_new_user trigger)
+    await supabaseAdmin
+      .from('user_accounts')
+      .update({
+        household_id: householdId,
+        is_household_admin: false,
+        ...(firstName ? { first_name: firstName } : {}),
+        ...(lastName ? { last_name: lastName } : {}),
+      })
+      .eq('id', partnerId)
+
+    // Add to household_members as active (idempotent via upsert)
+    const { error: memberError } = await supabaseAdmin
+      .from('household_members')
+      .upsert(
+        {
+          household_id: householdId,
+          user_id: partnerId,
+          role: 'member' as const,
+          status: 'active' as const,
+          allow_shared_tokens: true,
+          invited_by: adminUserId,
+          invited_at: new Date().toISOString(),
+          accepted_at: new Date().toISOString(),
+          joined_at: new Date().toISOString(),
+        },
+        { onConflict: 'household_id,user_id', ignoreDuplicates: false },
+      )
+
+    if (memberError) {
+      console.error('Failed to add partner as household member:', memberError)
+    } else {
+      console.log('Partner added as active household member:', partnerId)
+    }
+
+    // ── 3. Record invitation (auto-accepted) ──
+    // Cancel any stale pending invitations for this email first
+    await supabaseAdmin
+      .from('household_invitations')
+      .update({ status: 'canceled' })
+      .eq('household_id', householdId)
+      .eq('invited_email', partnerEmail)
+      .eq('status', 'pending')
+
+    const invitationToken = crypto.randomUUID()
+    await supabaseAdmin.from('household_invitations').insert({
+      household_id: householdId,
+      invited_email: partnerEmail,
+      invited_by: adminUserId,
+      invitation_token: invitationToken,
+      status: 'accepted',
+      accepted_at: new Date().toISOString(),
+    })
+
+    // ── 4. Generate magic link → setup-password → dashboard ──
+    let invitationLink = `${appUrl}/auth/login`
+
     const { data: magicLinkData, error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
       email: partnerEmail,
-      options: {
-        redirectTo: callbackUrl,
-      },
     })
 
     if (magicLinkError) {
       console.error('Failed to generate magic link for partner:', magicLinkError)
-    } else if (magicLinkData?.properties?.action_link) {
-      invitationLink = magicLinkData.properties.action_link
+    } else if (magicLinkData?.properties?.hashed_token) {
+      const hashedToken = magicLinkData.properties.hashed_token
+      const returnTo = encodeURIComponent('/dashboard')
+      invitationLink = `${appUrl}/auth/callback?token_hash=${hashedToken}&type=magiclink&returnTo=${returnTo}`
       console.log('Magic link generated for partner:', partnerEmail)
     }
 
+    // ── 5. Send welcome email ──
     const { sendEmail } = await import('@/lib/email/aws-ses')
     const { generateHouseholdInvitationEmail } = await import('@/lib/email/templates/household-invitation')
 
@@ -780,11 +836,11 @@ export async function invitePartnerToHousehold(params: {
     const { triggerEvent } = await import('@/lib/messaging/events')
     triggerEvent('household.invited', {
       email: partnerEmail,
-      name: `${partnerFirstName} ${partnerLastName}`.trim(),
+      name: fullName,
       userId: adminUserId,
     }).catch((err) => console.error('triggerEvent household.invited error:', err))
 
-    return { success: true, invitationToken }
+    return { success: true, invitationToken, partnerId }
   } catch (error) {
     console.error('Error inviting partner to household:', error)
     return { success: false, error: 'Failed to invite partner' }

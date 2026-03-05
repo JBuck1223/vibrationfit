@@ -32,6 +32,7 @@ export interface IntensiveData {
 export async function getActiveIntensive(userId: string): Promise<IntensiveData | null> {
   const supabase = await createClient()
   
+  // Direct order: user purchased their own intensive
   const { data, error } = await supabase
     .from('order_items')
     .select('id, payment_plan, completion_status, created_at, started_at, completed_at, activation_deadline, orders!inner(user_id), products!inner(product_type)')
@@ -44,10 +45,30 @@ export async function getActiveIntensive(userId: string): Promise<IntensiveData 
   
   if (error) {
     console.error('Error fetching active intensive:', error)
-    return null
   }
-  
-  return data
+
+  if (data) return data
+
+  // Household partner: intensive purchased by admin but assigned to this user
+  const { data: checklist } = await supabase
+    .from('intensive_checklist')
+    .select('intensive_id')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (!checklist?.intensive_id) return null
+
+  const { data: assignedItem } = await supabase
+    .from('order_items')
+    .select('id, payment_plan, completion_status, created_at, started_at, completed_at, activation_deadline, products!inner(product_type)')
+    .eq('id', checklist.intensive_id)
+    .eq('products.product_type', 'intensive')
+    .in('completion_status', ['pending', 'in_progress'])
+    .maybeSingle()
+
+  return assignedItem || null
 }
 
 /**

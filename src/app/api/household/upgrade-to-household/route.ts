@@ -113,16 +113,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get admin profile for the invitation email
-    const { data: adminProfile } = await serviceClient
-      .from('user_profiles')
+    const { data: adminAccount } = await serviceClient
+      .from('user_accounts')
       .select('first_name, last_name')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
+      .eq('id', user.id)
       .maybeSingle()
 
-    const adminName = adminProfile?.first_name
-      ? `${adminProfile.first_name} ${adminProfile.last_name || ''}`.trim()
+    const adminName = adminAccount?.first_name
+      ? `${adminAccount.first_name} ${adminAccount.last_name || ''}`.trim()
       : user.email?.split('@')[0] || 'A VibrationFit user'
 
     const result = await invitePartnerToHousehold({

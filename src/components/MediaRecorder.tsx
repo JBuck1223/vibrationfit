@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Mic, Video, Square, Play, Pause, Trash2, Upload, Loader2, Check, RotateCcw, Scissors, Save, ChevronDown, ChevronUp, SwitchCamera, Maximize, Minimize } from 'lucide-react'
+import { Mic, Video, Square, Play, Pause, Trash2, Upload, Loader2, Check, RotateCcw, Scissors, Save, ChevronDown, ChevronUp, SwitchCamera, Maximize, Minimize, Monitor } from 'lucide-react'
 import { Button, Checkbox } from '@/lib/design-system/components'
 import {
   saveRecordingChunks,
@@ -20,7 +20,7 @@ import { IconList } from '@/lib/design-system/components'
 type RecordingPurpose = 'quick' | 'transcriptOnly' | 'withFile' | 'audioOnly'
 
 interface MediaRecorderProps {
-  mode?: 'audio' | 'video'
+  mode?: 'audio' | 'video' | 'screen'
   onRecordingComplete?: (blob: Blob, transcript?: string, shouldSaveFile?: boolean, s3Url?: string) => void
   onTranscriptComplete?: (transcript: string) => void
   autoTranscribe?: boolean
@@ -408,7 +408,7 @@ export function MediaRecorderComponent({
   // Auto-save every 30 seconds during recording (or every 20 seconds for video)
   useEffect(() => {
     if (isRecording && !isPaused) {
-      const interval = mode === 'video' ? 20000 : 30000 // 20s for video, 30s for audio
+      const interval = (mode === 'video' || mode === 'screen') ? 20000 : 30000 // 20s for video/screen, 30s for audio
       
       autoSaveTimerRef.current = setInterval(async () => {
         // Check if still recording and have chunks
@@ -420,7 +420,7 @@ export function MediaRecorderComponent({
           const totalSize = chunksRef.current.reduce((sum, chunk) => sum + chunk.size, 0)
           
           // Track size for video (can use for size-based saves in future if needed)
-          if (mode === 'video' && totalSize - lastSaveSizeRef.current >= 10 * 1024 * 1024) {
+          if ((mode === 'video' || mode === 'screen') && totalSize - lastSaveSizeRef.current >= 10 * 1024 * 1024) {
             lastSaveSizeRef.current = totalSize
           }
 
@@ -465,7 +465,7 @@ export function MediaRecorderComponent({
     try {
       setError(null)
       
-      // Check if getUserMedia is supported
+      // Check if getUserMedia (and getDisplayMedia for screen) is supported
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         // Detect if on mobile to provide specific error
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
@@ -477,26 +477,48 @@ export function MediaRecorderComponent({
           throw new Error('Your browser does not support media recording. Please use Chrome, Firefox, or Safari.')
         }
       }
+      if (mode === 'screen' && typeof navigator.mediaDevices.getDisplayMedia !== 'function') {
+        throw new Error('Screen sharing is not supported in this browser. Please use Chrome, Firefox, or Edge.')
+      }
 
-      const constraints = mode === 'video' 
-        ? { 
-            video: { 
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
-              facingMode: facingMode
-            }, 
-            audio: selectedMic ? { deviceId: { exact: selectedMic } } : true 
-          }
-        : { audio: selectedMic ? { deviceId: { exact: selectedMic } } : true }
+      let stream: MediaStream
+      if (mode === 'screen') {
+        // Screen capture: display + microphone so users can narrate what they need support with
+        const displayStream = await navigator.mediaDevices.getDisplayMedia({
+          video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false // Mic is more reliable for voiceover; system audio support varies by browser
+        })
+        const micStream = await navigator.mediaDevices.getUserMedia(
+          selectedMic ? { audio: { deviceId: { exact: selectedMic } } } : { audio: true }
+        )
+        stream = new MediaStream([
+          ...displayStream.getVideoTracks(),
+          ...micStream.getAudioTracks()
+        ])
+        // Keep refs to stop both later (streamRef will hold combined stream; tracks are from both)
+        streamRef.current = stream
+        console.log('Screen + mic access granted:', stream.getTracks().map(t => ({ kind: t.kind, label: t.label })))
+      } else {
+        const constraints = mode === 'video'
+          ? {
+              video: {
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                facingMode: facingMode
+              },
+              audio: selectedMic ? { deviceId: { exact: selectedMic } } : true
+            }
+          : { audio: selectedMic ? { deviceId: { exact: selectedMic } } : true }
 
-      console.log('Requesting media access:', mode, constraints)
-      const stream = await navigator.mediaDevices.getUserMedia(constraints)
-      console.log('Media access granted:', stream.getTracks().map(t => ({ kind: t.kind, label: t.label })))
-      streamRef.current = stream
+        console.log('Requesting media access:', mode, constraints)
+        stream = await navigator.mediaDevices.getUserMedia(constraints)
+        console.log('Media access granted:', stream.getTracks().map(t => ({ kind: t.kind, label: t.label })))
+        streamRef.current = stream
+      }
 
-      // Show preview for video (but don't start recording yet)
+      // Show preview for video/screen (but don't start recording yet)
       setIsPreparing(true)
-      if (mode === 'video') {
+      if (mode === 'video' || mode === 'screen') {
         // Wait for React to render the video element
         await new Promise(resolve => setTimeout(resolve, 100))
         
@@ -538,14 +560,15 @@ export function MediaRecorderComponent({
       setDuration(previousDuration)
       durationRef.current = previousDuration
 
-      const mimeType = mode === 'video' 
+      const isVideoLike = mode === 'video' || mode === 'screen'
+      const mimeType = isVideoLike
         ? 'video/webm;codecs=vp9,opus'
         : 'audio/webm;codecs=opus'
 
       const recorderOptions: MediaRecorderOptions = {
-        mimeType: MediaRecorder.isTypeSupported(mimeType) 
-          ? mimeType 
-          : mode === 'video' ? 'video/webm' : 'audio/webm'
+        mimeType: MediaRecorder.isTypeSupported(mimeType)
+          ? mimeType
+          : isVideoLike ? 'video/webm' : 'audio/webm'
       }
 
       // Lower bitrate for speech-only recordings to reduce file size and speed up transcription
@@ -579,8 +602,8 @@ export function MediaRecorderComponent({
           setPreviousDuration(0)
         }
         
-        const blob = new Blob(finalChunks, { 
-          type: mode === 'video' ? 'video/webm' : 'audio/webm' 
+        const blob = new Blob(finalChunks, {
+          type: isVideoLike ? 'video/webm' : 'audio/webm'
         })
         
         console.log('📦 Created blob:', {
@@ -632,7 +655,7 @@ export function MediaRecorderComponent({
         // Upload to S3 immediately for withFile mode only (needs immediate backup)
         // audioOnly mode will upload on Save button click (user may want to edit/discard first)
         if (recordingPurpose === 'withFile') {
-          const folder = storageFolder || (mode === 'video' ? 'journalVideoRecordings' : 'journalAudioRecordings')
+          const folder = storageFolder || (isVideoLike ? 'journalVideoRecordings' : 'journalAudioRecordings')
           // Include recordingId in filename if provided for better S3 organization
           const filePrefix = providedRecordingId ? `${providedRecordingId}-` : ''
           const fileName = `${filePrefix}recording-${Date.now()}.webm`
@@ -690,13 +713,17 @@ export function MediaRecorderComponent({
       let errorMessage = 'Failed to access camera/microphone.'
       
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        errorMessage = mode === 'video'
-          ? 'Camera permission denied. Click the lock icon in your browser\'s address bar and allow camera access, then try again.'
-          : 'Microphone permission denied. Click the lock icon in your browser\'s address bar and allow microphone access, then try again.'
+        errorMessage = mode === 'screen'
+          ? 'Screen share was cancelled or denied. Please choose "Share" when prompted to record your screen.'
+          : mode === 'video'
+            ? 'Camera permission denied. Click the lock icon in your browser\'s address bar and allow camera access, then try again.'
+            : 'Microphone permission denied. Click the lock icon in your browser\'s address bar and allow microphone access, then try again.'
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-        errorMessage = mode === 'video' 
-          ? 'No camera found. Please connect a camera and try again.'
-          : 'No microphone found. Please connect a microphone and try again.'
+        errorMessage = mode === 'screen'
+          ? 'Could not capture screen. Please try again or use a different browser.'
+          : mode === 'video'
+            ? 'No camera found. Please connect a camera and try again.'
+            : 'No microphone found. Please connect a microphone and try again.'
       } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
         errorMessage = 'Camera/microphone is already in use by another application.'
       } else if (err.name === 'OverconstrainedError') {
@@ -753,8 +780,8 @@ export function MediaRecorderComponent({
       }
 
 
-      // Stop video preview
-      if (mode === 'video' && videoRef.current) {
+      // Stop video/screen preview
+      if ((mode === 'video' || mode === 'screen') && videoRef.current) {
         videoRef.current.srcObject = null
       }
     }
@@ -916,7 +943,7 @@ export function MediaRecorderComponent({
         console.log('Quick mode: Transcribing only (no S3 upload)')
       } else {
         console.log(`${recordingPurpose} mode: Uploading to S3 in parallel...`)
-        const folder = storageFolder || (mode === 'video' ? 'journalVideoRecordings' : 'journalAudioRecordings')
+        const folder = storageFolder || ((mode === 'video' || mode === 'screen') ? 'journalVideoRecordings' : 'journalAudioRecordings')
         const filePrefix = providedRecordingId ? `${providedRecordingId}-` : ''
         const fileName = `${filePrefix}recording-${Date.now()}.webm`
         
@@ -1050,7 +1077,7 @@ export function MediaRecorderComponent({
               : 'p-4 flex flex-col'
         }`}>
           {/* Video Preview */}
-          {mode === 'video' && (isRecording || isPreparing) && (
+          {(mode === 'video' || mode === 'screen') && (isRecording || isPreparing) && (
             <div 
               ref={containerRef}
               className={`mb-4 rounded-xl overflow-hidden bg-black relative ${
@@ -1069,9 +1096,9 @@ export function MediaRecorderComponent({
                 playsInline
               />
               
-              {/* Top Controls - Camera Switch & Fullscreen */}
+              {/* Top Controls - Camera Switch (video only) & Fullscreen */}
               <div className="absolute top-4 right-4 flex gap-2 z-10">
-                {allowCameraSwitch && (
+                {allowCameraSwitch && mode === 'video' && (
                   <button
                     type="button"
                     onClick={switchCamera}
@@ -1093,9 +1120,19 @@ export function MediaRecorderComponent({
                 )}
               </div>
 
-              {/* Camera indicator */}
+              {/* Source indicator */}
               <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/50 text-white px-3 py-1 rounded-full text-sm backdrop-blur-sm">
-                {facingMode === 'user' ? '🤳 Front' : '📷 Back'}
+                {mode === 'screen' ? (
+                  <>
+                    <Monitor className="w-4 h-4" />
+                    Screen
+                  </>
+                ) : (
+                  <>
+                    <Video className="w-4 h-4" />
+                    {facingMode === 'user' ? 'Front' : 'Back'}
+                  </>
+                )}
               </div>
               
               {/* Countdown Overlay */}
@@ -1272,7 +1309,7 @@ export function MediaRecorderComponent({
                       }
                       
                       const blobToTranscribe = new Blob(chunksToUse, {
-                        type: mode === 'video' ? 'video/webm' : 'audio/webm'
+                        type: (mode === 'video' || mode === 'screen') ? 'video/webm' : 'audio/webm'
                       })
                       
                       if (blobToTranscribe.size === 0) {
@@ -1420,7 +1457,7 @@ export function MediaRecorderComponent({
                 size="sm"
                 className="gap-2 w-full md:w-auto"
               >
-                {mode === 'video' ? <Video className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                {mode === 'screen' ? <Monitor className="w-4 h-4" /> : mode === 'video' ? <Video className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                 Start Recording
               </Button>
             </div>
@@ -1523,7 +1560,7 @@ export function MediaRecorderComponent({
           </div>
 
           {/* Media Player */}
-          {mode === 'video' ? (
+          {(mode === 'video' || mode === 'screen') ? (
             <video
               src={s3Url || recordedUrl || undefined}
               controls
@@ -1579,7 +1616,7 @@ export function MediaRecorderComponent({
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-primary-500">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm">Transcribing {mode === 'video' ? 'video' : 'audio'}...</span>
+                    <span className="text-sm">Transcribing {mode === 'screen' ? 'screen recording' : mode === 'video' ? 'video' : 'audio'}...</span>
                   </div>
                   {duration > 120 && (
                     <p className="text-xs text-neutral-500 pl-6">
@@ -1601,7 +1638,7 @@ export function MediaRecorderComponent({
             <div className="flex items-center gap-2 p-3 bg-neutral-800 rounded-lg">
               <Checkbox
                 id="saveRecording"
-                label={`Save ${mode === 'video' ? 'video' : 'audio'} file to cloud storage`}
+                label={`Save ${mode === 'screen' ? 'screen recording' : mode === 'video' ? 'video' : 'audio'} file to cloud storage`}
                 checked={saveRecording}
                 onChange={(e) => setSaveRecording(e.target.checked)}
               />

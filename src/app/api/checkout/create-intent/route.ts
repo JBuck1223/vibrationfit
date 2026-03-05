@@ -5,6 +5,7 @@ import { findOrCreateStripeCustomerByEmail } from '@/lib/stripe/customer'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import Stripe from 'stripe'
+import { toTitleCase } from '@/lib/utils'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -183,14 +184,16 @@ export async function POST(request: NextRequest) {
     } else {
       const tempPassword = hasPassword ? password! : randomBytes(32).toString('hex')
       const tempNameParts = (name || '').trim().split(' ')
+      const tcFirst = tempNameParts[0] ? toTitleCase(tempNameParts[0]) : undefined
+      const tcLast = tempNameParts.length > 1 ? toTitleCase(tempNameParts.slice(1).join(' ')) : undefined
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password: tempPassword,
         email_confirm: true,
         user_metadata: {
-          full_name: name || undefined,
-          first_name: tempNameParts[0] || undefined,
-          last_name: tempNameParts.length > 1 ? tempNameParts.slice(1).join(' ') : undefined,
+          full_name: [tcFirst, tcLast].filter(Boolean).join(' ') || undefined,
+          first_name: tcFirst,
+          last_name: tcLast,
           phone: phone || undefined,
         },
       })
@@ -207,10 +210,9 @@ export async function POST(request: NextRequest) {
       { onConflict: 'user_id' }
     )
 
-    // Sync name and phone to user_accounts (trigger may have missed full_name split)
     const nameParts = (name || '').trim().split(' ')
-    const firstName = nameParts[0] || null
-    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : null
+    const firstName = nameParts[0] ? toTitleCase(nameParts[0]) : null
+    const lastName = nameParts.length > 1 ? toTitleCase(nameParts.slice(1).join(' ')) : null
     await supabaseAdmin.from('user_accounts').update({
       first_name: firstName,
       last_name: lastName,
