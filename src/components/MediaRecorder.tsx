@@ -397,7 +397,7 @@ export function MediaRecorderComponent({
           category,
           chunksRef.current,
           durationRef.current,
-          mode,
+          mode === 'screen' ? 'video' : mode,
           recordedBlob,
           transcriptRef.current || undefined
         ).catch(err => console.error('Failed to update IndexedDB with blob:', err))
@@ -432,7 +432,7 @@ export function MediaRecorderComponent({
             category,
             chunksRef.current,
             durationRef.current, // Use ref for current duration
-            mode,
+            mode === 'screen' ? 'video' : mode,
             undefined, // Don't save blob during recording (only chunks)
             transcriptRef.current || undefined // Use ref for current transcript
           )
@@ -642,7 +642,7 @@ export function MediaRecorderComponent({
             category,
             finalChunks,
             duration,
-            mode,
+            mode === 'screen' ? 'video' : mode,
             blob,
             transcript || undefined
           )
@@ -1745,7 +1745,7 @@ export function MediaRecorderComponent({
                           category,
                           chunksRef.current,
                           duration,
-                          mode,
+                          mode === 'screen' ? 'video' : mode,
                           recordedBlob,
                           transcriptResult
                         )
