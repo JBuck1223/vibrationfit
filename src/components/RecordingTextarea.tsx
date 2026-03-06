@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Mic, Video, Loader2, X, Square } from 'lucide-react'
+import { Mic, Video, Loader2, X, Square, Check, Trash2 } from 'lucide-react'
 import { Textarea, Button } from '@/lib/design-system/components'
 import { MediaRecorderComponent } from './MediaRecorder'
 import { uploadAndTranscribeRecording } from '@/lib/services/recordingService'
@@ -63,6 +63,7 @@ export function RecordingTextarea({
   const quickAudioContextRef = useRef<AudioContext | null>(null)
   const quickAnalyserRef = useRef<AnalyserNode | null>(null)
   const quickAnimationFrameRef = useRef<number | null>(null)
+  const quickCancelledRef = useRef(false)
 
   // Auto-resize textarea without disrupting scroll position
   const autoResizeTextarea = () => {
@@ -180,10 +181,43 @@ export function RecordingTextarea({
     onChange(newValue)
   }
 
+  // Quick mode: Cancel recording without transcription
+  const cancelQuickRecording = () => {
+    quickCancelledRef.current = true
+
+    if (quickTimerRef.current) {
+      clearInterval(quickTimerRef.current)
+      quickTimerRef.current = null
+    }
+
+    if (quickMediaRecorderRef.current && quickMediaRecorderRef.current.state === 'recording') {
+      quickMediaRecorderRef.current.stop()
+    } else {
+      if (quickAnimationFrameRef.current) {
+        cancelAnimationFrame(quickAnimationFrameRef.current)
+        quickAnimationFrameRef.current = null
+      }
+      if (quickAudioContextRef.current) {
+        try { quickAudioContextRef.current.close() } catch { /* already closed */ }
+        quickAudioContextRef.current = null
+      }
+      if (quickStreamRef.current) {
+        quickStreamRef.current.getTracks().forEach(track => track.stop())
+        quickStreamRef.current = null
+      }
+      setQuickAudioLevel(0)
+      setIsQuickRecording(false)
+      setIsUploading(false)
+      setQuickRecordingDuration(0)
+      quickCancelledRef.current = false
+    }
+  }
+
   // Quick mode: Start inline recording immediately
   const startQuickRecording = async () => {
     try {
       // Force-reset any stuck state from a previous recording
+      quickCancelledRef.current = false
       setIsUploading(false)
       setIsQuickRecording(false)
       setUploadError(null)
@@ -263,6 +297,11 @@ export function RecordingTextarea({
           if (quickStreamRef.current) {
             quickStreamRef.current.getTracks().forEach(track => track.stop())
             quickStreamRef.current = null
+          }
+
+          if (quickCancelledRef.current) {
+            quickCancelledRef.current = false
+            return
           }
           
           const blob = new Blob(quickChunksRef.current, { type: 'audio/webm' })
@@ -476,49 +515,90 @@ export function RecordingTextarea({
         
         {/* Quick Mode: Inline Recording Indicator */}
         {isQuickRecording && (
-          <div className="absolute bottom-3 right-1.5 flex items-center gap-2 p-2">
-            <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/30 rounded-full">
-              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-              
-              {/* Audio Level Bars */}
-              <div className="flex items-center gap-0.5 h-4">
-                {[0, 1, 2, 3].map((i) => {
-                  const barHeight = Math.min(100, quickAudioLevel + (i * 5))
-                  const isActive = barHeight > (i * 25)
-                  return (
-                    <div
-                      key={i}
-                      className="w-1 bg-primary-500 rounded-full transition-all duration-100"
-                      style={{
-                        height: isActive ? `${Math.max(20, barHeight)}%` : '20%',
-                        opacity: isActive ? 1 : 0.3
-                      }}
-                    />
-                  )
-                })}
+          <div className="absolute bottom-3 left-1.5 right-1.5 flex items-center justify-between px-2 py-1">
+            {/* Cancel button - left side, only while actively recording */}
+            {!isUploading ? (
+              <button
+                type="button"
+                onClick={cancelQuickRecording}
+                className="p-2 bg-neutral-600 hover:bg-neutral-500 text-neutral-300 hover:text-white rounded-full transition-colors"
+                title="Cancel recording"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            ) : (
+              <div className="w-8" />
+            )}
+
+            {/* Recording / Transcribing indicator - center */}
+            {isUploading ? (
+              <div className="flex items-center gap-2 px-3 py-2 bg-[#39FF14]/10 border border-[#39FF14]/30 rounded-full">
+                <Loader2 className="w-3 h-3 text-[#39FF14] animate-spin" />
+                <span className="text-xs font-medium text-[#39FF14]">Transcribing...</span>
               </div>
-              
-              <span className="text-xs font-mono text-red-400">
-                {Math.floor(quickRecordingDuration / 60)}:{(quickRecordingDuration % 60).toString().padStart(2, '0')}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={stopQuickRecording}
-              className="p-2 bg-red-500 hover:bg-red-400 text-white rounded-full transition-colors"
-              title="Stop recording"
-            >
-              <Square className="w-4 h-4 fill-white" />
-            </button>
+            ) : (
+              <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/30 rounded-full">
+                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                <div className="flex items-center gap-0.5 h-4">
+                  {[0, 1, 2, 3].map((i) => {
+                    const barHeight = Math.min(100, quickAudioLevel + (i * 5))
+                    const isActive = barHeight > (i * 25)
+                    return (
+                      <div
+                        key={i}
+                        className="w-1 bg-primary-500 rounded-full transition-all duration-100"
+                        style={{
+                          height: isActive ? `${Math.max(20, barHeight)}%` : '20%',
+                          opacity: isActive ? 1 : 0.3
+                        }}
+                      />
+                    )
+                  })}
+                </div>
+                <span className="text-xs font-mono text-red-400">
+                  {Math.floor(quickRecordingDuration / 60)}:{(quickRecordingDuration % 60).toString().padStart(2, '0')}
+                </span>
+              </div>
+            )}
+
+            {/* Stop / Check button - right side */}
+            {isUploading ? (
+              <div className="p-2 bg-[#39FF14]/20 border border-[#39FF14]/40 rounded-full">
+                <Check className="w-4 h-4 text-[#39FF14]" />
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={stopQuickRecording}
+                className="p-2 bg-red-500 hover:bg-red-400 text-white rounded-full transition-colors"
+                title="Stop recording"
+              >
+                <Square className="w-4 h-4 fill-white" />
+              </button>
+            )}
           </div>
         )}
       </div>
 
-      {/* Upload Status */}
-      {isUploading && (
+      {/* Clear button - below the text block */}
+      {value && !isQuickRecording && !isUploading && !disabled && (
+        <div className="flex justify-start -mt-1">
+          <button
+            type="button"
+            onClick={() => onChange('')}
+            className="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-red-400 transition-colors px-1 py-1 rounded"
+          >
+            <Trash2 className="w-3 h-3" />
+            Clear
+          </button>
+        </div>
+      )}
+
+      {/* Upload Status - hide during quick recording since inline indicator handles it */}
+      {isUploading && !isQuickRecording && (
         <div className="flex items-center gap-2 text-primary-500 text-sm">
           <Loader2 className="w-4 h-4 animate-spin" />
-          <span>{recordingPurpose === 'quick' ? 'Transcribing...' : 'Saving recording and transcript...'}</span>
+          <span>Saving recording and transcript...</span>
         </div>
       )}
 
