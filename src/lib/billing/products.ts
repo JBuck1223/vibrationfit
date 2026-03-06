@@ -77,10 +77,7 @@ async function resolveIntensiveProduct(
   isPremium?: boolean,
 ): Promise<CheckoutProduct | null> {
   const sb = await getSupabase(supabase)
-  const isSolo = planTypeStr === 'solo'
-  const productKey = isPremium
-    ? (isSolo ? 'intensive_premium' : 'intensive_premium_household')
-    : (isSolo ? 'intensive' : 'intensive_household')
+  const productKey = isPremium ? 'intensive_premium' : 'intensive'
 
   const { data: dbProduct } = await sb
     .from('products')
@@ -109,9 +106,7 @@ async function resolveIntensiveProduct(
     : paymentPlan === '2pay' ? '2 payments'
     : '3 payments'
 
-  const intensiveTierType = isPremium
-    ? (isSolo ? 'intensive_premium' : 'intensive_premium_household')
-    : (isSolo ? 'intensive' : 'intensive_household')
+  const intensiveTierType = isPremium ? 'intensive_premium' : 'intensive'
   const { data: intensiveTier } = await sb
     .from('membership_tiers')
     .select('monthly_token_grant, annual_token_grant, storage_quota_gb, features')

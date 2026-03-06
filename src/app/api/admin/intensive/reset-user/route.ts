@@ -204,7 +204,6 @@ export async function POST(request: NextRequest) {
         payment_plan: 'full',
         installments_total: 1,
         installments_paid: 1,
-        completion_status: 'pending',
         created_at: now,
       })
       .select()

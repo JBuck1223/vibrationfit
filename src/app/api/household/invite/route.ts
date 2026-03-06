@@ -61,13 +61,6 @@ export async function POST(request: NextRequest) {
       .eq('household_id', household.id)
       .eq('status', 'active')
 
-    if (members && members.length >= household.max_members) {
-      return NextResponse.json(
-        { error: `Household is at maximum capacity (${household.max_members} members)` },
-        { status: 400 },
-      )
-    }
-
     const { data: existingInvite } = await serviceClient
       .from('household_invitations')
       .select('id')

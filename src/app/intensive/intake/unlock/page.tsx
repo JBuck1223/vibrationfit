@@ -141,18 +141,16 @@ export default function IntensiveUnlockPage() {
       // Check for super_admin access
       const { isSuperAdmin } = await checkSuperAdminAccess(supabase)
 
-      // Get intensive order item
-      const { data: intensiveData, error: intensiveError } = await supabase
-        .from('order_items')
-        .select('id, orders!inner(user_id), products!inner(product_type)')
-        .eq('orders.user_id', user.id)
-        .eq('products.product_type', 'intensive')
+      const { data: checklistRow, error: checklistError } = await supabase
+        .from('intensive_checklist')
+        .select('intensive_id, unlock_completed, unlock_completed_at')
+        .eq('user_id', user.id)
+        .in('status', ['pending', 'in_progress'])
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
 
-      if (intensiveError || !intensiveData) {
-        // Allow super_admin to access without enrollment
+      if (checklistError || !checklistRow) {
         if (isSuperAdmin) {
           setIntensiveId('super-admin-test-mode')
         } else {
@@ -160,16 +158,9 @@ export default function IntensiveUnlockPage() {
           return
         }
       } else {
-        setIntensiveId(intensiveData.id)
-        
-        // Check if unlock step is already completed
-        const { data: checklistData } = await supabase
-          .from('intensive_checklist')
-          .select('unlock_completed, unlock_completed_at')
-          .eq('intensive_id', intensiveData.id)
-          .maybeSingle()
+        setIntensiveId(checklistRow.intensive_id)
 
-        if (checklistData?.unlock_completed) {
+        if (checklistRow?.unlock_completed) {
           setIsAlreadyCompleted(true)
           setCompletedAt(checklistData.unlock_completed_at)
         }

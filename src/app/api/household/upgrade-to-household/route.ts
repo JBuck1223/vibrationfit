@@ -71,12 +71,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Household not found' }, { status: 404 })
     }
 
-    // Upgrade household to 2 seats if it's currently solo (max_members = 1)
-    if (household.max_members < 2) {
+    if (!household.shared_tokens_enabled) {
       await serviceClient
         .from('households')
         .update({
-          max_members: 2,
           shared_tokens_enabled: true,
           updated_at: new Date().toISOString(),
         })

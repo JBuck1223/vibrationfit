@@ -10,6 +10,20 @@ export default async function DashboardPage() {
     redirect('/auth/login')
   }
 
+  // If user has a pending/in-progress intensive, send them there instead
+  const { data: activeIntensive } = await supabase
+    .from('intensive_checklist')
+    .select('id, started_at')
+    .eq('user_id', user.id)
+    .in('status', ['pending', 'in_progress'])
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (activeIntensive) {
+    redirect(activeIntensive.started_at ? '/intensive/dashboard' : '/intensive/start')
+  }
+
   // Fetch active profile data
   const { data: profileData } = await supabase
     .from('user_profiles')

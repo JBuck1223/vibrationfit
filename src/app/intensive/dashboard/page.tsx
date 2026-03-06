@@ -50,9 +50,7 @@ import { fetchAssessments } from '@/lib/services/assessmentService'
 interface IntensivePurchase {
   id: string
   payment_plan: string
-  activation_deadline: string | null
   started_at: string | null
-  completion_status: string
   completed_at: string | null
   created_at: string
 }
@@ -255,14 +253,23 @@ function IntensiveDashboardContent() {
       }
 
       // Get active intensive checklist (source of truth)
-      const { data: checklistData, error: checklistError } = await supabase
-        .from('intensive_checklist')
-        .select('*')
-        .eq('user_id', user.id)
-        .in('status', ['pending', 'in_progress'])
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
+      let checklistData: any = null
+      let checklistError: any = null
+
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const res = await supabase
+          .from('intensive_checklist')
+          .select('*')
+          .eq('user_id', user.id)
+          .in('status', ['pending', 'in_progress'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single()
+        checklistData = res.data
+        checklistError = res.error
+        if (checklistData) break
+        if (attempt === 0) await new Promise(r => setTimeout(r, 500))
+      }
 
       console.log('📋 Checklist data:', checklistData, 'Error:', checklistError)
 
@@ -277,9 +284,7 @@ function IntensiveDashboardContent() {
           setIntensive({
             id: 'super-admin-test',
             payment_plan: 'admin',
-            activation_deadline: null,
             started_at: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
-            completion_status: 'in_progress',
             completed_at: null,
             created_at: mockTimestamp,
           })
@@ -349,18 +354,13 @@ function IntensiveDashboardContent() {
         console.error('Error fetching assessments for dashboard:', e)
       }
 
-      // Get intensive purchase for reference
-      const { data: intensiveData } = await supabase
-        .from('order_items')
-        .select('id, payment_plan, activation_deadline, started_at, completion_status, completed_at, created_at')
-        .eq('id', checklistData.intensive_id)
-        .single()
-
-      console.log('💳 Purchase data:', intensiveData)
-
-      if (intensiveData) {
-        setIntensive(intensiveData)
-      }
+      setIntensive({
+        id: checklistData.intensive_id,
+        payment_plan: 'full',
+        started_at: checklistData.started_at,
+        completed_at: checklistData.completed_at,
+        created_at: checklistData.created_at,
+      })
 
       // Active life vision ID for View links (e.g. Generate Vision Audio -> audio sets)
       const { data: activeVision } = await supabase

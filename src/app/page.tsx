@@ -1711,7 +1711,7 @@ export default function HomePage() {
                             </li>
                             <li className="flex items-center gap-2">
                               <Check className="w-4 h-4 text-[#39FF14] flex-shrink-0" />
-                              <span>{formatTokensShort(tokenGrant(planType === 'solo' ? TIER_TYPES.INTENSIVE : TIER_TYPES.INTENSIVE_HOUSEHOLD))} VIVA Tokens</span>
+                              <span>{formatTokensShort(tokenGrant(TIER_TYPES.INTENSIVE))} VIVA Tokens</span>
                             </li>
                             <li className="flex items-center gap-2">
                               <Check className="w-4 h-4 text-[#39FF14] flex-shrink-0" />

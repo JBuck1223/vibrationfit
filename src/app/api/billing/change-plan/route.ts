@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { stripe } from '@/lib/stripe/config'
+import { toTitleCase } from '@/lib/utils'
 
 const TIER_TYPE_TO_ENV_KEY: Record<string, string> = {
   vision_pro_annual: 'STRIPE_PRICE_ANNUAL',
@@ -37,11 +38,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { targetTierId, partnerFirstName, partnerLastName, partnerEmail } = (await request.json()) as {
+    const { targetTierId, partnerFirstName, partnerLastName, partnerEmail, includeIntensive, intensiveAmount, promoCode } = (await request.json()) as {
       targetTierId: string
       partnerFirstName?: string
       partnerLastName?: string
       partnerEmail?: string
+      includeIntensive?: boolean
+      intensiveAmount?: number
+      promoCode?: string
     }
 
     if (!targetTierId) {
@@ -81,6 +85,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Already on this plan' }, { status: 400 })
     }
 
+    // Fetch current tier to detect direction of change
+    const { data: currentTier } = await supabase
+      .from('membership_tiers')
+      .select('id, tier_type, is_household_plan')
+      .eq('id', subscription.membership_tier_id)
+      .maybeSingle()
+
+    const isHouseholdToSolo = currentTier?.is_household_plan && !targetTier.is_household_plan
+
     const stripeSub = await stripe.subscriptions.retrieve(subscription.stripe_subscription_id)
     const mainItem = stripeSub.items.data.find(item => {
       const meta = item.price.metadata || {}
@@ -91,14 +104,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unable to find main subscription item' }, { status: 500 })
     }
 
+    // If downgrading from household to solo, remove seat add-on items first
+    const itemsToUpdate: any[] = []
+    if (isHouseholdToSolo) {
+      for (const item of stripeSub.items.data) {
+        if (item.id !== mainItem.id) {
+          itemsToUpdate.push({ id: item.id, deleted: true })
+        }
+      }
+    }
+
     let updatedSub: Awaited<ReturnType<typeof stripe.subscriptions.update>>
 
     try {
       updatedSub = await stripe.subscriptions.update(subscription.stripe_subscription_id, {
-        items: [{
-          id: mainItem.id,
-          price: stripePriceId,
-        }],
+        items: [
+          { id: mainItem.id, price: stripePriceId },
+          ...itemsToUpdate,
+        ],
         proration_behavior: 'create_prorations',
         cancel_at_period_end: false,
       })
@@ -107,6 +130,7 @@ export async function POST(request: NextRequest) {
         items: [
           { id: mainItem.id, deleted: true },
           { price: stripePriceId },
+          ...itemsToUpdate,
         ],
         proration_behavior: 'create_prorations',
         cancel_at_period_end: false,
@@ -123,14 +147,43 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', subscription.id)
 
+    // Handle household dissolution when downgrading to solo
+    let householdDissolved = false
+    let removedMembers: string[] = []
+    if (isHouseholdToSolo) {
+      try {
+        const serviceClient = createServiceClient()
+        const { data: membership } = await serviceClient
+          .from('household_members')
+          .select('household_id')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .maybeSingle()
+
+        if (membership) {
+          const { dissolveHousehold } = await import('@/lib/supabase/household')
+          const result = await dissolveHousehold(membership.household_id, user.id)
+          householdDissolved = result.success
+          removedMembers = result.removedMemberIds
+        }
+      } catch (err) {
+        console.error('Household dissolution error (non-blocking):', err)
+      }
+    }
+
     let householdCreated = false
     let partnerInvited = false
+    let partnerId: string | undefined
 
     if (targetTier.is_household_plan) {
       try {
         householdCreated = await createHouseholdForUser(user.id, user.email || '')
+      } catch (householdErr) {
+        console.error('Household creation error (non-blocking):', householdErr)
+      }
 
-        if (householdCreated && partnerFirstName && partnerLastName && partnerEmail) {
+      if (partnerFirstName && partnerLastName && partnerEmail) {
+        try {
           const serviceClient = createServiceClient()
           const { data: household } = await serviceClient
             .from('household_members')
@@ -147,15 +200,14 @@ export async function POST(request: NextRequest) {
               .single()
 
             if (hData) {
-              const { data: profile } = await serviceClient
-                .from('user_profiles')
+              const { data: adminAccount } = await serviceClient
+                .from('user_accounts')
                 .select('first_name, last_name')
-                .eq('user_id', user.id)
-                .eq('is_active', true)
+                .eq('id', user.id)
                 .maybeSingle()
 
-              const adminName = profile?.first_name
-                ? `${profile.first_name} ${profile.last_name || ''}`.trim()
+              const adminName = adminAccount?.first_name
+                ? `${adminAccount.first_name} ${adminAccount.last_name || ''}`.trim()
                 : user.email?.split('@')[0] || ''
 
               const { invitePartnerToHousehold } = await import('@/lib/supabase/household')
@@ -171,11 +223,120 @@ export async function POST(request: NextRequest) {
                 partnerEmail,
               })
               partnerInvited = inviteResult.success
+              partnerId = inviteResult.partnerId
             }
           }
+        } catch (inviteErr) {
+          console.error('Partner invitation error (non-blocking):', inviteErr)
         }
-      } catch (householdErr) {
-        console.error('Household creation error (non-blocking):', householdErr)
+      }
+    }
+
+    // Create intensive checklist for partner (same pattern as normal checkout)
+    let intensiveGranted = false
+    if (includeIntensive && partnerId) {
+      try {
+        const serviceClient = createServiceClient()
+
+        // Handle Stripe charge if amount > 0
+        let finalAmount = intensiveAmount ?? 20000
+        if (promoCode) {
+          const { validateCouponCode, calculateDiscount } = await import('@/lib/billing/coupons')
+          const couponResult = await validateCouponCode(promoCode, {
+            userId: user.id,
+            productKey: 'intensive',
+            purchaseAmount: finalAmount,
+          })
+          if (couponResult.valid && couponResult.coupon) {
+            finalAmount = Math.max(0, finalAmount - calculateDiscount(couponResult.coupon, finalAmount))
+          }
+        }
+
+        if (finalAmount > 0 && stripe) {
+          const { data: sub } = await serviceClient
+            .from('customer_subscriptions')
+            .select('stripe_customer_id')
+            .eq('user_id', user.id)
+            .in('status', ['active', 'trialing'])
+            .not('stripe_customer_id', 'is', null)
+            .limit(1)
+            .maybeSingle()
+
+          if (sub?.stripe_customer_id) {
+            await stripe.invoiceItems.create({
+              customer: sub.stripe_customer_id,
+              amount: finalAmount,
+              currency: 'usd',
+              description: 'Activation Intensive',
+            })
+            const invoice = await stripe.invoices.create({
+              customer: sub.stripe_customer_id,
+              auto_advance: true,
+              collection_method: 'charge_automatically',
+            })
+            await stripe.invoices.pay(invoice.id)
+          }
+        }
+
+        // Look up the intensive product
+        const { data: dbProd } = await serviceClient
+          .from('products')
+          .select('id')
+          .eq('key', 'intensive')
+          .maybeSingle()
+
+        if (dbProd) {
+          const { data: order, error: orderErr } = await serviceClient
+            .from('orders')
+            .insert({
+              user_id: user.id,
+              total_amount: finalAmount,
+              currency: 'usd',
+              status: 'paid',
+              paid_at: new Date().toISOString(),
+              promo_code: promoCode || null,
+              metadata: { source: 'billing_upgrade', granted_to: partnerId },
+            })
+            .select('id')
+            .single()
+
+          if (orderErr || !order) {
+            console.error('change-plan: order insert failed', JSON.stringify(orderErr))
+          } else {
+            const { data: orderItem, error: oiErr } = await serviceClient
+              .from('order_items')
+              .insert({
+                order_id: order.id,
+                product_id: dbProd.id,
+                quantity: 1,
+                amount: finalAmount,
+                currency: 'usd',
+                payment_plan: 'full',
+                is_subscription: false,
+              })
+              .select('id')
+              .single()
+
+            if (oiErr || !orderItem) {
+              console.error('change-plan: order_item insert failed', JSON.stringify(oiErr))
+            } else {
+              const { error: clErr } = await serviceClient.from('intensive_checklist').insert({
+                intensive_id: orderItem.id,
+                user_id: partnerId,
+              })
+              if (clErr) {
+                console.error('change-plan: checklist insert failed', JSON.stringify(clErr))
+              } else {
+                intensiveGranted = true
+                console.log('change-plan: intensive checklist created for partner', partnerId)
+              }
+            }
+          }
+        } else {
+          console.error('change-plan: intensive product not found')
+        }
+      } catch (intensiveErr) {
+        console.error('Intensive grant error (non-blocking):', intensiveErr)
       }
     }
 
@@ -186,6 +347,10 @@ export async function POST(request: NextRequest) {
       subscriptionId: updatedSub.id,
       householdCreated,
       partnerInvited,
+      partnerId,
+      intensiveGranted,
+      householdDissolved,
+      removedMembers: removedMembers.length,
     })
   } catch (error) {
     console.error('Change plan error:', error)
@@ -198,22 +363,48 @@ async function createHouseholdForUser(userId: string, email: string): Promise<bo
 
   const { data: existingMember } = await serviceClient
     .from('household_members')
-    .select('id')
+    .select('id, household_id')
     .eq('user_id', userId)
     .eq('status', 'active')
     .limit(1)
     .maybeSingle()
 
-  if (existingMember) return false
+  if (existingMember) {
+    // User already has an active membership -- check if it's a solo household
+    // that needs to be re-upgraded (e.g. after a previous downgrade)
+    const { data: existingHousehold } = await serviceClient
+      .from('households')
+      .select('id, plan_type')
+      .eq('id', existingMember.household_id)
+      .single()
 
-  const householdName = `${email.split('@')[0] || 'My'}'s Household`
+    if (existingHousehold?.plan_type === 'solo') {
+      await serviceClient
+        .from('households')
+        .update({ plan_type: 'household' })
+        .eq('id', existingHousehold.id)
+      console.log('Re-upgraded solo household to household plan:', existingHousehold.id)
+      return true
+    }
+
+    // Already a household plan -- nothing to do
+    return false
+  }
+
+  const { data: adminAccount } = await serviceClient
+    .from('user_accounts')
+    .select('first_name')
+    .eq('id', userId)
+    .maybeSingle()
+
+  const nameBase = adminAccount?.first_name || email.split('@')[0] || 'My'
+  const householdName = `${toTitleCase(nameBase)}'s Household`
 
   const { data: household, error: householdError } = await serviceClient
     .from('households')
     .insert({
       admin_user_id: userId,
       name: householdName,
-      max_members: 2,
       shared_tokens_enabled: true,
     })
     .select()
@@ -233,12 +424,12 @@ async function createHouseholdForUser(userId: string, email: string): Promise<bo
   })
 
   await serviceClient
-    .from('user_profiles')
+    .from('user_accounts')
     .update({
       household_id: household.id,
       is_household_admin: true,
     })
-    .eq('user_id', userId)
+    .eq('id', userId)
 
   console.log('Household created via plan change:', household.id)
   return true

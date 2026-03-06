@@ -308,7 +308,6 @@ export async function createHousehold(params: {
       stripe_customer_id: params.stripeCustomerId,
       stripe_subscription_id: params.stripeSubscriptionId,
       subscription_status: 'trialing',
-      max_members: params.planType === 'solo' ? 1 : 6,
       shared_tokens_enabled: true
     })
     .select()
@@ -505,6 +504,58 @@ export async function removeMemberFromHousehold(
 }
 
 /**
+ * Dissolve a household when the admin downgrades to a solo plan.
+ * Marks all non-admin members as 'removed', clears their household references,
+ * cancels any pending invitations, and converts the household to solo.
+ */
+export async function dissolveHousehold(
+  householdId: string,
+  adminUserId: string,
+): Promise<{ success: boolean; removedMemberIds: string[]; error?: string }> {
+  const supabaseAdmin = createServiceClient()
+
+  const { data: members } = await supabaseAdmin
+    .from('household_members')
+    .select('user_id, role')
+    .eq('household_id', householdId)
+    .eq('status', 'active')
+
+  if (!members) {
+    return { success: false, removedMemberIds: [], error: 'Failed to fetch members' }
+  }
+
+  const nonAdminIds = members
+    .filter(m => m.user_id !== adminUserId)
+    .map(m => m.user_id)
+
+  if (nonAdminIds.length > 0) {
+    await supabaseAdmin
+      .from('household_members')
+      .update({ status: 'removed', removed_at: new Date().toISOString() })
+      .eq('household_id', householdId)
+      .in('user_id', nonAdminIds)
+
+    await supabaseAdmin
+      .from('user_accounts')
+      .update({ household_id: null, is_household_admin: false })
+      .in('id', nonAdminIds)
+  }
+
+  await supabaseAdmin
+    .from('household_invitations')
+    .update({ status: 'canceled' })
+    .eq('household_id', householdId)
+    .eq('status', 'pending')
+
+  await supabaseAdmin
+    .from('households')
+    .update({ plan_type: 'solo' })
+    .eq('id', householdId)
+
+  return { success: true, removedMemberIds: nonAdminIds }
+}
+
+/**
  * Convert removed member to solo household admin
  */
 export async function convertToSoloHousehold(
@@ -520,7 +571,6 @@ export async function convertToSoloHousehold(
       name: 'My Account',
       plan_type: 'solo',
       subscription_status: 'incomplete',
-      max_members: 1,
       shared_tokens_enabled: true
     })
     .select()
@@ -807,8 +857,7 @@ export async function invitePartnerToHousehold(params: {
       console.error('Failed to generate magic link for partner:', magicLinkError)
     } else if (magicLinkData?.properties?.hashed_token) {
       const hashedToken = magicLinkData.properties.hashed_token
-      const returnTo = encodeURIComponent('/dashboard')
-      invitationLink = `${appUrl}/auth/callback?token_hash=${hashedToken}&type=magiclink&returnTo=${returnTo}`
+      invitationLink = `${appUrl}/auth/callback?token_hash=${hashedToken}&type=magiclink`
       console.log('Magic link generated for partner:', partnerEmail)
     }
 

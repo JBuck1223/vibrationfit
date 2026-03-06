@@ -234,7 +234,7 @@ export default function HouseholdSettingsPage() {
               </div>
             )}
             <p className="text-xs md:text-sm text-neutral-400">
-              {members?.length || 0} of {householdInfo.max_members} members
+              {members?.length || 0} {(members?.length || 0) === 1 ? 'member' : 'members'}
             </p>
           </div>
             {isAdmin && !editingName && (
@@ -294,7 +294,7 @@ export default function HouseholdSettingsPage() {
         )}
 
         {/* Invite New Member (Admin Only) */}
-        {isAdmin && members && members.length < householdInfo.max_members && (
+        {isAdmin && (
           <Card variant="elevated" className="p-4 md:p-6 lg:p-8">
           <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">Invite Member</h2>
           

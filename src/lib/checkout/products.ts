@@ -40,9 +40,7 @@ function getIntensiveProduct(
     'premium-household-full': { amount: 420000, envKey: 'STRIPE_PRICE_PREMIUM_HOUSEHOLD_INTENSIVE_FULL' },
   }
 
-  const intensiveTierType = isPremium
-    ? (isSolo ? 'intensive_premium' : 'intensive_premium_household')
-    : (isSolo ? TIER_TYPES.INTENSIVE : TIER_TYPES.INTENSIVE_HOUSEHOLD)
+  const intensiveTierType = isPremium ? 'intensive_premium' : TIER_TYPES.INTENSIVE
   const intensiveTier = tierLookup(tiers, intensiveTierType)
   const intensiveTokens = intensiveTier
     ? (intensiveTier.monthly_token_grant || intensiveTier.annual_token_grant)

@@ -402,8 +402,8 @@ function UsersAdminContent() {
                   </div>
                 </div>
                 
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center gap-2 w-full">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
                     <Input
                       type="number"
                       placeholder="± tokens"
@@ -418,9 +418,7 @@ function UsersAdminContent() {
                       className="whitespace-nowrap flex-shrink-0"
                       onClick={async () => {
                         const delta = adjustTokens[user.id] ?? 0
-                        console.log('Token adjustment clicked:', { userId: user.id, delta })
                         if (!delta) return
-                        
                         try {
                           const res = await fetch('/api/admin/users/adjust-tokens', {
                             method: 'POST',
@@ -428,17 +426,12 @@ function UsersAdminContent() {
                             credentials: 'include',
                             body: JSON.stringify({ userId: user.id, delta })
                           })
-                          
-                          console.log('API response:', res.status, res.ok)
-                          
                           if (res.ok) {
                             updateUserTokens(user.id, delta)
-                            // Clear the input only on success
                             setAdjustTokens(prev => ({ ...prev, [user.id]: 0 }))
                           } else {
                             const errorData = await res.json().catch(() => ({ error: 'Failed to parse error response' }))
                             console.error('Token adjustment failed:', errorData)
-                            // Show user-friendly error
                             alert(`Failed to adjust tokens: ${errorData.error || errorData.details || 'Unknown error'}`)
                           }
                         } catch (error: any) {
@@ -447,11 +440,9 @@ function UsersAdminContent() {
                         }
                       }}
                     >{(adjustTokens[user.id] ?? 0) > 0 ? 'Add' : (adjustTokens[user.id] ?? 0) < 0 ? 'Deduct' : 'Apply'}</Button>
-                  </div>
-                  <div className="flex items-center gap-2 w-full">
                     <Input
                       type="number"
-                      placeholder="+ GB to add"
+                      placeholder="+ GB"
                       className="flex-1 min-w-0"
                       value={adjustStorage[user.id] ?? ''}
                       onChange={(e) => setAdjustStorage(prev => ({ ...prev, [user.id]: parseInt(e.target.value || '0', 10) }))}
@@ -484,33 +475,35 @@ function UsersAdminContent() {
                       }}
                     >Add Storage</Button>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => toggleAdminStatus(user.id, user.is_admin)}
-                    className="text-red-400 border-red-400 hover:bg-red-400/10 w-full"
-                  >
-                    Remove Admin
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    className="w-full border-red-500/50 text-red-400 hover:bg-red-500/10"
-                    disabled={deletingUserId === user.id}
-                    onClick={() => setShowDeleteConfirm(user.id)}
-                  >
-                    {deletingUserId === user.id ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        Deleting...
-                      </span>
-                    ) : (
-                      <>
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Delete User
-                      </>
-                    )}
-                  </Button>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toggleAdminStatus(user.id, user.is_admin)}
+                      className="text-red-400 border-red-400/50 hover:bg-red-400/10"
+                    >
+                      Remove Admin
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-red-400 border-red-500/50 hover:bg-red-500/10"
+                      disabled={deletingUserId === user.id}
+                      onClick={() => setShowDeleteConfirm(user.id)}
+                    >
+                      {deletingUserId === user.id ? (
+                        <span className="flex items-center gap-2">
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          Deleting...
+                        </span>
+                      ) : (
+                        <>
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          Delete User
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -625,8 +618,8 @@ function UsersAdminContent() {
                 </div>
                 
                 {/* Admin Controls */}
-                <div className="flex flex-col gap-3 pt-3 border-t border-neutral-600">
-                  <div className="flex items-center gap-2 w-full">
+                <div className="space-y-3 pt-3 border-t border-neutral-600">
+                  <div className="flex items-center gap-2">
                     <Input
                       type="number"
                       placeholder="± tokens"
@@ -641,9 +634,7 @@ function UsersAdminContent() {
                       className="whitespace-nowrap flex-shrink-0"
                       onClick={async () => {
                         const delta = adjustTokens[user.id] ?? 0
-                        console.log('Token adjustment clicked:', { userId: user.id, delta })
                         if (!delta) return
-                        
                         try {
                           const res = await fetch('/api/admin/users/adjust-tokens', {
                             method: 'POST',
@@ -651,17 +642,12 @@ function UsersAdminContent() {
                             credentials: 'include',
                             body: JSON.stringify({ userId: user.id, delta })
                           })
-                          
-                          console.log('API response:', res.status, res.ok)
-                          
                           if (res.ok) {
                             updateUserTokens(user.id, delta)
-                            // Clear the input only on success
                             setAdjustTokens(prev => ({ ...prev, [user.id]: 0 }))
                           } else {
                             const errorData = await res.json().catch(() => ({ error: 'Failed to parse error response' }))
                             console.error('Token adjustment failed:', errorData)
-                            // Show user-friendly error
                             alert(`Failed to adjust tokens: ${errorData.error || errorData.details || 'Unknown error'}`)
                           }
                         } catch (error: any) {
@@ -670,12 +656,9 @@ function UsersAdminContent() {
                         }
                       }}
                     >{(adjustTokens[user.id] ?? 0) > 0 ? 'Add' : (adjustTokens[user.id] ?? 0) < 0 ? 'Deduct' : 'Apply'}</Button>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 w-full">
                     <Input
                       type="number"
-                      placeholder="+ GB to add"
+                      placeholder="+ GB"
                       className="flex-1 min-w-0"
                       value={adjustStorage[user.id] ?? ''}
                       onChange={(e) => setAdjustStorage(prev => ({ ...prev, [user.id]: parseInt(e.target.value || '0', 10) }))}
@@ -709,7 +692,6 @@ function UsersAdminContent() {
                     >Add Storage</Button>
                   </div>
 
-                  {/* Enrollment feedback */}
                   {enrollFeedback[user.id] && (
                     <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
                       enrollFeedback[user.id].type === 'success' 
@@ -723,149 +705,145 @@ function UsersAdminContent() {
                     </div>
                   )}
 
-                  <div className="relative w-full">
-                    <Button
-                      variant="accent"
-                      size="sm"
-                      className="w-full whitespace-nowrap"
-                      disabled={enrollingUser === user.id}
-                      onClick={() => setShowProductDropdown(prev => ({ ...prev, [user.id]: !prev[user.id] }))}
-                    >
-                      {enrollingUser === user.id ? (
-                        <span className="flex items-center gap-2">
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                          Enrolling...
-                        </span>
-                      ) : 'Enroll Product'}
-                    </Button>
-                    {showProductDropdown[user.id] && (
-                      <div className="absolute top-full left-0 mt-1 w-full bg-neutral-800 border border-neutral-600 rounded-lg shadow-lg z-10">
-                        <div className="p-2">
-                          {availableProducts.map((product) => {
-                            // Show context for intensive enrollment
-                            const isIntensive = product.id === 'intensive'
-                            const hasActiveIntensive = !!user.intensive_active_status
-                            const completedCount = user.intensive_completed_count || 0
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="relative">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="whitespace-nowrap"
+                        disabled={enrollingUser === user.id}
+                        onClick={() => setShowProductDropdown(prev => ({ ...prev, [user.id]: !prev[user.id] }))}
+                      >
+                        {enrollingUser === user.id ? (
+                          <span className="flex items-center gap-2">
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                            Enrolling...
+                          </span>
+                        ) : 'Enroll Product'}
+                      </Button>
+                      {showProductDropdown[user.id] && (
+                        <div className="absolute top-full left-0 mt-1 w-64 bg-neutral-800 border border-neutral-600 rounded-lg shadow-lg z-10">
+                          <div className="p-2">
+                            {availableProducts.map((product) => {
+                              const isIntensive = product.id === 'intensive'
+                              const hasActiveIntensive = !!user.intensive_active_status
+                              const completedCount = user.intensive_completed_count || 0
 
-                            return (
-                              <button
-                                key={product.id}
-                                className="w-full text-left px-3 py-2 text-sm text-white hover:bg-neutral-700 rounded flex flex-col gap-1"
-                                onClick={async () => {
-                                  if (isIntensive) {
-                                    // If user has an active intensive, confirm re-enrollment
-                                    if (hasActiveIntensive) {
-                                      const confirmed = window.confirm(
-                                        `This user already has an active intensive (${user.intensive_active_status}). Creating a new enrollment will not affect the existing one. Continue?`
-                                      )
-                                      if (!confirmed) {
-                                        setShowProductDropdown(prev => ({ ...prev, [user.id]: false }))
-                                        return
+                              return (
+                                <button
+                                  key={product.id}
+                                  className="w-full text-left px-3 py-2 text-sm text-white hover:bg-neutral-700 rounded flex flex-col gap-1"
+                                  onClick={async () => {
+                                    if (isIntensive) {
+                                      if (hasActiveIntensive) {
+                                        const confirmed = window.confirm(
+                                          `This user already has an active intensive (${user.intensive_active_status}). Creating a new enrollment will not affect the existing one. Continue?`
+                                        )
+                                        if (!confirmed) {
+                                          setShowProductDropdown(prev => ({ ...prev, [user.id]: false }))
+                                          return
+                                        }
                                       }
-                                    }
 
-                                    setEnrollingUser(user.id)
-                                    setEnrollFeedback(prev => {
-                                      const copy = { ...prev }
-                                      delete copy[user.id]
-                                      return copy
-                                    })
-                                    
-                                    try {
-                                      const res = await fetch('/api/admin/intensive/enroll', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ userId: user.id })
+                                      setEnrollingUser(user.id)
+                                      setEnrollFeedback(prev => {
+                                        const copy = { ...prev }
+                                        delete copy[user.id]
+                                        return copy
                                       })
+                                      
+                                      try {
+                                        const res = await fetch('/api/admin/intensive/enroll', {
+                                          method: 'POST',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ userId: user.id })
+                                        })
 
-                                      if (res.ok) {
-                                        const data = await res.json()
-                                        setEnrollFeedback(prev => ({
-                                          ...prev,
-                                          [user.id]: {
-                                            type: 'success',
-                                            message: completedCount > 0
-                                              ? `New Activation Intensive created (enrollment #${completedCount + 1 + (hasActiveIntensive ? 1 : 0)})`
-                                              : 'Enrolled in Activation Intensive successfully'
-                                          }
-                                        }))
-                                        // Refresh user list to show updated status
-                                        fetchUsers()
-                                      } else {
-                                        const errorData = await res.json().catch(() => ({ error: 'Unknown error' }))
+                                        if (res.ok) {
+                                          setEnrollFeedback(prev => ({
+                                            ...prev,
+                                            [user.id]: {
+                                              type: 'success',
+                                              message: completedCount > 0
+                                                ? `New Activation Intensive created (enrollment #${completedCount + 1 + (hasActiveIntensive ? 1 : 0)})`
+                                                : 'Enrolled in Activation Intensive successfully'
+                                            }
+                                          }))
+                                          fetchUsers()
+                                        } else {
+                                          const errorData = await res.json().catch(() => ({ error: 'Unknown error' }))
+                                          setEnrollFeedback(prev => ({
+                                            ...prev,
+                                            [user.id]: {
+                                              type: 'error',
+                                              message: `Failed: ${errorData.error || 'Unknown error'}`
+                                            }
+                                          }))
+                                        }
+                                      } catch (err: any) {
                                         setEnrollFeedback(prev => ({
                                           ...prev,
                                           [user.id]: {
                                             type: 'error',
-                                            message: `Failed: ${errorData.error || 'Unknown error'}`
+                                            message: `Error: ${err.message || 'Network error'}`
                                           }
                                         }))
+                                      } finally {
+                                        setEnrollingUser(null)
                                       }
-                                    } catch (err: any) {
-                                      setEnrollFeedback(prev => ({
-                                        ...prev,
-                                        [user.id]: {
-                                          type: 'error',
-                                          message: `Error: ${err.message || 'Network error'}`
-                                        }
-                                      }))
-                                    } finally {
-                                      setEnrollingUser(null)
                                     }
-                                  }
-                                  // Add other product enrollments here
-                                  setShowProductDropdown(prev => ({ ...prev, [user.id]: false }))
-                                }}
-                              >
-                                <div className="flex items-center justify-between w-full">
-                                  <span>{product.name}</span>
-                                  <span className="text-neutral-400">{product.price}</span>
-                                </div>
-                                {isIntensive && completedCount > 0 && (
-                                  <span className="text-xs text-neutral-400">
-                                    {completedCount} completed{hasActiveIntensive ? `, 1 ${user.intensive_active_status}` : ''}
-                                  </span>
-                                )}
-                                {isIntensive && hasActiveIntensive && completedCount === 0 && (
-                                  <span className="text-xs text-yellow-400">
-                                    Has active intensive ({user.intensive_active_status})
-                                  </span>
-                                )}
-                              </button>
-                            )
-                          })}
+                                    setShowProductDropdown(prev => ({ ...prev, [user.id]: false }))
+                                  }}
+                                >
+                                  <div className="flex items-center justify-between w-full">
+                                    <span>{product.name}</span>
+                                    <span className="text-neutral-400">{product.price}</span>
+                                  </div>
+                                  {isIntensive && completedCount > 0 && (
+                                    <span className="text-xs text-neutral-400">
+                                      {completedCount} completed{hasActiveIntensive ? `, 1 ${user.intensive_active_status}` : ''}
+                                    </span>
+                                  )}
+                                  {isIntensive && hasActiveIntensive && completedCount === 0 && (
+                                    <span className="text-xs text-yellow-400">
+                                      Has active intensive ({user.intensive_active_status})
+                                    </span>
+                                  )}
+                                </button>
+                              )
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="whitespace-nowrap"
+                      onClick={() => toggleAdminStatus(user.id, user.is_admin)}
+                    >
+                      Make Admin
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-red-400 border-red-500/50 hover:bg-red-500/10 whitespace-nowrap"
+                      disabled={deletingUserId === user.id}
+                      onClick={() => setShowDeleteConfirm(user.id)}
+                    >
+                      {deletingUserId === user.id ? (
+                        <span className="flex items-center gap-2">
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          Deleting...
+                        </span>
+                      ) : (
+                        <>
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          Delete User
+                        </>
+                      )}
+                    </Button>
                   </div>
-
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    className="w-full whitespace-nowrap"
-                    onClick={() => toggleAdminStatus(user.id, user.is_admin)}
-                  >
-                    Make Admin
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    className="w-full border-red-500/50 text-red-400 hover:bg-red-500/10"
-                    disabled={deletingUserId === user.id}
-                    onClick={() => setShowDeleteConfirm(user.id)}
-                  >
-                    {deletingUserId === user.id ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        Deleting...
-                      </span>
-                    ) : (
-                      <>
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Delete User
-                      </>
-                    )}
-                  </Button>
                 </div>
               </div>
             ))}

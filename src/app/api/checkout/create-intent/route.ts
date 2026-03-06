@@ -384,9 +384,9 @@ export async function POST(request: NextRequest) {
     if (order) {
       // Look up the DB product ID for the order_item FK
       const productKey = product === 'intensive'
-        ? (planType === 'household' ? 'intensive_household' : 'intensive')
+        ? 'intensive'
         : product === 'intensive_premium'
-          ? (planType === 'household' ? 'intensive_premium_household' : 'intensive_premium')
+          ? 'intensive_premium'
           : product === 'token-pack' ? 'tokens' : product
       const { data: dbProd } = await supabaseAdmin
         .from('products')
@@ -505,7 +505,6 @@ export async function POST(request: NextRequest) {
                   .insert({
                     admin_user_id: userId,
                     name: `${email?.split('@')[0] || 'My'}'s Household`,
-                    max_members: 2,
                     shared_tokens_enabled: true,
                   })
                   .select()

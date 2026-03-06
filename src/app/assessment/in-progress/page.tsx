@@ -169,15 +169,15 @@ export default function AssessmentPage() {
           const { data: { user } } = await supabase.auth.getUser()
           
           if (user) {
-            const { data: intensiveData } = await supabase
-              .from('order_items')
-              .select('id, orders!inner(user_id), products!inner(product_type), completion_status')
-              .eq('orders.user_id', user.id)
-              .eq('products.product_type', 'intensive')
-              .in('completion_status', ['pending', 'in_progress'])
+            const { data: checklist } = await supabase
+              .from('intensive_checklist')
+              .select('id')
+              .eq('user_id', user.id)
+              .in('status', ['pending', 'in_progress'])
+              .limit(1)
               .maybeSingle()
             
-            if (intensiveData) {
+            if (checklist) {
               setIsIntensiveMode(true)
             }
           }

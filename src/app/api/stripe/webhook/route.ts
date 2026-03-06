@@ -281,6 +281,55 @@ async function createOrderItemByProductKey({
   return orderItem
 }
 
+async function grantIndividualIntensive(supabaseAdmin: any, userId: string, adminUserId: string) {
+  try {
+    const { data: dbProd } = await supabaseAdmin
+      .from('products')
+      .select('id')
+      .eq('key', 'intensive')
+      .maybeSingle()
+    if (!dbProd) { console.error('grantIndividualIntensive: intensive product not found'); return }
+
+    const { data: order } = await supabaseAdmin
+      .from('orders')
+      .insert({
+        user_id: adminUserId,
+        total_amount: 0,
+        currency: 'usd',
+        status: 'paid',
+        paid_at: new Date().toISOString(),
+        metadata: { waived: 'true', source: 'household_checkout', granted_to: userId },
+      })
+      .select('id')
+      .single()
+    if (!order) { console.error('grantIndividualIntensive: order insert failed'); return }
+
+    const { data: orderItem } = await supabaseAdmin
+      .from('order_items')
+      .insert({
+        order_id: order.id,
+        product_id: dbProd.id,
+        quantity: 1,
+        amount: 0,
+        currency: 'usd',
+        payment_plan: 'full',
+        is_subscription: false,
+        metadata: { granted_via: 'household_checkout' },
+      })
+      .select('id')
+      .single()
+    if (!orderItem) { console.error('grantIndividualIntensive: order_item insert failed'); return }
+
+    await supabaseAdmin.from('intensive_checklist').insert({
+      intensive_id: orderItem.id,
+      user_id: userId,
+    })
+    console.log('Granted individual intensive to partner:', userId)
+  } catch (err) {
+    console.error('grantIndividualIntensive error:', err)
+  }
+}
+
 export async function POST(request: NextRequest) {
   // Check if Stripe is configured
   if (!stripe) {
@@ -687,8 +736,6 @@ export async function POST(request: NextRequest) {
                 payment_plan: paymentPlan,
                 installments_total: paymentPlan === 'full' ? 1 : paymentPlan === '2pay' ? 2 : 3,
                 installments_paid: 1,
-                completion_status: 'pending',
-                activation_deadline: activationDeadline.toISOString(),
                 promo_code: session.metadata.promo_code || null,
                 referral_source: session.metadata.referral_source || session.metadata.source || null,
                 campaign_name: session.metadata.campaign_name || null,
@@ -710,8 +757,6 @@ export async function POST(request: NextRequest) {
                 payment_plan: paymentPlan,
                 installments_total: paymentPlan === 'full' ? 1 : paymentPlan === '2pay' ? 2 : 3,
                 installments_paid: 1,
-                completion_status: 'pending',
-                activation_deadline: activationDeadline.toISOString(),
                 promo_code: session.metadata.promo_code || null,
                 referral_source: session.metadata.referral_source || session.metadata.source || null,
                 campaign_name: session.metadata.campaign_name || null,
@@ -880,7 +925,6 @@ export async function POST(request: NextRequest) {
                       .insert({
                         admin_user_id: userId,
                         name: `${customerEmail?.split('@')[0] || 'My'}'s Household`,
-                        max_members: 2,
                         shared_tokens_enabled: true,
                       })
                       .select()
@@ -916,7 +960,7 @@ export async function POST(request: NextRequest) {
                       const pEmail = session.metadata?.partner_email
                       if (pFirstName && pLastName && pEmail) {
                         const { invitePartnerToHousehold } = await import('@/lib/supabase/household')
-                        await invitePartnerToHousehold({
+                        const inviteResult = await invitePartnerToHousehold({
                           supabaseAdmin,
                           householdId: household.id,
                           adminUserId: userId,
@@ -927,6 +971,9 @@ export async function POST(request: NextRequest) {
                           partnerLastName: pLastName,
                           partnerEmail: pEmail,
                         })
+                        if (inviteResult.partnerId) {
+                          await grantIndividualIntensive(supabaseAdmin, inviteResult.partnerId, userId)
+                        }
                       }
                     }
                   } catch (householdError) {
@@ -1152,7 +1199,6 @@ export async function POST(request: NextRequest) {
                   .insert({
                     admin_user_id: userId,
                     name: `${customerEmail?.split('@')[0] || 'My'}'s Household`,
-                    max_members: 2,
                     shared_tokens_enabled: true,
                   })
                   .select()
@@ -1188,7 +1234,7 @@ export async function POST(request: NextRequest) {
                   const pEmail = session.metadata?.partner_email
                   if (pFirstName && pLastName && pEmail) {
                     const { invitePartnerToHousehold } = await import('@/lib/supabase/household')
-                    await invitePartnerToHousehold({
+                    const inviteResult = await invitePartnerToHousehold({
                       supabaseAdmin,
                       householdId: household.id,
                       adminUserId: userId,
@@ -1199,6 +1245,9 @@ export async function POST(request: NextRequest) {
                       partnerLastName: pLastName,
                       partnerEmail: pEmail,
                     })
+                    if (inviteResult.partnerId) {
+                      await grantIndividualIntensive(supabaseAdmin, inviteResult.partnerId, userId)
+                    }
                   }
                 }
               } catch (householdError) {
@@ -1271,8 +1320,6 @@ export async function POST(request: NextRequest) {
                 payment_plan: intensivePaymentPlan,
                 installments_total: intensivePaymentPlan === 'full' ? 1 : intensivePaymentPlan === '2pay' ? 2 : 3,
                 installments_paid: 1,
-                completion_status: 'pending',
-                activation_deadline: activationDeadline.toISOString(),
                 promo_code: promoCode || null,
                 referral_source: session.metadata.referral_source || session.metadata.source || null,
                 campaign_name: session.metadata.campaign_name || null,
@@ -1295,8 +1342,6 @@ export async function POST(request: NextRequest) {
                 payment_plan: intensivePaymentPlan,
                 installments_total: intensivePaymentPlan === 'full' ? 1 : intensivePaymentPlan === '2pay' ? 2 : 3,
                 installments_paid: 1,
-                completion_status: 'pending',
-                activation_deadline: activationDeadline.toISOString(),
                 promo_code: promoCode || null,
                 referral_source: session.metadata.referral_source || session.metadata.source || null,
                 campaign_name: session.metadata.campaign_name || null,
@@ -1852,9 +1897,7 @@ export async function POST(request: NextRequest) {
           break
         }
 
-        const productKey = product === 'intensive' ? (planType === 'household' ? 'intensive_household' : 'intensive') : product
-        const activationDeadline = new Date()
-        activationDeadline.setHours(activationDeadline.getHours() + 72)
+        const productKey = product === 'intensive' ? 'intensive' : product
 
         const intensiveOrderItem = await createOrderItemByProductKey({
           orderId: order.id,
@@ -1867,8 +1910,6 @@ export async function POST(request: NextRequest) {
             payment_plan: plan,
             installments_total: plan === 'full' ? 1 : plan === '2pay' ? 2 : 3,
             installments_paid: 1,
-            completion_status: 'pending',
-            activation_deadline: activationDeadline.toISOString(),
             promo_code: promoCode,
             referral_source: referralSource,
             campaign_name: campaignName,
@@ -2029,7 +2070,6 @@ export async function POST(request: NextRequest) {
                       .insert({
                         admin_user_id: userId,
                         name: `${email?.split('@')[0] || 'My'}'s Household`,
-                        max_members: 2,
                         shared_tokens_enabled: true,
                       })
                       .select()
@@ -2053,7 +2093,7 @@ export async function POST(request: NextRequest) {
                       const pEmail = meta.partner_email
                       if (pFirstName && pLastName && pEmail) {
                         const { invitePartnerToHousehold } = await import('@/lib/supabase/household')
-                        await invitePartnerToHousehold({
+                        const inviteResult = await invitePartnerToHousehold({
                           supabaseAdmin,
                           householdId: household.id,
                           adminUserId: userId,
@@ -2064,6 +2104,9 @@ export async function POST(request: NextRequest) {
                           partnerLastName: pLastName,
                           partnerEmail: pEmail,
                         })
+                        if (inviteResult.partnerId) {
+                          await grantIndividualIntensive(supabaseAdmin, inviteResult.partnerId, userId)
+                        }
                       }
                     }
                   } catch (householdErr) {

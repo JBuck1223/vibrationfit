@@ -91,17 +91,16 @@ export default function IntensiveBuilder() {
       // Check for super_admin access
       const { isSuperAdmin } = await checkSuperAdminAccess(supabase)
 
-      // Get intensive order item
-      const { data: intensiveData, error } = await supabase
-        .from('order_items')
-        .select('id, orders!inner(user_id), products!inner(product_type), completion_status')
-        .eq('orders.user_id', user.id)
-        .eq('products.product_type', 'intensive')
-        .in('completion_status', ['pending', 'in_progress'])
+      const { data: checklistRow, error: checklistErr } = await supabase
+        .from('intensive_checklist')
+        .select('intensive_id, intake_completed')
+        .eq('user_id', user.id)
+        .in('status', ['pending', 'in_progress'])
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle()
 
-      if (error || !intensiveData) {
-        // Allow super_admin to access without enrollment
+      if (checklistErr || !checklistRow) {
         if (isSuperAdmin) {
           setIntensiveId('super-admin-test-mode')
           return
@@ -110,16 +109,9 @@ export default function IntensiveBuilder() {
         return
       }
 
-      setIntensiveId(intensiveData.id)
+      setIntensiveId(checklistRow.intensive_id)
 
-      // Check if intake is completed
-      const { data: checklistData } = await supabase
-        .from('intensive_checklist')
-        .select('intake_completed')
-        .eq('intensive_id', intensiveData.id)
-        .single()
-
-      if (!checklistData?.intake_completed) {
+      if (!checklistRow?.intake_completed) {
         router.push('/intensive/intake')
         return
       }
@@ -242,14 +234,21 @@ My daily routines support my vision and values. I wake up with purpose and energ
     if (!intensiveId) return
 
     try {
-      const { data: intensiveData } = await supabase
-        .from('order_items')
-        .select('activation_deadline')
-        .eq('id', intensiveId)
-        .single()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
 
-      if (intensiveData?.activation_deadline) {
-        const deadline = new Date(intensiveData.activation_deadline)
+      const { data: cl } = await supabase
+        .from('intensive_checklist')
+        .select('started_at')
+        .eq('user_id', user.id)
+        .in('status', ['pending', 'in_progress'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (cl?.started_at) {
+        const startedUtc = cl.started_at.endsWith('Z') ? cl.started_at : cl.started_at + 'Z'
+        const deadline = new Date(new Date(startedUtc).getTime() + 72 * 60 * 60 * 1000)
         const now = new Date()
         const diff = deadline.getTime() - now.getTime()
 

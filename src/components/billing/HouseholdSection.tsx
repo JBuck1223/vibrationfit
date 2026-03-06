@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, Badge, Button, Spinner } from '@/lib/design-system/components'
-import { Users, UserPlus, Mail, X, Crown, Zap, Tag, Check, Loader2 } from 'lucide-react'
+import { Users, UserPlus, Mail, X, Crown, Zap, Tag, Check, Loader2, Sparkles } from 'lucide-react'
 import { formatPrice, PRICING } from '@/lib/billing/config'
 import { toast } from 'sonner'
 
@@ -57,6 +57,12 @@ type Props = {
   onRefresh: () => void
 }
 
+type MemberIntensive = {
+  userId: string
+  status: 'pending' | 'in_progress' | 'completed' | string
+  purchasedByAdmin: boolean
+}
+
 export default function HouseholdSection({ data, billingInterval, onRefresh }: Props) {
   const [showAddForm, setShowAddForm] = useState(false)
   const [firstName, setFirstName] = useState('')
@@ -71,6 +77,25 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
   const [agreedToTerms, setAgreedToTerms] = useState(false)
 
   const [cancelingId, setCancelingId] = useState<string | null>(null)
+
+  const [memberIntensives, setMemberIntensives] = useState<MemberIntensive[]>([])
+
+  const fetchIntensiveStatus = useCallback(async () => {
+    if (!data?.household?.id) return
+    try {
+      const res = await fetch(`/api/household/intensives?householdId=${data.household.id}`)
+      if (res.ok) {
+        const result = await res.json()
+        setMemberIntensives(result.intensives || [])
+      }
+    } catch {
+      // non-critical
+    }
+  }, [data?.household?.id])
+
+  useEffect(() => {
+    fetchIntensiveStatus()
+  }, [fetchIntensiveStatus])
 
   if (!data) return null
 
@@ -161,6 +186,7 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
       }
       resetForm()
       onRefresh()
+      fetchIntensiveStatus()
     } catch (err: any) {
       toast.error(err.message)
     } finally {
@@ -212,6 +238,7 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
               const name = member.profile?.first_name
                 ? `${member.profile.first_name} ${member.profile.last_name || ''}`.trim()
                 : member.profile?.email || 'Member'
+              const intensive = memberIntensives.find(i => i.userId === member.user_id)
               return (
                 <div
                   key={member.user_id}
@@ -230,9 +257,21 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
                       )}
                     </div>
                   </div>
-                  {member.role === 'admin' && (
-                    <Badge variant="premium" className="text-xs">Admin</Badge>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {intensive && (
+                      <div className="flex items-center gap-1.5 text-xs rounded-full px-2.5 py-1 bg-[#39FF14]/10 border border-[#39FF14]/20">
+                        <Sparkles className="w-3 h-3 text-[#39FF14]" />
+                        <span className="text-[#39FF14]">
+                          {intensive.status === 'completed' ? 'Intensive Complete' :
+                           intensive.status === 'in_progress' ? 'Intensive Active' :
+                           'Intensive Assigned'}
+                        </span>
+                      </div>
+                    )}
+                    {member.role === 'admin' && (
+                      <Badge variant="premium" className="text-xs">Admin</Badge>
+                    )}
+                  </div>
                 </div>
               )
             })}

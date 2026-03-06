@@ -18,11 +18,10 @@ export function getPaymentPlanLabel(plan: string): string {
 export interface IntensiveData {
   id: string
   payment_plan: string
-  completion_status: 'pending' | 'in_progress' | 'completed' | 'refunded'
+  status: 'pending' | 'in_progress' | 'completed' | 'refunded'
   created_at: string
   started_at: string | null
   completed_at: string | null
-  activation_deadline: string | null
 }
 
 /**
@@ -32,43 +31,29 @@ export interface IntensiveData {
 export async function getActiveIntensive(userId: string): Promise<IntensiveData | null> {
   const supabase = await createClient()
   
-  // Direct order: user purchased their own intensive
-  const { data, error } = await supabase
-    .from('order_items')
-    .select('id, payment_plan, completion_status, created_at, started_at, completed_at, activation_deadline, orders!inner(user_id), products!inner(product_type)')
-    .eq('orders.user_id', userId)
-    .eq('products.product_type', 'intensive')
-    .in('completion_status', ['pending', 'in_progress'])
+  const { data: checklist, error } = await supabase
+    .from('intensive_checklist')
+    .select('intensive_id, status, started_at, completed_at, created_at')
+    .eq('user_id', userId)
+    .in('status', ['pending', 'in_progress'])
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
-  
+
   if (error) {
     console.error('Error fetching active intensive:', error)
   }
 
-  if (data) return data
-
-  // Household partner: intensive purchased by admin but assigned to this user
-  const { data: checklist } = await supabase
-    .from('intensive_checklist')
-    .select('intensive_id')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
   if (!checklist?.intensive_id) return null
 
-  const { data: assignedItem } = await supabase
-    .from('order_items')
-    .select('id, payment_plan, completion_status, created_at, started_at, completed_at, activation_deadline, products!inner(product_type)')
-    .eq('id', checklist.intensive_id)
-    .eq('products.product_type', 'intensive')
-    .in('completion_status', ['pending', 'in_progress'])
-    .maybeSingle()
-
-  return assignedItem || null
+  return {
+    id: checklist.intensive_id,
+    payment_plan: 'full',
+    status: checklist.status as 'pending' | 'in_progress',
+    created_at: checklist.created_at,
+    started_at: checklist.started_at,
+    completed_at: checklist.completed_at,
+  }
 }
 
 /**

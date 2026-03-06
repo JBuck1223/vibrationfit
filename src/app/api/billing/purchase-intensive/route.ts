@@ -3,15 +3,6 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { stripe } from '@/lib/stripe/config'
 
-function resolveIntensiveAddonPriceId(): string | null {
-  const isSandbox = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')
-  if (isSandbox) {
-    const sandboxVal = process.env.SANDBOX_STRIPE_PRICE_HOUSEHOLD_INTENSIVE_ADDON
-    if (sandboxVal) return sandboxVal.trim()
-  }
-  return process.env.STRIPE_PRICE_HOUSEHOLD_INTENSIVE_ADDON?.trim() || null
-}
-
 export async function POST(request: NextRequest) {
   try {
     if (!stripe) {
@@ -55,7 +46,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No active membership found' }, { status: 400 })
     }
 
-    const intensivePriceId = resolveIntensiveAddonPriceId()
     const baseAmount = overrideAmount || 20000
 
     let discountAmount = 0
@@ -93,20 +83,28 @@ export async function POST(request: NextRequest) {
     }
 
     if (finalAmount === 0) {
-      const { data: order } = await serviceClient
+      console.log('purchase-intensive: $0 path', { targetUserId, userId: user.id })
+
+      const { data: order, error: orderErr } = await serviceClient
         .from('orders')
         .insert({
           user_id: user.id,
           total_amount: 0,
           currency: 'usd',
-          status: 'completed',
+          status: 'paid',
+          paid_at: new Date().toISOString(),
           promo_code: promoCode || null,
           metadata: { ...metadata, waived: 'true' },
         })
         .select('id')
         .single()
 
+      if (orderErr || !order) {
+        console.error('purchase-intensive: order insert failed', orderErr)
+      }
+
       const checklistUserId = targetUserId || user.id
+      console.log('purchase-intensive: creating checklist for', checklistUserId)
       if (order) {
         await createOrderItemAndChecklist(serviceClient, order.id, checklistUserId, 0, promoCode, metadata)
       }
@@ -127,29 +125,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, waived: true, orderId: null })
     }
 
-    const invoiceItemParams: any = {
+    await stripe.invoiceItems.create({
       customer: subscription.stripe_customer_id,
+      amount: finalAmount,
       currency: 'usd',
-      description: 'Household Partner Activation Intensive',
+      description: 'Activation Intensive',
       metadata,
-    }
-
-    if (intensivePriceId) {
-      invoiceItemParams.price = intensivePriceId
-      if (discountAmount > 0) {
-        invoiceItemParams.discounts = [{
-          coupon: (await stripe.coupons.create(
-            couponResult.coupon.discount_type === 'percent'
-              ? { percent_off: couponResult.coupon.discount_value, duration: 'once' }
-              : { amount_off: discountAmount, currency: 'usd', duration: 'once' },
-          )).id,
-        }]
-      }
-    } else {
-      invoiceItemParams.amount = finalAmount
-    }
-
-    await stripe.invoiceItems.create(invoiceItemParams)
+    })
 
     const invoice = await stripe.invoices.create({
       customer: subscription.stripe_customer_id,
@@ -170,7 +152,8 @@ export async function POST(request: NextRequest) {
             : (paidInvoice as any).payment_intent?.id || null,
           total_amount: finalAmount,
           currency: 'usd',
-          status: 'completed',
+          status: 'paid',
+          paid_at: new Date().toISOString(),
           promo_code: promoCode || null,
           metadata: { ...metadata, stripe_invoice_id: paidInvoice.id },
         })
@@ -230,15 +213,18 @@ async function createOrderItemAndChecklist(
   promoCode: string | undefined,
   metadata: Record<string, string>,
 ) {
-  const { data: dbProd } = await serviceClient
+  const { data: dbProd, error: prodErr } = await serviceClient
     .from('products')
     .select('id')
-    .eq('key', 'intensive_household')
+    .eq('key', 'intensive')
     .maybeSingle()
 
-  if (!dbProd) return
+  if (prodErr || !dbProd) {
+    console.error('createOrderItemAndChecklist: product lookup failed', { prodErr, dbProd })
+    return
+  }
 
-  const { data: orderItem } = await serviceClient
+  const { data: orderItem, error: oiErr } = await serviceClient
     .from('order_items')
     .insert({
       order_id: orderId,
@@ -254,10 +240,19 @@ async function createOrderItemAndChecklist(
     .select('id')
     .single()
 
-  if (orderItem) {
-    await serviceClient.from('intensive_checklist').insert({
-      intensive_id: orderItem.id,
-      user_id: userId,
-    })
+  if (oiErr || !orderItem) {
+    console.error('createOrderItemAndChecklist: order_item insert failed', { oiErr, orderId, productId: dbProd.id })
+    return
+  }
+
+  const { error: clErr } = await serviceClient.from('intensive_checklist').insert({
+    intensive_id: orderItem.id,
+    user_id: userId,
+  })
+
+  if (clErr) {
+    console.error('createOrderItemAndChecklist: checklist insert failed', { clErr, orderItemId: orderItem.id, userId })
+  } else {
+    console.log('createOrderItemAndChecklist: success', { orderItemId: orderItem.id, userId })
   }
 }

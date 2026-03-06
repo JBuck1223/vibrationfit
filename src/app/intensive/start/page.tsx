@@ -113,7 +113,7 @@ export default function IntensiveStartPage() {
       const result = await startIntensive(checklistId)
       
       if (result.success) {
-        // Redirect to dashboard with started param for toast
+        await new Promise(resolve => setTimeout(resolve, 300))
         router.push('/intensive/dashboard?started=true')
       } else {
         alert('Failed to start intensive: ' + result.error)

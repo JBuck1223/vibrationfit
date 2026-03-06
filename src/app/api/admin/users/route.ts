@@ -55,13 +55,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 })
     }
 
-    // Fetch intensive enrollment data for all users
-    const { data: intensiveProduct } = await adminDb
-      .from('products')
-      .select('id')
-      .eq('key', 'intensive')
-      .maybeSingle()
-
+    // Fetch intensive enrollment data from intensive_checklist (source of truth)
     let intensiveMap: Record<string, { 
       active_status: string | null
       active_id: string | null
@@ -69,42 +63,36 @@ export async function GET(request: NextRequest) {
       total_count: number 
     }> = {}
 
-    if (intensiveProduct) {
-      // Get all intensive order items with user info (service role bypasses RLS)
-      const { data: intensiveItems } = await adminDb
-        .from('order_items')
-        .select('id, completion_status, created_at, orders!inner(user_id)')
-        .eq('product_id', intensiveProduct.id)
-        .order('created_at', { ascending: false })
+    const { data: checklists } = await adminDb
+      .from('intensive_checklist')
+      .select('id, user_id, status, intensive_id, created_at')
+      .order('created_at', { ascending: false })
 
-      if (intensiveItems) {
-        for (const item of intensiveItems) {
-          const userId = (item.orders as any)?.user_id
-          if (!userId) continue
+    if (checklists) {
+      for (const cl of checklists) {
+        if (!cl.user_id) continue
 
-          if (!intensiveMap[userId]) {
-            intensiveMap[userId] = {
-              active_status: null,
-              active_id: null,
-              completed_count: 0,
-              total_count: 0,
-            }
+        if (!intensiveMap[cl.user_id]) {
+          intensiveMap[cl.user_id] = {
+            active_status: null,
+            active_id: null,
+            completed_count: 0,
+            total_count: 0,
           }
+        }
 
-          intensiveMap[userId].total_count++
+        intensiveMap[cl.user_id].total_count++
 
-          if (item.completion_status === 'completed') {
-            intensiveMap[userId].completed_count++
-          }
+        if (cl.status === 'completed') {
+          intensiveMap[cl.user_id].completed_count++
+        }
 
-          // Track the most recent active intensive (pending or in_progress)
-          if (
-            (item.completion_status === 'pending' || item.completion_status === 'in_progress') &&
-            !intensiveMap[userId].active_status
-          ) {
-            intensiveMap[userId].active_status = item.completion_status
-            intensiveMap[userId].active_id = item.id
-          }
+        if (
+          (cl.status === 'pending' || cl.status === 'in_progress') &&
+          !intensiveMap[cl.user_id].active_status
+        ) {
+          intensiveMap[cl.user_id].active_status = cl.status
+          intensiveMap[cl.user_id].active_id = cl.intensive_id
         }
       }
     }

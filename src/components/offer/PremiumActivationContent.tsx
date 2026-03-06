@@ -1753,7 +1753,7 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
                         '30-minute Calibration Call with a coach',
                         'My Activation Plan (your daily roadmap)',
                         'Graduate Unlocks: Advanced Audio Suite, Alignment Gym, and Vibe Tribe',
-                        `${formatTokensShort(tokenGrant(planType === 'solo' ? TIER_TYPES.INTENSIVE : TIER_TYPES.INTENSIVE_HOUSEHOLD))} VIVA tokens included`,
+                        `${formatTokensShort(tokenGrant(TIER_TYPES.INTENSIVE))} VIVA tokens included`,
                         '8 weeks Vision Pro included',
                         `${storageQuota(planType === 'solo' ? TIER_TYPES.MONTHLY_28DAY : TIER_TYPES.HOUSEHOLD_28DAY)}GB storage`,
                       ].map((feature, idx) => (

@@ -84,7 +84,7 @@ export default function OrderSummary({
 
   const { tokenGrant, storageQuota } = useMembershipTiers()
 
-  const intensiveTierType = planType === 'solo' ? TIER_TYPES.INTENSIVE : TIER_TYPES.INTENSIVE_HOUSEHOLD
+  const intensiveTierType = TIER_TYPES.INTENSIVE
   const intensiveTokens = tokenGrant(intensiveTierType)
   const intensiveStorageGb = storageQuota(intensiveTierType) || 100
 

@@ -61,16 +61,23 @@ export default function RootLayout({
           </AppErrorHandling>
           </TrackingProvider>
           <Toaster 
+            theme="dark"
             position="top-right"
+            richColors
+            expand
+            visibleToasts={5}
+            gap={8}
             toastOptions={{
               style: {
-                background: '#1F1F1F',
+                background: '#1a1a1a',
                 color: '#FFFFFF',
                 border: '1px solid #333',
                 zIndex: 99999,
                 wordBreak: 'break-word',
+                fontSize: '14px',
               },
               className: 'toast',
+              duration: 5000,
             }}
             offset="16px"
           />

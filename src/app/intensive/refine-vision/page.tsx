@@ -39,17 +39,17 @@ export default function RefineVisionPage() {
         return
       }
 
-      // Get active intensive
-      const { data: intensiveData } = await supabase
-        .from('order_items')
-        .select('id, orders!inner(user_id), products!inner(product_type), completion_status')
-        .eq('orders.user_id', user.id)
-        .eq('products.product_type', 'intensive')
-        .in('completion_status', ['pending', 'in_progress'])
+      const { data: checklistRow } = await supabase
+        .from('intensive_checklist')
+        .select('intensive_id')
+        .eq('user_id', user.id)
+        .in('status', ['pending', 'in_progress'])
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle()
 
-      if (intensiveData) {
-        setIntensiveId(intensiveData.id)
+      if (checklistRow) {
+        setIntensiveId(checklistRow.intensive_id)
       }
 
       // Get latest vision

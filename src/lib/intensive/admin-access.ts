@@ -50,23 +50,20 @@ export async function getIntensiveForUser(
   userId: string,
   isSuperAdmin: boolean
 ): Promise<{ id: string; isTestMode: boolean } | null> {
-  // First try to get actual enrollment
-  const { data: intensiveData } = await supabase
-    .from('order_items')
-    .select('id, orders!inner(user_id), products!inner(product_type)')
-    .eq('orders.user_id', userId)
-    .eq('products.product_type', 'intensive')
+  const { data: checklist } = await supabase
+    .from('intensive_checklist')
+    .select('intensive_id')
+    .eq('user_id', userId)
+    .in('status', ['pending', 'in_progress'])
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
 
-  if (intensiveData) {
-    return { id: intensiveData.id, isTestMode: false }
+  if (checklist?.intensive_id) {
+    return { id: checklist.intensive_id, isTestMode: false }
   }
 
-  // If super_admin and no enrollment, use a test/preview mode
   if (isSuperAdmin) {
-    // Return a placeholder ID for super_admin testing
     return { id: 'super-admin-test-mode', isTestMode: true }
   }
 

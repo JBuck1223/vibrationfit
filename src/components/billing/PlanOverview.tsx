@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Card, Badge, Button, Spinner } from '@/lib/design-system/components'
-import { CreditCard, Calendar, Coins, HardDrive, AlertTriangle, RotateCcw, ArrowUpRight, Users, Check, Crown, Zap, Shield, Tag, X, Loader2 } from 'lucide-react'
+import { CreditCard, Calendar, Coins, HardDrive, AlertTriangle, RotateCcw, ArrowUpRight, ArrowDownRight, Users, User, Check, Crown, Zap, Shield, Tag, X, Loader2 } from 'lucide-react'
 import { formatPrice, formatTokensShort, formatStorage, PRICING, TOKEN_GRANTS, STORAGE_QUOTAS } from '@/lib/billing/config'
 
 import { toast } from 'sonner'
@@ -54,7 +54,7 @@ type ProrationPreview = {
   lines: Array<{ description: string; amount: number }>
 }
 
-type UpgradeFlow = 'annual' | 'household'
+type PlanChangeFlow = 'annual' | 'household' | '28day' | 'individual'
 
 type Props = {
   subscription: SubscriptionData | null
@@ -92,7 +92,16 @@ export default function PlanOverview({
   isResuming,
 }: Props) {
   const [upgradeState, setUpgradeState] = useState<'idle' | 'previewing' | 'confirming' | 'partner-details' | 'upgrading'>('idle')
-  const [activeFlow, setActiveFlow] = useState<UpgradeFlow | null>(null)
+  const [activeFlow, setActiveFlow] = useState<PlanChangeFlow | null>(null)
+  const planChangeRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (upgradeState !== 'idle' && planChangeRef.current) {
+      setTimeout(() => {
+        planChangeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 100)
+    }
+  }, [upgradeState])
   const [tiersCache, setTiersCache] = useState<any[] | null>(null)
   const [prorationPreview, setProrationPreview] = useState<ProrationPreview | null>(null)
   const [targetTier, setTargetTier] = useState<TierInfo | null>(null)
@@ -156,21 +165,44 @@ export default function PlanOverview({
   const getAnnualTierType = () =>
     tier.isHouseholdPlan ? 'vision_pro_household_annual' : 'vision_pro_annual'
 
+  const get28DayTierType = () =>
+    tier.isHouseholdPlan ? 'vision_pro_household_28day' : 'vision_pro_28day'
+
   const getHouseholdTierType = () =>
     is28Day ? 'vision_pro_household_28day' : 'vision_pro_household_annual'
 
-  const annualFallbackPrice = tier.isHouseholdPlan ? PRICING.HOUSEHOLD_ANNUAL : PRICING.SOLO_ANNUAL
-  const householdFallbackPrice = is28Day ? PRICING.HOUSEHOLD_28DAY : PRICING.HOUSEHOLD_ANNUAL
+  const getSoloTierType = () =>
+    is28Day ? 'vision_pro_28day' : 'vision_pro_annual'
 
-  const handleUpgradeClick = async (flow: UpgradeFlow) => {
+  const handlePlanChangeClick = async (flow: PlanChangeFlow) => {
     setActiveFlow(flow)
     setUpgradeState('previewing')
     try {
-      const tierType = flow === 'annual' ? getAnnualTierType() : getHouseholdTierType()
-      const isHouseholdLookup = flow === 'household' || tier.isHouseholdPlan
+      let tierType: string
+      let isHouseholdLookup = false
+
+      switch (flow) {
+        case 'annual':
+          tierType = getAnnualTierType()
+          isHouseholdLookup = tier.isHouseholdPlan
+          break
+        case '28day':
+          tierType = get28DayTierType()
+          isHouseholdLookup = tier.isHouseholdPlan
+          break
+        case 'household':
+          tierType = getHouseholdTierType()
+          isHouseholdLookup = true
+          break
+        case 'individual':
+          tierType = getSoloTierType()
+          isHouseholdLookup = false
+          break
+      }
+
       const found = await findTier(tierType, { household: isHouseholdLookup })
       if (!found) {
-        toast.error(`${flow === 'annual' ? 'Annual' : 'Household'} plan not found`)
+        toast.error('Target plan not found')
         setUpgradeState('idle')
         setActiveFlow(null)
         return
@@ -187,18 +219,18 @@ export default function PlanOverview({
         })
         setUpgradeState('confirming')
       } else {
-        toast.error(previewData.error || 'Unable to preview upgrade')
+        toast.error(previewData.error || 'Unable to preview plan change')
         setUpgradeState('idle')
         setActiveFlow(null)
       }
     } catch {
-      toast.error('Failed to load upgrade details')
+      toast.error('Failed to load plan change details')
       setUpgradeState('idle')
       setActiveFlow(null)
     }
   }
 
-  const handleUpgradeConfirm = async () => {
+  const handlePlanChangeConfirm = async () => {
     if (!targetTier || !activeFlow) return
 
     if (activeFlow === 'household') {
@@ -216,11 +248,18 @@ export default function PlanOverview({
 
     setUpgradeState('upgrading')
     try {
-      const payload: Record<string, string> = { targetTierId: targetTier.id }
-      if (activeFlow === 'household' && partnerFirst.trim()) {
-        payload.partnerFirstName = partnerFirst.trim()
-        payload.partnerLastName = partnerLast.trim()
-        payload.partnerEmail = partnerEmail.trim().toLowerCase()
+      const payload: Record<string, any> = { targetTierId: targetTier.id }
+      if (activeFlow === 'household') {
+        if (partnerFirst.trim()) {
+          payload.partnerFirstName = partnerFirst.trim()
+          payload.partnerLastName = partnerLast.trim()
+          payload.partnerEmail = partnerEmail.trim().toLowerCase()
+        }
+        if (includeIntensive) {
+          payload.includeIntensive = true
+          payload.intensiveAmount = PARTNER_INTENSIVE_PRICE
+          if (couponResult?.valid) payload.promoCode = couponCode.trim()
+        }
       }
 
       const res = await fetch('/api/billing/change-plan', {
@@ -231,42 +270,32 @@ export default function PlanOverview({
 
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error || 'Failed to upgrade')
+        throw new Error(data.error || 'Failed to change plan')
       }
 
       const result = await res.json()
 
-      if (activeFlow === 'household' && includeIntensive) {
-        try {
-          const intensiveRes = await fetch('/api/billing/purchase-intensive', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              overrideAmount: PARTNER_INTENSIVE_PRICE,
-              promoCode: couponResult?.valid ? couponCode.trim() : undefined,
-              partnerFirstName: partnerFirst.trim(),
-              partnerLastName: partnerLast.trim(),
-              partnerEmail: partnerEmail.trim().toLowerCase(),
-            }),
-          })
-          const intensiveData = await intensiveRes.json()
-          if (!intensiveRes.ok) {
-            toast.error(`Plan upgraded but intensive purchase failed: ${intensiveData.error}`)
-          } else if (intensiveData.waived) {
-            toast.success('Intensive included at no charge')
-          } else {
-            toast.success('Intensive purchased for your partner')
-          }
-        } catch {
-          toast.error('Plan upgraded but intensive purchase failed')
+      let successMsg: string
+      switch (activeFlow) {
+        case 'annual':
+          successMsg = 'Switched to Annual billing'
+          break
+        case '28day':
+          successMsg = 'Switched to 28-Day billing'
+          break
+        case 'household': {
+          const parts: string[] = ['Upgraded to Household plan']
+          if (result.partnerInvited) parts.push(`Invitation sent to ${partnerEmail.trim()}`)
+          if (result.intensiveGranted) parts.push('Activation Intensive granted')
+          successMsg = parts.join('. ')
+          break
         }
+        case 'individual':
+          successMsg = result.householdDissolved
+            ? `Switched to Individual plan. ${result.removedMembers || 0} member(s) removed.`
+            : 'Switched to Individual plan'
+          break
       }
-
-      const successMsg = activeFlow === 'annual'
-        ? 'Upgraded to Annual plan'
-        : result.partnerInvited
-          ? `Upgraded to Household plan. Invitation sent to ${partnerEmail.trim()}`
-          : 'Upgraded to Household plan'
       toast.success(successMsg)
       resetUpgradeState()
       onRefresh()
@@ -323,16 +352,18 @@ export default function PlanOverview({
     setAgreedToTerms(false)
   }
 
-  const renderUpgradeBlock = (
-    flow: UpgradeFlow,
+  const renderPlanChangeBlock = (
+    flow: PlanChangeFlow,
     label: string,
     sublabel: string,
     buttonText: string,
     icon: React.ReactNode,
     borderColor: string,
     bgColor: string,
+    buttonVariant: 'primary' | 'outline' = 'primary',
   ) => {
     const isActive = activeFlow === flow
+    const isDowngrade = flow === '28day' || flow === 'individual'
 
     if (upgradeState === 'idle' || !isActive) {
       if (upgradeState !== 'idle' && !isActive) return null
@@ -342,7 +373,7 @@ export default function PlanOverview({
             <p className="text-sm font-medium text-white">{label}</p>
             <p className="text-xs text-neutral-400">{sublabel}</p>
           </div>
-          <Button variant="primary" size="sm" onClick={() => handleUpgradeClick(flow)}>
+          <Button variant={buttonVariant} size="sm" onClick={() => handlePlanChangeClick(flow)}>
             {buttonText}
             {icon}
           </Button>
@@ -352,68 +383,124 @@ export default function PlanOverview({
 
     if (upgradeState === 'previewing' && isActive) {
       return (
-        <div className={`${bgColor} border ${borderColor} rounded-xl p-4 flex items-center justify-center gap-2`}>
+        <div ref={planChangeRef} className={`${bgColor} border ${borderColor} rounded-xl p-4 flex items-center justify-center gap-2`}>
           <Spinner size="sm" />
-          <span className="text-sm text-neutral-400">Calculating upgrade cost...</span>
+          <span className="text-sm text-neutral-400">{isDowngrade ? 'Calculating plan change...' : 'Calculating upgrade cost...'}</span>
         </div>
       )
     }
 
     if ((upgradeState === 'confirming' || upgradeState === 'partner-details') && isActive && prorationPreview) {
       const forwardPrice = targetTier?.price ?? 0
-      const forwardLabel = flow === 'annual' || !is28Day ? '/year' : '/28 days'
       const hasLineItems = prorationPreview.lines.length > 0 && prorationPreview.lines.some(l => l.amount !== 0)
       const duringTrial = isTrialing && prorationPreview.immediateAmount === 0
-
-      const isAnnualUpgrade = flow === 'annual'
       const isHouseholdUpgrade = flow === 'household'
+      const isIndividualDowngrade = flow === 'individual'
 
-      const upgradeName = isAnnualUpgrade
-        ? (tier.isHouseholdPlan ? 'Vision Pro Household Annual' : 'Vision Pro Annual')
-        : (is28Day ? 'Vision Pro Household 28-Day' : 'Vision Pro Household Annual')
+      const targetPlan = (() => {
+        switch (flow) {
+          case 'annual':
+            return {
+              name: tier.isHouseholdPlan ? 'Vision Pro Household Annual' : 'Vision Pro Annual',
+              billingLabel: '/year',
+              tokens: tier.isHouseholdPlan ? TOKEN_GRANTS.HOUSEHOLD_ANNUAL : TOKEN_GRANTS.ANNUAL,
+              storage: tier.isHouseholdPlan ? STORAGE_QUOTAS.HOUSEHOLD_ANNUAL : STORAGE_QUOTAS.ANNUAL,
+              seats: tier.isHouseholdPlan ? 2 : 1,
+              billingCycle: 'Annual',
+              Icon: Crown,
+              accentColor: '#00FFFF',
+            }
+          case '28day':
+            return {
+              name: tier.isHouseholdPlan ? 'Vision Pro Household 28-Day' : 'Vision Pro 28-Day',
+              billingLabel: '/28 days',
+              tokens: tier.isHouseholdPlan ? TOKEN_GRANTS.HOUSEHOLD_28DAY : TOKEN_GRANTS.MONTHLY_28DAY,
+              storage: tier.isHouseholdPlan ? STORAGE_QUOTAS.HOUSEHOLD_28DAY : STORAGE_QUOTAS.MONTHLY_28DAY,
+              seats: tier.isHouseholdPlan ? 2 : 1,
+              billingCycle: '28-Day',
+              Icon: Calendar,
+              accentColor: '#F59E0B',
+            }
+          case 'household':
+            return {
+              name: is28Day ? 'Vision Pro Household 28-Day' : 'Vision Pro Household Annual',
+              billingLabel: is28Day ? '/28 days' : '/year',
+              tokens: is28Day ? TOKEN_GRANTS.HOUSEHOLD_28DAY : TOKEN_GRANTS.HOUSEHOLD_ANNUAL,
+              storage: is28Day ? STORAGE_QUOTAS.HOUSEHOLD_28DAY : STORAGE_QUOTAS.HOUSEHOLD_ANNUAL,
+              seats: 2,
+              billingCycle: is28Day ? '28-Day' : 'Annual',
+              Icon: Users,
+              accentColor: '#BF00FF',
+            }
+          case 'individual':
+            return {
+              name: is28Day ? 'Vision Pro 28-Day' : 'Vision Pro Annual',
+              billingLabel: is28Day ? '/28 days' : '/year',
+              tokens: is28Day ? TOKEN_GRANTS.MONTHLY_28DAY : TOKEN_GRANTS.ANNUAL,
+              storage: is28Day ? STORAGE_QUOTAS.MONTHLY_28DAY : STORAGE_QUOTAS.ANNUAL,
+              seats: 1,
+              billingCycle: is28Day ? '28-Day' : 'Annual',
+              Icon: User,
+              accentColor: '#F59E0B',
+            }
+        }
+      })()
 
-      const upgradeIcon = isAnnualUpgrade ? Crown : Users
-      const UpgradeIcon = upgradeIcon
-      const accentColor = isAnnualUpgrade ? '#00FFFF' : '#BF00FF'
-
-      const newTokens = isAnnualUpgrade
-        ? (tier.isHouseholdPlan ? TOKEN_GRANTS.HOUSEHOLD_ANNUAL : TOKEN_GRANTS.ANNUAL)
-        : (is28Day ? TOKEN_GRANTS.HOUSEHOLD_28DAY : TOKEN_GRANTS.HOUSEHOLD_ANNUAL)
-      const newStorage = isAnnualUpgrade
-        ? (tier.isHouseholdPlan ? STORAGE_QUOTAS.HOUSEHOLD_ANNUAL : STORAGE_QUOTAS.ANNUAL)
-        : (is28Day ? STORAGE_QUOTAS.HOUSEHOLD_28DAY : STORAGE_QUOTAS.HOUSEHOLD_ANNUAL)
+      const { Icon: PlanIcon, accentColor } = targetPlan
       const currentSeats = tier.isHouseholdPlan ? 2 : 1
-      const newSeats = isHouseholdUpgrade ? 2 : currentSeats
       const currentBilling = is28Day ? `${formatPrice(price)}/28 days` : `${formatPrice(price)}/year`
-      const newBilling = `${formatPrice(forwardPrice)}${forwardLabel}`
+      const newBilling = `${formatPrice(forwardPrice)}${targetPlan.billingLabel}`
 
       type CompRow = { label: string; current: string; next: string; improved: boolean }
       const comparison: CompRow[] = [
         { label: 'Price', current: currentBilling, next: newBilling, improved: false },
-        { label: 'VIVA Tokens', current: formatTokensShort(tokenGrant), next: formatTokensShort(newTokens), improved: newTokens > tokenGrant },
-        { label: 'Storage', current: formatStorage(tier.storageQuotaGb), next: formatStorage(newStorage), improved: newStorage > tier.storageQuotaGb },
-        { label: 'Seats', current: `${currentSeats}`, next: `${newSeats}`, improved: newSeats > currentSeats },
-        { label: 'Billing Cycle', current: is28Day ? '28-Day' : 'Annual', next: (flow === 'annual' || !is28Day) ? 'Annual' : '28-Day', improved: isAnnualUpgrade },
+        { label: 'VIVA Tokens', current: formatTokensShort(tokenGrant), next: formatTokensShort(targetPlan.tokens), improved: targetPlan.tokens > tokenGrant },
+        { label: 'Storage', current: formatStorage(tier.storageQuotaGb), next: formatStorage(targetPlan.storage), improved: targetPlan.storage > tier.storageQuotaGb },
+        { label: 'Seats', current: `${currentSeats}`, next: `${targetPlan.seats}`, improved: targetPlan.seats > currentSeats },
+        { label: 'Billing Cycle', current: is28Day ? '28-Day' : 'Annual', next: targetPlan.billingCycle, improved: false },
       ]
-      if (isAnnualUpgrade) {
+      if (flow === 'annual') {
         comparison.push(
           { label: 'Support', current: 'Standard', next: 'Priority', improved: true },
           { label: 'Check-ins', current: 'None', next: '4/year', improved: true },
           { label: 'Rate Lock', current: 'None', next: '12 months', improved: true },
         )
       }
-      if (isHouseholdUpgrade) {
+      if (flow === '28day') {
+        comparison.push(
+          { label: 'Support', current: 'Priority', next: 'Standard', improved: false },
+          { label: 'Rate Lock', current: '12 months', next: 'None', improved: false },
+        )
+      }
+      if (flow === 'household') {
         comparison.push(
           { label: 'Shared Access', current: 'Solo only', next: 'Partner included', improved: true },
         )
       }
+      if (flow === 'individual') {
+        comparison.push(
+          { label: 'Shared Access', current: 'Partner included', next: 'Solo only', improved: false },
+        )
+      }
+
+      const confirmButtonLabel = (() => {
+        switch (flow) {
+          case 'annual': return 'Confirm Upgrade'
+          case '28day': return 'Confirm Switch'
+          case 'household': return includeIntensive ? 'Upgrade & Purchase Intensive' : 'Upgrade & Send Invite'
+          case 'individual': return 'Confirm Downgrade'
+        }
+      })()
 
       return (
-        <div className="rounded-2xl border-2 overflow-hidden" style={{ borderColor: `${accentColor}33`, background: `linear-gradient(135deg, ${accentColor}08, transparent)` }}>
+        <div ref={planChangeRef} className="rounded-2xl border-2 overflow-hidden" style={{ borderColor: `${accentColor}33`, background: `linear-gradient(135deg, ${accentColor}08, transparent)` }}>
           <div className="p-5">
             <div className="text-center mb-5">
-              <UpgradeIcon className="w-10 h-10 mx-auto mb-3" style={{ color: accentColor }} />
-              <h4 className="text-xl font-bold text-white">{upgradeName}</h4>
+              <PlanIcon className="w-10 h-10 mx-auto mb-3" style={{ color: accentColor }} />
+              <h4 className="text-xl font-bold text-white">{targetPlan.name}</h4>
+              {isDowngrade && (
+                <p className="text-xs text-amber-400 mt-1">Plan change</p>
+              )}
             </div>
 
             <div className="rounded-xl overflow-hidden border border-neutral-700 mb-4">
@@ -440,6 +527,22 @@ export default function PlanOverview({
               </table>
             </div>
 
+            {isIndividualDowngrade && (
+              <div className="rounded-xl p-3 mb-4 bg-[#FF0040]/10 border border-[#FF0040]/20">
+                <div className="flex items-start gap-2.5">
+                  <AlertTriangle className="w-4 h-4 text-[#FF0040] flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-[#FF0040] mb-1">Household members will be removed</p>
+                    <p className="text-xs text-neutral-400 leading-relaxed">
+                      All household members (except you) will lose access to shared tokens and storage.
+                      They will need to subscribe to their own plan to continue using VibrationFit.
+                      Any intensive assignments already on their accounts will remain.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="rounded-xl p-3 mb-4" style={{ background: `${accentColor}0D`, border: `1px solid ${accentColor}1A` }}>
               {duringTrial ? (
                 <div className="text-center text-sm text-neutral-300">
@@ -462,7 +565,7 @@ export default function PlanOverview({
                       <span>
                         {prorationPreview.immediateAmount > 0
                           ? formatPrice(prorationPreview.immediateAmount)
-                          : 'No charge'}
+                          : isDowngrade ? 'Credit applied' : 'No charge'}
                       </span>
                     </div>
                   )}
@@ -508,7 +611,6 @@ export default function PlanOverview({
                   )}
                 </div>
 
-                {/* Intensive for Partner */}
                 <div className="mt-4 pt-4 border-t border-neutral-800">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
@@ -606,14 +708,14 @@ export default function PlanOverview({
                   )}
                 </>
               )}
-              {isAnnualUpgrade && (
+              {!isHouseholdUpgrade && (
                 <div className="flex justify-between text-xs text-neutral-400 mb-1">
-                  <span>Annual plan change (proration)</span>
+                  <span>Plan change {isDowngrade ? '(credit)' : '(proration)'}</span>
                   <span>
                     {duringTrial ? 'No charge' : (
                       prorationPreview.immediateAmount > 0
                         ? formatPrice(prorationPreview.immediateAmount)
-                        : 'No charge'
+                        : isDowngrade ? 'Credit applied' : 'No charge'
                     )}
                   </span>
                 </div>
@@ -633,7 +735,7 @@ export default function PlanOverview({
               <p className="text-xs text-neutral-300 leading-relaxed">
                 {isHouseholdUpgrade ? (
                   <>
-                    Your plan will change to <span className="text-white font-medium">{upgradeName}</span>.
+                    Your plan will change to <span className="text-white font-medium">{targetPlan.name}</span>.
                     You will be billed <span className="text-white font-medium">{newBilling}</span> starting{' '}
                     <span className="text-white font-medium">{duringTrial ? formatDate(subscription.currentPeriodEnd) : 'your next billing date'}</span>.
                     {includeIntensive && intensiveFinal > 0 && (
@@ -643,9 +745,16 @@ export default function PlanOverview({
                       <> The Partner Intensive is included at no additional charge.</>
                     )}
                   </>
+                ) : isIndividualDowngrade ? (
+                  <>
+                    Your plan will change to <span className="text-white font-medium">{targetPlan.name}</span>.
+                    All household members will be removed and will need their own subscription.
+                    You will be billed <span className="text-white font-medium">{newBilling}</span> starting{' '}
+                    <span className="text-white font-medium">{duringTrial ? formatDate(subscription.currentPeriodEnd) : 'your next billing date'}</span>.
+                  </>
                 ) : (
                   <>
-                    Your plan will change to <span className="text-white font-medium">{upgradeName}</span>.
+                    Your plan will change to <span className="text-white font-medium">{targetPlan.name}</span>.
                     You will be billed <span className="text-white font-medium">{newBilling}</span> starting{' '}
                     <span className="text-white font-medium">{duringTrial ? formatDate(subscription.currentPeriodEnd) : 'your next billing date'}</span>.
                   </>
@@ -669,14 +778,12 @@ export default function PlanOverview({
                 Cancel
               </Button>
               <Button
-                variant="primary"
+                variant={isDowngrade ? 'outline' : 'primary'}
                 size="sm"
-                onClick={handleUpgradeConfirm}
+                onClick={handlePlanChangeConfirm}
                 disabled={!agreedToTerms}
               >
-                {isHouseholdUpgrade
-                  ? (includeIntensive ? 'Upgrade & Purchase Intensive' : 'Upgrade & Send Invite')
-                  : 'Confirm Upgrade'}
+                {confirmButtonLabel}
               </Button>
             </div>
           </div>
@@ -686,9 +793,9 @@ export default function PlanOverview({
 
     if (upgradeState === 'upgrading' && isActive) {
       return (
-        <div className={`${bgColor} border ${borderColor} rounded-xl p-4 flex items-center justify-center gap-2`}>
+        <div ref={planChangeRef} className={`${bgColor} border ${borderColor} rounded-xl p-4 flex items-center justify-center gap-2`}>
           <Spinner size="sm" />
-          <span className="text-sm text-neutral-400">Upgrading your plan...</span>
+          <span className="text-sm text-neutral-400">{isDowngrade ? 'Switching your plan...' : 'Upgrading your plan...'}</span>
         </div>
       )
     }
@@ -796,24 +903,42 @@ export default function PlanOverview({
 
       {!subscription.cancelAtPeriodEnd && (
         <div className="space-y-3 mb-6">
-          {is28Day && renderUpgradeBlock(
+          {is28Day ? renderPlanChangeBlock(
             'annual',
-            'Switch to Annual',
-            `${formatPrice(annualFallbackPrice)}/year`,
+            'Switch to Annual Billing',
+            `Save with annual billing at ${formatPrice(tier.isHouseholdPlan ? PRICING.HOUSEHOLD_ANNUAL : PRICING.SOLO_ANNUAL)}/year`,
             'Upgrade to Annual',
             <ArrowUpRight className="w-4 h-4 ml-1" />,
-            'border-[#39FF14]/20',
-            'bg-[#39FF14]/5',
+            'border-[#00FFFF]/20',
+            'bg-[#00FFFF]/5',
+          ) : renderPlanChangeBlock(
+            '28day',
+            'Switch to 28-Day Billing',
+            `${formatPrice(tier.isHouseholdPlan ? PRICING.HOUSEHOLD_28DAY : PRICING.SOLO_28DAY)}/28 days`,
+            'Switch to 28-Day',
+            <ArrowDownRight className="w-4 h-4 ml-1" />,
+            'border-amber-500/20',
+            'bg-amber-500/5',
+            'outline',
           )}
 
-          {isSoloPlan && renderUpgradeBlock(
+          {isSoloPlan ? renderPlanChangeBlock(
             'household',
             'Switch to Household',
             'Proration + $200 partner intensive \u00b7 2 members',
             'Upgrade to Household',
             <Users className="w-4 h-4 ml-1" />,
-            'border-[#00FFFF]/20',
-            'bg-[#00FFFF]/5',
+            'border-[#BF00FF]/20',
+            'bg-[#BF00FF]/5',
+          ) : renderPlanChangeBlock(
+            'individual',
+            'Switch to Individual',
+            'Remove household members and switch to a solo plan',
+            'Switch to Individual',
+            <User className="w-4 h-4 ml-1" />,
+            'border-amber-500/20',
+            'bg-amber-500/5',
+            'outline',
           )}
         </div>
       )}

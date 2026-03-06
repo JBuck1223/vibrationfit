@@ -36,21 +36,20 @@ export async function markIntensiveStep(step: IntensiveStepType) {
       return false
     }
 
-    // Get active intensive
-    const { data: intensiveData, error: intensiveError } = await supabase
-      .from('order_items')
-      .select('id, orders!inner(user_id), products!inner(product_type), completion_status')
-      .eq('orders.user_id', user.id)
-      .eq('products.product_type', 'intensive')
-      .in('completion_status', ['pending', 'in_progress'])
+    const { data: checklist, error: checklistError } = await supabase
+      .from('intensive_checklist')
+      .select('id')
+      .eq('user_id', user.id)
+      .in('status', ['pending', 'in_progress'])
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle()
     
-    if (intensiveError || !intensiveData) {
-      console.error('No active intensive found:', intensiveError)
+    if (checklistError || !checklist) {
+      console.error('No active intensive checklist found:', checklistError)
       return false
     }
 
-    // Mark step as completed
     const updateData: any = {
       [step]: true,
       [`${step}_at`]: new Date().toISOString()
@@ -59,14 +58,14 @@ export async function markIntensiveStep(step: IntensiveStepType) {
     const { error: updateError } = await supabase
       .from('intensive_checklist')
       .update(updateData)
-      .eq('intensive_id', intensiveData.id)
+      .eq('id', checklist.id)
     
     if (updateError) {
       console.error('Error updating intensive checklist:', updateError)
       return false
     }
 
-    console.log(`✅ Intensive: ${step} marked complete`)
+    console.log(`Intensive: ${step} marked complete`)
     return true
   } catch (err) {
     console.error('Error in markIntensiveStep:', err)
@@ -81,15 +80,16 @@ export async function getActiveIntensiveId(): Promise<string | null> {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
 
-    const { data: intensiveData } = await supabase
-      .from('order_items')
-      .select('id, orders!inner(user_id), products!inner(product_type), completion_status')
-      .eq('orders.user_id', user.id)
-      .eq('products.product_type', 'intensive')
-      .in('completion_status', ['pending', 'in_progress'])
+    const { data: checklist } = await supabase
+      .from('intensive_checklist')
+      .select('intensive_id')
+      .eq('user_id', user.id)
+      .in('status', ['pending', 'in_progress'])
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle()
     
-    return intensiveData?.id || null
+    return checklist?.intensive_id || null
   } catch (err) {
     console.error('Error getting active intensive:', err)
     return null

@@ -106,9 +106,7 @@ export async function POST(request: NextRequest) {
         stripe_payment_intent_id: `manual_enrollment_${Date.now()}`,
         payment_plan: paymentPlan,
         installments_total: paymentPlan === 'full' ? 1 : paymentPlan === '2pay' ? 2 : 3,
-        installments_paid: 1,
-        completion_status: 'pending',
-        activation_deadline: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString()
+        installments_paid: 1
       })
       .select()
       .single()

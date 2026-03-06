@@ -12,6 +12,20 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Source of truth for intensive status
+    const { data: checklist } = await supabase
+      .from('intensive_checklist')
+      .select('intensive_id, status, started_at, completed_at, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (!checklist) {
+      return NextResponse.json({ intensive: null })
+    }
+
+    // Billing/payment data from order_items (may be null for household partners)
     const { data: intensiveItem } = await supabase
       .from('order_items')
       .select(`
@@ -21,26 +35,16 @@ export async function GET() {
         installments_total,
         installments_paid,
         next_installment_date,
-        completion_status,
-        started_at,
-        completed_at,
         created_at,
         stripe_checkout_session_id,
         orders!inner(user_id),
         products!inner(name, product_type, key)
       `)
-      .eq('orders.user_id', user.id)
-      .eq('products.product_type', 'intensive')
-      .order('created_at', { ascending: false })
-      .limit(1)
+      .eq('id', checklist.intensive_id)
       .maybeSingle()
 
-    if (!intensiveItem) {
-      return NextResponse.json({ intensive: null })
-    }
-
-    const product = intensiveItem.products as any
-    const isHousehold = product?.key?.includes('household')
+    const product = (intensiveItem?.products as any) || {}
+    const isHousehold = product?.key?.includes('household') || false
 
     let installments: Array<{
       number: number
@@ -49,18 +53,19 @@ export async function GET() {
       date: string | null
     }> = []
 
-    const paymentPlan = intensiveItem.payment_plan || 'full'
-    const total = intensiveItem.installments_total || 1
-    const paid = intensiveItem.installments_paid || (paymentPlan === 'full' ? 1 : 0)
+    const paymentPlan = intensiveItem?.payment_plan || 'full'
+    const total = intensiveItem?.installments_total || 1
+    const paid = intensiveItem?.installments_paid || (paymentPlan === 'full' ? 1 : 0)
+    const amount = intensiveItem?.amount || 0
 
     if (paymentPlan === 'full') {
       installments = [{
         number: 1,
-        amount: intensiveItem.amount,
+        amount,
         status: 'paid',
-        date: intensiveItem.created_at,
+        date: intensiveItem?.created_at || checklist.created_at,
       }]
-    } else if (stripe && intensiveItem.stripe_checkout_session_id) {
+    } else if (stripe && intensiveItem?.stripe_checkout_session_id) {
       try {
         const session = await stripe.checkout.sessions.retrieve(
           intensiveItem.stripe_checkout_session_id
@@ -101,7 +106,7 @@ export async function GET() {
             } else {
               installments.push({
                 number: i + 1,
-                amount: intensiveItem.amount,
+                amount,
                 status: 'scheduled',
                 date: intensiveItem.next_installment_date || null,
               })
@@ -117,26 +122,26 @@ export async function GET() {
       for (let i = 0; i < total; i++) {
         installments.push({
           number: i + 1,
-          amount: intensiveItem.amount,
+          amount,
           status: i < paid ? 'paid' : 'scheduled',
-          date: i === 0 ? intensiveItem.created_at : null,
+          date: i === 0 ? (intensiveItem?.created_at || checklist.created_at) : null,
         })
       }
     }
 
     return NextResponse.json({
       intensive: {
-        id: intensiveItem.id,
+        id: checklist.intensive_id,
         productName: product?.name || 'Vision Activation Intensive',
         isHousehold,
         paymentPlan,
         installmentsTotal: total,
         installmentsPaid: paid,
-        amount: intensiveItem.amount,
-        completionStatus: intensiveItem.completion_status,
-        startedAt: intensiveItem.started_at,
-        completedAt: intensiveItem.completed_at,
-        purchasedAt: intensiveItem.created_at,
+        amount,
+        completionStatus: checklist.status,
+        startedAt: checklist.started_at,
+        completedAt: checklist.completed_at,
+        purchasedAt: intensiveItem?.created_at || checklist.created_at,
         installments,
       },
     })

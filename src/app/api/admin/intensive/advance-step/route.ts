@@ -199,15 +199,6 @@ async function advanceStep0_StartIntensive(
     })
     .eq('id', checklist.id)
 
-  // Update purchase
-  await supabase
-    .from('order_items')
-    .update({
-      started_at: now,
-      activation_deadline: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(),
-      completion_status: 'in_progress',
-    })
-    .eq('id', checklist.intensive_id)
 }
 
 // Step 1: Fill in account settings
@@ -846,14 +837,6 @@ async function advanceStep14_Unlock(
     })
     .eq('id', checklist.id)
 
-  // Update purchase
-  await supabase
-    .from('order_items')
-    .update({
-      completion_status: 'completed',
-      completed_at: now
-    })
-    .eq('id', checklist.intensive_id)
 }
 
 // GET - Fetch user's current progress

@@ -63,7 +63,8 @@ function BillingContent() {
 
       setMembership(membershipData)
       setIntensive(intensiveData.intensive || null)
-      setHousehold(householdData?.household ? householdData : null)
+      const isActiveHousehold = householdData?.household?.plan_type === 'household'
+      setHousehold(isActiveHousehold ? householdData : null)
       setPaymentMethods(pmData.paymentMethods || [])
       setInvoices(invoicesData.invoices || [])
     } catch {

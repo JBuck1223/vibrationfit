@@ -23,8 +23,8 @@ export default function SetupPasswordPage() {
   const [hasIntensive, setHasIntensive] = useState(false)
 
   function getPostPasswordRedirect(hasActiveIntensive: boolean): string {
-    if (returnTo && returnTo.startsWith('/')) return returnTo
     if (hasActiveIntensive) return '/intensive/start'
+    if (returnTo && returnTo.startsWith('/')) return returnTo
     return '/dashboard'
   }
 
