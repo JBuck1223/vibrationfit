@@ -289,6 +289,8 @@ export default function AbundanceReportsPage() {
                         label={(props: any) => (props.value > 0 ? `${props.name}: ${formatCurrency(props.value)}` : '')}
                         stroke="#fff"
                         strokeWidth={1}
+                      >
+                        {moneyValuePieData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
@@ -352,6 +354,8 @@ export default function AbundanceReportsPage() {
                         label={(props: any) => (props.value > 0 ? `${props.name}: ${formatCurrency(props.value)}` : '')}
                         stroke="#fff"
                         strokeWidth={1}
+                      >
+                        {categoryPieData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
