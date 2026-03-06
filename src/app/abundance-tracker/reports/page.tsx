@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts'
 import { Container, Card, Stack, PageHero, Button, Text, DatePicker } from '@/lib/design-system/components'
 import { colors } from '@/lib/design-system/tokens'
 import { getEntryCategoryDisplay } from '@/lib/abundance/entry-categories'
@@ -190,7 +190,7 @@ export default function AbundanceReportsPage() {
                   onChange={(dateString) => {
                     if (dateString) setPeriodKey(dateString.slice(0, 7))
                   }}
-                  className="w-full min-w-[180px] max-w-[220px]"
+                  className="w-full min-w-0 max-w-full sm:min-w-[180px] sm:max-w-[220px]"
                 />
               )}
               {period === 'quarter' && (
@@ -230,14 +230,14 @@ export default function AbundanceReportsPage() {
               <DatePicker
                 value={customStart}
                 onChange={(dateString) => setCustomStart(dateString)}
-                className="w-full min-w-[160px] max-w-[200px]"
+                className="w-full min-w-0 max-w-full sm:min-w-[160px] sm:max-w-[200px]"
               />
               <span className="text-neutral-500">to</span>
               <DatePicker
                 value={customEnd}
                 onChange={(dateString) => setCustomEnd(dateString)}
                 minDate={customStart || undefined}
-                className="w-full min-w-[160px] max-w-[200px]"
+                className="w-full min-w-0 max-w-full sm:min-w-[160px] sm:max-w-[200px]"
               />
               <Button variant="primary" size="sm" onClick={runCustomReport}>
                 Generate report
@@ -287,30 +287,28 @@ export default function AbundanceReportsPage() {
                         dataKey="value"
                         nameKey="name"
                         label={(props: any) => (props.value > 0 ? `${props.name}: ${formatCurrency(props.value)}` : '')}
-                      >
-                        {moneyValuePieData.map((entry, index) => (
+                        stroke="#fff"
+                        strokeWidth={1}
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip
-                        formatter={(value: number) => formatCurrency(value)}
-                        contentStyle={{
-                          backgroundColor: colors.neutral[800],
-                          border: `1px solid ${colors.neutral[600]}`,
-                          borderRadius: '8px',
-                        }}
+                      <Legend
+                        layout="vertical"
+                        verticalAlign="bottom"
+                        align="center"
+                        wrapperStyle={{ paddingTop: 8 }}
+                        formatter={(value, entry) => (
+                          <span className="text-white">
+                            {value}: {formatCurrency(entry.payload?.value ?? 0)}
+                          </span>
+                        )}
                       />
-                      <Legend layout="vertical" verticalAlign="bottom" align="center" wrapperStyle={{ paddingTop: 8 }} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
               ) : (
                 <p className="text-neutral-400 py-6 text-center">No money or value in this period.</p>
               )}
-              <div className="mt-4 flex gap-6 justify-center text-sm">
-                <span style={{ color: MONEY_COLOR }}>Money: {formatCurrency(data.moneyTotal)}</span>
-                <span style={{ color: VALUE_COLOR }}>Value: {formatCurrency(data.valueTotal)}</span>
-              </div>
             </Card>
 
             {/* By category pie */}
@@ -352,20 +350,22 @@ export default function AbundanceReportsPage() {
                         dataKey="value"
                         nameKey="name"
                         label={(props: any) => (props.value > 0 ? `${props.name}: ${formatCurrency(props.value)}` : '')}
-                      >
-                        {categoryPieData.map((entry, index) => (
+                        stroke="#fff"
+                        strokeWidth={1}
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip
-                        formatter={(value: number) => formatCurrency(value)}
-                        contentStyle={{
-                          backgroundColor: colors.neutral[800],
-                          border: `1px solid ${colors.neutral[600]}`,
-                          borderRadius: '8px',
-                        }}
+                      <Legend
+                        layout="vertical"
+                        verticalAlign="bottom"
+                        align="center"
+                        wrapperStyle={{ paddingTop: 8 }}
+                        formatter={(value, entry) => (
+                          <span className="text-white">
+                            {value}: {formatCurrency(entry.payload?.value ?? 0)}
+                          </span>
+                        )}
                       />
-                      <Legend layout="vertical" verticalAlign="bottom" align="center" wrapperStyle={{ paddingTop: 8 }} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>

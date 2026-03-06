@@ -3,7 +3,7 @@
 import React, { useState, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { HelpCircle, Upload, Sparkles, Save } from 'lucide-react'
+import { HelpCircle, Upload, Sparkles, Save, ChevronDown, ChevronRight } from 'lucide-react'
 import {
   Container,
   Card,
@@ -25,11 +25,6 @@ import { FileUpload } from '@/components/FileUpload'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
-
-const VALUE_TYPES = [
-  { value: 'money', label: 'Money' },
-  { value: 'value', label: 'Value (intangible)' },
-]
 
 const visionCategoriesForAbundance = VISION_CATEGORIES.filter(
   (cat) => cat.key !== 'forward' && cat.key !== 'conclusion'
@@ -70,6 +65,8 @@ export default function AbundanceNewEntryPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [helpOpen, setHelpOpen] = useState(false)
+  const [visionCategoriesOpen, setVisionCategoriesOpen] = useState(false)
+  const [imageSectionOpen, setImageSectionOpen] = useState(false)
   const [imageSource, setImageSource] = useState<'upload' | 'ai' | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [aiGeneratedImageUrl, setAiGeneratedImageUrl] = useState<string | null>(null)
@@ -142,7 +139,7 @@ export default function AbundanceNewEntryPage() {
 
   return (
     <Container size="xl">
-      <Stack gap="lg">
+      <Stack gap="md">
         <PageHero
           title="Log Abundance Moment"
           subtitle="Capture gifts, synchronicities, and abundance flowing to you right now."
@@ -161,17 +158,17 @@ export default function AbundanceNewEntryPage() {
           </div>
         </PageHero>
 
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-4 md:p-5">
           <form onSubmit={handleSubmit}>
-            <Stack gap="xl">
-              {/* Entry date - journal/new style */}
-              <div className="rounded-2xl border border-[#1F1F1F] bg-[#161616] p-4 md:p-5">
-                <Inline className="items-center gap-4 md:gap-6">
-                  <div className="space-y-1.5">
-                    <p className="text-xs uppercase tracking-[0.3em] text-neutral-500">
+            <Stack gap="md">
+              {/* Entry date */}
+              <div className="rounded-xl border border-[#1F1F1F] bg-[#161616] p-3 md:p-4">
+                <Inline className="items-center gap-3 md:gap-4">
+                  <div className="space-y-0.5">
+                    <p className="text-xs uppercase tracking-[0.25em] text-neutral-500">
                       Entry date
                     </p>
-                    <p className="text-lg font-semibold text-white">
+                    <p className="text-base font-semibold text-white">
                       {date
                         ? new Intl.DateTimeFormat(undefined, {
                             month: 'long',
@@ -192,10 +189,10 @@ export default function AbundanceNewEntryPage() {
                 </Inline>
               </div>
 
-              {/* Track as (Money / Value) */}
-              <section className="space-y-4">
+              {/* Track as (Money / Value) - segmented toggle like original */}
+              <section className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                  <Text size="sm" className="text-neutral-400 uppercase tracking-[0.25em] underline underline-offset-2 decoration-[#333]">
                     Track as
                   </Text>
                   <button
@@ -207,16 +204,35 @@ export default function AbundanceNewEntryPage() {
                     <HelpCircle className="w-4 h-4" />
                   </button>
                 </div>
-                <Select
-                  value={valueType}
-                  onChange={(value) => setValueType(value as 'money' | 'value')}
-                  options={VALUE_TYPES}
-                />
+                <div className="inline-flex rounded-xl border-2 border-[#333] bg-[#161616] p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setValueType('money')}
+                    className={`rounded-lg px-4 py-2.5 text-sm font-medium transition-colors focus:outline-none ${
+                      valueType === 'money'
+                        ? 'bg-[#39FF14] text-black'
+                        : 'bg-transparent text-[#39FF14] hover:bg-[#39FF14]/10'
+                    }`}
+                  >
+                    Money
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setValueType('value')}
+                    className={`rounded-lg px-4 py-2.5 text-sm font-medium transition-colors focus:outline-none ${
+                      valueType === 'value'
+                        ? 'bg-[#39FF14] text-black'
+                        : 'bg-transparent text-[#39FF14] hover:bg-[#39FF14]/10'
+                    }`}
+                  >
+                    Value
+                  </button>
+                </div>
               </section>
 
               {/* Amount */}
-              <section className="space-y-4">
-                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+              <section className="space-y-2">
+                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.25em] underline underline-offset-2 decoration-[#333]">
                   Amount
                 </Text>
                 <Input
@@ -232,8 +248,8 @@ export default function AbundanceNewEntryPage() {
               </section>
 
               {/* Kind of abundance */}
-              <section className="space-y-4">
-                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+              <section className="space-y-2">
+                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.25em] underline underline-offset-2 decoration-[#333]">
                   Kind of abundance
                 </Text>
                 <Select
@@ -245,55 +261,82 @@ export default function AbundanceNewEntryPage() {
               </section>
 
               {/* Note */}
-              <section className="space-y-4">
-                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+              <section className="space-y-2">
+                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.25em] underline underline-offset-2 decoration-[#333]">
                   Note
                 </Text>
                 <Textarea
                   placeholder="Describe this abundance moment in present-tense appreciation."
                   value={note}
                   onChange={(event) => setNote(event.target.value)}
-                  rows={4}
+                  rows={3}
                   required
                   className="!bg-[#404040] !border-[#333]"
                 />
               </section>
 
-              {/* Vision categories - journal/new style */}
-              <section className="space-y-4">
-                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-                  Vision categories (optional)
-                </Text>
-                <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
-                  {visionCategoriesForAbundance.map((category) => {
-                    const isSelected = visionCategories.includes(category.key)
-                    return (
-                      <CategoryCard
-                        key={category.key}
-                        category={category}
-                        selected={isSelected}
-                        onClick={() => {
-                          setVisionCategories((prev) =>
-                            isSelected ? prev.filter((k) => k !== category.key) : [...prev, category.key]
-                          )
-                        }}
-                        variant="outlined"
-                        selectionStyle="border"
-                        iconColor={isSelected ? '#39FF14' : '#FFFFFF'}
-                        selectedIconColor="#39FF14"
-                        className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : '!bg-transparent !border-[#333]'}
-                      />
-                    )
-                  })}
-                </div>
+              {/* Vision categories - collapsible */}
+              <section className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => setVisionCategoriesOpen((o) => !o)}
+                  className="flex items-center gap-2 w-full text-left focus:outline-none rounded-lg p-1 -m-1"
+                  aria-expanded={visionCategoriesOpen}
+                >
+                  {visionCategoriesOpen ? (
+                    <ChevronDown className="w-4 h-4 text-neutral-400 shrink-0" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-neutral-400 shrink-0" />
+                  )}
+                  <Text size="sm" className="text-neutral-400 uppercase tracking-[0.25em] underline underline-offset-2 decoration-[#333]">
+                    Vision categories (optional)
+                  </Text>
+                </button>
+                {visionCategoriesOpen && (
+                  <div className="grid grid-cols-4 md:grid-cols-12 gap-2 pt-1">
+                    {visionCategoriesForAbundance.map((category) => {
+                      const isSelected = visionCategories.includes(category.key)
+                      return (
+                        <CategoryCard
+                          key={category.key}
+                          category={category}
+                          selected={isSelected}
+                          onClick={() => {
+                            setVisionCategories((prev) =>
+                              isSelected ? prev.filter((k) => k !== category.key) : [...prev, category.key]
+                            )
+                          }}
+                          variant="outlined"
+                          selectionStyle="border"
+                          iconColor={isSelected ? '#39FF14' : '#FFFFFF'}
+                          selectedIconColor="#39FF14"
+                          className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : '!bg-transparent !border-[#333]'}
+                        />
+                      )
+                    })}
+                  </div>
+                )}
               </section>
 
-              {/* Image (optional) - journal/new dashed block */}
-              <section className="space-y-4">
-                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-                  Image (optional)
-                </Text>
-                <div className="rounded-2xl border border-dashed border-[#333] bg-[#131313] p-5 md:p-6 flex flex-col gap-4">
+              {/* Image (optional) - collapsible */}
+              <section className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => setImageSectionOpen((o) => !o)}
+                  className="flex items-center gap-2 w-full text-left focus:outline-none rounded-lg p-1 -m-1"
+                  aria-expanded={imageSectionOpen}
+                >
+                  {imageSectionOpen ? (
+                    <ChevronDown className="w-4 h-4 text-neutral-400 shrink-0" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-neutral-400 shrink-0" />
+                  )}
+                  <Text size="sm" className="text-neutral-400 uppercase tracking-[0.25em] underline underline-offset-2 decoration-[#333]">
+                    Image (optional)
+                  </Text>
+                </button>
+                {imageSectionOpen && (
+                  <div className="rounded-xl border border-dashed border-[#333] bg-[#131313] p-3 md:p-4 flex flex-col gap-3 mt-1">
                   <div className="flex flex-col sm:flex-row gap-2 items-center justify-center">
                     <Button
                       type="button"
@@ -364,8 +407,8 @@ export default function AbundanceNewEntryPage() {
                         visionText={note || 'An abundance moment to celebrate.'}
                       />
                       {aiGeneratedImageUrl && (
-                        <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800 mt-4">
-                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                        <div className="p-3 bg-neutral-900 rounded-lg border border-neutral-800 mt-2">
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                             <img
                               src={aiGeneratedImageUrl}
                               alt="VIVA generated"
@@ -392,21 +435,22 @@ export default function AbundanceNewEntryPage() {
                     </>
                   )}
                 </div>
+                )}
               </section>
 
               {successMessage && (
-                <div className="rounded-xl border border-[#199D67]/40 bg-[#199D67]/10 px-4 py-3 text-sm text-[#A8E5CE]">
+                <div className="rounded-lg border border-[#199D67]/40 bg-[#199D67]/10 px-3 py-2 text-sm text-[#A8E5CE]">
                   {successMessage}
                 </div>
               )}
 
               {errorMessage && (
-                <div className="rounded-xl border border-[#D03739]/40 bg-[#D03739]/10 px-4 py-3 text-sm text-[#FFB4B4]">
+                <div className="rounded-lg border border-[#D03739]/40 bg-[#D03739]/10 px-3 py-2 text-sm text-[#FFB4B4]">
                   {errorMessage}
                 </div>
               )}
 
-              <div className="flex flex-row gap-2 sm:gap-3 justify-end pt-2">
+              <div className="flex flex-row gap-2 justify-end pt-1">
                 <Button
                   type="button"
                   variant="danger"
