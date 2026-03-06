@@ -1,7 +1,6 @@
 'use client'
 
-import React, { useState, useRef } from 'react'
-import Link from 'next/link'
+import React, { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { HelpCircle, Upload, Sparkles, Save } from 'lucide-react'
 import {
@@ -18,6 +17,7 @@ import {
   PageHero,
   Modal,
   CategoryCard,
+  Spinner,
 } from '@/lib/design-system/components'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { ABUNDANCE_ENTRY_CATEGORIES } from '@/lib/abundance/entry-categories'
@@ -58,8 +58,11 @@ function parseAmountInput(value: string): string {
   return intPart
 }
 
-export default function AbundanceNewEntryPage() {
+export default function AbundanceEditEntryPage({ params }: { params: Promise<{ id: string }> }) {
+  const router = useRouter()
   const today = new Date().toISOString().split('T')[0]
+  const [loading, setLoading] = useState(true)
+  const [eventId, setEventId] = useState<string | null>(null)
   const [date, setDate] = useState(today)
   const [valueType, setValueType] = useState<'money' | 'value'>('money')
   const [amount, setAmount] = useState('')
@@ -70,68 +73,114 @@ export default function AbundanceNewEntryPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [helpOpen, setHelpOpen] = useState(false)
-  const [imageSource, setImageSource] = useState<'upload' | 'ai' | null>(null)
+  const [imageSource, setImageSource] = useState<'upload' | 'ai' | 'keep' | null>(null)
+  const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [aiGeneratedImageUrl, setAiGeneratedImageUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const router = useRouter()
 
   const ACCEPT_IMAGES = 'image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif'
 
+  useEffect(() => {
+    async function fetchData() {
+      const resolvedParams = await params
+      setEventId(resolvedParams.id)
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (!user) {
+        router.push('/auth/login')
+        return
+      }
+
+      const { data, error } = await supabase
+        .from('abundance_events')
+        .select('*')
+        .eq('id', resolvedParams.id)
+        .eq('user_id', user.id)
+        .single()
+
+      if (error || !data) {
+        router.push('/abundance-tracker')
+        return
+      }
+
+      setDate(data.date || today)
+      setValueType((data.value_type as 'money' | 'value') || 'money')
+      setAmount(
+        data.amount != null && Number(data.amount) > 0
+          ? String(Number(data.amount))
+          : ''
+      )
+      setVisionCategories(
+        data.vision_category
+          ? data.vision_category.split(',').map((s: string) => s.trim()).filter(Boolean)
+          : []
+      )
+      setEntryCategory(data.entry_category || '')
+      setNote(data.note || '')
+      setExistingImageUrl(data.image_url || null)
+      setImageSource(data.image_url ? 'keep' : null)
+      setLoading(false)
+    }
+
+    fetchData()
+  }, [params, router, today])
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
+    if (!eventId) return
     setIsSubmitting(true)
     setSuccessMessage(null)
     setErrorMessage(null)
 
     try {
-      let imageUrl: string | undefined
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setErrorMessage('Please log in to update.')
+        setIsSubmitting(false)
+        return
+      }
+
+      let imageUrl: string | null | undefined = existingImageUrl ?? null
       if (imageSource === 'upload' && file) {
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) {
-          setErrorMessage('Please log in to upload an image.')
-          setIsSubmitting(false)
-          return
-        }
         const result = await uploadUserFile('abundance', file, user.id)
         imageUrl = result.url
       } else if (imageSource === 'ai' && aiGeneratedImageUrl) {
         imageUrl = aiGeneratedImageUrl
+      } else if (imageSource === null || (imageSource === 'keep' && !existingImageUrl)) {
+        imageUrl = null
       }
 
-      const response = await fetch('/api/vibration/abundance', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          date,
-          valueType,
-          amount: amount ? Number(amount.replace(/,/g, '')) : undefined,
-          visionCategories: visionCategories.length > 0 ? visionCategories : undefined,
-          entryCategory: entryCategory || undefined,
-          note,
-          imageUrl,
-        }),
-      })
+      const visionCategoryValue =
+        visionCategories.length > 0 ? visionCategories.join(',') : null
+      const numericAmount = amount
+        ? Number(amount.replace(/,/g, ''))
+        : null
 
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}))
-        throw new Error(data.error || 'Failed to log abundance moment.')
+      const updatePayload: Record<string, unknown> = {
+        date,
+        value_type: valueType,
+        amount: valueType === 'money' && numericAmount != null ? numericAmount : null,
+        vision_category: visionCategoryValue,
+        entry_category: entryCategory || null,
+        note,
+      }
+      if (imageUrl !== undefined) {
+        updatePayload.image_url = imageUrl
       }
 
-      setSuccessMessage('Abundance moment logged. VIVA captured the appreciation vibe.')
-      setNote('')
-      setAmount('')
-      setValueType('money')
-      setVisionCategories([])
-      setEntryCategory('')
-      setDate(today)
-      setImageSource(null)
-      setFile(null)
-      setAiGeneratedImageUrl(null)
-      router.push('/abundance-tracker')
+      const { error } = await supabase
+        .from('abundance_events')
+        .update(updatePayload)
+        .eq('id', eventId)
+        .eq('user_id', user.id)
+
+      if (error) throw error
+
+      setSuccessMessage('Abundance moment updated.')
+      router.push(`/abundance-tracker/${eventId}`)
     } catch (error) {
       console.error(error)
       setErrorMessage(error instanceof Error ? error.message : 'Something went wrong.')
@@ -140,26 +189,20 @@ export default function AbundanceNewEntryPage() {
     }
   }
 
+  if (loading) {
+    return (
+      <Container size="xl">
+        <div className="flex justify-center py-16">
+          <Spinner />
+        </div>
+      </Container>
+    )
+  }
+
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <PageHero
-          title="Log Abundance Moment"
-          subtitle="Capture gifts, synchronicities, and abundance flowing to you right now."
-        >
-          <div className="flex justify-center">
-            <Button
-              asChild
-              variant="outline"
-              size="sm"
-              className="hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-            >
-              <Link href="/abundance-tracker">
-                Abundance Dashboard
-              </Link>
-            </Button>
-          </div>
-        </PageHero>
+        <PageHero title="Edit Abundance Entry" />
 
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
           <form onSubmit={handleSubmit}>
@@ -192,7 +235,7 @@ export default function AbundanceNewEntryPage() {
                 </Inline>
               </div>
 
-              {/* Track as (Money / Value) */}
+              {/* Track as */}
               <section className="space-y-4">
                 <div className="flex items-center gap-2">
                   <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
@@ -259,7 +302,7 @@ export default function AbundanceNewEntryPage() {
                 />
               </section>
 
-              {/* Vision categories - journal/new style */}
+              {/* Vision categories */}
               <section className="space-y-4">
                 <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
                   Vision categories (optional)
@@ -294,6 +337,29 @@ export default function AbundanceNewEntryPage() {
                   Image (optional)
                 </Text>
                 <div className="rounded-2xl border border-dashed border-[#333] bg-[#131313] p-5 md:p-6 flex flex-col gap-4">
+                  {existingImageUrl && (imageSource === 'keep' || imageSource === null) && (
+                    <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                      <img
+                        src={existingImageUrl}
+                        alt="Current"
+                        className="w-20 h-20 object-cover rounded-lg"
+                      />
+                      <div className="flex-1 text-sm text-neutral-400">
+                        Current image. Upload or generate a new one to replace.
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setExistingImageUrl(null)
+                          setImageSource(null)
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  )}
                   <div className="flex flex-col sm:flex-row gap-2 items-center justify-center">
                     <Button
                       type="button"
@@ -364,29 +430,24 @@ export default function AbundanceNewEntryPage() {
                         visionText={note || 'An abundance moment to celebrate.'}
                       />
                       {aiGeneratedImageUrl && (
-                        <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800 mt-4">
-                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                            <img
-                              src={aiGeneratedImageUrl}
-                              alt="VIVA generated"
-                              className="w-20 h-20 object-cover rounded-lg mx-auto sm:mx-0"
-                            />
-                            <div className="flex-1 text-center sm:text-left">
-                              <p className="text-sm font-medium text-white">Generated with VIVA</p>
-                              <p className="text-xs text-neutral-400">
-                                <span className="text-green-400">Auto-selected for this entry</span>
-                              </p>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setAiGeneratedImageUrl(null)}
-                              className="w-full sm:w-auto"
-                            >
-                              Remove
-                            </Button>
+                        <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800 mt-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                          <img
+                            src={aiGeneratedImageUrl}
+                            alt="VIVA generated"
+                            className="w-20 h-20 object-cover rounded-lg mx-auto sm:mx-0"
+                          />
+                          <div className="flex-1 text-center sm:text-left">
+                            <p className="text-sm font-medium text-white">Generated with VIVA</p>
                           </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setAiGeneratedImageUrl(null)}
+                            className="w-full sm:w-auto"
+                          >
+                            Remove
+                          </Button>
                         </div>
                       )}
                     </>
@@ -411,7 +472,7 @@ export default function AbundanceNewEntryPage() {
                   type="button"
                   variant="danger"
                   size="sm"
-                  onClick={() => router.push('/abundance-tracker')}
+                  onClick={() => router.push(`/abundance-tracker/${eventId}`)}
                   className="flex-1 sm:flex-none sm:w-auto"
                 >
                   Cancel
@@ -441,7 +502,7 @@ export default function AbundanceNewEntryPage() {
                 <strong className="text-white">Money</strong> entries require an amount.
               </p>
               <p>
-                <strong className="text-white">Value</strong> entries celebrate intangible abundance—share the story in the note and add an amount if you want to track it numerically.
+                <strong className="text-white">Value</strong> entries celebrate intangible abundance.
               </p>
             </div>
           </Modal>

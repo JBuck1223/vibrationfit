@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { ChevronLeft, ChevronRight, Check, CalendarDays } from 'lucide-react'
 import { cn } from '../shared-utils'
 
@@ -35,9 +36,28 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
     const [currentMonth, setCurrentMonth] = useState<Date>(value ? parseLocalDate(value) : new Date())
     const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false)
     const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState(false)
+    const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null)
     const containerRef = useRef<HTMLDivElement>(null)
+    const triggerRef = useRef<HTMLDivElement>(null)
+    const dropdownRef = useRef<HTMLDivElement>(null)
     const yearDropdownRef = useRef<HTMLDivElement>(null)
     const monthDropdownRef = useRef<HTMLDivElement>(null)
+
+    // Position dropdown in viewport when open (for portal)
+    useLayoutEffect(() => {
+      if (!isOpen || typeof document === 'undefined') {
+        setDropdownPosition(null)
+        return
+      }
+      const trigger = triggerRef.current
+      if (!trigger) return
+      const rect = trigger.getBoundingClientRect()
+      const padding = 8
+      setDropdownPosition({
+        top: rect.bottom + padding,
+        left: rect.left,
+      })
+    }, [isOpen])
 
     // Sync internal state when value prop changes (e.g., from parent useEffect)
     useEffect(() => {
@@ -50,16 +70,19 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
       }
     }, [value])
 
-    // Close calendar when clicking outside
+    // Close calendar when clicking outside (dropdown may be portaled so check both container and dropdown)
     useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
-        if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        const target = event.target as Node
+        const inContainer = containerRef.current?.contains(target)
+        const inDropdown = dropdownRef.current?.contains(target)
+        if (!inContainer && !inDropdown) {
           setIsOpen(false)
         }
-        if (yearDropdownRef.current && !yearDropdownRef.current.contains(event.target as Node)) {
+        if (yearDropdownRef.current && !yearDropdownRef.current.contains(target)) {
           setIsYearDropdownOpen(false)
         }
-        if (monthDropdownRef.current && !monthDropdownRef.current.contains(event.target as Node)) {
+        if (monthDropdownRef.current && !monthDropdownRef.current.contains(target)) {
           setIsMonthDropdownOpen(false)
         }
       }
@@ -176,7 +199,7 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
         )}
         
         {/* Input Field */}
-        <div className="relative">
+        <div className="relative" ref={triggerRef}>
           <input
             ref={ref}
             type="text"
@@ -208,9 +231,13 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
           />
         </div>
 
-        {/* Calendar Dropdown */}
-        {isOpen && (
-          <div className="absolute z-50 mt-2 left-1/2 -translate-x-1/2 md:left-auto md:right-0 md:translate-x-0 w-[min(calc(100vw-2rem),360px)] md:w-[360px] bg-[#1F1F1F] border-2 border-[#333] rounded-2xl overflow-hidden">
+        {/* Calendar Dropdown - portaled so it appears above cards/overflow */}
+        {isOpen && dropdownPosition && typeof document !== 'undefined' && createPortal(
+          <div
+            ref={dropdownRef}
+            className="fixed z-[9999] w-[min(calc(100vw-2rem),360px)] md:w-[360px] bg-[#1F1F1F] border-2 border-[#333] rounded-2xl overflow-hidden shadow-xl"
+            style={{ top: dropdownPosition.top, left: dropdownPosition.left }}
+          >
             {/* Calendar Header */}
             <div className="flex items-center justify-between p-4 border-b border-[#333]">
               <button
@@ -356,7 +383,8 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
                 })}
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {error && (

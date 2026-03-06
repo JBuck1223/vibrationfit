@@ -2,15 +2,25 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Container, Card, Button, Stack, Inline, Text, DatePicker, PageHero } from '@/lib/design-system/components'
-import { UploadCloud, Save, HelpCircle, Upload, Sparkles, Eye, X } from 'lucide-react'
+import {
+  Container,
+  Card,
+  Button,
+  Stack,
+  Inline,
+  Text,
+  DatePicker,
+  PageHero,
+  Spinner,
+} from '@/lib/design-system/components'
+import { UploadCloud, Save, FileText, Upload, Sparkles, X } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { FileUpload } from '@/components/FileUpload'
 import { UploadProgress } from '@/components/UploadProgress'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
-import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
 import { useDailyPaperMutation } from '@/hooks/useDailyPaper'
+import type { DailyPaperEntry } from '@/hooks/useDailyPaper'
 
 const TASK_LABELS = [
   'First aligned move',
@@ -34,11 +44,17 @@ const initialUploadState: UploadState = {
   isVisible: false,
 }
 
-export default function NewDailyPaperPage() {
+export default function EditDailyPaperPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
   const router = useRouter()
   const supabase = createClient()
   const { saveDailyPaper, isSaving } = useDailyPaperMutation()
 
+  const [entry, setEntry] = useState<DailyPaperEntry | null>(null)
+  const [loading, setLoading] = useState(true)
   const [entryDate, setEntryDate] = useState(() => {
     const now = new Date()
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
@@ -48,6 +64,7 @@ export default function NewDailyPaperPage() {
   const [tasks, setTasks] = useState(['', '', ''])
   const [funPlan, setFunPlan] = useState('')
   const [attachmentFiles, setAttachmentFiles] = useState<File[]>([])
+  const [attachmentRemoved, setAttachmentRemoved] = useState(false)
   const [attachmentUpload, setAttachmentUpload] =
     useState<UploadState>(initialUploadState)
   const [imageSource, setImageSource] = useState<'upload' | 'ai' | null>(null)
@@ -57,11 +74,53 @@ export default function NewDailyPaperPage() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitSuccess, setSubmitSuccess] = useState(false)
 
+  useEffect(() => {
+    async function fetchData() {
+      const resolvedParams = await params
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) {
+        router.push('/auth/login')
+        return
+      }
+
+      const { data: entryData, error } = await supabase
+        .from('daily_papers')
+        .select('*')
+        .eq('id', resolvedParams.id)
+        .eq('user_id', user.id)
+        .single()
+
+      if (error || !entryData) {
+        router.push('/daily-paper')
+        return
+      }
+
+      setEntry(entryData)
+      setEntryDate(entryData.entry_date || new Date().toISOString().split('T')[0])
+      setGratitude(entryData.gratitude || '')
+      setTasks([
+        entryData.task_one || '',
+        entryData.task_two || '',
+        entryData.task_three || '',
+      ])
+      setFunPlan(entryData.fun_plan || '')
+      setLoading(false)
+    }
+
+    fetchData()
+  }, [params, router])
+
   const attachmentPreview = useMemo(() => {
     const file = attachmentFiles[0]
-    if (!file) return null
-    if (file.type.startsWith('image/')) {
-      return URL.createObjectURL(file)
+    if (file) {
+      if (file.type.startsWith('image/')) {
+        return URL.createObjectURL(file)
+      }
+      return null
     }
     return null
   }, [attachmentFiles])
@@ -86,11 +145,13 @@ export default function NewDailyPaperPage() {
     })
   }
 
-  const hasAttachment = attachmentFiles.length > 0
+  const hasNewAttachment = attachmentFiles.length > 0 || imageFiles.length > 0
+  const hasExistingAttachment =
+    entry?.attachment_url && !attachmentRemoved && !hasNewAttachment
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (isSubmitting) return
+    if (isSubmitting || !entry) return
 
     setSubmitError(null)
     setSubmitSuccess(false)
@@ -104,19 +165,17 @@ export default function NewDailyPaperPage() {
         throw new Error('Please sign in to save your Daily Paper.')
       }
 
-      let attachmentMetadata: {
-        url: string
-        key: string
-        contentType?: string
-        size?: number
-        originalName?: string
-      } | null = null
-      let attachmentSection: 'evidence' | 'optional' | null = null
+      let attachmentPayload:
+        | { url: string; key: string; contentType?: string; size?: number }
+        | undefined
+      let attachmentSection: 'evidence' | 'optional' | undefined =
+        entry.metadata && typeof (entry.metadata as { attachmentSection?: string }).attachmentSection === 'string'
+          ? (entry.metadata as { attachmentSection: 'evidence' | 'optional' }).attachmentSection
+          : undefined
 
-      if (hasAttachment) {
-        attachmentSection = 'optional'
+      if (hasNewAttachment) {
         const file = attachmentFiles[0]
-
+        attachmentSection = 'optional'
         setAttachmentUpload({
           progress: 5,
           status: 'Preparing upload…',
@@ -125,21 +184,40 @@ export default function NewDailyPaperPage() {
           isVisible: true,
         })
 
-        const uploadResult = await uploadUserFile('journal', file, user.id, (progress) => {
-          setAttachmentUpload((prev) => ({
-            ...prev,
-            progress,
-            status: progress < 100 ? 'Uploading handwritten Daily Paper…' : 'Finishing upload…',
-            isVisible: true,
-          }))
-        })
+        const { uploadUserFile } = await import(
+          '@/lib/storage/s3-storage-presigned'
+        )
+        const uploadResult = await uploadUserFile(
+          'journal',
+          file,
+          user.id,
+          (progress) => {
+            setAttachmentUpload((prev) => ({
+              ...prev,
+              progress,
+              status:
+                progress < 100
+                  ? 'Uploading…'
+                  : 'Finishing upload…',
+              isVisible: true,
+            }))
+          }
+        )
 
-        attachmentMetadata = {
+        attachmentPayload = {
           url: uploadResult.url,
           key: uploadResult.key,
           contentType: file.type,
           size: file.size,
-          originalName: file.name,
+        }
+      } else if (hasExistingAttachment && entry.attachment_url && entry.attachment_key) {
+        // Preserve existing attachmentSection
+        attachmentPayload = {
+          url: entry.attachment_url,
+          key: entry.attachment_key,
+          contentType: entry.attachment_content_type ?? undefined,
+          size:
+            entry.attachment_size != null ? Number(entry.attachment_size) : undefined,
         }
       } else if (aiGeneratedImageUrls.length > 0) {
         attachmentSection = 'evidence'
@@ -149,12 +227,11 @@ export default function NewDailyPaperPage() {
           imageUrl.includes('media.vibrationfit.com')
         if (isOurCdn) {
           const key = new URL(imageUrl).pathname.slice(1)
-          attachmentMetadata = {
+          attachmentPayload = {
             url: imageUrl,
             key,
             contentType: 'image/png',
             size: 0,
-            originalName: 'viva-generated.png',
           }
         } else {
           setAttachmentUpload({
@@ -172,6 +249,9 @@ export default function NewDailyPaperPage() {
           const vivaFile = new File([blob], 'viva-generated.png', {
             type: blob.type || 'image/png',
           })
+          const { uploadUserFile } = await import(
+            '@/lib/storage/s3-storage-presigned'
+          )
           const uploadResult = await uploadUserFile(
             'journal',
             vivaFile,
@@ -186,12 +266,11 @@ export default function NewDailyPaperPage() {
               }))
             }
           )
-          attachmentMetadata = {
+          attachmentPayload = {
             url: uploadResult.url,
             key: uploadResult.key,
             contentType: vivaFile.type,
             size: vivaFile.size,
-            originalName: vivaFile.name,
           }
         }
       } else if (imageFiles.length > 0) {
@@ -204,6 +283,9 @@ export default function NewDailyPaperPage() {
           fileSize: file.size,
           isVisible: true,
         })
+        const { uploadUserFile } = await import(
+          '@/lib/storage/s3-storage-presigned'
+        )
         const uploadResult = await uploadUserFile(
           'journal',
           file,
@@ -218,12 +300,11 @@ export default function NewDailyPaperPage() {
             }))
           }
         )
-        attachmentMetadata = {
+        attachmentPayload = {
           url: uploadResult.url,
           key: uploadResult.key,
           contentType: file.type,
           size: file.size,
-          originalName: file.name,
         }
       }
 
@@ -232,17 +313,10 @@ export default function NewDailyPaperPage() {
         gratitude,
         tasks,
         funPlan,
-        attachment: attachmentMetadata
-          ? {
-              url: attachmentMetadata.url,
-              key: attachmentMetadata.key,
-              contentType: attachmentMetadata.contentType,
-              size: attachmentMetadata.size,
-            }
-          : undefined,
+        attachment: attachmentPayload,
         metadata: {
-          source: 'daily-paper:new',
-          attachmentOriginalName: attachmentMetadata?.originalName ?? null,
+          ...(typeof entry.metadata === 'object' && entry.metadata !== null ? entry.metadata : {}),
+          source: 'daily-paper:edit',
           ...(attachmentSection && { attachmentSection }),
         },
       })
@@ -251,12 +325,14 @@ export default function NewDailyPaperPage() {
       resetUploadState()
 
       setTimeout(() => {
-        router.push('/daily-paper')
+        router.push(`/daily-paper/${entry.id}`)
       }, 900)
     } catch (error) {
-      console.error('Daily Paper submission failed:', error)
+      console.error('Daily Paper update failed:', error)
       setSubmitError(
-        error instanceof Error ? error.message : 'Unable to save your Daily Paper right now.',
+        error instanceof Error
+          ? error.message
+          : 'Unable to save your Daily Paper right now.'
       )
       setAttachmentUpload((prev) => ({ ...prev, isVisible: false }))
     } finally {
@@ -264,34 +340,26 @@ export default function NewDailyPaperPage() {
     }
   }
 
+  if (loading) {
+    return (
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
+      </Container>
+    )
+  }
+
+  if (!entry) {
+    return (
+      <div className="text-center py-16">
+        <div className="text-neutral-400">Entry not found</div>
+      </div>
+    )
+  }
+
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <PageHero
-          title="Daily Paper Entry"
-          subtitle="Your daily practice for vibrational alignment"
-        >
-          <div className="grid grid-cols-2 md:flex md:flex-row gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push('/daily-paper')}
-              className="w-full md:w-auto md:flex-none flex items-center justify-center gap-2"
-            >
-              <Eye className="w-4 h-4 shrink-0" />
-              See All
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push('/daily-paper/resources')}
-              className="w-full md:w-auto md:flex-none flex items-center justify-center gap-2"
-            >
-              <HelpCircle className="w-4 h-4 shrink-0" />
-              Resources
-            </Button>
-          </div>
-        </PageHero>
+        <PageHero title="Edit Daily Paper" />
 
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
           <form onSubmit={handleSubmit}>
@@ -321,7 +389,10 @@ export default function NewDailyPaperPage() {
               </div>
 
               <section className="space-y-4">
-                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                <Text
+                  size="sm"
+                  className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]"
+                >
                   Gratitude
                 </Text>
                 <RecordingTextarea
@@ -332,12 +403,15 @@ export default function NewDailyPaperPage() {
                   rows={5}
                   storageFolder="journal"
                   recordingPurpose="quick"
-                  instanceId="dailyPaperGratitude"
+                  instanceId="dailyPaperEditGratitude"
                 />
               </section>
 
               <section className="space-y-4">
-                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                <Text
+                  size="sm"
+                  className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]"
+                >
                   Aligned actions
                 </Text>
                 <div className="space-y-4">
@@ -351,14 +425,17 @@ export default function NewDailyPaperPage() {
                       rows={3}
                       storageFolder="journal"
                       recordingPurpose="quick"
-                      instanceId={`dailyPaperTask${index + 1}`}
+                      instanceId={`dailyPaperEditTask${index + 1}`}
                     />
                   ))}
                 </div>
               </section>
 
               <section className="space-y-4">
-                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                <Text
+                  size="sm"
+                  className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]"
+                >
                   Fun promise
                 </Text>
                 <RecordingTextarea
@@ -369,12 +446,15 @@ export default function NewDailyPaperPage() {
                   rows={3}
                   storageFolder="journal"
                   recordingPurpose="quick"
-                  instanceId="dailyPaperFun"
+                  instanceId="dailyPaperEditFun"
                 />
               </section>
 
               <section className="space-y-4">
-                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                <Text
+                  size="sm"
+                  className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]"
+                >
                   Attachment (optional)
                 </Text>
                 <div className="rounded-2xl border border-dashed border-[#333] bg-[#131313] p-5 md:p-6">
@@ -385,18 +465,47 @@ export default function NewDailyPaperPage() {
                     <span className="text-sm">
                       Add a photo or PDF if you filled the printed Daily Paper.
                     </span>
-                    <FileUpload
-                      accept="image/*,application/pdf"
-                      multiple={false}
-                      maxFiles={1}
-                      maxSize={50}
-                      label={hasAttachment ? 'Replace attachment' : 'Upload attachment'}
-                      variant="ghost"
-                      onUpload={(files) => {
-                        setAttachmentFiles(files.slice(0, 1))
-                        resetUploadState()
-                      }}
-                    />
+                    {hasExistingAttachment && (
+                      <div className="flex flex-col sm:flex-row items-center gap-2 w-full justify-center">
+                        <a
+                          href={entry.attachment_url!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 rounded-xl border border-[#333] bg-[#1F1F1F] px-4 py-2 text-sm text-primary-500"
+                        >
+                          <FileText className="w-4 h-4" />
+                          Current attachment
+                        </a>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setAttachmentRemoved(true)
+                            setAttachmentFiles([])
+                          }}
+                        >
+                          Remove attachment
+                        </Button>
+                      </div>
+                    )}
+                    {(attachmentRemoved || !entry.attachment_url) && (
+                      <FileUpload
+                        accept="image/*,application/pdf"
+                        multiple={false}
+                        maxFiles={1}
+                        maxSize={50}
+                        label={
+                          hasNewAttachment ? 'Replace attachment' : 'Upload attachment'
+                        }
+                        variant="ghost"
+                        onUpload={(files) => {
+                          setAttachmentFiles(files.slice(0, 1))
+                          setAttachmentRemoved(false)
+                          resetUploadState()
+                        }}
+                      />
+                    )}
                     {attachmentPreview && (
                       <div className="overflow-hidden rounded-xl border border-[#333]">
                         <img
@@ -406,7 +515,7 @@ export default function NewDailyPaperPage() {
                         />
                       </div>
                     )}
-                    {!attachmentPreview && hasAttachment && (
+                    {!attachmentPreview && hasNewAttachment && (
                       <div className="rounded-xl border border-[#333] bg-[#1F1F1F] px-4 py-3 text-sm text-neutral-300">
                         File attached: {attachmentFiles[0]?.name}
                       </div>
@@ -417,7 +526,10 @@ export default function NewDailyPaperPage() {
               </section>
 
               <section className="space-y-4">
-                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                <Text
+                  size="sm"
+                  className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]"
+                >
                   Evidence / images (optional)
                 </Text>
                 <div className="rounded-2xl border border-dashed border-[#333] bg-[#131313] p-5 md:p-6 flex flex-col items-stretch justify-center gap-4">
@@ -507,43 +619,37 @@ export default function NewDailyPaperPage() {
 
               {submitSuccess && (
                 <div className="rounded-xl border border-[#199D67]/40 bg-[#199D67]/10 px-4 py-3 text-sm text-[#A8E5CE]">
-                  Daily Paper saved. Returning to your archive…
+                  Daily Paper updated. Returning to entry…
                 </div>
               )}
 
-              <div className="flex justify-end">
-                <Button type="submit" size="md" loading={isSubmitting || isSaving} className="flex items-center gap-2">
-                  <Save className="w-4 h-4" />
-                  Save
+              {/* Cancel + Save - same as journal edit */}
+              <div className="flex flex-row gap-2 sm:gap-3 justify-end pt-2">
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="sm"
+                  onClick={() => entry && router.push(`/daily-paper/${entry.id}`)}
+                  disabled={isSubmitting || isSaving}
+                  className="flex-1 sm:flex-none sm:w-auto"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  loading={isSubmitting || isSaving}
+                  disabled={isSubmitting || isSaving}
+                  className="flex-1 sm:flex-none sm:w-auto"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {(isSubmitting || isSaving) ? 'Saving...' : 'Save'}
                 </Button>
               </div>
             </Stack>
           </form>
         </Card>
-
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
-          <Stack gap="sm" className="text-center">
-            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em]">
-              Need a refresher?
-            </Text>
-            <p className="text-sm text-neutral-300">
-              Check the Daily Paper resources for printable layouts and a quick process recap.
-            </p>
-            <div className="flex justify-center">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push('/daily-paper/resources')}
-                className="flex items-center justify-center gap-2"
-              >
-                <HelpCircle className="w-4 h-4" />
-                Resources
-              </Button>
-            </div>
-          </Stack>
-        </Card>
       </Stack>
     </Container>
   )
 }
-

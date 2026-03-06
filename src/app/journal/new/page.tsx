@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Card, Input, Button, CategoryCard, DatePicker, PageHero, Container, Stack } from '@/lib/design-system'
+import { Card, Input, Button, CategoryCard, DatePicker, PageHero, Container, Stack, Text, Inline } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
@@ -13,7 +13,6 @@ import { uploadMultipleUserFiles, getUploadErrorMessage } from '@/lib/storage/s3
 import { createClient } from '@/lib/supabase/client'
 import { Sparkles, Upload, Save } from 'lucide-react'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
-import { colors } from '@/lib/design-system/tokens'
 
 export default function NewJournalEntryPage() {
   const router = useRouter()
@@ -271,34 +270,56 @@ export default function NewJournalEntryPage() {
             subtitle="Capture your thoughts, evidence, and insights"
           />
 
-        <Card>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Date */}
-              <div>
-                <DatePicker
-                  label="Date"
-                  value={formData.date}
-                  onChange={(dateString: string) => setFormData({ ...formData, date: dateString })}
-                  required
-                />
+        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+            <form onSubmit={handleSubmit}>
+              <Stack gap="xl">
+              {/* Date - same layout as daily-paper/new */}
+              <div className="rounded-2xl border border-[#1F1F1F] bg-[#161616] p-4 md:p-5">
+                <Inline className="items-center gap-4 md:gap-6">
+                  <div className="space-y-1.5">
+                    <p className="text-xs uppercase tracking-[0.3em] text-neutral-500">
+                      Entry date
+                    </p>
+                    <p className="text-lg font-semibold text-white">
+                      {formData.date
+                        ? new Intl.DateTimeFormat(undefined, {
+                            month: 'long',
+                            day: 'numeric',
+                            year: 'numeric',
+                          }).format(new Date(`${formData.date}T00:00:00`))
+                        : '—'}
+                    </p>
+                  </div>
+                  <div className="ml-auto w-full md:w-auto">
+                    <DatePicker
+                      value={formData.date}
+                      onChange={(dateString: string) => setFormData({ ...formData, date: dateString })}
+                      className="w-full md:w-auto"
+                      required
+                    />
+                  </div>
+                </Inline>
               </div>
 
               {/* Title */}
-              <div>
+              <section className="space-y-4">
+                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                  Entry title
+                </Text>
                 <Input
-                  label="Entry Title"
                   type="text"
                   placeholder="What's on your mind today?"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  className="!bg-[#404040] !border-[#333]"
                 />
-              </div>
+              </section>
 
               {/* Life Categories */}
-              <div>
-                <p className="block text-sm font-medium text-neutral-200 mb-3 text-center">
-                  Select categories for your journal entry
-                </p>
+              <section className="space-y-4">
+                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                  Life categories
+                </Text>
                 <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
                   {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => {
                     const isSelected = formData.categories.includes(category.key)
@@ -317,16 +338,16 @@ export default function NewJournalEntryPage() {
                     )
                   })}
                 </div>
-              </div>
+              </section>
 
               {/* Evidence / Images */}
-              <div>
-                <label className="block text-sm font-medium text-neutral-200 mb-3 text-center">
-                  Evidence / Images (Optional)
-                </label>
-                
-                {/* Toggle Buttons */}
-                <div className="flex flex-col sm:flex-row gap-2 mb-4">
+              <section className="space-y-4">
+                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                  Evidence / images (optional)
+                </Text>
+                <div className="rounded-2xl border border-dashed border-[#333] bg-[#131313] p-5 md:p-6 flex flex-col items-stretch justify-center gap-4">
+                {/* Toggle Buttons - centered in card */}
+                <div className="flex flex-col sm:flex-row gap-2 items-center justify-center self-center">
                   <Button
                     type="button"
                     variant={imageSource === 'upload' ? 'primary' : 'outline'}
@@ -335,37 +356,24 @@ export default function NewJournalEntryPage() {
                       setImageSource('upload')
                       setAiGeneratedImageUrls([])
                     }}
-                    className="w-full sm:flex-1"
+                    className="w-full sm:flex-1 sm:max-w-[200px]"
                   >
-                    <Upload className="w-4 h-4 mr-2" />
+                    <Upload className="w-5 h-5 mr-2 flex-shrink-0" />
                     Upload Files
                   </Button>
-                  <button
+                  <Button
                     type="button"
+                    variant={imageSource === 'ai' ? 'accent' : 'outline-purple'}
+                    size="sm"
                     onClick={() => {
                       setImageSource('ai')
                       setFiles([])
                     }}
-                    style={
-                      imageSource === 'ai'
-                        ? {
-                            backgroundColor: colors.semantic.premium,
-                            borderColor: colors.semantic.premium,
-                          }
-                        : {
-                            borderColor: colors.semantic.premium,
-                            color: colors.semantic.premium,
-                          }
-                    }
-                    className={`w-full sm:flex-1 inline-flex items-center justify-center rounded-full transition-all duration-300 py-3.5 px-7 text-sm font-medium border-2 ${
-                      imageSource === 'ai'
-                        ? 'text-white hover:opacity-90'
-                        : 'bg-transparent hover:bg-[#BF00FF]/10'
-                    }`}
+                    className="w-full sm:flex-1 sm:max-w-[200px]"
                   >
-                    <Sparkles className="w-4 h-4 mr-2" />
+                    <Sparkles className="w-5 h-5 mr-2 flex-shrink-0" />
                     Generate with VIVA
-                  </button>
+                  </Button>
                 </div>
 
                 {/* Enhanced FileUpload Component */}
@@ -396,12 +404,16 @@ export default function NewJournalEntryPage() {
                     }
                   />
                 )}
-              </div>
-
+                </div>
+              </section>
 
               {/* Journal Content */}
+              <section className="space-y-4">
+                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                  Journal entry
+                </Text>
               <RecordingTextarea
-                label="Journal Entry"
+                label=""
                 value={formData.content}
                 onChange={(value) => setFormData({ ...formData, content: value })}
                 rows={10}
@@ -429,6 +441,7 @@ export default function NewJournalEntryPage() {
                   onDelete={handleDeleteRecording}
                 />
               )}
+              </section>
 
               {/* Upload Progress */}
               <UploadProgress
@@ -440,7 +453,7 @@ export default function NewJournalEntryPage() {
               />
 
               {/* Submit */}
-              <div className="flex flex-row gap-2 sm:gap-3 sm:justify-end">
+              <div className="flex flex-row gap-2 sm:gap-3 justify-end pt-2">
                 <Button
                   type="button"
                   variant="danger"
@@ -461,6 +474,7 @@ export default function NewJournalEntryPage() {
                   {loading ? 'Saving...' : 'Save'}
                 </Button>
               </div>
+              </Stack>
             </form>
           </Card>
         </Stack>

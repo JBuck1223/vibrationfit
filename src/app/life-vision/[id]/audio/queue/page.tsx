@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { Container, Stack, Card, Button, Badge, Spinner, DeleteConfirmationDialog, PageHero } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
-import { CheckCircle, ArrowLeft, Clock, Mic, Moon, Zap, Sparkles, Music, Trash2, Headphones, Wand2, Eye, ListMusic, Plus, AudioLines } from 'lucide-react'
+import { CheckCircle, ArrowLeft, Clock, Mic, Moon, Zap, Sparkles, Music, Trash2, Headphones, Wand2, Eye, ListMusic, Plus, Waves } from 'lucide-react'
 import Link from 'next/link'
 
 interface Voice {
@@ -130,31 +130,31 @@ export default function AudioQueuePage({ params }: { params: Promise<{ id: strin
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 max-w-5xl mx-auto">
             <Button variant="outline" size="sm" asChild className="w-full col-span-2 lg:col-span-1">
               <Link href={`/life-vision/${visionId}/audio/sets`} className="flex items-center justify-center gap-2">
-                <ListMusic className="w-4 h-4" />
+                <ListMusic className="w-5 h-5" />
                 <span>Audio Sets</span>
               </Link>
             </Button>
             <Button variant="outline" size="sm" asChild className="w-full">
               <Link href={`/life-vision/${visionId}/audio/generate`} className="flex items-center justify-center gap-2">
-                <AudioLines className="w-4 h-4" />
+                <Waves className="w-5 h-5" />
                 <span>Generate</span>
               </Link>
             </Button>
             <Button variant="outline" size="sm" asChild className="w-full">
               <Link href={`/life-vision/${visionId}/audio/record`} className="flex items-center justify-center gap-2">
-                <Mic className="w-4 h-4" />
+                <Mic className="w-5 h-5" />
                 <span>Record</span>
               </Link>
             </Button>
             <Button variant="outline" size="sm" asChild className="w-full">
               <Link href={`/life-vision/audio`} className="flex items-center justify-center gap-2">
-                <Headphones className="w-4 h-4" />
+                <Headphones className="w-5 h-5" />
                 <span>All Audios</span>
               </Link>
             </Button>
             <Button variant="outline" size="sm" asChild className="w-full">
               <Link href={`/life-vision/${visionId}`} className="flex items-center justify-center gap-2">
-                <Eye className="w-4 h-4" />
+                <Eye className="w-5 h-5" />
                 <span className="lg:hidden">Vision</span>
                 <span className="hidden lg:inline">View Vision</span>
               </Link>

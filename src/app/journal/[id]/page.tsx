@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import {  Card, Button, DeleteConfirmationDialog, Container, Stack, PageHero, Spinner } from '@/lib/design-system'
+import { Card, Button, DeleteConfirmationDialog, Container, Stack, PageHero, Spinner, Text } from '@/lib/design-system'
 import { OptimizedImage } from '@/components/OptimizedImage'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { SavedRecordings } from '@/components/SavedRecordings'
@@ -386,11 +386,38 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
           </div>
         </PageHero>
 
-        <Card className="p-4 md:p-6 lg:p-8">
-        <div className="space-y-6">
-          {/* Media - Videos Full Width, Images 2x2 Grid */}
-          {entry.image_urls && entry.image_urls.length > 0 && (
-            <div className="space-y-4">
+        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+          <Stack gap="xl">
+            {/* Entry date - same styling as daily-paper [id] */}
+            <section className="space-y-4">
+              <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                Entry date
+              </Text>
+              <p className="text-lg font-semibold text-white">
+                {new Date(`${entry.date}T00:00:00`).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+              </p>
+              {entry.updated_at !== entry.created_at && (
+                <p className="text-xs uppercase tracking-[0.3em] text-neutral-500">
+                  Updated: {new Date(entry.updated_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                </p>
+              )}
+            </section>
+
+            {/* Entry title */}
+            <section className="space-y-4">
+              <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                Entry title
+              </Text>
+              <h2 className="text-xl font-semibold text-white">{entry.title || 'Untitled'}</h2>
+            </section>
+
+            {/* Media - Videos Full Width, Images 2x2 Grid */}
+            {entry.image_urls && entry.image_urls.length > 0 && (
+              <section className="space-y-4">
+                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                  Evidence / images
+                </Text>
+                <div className="space-y-4">
                   {/* Videos - Full Width */}
                   {entry.image_urls.filter(url => {
                     const ext = url.split('.').pop()?.toLowerCase()
@@ -466,87 +493,78 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
                       </div>
                     )
                   })}
-            </div>
-          )}
+                </div>
+            </section>
+            )}
 
-          {/* Content */}
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-xl font-semibold text-white mb-6">{entry.title}</h2>
-              {entry.content && (
+            {/* Categories - under Evidence / images */}
+            {entry.categories && entry.categories.length > 0 && (
+              <section className="space-y-4">
+                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                  Categories
+                </Text>
+                <div className="flex flex-wrap gap-2">
+                  {entry.categories.map((category: string, index: number) => (
+                    <span
+                      key={index}
+                      className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full"
+                    >
+                      {category}
+                    </span>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Journal entry content */}
+            <section className="space-y-4">
+              <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                Journal entry
+              </Text>
+              {entry.content ? (
                 <p className="text-neutral-300 whitespace-pre-wrap">{entry.content}</p>
+              ) : (
+                <p className="text-neutral-500 italic">No content</p>
               )}
-            </div>
+            </section>
 
             {/* Audio/Video Recordings */}
             {entry.audio_recordings && entry.audio_recordings.length > 0 && (
-              <div className="space-y-3">
+              <section className="space-y-4">
+                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                  Recordings
+                </Text>
                 <SavedRecordings
                   recordings={entry.audio_recordings}
                   categoryFilter={undefined}
                   onDelete={() => {}} // View only mode - no deletion
                 />
-              </div>
+              </section>
             )}
 
-            {/* Created Date and Categories */}
-            <div className="flex flex-wrap items-center gap-4">
-              {/* Created Date */}
-              <div className="flex items-center gap-2 text-sm">
-                <span className="font-medium text-white">Created:</span>
-                <span className="text-white px-3 py-1 border-2 border-neutral-600 rounded-lg">{new Date(entry.created_at).toLocaleDateString()}</span>
-              </div>
-
-              {/* Updated Date */}
-              {entry.updated_at !== entry.created_at && (
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="font-medium text-white">Updated:</span>
-                  <span className="text-white px-3 py-1 border-2 border-neutral-600 rounded-lg">{new Date(entry.updated_at).toLocaleDateString()}</span>
-                </div>
-              )}
-
-              {/* Categories */}
-              {entry.categories && entry.categories.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-medium text-white">Categories:</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {entry.categories.map((category: string, index: number) => (
-                      <span
-                        key={index}
-                        className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full"
-                      >
-                        {category}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
+            {/* Actions */}
+            <div className="flex flex-row items-center gap-2 sm:gap-3 sm:justify-end pt-2">
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="flex-1 sm:flex-none sm:w-32"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => router.push(`/journal/${entry.id}/edit`)}
+                className="flex-1 sm:flex-none sm:w-32"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Edit
+              </Button>
             </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex flex-row items-center gap-2 sm:gap-3 sm:justify-end">
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={() => setShowDeleteConfirm(true)}
-              className="flex-1 sm:flex-none sm:w-32"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Delete
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => router.push(`/journal/${entry.id}/edit`)}
-              className="flex-1 sm:flex-none sm:w-32"
-            >
-              <Edit className="w-4 h-4 mr-2" />
-              Edit
-            </Button>
-          </div>
-        </div>
-      </Card>
+          </Stack>
+        </Card>
 
       {/* Lightbox */}
       {lightboxOpen && lightboxMedia && (

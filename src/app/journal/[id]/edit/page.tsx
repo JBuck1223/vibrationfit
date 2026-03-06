@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Card, Button, Input, CategoryCard, DatePicker, Container, Stack, PageHero, Spinner } from '@/lib/design-system'
+import { Card, Button, Input, CategoryCard, DatePicker, Container, Stack, PageHero, Spinner, Text, Inline } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
@@ -12,7 +12,6 @@ import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { uploadMultipleUserFiles } from '@/lib/storage/s3-storage-presigned'
 import { Sparkles, Upload, X, Save } from 'lucide-react'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
-import { colors } from '@/lib/design-system/tokens'
 
 interface JournalEntry {
   id: string
@@ -284,245 +283,256 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
       <Stack gap="lg">
         <PageHero
           title="Edit Journal Entry"
-          subtitle="Update your journal entry details"
+          subtitle="Update your thoughts, evidence, and insights"
         />
 
-        <Card>
-            <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6">
-          {/* Date */}
-          <div>
-            <DatePicker
-              label="Date"
-              value={formData.date}
-              onChange={(dateString: string) => setFormData({ ...formData, date: dateString })}
-              required
-            />
-          </div>
-
-          {/* Title */}
-          <div>
-            <Input
-              label="Entry Title"
-              type="text"
-              placeholder="What's on your mind today?"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-            />
-          </div>
-
-          {/* Life Categories */}
-          <div>
-            <p className="block text-sm font-medium text-neutral-200 mb-3 text-center">
-              Select categories for your journal entry
-            </p>
-            <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
-              {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => {
-                const isSelected = formData.categories.includes(category.key)
-                return (
-                  <CategoryCard 
-                    key={category.key} 
-                    category={category} 
-                    selected={isSelected} 
-                    onClick={() => handleCategoryToggle(category.key)}
-                    variant="outlined"
-                    selectionStyle="border"
-                    iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
-                    selectedIconColor="#39FF14"
-                    className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : '!bg-transparent !border-[#333]'}
-                  />
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Evidence / Images */}
-          <div>
-            <label className="block text-sm font-medium text-neutral-200 mb-3 text-center">
-              Evidence / Images (Optional)
-            </label>
-            
-            {/* Show existing files */}
-            {existingFiles.length > 0 && (
-              <div className="mb-4">
-                <p className="text-xs text-neutral-400 mb-2 text-center">Existing attachments ({existingFiles.length})</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4 mb-4 justify-items-center">
-                  {existingFiles.map((url, index) => (
-                    <div key={`existing-${index}`} className="relative">
-                      <div className="aspect-video bg-neutral-800 rounded-lg overflow-hidden border border-neutral-700">
-                        {url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                          <img
-                            src={url}
-                            alt={`Attachment ${index + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : url.match(/\.(mp4|mov|webm|avi)$/i) ? (
-                          <video
-                            src={url}
-                            className="w-full h-full object-cover"
-                            controls
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-primary-500/20 to-primary-600/20 flex items-center justify-center">
-                            <div className="text-center text-white">
-                              <div className="text-sm font-medium">File</div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFileToDelete(index)
-                          setDeleteDialogOpen(true)
-                        }}
-                        className="absolute top-1 right-1 w-6 h-6 rounded-full bg-[#D03739] hover:bg-[#EF4444] flex items-center justify-center transition-colors"
-                      >
-                        <X className="w-3 h-3 text-white" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+          <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
+            <Stack gap="xl">
+              {/* Date - same layout as journal/new */}
+              <div className="rounded-2xl border border-[#1F1F1F] bg-[#161616] p-4 md:p-5">
+                <Inline className="items-center gap-4 md:gap-6">
+                  <div className="space-y-1.5">
+                    <p className="text-xs uppercase tracking-[0.3em] text-neutral-500">
+                      Entry date
+                    </p>
+                    <p className="text-lg font-semibold text-white">
+                      {formData.date
+                        ? new Intl.DateTimeFormat(undefined, {
+                            month: 'long',
+                            day: 'numeric',
+                            year: 'numeric',
+                          }).format(new Date(`${formData.date}T00:00:00`))
+                        : '—'}
+                    </p>
+                  </div>
+                  <div className="ml-auto w-full md:w-auto">
+                    <DatePicker
+                      value={formData.date}
+                      onChange={(dateString: string) => setFormData({ ...formData, date: dateString })}
+                      className="w-full md:w-auto"
+                      required
+                    />
+                  </div>
+                </Inline>
               </div>
-            )}
-            
-            {/* Toggle Buttons */}
-            <div className="flex flex-col sm:flex-row gap-2 mb-4">
-              <Button
-                type="button"
-                variant={imageSource === 'upload' ? 'primary' : 'outline'}
-                size="sm"
-                onClick={() => {
-                  setImageSource('upload')
-                  setAiGeneratedImageUrls([])
-                }}
-                className="w-full sm:flex-1"
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                Upload Files
-              </Button>
-              <button
-                type="button"
-                onClick={() => {
-                  setImageSource('ai')
-                  setFiles([])
-                }}
-                style={
-                  imageSource === 'ai'
-                    ? {
-                        backgroundColor: colors.semantic.premium,
-                        borderColor: colors.semantic.premium,
+
+              {/* Title */}
+              <section className="space-y-4">
+                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                  Entry title
+                </Text>
+                <Input
+                  type="text"
+                  placeholder="What's on your mind today?"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  className="!bg-[#404040] !border-[#333]"
+                />
+              </section>
+
+              {/* Life Categories */}
+              <section className="space-y-4">
+                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                  Life categories
+                </Text>
+                <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
+                  {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => {
+                    const isSelected = formData.categories.includes(category.key)
+                    return (
+                      <CategoryCard
+                        key={category.key}
+                        category={category}
+                        selected={isSelected}
+                        onClick={() => handleCategoryToggle(category.key)}
+                        variant="outlined"
+                        selectionStyle="border"
+                        iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
+                        selectedIconColor="#39FF14"
+                        className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : '!bg-transparent !border-[#333]'}
+                      />
+                    )
+                  })}
+                </div>
+              </section>
+
+              {/* Evidence / Images */}
+              <section className="space-y-4">
+                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                  Evidence / images (optional)
+                </Text>
+                <div className="rounded-2xl border border-dashed border-[#333] bg-[#131313] p-5 md:p-6 flex flex-col items-stretch justify-center gap-4">
+                  {/* Existing attachments (edit only) */}
+                  {existingFiles.length > 0 && (
+                    <div>
+                      <p className="text-xs text-neutral-400 mb-2">Existing attachments ({existingFiles.length})</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4 justify-items-center">
+                        {existingFiles.map((url, index) => (
+                          <div key={`existing-${index}`} className="relative">
+                            <div className="aspect-video bg-neutral-800 rounded-lg overflow-hidden border border-neutral-700">
+                              {url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                                <img
+                                  src={url}
+                                  alt={`Attachment ${index + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : url.match(/\.(mp4|mov|webm|avi)$/i) ? (
+                                <video
+                                  src={url}
+                                  className="w-full h-full object-cover"
+                                  controls
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-gradient-to-br from-primary-500/20 to-primary-600/20 flex items-center justify-center">
+                                  <div className="text-center text-white text-sm font-medium">File</div>
+                                </div>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFileToDelete(index)
+                                setDeleteDialogOpen(true)
+                              }}
+                              className="absolute top-1 right-1 w-6 h-6 rounded-full bg-[#D03739] hover:bg-[#EF4444] flex items-center justify-center transition-colors"
+                            >
+                              <X className="w-3 h-3 text-white" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Toggle Buttons - centered in card, same as new */}
+                  <div className="flex flex-col sm:flex-row gap-2 items-center justify-center self-center">
+                    <Button
+                      type="button"
+                      variant={imageSource === 'upload' ? 'primary' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setImageSource('upload')
+                        setAiGeneratedImageUrls([])
+                      }}
+                      className="w-full sm:flex-1 sm:max-w-[200px]"
+                    >
+                      <Upload className="w-5 h-5 mr-2 flex-shrink-0" />
+                      Upload Files
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={imageSource === 'ai' ? 'accent' : 'outline-purple'}
+                      size="sm"
+                      onClick={() => {
+                        setImageSource('ai')
+                        setFiles([])
+                      }}
+                      className="w-full sm:flex-1 sm:max-w-[200px]"
+                    >
+                      <Sparkles className="w-5 h-5 mr-2 flex-shrink-0" />
+                      Generate with VIVA
+                    </Button>
+                  </div>
+
+                  {imageSource === 'upload' && (
+                    <FileUpload
+                      dragDrop
+                      accept="image/*,video/*,audio/*"
+                      multiple
+                      maxFiles={5}
+                      maxSize={500}
+                      value={files}
+                      onChange={setFiles}
+                      onUpload={setFiles}
+                      dragDropText="Click to upload or drag and drop"
+                      dragDropSubtext="Images, videos, or audio (max 5 files, 500MB each)"
+                      previewSize="lg"
+                    />
+                  )}
+
+                  {imageSource === 'ai' && (
+                    <AIImageGenerator
+                      type="journal"
+                      onImageGenerated={(url) => setAiGeneratedImageUrls([url])}
+                      journalText={
+                        formData.title && formData.content
+                          ? `${formData.title}. ${formData.content}`
+                          : formData.content || formData.title || ''
                       }
-                    : {
-                        borderColor: colors.semantic.premium,
-                        color: colors.semantic.premium,
-                      }
-                }
-                className={`w-full sm:flex-1 inline-flex items-center justify-center rounded-full transition-all duration-300 py-3.5 px-7 text-sm font-medium border-2 ${
-                  imageSource === 'ai'
-                    ? 'text-white hover:opacity-90'
-                    : 'bg-transparent hover:bg-[#BF00FF]/10'
-                }`}
-              >
-                <Sparkles className="w-4 h-4 mr-2" />
-                Generate with VIVA
-              </button>
-            </div>
+                    />
+                  )}
+                </div>
+              </section>
 
-            {/* Enhanced FileUpload Component */}
-            {imageSource === 'upload' && (
-              <FileUpload
-                dragDrop
-                accept="image/*,video/*,audio/*"
-                multiple
-                maxFiles={5}
-                maxSize={500}
-                value={files}
-                onChange={setFiles}
-                onUpload={setFiles}
-                dragDropText="Click to upload or drag and drop"
-                dragDropSubtext="Images, videos, or audio (max 5 files, 500MB each)"
-                previewSize="lg"
+              {/* Journal Content */}
+              <section className="space-y-4">
+                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                  Journal entry
+                </Text>
+                <RecordingTextarea
+                  label=""
+                  value={formData.content}
+                  onChange={(value) => setFormData({ ...formData, content: value })}
+                  rows={10}
+                  placeholder="Write your journal entry here... Or click the microphone/video icon to record!"
+                  allowVideo={true}
+                  storageFolder="journal"
+                  onRecordingSaved={handleRecordingSaved}
+                  onUploadProgress={(progress, status, fileName, fileSize) => {
+                    setUploadProgress({
+                      progress,
+                      status,
+                      fileName,
+                      fileSize,
+                      isVisible: true
+                    })
+                  }}
+                />
+
+                {audioRecordings.length > 0 && (
+                  <SavedRecordings
+                    key={`journal-recordings-${audioRecordings.length}`}
+                    recordings={audioRecordings}
+                    categoryFilter="journal"
+                    onDelete={handleDeleteRecording}
+                  />
+                )}
+              </section>
+
+              <UploadProgress
+                progress={uploadProgress.progress}
+                status={uploadProgress.status}
+                fileName={uploadProgress.fileName}
+                fileSize={uploadProgress.fileSize}
+                isVisible={uploadProgress.isVisible}
               />
-            )}
 
-            {imageSource === 'ai' && (
-              <AIImageGenerator
-                type="journal"
-                onImageGenerated={(url) => setAiGeneratedImageUrls([url])}
-                journalText={
-                  formData.title && formData.content
-                    ? `${formData.title}. ${formData.content}`
-                    : formData.content || formData.title || ''
-                }
-              />
-            )}
-          </div>
-
-          {/* Journal Content */}
-          <RecordingTextarea
-            label="Journal Entry"
-            value={formData.content}
-            onChange={(value) => setFormData({ ...formData, content: value })}
-            rows={10}
-            placeholder="Write your journal entry here... Or click the microphone/video icon to record!"
-            allowVideo={true}
-            storageFolder="journal"
-            onRecordingSaved={handleRecordingSaved}
-            onUploadProgress={(progress, status, fileName, fileSize) => {
-              setUploadProgress({
-                progress,
-                status,
-                fileName,
-                fileSize,
-                isVisible: true
-              })
-            }}
-          />
-
-          {/* Display Saved Audio Recordings */}
-          {audioRecordings.length > 0 && (
-            <SavedRecordings
-              key={`journal-recordings-${audioRecordings.length}`}
-              recordings={audioRecordings}
-              categoryFilter="journal"
-              onDelete={handleDeleteRecording}
-            />
-          )}
-
-          {/* Upload Progress */}
-          <UploadProgress
-            progress={uploadProgress.progress}
-            status={uploadProgress.status}
-            fileName={uploadProgress.fileName}
-            fileSize={uploadProgress.fileSize}
-            isVisible={uploadProgress.isVisible}
-          />
-
-          {/* Submit */}
-          <div className="flex flex-row gap-2 sm:gap-3 sm:justify-end">
-            <Button
-              type="button"
-              variant="danger"
-              size="sm"
-              onClick={() => router.push(`/journal/${entry.id}`)}
-              disabled={saving}
-              className="flex-1 sm:flex-none sm:w-auto"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              size="sm"
-              loading={saving}
-              disabled={saving}
-              className="flex-1 sm:flex-none sm:w-auto"
-            >
-              <Save className="w-4 h-4 mr-2" />
-              {saving ? 'Saving...' : 'Save'}
-            </Button>
-          </div>
-        </form>
-          </Card>
+              {/* Submit - same as new (Cancel + Save) */}
+              <div className="flex flex-row gap-2 sm:gap-3 justify-end pt-2">
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="sm"
+                  onClick={() => router.push(`/journal/${entry.id}`)}
+                  disabled={saving}
+                  className="flex-1 sm:flex-none sm:w-auto"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  loading={saving}
+                  disabled={saving}
+                  className="flex-1 sm:flex-none sm:w-auto"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {saving ? 'Saving...' : 'Save'}
+                </Button>
+              </div>
+            </Stack>
+          </form>
+        </Card>
 
       {/* Delete Confirmation Dialog */}
       {deleteDialogOpen && (

@@ -12,7 +12,7 @@ import {
   PageHero,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
-import { Download, Heart, Target, Sparkles, Plus } from 'lucide-react'
+import { Download, Heart, Target, Sparkles, Plus, Eye } from 'lucide-react'
 
 const HALF_PAGE_PDF =
   'https://media.vibrationfit.com/site-assets/processes/daily-paper/daily-paper-for-print.pdf'
@@ -38,15 +38,16 @@ export default function DailyPaperResourcesPage() {
           </div>
           
           <div className="grid grid-cols-2 md:flex md:flex-row gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
-            <Button variant="ghost" size="sm" asChild className="w-full md:w-auto md:flex-none">
-              <Link href="/daily-paper">
-                See All
+            <Button variant="primary" size="sm" asChild className="w-full md:w-auto md:flex-none flex items-center justify-center gap-2">
+              <Link href="/daily-paper/new" className="flex items-center justify-center gap-2">
+                <Plus className="w-4 h-4 shrink-0" />
+                Add entry
               </Link>
             </Button>
-            <Button variant="outline" size="sm" asChild className="w-full md:w-auto md:flex-none flex items-center gap-2">
-              <Link href="/daily-paper/new">
-                <Plus className="w-4 h-4" />
-                Add entry
+            <Button variant="outline" size="sm" asChild className="w-full md:w-auto md:flex-none flex items-center justify-center gap-2">
+              <Link href="/daily-paper" className="flex items-center justify-center gap-2">
+                <Eye className="w-4 h-4 shrink-0" />
+                See All
               </Link>
             </Button>
           </div>
@@ -142,13 +143,13 @@ export default function DailyPaperResourcesPage() {
               Choose the layout that fits your flow and keep your notebook aligned with the digital archive.
             </p>
             <Inline gap="sm" justify="center" className="flex-wrap">
-              <Button variant="secondary" size="sm" className="justify-center" asChild>
+              <Button variant="primary" size="sm" className="justify-center" asChild>
                 <Link href={HALF_PAGE_PDF} target="_blank">
                   <Download className="mr-2 h-4 w-4" />
                   Half-page PDF
                 </Link>
               </Button>
-              <Button variant="secondary" size="sm" className="justify-center" asChild>
+              <Button variant="primary" size="sm" className="justify-center" asChild>
                 <Link href={FULL_PAGE_PDF} target="_blank">
                   <Download className="mr-2 h-4 w-4" />
                   Full-page PDF

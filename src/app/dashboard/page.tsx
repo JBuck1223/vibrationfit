@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import DashboardContent from '@/components/DashboardContent'
+import { getGraduateChecklist } from '@/lib/graduate-checklist'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -206,6 +207,8 @@ export default async function DashboardPage() {
     console.error('Error fetching calibration call for dashboard:', e)
   }
 
+  const graduateChecklist = await getGraduateChecklist(supabase, user.id)
+
   return (
     <DashboardContent 
       user={user}
@@ -219,6 +222,7 @@ export default async function DashboardPage() {
       refinementsCount={refinementsCount || 0}
       storageQuotaGB={storageQuotaGB}
       initialCalibrationCall={calibrationCall}
+      graduateChecklist={graduateChecklist}
     />
   )
 }

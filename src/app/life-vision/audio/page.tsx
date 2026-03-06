@@ -424,13 +424,13 @@ export default function AllVisionAudiosPage() {
                                 : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
                             }`}
                           >
-                            <Volume2 className="w-4 h-4 mr-1" />
+                            <Volume2 className="w-5 h-5 mr-1" />
                             {visionVersion.audio_sets_count} {visionVersion.audio_sets_count === 1 ? 'Audio Set' : 'Audio Sets'}
                           </Badge>
                           {/* Ready/Mixing Status - Desktop Only */}
                           {visionVersion.mixing_audio_sets_count > 0 && (
                             <Badge variant="warning" className="hidden md:inline-flex">
-                              <Clock className="w-4 h-4 mr-1" />
+                              <Clock className="w-5 h-5 mr-1" />
                               {visionVersion.mixing_audio_sets_count} Mixing
                             </Badge>
                           )}
@@ -438,7 +438,7 @@ export default function AllVisionAudiosPage() {
                         
                         {/* Date Row */}
                         <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
-                          <CalendarDays className="w-4 h-4 text-neutral-500" />
+                          <CalendarDays className="w-5 h-5 text-neutral-500" />
                           <span className="font-medium">Created:</span>
                           <span>{new Date(visionVersion.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                         </div>
@@ -453,7 +453,7 @@ export default function AllVisionAudiosPage() {
                         size="sm"
                         className="text-xs md:text-sm flex-1 md:flex-initial flex items-center justify-center gap-2"
                       >
-                        <Headphones className="w-4 h-4" />
+                        <Headphones className="w-5 h-5" />
                         <span>Audios</span>
                       </Button>
                       
@@ -463,7 +463,7 @@ export default function AllVisionAudiosPage() {
                         size="sm"
                         className="text-xs md:text-sm flex-1 md:flex-initial flex items-center justify-center gap-2"
                       >
-                        <Eye className="w-4 h-4" />
+                        <Eye className="w-5 h-5" />
                         <span>Vision</span>
                       </Button>
                     </div>

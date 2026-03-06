@@ -10,6 +10,8 @@ import HouseholdTokenBalance from '@/components/HouseholdTokenBalance'
 import AssessmentBarChart from '@/app/assessment/components/AssessmentBarChart'
 import { RetentionDashboard } from '@/components/retention'
 import { UnlockCelebrationModal } from '@/components/UnlockCelebrationModal'
+import { GraduateChecklistCard } from '@/components/GraduateChecklistCard'
+import type { GraduateChecklistResult } from '@/lib/graduate-checklist'
 import { 
   Sparkles, 
   BookOpen, 
@@ -65,9 +67,10 @@ interface DashboardContentProps {
   refinementsCount: number
   storageQuotaGB: number
   initialCalibrationCall?: { show: boolean; session?: { id: string | null; title: string; scheduled_at: string; join_link: string } } | null
+  graduateChecklist?: GraduateChecklistResult | null
 }
 
-export default function DashboardContent({ user, profileData, visionData, visionBoardData, journalData, assessmentData = [], profileCount, audioSetsCount, refinementsCount, storageQuotaGB, initialCalibrationCall = null }: DashboardContentProps) {
+export default function DashboardContent({ user, profileData, visionData, visionBoardData, journalData, assessmentData = [], profileCount, audioSetsCount, refinementsCount, storageQuotaGB, initialCalibrationCall = null, graduateChecklist = null }: DashboardContentProps) {
   const [storageUsed, setStorageUsed] = useState(0)
   const [mounted, setMounted] = useState(false)
   const [showCelebration, setShowCelebration] = useState(false)
@@ -313,6 +316,11 @@ export default function DashboardContent({ user, profileData, visionData, vision
             title="Dashboard"
             subtitle="Run your MAP and stay connected."
           />
+
+        {/* Getting Started as a Graduate checklist (only for users who completed the intensive) */}
+        {graduateChecklist?.isGraduate && graduateChecklist.progress && (
+          <GraduateChecklistCard progress={graduateChecklist.progress} />
+        )}
 
         {/* Calibration Call booking card (post-intensive; hides once call is completed) */}
         {calibrationCall?.show && calibrationCall?.session && (
