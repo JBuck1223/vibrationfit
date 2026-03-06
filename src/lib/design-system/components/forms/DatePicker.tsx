@@ -53,10 +53,70 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
       if (!trigger) return
       const rect = trigger.getBoundingClientRect()
       const padding = 8
-      setDropdownPosition({
-        top: rect.bottom + padding,
-        left: rect.left,
+      const estimatedHeight = 420
+      const viewportHeight = window.innerHeight
+      const viewportWidth = window.innerWidth
+
+      const spaceBelow = viewportHeight - rect.bottom - padding
+      const spaceAbove = rect.top - padding
+
+      let top: number
+      if (spaceBelow >= estimatedHeight) {
+        top = rect.bottom + padding
+      } else if (spaceAbove >= estimatedHeight) {
+        top = rect.top - padding - estimatedHeight
+      } else {
+        // Neither direction has full room — pick whichever has more space
+        // and clamp so the dropdown stays fully on-screen
+        top = spaceBelow >= spaceAbove
+          ? rect.bottom + padding
+          : Math.max(padding, rect.top - padding - estimatedHeight)
+      }
+
+      top = Math.max(padding, Math.min(top, viewportHeight - estimatedHeight - padding))
+
+      let left = rect.left
+      const dropdownWidth = Math.min(viewportWidth - 32, 360)
+      left = Math.max(16, Math.min(left, viewportWidth - dropdownWidth - 16))
+
+      setDropdownPosition({ top, left })
+    }, [isOpen])
+
+    // Re-adjust after the dropdown actually renders and we can measure it
+    useLayoutEffect(() => {
+      if (!isOpen || !dropdownPosition) return
+      const raf = requestAnimationFrame(() => {
+        const dropdown = dropdownRef.current
+        const trigger = triggerRef.current
+        if (!dropdown || !trigger) return
+
+        const triggerRect = trigger.getBoundingClientRect()
+        const dropdownRect = dropdown.getBoundingClientRect()
+        const viewportHeight = window.innerHeight
+        const viewportWidth = window.innerWidth
+        const padding = 8
+
+        let top = dropdownPosition.top
+        let left = dropdownPosition.left
+
+        if (dropdownRect.bottom > viewportHeight - padding) {
+          const topAbove = triggerRect.top - padding - dropdownRect.height
+          if (topAbove >= padding) {
+            top = topAbove
+          } else {
+            top = Math.max(padding, viewportHeight - dropdownRect.height - padding)
+          }
+        }
+
+        const dropdownWidth = Math.min(viewportWidth - 32, 360)
+        left = Math.max(16, Math.min(left, viewportWidth - dropdownWidth - 16))
+
+        if (top !== dropdownPosition.top || left !== dropdownPosition.left) {
+          setDropdownPosition({ top, left })
+        }
       })
+      return () => cancelAnimationFrame(raf)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen])
 
     // Sync internal state when value prop changes (e.g., from parent useEffect)
@@ -149,9 +209,8 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
       setIsMonthDropdownOpen(false)
     }
 
-    // Generate year options (current year descending, no future years)
     const currentYear = new Date().getFullYear()
-    const years = Array.from({ length: 51 }, (_, i) => currentYear - i)
+    const years = Array.from({ length: 101 }, (_, i) => currentYear - i)
 
     // Month options
     const months = [
@@ -235,8 +294,8 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
         {isOpen && dropdownPosition && typeof document !== 'undefined' && createPortal(
           <div
             ref={dropdownRef}
-            className="fixed z-[9999] w-[min(calc(100vw-2rem),360px)] md:w-[360px] bg-[#1F1F1F] border-2 border-[#333] rounded-2xl overflow-hidden shadow-xl"
-            style={{ top: dropdownPosition.top, left: dropdownPosition.left }}
+            className="fixed z-[9999] w-[min(calc(100vw-2rem),360px)] md:w-[360px] bg-[#1F1F1F] border-2 border-[#333] rounded-2xl overflow-y-auto shadow-xl"
+            style={{ top: dropdownPosition.top, left: dropdownPosition.left, maxHeight: 'calc(100vh - 16px)' }}
           >
             {/* Calendar Header */}
             <div className="flex items-center justify-between p-4 border-b border-[#333]">
