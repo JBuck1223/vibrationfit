@@ -9,7 +9,6 @@ import {
   Card,
   Button,
   Input,
-  Textarea,
   Select,
   Stack,
   Text,
@@ -22,6 +21,7 @@ import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { ABUNDANCE_ENTRY_CATEGORIES } from '@/lib/abundance/entry-categories'
 import { FileUpload } from '@/components/FileUpload'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
+import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
 
@@ -76,6 +76,10 @@ export default function AbundanceNewEntryPage() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
+    if (!note.trim()) {
+      setErrorMessage('Note is required.')
+      return
+    }
     setIsSubmitting(true)
     setSuccessMessage(null)
     setErrorMessage(null)
@@ -162,11 +166,12 @@ export default function AbundanceNewEntryPage() {
             <Stack gap="sm">
               {/* Track as - box */}
               <div className="rounded-xl border border-[#333] bg-[#161616] p-3 pl-4">
-                <div className="flex items-center gap-3">
-                  <Text size="sm" className="text-neutral-400 uppercase tracking-[0.25em] shrink-0">
-                    Track as
-                  </Text>
-                  <button
+                <div className="flex items-center gap-3 md:justify-between">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Text size="sm" className="text-neutral-400 uppercase tracking-[0.25em]">
+                      Track as
+                    </Text>
+<button
                     type="button"
                     onClick={() => setHelpOpen(true)}
                     className="p-0.5 rounded-full text-neutral-400 hover:text-white transition-colors focus:outline-none shrink-0"
@@ -174,7 +179,8 @@ export default function AbundanceNewEntryPage() {
                   >
                     <HelpCircle className="w-4 h-4" />
                   </button>
-                  <div className="inline-flex rounded-lg border-2 border-[#333] bg-[#0D0D0D] p-0.5 ml-auto">
+                  </div>
+                  <div className="inline-flex rounded-lg border-2 border-[#333] bg-[#0D0D0D] p-0.5 md:ml-auto">
                     <button
                       type="button"
                       onClick={() => setValueType('money')}
@@ -203,11 +209,11 @@ export default function AbundanceNewEntryPage() {
 
               {/* Amount - box */}
               <div className="rounded-xl border border-[#333] bg-[#161616] p-3 pl-4">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 md:justify-between">
                   <Text size="sm" className="text-neutral-400 uppercase tracking-[0.25em] shrink-0 w-[5rem]">
                     Amount
                   </Text>
-                  <div className="flex-1 min-w-0 [&>div]:min-w-0 [&>div]:w-full [&_input]:min-w-0">
+                  <div className="flex-1 min-w-0 md:flex-none md:w-80 [&>div]:min-w-0 [&>div]:w-full [&_input]:min-w-0">
                     <Input
                       type="text"
                       inputMode="decimal"
@@ -224,11 +230,11 @@ export default function AbundanceNewEntryPage() {
 
               {/* Date - box */}
               <div className="rounded-xl border border-[#333] bg-[#161616] p-3 pl-4">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 md:justify-between">
                   <Text size="sm" className="text-neutral-400 uppercase tracking-[0.25em] shrink-0 w-[5rem]">
                     Date
                   </Text>
-                  <div className="flex-1 min-w-0 [&_input]:!border-[#333] [&_input]:!bg-[#404040]">
+                  <div className="flex-1 min-w-0 md:flex-none md:w-80 [&_input]:!border-[#333] [&_input]:!bg-[#404040]">
                     <DatePicker
                       value={date}
                       maxDate={today}
@@ -241,11 +247,11 @@ export default function AbundanceNewEntryPage() {
 
               {/* Kind - box */}
               <div className="rounded-xl border border-[#333] bg-[#161616] p-3 pl-4">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 md:justify-between">
                   <Text size="sm" className="text-neutral-400 uppercase tracking-[0.25em] shrink-0 w-[5rem]">
                     Kind
                   </Text>
-                  <div className="flex-1 min-w-0 [&_button]:!border-[#333] [&_button]:!bg-[#404040]">
+                  <div className="flex-1 min-w-0 md:flex-none md:w-80 [&_button]:!border-[#333] [&_button]:!bg-[#404040]">
                     <Select
                       value={entryCategory}
                       onChange={(value) => setEntryCategory(value)}
@@ -257,18 +263,20 @@ export default function AbundanceNewEntryPage() {
                 </div>
               </div>
 
-              {/* Note - same layout, in card like others */}
+              {/* Note - same layout, in card like others, with voice record/transcribe */}
               <div className="rounded-xl border border-[#333] bg-[#161616] p-3 pl-4">
                 <section className="space-y-1.5">
                   <Text size="sm" className="text-neutral-400 uppercase tracking-[0.25em] underline underline-offset-2 decoration-[#333]">
                     Note
                   </Text>
-                  <Textarea
-                    placeholder="Describe this abundance moment in present-tense appreciation."
+                  <RecordingTextarea
                     value={note}
-                    onChange={(event) => setNote(event.target.value)}
+                    onChange={(value) => setNote(value)}
+                    placeholder="Describe this abundance moment in present-tense appreciation. Type or use the microphone to turn your voice into text."
                     rows={3}
-                    required
+                    storageFolder="journal"
+                    instanceId="abundance-note"
+                    recordingPurpose="transcriptOnly"
                     className="!bg-[#404040] !border-[#333]"
                   />
                 </section>
