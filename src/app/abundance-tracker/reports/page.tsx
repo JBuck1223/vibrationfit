@@ -286,7 +286,7 @@ export default function AbundanceReportsPage() {
                         paddingAngle={2}
                         dataKey="value"
                         nameKey="name"
-                        label={({ name, value }) => (value > 0 ? `${name}: ${formatCurrency(value)}` : '')}
+                        label={(props: any) => (props.value > 0 ? `${props.name}: ${formatCurrency(props.value)}` : '')}
                       >
                         {moneyValuePieData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
@@ -351,7 +351,7 @@ export default function AbundanceReportsPage() {
                         paddingAngle={2}
                         dataKey="value"
                         nameKey="name"
-                        label={({ name, value }) => (value > 0 ? `${name}: ${formatCurrency(value)}` : '')}
+                        label={(props: any) => (props.value > 0 ? `${props.name}: ${formatCurrency(props.value)}` : '')}
                       >
                         {categoryPieData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />

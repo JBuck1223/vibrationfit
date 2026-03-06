@@ -162,11 +162,11 @@ export default function IntensiveUnlockPage() {
 
         if (checklistRow?.unlock_completed) {
           setIsAlreadyCompleted(true)
-          setCompletedAt(checklistData.unlock_completed_at)
+          setCompletedAt(checklistRow.unlock_completed_at)
         }
       }
       
-      const activeIntensiveId = intensiveData?.id || 'super-admin-test-mode'
+      const activeIntensiveId = checklistRow?.intensive_id || 'super-admin-test-mode'
 
       // Get baseline responses (pre_intensive phase) - skip for test mode
       if (activeIntensiveId !== 'super-admin-test-mode') {

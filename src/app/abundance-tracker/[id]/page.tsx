@@ -285,13 +285,12 @@ export default function AbundanceEventPage({ params }: { params: Promise<{ id: s
         </Card>
 
         <DeleteConfirmationDialog
-          open={showDeleteConfirm}
-          onOpenChange={setShowDeleteConfirm}
+          isOpen={showDeleteConfirm}
+          onClose={() => setShowDeleteConfirm(false)}
           title="Delete abundance moment?"
-          description="This cannot be undone."
-          confirmLabel="Delete"
+          message="This cannot be undone."
           onConfirm={handleDelete}
-          loading={deleting}
+          isDeleting={deleting}
         />
       </Stack>
     </Container>

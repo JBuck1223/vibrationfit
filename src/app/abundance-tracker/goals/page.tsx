@@ -410,8 +410,8 @@ export default function AbundanceGoalsPage() {
                           paddingAngle={2}
                           dataKey="value"
                           nameKey="name"
-                          label={({ name, value }) =>
-                            value > 0 ? `${name}: ${formatCurrency(value)}` : ''
+                          label={(props: any) =>
+                            props.value > 0 ? `${props.name}: ${formatCurrency(props.value)}` : ''
                           }
                         >
                           {pieData.map((entry, index) => (

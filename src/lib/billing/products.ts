@@ -115,6 +115,7 @@ async function resolveIntensiveProduct(
     .maybeSingle()
   const intensiveTokens = intensiveTier?.monthly_token_grant || intensiveTier?.annual_token_grant || 0
 
+  const isSolo = planTypeStr === 'solo'
   const continuityTierType = continuityPlan === 'annual'
     ? (isSolo ? 'vision_pro_annual' : 'vision_pro_household_annual')
     : (isSolo ? 'vision_pro_28day' : 'vision_pro_household_28day')

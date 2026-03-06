@@ -117,7 +117,7 @@ export default function IntensiveBuilder() {
       }
 
       // Load or generate vision draft
-      await loadOrGenerateVisionDraft(intensiveData.id)
+      await loadOrGenerateVisionDraft(checklistRow.intensive_id)
 
     } catch (error) {
       console.error('Error loading builder data:', error)
