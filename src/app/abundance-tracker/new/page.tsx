@@ -9,11 +9,9 @@ import {
   Card,
   Button,
   Input,
-  Textarea,
   Select,
   Stack,
   Text,
-  Inline,
   DatePicker,
   PageHero,
   Modal,
@@ -23,6 +21,7 @@ import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { ABUNDANCE_ENTRY_CATEGORIES } from '@/lib/abundance/entry-categories'
 import { FileUpload } from '@/components/FileUpload'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
+import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
 
@@ -77,6 +76,10 @@ export default function AbundanceNewEntryPage() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
+    if (!note.trim()) {
+      setErrorMessage('Note is required.')
+      return
+    }
     setIsSubmitting(true)
     setSuccessMessage(null)
     setErrorMessage(null)
@@ -158,125 +161,129 @@ export default function AbundanceNewEntryPage() {
           </div>
         </PageHero>
 
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-4 md:p-5">
+        <Card variant="outlined" className="w-full md:w-2/3 md:mx-auto bg-[#101010] border-[#1F1F1F] p-4 md:p-5">
           <form onSubmit={handleSubmit}>
-            <Stack gap="md">
-              {/* Entry date */}
-              <div className="rounded-xl border border-[#1F1F1F] bg-[#161616] p-3 md:p-4">
-                <Inline className="items-center gap-3 md:gap-4">
-                  <div className="space-y-0.5">
-                    <p className="text-xs uppercase tracking-[0.25em] text-neutral-500">
-                      Entry date
-                    </p>
-                    <p className="text-base font-semibold text-white">
-                      {date
-                        ? new Intl.DateTimeFormat(undefined, {
-                            month: 'long',
-                            day: 'numeric',
-                            year: 'numeric',
-                          }).format(new Date(`${date}T00:00:00`))
-                        : '—'}
-                    </p>
-                  </div>
-                  <div className="ml-auto w-full md:w-auto">
-                    <DatePicker
-                      value={date}
-                      maxDate={today}
-                      onChange={(dateString: string) => setDate(dateString)}
-                      className="w-full md:w-auto"
-                    />
-                  </div>
-                </Inline>
-              </div>
-
-              {/* Track as (Money / Value) - segmented toggle like original */}
-              <section className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Text size="sm" className="text-neutral-400 uppercase tracking-[0.25em] underline underline-offset-2 decoration-[#333]">
-                    Track as
-                  </Text>
-                  <button
+            <Stack gap="sm">
+              {/* Track as - box */}
+              <div className="rounded-xl border border-[#333] bg-[#161616] p-3 pl-4">
+                <div className="flex items-center gap-3 md:justify-between">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Text size="sm" className="text-neutral-400 uppercase tracking-[0.25em]">
+                      Track as
+                    </Text>
+<button
                     type="button"
                     onClick={() => setHelpOpen(true)}
-                    className="p-0.5 rounded-full text-neutral-400 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="p-0.5 rounded-full text-neutral-400 hover:text-white transition-colors focus:outline-none shrink-0"
                     aria-label="Help: Money vs Value"
                   >
                     <HelpCircle className="w-4 h-4" />
                   </button>
+                  </div>
+                  <div className="inline-flex rounded-lg border-2 border-[#333] bg-[#0D0D0D] p-0.5 md:ml-auto">
+                    <button
+                      type="button"
+                      onClick={() => setValueType('money')}
+                      className={`rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none ${
+                        valueType === 'money'
+                          ? 'bg-[#39FF14] text-black'
+                          : 'bg-transparent text-[#39FF14] hover:bg-[#39FF14]/10'
+                      }`}
+                    >
+                      Money
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setValueType('value')}
+                      className={`rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none ${
+                        valueType === 'value'
+                          ? 'bg-[#39FF14] text-black'
+                          : 'bg-transparent text-[#39FF14] hover:bg-[#39FF14]/10'
+                      }`}
+                    >
+                      Value
+                    </button>
+                  </div>
                 </div>
-                <div className="inline-flex rounded-xl border-2 border-[#333] bg-[#161616] p-0.5">
-                  <button
-                    type="button"
-                    onClick={() => setValueType('money')}
-                    className={`rounded-lg px-4 py-2.5 text-sm font-medium transition-colors focus:outline-none ${
-                      valueType === 'money'
-                        ? 'bg-[#39FF14] text-black'
-                        : 'bg-transparent text-[#39FF14] hover:bg-[#39FF14]/10'
-                    }`}
-                  >
-                    Money
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setValueType('value')}
-                    className={`rounded-lg px-4 py-2.5 text-sm font-medium transition-colors focus:outline-none ${
-                      valueType === 'value'
-                        ? 'bg-[#39FF14] text-black'
-                        : 'bg-transparent text-[#39FF14] hover:bg-[#39FF14]/10'
-                    }`}
-                  >
-                    Value
-                  </button>
+              </div>
+
+              {/* Amount - box */}
+              <div className="rounded-xl border border-[#333] bg-[#161616] p-3 pl-4">
+                <div className="flex items-center gap-3 md:justify-between">
+                  <Text size="sm" className="text-neutral-400 uppercase tracking-[0.25em] shrink-0 w-[5rem]">
+                    Amount
+                  </Text>
+                  <div className="flex-1 min-w-0 md:flex-none md:w-80 [&>div]:min-w-0 [&>div]:w-full [&_input]:min-w-0">
+                    <Input
+                      type="text"
+                      inputMode="decimal"
+                      placeholder={valueType === 'money' ? '$' : 'Optional amount'}
+                      value={formatAmountWithCommas(amount)}
+                      onChange={(event) => setAmount(parseAmountInput(event.target.value))}
+                      required={valueType === 'money'}
+                      prefix="$"
+                      className="!bg-[#404040] !border-[#333] !w-full !min-w-0 !max-w-none"
+                    />
+                  </div>
                 </div>
-              </section>
+              </div>
 
-              {/* Amount */}
-              <section className="space-y-2">
-                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.25em] underline underline-offset-2 decoration-[#333]">
-                  Amount
-                </Text>
-                <Input
-                  type="text"
-                  inputMode="decimal"
-                  placeholder={valueType === 'money' ? '$' : 'Optional amount'}
-                  value={formatAmountWithCommas(amount)}
-                  onChange={(event) => setAmount(parseAmountInput(event.target.value))}
-                  required={valueType === 'money'}
-                  prefix="$"
-                  className="!bg-[#404040] !border-[#333]"
-                />
-              </section>
+              {/* Date - box */}
+              <div className="rounded-xl border border-[#333] bg-[#161616] p-3 pl-4">
+                <div className="flex items-center gap-3 md:justify-between">
+                  <Text size="sm" className="text-neutral-400 uppercase tracking-[0.25em] shrink-0 w-[5rem]">
+                    Date
+                  </Text>
+                  <div className="flex-1 min-w-0 md:flex-none md:w-80 [&_input]:!border-[#333] [&_input]:!bg-[#404040]">
+                    <DatePicker
+                      value={date}
+                      maxDate={today}
+                      onChange={(dateString: string) => setDate(dateString)}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+              </div>
 
-              {/* Kind of abundance */}
-              <section className="space-y-2">
-                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.25em] underline underline-offset-2 decoration-[#333]">
-                  Kind of abundance
-                </Text>
-                <Select
-                  value={entryCategory}
-                  onChange={(value) => setEntryCategory(value)}
-                  options={ABUNDANCE_ENTRY_CATEGORIES.map(({ value, label }) => ({ value, label }))}
-                  placeholder="Abundance type (optional)"
-                />
-              </section>
+              {/* Kind - box */}
+              <div className="rounded-xl border border-[#333] bg-[#161616] p-3 pl-4">
+                <div className="flex items-center gap-3 md:justify-between">
+                  <Text size="sm" className="text-neutral-400 uppercase tracking-[0.25em] shrink-0 w-[5rem]">
+                    Kind
+                  </Text>
+                  <div className="flex-1 min-w-0 md:flex-none md:w-80 [&_button]:!border-[#333] [&_button]:!bg-[#404040]">
+                    <Select
+                      value={entryCategory}
+                      onChange={(value) => setEntryCategory(value)}
+                      options={ABUNDANCE_ENTRY_CATEGORIES.map(({ value, label }) => ({ value, label }))}
+                      placeholder="Abundance type (optional)"
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+              </div>
 
-              {/* Note */}
-              <section className="space-y-2">
-                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.25em] underline underline-offset-2 decoration-[#333]">
-                  Note
-                </Text>
-                <Textarea
-                  placeholder="Describe this abundance moment in present-tense appreciation."
-                  value={note}
-                  onChange={(event) => setNote(event.target.value)}
-                  rows={3}
-                  required
-                  className="!bg-[#404040] !border-[#333]"
-                />
-              </section>
+              {/* Note - same layout, in card like others, with voice record/transcribe */}
+              <div className="rounded-xl border border-[#333] bg-[#161616] p-3 pl-4">
+                <section className="space-y-1.5">
+                  <Text size="sm" className="text-neutral-400 uppercase tracking-[0.25em] underline underline-offset-2 decoration-[#333]">
+                    Note
+                  </Text>
+                  <RecordingTextarea
+                    value={note}
+                    onChange={(value) => setNote(value)}
+                    placeholder="Describe this abundance moment in present-tense appreciation. Type or use the microphone to turn your voice into text."
+                    rows={3}
+                    storageFolder="journal"
+                    instanceId="abundance-note"
+                    recordingPurpose="transcriptOnly"
+                    className="!bg-[#404040] !border-[#333]"
+                  />
+                </section>
+              </div>
 
               {/* Vision categories - collapsible */}
-              <section className="space-y-2">
+              <section className="space-y-1.5">
                 <button
                   type="button"
                   onClick={() => setVisionCategoriesOpen((o) => !o)}
@@ -319,7 +326,7 @@ export default function AbundanceNewEntryPage() {
               </section>
 
               {/* Image (optional) - collapsible */}
-              <section className="space-y-2">
+              <section className="space-y-1.5">
                 <button
                   type="button"
                   onClick={() => setImageSectionOpen((o) => !o)}
