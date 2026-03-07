@@ -110,7 +110,7 @@ export async function triggerEvent(
               await sendAndLogEmail({
                 to: payload.email,
                 subject: subject || 'VibrationFit',
-                htmlBody: body,
+                ...(textBody ? {} : { htmlBody: body }),
                 textBody: textBody || body.replace(/<[^>]*>/g, ''),
                 context: { userId: payload.userId, guestEmail: payload.email },
               })

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Mic, Video, Square, Play, Pause, Trash2, Upload, Loader2, Check, RotateCcw, Scissors, Save, ChevronDown, ChevronUp, SwitchCamera, Maximize, Minimize, Monitor } from 'lucide-react'
+import { Mic, Video, Square, Play, Pause, Trash2, Upload, Loader2, Check, RotateCcw, Scissors, Save, ChevronDown, ChevronUp, SwitchCamera, Maximize, Minimize, Monitor, Send } from 'lucide-react'
 import { Button, Checkbox } from '@/lib/design-system/components'
 import {
   saveRecordingChunks,
@@ -17,7 +17,7 @@ import SimpleLevelMeter from '@/components/SimpleLevelMeter'
 import { AudioEditor } from '@/components/AudioEditor'
 import { IconList } from '@/lib/design-system/components'
 
-type RecordingPurpose = 'quick' | 'transcriptOnly' | 'withFile' | 'audioOnly'
+type RecordingPurpose = 'quick' | 'transcriptOnly' | 'withFile' | 'audioOnly' | 'support'
 
 interface MediaRecorderProps {
   mode?: 'audio' | 'video' | 'screen'
@@ -42,6 +42,7 @@ interface MediaRecorderProps {
    * - 'transcriptOnly': Long audio (life-vision) - S3 for reliability, delete if discarded
    * - 'withFile': Full recordings (journal) - S3 always, keep file for playback, manual transcription
    * - 'audioOnly': Audio recording with editing - S3 storage, no transcription option
+   * - 'support': Screen/video clip for support - S3 to support folder, no transcription, Submit + Record again only
    */
 }
 
@@ -101,6 +102,41 @@ export function MediaRecorderComponent({
   const lastSaveSizeRef = useRef<number>(0) // Track total size saved for video size-based saves
   const durationRef = useRef<number>(0) // Track duration for auto-save
   const transcriptRef = useRef<string>('') // Track transcript for auto-save
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null)
+
+  // Screen Wake Lock — keep the screen awake while recording
+  const acquireWakeLock = async () => {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLockRef.current = await navigator.wakeLock.request('screen')
+        console.log('[WakeLock] Screen wake lock acquired')
+        wakeLockRef.current.addEventListener('release', () => {
+          console.log('[WakeLock] Screen wake lock released')
+        })
+      }
+    } catch (err) {
+      console.warn('[WakeLock] Could not acquire wake lock:', err)
+    }
+  }
+
+  const releaseWakeLock = () => {
+    if (wakeLockRef.current) {
+      wakeLockRef.current.release()
+      wakeLockRef.current = null
+    }
+  }
+
+  // Re-acquire wake lock when page becomes visible again (browsers release it
+  // automatically on visibility change, e.g. switching tabs then coming back).
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isRecording) {
+        acquireWakeLock()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [isRecording])
 
   // Close microphone dropdown when clicking outside
   useEffect(() => {
@@ -119,63 +155,44 @@ export function MediaRecorderComponent({
     }
   }, [isMicDropdownOpen])
 
-  // Load audio devices on mount (for microphone selection)
+  // Enumerate audio devices without triggering a permission prompt.
+  // enumerateDevices() never prompts — if permission was previously granted
+  // (and remembered by the browser), labels will be populated. Otherwise
+  // labels are blank and we skip the mic selector until the user records.
+  const loadDevicesWithoutPrompt = async () => {
+    if (!navigator.mediaDevices?.enumerateDevices) return
+
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices()
+      const audioInputs = devices.filter(d => d.kind === 'audioinput')
+
+      // If labels are empty the browser hasn't granted mic access yet —
+      // the selector would be useless, so only populate when labels exist.
+      const hasLabels = audioInputs.some(d => d.label)
+      if (hasLabels) {
+        setAudioDevices(audioInputs)
+        setSelectedMic(prev => {
+          if (!prev && audioInputs.length > 0) return audioInputs[0].deviceId
+          return prev
+        })
+      }
+    } catch {
+      // Silently ignore — devices will be loaded after first recording
+    }
+  }
+
   useEffect(() => {
-    // Check if mediaDevices API is available (requires HTTPS on mobile)
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      console.warn('⚠️ Media devices API not available. This usually means:')
-      console.warn('  1. You are not on HTTPS (required for mobile)')
-      console.warn('  2. Browser does not support media capture')
-      console.warn('  3. Permissions are blocked by browser settings')
+    if (!navigator.mediaDevices) {
+      console.warn('[MediaRecorder] Media devices API not available')
       return
     }
 
-    const loadDevices = async () => {
-      try {
-        // Request permission first
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-        // Stop the stream immediately - we just needed permission
-        stream.getTracks().forEach(track => track.stop())
-        
-        // Get all audio input devices
-        const devices = await navigator.mediaDevices.enumerateDevices()
-        const audioInputs = devices.filter(device => device.kind === 'audioinput')
-        
-        setAudioDevices(audioInputs)
-        
-        // Set default to first device if none selected
-        setSelectedMic(prev => {
-          if (!prev && audioInputs.length > 0) {
-            return audioInputs[0].deviceId
-          }
-          return prev
-        })
-      } catch (err: any) {
-        // Handle specific error types gracefully
-        if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-          // No microphone found - this is OK, user will see error when they try to record
-          console.log('[MediaRecorder] No microphone found on this device')
-        } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-          // Permission denied - user will be prompted again when they try to record
-          console.log('[MediaRecorder] Microphone permission not granted yet')
-        } else {
-          console.error('[MediaRecorder] Failed to load audio devices:', err)
-        }
-        // Continue without mic selector - will use default or show error when recording starts
-      }
-    }
-    
-    loadDevices()
-    
-    // Listen for device changes (plug/unplug)
-    if (navigator.mediaDevices.addEventListener) {
-      navigator.mediaDevices.addEventListener('devicechange', loadDevices)
-    }
-    
+    loadDevicesWithoutPrompt()
+
+    const onChange = () => loadDevicesWithoutPrompt()
+    navigator.mediaDevices.addEventListener?.('devicechange', onChange)
     return () => {
-      if (navigator.mediaDevices && navigator.mediaDevices.removeEventListener) {
-        navigator.mediaDevices.removeEventListener('devicechange', loadDevices)
-      }
+      navigator.mediaDevices.removeEventListener?.('devicechange', onChange)
     }
   }, [])
 
@@ -376,6 +393,7 @@ export function MediaRecorderComponent({
       if (recordedUrl) {
         URL.revokeObjectURL(recordedUrl)
       }
+      releaseWakeLock()
     }
   }, [recordedUrl])
 
@@ -516,6 +534,10 @@ export function MediaRecorderComponent({
         streamRef.current = stream
       }
 
+      // Now that permission is granted, refresh the device list so the mic
+      // selector is populated (handles first-time grant and Safari per-session).
+      loadDevicesWithoutPrompt()
+
       // Show preview for video/screen (but don't start recording yet)
       setIsPreparing(true)
       if (mode === 'video' || mode === 'screen') {
@@ -556,6 +578,7 @@ export function MediaRecorderComponent({
       // Now start actual recording
       setIsPreparing(false)
       setIsRecording(true)
+      await acquireWakeLock()
       // If continuing from previous recording, start duration from previous
       setDuration(previousDuration)
       durationRef.current = previousDuration
@@ -652,10 +675,12 @@ export function MediaRecorderComponent({
           })
         }
 
-        // Upload to S3 immediately for withFile mode only (needs immediate backup)
+        // Upload to S3 immediately for withFile and support (support clips go to support folder)
         // audioOnly mode will upload on Save button click (user may want to edit/discard first)
-        if (recordingPurpose === 'withFile') {
-          const folder = storageFolder || (isVideoLike ? 'journalVideoRecordings' : 'journalAudioRecordings')
+        if (recordingPurpose === 'withFile' || recordingPurpose === 'support') {
+          const folder = recordingPurpose === 'support'
+            ? (storageFolder || 'supportVideoRecordings')
+            : (storageFolder || (isVideoLike ? 'journalVideoRecordings' : 'journalAudioRecordings'))
           // Include recordingId in filename if provided for better S3 organization
           const filePrefix = providedRecordingId ? `${providedRecordingId}-` : ''
           const fileName = `${filePrefix}recording-${Date.now()}.webm`
@@ -774,11 +799,11 @@ export function MediaRecorderComponent({
       mediaRecorderRef.current.stop()
       setIsRecording(false)
       setIsPaused(false)
+      releaseWakeLock()
       
       if (timerRef.current) {
         clearInterval(timerRef.current)
       }
-
 
       // Stop video/screen preview
       if ((mode === 'video' || mode === 'screen') && videoRef.current) {
@@ -1528,7 +1553,18 @@ export function MediaRecorderComponent({
             </button>
             {showInstructions && (
               <div className="px-4 pb-4">
-                {recordingPurpose === 'transcriptOnly' ? (
+                {recordingPurpose === 'support' ? (
+                  <IconList
+                    items={[
+                      'Review your clip in the player below',
+                      'Click "Submit" to send it to support (file uploads automatically)',
+                      'Click "Record again" to redo your recording'
+                    ]}
+                    bulletColor="text-primary-500"
+                    textColor="text-neutral-300"
+                    spacing="tight"
+                  />
+                ) : recordingPurpose === 'transcriptOnly' ? (
                   <IconList
                     items={[
                       'Click Transcribe to convert speech to text',
@@ -1609,8 +1645,8 @@ export function MediaRecorderComponent({
             />
           )}
 
-          {/* Transcription - Hide for audioOnly mode */}
-          {recordingPurpose !== 'audioOnly' && (
+          {/* Transcription - Hide for audioOnly and support (support is submit-only, no transcript) */}
+          {recordingPurpose !== 'audioOnly' && recordingPurpose !== 'support' && (
             <div className="space-y-2">
               {isTranscribing ? (
                 <div className="space-y-2">
@@ -1633,8 +1669,8 @@ export function MediaRecorderComponent({
             </div>
           )}
 
-          {/* Save Recording Option - Only show for non-withFile, non-audioOnly, and non-transcriptOnly modes */}
-          {showSaveOption && recordingPurpose !== 'withFile' && recordingPurpose !== 'audioOnly' && recordingPurpose !== 'transcriptOnly' && (
+          {/* Save Recording Option - Only show for non-withFile, non-audioOnly, non-transcriptOnly, non-support modes */}
+          {showSaveOption && recordingPurpose !== 'withFile' && recordingPurpose !== 'audioOnly' && recordingPurpose !== 'transcriptOnly' && recordingPurpose !== 'support' && (
             <div className="flex items-center gap-2 p-3 bg-neutral-800 rounded-lg">
               <Checkbox
                 id="saveRecording"
@@ -1650,8 +1686,44 @@ export function MediaRecorderComponent({
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row sm:justify-end gap-3">
-            {/* transcriptOnly mode: Simplified flow - Transcribe then Done */}
-            {recordingPurpose === 'transcriptOnly' ? (
+            {/* support mode: Submit (no transcription) + Record again */}
+            {recordingPurpose === 'support' ? (
+              <>
+                <Button
+                  onClick={() => {
+                    if (recordedBlob && onRecordingComplete) {
+                      onRecordingComplete(recordedBlob, undefined, true, s3Url || undefined)
+                    }
+                  }}
+                  variant="primary"
+                  size="sm"
+                  className="gap-2 flex-1"
+                  disabled={!s3Url || isUploading}
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      Submit
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={discardRecording}
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2 flex-1 bg-[rgba(255,0,64,0.1)] text-[#FF0040] border-2 border-[rgba(255,0,64,0.2)] hover:bg-[rgba(255,0,64,0.2)] active:opacity-80"
+                  disabled={isUploading}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Record again
+                </Button>
+              </>
+            ) : recordingPurpose === 'transcriptOnly' ? (
               <>
                 {!transcript && !isTranscribing && (
                   <Button

@@ -43,9 +43,10 @@ export async function POST(
     await sendAndLogEmail({
       to,
       subject,
-      htmlBody: htmlBody || `<p>${textBody}</p>`,
-      textBody: textBody || htmlBody?.replace(/<[^>]*>/g, ''),
-      replyTo: 'team@vibrationfit.com',
+      from: '"Jordan at VibrationFit" <jordan@vibrationfit.com>',
+      ...(htmlBody ? { htmlBody } : {}),
+      textBody: textBody || htmlBody?.replace(/<[^>]*>/g, '') || '',
+      replyTo: 'jordan@vibrationfit.com',
       context: { userId: id },
     })
 

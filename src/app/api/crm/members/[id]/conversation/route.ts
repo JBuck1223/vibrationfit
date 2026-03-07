@@ -45,19 +45,19 @@ export async function GET(
         .from('sms_messages')
         .select('*')
         .eq('user_id', id)
-        .order('created_at', { ascending: true }),
+        .order('created_at', { ascending: false }),
       // Use quoted values in .or() to prevent filter injection
       userEmail
         ? adminClient
             .from('email_messages')
             .select('*')
             .or(`from_email.eq."${userEmail}",to_email.eq."${userEmail}",user_id.eq.${id}`)
-            .order('created_at', { ascending: true })
+            .order('created_at', { ascending: false })
         : adminClient
             .from('email_messages')
             .select('*')
             .eq('user_id', id)
-            .order('created_at', { ascending: true }),
+            .order('created_at', { ascending: false }),
     ])
 
     // Combine and sort all messages
@@ -108,7 +108,7 @@ export async function GET(
 
     // Sort by timestamp
     allMessages.sort((a, b) =>
-      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     )
 
     return NextResponse.json({

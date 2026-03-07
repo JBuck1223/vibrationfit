@@ -17,6 +17,7 @@ import {
   Input,
   Textarea,
   Spinner,
+  Badge,
 } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
 import { Mail, Save, ArrowLeft, Plus, X, ChevronDown } from 'lucide-react'
@@ -104,8 +105,8 @@ export default function NewEmailTemplatePage() {
     setError(null)
 
     try {
-      if (!formData.name || !formData.slug || !formData.subject || !formData.html_body) {
-        throw new Error('Name, slug, subject, and HTML body are required')
+      if (!formData.name || !formData.slug || !formData.subject || (!formData.html_body && !formData.text_body)) {
+        throw new Error('Name, slug, subject, and either plain text or HTML body are required')
       }
 
       const response = await fetch('/api/admin/templates/email', {
@@ -235,7 +236,24 @@ export default function NewEmailTemplatePage() {
                 </Card>
 
                 <Card className="p-4 md:p-6">
-                  <h2 className="text-lg font-medium text-white mb-4">Email Content</h2>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-medium text-white">Email Content</h2>
+                    {formData.text_body.trim() ? (
+                      <Badge className="bg-primary-500/20 text-primary-500 border border-primary-500/30 px-3 py-1 text-xs font-semibold">
+                        Plain Text (Primary Inbox)
+                      </Badge>
+                    ) : formData.html_body.trim() ? (
+                      <Badge className="bg-[#FFB701]/20 text-[#FCD34D] border border-[#FFB701]/30 px-3 py-1 text-xs font-semibold">
+                        HTML (may land in Promotions)
+                      </Badge>
+                    ) : null}
+                  </div>
+
+                  {formData.text_body.trim() && !formData.html_body.trim() && (
+                    <div className="mb-4 p-3 rounded-lg bg-primary-500/10 border border-primary-500/25 text-sm text-primary-500">
+                      This template sends as plain text only -- best for CRM outbound and landing in the Primary inbox.
+                    </div>
+                  )}
                   
                   <div className="space-y-4">
                     <div>
@@ -245,7 +263,7 @@ export default function NewEmailTemplatePage() {
                       <Input
                         value={formData.subject}
                         onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
-                        placeholder="e.g., {{hostName}} has scheduled a session with you!"
+                        placeholder="e.g., Hey {{firstName}}, quick note"
                         className="bg-neutral-800 border-neutral-700"
                         required
                       />
@@ -253,27 +271,35 @@ export default function NewEmailTemplatePage() {
 
                     <div>
                       <label className="block text-sm font-medium text-neutral-300 mb-2">
-                        HTML Body *
+                        Plain Text Body
+                        <span className="ml-2 text-xs text-primary-500 font-normal">
+                          Recommended for CRM outbound
+                        </span>
+                      </label>
+                      <Textarea
+                        value={formData.text_body}
+                        onChange={(e) => setFormData(prev => ({ ...prev, text_body: e.target.value }))}
+                        placeholder={"Hey {{firstName}},\n\nWrite your email in plain text here for best deliverability..."}
+                        rows={10}
+                        className="bg-neutral-800 border-neutral-700 font-mono text-sm"
+                      />
+                      <p className="text-xs text-neutral-500 mt-1">
+                        When set, automation rules and CRM sends use this as the primary body (no HTML). Lands in Primary inbox.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-300 mb-2">
+                        HTML Body
+                        <span className="ml-2 text-xs text-neutral-500 font-normal">
+                          For styled notifications only
+                        </span>
                       </label>
                       <Textarea
                         value={formData.html_body}
                         onChange={(e) => setFormData(prev => ({ ...prev, html_body: e.target.value }))}
                         placeholder="<p>Your HTML email content...</p>"
-                        rows={10}
-                        className="bg-neutral-800 border-neutral-700 font-mono text-sm"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-neutral-300 mb-2">
-                        Plain Text Body (optional)
-                      </label>
-                      <Textarea
-                        value={formData.text_body}
-                        onChange={(e) => setFormData(prev => ({ ...prev, text_body: e.target.value }))}
-                        placeholder="Plain text fallback for email clients that don't support HTML..."
-                        rows={4}
+                        rows={8}
                         className="bg-neutral-800 border-neutral-700 font-mono text-sm"
                       />
                     </div>

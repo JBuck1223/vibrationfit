@@ -116,7 +116,7 @@ async function processMessages(request: NextRequest) {
           await sendAndLogEmail({
             to: message.recipient_email,
             subject: message.subject || 'VibrationFit Reminder',
-            htmlBody: message.body,
+            ...(message.text_body ? {} : { htmlBody: message.body }),
             textBody: message.text_body || message.body.replace(/<[^>]*>/g, ''),
             context: {
               userId: message.recipient_user_id || undefined,

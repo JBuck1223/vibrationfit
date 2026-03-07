@@ -96,8 +96,9 @@ export async function POST(request: NextRequest) {
       await sendAndLogEmail({
         to: body.email,
         subject: confirmationEmail.subject,
-        htmlBody: confirmationEmail.htmlBody,
         textBody: confirmationEmail.textBody,
+        from: '"Jordan at VibrationFit" <jordan@vibrationfit.com>',
+        replyTo: 'jordan@vibrationfit.com',
         context: { guestEmail: body.email },
       })
 
@@ -120,99 +121,71 @@ function getConfirmationEmail(type: string, data: { firstName: string; email: st
   switch (type) {
     case 'contact':
       return {
-        subject: "We've received your message!",
-        htmlBody: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #199D67;">Thanks for reaching out, ${firstName}!</h2>
-            <p style="color: #333; line-height: 1.6;">
-              We've received your message and will get back to you within 24 hours.
-            </p>
-            <p style="color: #333; line-height: 1.6;">
-              In the meantime, feel free to explore more about VibrationFit:
-            </p>
-            <div style="margin: 30px 0;">
-              <a href="https://vibrationfit.com" style="background-color: #199D67; color: white; padding: 12px 30px; text-decoration: none; border-radius: 50px; display: inline-block;">
-                Visit Our Website
-              </a>
-            </div>
-            <p style="color: #666; font-size: 14px;">
-              Best,<br>
-              Team VibrationFit
-            </p>
-          </div>
-        `,
-        textBody: `Thanks for reaching out, ${firstName}!\n\nWe've received your message and will get back to you within 24 hours.\n\nBest,\nTeam VibrationFit`,
+        subject: `Hey ${firstName}, quick note from Jordan`,
+        textBody: [
+          `Hey ${firstName},`,
+          '',
+          `Thanks for reaching out -- I wanted to make sure this email actually lands in your inbox and not a spam folder.`,
+          '',
+          `Could you do me a quick favor and reply to this email with "Got it" so I know you received it? That way I can make sure all my follow-ups reach you.`,
+          '',
+          `I'll be in touch within 24 hours with a personal response to your message.`,
+          '',
+          'Talk soon,',
+          'Jordan',
+          'https://vibrationfit.com',
+        ].join('\n'),
       }
 
     case 'demo':
       return {
-        subject: "Let's schedule your VibrationFit demo!",
-        htmlBody: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #199D67;">Thanks for your interest, ${firstName}!</h2>
-            <p style="color: #333; line-height: 1.6;">
-              We're excited to show you VibrationFit! We'll reach out shortly to schedule your personalized demo.
-            </p>
-            <p style="color: #333; line-height: 1.6;">
-              During your demo, we'll cover:
-            </p>
-            <ul style="color: #333; line-height: 1.8;">
-              <li>Creating your Life Vision</li>
-              <li>AI-powered guidance</li>
-              <li>Tracking your progress</li>
-              <li>Vision Board creation</li>
-            </ul>
-            <p style="color: #666; font-size: 14px; margin-top: 30px;">
-              Best,<br>
-              Jordan<br>
-              VibrationFit
-            </p>
-          </div>
-        `,
-        textBody: `Thanks for your interest, ${firstName}!\n\nWe're excited to show you VibrationFit! We'll reach out shortly to schedule your personalized demo.\n\nBest,\nJordan\nVibrationFit`,
+        subject: `${firstName}, your VibrationFit demo is next`,
+        textBody: [
+          `Hey ${firstName},`,
+          '',
+          `Really glad you're interested in seeing VibrationFit in action. I'm going to personally walk you through everything -- your Life Vision, VIVA coaching, vision boards, the works.`,
+          '',
+          `Before we schedule, quick favor: can you reply to this email with "Got it" so I know my emails are landing in your primary inbox? I want to make sure you get the calendar link when I send it.`,
+          '',
+          `I'll follow up shortly to find a time that works for you.`,
+          '',
+          'Talk soon,',
+          'Jordan',
+          'https://vibrationfit.com',
+        ].join('\n'),
       }
 
     case 'intensive_intake':
       return {
-        subject: "Your 72-Hour Activation Intensive Application",
-        htmlBody: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #199D67;">Thank you for your interest, ${firstName}!</h2>
-            <p style="color: #333; line-height: 1.6;">
-              We've received your application for the 72-Hour Activation Intensive.
-            </p>
-            <p style="color: #333; line-height: 1.6;">
-              We'll review your application and reach out within 24 hours to discuss next steps.
-            </p>
-            <p style="color: #333; line-height: 1.6;">
-              This is an intensive, transformative experience designed for those ready to make significant shifts in their lives.
-            </p>
-            <p style="color: #666; font-size: 14px; margin-top: 30px;">
-              Talk soon,<br>
-              Jordan<br>
-              VibrationFit
-            </p>
-          </div>
-        `,
-        textBody: `Thank you for your interest, ${firstName}!\n\nWe've received your application for the 72-Hour Activation Intensive.\n\nWe'll review your application and reach out within 24 hours to discuss next steps.\n\nTalk soon,\nJordan\nVibrationFit`,
+        subject: `${firstName}, your Activation Intensive application`,
+        textBody: [
+          `Hey ${firstName},`,
+          '',
+          `Thank you for applying to the 72-Hour Activation Intensive. I review every application personally and I'll be in touch within 24 hours.`,
+          '',
+          `One quick ask: can you reply to this email with "Received" so I know you're getting my messages? The next steps I send are time-sensitive and I need to make sure they reach you.`,
+          '',
+          `Looking forward to connecting.`,
+          '',
+          'Jordan',
+          'https://vibrationfit.com',
+        ].join('\n'),
       }
 
     default:
       return {
-        subject: "Thanks for reaching out to VibrationFit!",
-        htmlBody: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #199D67;">Thanks, ${firstName}!</h2>
-            <p style="color: #333; line-height: 1.6;">
-              We've received your message and will be in touch soon.
-            </p>
-            <p style="color: #666; font-size: 14px; margin-top: 30px;">
-              Best,<br>
-              Team VibrationFit
-            </p>
-          </div>
-        `,
-        textBody: `Thanks, ${firstName}!\n\nWe've received your message and will be in touch soon.\n\nBest,\nTeam VibrationFit`,
+        subject: `Hey ${firstName}, quick note from VibrationFit`,
+        textBody: [
+          `Hey ${firstName},`,
+          '',
+          `Thanks for reaching out. I got your message and will be in touch soon.`,
+          '',
+          `Quick favor -- could you reply with "Got it" so I know this landed in your inbox? That helps me make sure you get everything going forward.`,
+          '',
+          'Talk soon,',
+          'Jordan',
+          'https://vibrationfit.com',
+        ].join('\n'),
       }
   }
 }

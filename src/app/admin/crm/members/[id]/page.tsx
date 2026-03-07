@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { Button, Card, Badge, Container, Spinner, Input, Textarea, Stack, PageHero, TrackingMilestoneCard } from '@/lib/design-system/components'
 import { ConversationThread } from '@/components/crm/ConversationThread'
+import { useConversationRealtime } from '@/hooks/useConversationRealtime'
 import { RefreshCw, MessageSquare, Mail, Target, Activity, Clock, DollarSign, BarChart3 } from 'lucide-react'
 import RetentionMetricsBreakdown from '@/components/admin/RetentionMetricsBreakdown'
 import { toast } from 'sonner'
@@ -81,6 +82,12 @@ export default function MemberDetailPage() {
   const [emailSubject, setEmailSubject] = useState('')
   const [emailBody, setEmailBody] = useState('')
   const [sendingEmail, setSendingEmail] = useState(false)
+
+  useConversationRealtime({
+    onUpdate: fetchConversation,
+    userId: member?.user_id,
+    enabled: !!member,
+  })
 
   useEffect(() => {
     fetchMember()
@@ -198,11 +205,6 @@ export default function MemberDetailPage() {
       // Clear message
       setMessageBody('')
       
-      // Refresh after a delay to allow DB commit
-      setTimeout(async () => {
-        await fetchConversation()
-        await fetchMember()
-      }, 1500)
     } catch (error: any) {
       toast.error('Failed to send message')
     } finally {
@@ -221,7 +223,6 @@ export default function MemberDetailPage() {
         body: JSON.stringify({
           to: member.email,
           subject: emailSubject.trim(),
-          htmlBody: emailBody.replace(/\n/g, '<br>'),
           textBody: emailBody.trim(),
         }),
       })
@@ -234,11 +235,6 @@ export default function MemberDetailPage() {
       // Clear form
       setEmailSubject('')
       setEmailBody('')
-      
-      // Refresh after a delay to allow DB commit
-      setTimeout(async () => {
-        await fetchConversation()
-      }, 1500)
       
       toast.success('Email sent successfully')
     } catch (error: any) {
@@ -797,7 +793,7 @@ export default function MemberDetailPage() {
               </Button>
             </div>
             <ConversationThread 
-              messages={[...conversation].reverse()} 
+              messages={conversation} 
               loading={loadingConversation}
             />
           </Card>

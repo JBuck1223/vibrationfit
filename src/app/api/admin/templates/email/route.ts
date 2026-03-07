@@ -69,9 +69,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
 
     // Validate required fields
-    if (!body.name || !body.slug || !body.subject || !body.html_body) {
+    if (!body.name || !body.slug || !body.subject || (!body.html_body && !body.text_body)) {
       return NextResponse.json(
-        { error: 'Missing required fields: name, slug, subject, html_body' },
+        { error: 'Missing required fields: name, slug, subject, and either html_body or text_body' },
         { status: 400 }
       )
     }
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
         category: body.category || 'other',
         status: body.status || 'draft',
         subject: body.subject,
-        html_body: body.html_body,
+        html_body: body.html_body || '',
         text_body: body.text_body || null,
         variables: body.variables || [],
         triggers: body.triggers || [],

@@ -3,12 +3,13 @@
 import { useState } from 'react'
 import { MediaRecorderComponent } from '@/components/MediaRecorder'
 import { Card, Stack, Badge, Button, Container, PageHero } from '@/lib/design-system/components'
-import { Mic, Video, ArrowLeft } from 'lucide-react'
+import { Mic, Video, Monitor, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
 export default function MediaRecorderShowcase() {
   const [showBasic, setShowBasic] = useState(false)
   const [showVideo, setShowVideo] = useState(false)
+  const [showScreen, setShowScreen] = useState(false)
   const [showQuick, setShowQuick] = useState(false)
   const [showAudioOnly, setShowAudioOnly] = useState(false)
 
@@ -47,9 +48,9 @@ export default function MediaRecorderShowcase() {
             <div className="space-y-4">
               <PropRow 
                 name="mode" 
-                type="'audio' | 'video'" 
+                type="'audio' | 'video' | 'screen'" 
                 defaultValue="'audio'"
-                description="Recording mode - audio or video"
+                description="Recording mode - audio, video (camera), or screen (display + mic for support clips)"
               />
               <PropRow 
                 name="onRecordingComplete" 
@@ -108,9 +109,9 @@ export default function MediaRecorderShowcase() {
               />
               <PropRow 
                 name="recordingPurpose" 
-                type="'quick' | 'transcriptOnly' | 'withFile' | 'audioOnly'" 
+                type="'quick' | 'transcriptOnly' | 'withFile' | 'audioOnly' | 'support'" 
                 defaultValue="'withFile'"
-                description={`Recording modes:\n• quick: No S3, instant transcript\n• transcriptOnly: S3 backup, delete if discarded\n• withFile: S3 always kept\n• audioOnly: S3 storage, no transcription`}
+                description={`Recording modes:\n• quick: No S3, instant transcript\n• transcriptOnly: S3 backup, delete if discarded\n• withFile: S3 always kept\n• audioOnly: S3 storage, no transcription\n• support: S3 to support folder, Submit + Record again only (no transcribe)`}
               />
               <PropRow 
                 name="enableEditor" 
@@ -197,6 +198,37 @@ export default function MediaRecorderShowcase() {
                     storageFolder="journalVideoRecordings"
                     onRecordingComplete={(blob, transcript, shouldSave, s3Url) => {
                       console.log('Video complete:', { blob, transcript, shouldSave, s3Url })
+                    }}
+                  />
+                )}
+              </div>
+
+              {/* Screen recording – support flow (Submit only, no transcribe) */}
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <h3 className="text-lg font-semibold">Screen recording (support)</h3>
+                  <Badge variant="info">support</Badge>
+                </div>
+                <p className="text-sm text-neutral-400 mb-3">
+                  Share your screen + microphone. Uploads to support folder. Submit or Record again (no transcription).
+                </p>
+                <Button 
+                  onClick={() => setShowScreen(!showScreen)} 
+                  variant="outline"
+                  className="mb-4"
+                >
+                  {showScreen ? 'Hide' : 'Show'} Screen recorder
+                </Button>
+                {showScreen && (
+                  <MediaRecorderComponent
+                    mode="screen"
+                    recordingPurpose="support"
+                    category="showcase-screen"
+                    instanceId="screen-example"
+                    fullscreenVideo={true}
+                    storageFolder="supportVideoRecordings"
+                    onRecordingComplete={(blob, _transcript, _shouldSave, s3Url) => {
+                      console.log('Support clip submitted:', { s3Url })
                     }}
                   />
                 )}

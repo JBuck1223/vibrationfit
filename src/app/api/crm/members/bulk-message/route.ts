@@ -126,9 +126,9 @@ export async function POST(request: NextRequest) {
       const bulkResults = await sendAndLogBulkEmail({
         recipients: emailRecipients,
         subject,
-        htmlBody: `<p>Hi there,</p><p>${message.replace(/\n/g, '<br>')}</p>`,
-        textBody: `Hi there,\n\n${message}`,
-        replyTo: 'team@vibrationfit.com',
+        from: '"Jordan at VibrationFit" <jordan@vibrationfit.com>',
+        textBody: message,
+        replyTo: 'jordan@vibrationfit.com',
       })
 
       results.success = bulkResults.sent.length

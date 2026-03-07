@@ -16,7 +16,7 @@ const sesClient = new SESClient({
 export interface SendEmailParams {
   to: string | string[]
   subject: string
-  htmlBody: string
+  htmlBody?: string
   textBody?: string
   from?: string
   replyTo?: string
@@ -70,7 +70,7 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
     Message: {
       Subject: { Data: subject, Charset: 'UTF-8' },
       Body: {
-        Html: { Data: htmlBody, Charset: 'UTF-8' },
+        ...(htmlBody && { Html: { Data: htmlBody, Charset: 'UTF-8' } }),
         ...(textBody && { Text: { Data: textBody, Charset: 'UTF-8' } }),
       },
     },

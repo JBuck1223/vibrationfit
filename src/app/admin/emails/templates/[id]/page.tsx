@@ -244,8 +244,8 @@ export default function EmailTemplateDetailPage() {
         body: JSON.stringify({
           to: testEmail,
           subject: formData.subject,
-          htmlBody: formData.html_body,
-          textBody: formData.text_body,
+          ...(formData.text_body.trim() ? {} : { htmlBody: formData.html_body }),
+          textBody: formData.text_body || formData.html_body.replace(/<[^>]*>/g, ''),
         }),
       })
 
@@ -408,15 +408,38 @@ export default function EmailTemplateDetailPage() {
               <Card className="p-4 md:p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-medium text-white">Email Content</h2>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowPreview(!showPreview)}
-                  >
-                    <Eye className="w-4 h-4 mr-2" />
-                    {showPreview ? 'Edit' : 'Preview'}
-                  </Button>
+                  <div className="flex items-center gap-3">
+                    {formData.text_body.trim() ? (
+                      <Badge className="bg-primary-500/20 text-primary-500 border border-primary-500/30 px-3 py-1 text-xs font-semibold">
+                        Plain Text (Primary Inbox)
+                      </Badge>
+                    ) : formData.html_body.trim() ? (
+                      <Badge className="bg-[#FFB701]/20 text-[#FCD34D] border border-[#FFB701]/30 px-3 py-1 text-xs font-semibold">
+                        HTML (may land in Promotions)
+                      </Badge>
+                    ) : null}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowPreview(!showPreview)}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      {showPreview ? 'Edit' : 'Preview'}
+                    </Button>
+                  </div>
                 </div>
+
+                {formData.text_body.trim() && !formData.html_body.trim() && (
+                  <div className="mb-4 p-3 rounded-lg bg-primary-500/10 border border-primary-500/25 text-sm text-primary-500">
+                    This template sends as plain text only -- best for CRM outbound and landing in the Primary inbox.
+                  </div>
+                )}
+
+                {formData.text_body.trim() && formData.html_body.trim() && (
+                  <div className="mb-4 p-3 rounded-lg bg-primary-500/10 border border-primary-500/25 text-sm text-primary-500">
+                    Plain text body is set, so automation and scheduled sends will use text-only for deliverability. HTML is used when this template is loaded in the CRM composer.
+                  </div>
+                )}
 
                 {showPreview ? (
                   <div className="space-y-4">
@@ -424,13 +447,19 @@ export default function EmailTemplateDetailPage() {
                       <p className="text-xs text-neutral-500 mb-1">Subject</p>
                       <p className="text-white">{formData.subject}</p>
                     </div>
-                    <div className="border border-neutral-700 rounded-lg overflow-hidden">
-                      <iframe
-                        srcDoc={formData.html_body}
-                        className="w-full h-[500px] bg-white"
-                        title="Email Preview"
-                      />
-                    </div>
+                    {formData.text_body.trim() ? (
+                      <div className="p-4 bg-neutral-800 rounded-lg whitespace-pre-wrap text-sm text-neutral-200 font-mono">
+                        {formData.text_body}
+                      </div>
+                    ) : (
+                      <div className="border border-neutral-700 rounded-lg overflow-hidden">
+                        <iframe
+                          srcDoc={formData.html_body}
+                          className="w-full h-[500px] bg-white"
+                          title="Email Preview"
+                        />
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -448,26 +477,35 @@ export default function EmailTemplateDetailPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-neutral-300 mb-2">
+                        Plain Text Body
+                        <span className="ml-2 text-xs text-primary-500 font-normal">
+                          Recommended for CRM outbound
+                        </span>
+                      </label>
+                      <Textarea
+                        value={formData.text_body}
+                        onChange={(e) => setFormData(prev => ({ ...prev, text_body: e.target.value }))}
+                        placeholder="Hey {{firstName}},&#10;&#10;Write your email in plain text here for best deliverability..."
+                        rows={10}
+                        className="bg-neutral-800 border-neutral-700 font-mono text-sm"
+                      />
+                      <p className="text-xs text-neutral-500 mt-1">
+                        When set, automation rules and scheduled sends use this as the primary body (no HTML). Lands in Primary inbox.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-300 mb-2">
                         HTML Body
+                        <span className="ml-2 text-xs text-neutral-500 font-normal">
+                          For styled notifications or CRM template picker
+                        </span>
                       </label>
                       <Textarea
                         value={formData.html_body}
                         onChange={(e) => setFormData(prev => ({ ...prev, html_body: e.target.value }))}
                         placeholder="<p>Your HTML email content...</p>"
-                        rows={12}
-                        className="bg-neutral-800 border-neutral-700 font-mono text-sm"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-neutral-300 mb-2">
-                        Plain Text Body
-                      </label>
-                      <Textarea
-                        value={formData.text_body}
-                        onChange={(e) => setFormData(prev => ({ ...prev, text_body: e.target.value }))}
-                        placeholder="Plain text fallback..."
-                        rows={4}
+                        rows={8}
                         className="bg-neutral-800 border-neutral-700 font-mono text-sm"
                       />
                     </div>

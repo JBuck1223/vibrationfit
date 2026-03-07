@@ -13,6 +13,7 @@ import {
 } from '@/lib/design-system/components'
 import { ArrowLeft, Mail, MessageSquare, Phone, Calendar, RefreshCw, Send, FileText, ChevronDown, Search, Eye, EyeOff, X } from 'lucide-react'
 import { ConversationThread } from '@/components/crm/ConversationThread'
+import { useConversationRealtime } from '@/hooks/useConversationRealtime'
 import { toast } from 'sonner'
 
 interface Lead {
@@ -64,6 +65,12 @@ export default function LeadDetailPage() {
   const [loadingTemplates, setLoadingTemplates] = useState(false)
   const [showTemplates, setShowTemplates] = useState(false)
   const [templateSearch, setTemplateSearch] = useState('')
+
+  useConversationRealtime({
+    onUpdate: fetchConversation,
+    email: lead?.email,
+    enabled: !!lead,
+  })
 
   useEffect(() => {
     if (leadId) {
@@ -141,11 +148,11 @@ export default function LeadDetailPage() {
     const text = substituteVars(template.text_body || '')
 
     setEmailSubject(subject)
-    setEmailHtml(html)
     setEmailBody(text || html.replace(/<[^>]*>/g, ''))
+    setEmailHtml('')
     setShowTemplates(false)
     setTemplateSearch('')
-    setShowPreview(true)
+    setShowPreview(false)
     toast.success(`Template "${template.name}" loaded`)
   }
 
@@ -174,17 +181,13 @@ export default function LeadDetailPage() {
 
     setSendingEmail(true)
     try {
-      const htmlToSend = emailHtml.trim() || emailBody.replace(/\n/g, '<br>')
-      const textToSend = emailBody.trim() || emailHtml.replace(/<[^>]*>/g, '')
-
       const response = await fetch(`/api/crm/leads/${leadId}/email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: lead.email,
           subject: emailSubject.trim(),
-          htmlBody: htmlToSend,
-          textBody: textToSend,
+          textBody: emailBody.trim(),
         }),
       })
 
@@ -204,9 +207,6 @@ export default function LeadDetailPage() {
         setLead({ ...lead, status: 'contacted' })
       }
 
-      setTimeout(() => {
-        fetchConversation()
-      }, 1500)
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Failed to send email'
       toast.error(msg)

@@ -44,14 +44,14 @@ export async function GET(
         .from('sms_messages')
         .select('*')
         .eq('lead_id', id)
-        .order('created_at', { ascending: true }),
+        .order('created_at', { ascending: false }),
       // Use separate .eq() calls instead of string interpolation in .or() to prevent filter injection
       lead.email
         ? adminClient
             .from('email_messages')
             .select('*')
             .or(`from_email.eq."${lead.email}",to_email.eq."${lead.email}"`)
-            .order('created_at', { ascending: true })
+            .order('created_at', { ascending: false })
         : Promise.resolve({ data: [] }),
     ])
 
@@ -103,7 +103,7 @@ export async function GET(
 
     // Sort by timestamp
     allMessages.sort((a, b) =>
-      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     )
 
     return NextResponse.json({

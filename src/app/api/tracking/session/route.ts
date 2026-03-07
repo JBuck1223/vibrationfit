@@ -44,7 +44,13 @@ export async function POST(request: NextRequest) {
     const msclkid = urlParams?.msclkid || null
     const ttclid = urlParams?.ttclid || null
 
-    if (isNewVisitor) {
+    const { data: existingVisitor } = await supabase
+      .from('visitors')
+      .select('id, session_count')
+      .eq('id', visitorId)
+      .maybeSingle()
+
+    if (!existingVisitor) {
       const { error: visitorErr } = await supabase.from('visitors').insert({
         id: visitorId,
         fingerprint: visitorId,
@@ -72,9 +78,6 @@ export async function POST(request: NextRequest) {
       const updates: Record<string, unknown> = {
         last_seen_at: new Date().toISOString(),
       }
-      if (isNewSession) {
-        updates.session_count = undefined // incremented below via rpc or raw
-      }
       if (utmSource) {
         updates.last_utm_source = utmSource
         updates.last_utm_medium = utmMedium
@@ -82,18 +85,11 @@ export async function POST(request: NextRequest) {
       }
 
       if (isNewSession) {
-        // Increment session_count atomically
-        const { data: visitor } = await supabase
-          .from('visitors')
-          .select('session_count')
-          .eq('id', visitorId)
-          .single()
-
         await supabase
           .from('visitors')
           .update({
             ...updates,
-            session_count: (visitor?.session_count || 0) + 1,
+            session_count: (existingVisitor.session_count || 0) + 1,
           })
           .eq('id', visitorId)
       } else {

@@ -14,6 +14,33 @@ import { triggerEvent } from '@/lib/messaging/events'
 import { getPaymentPlanLabel } from '@/lib/intensive/utils'
 import { toTitleCase } from '@/lib/utils'
 import { sendServerConversion } from '@/lib/tracking/server-conversions'
+import { sendSMS } from '@/lib/messaging/twilio'
+
+async function notifyAdminPurchase(details: {
+  customerName?: string
+  customerEmail?: string
+  amount: number
+  currency?: string
+  product?: string
+  paymentPlan?: string
+}) {
+  const phonesRaw = process.env.ADMIN_NOTIFICATION_PHONES
+  if (!phonesRaw) return
+
+  const phones = phonesRaw.split(',').map(p => p.trim()).filter(Boolean)
+  if (phones.length === 0) return
+
+  const amountStr = `$${(details.amount / 100).toFixed(2)}`
+  const name = details.customerName || details.customerEmail || 'Unknown'
+  const product = details.product || 'Purchase'
+  const plan = details.paymentPlan ? ` (${details.paymentPlan})` : ''
+
+  const body = `New purchase: ${name} - ${product}${plan} - ${amountStr}`
+
+  await Promise.allSettled(
+    phones.map(phone => sendSMS({ to: phone, body }))
+  ).catch(err => console.error('Admin notification SMS failed:', err))
+}
 
 type OrderInsertParams = {
   userId: string
@@ -1467,6 +1494,15 @@ export async function POST(request: NextRequest) {
             userAgent: request.headers.get('user-agent') || undefined,
             visitorId: csVisitorId || undefined,
           }).catch(err => console.error('Server conversion (checkout.session) error:', err))
+
+          notifyAdminPurchase({
+            customerName: session.customer_details?.name || undefined,
+            customerEmail: csEmail || undefined,
+            amount: session.amount_total,
+            currency: session.currency || 'usd',
+            product: session.metadata?.product_type || session.metadata?.purchase_type || 'checkout',
+            paymentPlan: session.metadata?.payment_plan || session.metadata?.intensive_payment_plan || undefined,
+          }).catch(err => console.error('Admin purchase notification error:', err))
         }
         
         break
@@ -1989,6 +2025,15 @@ export async function POST(request: NextRequest) {
             userAgent: request.headers.get('user-agent') || undefined,
             visitorId: visitorId || undefined,
           }).catch(err => console.error('Server conversion (payment_intent) error:', err))
+
+          notifyAdminPurchase({
+            customerName: name || undefined,
+            customerEmail: email || undefined,
+            amount: totalAmount,
+            currency: pi.currency || 'usd',
+            product,
+            paymentPlan: plan,
+          }).catch(err => console.error('Admin purchase notification error:', err))
         }
 
         if (promoCode) {
