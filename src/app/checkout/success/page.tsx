@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Container, Card, Spinner } from '@/lib/design-system/components'
+import { trackConversion } from '@/lib/tracking/pixels'
 
 const POLL_INTERVAL_MS = 1500
 const MAX_ATTEMPTS = 40 // ~60 seconds
@@ -12,6 +13,7 @@ export default function CheckoutSuccessPage() {
   const paymentIntentId = searchParams.get('payment_intent')
   const orderId = searchParams.get('order_id')
   const [error, setError] = useState<string | null>(null)
+  const conversionFired = useRef(false)
 
   useEffect(() => {
     if (!paymentIntentId && !orderId) {
@@ -36,6 +38,15 @@ export default function CheckoutSuccessPage() {
         const data = await res.json()
 
         if (data.ready && data.redirectUrl) {
+          if (!conversionFired.current) {
+            conversionFired.current = true
+            trackConversion('purchase', {
+              value: data.amount,
+              currency: (data.currency || 'usd').toUpperCase(),
+              content_name: data.product,
+              event_id: data.paymentIntentId || data.orderId,
+            })
+          }
           window.location.href = data.redirectUrl
           return
         }

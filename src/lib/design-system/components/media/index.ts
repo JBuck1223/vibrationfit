@@ -1,5 +1,5 @@
 export { AudioPlayer } from './AudioPlayer'
 export { PlaylistPlayer } from './PlaylistPlayer'
 export { type AudioTrack } from './types'
-export { Video } from './Video'
+export { Video, getVideoThumbnailUrl } from './Video'
 export { ImageLightbox, type ImageLightboxImage } from './ImageLightbox'

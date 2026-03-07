@@ -13,6 +13,7 @@ import Stripe from 'stripe'
 import { triggerEvent } from '@/lib/messaging/events'
 import { getPaymentPlanLabel } from '@/lib/intensive/utils'
 import { toTitleCase } from '@/lib/utils'
+import { sendServerConversion } from '@/lib/tracking/server-conversions'
 
 type OrderInsertParams = {
   userId: string
@@ -1438,6 +1439,35 @@ export async function POST(request: NextRequest) {
             paymentPlanLabel: getPaymentPlanLabel(intensivePaymentPlan),
           }).catch(err => console.error(`triggerEvent ${intensiveEventName} error:`, err))
         }
+
+        // Server-side conversion events for checkout.session.completed
+        if (session.amount_total && session.amount_total > 0) {
+          const csEmail = session.customer_details?.email || session.customer_email || session.metadata?.email
+          const csVisitorId = session.metadata?.visitor_id
+          let csVisitorData: Record<string, unknown> | null = null
+          if (csVisitorId) {
+            const { data } = await supabaseAdmin.from('visitors').select('first_fbclid, first_gclid, first_ttclid').eq('id', csVisitorId).maybeSingle()
+            csVisitorData = data
+          }
+          sendServerConversion('purchase', {
+            email: csEmail || undefined,
+            phone: session.customer_details?.phone || undefined,
+            firstName: session.customer_details?.name?.split(' ')[0] || undefined,
+            lastName: session.customer_details?.name?.split(' ').slice(1).join(' ') || undefined,
+            value: session.amount_total / 100,
+            currency: (session.currency || 'usd').toUpperCase(),
+            contentName: session.metadata?.product_type || session.metadata?.source || 'checkout',
+            orderId: session.id,
+            eventId: (session.payment_intent as string) || session.id,
+            eventSourceUrl: 'https://vibrationfit.com/checkout/success',
+            fbclid: (csVisitorData as any)?.first_fbclid || undefined,
+            gclid: (csVisitorData as any)?.first_gclid || undefined,
+            ttclid: (csVisitorData as any)?.first_ttclid || undefined,
+            ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,
+            userAgent: request.headers.get('user-agent') || undefined,
+            visitorId: csVisitorId || undefined,
+          }).catch(err => console.error('Server conversion (checkout.session) error:', err))
+        }
         
         break
       }
@@ -1932,6 +1962,33 @@ export async function POST(request: NextRequest) {
               order_id: order.id,
             })).catch(err => console.error('Failed to create premium coaching record:', err))
           }
+        }
+
+        // Server-side conversion events (Meta CAPI, GA4 MP, TikTok Events API)
+        {
+          let visitorData: Record<string, unknown> | null = null
+          if (visitorId) {
+            const { data } = await supabaseAdmin.from('visitors').select('first_fbclid, first_gclid, first_ttclid').eq('id', visitorId).maybeSingle()
+            visitorData = data
+          }
+          sendServerConversion('purchase', {
+            email: email || undefined,
+            phone: phone || undefined,
+            firstName: firstName || undefined,
+            lastName: lastName || undefined,
+            value: totalAmount / 100,
+            currency: (pi.currency || 'usd').toUpperCase(),
+            contentName: product,
+            orderId: order.id,
+            eventId: pi.id,
+            eventSourceUrl: 'https://vibrationfit.com/checkout/success',
+            fbclid: (visitorData as any)?.first_fbclid || undefined,
+            gclid: (visitorData as any)?.first_gclid || undefined,
+            ttclid: (visitorData as any)?.first_ttclid || undefined,
+            ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,
+            userAgent: request.headers.get('user-agent') || undefined,
+            visitorId: visitorId || undefined,
+          }).catch(err => console.error('Server conversion (payment_intent) error:', err))
         }
 
         if (promoCode) {

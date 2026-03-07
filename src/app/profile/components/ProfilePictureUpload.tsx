@@ -59,20 +59,22 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError, 
     }
   }, [initialFile, processFile])
 
-  // Center crop on image load
+  // Center crop on image load and mark it as complete so the button is active immediately
   useEffect(() => {
     if (imgRef.current) {
       const img = imgRef.current
       const setCenteredCrop = () => {
         const { width, height } = img
         const size = Math.min(width, height)
-        setCrop({
+        const centered: Crop = {
           unit: 'px',
           width: size,
           height: size,
           x: (width - size) / 2,
           y: (height - size) / 2,
-        })
+        }
+        setCrop(centered)
+        setCompletedCrop(centered)
       }
 
       if (img.complete) {

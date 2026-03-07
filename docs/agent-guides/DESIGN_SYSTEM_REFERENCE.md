@@ -125,6 +125,37 @@ Contrast Red: #D03739     /* Alerts, "below Green Line", warnings */
 #FFFFFF - Pure White (text on dark backgrounds)
 ```
 
+### Core 4 Categories (Retention Tiles & Achievement Badges)
+```css
+/* Creations (Asset Building) - Yellow/Gold */
+Primary: #FACC15 (text/icon)     | Badge: #FFB701
+Bg:      rgba(234,179,8,0.1)     | Border: rgba(234,179,8,0.3)
+Tailwind: text-yellow-400, bg-yellow-500/10, border-yellow-500/30
+
+/* Activations (Daily Protocol) - Green */
+Primary: #4ADE80 (text/icon)     | Badge: #199D67
+Bg:      rgba(34,197,94,0.1)     | Border: rgba(34,197,94,0.3)
+Tailwind: text-green-400, bg-green-500/10, border-green-500/30
+
+/* Connections (Vibe Tribe) - Purple */
+Primary: #C084FC (text/icon)     | Badge: #8B5CF6
+Bg:      rgba(168,85,247,0.1)    | Border: rgba(168,85,247,0.3)
+Tailwind: text-purple-400, bg-purple-500/10, border-purple-500/30
+
+/* Sessions (Alignment Gym) - Teal */
+Primary: #2DD4BF (text/icon)     | Badge: #14B8A6
+Bg:      rgba(20,184,166,0.1)    | Border: rgba(20,184,166,0.3)
+Tailwind: text-teal-400, bg-teal-500/10, border-teal-500/30
+```
+
+### Vibe Tags (Vibe Tribe Post Types)
+```css
+Win:           #39FF14  /* Electric Lime (= primary brand green)  */
+Wobble:        #00FFFF  /* Neon Cyan (= secondary brand cyan)     */
+Vision:        #BF00FF  /* Neon Purple (= accent brand purple)    */
+Collaboration: #FFFF00  /* Neon Yellow (= energy yellow)          */
+```
+
 ### Gradients
 ```css
 /* Use these gradient combinations */

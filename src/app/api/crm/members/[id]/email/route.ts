@@ -3,8 +3,8 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient, isUserAdmin } from '@/lib/supabase/admin'
-import { sendEmail } from '@/lib/email/aws-ses'
+import { isUserAdmin } from '@/lib/supabase/admin'
+import { sendAndLogEmail } from '@/lib/email/send'
 
 export async function POST(
   request: NextRequest,
@@ -35,41 +35,19 @@ export async function POST(
       )
     }
 
-    // Basic email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(to)) {
       return NextResponse.json({ error: 'Invalid email address format' }, { status: 400 })
     }
 
-    // Send email via AWS SES
-    await sendEmail({
+    await sendAndLogEmail({
       to,
       subject,
       htmlBody: htmlBody || `<p>${textBody}</p>`,
       textBody: textBody || htmlBody?.replace(/<[^>]*>/g, ''),
       replyTo: 'team@vibrationfit.com',
+      context: { userId: id },
     })
-
-    // Log to database for conversation history (use admin client to bypass RLS)
-    const adminClient = createAdminClient()
-    const { error: logError } = await adminClient
-      .from('email_messages')
-      .insert({
-        user_id: id,
-        from_email: process.env.AWS_SES_FROM_EMAIL || 'no-reply@vibrationfit.com',
-        to_email: to,
-        subject,
-        body_text: textBody || htmlBody?.replace(/<[^>]*>/g, ''),
-        body_html: htmlBody,
-        direction: 'outbound',
-        status: 'sent',
-        created_at: new Date().toISOString(),
-      })
-
-    if (logError) {
-      console.error('Failed to log email:', logError)
-      // Continue anyway - email was sent
-    }
 
     return NextResponse.json({
       success: true,

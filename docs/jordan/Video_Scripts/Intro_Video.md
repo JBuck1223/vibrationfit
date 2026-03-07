@@ -42,9 +42,6 @@ We had student debt, credit card debt, business debt — basically every kind of
 [Jordan]
 For all intents and purposes... we could have been deemed real losers.
 
-*(Jim Carrey voice)*
-Loooosers.
-
 [Vanessa]
 But we believed in the power of Universal Law. We just couldn't make it work. Because we were playing the hokey pokey with our vibration — one foot in, one foot out.
 
@@ -77,7 +74,7 @@ The woo-woo being Universal Law. The how-to being a structured system that train
 VibrationFit is where you come to train your vibration. Think of it like a gym — but instead of physical muscles, you're building vibrational ones. And your personal trainer is VIVA, our Conscious Creation coach built right into the platform.
 
 [Jordan]
-VIVA walks you through building a complete Life Vision across twelve categories of your life, creates personalized Vision Audio that you listen to every day, generates a custom vision board, and gives you a daily practice called your MAP — My Activation Plan — that keeps your vibration locked in and aligned.
+VIVA walks you through building a complete Life Vision across twelve life categories, creates personalized Vision Audios that you listen to every day, generates a custom vision board, and gives you a daily practice called your MAP — My Activation Plan — that keeps your vibration locked in and aligned.
 
 [Vanessa]
 It's not another course you watch and forget. It's a system you live in.
@@ -96,13 +93,13 @@ In just 72 hours, you'll complete a guided, step-by-step process that installs t
 You walk in with vibrational chaos. You walk out with a crystal clear vision and a daily system to keep you above the Green Line — that's our way of saying vibrationally aligned with the life you choose.
 
 [Vanessa]
-And when the Intensive is done, you don't just get dumped off. Your Activation Intensive includes eight weeks of Vision Pro membership — full access to everything. Advanced audio tools, The Alignment Gym with weekly live coaching, and our Vibe Tribe community.
+And when the Intensive is done, you don't just get dumped off. Your Activation Intensive includes eight weeks of Vision Pro membership — full access to everything. 
 
 [Jordan]
-For those who want the highest level of support, we also offer the Premium Activation Intensive — same powerful system, plus ten private one-on-one coaching sessions over eight weeks.
+Advanced audio tools, The Alignment Gym with weekly live coaching, and our Vibe Tribe community.
 
 [Vanessa]
-Either way, after your included weeks, Vision Pro keeps you in the system — continuing to train, refine, and compound your vibrational alignment every single day.
+After your included weeks, Vision Pro keeps you in the system — continuing to train, refine, and compound your vibrational alignment every single day.
 
 ---
 
@@ -125,3 +122,73 @@ Welcome home.
 
 [Vanessa]
 Start the Activation Intensive today. We'll see you on the other side, above the Green Line.
+
+---
+---
+
+## APPENDIX — Activation Intensive Explained (For Developer Reference)
+
+The 72-Hour Activation Intensive is the core entry point into VibrationFit. It's a guided, time-boxed onboarding experience that takes a new member from zero to a fully installed Conscious Creation System in 72 hours. Here's what it actually involves:
+
+### The 14-Step Path (6 Phases)
+
+1. **Profile Setup** — The member completes their profile to at least 70%.
+2. **Vibration Assessment** — An 84-question assessment that establishes their vibrational baseline across 12 life categories.
+3. **Life Vision Creation** — VIVA (our branded AI coach) guides them through building a detailed Life Vision across all 12 categories. This is the foundation everything else is built on.
+4. **Vision Audio Generation** — The platform generates personalized AM and PM audio tracks derived from their Life Vision. These are what they listen to daily to reinforce their vibrational alignment.
+5. **Vision Board Creation** — A 12-image vision board is generated from their Life Vision content.
+6. **First Journal Entry** — Their first guided journaling session within the platform.
+7. **Calibration Call Booked** — They schedule a call with a coach to review their Activation and align on next steps.
+8. **MAP Created** — My Activation Plan is generated. This is a personalized 28-day daily protocol that tells them exactly what to do each day (listen to audio, journal prompts, VIVA check-ins, etc.) to maintain vibrational alignment.
+
+Steps are grouped into 6 phases, and the member progresses through a visual checklist. Completing all steps within 72 hours is what "graduating" the Intensive means.
+
+### What Graduates Unlock
+
+Upon completing the Intensive, members gain access to:
+
+- **Advanced Audio Suite** — Additional audio tools beyond the core AM/PM Vision Audio.
+- **The Alignment Gym** — Weekly live group coaching sessions.
+- **Vibe Tribe** — The member community for sharing wins, asking questions, and staying connected.
+
+### What's Included with Purchase
+
+- The full 14-step Activation Intensive experience
+- 5 million VIVA tokens (Solo) or 7.5 million (Household) — these do not expire
+- 8 weeks of Vision Pro membership included at no additional cost
+- After 8 weeks (Day 56), billing begins at the member's selected Vision Pro plan
+
+### Pricing (Standard Activation Intensive)
+
+| Plan | Full Pay | 2-Pay | 3-Pay |
+|------|----------|-------|-------|
+| Solo | $499 | $249.50 x 2 | $166.33 x 3 |
+| Household | $699 | $349.50 x 2 | $233 x 3 |
+
+### Premium Activation Intensive (Higher Touch)
+
+Same 14-step system, plus:
+
+- 10 private 1-on-1 coaching sessions over 8 weeks (2/week for weeks 1–2, 1/week for weeks 3–8)
+- 8 weeks of Vision Pro included
+- Same token grants (5M Solo / 7.5M Household)
+
+| Plan | Full Pay | 2-Pay |
+|------|----------|-------|
+| Solo | $3,000 | $1,500 x 2 |
+| Household | $4,200 | Full pay only |
+
+### Vision Pro Membership (Post-Intensive)
+
+After the included 8 weeks, members continue on Vision Pro:
+
+| Tier | 28-Day | Annual |
+|------|--------|--------|
+| Solo | $99 | $999 |
+| Household | $149 | $999 |
+
+Vision Pro includes ongoing access to all platform features, token grants each billing cycle (1M per 28 days Solo, 20M annually), and the community/coaching ecosystem.
+
+### Key Concept: "Above the Green Line"
+
+This is VibrationFit's branded way of describing vibrational alignment. When a member's thoughts, feelings, and daily practice are consistently in harmony with their Life Vision, they're "above the Green Line." The Activation Intensive is designed to get them there. Vision Pro is designed to keep them there.

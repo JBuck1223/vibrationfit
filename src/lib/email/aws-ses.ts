@@ -1,11 +1,12 @@
 // /src/lib/email/aws-ses.ts
-// AWS SES Email Service for VibrationFit
+// Low-level AWS SES client. Prefer importing from '@/lib/email/send' for
+// send-and-log in one call. Use this module directly only for test/admin
+// sends that don't need database logging.
 
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses'
 
-// Initialize SES client
 const sesClient = new SESClient({
-  region: process.env.AWS_SES_REGION || 'us-east-1', // SES is in us-east-1
+  region: process.env.AWS_SES_REGION || 'us-east-1',
   credentials: {
     accessKeyId: process.env.AWS_SES_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID || '',
     secretAccessKey: process.env.AWS_SES_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY || '',
@@ -21,104 +22,110 @@ export interface SendEmailParams {
   replyTo?: string
 }
 
+export interface SendEmailResult {
+  messageId: string
+  to: string[]
+}
+
+export interface BulkSendResult {
+  email: string
+  messageId: string
+}
+
+export interface BulkSendError {
+  email: string
+  error: string
+}
+
+export interface BulkEmailResults {
+  sent: BulkSendResult[]
+  failed: BulkSendError[]
+}
+
+const DEFAULT_FROM = () =>
+  process.env.AWS_SES_FROM_EMAIL || '"Vibration Fit" <team@vibrationfit.com>'
+
+const CONFIGURATION_SET = () =>
+  process.env.AWS_SES_CONFIGURATION_SET || undefined
+
 /**
- * Send an email using AWS SES
+ * Send a single email via SES. Returns the SES MessageId so callers can
+ * store it for delivery tracking.
  */
-export async function sendEmail(params: SendEmailParams): Promise<void> {
+export async function sendEmail(params: SendEmailParams): Promise<SendEmailResult> {
   const {
     to,
     subject,
     htmlBody,
     textBody,
-    from = process.env.AWS_SES_FROM_EMAIL || '"Vibration Fit" <team@vibrationfit.com>',
+    from = DEFAULT_FROM(),
     replyTo,
   } = params
 
   const recipients = Array.isArray(to) ? to : [to]
 
-  try {
-    const command = new SendEmailCommand({
-      Source: from,
-      Destination: {
-        ToAddresses: recipients,
+  const command = new SendEmailCommand({
+    Source: from,
+    Destination: { ToAddresses: recipients },
+    Message: {
+      Subject: { Data: subject, Charset: 'UTF-8' },
+      Body: {
+        Html: { Data: htmlBody, Charset: 'UTF-8' },
+        ...(textBody && { Text: { Data: textBody, Charset: 'UTF-8' } }),
       },
-      Message: {
-        Subject: {
-          Data: subject,
-          Charset: 'UTF-8',
-        },
-        Body: {
-          Html: {
-            Data: htmlBody,
-            Charset: 'UTF-8',
-          },
-          ...(textBody && {
-            Text: {
-              Data: textBody,
-              Charset: 'UTF-8',
-            },
-          }),
-        },
-      },
-      ...(replyTo && {
-        ReplyToAddresses: [replyTo],
-      }),
-    })
+    },
+    ...(replyTo && { ReplyToAddresses: [replyTo] }),
+    ...(CONFIGURATION_SET() && { ConfigurationSetName: CONFIGURATION_SET() }),
+  })
 
-    const response = await sesClient.send(command)
-    console.log('✅ Email sent successfully:', {
-      messageId: response.MessageId,
-      to: recipients,
-      subject,
-    })
-  } catch (error) {
-    console.error('❌ Failed to send email:', error)
-    throw error
-  }
+  const response = await sesClient.send(command)
+  const messageId = response.MessageId || ''
+
+  console.log('[SES] sent', { messageId, to: recipients, subject })
+
+  return { messageId, to: recipients }
 }
 
 /**
- * Send a batch of emails (up to 50 recipients per batch)
+ * Send individual emails to each recipient (one SES call per address).
+ * This ensures per-recipient MessageId tracking and prevents recipients
+ * from seeing each other's addresses.
+ *
+ * Sends are parallelized in batches of 25 to respect SES rate limits.
  */
 export async function sendBulkEmail(
   params: Omit<SendEmailParams, 'to'> & { recipients: string[] }
-): Promise<void> {
+): Promise<BulkEmailResults> {
   const { recipients, ...emailParams } = params
+  const results: BulkEmailResults = { sent: [], failed: [] }
 
-  // SES allows up to 50 recipients per call
-  const batchSize = 50
-  const batches = []
-
-  for (let i = 0; i < recipients.length; i += batchSize) {
-    batches.push(recipients.slice(i, i + batchSize))
-  }
-
-  try {
-    await Promise.all(
-      batches.map((batch) =>
-        sendEmail({
-          ...emailParams,
-          to: batch,
-        })
-      )
+  const CONCURRENCY = 25
+  for (let i = 0; i < recipients.length; i += CONCURRENCY) {
+    const batch = recipients.slice(i, i + CONCURRENCY)
+    const settled = await Promise.allSettled(
+      batch.map(async (email) => {
+        const { messageId } = await sendEmail({ ...emailParams, to: email })
+        return { email, messageId }
+      })
     )
-    console.log('✅ Bulk email sent successfully to', recipients.length, 'recipients')
-  } catch (error) {
-    console.error('❌ Failed to send bulk email:', error)
-    throw error
-  }
-}
 
-/**
- * Verify if an email address is verified in SES
- * (Only needed in SES Sandbox mode)
- */
-export async function isEmailVerified(email: string): Promise<boolean> {
-  // In production mode, this check isn't needed
-  // In sandbox mode, you need to verify recipient emails
-  
-  // For now, we'll assume production mode
-  // If you're in sandbox, you'll need to implement verification check
-  return true
+    for (const result of settled) {
+      if (result.status === 'fulfilled') {
+        results.sent.push(result.value)
+      } else {
+        const email = batch[settled.indexOf(result)]
+        results.failed.push({
+          email,
+          error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+        })
+      }
+    }
+  }
+
+  console.log(
+    `[SES] bulk complete: ${results.sent.length} sent, ${results.failed.length} failed`
+  )
+
+  return results
 }
 

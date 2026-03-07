@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient, isUserAdmin } from '@/lib/supabase/admin'
-import { sendEmail } from '@/lib/email/aws-ses'
+import { sendAndLogEmail } from '@/lib/email/send'
 import { generateSupportTicketCreatedEmail } from '@/lib/email/templates/support-ticket-created'
 import { triggerEvent } from '@/lib/messaging/events'
 
@@ -76,24 +76,13 @@ export async function POST(request: NextRequest) {
         ticketUrl,
       })
 
-      await sendEmail({
+      await sendAndLogEmail({
         to: email,
         subject: emailData.subject,
         htmlBody: emailData.htmlBody,
         textBody: emailData.textBody,
         replyTo: 'team@vibrationfit.com',
-      })
-
-      // Log email to database
-      await adminClient.from('email_messages').insert({
-        user_id: user?.id || null,
-        from_email: 'team@vibrationfit.com',
-        to_email: email,
-        subject: emailData.subject,
-        body_text: emailData.textBody,
-        body_html: emailData.htmlBody,
-        direction: 'outbound',
-        status: 'sent',
+        context: { userId: user?.id, guestEmail: !user ? email : undefined },
       })
     } catch (emailError: unknown) {
       console.error('Failed to send confirmation email:', emailError)

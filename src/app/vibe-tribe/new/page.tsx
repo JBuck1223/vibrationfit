@@ -10,6 +10,7 @@ import {
   Textarea,
   CategoryCard,
   PageHero,
+  Video,
 } from '@/lib/design-system/components'
 import { 
   ArrowRight, 
@@ -246,18 +247,22 @@ export default function VibeTribeNewPage() {
 
       {/* Page padding matches PageLayout; pb-28 on mobile clears the fixed bottom nav */}
       <div className="pt-6 pb-28 md:pb-12 md:pt-12 lg:pt-8 px-4 sm:px-6 lg:px-8">
-        <Container size="md">
+        <Container size="xl">
           <div className="space-y-8">
           
           {/* Hero Section */}
           <PageHero
             title="Welcome to Vibe Tribe"
-            subtitle={
-              <span className="inline-block text-[#39FF14] font-semibold text-sm md:text-xl tracking-wide">
-                Start Here
-              </span>
-            }
-          />
+          >
+            <div className="mx-auto w-full max-w-3xl">
+              <Video
+                src="https://media.vibrationfit.com/site-assets/video/membership/vibe-tribe-1080p.mp4"
+                poster="https://media.vibrationfit.com/site-assets/video/membership/vibe-tribe-thumb.0000000.jpg"
+                variant="default"
+                caption="Five minute overview video"
+              />
+            </div>
+          </PageHero>
 
           {/* Intro Card */}
           <Card className="p-8 bg-neutral-900/50 border-neutral-800">

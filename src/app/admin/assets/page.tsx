@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Container, Card, Button, Badge, Input, Stack, PageHero } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
-import { Upload, Copy, Check, Image as ImageIcon, Video, Music, File, Folder, Plus, ChevronRight, ArrowLeft, CheckCircle2, X, Search, Trash2, Play, Pause, ChevronLeft, FileText, ExternalLink, Grid, List, RefreshCw } from 'lucide-react'
+import { Upload, Copy, Check, Image as ImageIcon, Video, Music, File, Folder, FolderInput, Plus, ChevronRight, ArrowLeft, CheckCircle2, X, Search, Trash2, Play, Pause, ChevronLeft, FileText, ExternalLink, Grid, List, RefreshCw, ImagePlus } from 'lucide-react'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { uploadMultipleSiteAssets, replaceSiteAsset } from '@/lib/storage/s3-storage-presigned'
 
@@ -73,6 +73,18 @@ function AssetsAdminContent() {
   const [replacingKey, setReplacingKey] = useState<string | null>(null)
   const [replaceProgress, setReplaceProgress] = useState(0)
   const replaceInputRef = useRef<HTMLInputElement>(null)
+
+  // Move modal state
+  const [showMoveModal, setShowMoveModal] = useState(false)
+  const [movePath, setMovePath] = useState<string[]>([])
+  const [moveFolders, setMoveFolders] = useState<string[]>([])
+  const [moveLoading, setMoveLoading] = useState(false)
+  const [moving, setMoving] = useState(false)
+
+  // Custom thumbnail state
+  const [thumbnailTargetKey, setThumbnailTargetKey] = useState<string | null>(null)
+  const [thumbnailUploading, setThumbnailUploading] = useState(false)
+  const thumbnailInputRef = useRef<HTMLInputElement>(null)
   
   // Video modal state
   const [videoModalOpen, setVideoModalOpen] = useState(false)
@@ -427,19 +439,32 @@ function AssetsAdminContent() {
     if (selectedFileOrder.length === 0) return
 
     try {
-      // Get files in order of selection
       const orderedFiles = selectedFileOrder
         .map(key => files.find(f => f.key === key))
         .filter(f => f !== undefined) as AssetFile[]
 
-      // Format as list of URLs (one per line)
-      const urls = orderedFiles.map(file => file.url).join('\n')
+      const urlLines: string[] = []
+      for (const file of orderedFiles) {
+        if (file.variants && file.variants.length > 0) {
+          const v1080 = file.variants.find(v => v.type === '1080p')
+          const thumb = file.variants.find(v => v.type === 'thumb')
+          if (v1080) urlLines.push(v1080.url)
+          if (thumb) urlLines.push(thumb.url)
+          if (!v1080 && !thumb) urlLines.push(file.url)
+        } else {
+          urlLines.push(file.url)
+        }
+      }
 
-      await navigator.clipboard.writeText(urls)
+      await navigator.clipboard.writeText(urlLines.join('\n'))
       
+      const videoCount = orderedFiles.filter(f => f.variants && f.variants.length > 0).length
       setSuccessMessage({
-        title: `Copied ${orderedFiles.length} link${orderedFiles.length !== 1 ? 's' : ''} to clipboard!`,
-        details: [`Links are in the order you selected them`]
+        title: `Copied ${urlLines.length} link${urlLines.length !== 1 ? 's' : ''} to clipboard!`,
+        details: [
+          `Links are in the order you selected them`,
+          ...(videoCount > 0 ? [`${videoCount} video${videoCount !== 1 ? 's' : ''}: copied 1080p + thumbnail URLs`] : []),
+        ]
       })
       setTimeout(() => setSuccessMessage(null), 3000)
     } catch (error) {
@@ -597,6 +622,41 @@ function AssetsAdminContent() {
     }
   }
 
+  const startThumbnailReplace = (thumbKey: string) => {
+    setThumbnailTargetKey(thumbKey)
+    thumbnailInputRef.current?.click()
+  }
+
+  const handleThumbnailSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !thumbnailTargetKey) {
+      setThumbnailTargetKey(null)
+      return
+    }
+
+    setThumbnailUploading(true)
+    try {
+      await replaceSiteAsset(thumbnailTargetKey, file)
+      await fetchCurrentPathAssets()
+
+      setSuccessMessage({ title: 'Thumbnail updated!' })
+      setTimeout(() => setSuccessMessage(null), 3000)
+    } catch (error) {
+      console.error('Thumbnail upload error:', error)
+      setErrorMessage({
+        title: 'Thumbnail upload failed',
+        details: [error instanceof Error ? error.message : 'Unknown error'],
+      })
+      setTimeout(() => setErrorMessage(null), 5000)
+    } finally {
+      setThumbnailUploading(false)
+      setThumbnailTargetKey(null)
+      if (thumbnailInputRef.current) {
+        thumbnailInputRef.current.value = ''
+      }
+    }
+  }
+
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, fileKeys: string[]) => {
     e.stopPropagation()
@@ -678,6 +738,82 @@ function AssetsAdminContent() {
         details: [error instanceof Error ? error.message : 'Unknown error']
       })
       setTimeout(() => setErrorMessage(null), 5000)
+    }
+  }
+
+  const openMoveModal = async () => {
+    setShowMoveModal(true)
+    setMovePath([])
+    await fetchMoveFolders([])
+  }
+
+  const fetchMoveFolders = async (path: string[]) => {
+    setMoveLoading(true)
+    try {
+      const categoryPath = path.join('/')
+      const url = categoryPath
+        ? `/api/admin/assets/list?category=${encodeURIComponent(categoryPath)}`
+        : '/api/admin/assets/list'
+      const response = await fetch(url)
+      if (!response.ok) throw new Error('Failed to fetch folders')
+      const data: CategoryData = await response.json()
+      setMoveFolders(
+        categoryPath ? (data.subfolders || []) : (data.categories || [])
+      )
+    } catch (error) {
+      console.error('Error fetching folders for move:', error)
+      setMoveFolders([])
+    } finally {
+      setMoveLoading(false)
+    }
+  }
+
+  const navigateMovePath = async (path: string[]) => {
+    setMovePath(path)
+    await fetchMoveFolders(path)
+  }
+
+  const handleMoveToFolder = async () => {
+    if (selectedFileKeys.size === 0) return
+    const targetFolder = movePath.join('/')
+    if (!targetFolder) return
+
+    setMoving(true)
+    try {
+      const response = await fetch('/api/admin/assets/move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileKeys: Array.from(selectedFileKeys),
+          targetFolder,
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || 'Failed to move files')
+      }
+
+      const result = await response.json()
+
+      setSuccessMessage({
+        title: `${result.movedCount} file${result.movedCount > 1 ? 's' : ''} moved to ${movePath[movePath.length - 1] || targetFolder}`,
+      })
+      setTimeout(() => setSuccessMessage(null), 3000)
+
+      setShowMoveModal(false)
+      setSelectedFileKeys(new Set())
+      setSelectedFileOrder([])
+      await fetchCurrentPathAssets()
+    } catch (error) {
+      console.error('Move error:', error)
+      setErrorMessage({
+        title: 'Failed to move files',
+        details: [error instanceof Error ? error.message : 'Unknown error'],
+      })
+      setTimeout(() => setErrorMessage(null), 5000)
+    } finally {
+      setMoving(false)
     }
   }
 
@@ -964,6 +1100,14 @@ function AssetsAdminContent() {
         className="hidden"
         onChange={handleReplaceFileSelect}
       />
+      {/* Hidden file input for custom thumbnails */}
+      <input
+        ref={thumbnailInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleThumbnailSelect}
+      />
 
       {/* Delete Confirmation Dialog */}
       {showDeleteConfirm && (
@@ -1001,6 +1145,108 @@ function AssetsAdminContent() {
                   Delete
                 </Button>
               </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Move to Folder Modal */}
+      {showMoveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <Card variant="elevated" className="max-w-lg w-full border-primary-500/30 shadow-2xl">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex-shrink-0 w-10 h-10 bg-primary-500/20 rounded-full flex items-center justify-center border-2 border-primary-500">
+                    <FolderInput className="w-5 h-5 text-primary-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-white">
+                      Move {selectedFileKeys.size} file{selectedFileKeys.size !== 1 ? 's' : ''}
+                    </h3>
+                    <p className="text-xs text-neutral-400">Select a destination folder</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowMoveModal(false)}
+                  className="text-neutral-400 hover:text-white transition-colors p-1"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Breadcrumb inside modal */}
+              <div className="flex items-center gap-1 text-sm flex-wrap bg-neutral-800/50 rounded-lg px-3 py-2">
+                <button
+                  onClick={() => navigateMovePath([])}
+                  className={`hover:text-primary-400 transition-colors ${movePath.length === 0 ? 'text-primary-400 font-semibold' : 'text-neutral-400'}`}
+                >
+                  site-assets
+                </button>
+                {movePath.map((segment, idx) => (
+                  <span key={idx} className="flex items-center gap-1">
+                    <ChevronRight className="w-3 h-3 text-neutral-600" />
+                    <button
+                      onClick={() => navigateMovePath(movePath.slice(0, idx + 1))}
+                      className={`hover:text-primary-400 transition-colors ${idx === movePath.length - 1 ? 'text-primary-400 font-semibold' : 'text-neutral-400'}`}
+                    >
+                      {segment}
+                    </button>
+                  </span>
+                ))}
+              </div>
+
+              {/* Folder list */}
+              <div className="max-h-64 overflow-y-auto border border-neutral-700 rounded-lg divide-y divide-neutral-800">
+                {moveLoading ? (
+                  <div className="flex items-center justify-center py-8 text-neutral-400 text-sm">
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Loading folders...
+                  </div>
+                ) : moveFolders.length === 0 ? (
+                  <div className="py-8 text-center text-neutral-500 text-sm">
+                    No subfolders here
+                  </div>
+                ) : (
+                  moveFolders.map((folder) => (
+                    <button
+                      key={folder}
+                      onClick={() => navigateMovePath([...movePath, folder])}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-neutral-800/70 transition-colors group"
+                    >
+                      <Folder className="w-4 h-4 text-primary-400 flex-shrink-0" />
+                      <span className="text-sm text-neutral-200 group-hover:text-white truncate">{folder}</span>
+                      <ChevronRight className="w-4 h-4 text-neutral-600 ml-auto flex-shrink-0" />
+                    </button>
+                  ))
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setShowMoveModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  className="flex-1"
+                  onClick={handleMoveToFolder}
+                  disabled={movePath.length === 0 || moving}
+                >
+                  <FolderInput className="w-4 h-4 mr-2" />
+                  {moving ? 'Moving...' : `Move here`}
+                </Button>
+              </div>
+
+              {movePath.length === 0 && (
+                <p className="text-xs text-neutral-500 text-center">
+                  Navigate into a folder to enable the move button
+                </p>
+              )}
             </div>
           </Card>
         </div>
@@ -1148,6 +1394,32 @@ function AssetsAdminContent() {
                         {variant.size && ` (${formatFileSize(variant.size)})`}
                       </Button>
                     ))}
+                  {videoModalVariants.find(v => v.type === 'thumb') && (
+                    <>
+                      <div className="w-px bg-neutral-700 self-stretch mx-1" />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          const thumb = videoModalVariants.find(v => v.type === 'thumb')
+                          if (thumb) copyToClipboard(thumb.url)
+                        }}
+                      >
+                        {copiedUrl === videoModalVariants.find(v => v.type === 'thumb')?.url ? (
+                          <>
+                            <Check className="w-4 h-4 mr-1" />
+                            Thumbnail Copied!
+                          </>
+                        ) : (
+                          <>
+                            <ImageIcon className="w-4 h-4 mr-1" />
+                            Copy Thumbnail
+                          </>
+                        )}
+                      </Button>
+                    </>
+                  )}
                 </>
               )}
             </div>
@@ -1371,6 +1643,15 @@ function AssetsAdminContent() {
                 >
                   <Copy className="w-4 h-4 mr-2" />
                   Copy {selectedFileKeys.size} Link{selectedFileKeys.size !== 1 ? 's' : ''}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={openMoveModal}
+                  className="w-full sm:w-auto"
+                >
+                  <FolderInput className="w-4 h-4 mr-2" />
+                  Move to...
                 </Button>
                 <Button
                   variant="danger"
@@ -1994,10 +2275,9 @@ function AssetsAdminContent() {
                           <p className="text-xs text-neutral-400 font-medium">Available Versions:</p>
                           {file.variants
                             .sort((a, b) => {
-                              const order = { 'original': 0, '1080p': 1, '720p': 2, 'thumb': 3 }
-                              return order[a.type] - order[b.type]
+                              const order: Record<string, number> = { 'original': 0, '1080p': 1, '720p': 2, 'thumb': 3 }
+                              return (order[a.type] ?? 4) - (order[b.type] ?? 4)
                             })
-                            .filter(v => v.type !== 'thumb')
                             .map((variant) => (
                               <Button
                                 key={variant.type}
@@ -2010,8 +2290,8 @@ function AssetsAdminContent() {
                                 }}
                               >
                                 <span className="flex items-center gap-2">
-                                  <Badge variant={variant.type === 'original' ? 'primary' : 'secondary'} className="text-xs">
-                                    {variant.type.toUpperCase()}
+                                  <Badge variant={variant.type === 'original' ? 'primary' : variant.type === 'thumb' ? 'secondary' : 'secondary'} className="text-xs">
+                                    {variant.type === 'thumb' ? 'THUMBNAIL' : variant.type.toUpperCase()}
                                   </Badge>
                                   {variant.size && (
                                     <span className="text-xs text-neutral-500">
@@ -2026,6 +2306,26 @@ function AssetsAdminContent() {
                                 )}
                               </Button>
                             ))}
+                          {(() => {
+                            const thumbVariant = file.variants?.find(v => v.type === 'thumb')
+                            return thumbVariant ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full"
+                                disabled={thumbnailUploading && thumbnailTargetKey === thumbVariant.key}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  startThumbnailReplace(thumbVariant.key)
+                                }}
+                              >
+                                <ImagePlus className="w-4 h-4 mr-2" />
+                                {thumbnailUploading && thumbnailTargetKey === thumbVariant.key
+                                  ? 'Uploading...'
+                                  : 'Change Thumbnail'}
+                              </Button>
+                            ) : null
+                          })()}
                         </div>
                       ) : isVideo ? (
                         <div className="space-y-2">
@@ -2328,6 +2628,25 @@ function AssetsAdminContent() {
                       
                       {/* Actions */}
                       <div className="flex items-center gap-2 flex-shrink-0">
+                        {isVideo && file.variants?.find(v => v.type === 'thumb') && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={thumbnailUploading && thumbnailTargetKey === file.variants!.find(v => v.type === 'thumb')!.key}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              const thumbKey = file.variants!.find(v => v.type === 'thumb')!.key
+                              startThumbnailReplace(thumbKey)
+                            }}
+                            title="Change thumbnail"
+                          >
+                            {thumbnailUploading && thumbnailTargetKey === file.variants!.find(v => v.type === 'thumb')!.key ? (
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <ImagePlus className="w-4 h-4" />
+                            )}
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"

@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { sendEmail } from '@/lib/email/aws-ses'
+import { sendAndLogEmail } from '@/lib/email/send'
 import { generateSessionInvitationEmail } from '@/lib/email/templates'
 import { formatDateInTimeZone, DEFAULT_DISPLAY_TIMEZONE } from '@/lib/format/timezone'
 
@@ -87,15 +87,15 @@ export async function POST(
       joinLink,
     })
 
-    // Send email
-    await sendEmail({
+    await sendAndLogEmail({
       to: participant.email,
       subject: emailData.subject,
       htmlBody: emailData.htmlBody,
       textBody: emailData.textBody,
+      context: { guestEmail: participant.email },
     })
 
-    console.log('✅ Session invitation resent to:', participant.email)
+    console.log('[video/resend-invite] Invitation resent to:', participant.email)
 
     return NextResponse.json({ 
       success: true, 

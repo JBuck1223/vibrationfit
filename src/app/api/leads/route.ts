@@ -3,8 +3,9 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { sendEmail } from '@/lib/email/aws-ses'
+import { sendAndLogEmail } from '@/lib/email/send'
 import { triggerEvent } from '@/lib/messaging/events'
+import { sendServerConversion } from '@/lib/tracking/server-conversions'
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,6 +47,7 @@ export async function POST(request: NextRequest) {
         landing_page: body.landing_page || null,
         
         // Engagement
+        visitor_id: body.visitor_id || null,
         session_id: body.session_id || null,
         video_engagement: body.video_engagement || null,
         pages_visited: body.pages_visited || [],
@@ -60,6 +62,20 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('✅ Lead created:', lead.id)
+
+    // Server-side conversion events (Meta CAPI, GA4 MP, TikTok Events API)
+    sendServerConversion('lead', {
+      email: body.email,
+      phone: body.phone || undefined,
+      firstName: body.first_name || undefined,
+      lastName: body.last_name || undefined,
+      contentName: body.type,
+      eventId: lead.id,
+      eventSourceUrl: body.landing_page ? `https://vibrationfit.com${body.landing_page}` : 'https://vibrationfit.com',
+      ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,
+      userAgent: request.headers.get('user-agent') || undefined,
+      visitorId: body.visitor_id || undefined,
+    }).catch((err) => console.error('Server conversion error:', err))
 
     // Fire event for automation rules and sequence enrollment
     triggerEvent('lead.created', {
@@ -77,14 +93,15 @@ export async function POST(request: NextRequest) {
         email: body.email,
       })
 
-      await sendEmail({
+      await sendAndLogEmail({
         to: body.email,
         subject: confirmationEmail.subject,
         htmlBody: confirmationEmail.htmlBody,
         textBody: confirmationEmail.textBody,
+        context: { guestEmail: body.email },
       })
 
-      console.log('✅ Confirmation email sent to:', body.email)
+      console.log('[leads] Confirmation email sent to:', body.email)
     } catch (emailError) {
       console.error('❌ Failed to send confirmation email:', emailError)
       // Don't fail the lead creation if email fails

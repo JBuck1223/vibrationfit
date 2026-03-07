@@ -1,4 +1,4 @@
-import { Container, Stack, PageHero, Card, Button } from '@/lib/design-system/components'
+import { Container, Stack, PageHero, Card, Button, Video } from '@/lib/design-system/components'
 import {
   Sparkles,
   Play,
@@ -91,6 +91,14 @@ export default function HowItWorksPage() {
           title="How Vibration Fit Tracks Your Practice"
           subtitle="Everything you need to know about Creations, Activations, Connections, Sessions, and Badges."
         >
+          <div className="mx-auto w-full max-w-3xl">
+            <Video
+              src="https://media.vibrationfit.com/site-assets/video/membership/tracking-1080p.mp4"
+              poster="https://media.vibrationfit.com/site-assets/video/membership/tracking-thumb.0000000.jpg"
+              variant="default"
+              caption="Five minute overview video"
+            />
+          </div>
           <Button variant="ghost" size="sm" asChild>
             <Link href="/tracking">
               <ArrowLeft className="w-5 h-5" />

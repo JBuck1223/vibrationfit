@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient, isUserAdmin } from '@/lib/supabase/admin'
-import { sendEmail } from '@/lib/email/aws-ses'
+import { sendAndLogEmail } from '@/lib/email/send'
 import { generatePersonalMessageEmail } from '@/lib/email/templates/personal-message'
 
 export async function GET(
@@ -144,24 +144,13 @@ export async function POST(
             closingLine: 'Best regards,',
           })
 
-          await sendEmail({
+          await sendAndLogEmail({
             to: customerEmail,
             subject: `Re: ${ticket.subject} [${ticket.ticket_number}]`,
             htmlBody: emailContent.htmlBody,
             textBody: emailContent.textBody,
             replyTo: 'team@vibrationfit.com',
-          })
-
-          // Log sent email
-          await adminClient.from('email_messages').insert({
-            user_id: ticket.user_id,
-            from_email: process.env.AWS_SES_FROM_EMAIL || 'team@vibrationfit.com',
-            to_email: customerEmail,
-            subject: `Re: ${ticket.subject} [${ticket.ticket_number}]`,
-            body_text: emailContent.textBody,
-            body_html: emailContent.htmlBody,
-            direction: 'outbound',
-            status: 'sent',
+            context: { userId: ticket.user_id, isReply: true },
           })
         }
       } catch (emailError) {

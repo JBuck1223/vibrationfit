@@ -80,7 +80,43 @@ export const colors = {
     warning: '#FFFF00',    // Neon Yellow / Celebration / Win
     error: '#FF0040',      // Neon Red / Below Green Line
     premium: '#BF00FF',    // Neon Purple / Premium / AI Assistant
-  }
+  },
+
+  // Core 4 Categories (Retention Tiles, Achievement Badges)
+  core4: {
+    creations: {
+      primary: '#FACC15',              // yellow-400 (text/icon)
+      bg: 'rgba(234, 179, 8, 0.1)',    // yellow-500/10
+      border: 'rgba(234, 179, 8, 0.3)',// yellow-500/30
+      badge: '#FFB701',                // Badge system gold
+    },
+    activations: {
+      primary: '#4ADE80',              // green-400 (text/icon)
+      bg: 'rgba(34, 197, 94, 0.1)',    // green-500/10
+      border: 'rgba(34, 197, 94, 0.3)',// green-500/30
+      badge: '#199D67',                // Badge system green
+    },
+    connections: {
+      primary: '#C084FC',              // purple-400 (text/icon)
+      bg: 'rgba(168, 85, 247, 0.1)',   // purple-500/10
+      border: 'rgba(168, 85, 247, 0.3)',// purple-500/30
+      badge: '#8B5CF6',                // Badge system purple
+    },
+    sessions: {
+      primary: '#2DD4BF',              // teal-400 (text/icon)
+      bg: 'rgba(20, 184, 166, 0.1)',   // teal-500/10
+      border: 'rgba(20, 184, 166, 0.3)',// teal-500/30
+      badge: '#14B8A6',                // Badge system teal
+    },
+  },
+
+  // Vibe Tags (Vibe Tribe post types)
+  vibeTags: {
+    win: '#39FF14',           // Electric Lime (= primary)
+    wobble: '#00FFFF',        // Neon Cyan (= secondary)
+    vision: '#BF00FF',        // Neon Purple (= accent)
+    collaboration: '#FFFF00', // Neon Yellow (= energy.yellow)
+  },
 } as const
 
 export const spacing = {

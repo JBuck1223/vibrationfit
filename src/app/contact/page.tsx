@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react'
 import { Button, Card, Input, Textarea, Container, Stack, PageHero } from '@/lib/design-system/components'
 import { formatPhoneDisplay, parsePhoneInput, phoneToDigits } from '@/lib/phone-format'
 import { useTracking } from '@/components/TrackingProvider'
+import { trackConversion } from '@/lib/tracking/pixels'
 import { createClient } from '@/lib/supabase/client'
 import { CheckCircle } from 'lucide-react'
 
@@ -78,6 +79,8 @@ export default function ContactPage() {
         throw new Error(error.error || 'Failed to submit form')
       }
 
+      const lead = await response.json()
+      trackConversion('lead', { content_name: 'contact_form', event_id: lead?.lead?.id })
       setSubmitted(true)
     } catch (error: any) {
       console.error('Error submitting form:', error)

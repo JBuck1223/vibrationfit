@@ -21,19 +21,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ready: false, error: 'Missing payment_intent_id or order_id' }, { status: 400 })
     }
 
-    let order: { id: string; user_id: string; status: string } | null = null
+    let order: { id: string; user_id: string; status: string; total_amount: number | null; currency: string | null; metadata: Record<string, unknown> | null } | null = null
 
     if (orderId) {
       const { data } = await supabaseAdmin
         .from('orders')
-        .select('id, user_id, status')
+        .select('id, user_id, status, total_amount, currency, metadata')
         .eq('id', orderId)
         .maybeSingle()
       order = data
     } else if (paymentIntentId) {
       const { data } = await supabaseAdmin
         .from('orders')
-        .select('id, user_id, status')
+        .select('id, user_id, status, total_amount, currency, metadata')
         .eq('stripe_payment_intent_id', paymentIntentId)
         .maybeSingle()
       order = data
@@ -74,9 +74,16 @@ export async function GET(request: NextRequest) {
     verifyUrl.searchParams.set('token_hash', token)
     verifyUrl.searchParams.set('type', type)
 
+    const productKey = (order.metadata as Record<string, unknown>)?.product_key as string | undefined
+
     return NextResponse.json({
       ready: true,
       redirectUrl: verifyUrl.toString(),
+      amount: order.total_amount != null ? order.total_amount / 100 : undefined,
+      currency: order.currency || 'usd',
+      product: productKey || 'intensive',
+      orderId: order.id,
+      paymentIntentId: paymentIntentId || undefined,
     })
   } catch (err) {
     console.error('Checkout status error:', err)

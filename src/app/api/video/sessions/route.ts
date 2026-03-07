@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createOneOnOneRoom, createGroupRoom, createAlignmentGymRoom, createWebinarRoom, createHostToken, getRoomUrl } from '@/lib/video/daily'
-import { sendEmail } from '@/lib/email/aws-ses'
+import { sendAndLogEmail } from '@/lib/email/send'
 import { generateSessionInvitationEmail } from '@/lib/email/templates'
 import { formatDateInTimeZone, DEFAULT_DISPLAY_TIMEZONE } from '@/lib/format/timezone'
 import type { CreateSessionRequest, CreateSessionResponse, VideoSession, VideoSessionType } from '@/lib/video/types'
@@ -173,14 +173,15 @@ export async function POST(request: NextRequest) {
             joinLink,
           })
 
-          await sendEmail({
+          await sendAndLogEmail({
             to: body.participant_email,
             subject: emailData.subject,
             htmlBody: emailData.htmlBody,
             textBody: emailData.textBody,
+            context: { guestEmail: body.participant_email },
           })
 
-          console.log('✅ Session invitation email sent to:', body.participant_email)
+          console.log('[video/sessions] Invitation sent to:', body.participant_email)
         } catch (emailError) {
           console.error('⚠️ Failed to send invitation email:', emailError)
         }

@@ -6,6 +6,7 @@ import { AuthProvider } from '@/components/AuthProvider'
 import { TrackingProvider } from '@/components/TrackingProvider'
 import { AppErrorHandling } from '@/components/AppErrorHandling'
 import { ASSETS } from '@/lib/storage/s3-storage-presigned'
+import { PixelScripts } from '@/components/PixelScripts'
 import { Toaster } from 'sonner'
 
 export const metadata: Metadata = {
@@ -52,6 +53,7 @@ export default function RootLayout({
         style={{ fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif' }}
         suppressHydrationWarning={true}
       >
+        <PixelScripts />
         <AuthProvider>
           <TrackingProvider>
           <AppErrorHandling>

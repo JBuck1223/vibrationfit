@@ -6,6 +6,7 @@
 import { useState } from 'react'
 import { Button, Card, Input, Textarea, Container } from '@/lib/design-system/components'
 import { useTracking } from '@/components/TrackingProvider'
+import { trackConversion } from '@/lib/tracking/pixels'
 
 export default function IntensiveIntakePage() {
   const { visitorId, sessionId } = useTracking()
@@ -55,6 +56,8 @@ export default function IntensiveIntakePage() {
         throw new Error(error.error || 'Failed to submit form')
       }
 
+      const lead = await response.json()
+      trackConversion('lead', { content_name: 'intensive_intake', event_id: lead?.lead?.id })
       setSubmitted(true)
     } catch (error: any) {
       console.error('Error submitting form:', error)

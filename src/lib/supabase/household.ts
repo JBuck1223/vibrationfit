@@ -862,7 +862,7 @@ export async function invitePartnerToHousehold(params: {
     }
 
     // ── 5. Send welcome email ──
-    const { sendEmail } = await import('@/lib/email/aws-ses')
+    const { sendAndLogEmail } = await import('@/lib/email/send')
     const { generateHouseholdInvitationEmail } = await import('@/lib/email/templates/household-invitation')
 
     const emailContent = await generateHouseholdInvitationEmail({
@@ -873,14 +873,15 @@ export async function invitePartnerToHousehold(params: {
       expiresInDays: 7,
     })
 
-    await sendEmail({
+    await sendAndLogEmail({
       to: partnerEmail,
       subject: emailContent.subject,
       htmlBody: emailContent.htmlBody,
       textBody: emailContent.textBody,
+      context: { guestEmail: partnerEmail },
     })
 
-    console.log(`Household invitation email sent to partner: ${partnerEmail}`)
+    console.log(`[household] Invitation email sent to partner: ${partnerEmail}`)
 
     const { triggerEvent } = await import('@/lib/messaging/events')
     triggerEvent('household.invited', {

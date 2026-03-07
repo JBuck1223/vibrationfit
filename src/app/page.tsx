@@ -49,6 +49,7 @@ import {
   ProofWall,
   Select,
 } from '@/lib/design-system/components'
+import { trackConversion } from '@/lib/tracking/pixels'
 
 // Vision Categories
 const VISION_CATEGORIES = [
@@ -365,6 +366,7 @@ export default function HomePage() {
 
       const data = await res.json()
       if (data.cartId) {
+        trackConversion('initiate_checkout', { content_name: 'intensive', currency: 'USD' })
         window.location.href = `/checkout/${data.cartId}`
       } else {
         toast.error('Failed to create checkout session')
@@ -435,25 +437,12 @@ export default function HomePage() {
                   {/* Right column - Video */}
                   <div className="relative bg-black rounded-xl overflow-hidden shadow-2xl max-w-3xl mx-auto w-full order-first lg:order-last lg:mt-4">
                     <Video
-                      src="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-1080p.mp4"
-                      poster="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-poster.jpg"
+                      src="https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-3-6-26-new-1080p.mp4"
+                      poster="https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-3-6-26-new-thumb.0000000.jpg"
                       variant="hero"
+                      caption="Five minute overview video"
                       trackingId="homepage-hero-video"
                       saveProgress={true}
-                      onMilestoneReached={(milestone, time) => {
-                        // Track milestone for marketing analytics
-                        console.log(`Video milestone: ${milestone}% at ${time}s`)
-                        // TODO: Send to your marketing platform (Facebook Pixel, Google Analytics, etc.)
-                        // Example: fbq('track', 'VideoView', { milestone, time })
-                      }}
-                      onPlay={() => {
-                        console.log('Hero video started playing')
-                        // TODO: Track video play event
-                      }}
-                      onComplete={() => {
-                        console.log('Hero video completed')
-                        // TODO: Track video completion
-                      }}
                       className="w-full h-auto"
                     />
                   </div>

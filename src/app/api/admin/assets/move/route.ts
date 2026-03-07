@@ -35,83 +35,124 @@ export async function POST(request: Request) {
 
     for (const fileKey of fileKeys) {
       try {
-        // Extract the filename from the key
         const fileName = fileKey.split('/').pop()
         if (!fileName) {
           errors.push(`Invalid file key: ${fileKey}`)
           continue
         }
 
-        // Construct the new key with site-assets prefix
-        const newKey = `${SITE_ASSETS_PREFIX}${targetFolder}/${fileName}`
+        const hasExtension = /\.\w+$/.test(fileName)
+        const isGroupedVideoKey = !hasExtension
 
-        // Check if source and destination are the same
-        if (fileKey === newKey) {
-          errors.push(`File already in target folder: ${fileName}`)
-          continue
-        }
+        if (isGroupedVideoKey) {
+          // This is a synthetic base key from variant grouping (e.g. "site-assets/video/intensive/tracking").
+          // No actual S3 object exists at this key -- list and move all variant files by prefix.
+          const listResponse = await s3Client.send(
+            new ListObjectsV2Command({
+              Bucket: BUCKET_NAME,
+              Prefix: `${fileKey}-`,
+            })
+          )
 
-        // Copy the object to the new location
-        await s3Client.send(
-          new CopyObjectCommand({
-            Bucket: BUCKET_NAME,
-            CopySource: `${BUCKET_NAME}/${fileKey}`,
-            Key: newKey,
-          })
-        )
+          const variants = listResponse.Contents || []
+          if (variants.length === 0) {
+            errors.push(`No variant files found for: ${fileKey}`)
+            continue
+          }
 
-        // Delete the original object
-        await s3Client.send(
-          new DeleteObjectCommand({
-            Bucket: BUCKET_NAME,
-            Key: fileKey,
-          })
-        )
+          let movedAny = false
+          for (const obj of variants) {
+            if (!obj.Key) continue
+            const variantFileName = obj.Key.split('/').pop()
+            if (!variantFileName) continue
 
-        moved.push(fileKey)
+            const newVariantKey = `${SITE_ASSETS_PREFIX}${targetFolder}/${variantFileName}`
+            if (obj.Key === newVariantKey) continue
 
-        // If this is a video file, also move its variants
-        if (fileKey.match(/\.(mp4|webm|mov|avi)$/i)) {
-          // Extract base name (without extension and variant suffix)
-          const baseNameMatch = fileName.match(/^(.+?)-(?:original|1080p|720p|thumb)(?:\.\d+)?\.\w+$/)
-          if (baseNameMatch) {
-            const baseName = baseNameMatch[1]
-            const fileDir = fileKey.substring(0, fileKey.lastIndexOf('/'))
-            
-            // List all variants
-            const listResponse = await s3Client.send(
-              new ListObjectsV2Command({
-                Bucket: BUCKET_NAME,
-                Prefix: `${fileDir}/${baseName}-`,
-              })
-            )
+            try {
+              await s3Client.send(
+                new CopyObjectCommand({
+                  Bucket: BUCKET_NAME,
+                  CopySource: `${BUCKET_NAME}/${obj.Key}`,
+                  Key: newVariantKey,
+                })
+              )
+              await s3Client.send(
+                new DeleteObjectCommand({
+                  Bucket: BUCKET_NAME,
+                  Key: obj.Key,
+                })
+              )
+              movedAny = true
+            } catch (variantError) {
+              console.error(`Error moving variant ${obj.Key}:`, variantError)
+            }
+          }
 
-            // Move each variant
-            if (listResponse.Contents) {
-              for (const obj of listResponse.Contents) {
-                if (obj.Key && obj.Key !== fileKey) {
-                  const variantFileName = obj.Key.split('/').pop()
-                  if (variantFileName) {
-                    const newVariantKey = `${SITE_ASSETS_PREFIX}${targetFolder}/${variantFileName}`
-                    
-                    try {
-                      await s3Client.send(
-                        new CopyObjectCommand({
-                          Bucket: BUCKET_NAME,
-                          CopySource: `${BUCKET_NAME}/${obj.Key}`,
-                          Key: newVariantKey,
-                        })
-                      )
-                      
-                      await s3Client.send(
-                        new DeleteObjectCommand({
-                          Bucket: BUCKET_NAME,
-                          Key: obj.Key,
-                        })
-                      )
-                    } catch (variantError) {
-                      console.error(`Error moving variant ${obj.Key}:`, variantError)
-                      // Continue with other variants even if one fails
+          if (movedAny) moved.push(fileKey)
+        } else {
+          // Regular file with an extension -- move directly
+          const newKey = `${SITE_ASSETS_PREFIX}${targetFolder}/${fileName}`
+
+          if (fileKey === newKey) {
+            errors.push(`File already in target folder: ${fileName}`)
+            continue
+          }
+
+          await s3Client.send(
+            new CopyObjectCommand({
+              Bucket: BUCKET_NAME,
+              CopySource: `${BUCKET_NAME}/${fileKey}`,
+              Key: newKey,
+            })
+          )
+
+          await s3Client.send(
+            new DeleteObjectCommand({
+              Bucket: BUCKET_NAME,
+              Key: fileKey,
+            })
+          )
+
+          moved.push(fileKey)
+
+          // If this is a video file, also move its variants
+          if (fileKey.match(/\.(mp4|webm|mov|avi)$/i)) {
+            const baseNameMatch = fileName.match(/^(.+?)-(?:original|1080p|720p|thumb)(?:\.\d+)?\.\w+$/)
+            if (baseNameMatch) {
+              const baseName = baseNameMatch[1]
+              const fileDir = fileKey.substring(0, fileKey.lastIndexOf('/'))
+
+              const listResponse = await s3Client.send(
+                new ListObjectsV2Command({
+                  Bucket: BUCKET_NAME,
+                  Prefix: `${fileDir}/${baseName}-`,
+                })
+              )
+
+              if (listResponse.Contents) {
+                for (const obj of listResponse.Contents) {
+                  if (obj.Key && obj.Key !== fileKey) {
+                    const variantFileName = obj.Key.split('/').pop()
+                    if (variantFileName) {
+                      const newVariantKey = `${SITE_ASSETS_PREFIX}${targetFolder}/${variantFileName}`
+                      try {
+                        await s3Client.send(
+                          new CopyObjectCommand({
+                            Bucket: BUCKET_NAME,
+                            CopySource: `${BUCKET_NAME}/${obj.Key}`,
+                            Key: newVariantKey,
+                          })
+                        )
+                        await s3Client.send(
+                          new DeleteObjectCommand({
+                            Bucket: BUCKET_NAME,
+                            Key: obj.Key,
+                          })
+                        )
+                      } catch (variantError) {
+                        console.error(`Error moving variant ${obj.Key}:`, variantError)
+                      }
                     }
                   }
                 }

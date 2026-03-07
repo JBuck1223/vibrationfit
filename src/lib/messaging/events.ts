@@ -10,7 +10,7 @@
  */
 
 import { createAdminClient } from '@/lib/supabase/admin'
-import { sendEmail } from '@/lib/email/aws-ses'
+import { sendAndLogEmail } from '@/lib/email/send'
 import { sendSMS } from '@/lib/messaging/twilio'
 
 export interface EventPayload {
@@ -107,11 +107,12 @@ export async function triggerEvent(
           if (sendImmediately) {
             // Send right now, then log as already sent
             if (rule.channel === 'email' && payload.email) {
-              await sendEmail({
+              await sendAndLogEmail({
                 to: payload.email,
                 subject: subject || 'VibrationFit',
                 htmlBody: body,
                 textBody: textBody || body.replace(/<[^>]*>/g, ''),
+                context: { userId: payload.userId, guestEmail: payload.email },
               })
             } else if (rule.channel === 'sms' && payload.phone) {
               await sendSMS({ to: payload.phone, body })

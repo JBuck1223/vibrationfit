@@ -176,6 +176,46 @@ Always reference `src/lib/design-system/tokens.ts` for colors and design values.
 
 ---
 
+## 🎬 Video Asset URL Rules (CRITICAL)
+
+### MediaConvert Thumbnail Pattern
+
+When uploading a video to S3, the MediaConvert Lambda function automatically generates output files following this naming convention:
+
+| Output | Suffix | Example |
+|--------|--------|---------|
+| **1080p video** | `-1080p.mp4` | `offer-video-3-6-26-1080p.mp4` |
+| **720p video** | `-720p.mp4` | `offer-video-3-6-26-720p.mp4` |
+| **Original video** | `-original.mp4` | `offer-video-3-6-26-original.mp4` |
+| **Thumbnail** | `-thumb.0000000.jpg` | `offer-video-3-6-26-thumb.0000000.jpg` |
+
+**To get a thumbnail URL from a video URL, replace the quality suffix:**
+- `{base}-1080p.mp4` → `{base}-thumb.0000000.jpg`
+- `{base}-720p.mp4` → `{base}-thumb.0000000.jpg`
+
+**CDN base URLs:**
+- ✅ `https://media.vibrationfit.com/site-assets/video/...` (CDN - preferred)
+- ✅ `https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/...` (S3 direct)
+
+### Auto-Derived Thumbnails in Video Component
+
+The `<Video>` component from the design system **automatically derives** the thumbnail from the `src` URL when no `poster` prop is provided. You do NOT need to manually specify a poster for MediaConvert-processed videos.
+
+```tsx
+// Thumbnail auto-derived as offer-video-3-6-26-thumb.0000000.jpg
+<Video src="https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-3-6-26-1080p.mp4" />
+
+// Override with explicit poster only when needed
+<Video src="..." poster="https://media.vibrationfit.com/custom-poster.jpg" />
+```
+
+**Utility function:** `getVideoThumbnailUrl(videoUrl)` is exported from `@/lib/design-system/components` for use outside the Video component.
+
+**❌ NEVER guess thumbnail patterns like `-poster.jpg` or `-thumbnail.jpg`**
+**✅ ALWAYS use the `-thumb.0000000.jpg` suffix or let the Video component auto-derive it**
+
+---
+
 ## Code & Component Rules
 
 ### NO EMOJIS IN CODE

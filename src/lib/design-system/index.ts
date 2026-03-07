@@ -60,6 +60,7 @@ export {
   
   // Media Components
   Video,
+  getVideoThumbnailUrl,
   AudioPlayer,
   PlaylistPlayer,
   

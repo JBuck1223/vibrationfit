@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { sendEmail } from '@/lib/email/aws-ses'
+import { sendAndLogEmail } from '@/lib/email/send'
 import { sendSMS } from '@/lib/messaging/twilio'
 
 export async function POST(
@@ -83,7 +83,7 @@ export async function POST(
       // Send email notification
       if (participant.email) {
         try {
-          await sendEmail({
+          await sendAndLogEmail({
             to: participant.email,
             subject: `${hostName} is in the room - Join now!`,
             htmlBody: `
@@ -101,6 +101,7 @@ export async function POST(
               </div>
             `,
             textBody: `${hostName} is in the room! Your session "${session.title}" is starting. Join now: ${joinLink}`,
+            context: { guestEmail: participant.email },
           })
           results.emailsSent++
           console.log(`✅ Host-joined email sent to ${participant.email}`)

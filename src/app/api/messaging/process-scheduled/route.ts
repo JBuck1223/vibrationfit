@@ -13,7 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { sendEmail } from '@/lib/email/aws-ses'
+import { sendAndLogEmail } from '@/lib/email/send'
 import { sendSMS } from '@/lib/messaging/twilio'
 import { processSequenceSteps } from '@/lib/messaging/sequence-processor'
 
@@ -113,11 +113,15 @@ async function processMessages(request: NextRequest) {
             throw new Error('No recipient email')
           }
 
-          await sendEmail({
+          await sendAndLogEmail({
             to: message.recipient_email,
             subject: message.subject || 'VibrationFit Reminder',
             htmlBody: message.body,
             textBody: message.text_body || message.body.replace(/<[^>]*>/g, ''),
+            context: {
+              userId: message.recipient_user_id || undefined,
+              guestEmail: message.recipient_email,
+            },
           })
 
           console.log(`✅ Email sent to ${message.recipient_email}`)
