@@ -10,6 +10,9 @@
     }
   ],
   "functions": {
+    "src/app/api/messaging/process-scheduled/route.ts": {
+      "maxDuration": 60
+    },
     "src/app/api/upload/route.ts": {
       "maxDuration": 300,
       "memory": 3008

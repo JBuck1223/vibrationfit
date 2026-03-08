@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient, isUserAdmin } from '@/lib/supabase/admin'
 import { sendSMS } from '@/lib/messaging/twilio'
 import { sendAndLogBulkEmail } from '@/lib/email/send'
+import { getSenderById, DEFAULT_CRM_SENDER } from '@/lib/crm/senders'
 
 const MAX_RECIPIENTS = 500
 
@@ -25,7 +26,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { userIds, type, message, subject } = body
+    const { userIds, type, message, subject, senderId } = body
+    const sender = getSenderById(senderId || DEFAULT_CRM_SENDER.id)
 
     if (!userIds || userIds.length === 0) {
       return NextResponse.json({ error: 'No recipients selected' }, { status: 400 })
@@ -126,9 +128,9 @@ export async function POST(request: NextRequest) {
       const bulkResults = await sendAndLogBulkEmail({
         recipients: emailRecipients,
         subject,
-        from: '"Jordan Buckingham" <jordan@vibrationfit.com>',
+        from: sender.from,
         textBody: message,
-        replyTo: 'jordan@vibrationfit.com',
+        replyTo: sender.email,
       })
 
       results.success = bulkResults.sent.length

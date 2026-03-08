@@ -367,26 +367,26 @@ export default function MAPPage() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2 pt-2">
-                  <Button variant="outline" size="sm" asChild>
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                  <Button variant="outline" size="sm" className="w-full" asChild>
                     <Link href={getVisionLink('')}>
                       <Target className="w-4 h-4 mr-2" />
                       Life Vision
                     </Link>
                   </Button>
-                  <Button variant="outline" size="sm" asChild>
+                  <Button variant="outline" size="sm" className="w-full" asChild>
                     <Link href="/vision-board">
                       <ImageIcon className="w-4 h-4 mr-2" />
                       Vision Board
                     </Link>
                   </Button>
-                  <Button variant="outline" size="sm" asChild>
+                  <Button variant="outline" size="sm" className="w-full" asChild>
                     <Link href="/daily-paper">
                       <FileText className="w-4 h-4 mr-2" />
                       Daily Paper
                     </Link>
                   </Button>
-                  <Button variant="outline" size="sm" asChild>
+                  <Button variant="outline" size="sm" className="w-full" asChild>
                     <Link href="/journal">
                       <BookOpen className="w-4 h-4 mr-2" />
                       Journal
@@ -436,14 +436,14 @@ export default function MAPPage() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2 pt-2">
-                  <Button variant="outline" size="sm" asChild>
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                  <Button variant="outline" size="sm" className="w-full" asChild>
                     <Link href={getVisionLink('/audio')}>
                       <Headphones className="w-4 h-4 mr-2" />
                       Vision Audios
                     </Link>
                   </Button>
-                  <Button variant="outline" size="sm" asChild>
+                  <Button variant="outline" size="sm" className="w-full" asChild>
                     <Link href="/journal">
                       <BookOpen className="w-4 h-4 mr-2" />
                       Journal
@@ -499,26 +499,26 @@ export default function MAPPage() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2 pt-2">
-                  <Button variant="outline" size="sm" asChild>
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                  <Button variant="outline" size="sm" className="w-full" asChild>
                     <Link href={getVisionLink('')}>
                       <Target className="w-4 h-4 mr-2" />
                       Life Vision
                     </Link>
                   </Button>
-                  <Button variant="outline" size="sm" asChild>
+                  <Button variant="outline" size="sm" className="w-full" asChild>
                     <Link href="/journal">
                       <BookOpen className="w-4 h-4 mr-2" />
                       Journal
                     </Link>
                   </Button>
-                  <Button variant="outline" size="sm" asChild>
+                  <Button variant="outline" size="sm" className="w-full" asChild>
                     <Link href="/vision-board">
                       <ImageIcon className="w-4 h-4 mr-2" />
                       Vision Board
                     </Link>
                   </Button>
-                  <Button variant="outline" size="sm" asChild>
+                  <Button variant="outline" size="sm" className="w-full" asChild>
                     <Link href={getVisionLink('/audio')}>
                       <Headphones className="w-4 h-4 mr-2" />
                       Vision Audios
@@ -587,17 +587,17 @@ export default function MAPPage() {
               </Stack>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" asChild>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" size="sm" className="w-full" asChild>
                 <Link href="/alignment-gym">
                   <Video className="w-4 h-4 mr-2" />
-                  Go to Alignment Gym
+                  Alignment Gym
                 </Link>
               </Button>
-              <Button variant="outline" size="sm" asChild>
+              <Button variant="outline" size="sm" className="w-full" asChild>
                 <Link href="/vibe-tribe">
                   <UsersRound className="w-4 h-4 mr-2" />
-                  Go to Vibe Tribe
+                  Vibe Tribe
                 </Link>
               </Button>
             </div>

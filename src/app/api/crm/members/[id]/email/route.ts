@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { isUserAdmin } from '@/lib/supabase/admin'
 import { sendAndLogEmail } from '@/lib/email/send'
+import { getSenderById, DEFAULT_CRM_SENDER } from '@/lib/crm/senders'
 
 export async function POST(
   request: NextRequest,
@@ -26,7 +27,8 @@ export async function POST(
     }
 
     const body = await request.json()
-    const { to, subject, htmlBody, textBody } = body
+    const { to, subject, htmlBody, textBody, senderId } = body
+    const sender = getSenderById(senderId || DEFAULT_CRM_SENDER.id)
 
     if (!to || !subject || (!htmlBody && !textBody)) {
       return NextResponse.json(
@@ -43,10 +45,10 @@ export async function POST(
     await sendAndLogEmail({
       to,
       subject,
-      from: '"Jordan Buckingham" <jordan@vibrationfit.com>',
+      from: sender.from,
       ...(htmlBody ? { htmlBody } : {}),
       textBody: textBody || htmlBody?.replace(/<[^>]*>/g, '') || '',
-      replyTo: 'jordan@vibrationfit.com',
+      replyTo: sender.email,
       context: { userId: id },
     })
 

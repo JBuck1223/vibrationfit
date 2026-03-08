@@ -100,11 +100,15 @@ export default function HomePage() {
         console.log('🎉 Promo code applied:', promo)
       }
       
-      // Affiliate/referral source
+      // Affiliate/referral source + referral tracking
       const ref = params.get('ref') || params.get('source') || params.get('affiliate')
       if (ref) {
         setReferralSource(ref)
-        console.log('📊 Referral source:', ref)
+        fetch('/api/referral/track', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ referralCode: ref }),
+        }).catch(() => {})
       }
       
       // Campaign name

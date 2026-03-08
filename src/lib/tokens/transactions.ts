@@ -52,28 +52,7 @@ export async function recordTokenTransaction(
       .single()
     
     const balanceBefore = balanceData?.total_active || 0
-    
-    // Ensure user profile exists (for backwards compatibility with other parts of system)
-    const { data: profiles } = await supabase
-      .from('user_profiles')
-      .select('user_id')
-      .eq('user_id', transaction.user_id)
 
-    if (!profiles || profiles.length === 0) {
-      // Profile doesn't exist, create it (no token fields)
-      console.log('Profile not found, creating default profile for user:', transaction.user_id)
-      const { error: createError } = await supabase
-        .from('user_profiles')
-        .insert({
-          user_id: transaction.user_id,
-          storage_quota_gb: 1
-        })
-      
-      if (createError) {
-        console.error('Failed to create user profile:', createError)
-        throw new Error(`Failed to create user profile: ${createError.message}`)
-      }
-    }
     const tokensUsed = transaction.tokens_used
     const isGrant = tokensUsed > 0 && ['admin_grant', 'subscription_grant', 'trial_grant', 'token_pack_purchase'].includes(transaction.action_type)
     const isDeduction = tokensUsed < 0 || transaction.action_type === 'admin_deduct'

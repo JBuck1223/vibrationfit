@@ -68,6 +68,7 @@ const STATUS_RANK: Record<string, number> = {
   sent: 1,
   delivered: 2,
   opened: 3,
+  clicked: 4,
   bounced: 0,
   failed: 0,
 }
@@ -137,6 +138,20 @@ async function processSesEvent(event: SesEvent) {
           .update({
             status: 'opened',
             opened_at: event.open?.timestamp || new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existing.id)
+      }
+      break
+    }
+
+    case 'Click': {
+      if (currentRank < STATUS_RANK.clicked) {
+        await supabase
+          .from('email_messages')
+          .update({
+            status: 'clicked',
+            clicked_at: event.click?.timestamp || new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
           .eq('id', existing.id)

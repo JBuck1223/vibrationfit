@@ -11,9 +11,10 @@ import {
   Stack,
   PageHero,
 } from '@/lib/design-system/components'
-import { ArrowLeft, Mail, MessageSquare, Phone, Calendar, RefreshCw, Send, FileText, ChevronDown, Search, Eye, EyeOff, X } from 'lucide-react'
+import { ArrowLeft, Mail, MessageSquare, Phone, Calendar, RefreshCw, Send, FileText, ChevronDown, Search, Eye, EyeOff, X, User } from 'lucide-react'
 import { ConversationThread } from '@/components/crm/ConversationThread'
 import { useConversationRealtime } from '@/hooks/useConversationRealtime'
+import { CRM_SENDERS, DEFAULT_CRM_SENDER } from '@/lib/crm/senders'
 import { toast } from 'sonner'
 
 interface Lead {
@@ -59,6 +60,7 @@ export default function LeadDetailPage() {
   const [emailHtml, setEmailHtml] = useState('')
   const [showPreview, setShowPreview] = useState(false)
   const [sendingEmail, setSendingEmail] = useState(false)
+  const [senderId, setSenderId] = useState(DEFAULT_CRM_SENDER.id)
 
   // Templates
   const [templates, setTemplates] = useState<EmailTemplate[]>([])
@@ -188,6 +190,7 @@ export default function LeadDetailPage() {
           to: lead.email,
           subject: emailSubject.trim(),
           textBody: emailBody.trim(),
+          senderId,
         }),
       })
 
@@ -430,6 +433,23 @@ export default function LeadDetailPage() {
                     )}
                   </div>
                 )}
+              </div>
+
+              {/* Sender */}
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4 text-neutral-500 shrink-0" />
+                <select
+                  value={senderId}
+                  onChange={(e) => setSenderId(e.target.value)}
+                  disabled={sendingEmail}
+                  className="flex-1 px-4 py-2.5 text-sm bg-[#404040] border-2 border-[#666666] rounded-xl text-white focus:outline-none focus:border-[#39FF14] transition-all duration-200 disabled:opacity-50"
+                >
+                  {CRM_SENDERS.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.label} ({s.email})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Subject */}

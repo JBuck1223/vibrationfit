@@ -34,38 +34,7 @@ export async function POST(req: NextRequest) {
 
     // Use service role client to bypass RLS for the actual operation
     const supabase = createAdminClient()
-    
-    // Admin user for audit trail
     const adminUser = user
-    
-    // Ensure user profile exists first (handle multiple rows gracefully)
-    const { data: existingProfiles, error: profileCheckError } = await supabase
-      .from('user_profiles')
-      .select('user_id')
-      .eq('user_id', userId)
-    
-    if (profileCheckError) {
-      console.error('Error checking user profile:', profileCheckError)
-      return NextResponse.json({ error: `Failed to check user profile: ${profileCheckError.message}` }, { status: 500 })
-    }
-    
-    if (!existingProfiles || existingProfiles.length === 0) {
-      // Create profile if it doesn't exist (tokens are tracked in token_transactions table)
-      const { error: createError } = await supabase
-        .from('user_profiles')
-        .insert({
-          user_id: userId,
-          storage_quota_gb: 1
-        })
-      
-      if (createError) {
-        console.error('Failed to create user profile:', createError)
-        return NextResponse.json({ error: 'Failed to create user profile' }, { status: 500 })
-      }
-    } else if (existingProfiles.length > 1) {
-      console.warn(`Multiple profiles found for user ${userId} - this should not happen`)
-      // Continue anyway - token transaction will be recorded correctly
-    }
     
     // Record as a transaction (financial)
     try {

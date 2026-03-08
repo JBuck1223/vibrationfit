@@ -8,8 +8,9 @@ import { useRouter, useParams } from 'next/navigation'
 import { Button, Card, Badge, Container, Spinner, Input, Textarea, Stack, PageHero, TrackingMilestoneCard } from '@/lib/design-system/components'
 import { ConversationThread } from '@/components/crm/ConversationThread'
 import { useConversationRealtime } from '@/hooks/useConversationRealtime'
-import { RefreshCw, MessageSquare, Mail, Target, Activity, Clock, DollarSign, BarChart3 } from 'lucide-react'
+import { RefreshCw, MessageSquare, Mail, Target, Activity, Clock, DollarSign, BarChart3, User } from 'lucide-react'
 import RetentionMetricsBreakdown from '@/components/admin/RetentionMetricsBreakdown'
+import { CRM_SENDERS, DEFAULT_CRM_SENDER } from '@/lib/crm/senders'
 import { toast } from 'sonner'
 
 interface Member {
@@ -82,6 +83,7 @@ export default function MemberDetailPage() {
   const [emailSubject, setEmailSubject] = useState('')
   const [emailBody, setEmailBody] = useState('')
   const [sendingEmail, setSendingEmail] = useState(false)
+  const [senderId, setSenderId] = useState(DEFAULT_CRM_SENDER.id)
 
   useConversationRealtime({
     onUpdate: fetchConversation,
@@ -224,6 +226,7 @@ export default function MemberDetailPage() {
           to: member.email,
           subject: emailSubject.trim(),
           textBody: emailBody.trim(),
+          senderId,
         }),
       })
 
@@ -742,6 +745,21 @@ export default function MemberDetailPage() {
                 </p>
               ) : (
                 <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-neutral-500 shrink-0" />
+                    <select
+                      value={senderId}
+                      onChange={(e) => setSenderId(e.target.value)}
+                      disabled={sendingEmail}
+                      className="flex-1 px-4 py-2.5 text-sm bg-[#404040] border-2 border-[#666666] rounded-xl text-white focus:outline-none focus:border-[#39FF14] transition-all duration-200 disabled:opacity-50"
+                    >
+                      {CRM_SENDERS.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.label} ({s.email})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                   <Input
                     value={emailSubject}
                     onChange={(e) => setEmailSubject(e.target.value)}

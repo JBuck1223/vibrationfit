@@ -4,9 +4,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendAndLogEmail } from '@/lib/email/send'
+import { DEFAULT_CRM_SENDER } from '@/lib/crm/senders'
 import { triggerEvent } from '@/lib/messaging/events'
 import { sendServerConversion } from '@/lib/tracking/server-conversions'
 import { createAdminNotification } from '@/lib/admin/notifications'
+import { resolveReferralCode, checkAndGrantRewards } from '@/lib/referral/helpers'
 
 export async function POST(request: NextRequest) {
   try {
@@ -64,6 +66,70 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Lead created:', lead.id)
 
+    // Credit referrer if this lead came via a referral link
+    const refCode = body.ref || body.referral_code
+    if (refCode) {
+      try {
+        const referrer = await resolveReferralCode(supabase, refCode)
+        if (referrer) {
+          await supabase.from('referral_events').insert({
+            referrer_id: referrer.id,
+            event_type: 'email_signup',
+            referred_email: body.email,
+            ip_address: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
+            user_agent: request.headers.get('user-agent') || null,
+          })
+
+          const { data: updated } = await supabase
+            .from('referral_participants')
+            .select('email_signups, paid_conversions')
+            .eq('id', referrer.id)
+            .single()
+
+          const newSignups = (updated?.email_signups || 0) + 1
+          await supabase
+            .from('referral_participants')
+            .update({ email_signups: newSignups })
+            .eq('id', referrer.id)
+
+          // Update referral_invites status if this was a warm-intro
+          await supabase
+            .from('referral_invites')
+            .update({ status: 'converted', converted_at: new Date().toISOString() })
+            .eq('participant_id', referrer.id)
+            .eq('referred_email', body.email)
+            .in('status', ['sent', 'opened', 'clicked'])
+
+          // Update second-degree counter if referrer was themselves referred
+          if (referrer.id) {
+            const { data: referrerRow } = await supabase
+              .from('referral_participants')
+              .select('referred_by_participant_id')
+              .eq('id', referrer.id)
+              .single()
+            if (referrerRow?.referred_by_participant_id) {
+              const { data: grandparent } = await supabase
+                .from('referral_participants')
+                .select('second_degree_signups')
+                .eq('id', referrerRow.referred_by_participant_id)
+                .single()
+              if (grandparent) {
+                await supabase
+                  .from('referral_participants')
+                  .update({ second_degree_signups: (grandparent.second_degree_signups || 0) + 1 })
+                  .eq('id', referrerRow.referred_by_participant_id)
+              }
+            }
+          }
+
+          await checkAndGrantRewards(supabase, referrer.id, newSignups, updated?.paid_conversions || 0)
+          console.log('[leads] Referral credit: email_signup for referrer', referrer.referral_code)
+        }
+      } catch (refErr) {
+        console.error('[leads] Referral credit error (non-fatal):', refErr)
+      }
+    }
+
     // Server-side conversion events (Meta CAPI, GA4 MP, TikTok Events API)
     sendServerConversion('lead', {
       email: body.email,
@@ -107,8 +173,8 @@ export async function POST(request: NextRequest) {
         to: body.email,
         subject: confirmationEmail.subject,
         textBody: confirmationEmail.textBody,
-        from: '"Jordan Buckingham" <jordan@vibrationfit.com>',
-        replyTo: 'jordan@vibrationfit.com',
+        from: DEFAULT_CRM_SENDER.from,
+        replyTo: DEFAULT_CRM_SENDER.email,
         context: { guestEmail: body.email },
       })
 
@@ -131,7 +197,7 @@ function getConfirmationEmail(type: string, data: { firstName: string; email: st
   switch (type) {
     case 'contact':
       return {
-        subject: `Hey ${firstName}, quick note from Jordan`,
+        subject: `Hey ${firstName}, quick note from Vanessa`,
         textBody: [
           `Hey ${firstName},`,
           '',
@@ -142,7 +208,7 @@ function getConfirmationEmail(type: string, data: { firstName: string; email: st
           `I'll be in touch within 24 hours with a personal response to your message.`,
           '',
           'Talk soon,',
-          'Jordan',
+          'Vanessa',
           'https://vibrationfit.com',
         ].join('\n'),
       }
@@ -153,14 +219,14 @@ function getConfirmationEmail(type: string, data: { firstName: string; email: st
         textBody: [
           `Hey ${firstName},`,
           '',
-          `Really glad you're interested in seeing VibrationFit in action. I'm going to personally walk you through everything -- your Life Vision, VIVA coaching, vision boards, the works.`,
+          `Really glad you're interested in seeing VibrationFit in action. We're going to personally walk you through everything -- your Life Vision, VIVA coaching, vision boards, the works.`,
           '',
           `Before we schedule, quick favor: can you reply to this email with "Got it" so I know my emails are landing in your primary inbox? I want to make sure you get the calendar link when I send it.`,
           '',
           `I'll follow up shortly to find a time that works for you.`,
           '',
           'Talk soon,',
-          'Jordan',
+          'Vanessa',
           'https://vibrationfit.com',
         ].join('\n'),
       }
@@ -171,13 +237,13 @@ function getConfirmationEmail(type: string, data: { firstName: string; email: st
         textBody: [
           `Hey ${firstName},`,
           '',
-          `Thank you for applying to the 72-Hour Activation Intensive. I review every application personally and I'll be in touch within 24 hours.`,
+          `Thank you for applying to the 72-Hour Activation Intensive. We review every application personally and will be in touch within 24 hours.`,
           '',
           `One quick ask: can you reply to this email with "Received" so I know you're getting my messages? The next steps I send are time-sensitive and I need to make sure they reach you.`,
           '',
           `Looking forward to connecting.`,
           '',
-          'Jordan',
+          'Vanessa',
           'https://vibrationfit.com',
         ].join('\n'),
       }
@@ -196,7 +262,7 @@ function getConfirmationEmail(type: string, data: { firstName: string; email: st
           `Quick favor: can you reply with "Got it" so I know this landed in your inbox?`,
           '',
           'Talk soon,',
-          'Jordan',
+          'Vanessa',
           'https://vibrationfit.com',
         ].join('\n'),
       }
@@ -207,12 +273,12 @@ function getConfirmationEmail(type: string, data: { firstName: string; email: st
         textBody: [
           `Hey ${firstName},`,
           '',
-          `Thanks for reaching out. I got your message and will be in touch soon.`,
+          `Thanks for reaching out. We got your message and will be in touch soon.`,
           '',
           `Quick favor -- could you reply with "Got it" so I know this landed in your inbox? That helps me make sure you get everything going forward.`,
           '',
           'Talk soon,',
-          'Jordan',
+          'Vanessa',
           'https://vibrationfit.com',
         ].join('\n'),
       }

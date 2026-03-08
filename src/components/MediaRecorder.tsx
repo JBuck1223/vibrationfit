@@ -16,6 +16,7 @@ import { USER_FOLDERS } from '@/lib/storage/s3-storage-presigned'
 import SimpleLevelMeter from '@/components/SimpleLevelMeter'
 import { AudioEditor } from '@/components/AudioEditor'
 import { IconList } from '@/lib/design-system/components'
+import { useIsMobile } from '@/lib/design-system/mobile-utils'
 
 type RecordingPurpose = 'quick' | 'transcriptOnly' | 'withFile' | 'audioOnly' | 'support'
 
@@ -89,6 +90,11 @@ export function MediaRecorderComponent({
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>(initialFacingMode) // Camera direction
   const [isFullscreen, setIsFullscreen] = useState(false) // Fullscreen state
   const containerRef = useRef<HTMLDivElement>(null) // Container for fullscreen
+  const [videoPreviewAspectRatio, setVideoPreviewAspectRatio] = useState<number | null>(null) // Stream aspect (width/height) so preview matches recording
+  const [playbackAspectRatio, setPlaybackAspectRatio] = useState<number | null>(null) // Recorded video aspect for playback
+
+  const isMobile = useIsMobile()
+  const effectiveFullscreen = fullscreenVideo === false ? false : (isMobile && mode === 'video' ? true : fullscreenVideo)
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -103,6 +109,7 @@ export function MediaRecorderComponent({
   const durationRef = useRef<number>(0) // Track duration for auto-save
   const transcriptRef = useRef<string>('') // Track transcript for auto-save
   const wakeLockRef = useRef<WakeLockSentinel | null>(null)
+  const recordedMimeTypeRef = useRef<string>('') // Actual MIME type used by MediaRecorder (Safari may use mp4)
 
   // Screen Wake Lock — keep the screen awake while recording
   const acquireWakeLock = async () => {
@@ -485,10 +492,7 @@ export function MediaRecorderComponent({
       
       // Check if getUserMedia (and getDisplayMedia for screen) is supported
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        // Detect if on mobile to provide specific error
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
         const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        
         if (isMobile && !isLocalhost && window.location.protocol !== 'https:') {
           throw new Error('Camera/microphone access requires HTTPS on mobile devices. Please access this site via https:// or contact support.')
         } else {
@@ -519,11 +523,17 @@ export function MediaRecorderComponent({
       } else {
         const constraints = mode === 'video'
           ? {
-              video: {
-                width: { ideal: 1280 },
-                height: { ideal: 720 },
-                facingMode: facingMode
-              },
+              video: isMobile
+                ? {
+                    width: { max: 1280 },
+                    height: { max: 720 },
+                    facingMode: facingMode
+                  }
+                : {
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
+                    facingMode: facingMode
+                  },
               audio: selectedMic ? { deviceId: { exact: selectedMic } } : true
             }
           : { audio: selectedMic ? { deviceId: { exact: selectedMic } } : true }
@@ -541,12 +551,19 @@ export function MediaRecorderComponent({
       // Show preview for video/screen (but don't start recording yet)
       setIsPreparing(true)
       if (mode === 'video' || mode === 'screen') {
-        // Wait for React to render the video element
+        setVideoPreviewAspectRatio(null)
         await new Promise(resolve => setTimeout(resolve, 100))
         
         if (videoRef.current) {
           console.log('Setting video srcObject')
           videoRef.current.srcObject = stream
+          const videoTrack = stream.getVideoTracks()[0]
+          if (videoTrack) {
+            const settings = videoTrack.getSettings()
+            if (typeof settings.width === 'number' && typeof settings.height === 'number' && settings.height > 0) {
+              setVideoPreviewAspectRatio(settings.width / settings.height)
+            }
+          }
           try {
             await videoRef.current.play()
             console.log('Video playing successfully')
@@ -584,14 +601,25 @@ export function MediaRecorderComponent({
       durationRef.current = previousDuration
 
       const isVideoLike = mode === 'video' || mode === 'screen'
-      const mimeType = isVideoLike
-        ? 'video/webm;codecs=vp9,opus'
-        : 'audio/webm;codecs=opus'
+      let chosenMimeType: string
+      if (isVideoLike) {
+        if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')) {
+          chosenMimeType = 'video/webm;codecs=vp9,opus'
+        } else if (MediaRecorder.isTypeSupported('video/webm')) {
+          chosenMimeType = 'video/webm'
+        } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+          chosenMimeType = 'video/mp4'
+        } else {
+          chosenMimeType = '' // Let browser choose (Safari often produces mp4)
+        }
+      } else {
+        chosenMimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+          ? 'audio/webm;codecs=opus'
+          : 'audio/webm'
+      }
 
       const recorderOptions: MediaRecorderOptions = {
-        mimeType: MediaRecorder.isTypeSupported(mimeType)
-          ? mimeType
-          : isVideoLike ? 'video/webm' : 'audio/webm'
+        ...(chosenMimeType ? { mimeType: chosenMimeType } : {})
       }
 
       // Lower bitrate for speech-only recordings to reduce file size and speed up transcription
@@ -600,6 +628,7 @@ export function MediaRecorderComponent({
       }
 
       const mediaRecorder = new MediaRecorder(stream, recorderOptions)
+      recordedMimeTypeRef.current = mediaRecorder.mimeType || (isVideoLike ? 'video/webm' : 'audio/webm')
 
       mediaRecorderRef.current = mediaRecorder
       chunksRef.current = []
@@ -611,6 +640,9 @@ export function MediaRecorderComponent({
       }
 
       mediaRecorder.onstop = async () => {
+        const actualMimeType = recordedMimeTypeRef.current || (isVideoLike ? 'video/webm' : 'audio/webm')
+        const fileExt = actualMimeType.includes('mp4') ? 'mp4' : 'webm'
+
         // Merge previous chunks with new chunks if continuing from saved recording
         let finalChunks = chunksRef.current
         if (previousChunks.length > 0) {
@@ -625,9 +657,7 @@ export function MediaRecorderComponent({
           setPreviousDuration(0)
         }
         
-        const blob = new Blob(finalChunks, {
-          type: isVideoLike ? 'video/webm' : 'audio/webm'
-        })
+        const blob = new Blob(finalChunks, { type: actualMimeType })
         
         console.log('📦 Created blob:', {
           size: blob.size,
@@ -683,7 +713,7 @@ export function MediaRecorderComponent({
             : (storageFolder || (isVideoLike ? 'journalVideoRecordings' : 'journalAudioRecordings'))
           // Include recordingId in filename if provided for better S3 organization
           const filePrefix = providedRecordingId ? `${providedRecordingId}-` : ''
-          const fileName = `${filePrefix}recording-${Date.now()}.webm`
+          const fileName = `${filePrefix}recording-${Date.now()}.${fileExt}`
           
           console.log(`📤 ${recordingPurpose} mode: Uploading to S3...`)
           
@@ -808,6 +838,7 @@ export function MediaRecorderComponent({
       // Stop video/screen preview
       if ((mode === 'video' || mode === 'screen') && videoRef.current) {
         videoRef.current.srcObject = null
+        setVideoPreviewAspectRatio(null)
       }
     }
   }
@@ -846,6 +877,7 @@ export function MediaRecorderComponent({
     setRecordedBlob(null)
     setRecordedUrl(null)
     setS3Url(null)
+    setPlaybackAspectRatio(null)
     setDuration(0)
     setTranscript('')
     chunksRef.current = []
@@ -872,7 +904,8 @@ export function MediaRecorderComponent({
 
     try {
       const formData = new FormData()
-      formData.append('audio', blob, 'recording.webm')
+      const transcriptExt = blob.type.includes('mp4') ? 'mp4' : 'webm'
+      formData.append('audio', blob, `recording.${transcriptExt}`)
 
       console.log(`Transcription attempt ${attempt}/${maxAttempts}:`, {
         blobSize: `${(blob.size / (1024 * 1024)).toFixed(2)}MB`
@@ -970,7 +1003,8 @@ export function MediaRecorderComponent({
         console.log(`${recordingPurpose} mode: Uploading to S3 in parallel...`)
         const folder = storageFolder || ((mode === 'video' || mode === 'screen') ? 'journalVideoRecordings' : 'journalAudioRecordings')
         const filePrefix = providedRecordingId ? `${providedRecordingId}-` : ''
-        const fileName = `${filePrefix}recording-${Date.now()}.webm`
+        const uploadExt = blob.type.includes('mp4') ? 'mp4' : 'webm'
+        const fileName = `${filePrefix}recording-${Date.now()}.${uploadExt}`
         
         uploadPromise = uploadRecording(blob, folder, fileName)
           .then((uploadResult) => {
@@ -1108,36 +1142,46 @@ export function MediaRecorderComponent({
               className={`mb-4 rounded-xl overflow-hidden bg-black relative ${
                 isFullscreen ? 'fixed inset-0 z-50 rounded-none flex items-center justify-center' : ''
               }`}
+              style={
+                !isFullscreen
+                  ? { aspectRatio: videoPreviewAspectRatio ?? 16 / 9 }
+                  : undefined
+              }
             >
               <video
                 ref={videoRef}
-                className={`object-cover ${
-                  isFullscreen 
-                    ? 'w-full h-full' 
-                    : 'w-full aspect-video'
-                }`}
+                className={
+                  isFullscreen
+                    ? 'w-full h-full object-contain'
+                    : 'w-full h-full max-h-[70vh] object-contain'
+                }
                 autoPlay
                 muted
                 playsInline
+                onLoadedMetadata={() => {
+                  if (videoRef.current && videoRef.current.videoWidth && videoRef.current.videoHeight && videoPreviewAspectRatio == null) {
+                    setVideoPreviewAspectRatio(videoRef.current.videoWidth / videoRef.current.videoHeight)
+                  }
+                }}
               />
               
-              {/* Top Controls - Camera Switch (video only) & Fullscreen */}
+              {/* Top Controls - Camera Switch (video only) & Fullscreen - 44px min touch targets */}
               <div className="absolute top-4 right-4 flex gap-2 z-10">
                 {allowCameraSwitch && mode === 'video' && (
                   <button
                     type="button"
                     onClick={switchCamera}
-                    className="p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors backdrop-blur-sm"
+                    className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors backdrop-blur-sm"
                     title={facingMode === 'user' ? 'Switch to back camera' : 'Switch to front camera'}
                   >
                     <SwitchCamera className="w-5 h-5" />
                   </button>
                 )}
-                {fullscreenVideo && (
+                {effectiveFullscreen && (
                   <button
                     type="button"
                     onClick={toggleFullscreen}
-                    className="p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors backdrop-blur-sm"
+                    className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors backdrop-blur-sm"
                     title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
                   >
                     {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
@@ -1171,9 +1215,9 @@ export function MediaRecorderComponent({
                 </div>
               )}
 
-              {/* Fullscreen Recording Controls */}
+              {/* Fullscreen Recording Controls - safe area so controls clear home indicator on notched devices */}
               {isFullscreen && isRecording && countdown === null && (
-                <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-6">
+                <div className="absolute left-0 right-0 flex justify-center gap-6 pb-[max(2rem,env(safe-area-inset-bottom))]">
                   {/* Pause/Resume */}
                   {!isPaused ? (
                     <button
@@ -1229,16 +1273,16 @@ export function MediaRecorderComponent({
             </div>
           )}
 
-          {/* Timer with Circular Level Meter and Controls - Centered */}
+          {/* Timer with Circular Level Meter and Controls - Centered; compact gap on small viewports */}
           {isRecording && countdown === null && streamRef.current && (
-            <div className="w-full flex justify-center items-center">
-              <div className="flex justify-center items-center gap-6">
-                {/* Pause/Resume Button */}
+            <div className="w-full flex justify-center items-center overflow-x-auto">
+              <div className="flex justify-center items-center gap-4 sm:gap-6 min-w-0">
+                {/* Pause/Resume Button - 48px touch target */}
                 {!isPaused ? (
                   <button
                     type="button"
                     onClick={pauseRecording}
-                    className="w-12 h-12 rounded-full bg-primary-500 hover:bg-primary-400 flex items-center justify-center transition-all duration-300 hover:scale-110"
+                    className="min-w-[48px] min-h-[48px] w-12 h-12 rounded-full bg-primary-500 hover:bg-primary-400 flex items-center justify-center transition-all duration-300 hover:scale-110 flex-shrink-0"
                   >
                     <div className="flex gap-1">
                       <div className="w-1 h-4 bg-black rounded-sm" />
@@ -1249,14 +1293,14 @@ export function MediaRecorderComponent({
                   <button
                     type="button"
                     onClick={resumeRecording}
-                    className="w-12 h-12 rounded-full bg-primary-500 hover:bg-primary-400 flex items-center justify-center transition-all duration-300 hover:scale-110"
+                    className="min-w-[48px] min-h-[48px] w-12 h-12 rounded-full bg-primary-500 hover:bg-primary-400 flex items-center justify-center transition-all duration-300 hover:scale-110 flex-shrink-0"
                   >
                     <Play className="w-5 h-5 text-black fill-black" />
                   </button>
                 )}
                 
                 {/* Circular Meter with Timer */}
-                <div className="relative flex items-center justify-center">
+                <div className="relative flex items-center justify-center flex-shrink-0">
                   <SimpleLevelMeter stream={streamRef.current} circular />
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="text-center">
@@ -1266,11 +1310,11 @@ export function MediaRecorderComponent({
                   </div>
                 </div>
                 
-                {/* Stop Button */}
+                {/* Stop Button - 48px touch target */}
                 <button
                   type="button"
                   onClick={stopRecording}
-                  className="w-12 h-12 rounded-full bg-red-500 hover:bg-red-400 flex items-center justify-center transition-all duration-300 hover:scale-110"
+                  className="min-w-[48px] min-h-[48px] w-12 h-12 rounded-full bg-red-500 hover:bg-red-400 flex items-center justify-center transition-all duration-300 hover:scale-110 flex-shrink-0"
                 >
                   <div className="w-4 h-4 bg-white rounded-sm" />
                 </button>
@@ -1330,9 +1374,8 @@ export function MediaRecorderComponent({
                         return
                       }
                       
-                      const blobToTranscribe = new Blob(chunksToUse, {
-                        type: (mode === 'video' || mode === 'screen') ? 'video/webm' : 'audio/webm'
-                      })
+                      const reconstructedType = chunksToUse[0]?.type || ((mode === 'video' || mode === 'screen') ? 'video/webm' : 'audio/webm')
+                      const blobToTranscribe = new Blob(chunksToUse, { type: reconstructedType })
                       
                       if (blobToTranscribe.size === 0) {
                         setError('Recording is empty or invalid')
@@ -1406,63 +1449,60 @@ export function MediaRecorderComponent({
             </div>
           )}
 
-          {/* Microphone Selector (when not recording and multiple mics available) */}
+          {/* Microphone Selector (when not recording and multiple mics available) - centered, width from content */}
           {!isRecording && countdown === null && !hasSavedRecording && audioDevices.length > 1 && (
-            <div className="mb-4" ref={micDropdownRef}>
-              <label className="block text-sm font-medium text-neutral-200 mb-2">
-                Select Microphone
-              </label>
-              <div className="relative">
+            <div className="mb-4 flex justify-center" ref={micDropdownRef}>
+              <div className="relative inline-block">
                 <button
                   type="button"
                   onClick={() => setIsMicDropdownOpen(!isMicDropdownOpen)}
                   disabled={isRecording}
-                  className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
-                    selectedMic 
-                      ? 'text-white' 
+                  className={`inline-flex items-center gap-2 pl-4 pr-10 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left whitespace-nowrap ${
+                    selectedMic
+                      ? 'text-white'
                       : 'text-[#9CA3AF]'
                   } ${isRecording ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  {selectedMic 
+                  {selectedMic
                     ? (audioDevices.find(d => d.deviceId === selectedMic)?.label || `Microphone ${selectedMic.slice(0, 8)}...`)
-                    : 'Select Microphone'}
+                    : 'Default microphone'}
                 </button>
-                <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isMicDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform ${isMicDropdownOpen ? 'rotate-180' : ''}`} />
                 </div>
-                
                 {isMicDropdownOpen && !isRecording && (
                   <>
-                    <div 
-                      className="fixed inset-0 z-10" 
-                      onClick={() => setIsMicDropdownOpen(false)}
-                    />
-                    <div className="absolute z-20 w-full bottom-full mb-1 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
-                      <div className="py-2">
-                        {audioDevices.map((device) => {
-                          const label = device.label || `Microphone ${device.deviceId.slice(0, 8)}...`
-                          const isSelected = device.deviceId === selectedMic
-                          return (
-                            <button
-                              key={device.deviceId}
-                              type="button"
-                              onClick={() => {
-                                setSelectedMic(device.deviceId)
-                                setIsMicDropdownOpen(false)
-                              }}
-                              className={`w-full px-6 py-2 text-left transition-colors ${
-                                isSelected
-                                  ? 'bg-primary-500/20 text-primary-500 font-semibold' 
-                                  : 'text-white hover:bg-[#333]'
-                              }`}
-                            >
-                              {label}
-                            </button>
-                          )
-                        })}
-                      </div>
+                    <div className="fixed inset-0 z-10" onClick={() => setIsMicDropdownOpen(false)} aria-hidden />
+                    <div className="absolute z-20 left-1/2 -translate-x-1/2 top-full mt-1 min-w-[280px] w-max max-w-[min(100vw-2rem,400px)] bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain py-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedMic('')
+                          setIsMicDropdownOpen(false)
+                        }}
+                        className={`w-full px-6 py-2.5 text-left text-sm transition-colors ${!selectedMic ? 'bg-primary-500/20 text-primary-500 font-semibold' : 'text-white hover:bg-[#333]'}`}
+                      >
+                        Default microphone
+                      </button>
+                      {audioDevices.map((device) => {
+                        const label = device.label || `Microphone ${device.deviceId.slice(0, 8)}...`
+                        const isSelected = device.deviceId === selectedMic
+                        return (
+                          <button
+                            key={device.deviceId}
+                            type="button"
+                            onClick={() => {
+                              setSelectedMic(device.deviceId)
+                              setIsMicDropdownOpen(false)
+                            }}
+                            className={`w-full px-6 py-2.5 text-left text-sm transition-colors ${
+                              isSelected ? 'bg-primary-500/20 text-primary-500 font-semibold' : 'text-white hover:bg-[#333]'
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        )
+                      })}
                     </div>
                   </>
                 )}
@@ -1594,15 +1634,28 @@ export function MediaRecorderComponent({
 
           {/* Media Player */}
           {(mode === 'video' || mode === 'screen') ? (
-            <video
-              src={s3Url || recordedUrl || undefined}
-              controls
-              className="w-full rounded-xl bg-black"
-              onError={(e) => {
-                console.error('❌ Video player error:', e)
-                setError('Unable to play video. The recording file may be corrupted.')
+            <div
+              className="w-full rounded-xl bg-black overflow-hidden min-h-[200px]"
+              style={{
+                aspectRatio: playbackAspectRatio ?? 16 / 9
               }}
-            />
+            >
+              <video
+                src={s3Url || recordedUrl || undefined}
+                controls
+                className="w-full h-full object-contain rounded-xl"
+                onLoadedMetadata={(e) => {
+                  const v = e.currentTarget
+                  if (v.videoWidth && v.videoHeight) {
+                    setPlaybackAspectRatio(v.videoWidth / v.videoHeight)
+                  }
+                }}
+                onError={(e) => {
+                  console.error('❌ Video player error:', e)
+                  setError('Unable to play video. The recording file may be corrupted.')
+                }}
+              />
+            </div>
           ) : (
             <audio
               key={recordedUrl || s3Url || 'audio-player'} // Force re-mount when URL changes
@@ -1852,9 +1905,9 @@ export function MediaRecorderComponent({
                       setIsUploading(true)
                       setError(null)
                       const folder = storageFolder || 'journalAudioRecordings'
-                      // Include recordingId in filename if provided for better S3 organization
                       const filePrefix = providedRecordingId ? `${providedRecordingId}-` : ''
-                      const fileName = `${filePrefix}recording-${Date.now()}.webm`
+                      const uploadExt = recordedBlob.type.includes('mp4') ? 'mp4' : 'webm'
+                      const fileName = `${filePrefix}recording-${Date.now()}.${uploadExt}`
                       
                       console.log('📤 audioOnly mode: Uploading to S3...')
                       

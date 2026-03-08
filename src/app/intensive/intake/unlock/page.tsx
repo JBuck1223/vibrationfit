@@ -927,7 +927,6 @@ export default function IntensiveUnlockPage() {
                       setTestimonialTranscript(transcript)
                     }}
                     enableEditor={false}
-                    fullscreenVideo={false}
                   />
                   <button
                     type="button"

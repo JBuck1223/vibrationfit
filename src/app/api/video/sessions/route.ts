@@ -65,17 +65,36 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get user account for display name
-    const { data: account } = await supabase
-      .from('user_accounts')
-      .select('first_name, last_name, full_name')
-      .eq('id', user.id)
-      .single()
+    // Determine host: use staff member when staff_id is provided (e.g. calibration calls),
+    // otherwise fall back to the authenticated user who created the session.
+    let hostUserId = user.id
+    let hostName = ''
 
-    const hostName = account?.full_name || account?.first_name || user.email || 'Host'
+    if (body.staff_id) {
+      const { data: staffData } = await supabase
+        .from('staff')
+        .select('user_id, display_name')
+        .eq('id', body.staff_id)
+        .single()
+
+      if (staffData) {
+        hostName = staffData.display_name || 'Vibration Fit Team'
+        if (staffData.user_id) hostUserId = staffData.user_id
+      }
+    }
+
+    if (!hostName) {
+      const { data: account } = await supabase
+        .from('user_accounts')
+        .select('first_name, last_name, full_name')
+        .eq('id', user.id)
+        .single()
+
+      hostName = account?.full_name || account?.first_name || user.email || 'Host'
+    }
 
     // Create host token
-    const hostToken = await createHostToken(dailyRoom.name, user.id, hostName)
+    const hostToken = await createHostToken(dailyRoom.name, hostUserId, hostName)
 
     // Create session in database
     const { data: session, error: sessionError } = await supabase
@@ -89,7 +108,7 @@ export async function POST(request: NextRequest) {
         status: 'scheduled',
         scheduled_at: body.scheduled_at,
         scheduled_duration_minutes: durationMinutes,
-        host_user_id: user.id,
+        host_user_id: hostUserId,
         enable_recording: body.enable_recording ?? true,
         enable_waiting_room: false,
         max_participants: maxParticipants,
@@ -112,7 +131,7 @@ export async function POST(request: NextRequest) {
     // Add host as participant
     await supabase.from('video_session_participants').insert({
       session_id: session.id,
-      user_id: user.id,
+      user_id: hostUserId,
       name: hostName,
       is_host: true,
     })

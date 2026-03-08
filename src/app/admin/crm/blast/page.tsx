@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Card,
@@ -25,9 +25,15 @@ import {
   ArrowLeft,
   X,
   Mail,
+  User,
+  ExternalLink,
+  MousePointerClick,
+  MailOpen,
+  Ban,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { BlastFilters, Audience } from '@/lib/crm/blast-filters'
+import { CRM_SENDERS, DEFAULT_CRM_SENDER } from '@/lib/crm/senders'
 
 interface Recipient {
   email: string
@@ -139,18 +145,56 @@ export default function BlastPage() {
   const [showTemplates, setShowTemplates] = useState(false)
   const [templateSearch, setTemplateSearch] = useState('')
 
+  const [senderId, setSenderId] = useState<string>(DEFAULT_CRM_SENDER.id)
   const [subject, setSubject] = useState('')
   const [textBody, setTextBody] = useState('')
 
   const [sending, setSending] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
-  const [sendResult, setSendResult] = useState<{ sent: number; failed: number; errors: string[] } | null>(null)
+
+  const [campaignId, setCampaignId] = useState<string | null>(null)
+  const [campaignData, setCampaignData] = useState<{
+    campaign: {
+      audienceCount: number
+      sentCount: number
+      failedCount: number
+      status: string
+      subject: string
+    }
+    stats: { total: number; delivered: number; bounced: number; opened: number; clicked: number; failed: number }
+    pending: number
+  } | null>(null)
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     fetchTemplates()
   }, [])
+
+  const pollCampaign = useCallback(async (id: string) => {
+    try {
+      const res = await fetch(`/api/crm/blast/${id}`)
+      if (!res.ok) return
+      const data = await res.json()
+      setCampaignData(data)
+
+      const isSending = data.campaign.status === 'sending' || data.pending > 0
+      const delay = isSending ? 3000 : 10000
+      pollRef.current = setTimeout(() => pollCampaign(id), delay)
+    } catch {
+      pollRef.current = setTimeout(() => pollCampaign(id), 5000)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (campaignId) {
+      pollCampaign(campaignId)
+    }
+    return () => {
+      if (pollRef.current) clearTimeout(pollRef.current)
+    }
+  }, [campaignId, pollCampaign])
 
   useEffect(() => {
     setPreviewCount(null)
@@ -268,7 +312,8 @@ export default function BlastPage() {
   async function handleSend() {
     if (!subject.trim() || !textBody.trim() || !previewCount) return
     setSending(true)
-    setSendResult(null)
+    setCampaignId(null)
+    setCampaignData(null)
     try {
       const res = await fetch('/api/crm/blast', {
         method: 'POST',
@@ -277,12 +322,13 @@ export default function BlastPage() {
           filters: buildFilters(),
           subject: subject.trim(),
           textBody: textBody.trim(),
+          senderId,
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Send failed')
-      setSendResult({ sent: data.sent, failed: data.failed, errors: data.errors || [] })
-      toast.success(`Blast sent to ${data.sent} recipients`)
+      setCampaignId(data.campaignId)
+      toast.success(`Blast queued: ${data.recipientCount} recipients`)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to send blast'
       toast.error(msg)
@@ -571,6 +617,26 @@ export default function BlastPage() {
               )}
             </div>
 
+            {/* Sender */}
+            <div className="mb-4">
+              <label className="block text-sm text-neutral-400 mb-1">From</label>
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4 text-neutral-500 shrink-0" />
+                <select
+                  value={senderId}
+                  onChange={(e) => setSenderId(e.target.value)}
+                  disabled={sending}
+                  className={inputClass}
+                >
+                  {CRM_SENDERS.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.label} ({s.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             {/* Subject */}
             <div className="mb-4">
               <label className="block text-sm text-neutral-400 mb-1">Subject</label>
@@ -596,7 +662,7 @@ export default function BlastPage() {
                 className={inputClass + ' resize-none font-mono'}
               />
               <p className="text-xs text-neutral-500 mt-1">
-                Plain text sends land in the Primary inbox. All blasts send from jordan@vibrationfit.com.
+                Plain text sends land in the Primary inbox.
               </p>
             </div>
 
@@ -622,25 +688,81 @@ export default function BlastPage() {
               )}
             </div>
 
-            {/* Result banner */}
-            {sendResult && (
-              <div className="mt-6 p-4 rounded-xl border border-[#333] bg-[#1A1A1A]">
-                <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle className="w-5 h-5 text-[#39FF14]" />
-                  <span className="font-semibold text-white">
-                    Blast complete: {sendResult.sent} sent, {sendResult.failed} failed
-                  </span>
-                </div>
-                {sendResult.errors.length > 0 && (
-                  <div className="mt-2 text-sm text-neutral-400 space-y-1">
-                    {sendResult.errors.slice(0, 10).map((e, i) => (
-                      <p key={i}>{e}</p>
-                    ))}
-                    {sendResult.errors.length > 10 && (
-                      <p className="text-neutral-500">+ {sendResult.errors.length - 10} more errors</p>
+            {/* Campaign progress & stats */}
+            {campaignId && campaignData && (
+              <div className="mt-6 p-5 rounded-xl border border-[#333] bg-[#1A1A1A] space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {campaignData.campaign.status === 'sending' || campaignData.pending > 0 ? (
+                      <Spinner size="sm" />
+                    ) : (
+                      <CheckCircle className="w-5 h-5 text-[#39FF14]" />
                     )}
+                    <span className="font-semibold text-white">
+                      {campaignData.campaign.status === 'sending' || campaignData.pending > 0
+                        ? `Sending... ${campaignData.campaign.sentCount} / ${campaignData.campaign.audienceCount}`
+                        : `Blast complete: ${campaignData.campaign.sentCount} sent`}
+                    </span>
                   </div>
-                )}
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/admin/crm/blast/${campaignId}`)}
+                    className={btnGhost}
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Full Report
+                  </button>
+                </div>
+
+                {/* Progress bar */}
+                <div className="w-full h-2 bg-[#333] rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-[#39FF14] rounded-full transition-all duration-500"
+                    style={{
+                      width: `${campaignData.campaign.audienceCount
+                        ? Math.round(((campaignData.campaign.sentCount + campaignData.campaign.failedCount) / campaignData.campaign.audienceCount) * 100)
+                        : 0}%`,
+                    }}
+                  />
+                </div>
+
+                {/* Stats badges */}
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                  <StatBadge
+                    icon={<Send className="w-4 h-4" />}
+                    label="Sent"
+                    value={campaignData.stats.total}
+                    color="#39FF14"
+                  />
+                  <StatBadge
+                    icon={<CheckCircle className="w-4 h-4" />}
+                    label="Delivered"
+                    value={campaignData.stats.delivered}
+                    total={campaignData.stats.total}
+                    color="#00FFFF"
+                  />
+                  <StatBadge
+                    icon={<MailOpen className="w-4 h-4" />}
+                    label="Opened"
+                    value={campaignData.stats.opened}
+                    total={campaignData.stats.total}
+                    color="#BF00FF"
+                  />
+                  <StatBadge
+                    icon={<MousePointerClick className="w-4 h-4" />}
+                    label="Clicked"
+                    value={campaignData.stats.clicked}
+                    total={campaignData.stats.total}
+                    color="#FFFF00"
+                  />
+                  <StatBadge
+                    icon={<Ban className="w-4 h-4" />}
+                    label="Bounced"
+                    value={campaignData.stats.bounced}
+                    total={campaignData.stats.total}
+                    color="#FF0040"
+                  />
+                </div>
               </div>
             )}
           </Card>
@@ -679,7 +801,7 @@ export default function BlastPage() {
                 </p>
                 <p>
                   <span className="text-neutral-400">From:</span>{' '}
-                  <span className="text-white">jordan@vibrationfit.com</span>
+                  <span className="text-white">{CRM_SENDERS.find((s) => s.id === senderId)?.email ?? DEFAULT_CRM_SENDER.email}</span>
                 </p>
                 <p>
                   <span className="text-neutral-400">Audience:</span>{' '}
@@ -720,5 +842,34 @@ export default function BlastPage() {
         </div>
       )}
     </>
+  )
+}
+
+function StatBadge({
+  icon,
+  label,
+  value,
+  total,
+  color,
+}: {
+  icon: React.ReactNode
+  label: string
+  value: number
+  total?: number
+  color: string
+}) {
+  const pct = total && total > 0 ? Math.round((value / total) * 100) : null
+
+  return (
+    <div
+      className="flex flex-col items-center gap-1 p-3 rounded-xl border border-[#333] bg-[#1E1E1E]"
+    >
+      <div style={{ color }}>{icon}</div>
+      <span className="text-lg font-bold text-white">{value}</span>
+      <span className="text-xs text-neutral-500">
+        {label}
+        {pct !== null && ` (${pct}%)`}
+      </span>
+    </div>
   )
 }

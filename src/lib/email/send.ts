@@ -14,6 +14,7 @@ export interface EmailContext {
   threadId?: string
   isReply?: boolean
   replyToMessageId?: string
+  campaignId?: string
 }
 
 export interface SendAndLogEmailParams extends SendEmailParams {
@@ -65,6 +66,7 @@ async function logEmail(params: {
       thread_id: params.context?.threadId || null,
       is_reply: params.context?.isReply || false,
       reply_to_message_id: params.context?.replyToMessageId || null,
+      campaign_id: params.context?.campaignId || null,
     })
   } catch (err) {
     console.error('[email/send] Failed to log email to database:', err)

@@ -16,6 +16,7 @@ import { toTitleCase } from '@/lib/utils'
 import { sendServerConversion } from '@/lib/tracking/server-conversions'
 import { sendSMS } from '@/lib/messaging/twilio'
 import { createAdminNotification } from '@/lib/admin/notifications'
+import { resolveReferralCode, checkAndGrantRewards } from '@/lib/referral/helpers'
 
 async function notifyAdminPurchase(details: {
   customerName?: string
@@ -1515,6 +1516,30 @@ export async function POST(request: NextRequest) {
             metadata: { email: csEmail, amount: session.amount_total, product: csProduct, paymentPlan: csPlan },
             link: '/admin/orders',
           }).catch(err => console.error('Admin notification DB error:', err))
+
+          // Credit referrer with paid_conversion
+          const csRefSource = session.metadata?.referral_source || session.metadata?.source
+          if (csRefSource && csEmail) {
+            try {
+              const referrer = await resolveReferralCode(supabaseAdmin, csRefSource)
+              if (referrer) {
+                await supabaseAdmin.from('referral_events').insert({
+                  referrer_id: referrer.id,
+                  event_type: 'paid_conversion',
+                  referred_email: csEmail,
+                  metadata: { amount: session.amount_total, product: csProduct, source: 'checkout_session' },
+                })
+                const { data: rp } = await supabaseAdmin.from('referral_participants').select('email_signups, paid_conversions').eq('id', referrer.id).single()
+                const newPaid = (rp?.paid_conversions || 0) + 1
+                await supabaseAdmin.from('referral_participants').update({ paid_conversions: newPaid }).eq('id', referrer.id)
+                await supabaseAdmin.from('referral_invites').update({ status: 'converted', converted_at: new Date().toISOString() }).eq('participant_id', referrer.id).eq('referred_email', csEmail).in('status', ['sent', 'opened', 'clicked'])
+                await checkAndGrantRewards(supabaseAdmin, referrer.id, rp?.email_signups || 0, newPaid)
+                console.log('[webhook] Referral paid_conversion credited to', referrer.referral_code)
+              }
+            } catch (refErr) {
+              console.error('[webhook] Referral credit error (non-fatal):', refErr)
+            }
+          }
         }
         
         break
@@ -2299,6 +2324,36 @@ export async function POST(request: NextRequest) {
             paymentPlan: plan,
             paymentPlanLabel: getPaymentPlanLabel(plan),
           }).catch(() => {})
+        }
+
+        // Credit referrer with paid_conversion
+        if (referralSource && email) {
+          try {
+            const referrer = await resolveReferralCode(supabaseAdmin, referralSource)
+            if (referrer) {
+              await supabaseAdmin.from('referral_events').insert({
+                referrer_id: referrer.id,
+                event_type: 'paid_conversion',
+                referred_email: email,
+                metadata: { amount: totalAmount, product, source: 'payment_intent' },
+              })
+              const { data: rp } = await supabaseAdmin.from('referral_participants').select('email_signups, paid_conversions').eq('id', referrer.id).single()
+              const newPaid = (rp?.paid_conversions || 0) + 1
+              await supabaseAdmin.from('referral_participants').update({ paid_conversions: newPaid }).eq('id', referrer.id)
+              await supabaseAdmin.from('referral_invites').update({ status: 'converted', converted_at: new Date().toISOString() }).eq('participant_id', referrer.id).eq('referred_email', email).in('status', ['sent', 'opened', 'clicked'])
+              await checkAndGrantRewards(supabaseAdmin, referrer.id, rp?.email_signups || 0, newPaid)
+              console.log('[webhook] Referral paid_conversion credited to', referrer.referral_code)
+            }
+          } catch (refErr) {
+            console.error('[webhook] Referral credit error (non-fatal):', refErr)
+          }
+        }
+
+        // Link referral participant to new user account
+        if (userId && email) {
+          try {
+            await supabaseAdmin.from('referral_participants').update({ user_id: userId }).eq('email', email).is('user_id', null)
+          } catch {}
         }
         break
       }
