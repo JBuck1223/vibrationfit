@@ -37,6 +37,7 @@ interface MediaRecorderProps {
   initialFacingMode?: 'user' | 'environment' // Initial camera direction (front/back)
   allowCameraSwitch?: boolean // Show camera switch button for video mode
   fullscreenVideo?: boolean // Make video preview fullscreen during recording
+  submitLabel?: string // Primary button label when recordingPurpose is 'support' (e.g. "Send" or "Submit")
   /**
    * Recording modes:
    * - 'quick': Small snippets (VIVA chat) - No S3, no player, instant transcript, discard immediately
@@ -63,7 +64,8 @@ export function MediaRecorderComponent({
   enableEditor = true, // Default to enabled (can be overridden)
   initialFacingMode = 'user', // Default to front camera
   allowCameraSwitch = true, // Show camera switch by default for video
-  fullscreenVideo = true // Make video fullscreen during recording by default
+  fullscreenVideo = true, // Make video fullscreen during recording by default
+  submitLabel = 'Submit'
 }: MediaRecorderProps) {
   const [isRecording, setIsRecording] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
@@ -1123,25 +1125,24 @@ export function MediaRecorderComponent({
     <div className={`space-y-4 ${className}`}>
       {/* Recording Controls */}
       {!recordedBlob && !(recordingPurpose === 'quick' && transcript) && (
-        <div className={`bg-neutral-900 border-2 rounded-2xl transition-all ${
-          isRecording 
-            ? 'border-[#FF0040]' 
-            : 'border-[#39FF14]'
+        <div className={`transition-all ${
+          (mode === 'video' || mode === 'screen') && (isRecording || isPreparing)
+            ? 'rounded-xl overflow-hidden bg-black border border-neutral-800'
+            : `bg-neutral-900 border-2 rounded-2xl ${isRecording ? 'border-[#FF0040]' : 'border-[#39FF14]'}`
         } ${
-          // Vertical centering when recording/countdown
-          isRecording || countdown !== null || isPreparing
-            ? 'p-4 min-h-[200px] flex items-center justify-center'
-            : hasSavedRecording
-              ? 'p-4 flex flex-col'
-              : 'p-4 flex flex-col'
+          (mode === 'video' || mode === 'screen') && (isRecording || isPreparing)
+            ? 'p-0'
+            : isRecording || countdown !== null || isPreparing
+              ? 'p-4 min-h-[200px] flex items-center justify-center'
+              : hasSavedRecording
+                ? 'p-4 flex flex-col'
+                : 'p-4 flex flex-col'
         }`}>
           {/* Video Preview */}
           {(mode === 'video' || mode === 'screen') && (isRecording || isPreparing) && (
             <div 
               ref={containerRef}
-              className={`mb-4 rounded-xl overflow-hidden bg-black relative ${
-                isFullscreen ? 'fixed inset-0 z-50 rounded-none flex items-center justify-center' : ''
-              }`}
+              className={`rounded-xl overflow-hidden bg-black relative ${isFullscreen ? 'fixed inset-0 z-50 rounded-none flex items-center justify-center' : ''}`}
               style={
                 !isFullscreen
                   ? { aspectRatio: videoPreviewAspectRatio ?? 16 / 9 }
@@ -1189,18 +1190,15 @@ export function MediaRecorderComponent({
                 )}
               </div>
 
-              {/* Source indicator */}
-              <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/50 text-white px-3 py-1 rounded-full text-sm backdrop-blur-sm">
+              {/* Source indicator - icon only for support (minimal overlay) */}
+              <div className="absolute top-4 left-4 flex items-center gap-1.5 bg-black/50 text-white px-2 py-1.5 rounded-full text-sm backdrop-blur-sm">
                 {mode === 'screen' ? (
-                  <>
-                    <Monitor className="w-4 h-4" />
-                    Screen
-                  </>
+                  <Monitor className="w-4 h-4" title="Screen" />
                 ) : (
-                  <>
-                    <Video className="w-4 h-4" />
-                    {facingMode === 'user' ? 'Front' : 'Back'}
-                  </>
+                  <Video className="w-4 h-4" title={facingMode === 'user' ? 'Front camera' : 'Back camera'} />
+                )}
+                {recordingPurpose !== 'support' && (
+                  <span>{mode === 'screen' ? 'Screen' : facingMode === 'user' ? 'Front' : 'Back'}</span>
                 )}
               </div>
               
@@ -1215,44 +1213,74 @@ export function MediaRecorderComponent({
                 </div>
               )}
 
-              {/* Fullscreen Recording Controls - safe area so controls clear home indicator on notched devices */}
+              {/* Fullscreen Recording Controls - stop + duration only for support (minimal); full bar for withFile */}
               {isFullscreen && isRecording && countdown === null && (
-                <div className="absolute left-0 right-0 flex justify-center gap-6 pb-[max(2rem,env(safe-area-inset-bottom))]">
-                  {/* Pause/Resume */}
-                  {!isPaused ? (
-                    <button
-                      type="button"
-                      onClick={pauseRecording}
-                      className="w-14 h-14 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm flex items-center justify-center transition-all"
-                    >
-                      <div className="flex gap-1">
-                        <div className="w-1.5 h-5 bg-white rounded-sm" />
-                        <div className="w-1.5 h-5 bg-white rounded-sm" />
+                <div className="absolute left-0 right-0 flex justify-center items-center gap-4 pb-[max(2rem,env(safe-area-inset-bottom))]">
+                  {recordingPurpose === 'support' ? (
+                    <>
+                      <div className="flex items-center gap-2 bg-red-500/90 text-white px-4 py-2 rounded-full">
+                        <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                        <span className="font-mono text-lg">{formatDuration(duration)}</span>
                       </div>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={stopRecording}
+                        className="w-14 h-14 rounded-full bg-red-500 hover:bg-red-400 flex items-center justify-center transition-all flex-shrink-0"
+                      >
+                        <div className="w-5 h-5 bg-white rounded-sm" />
+                      </button>
+                    </>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={resumeRecording}
-                      className="w-14 h-14 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm flex items-center justify-center transition-all"
-                    >
-                      <Play className="w-6 h-6 text-white fill-white" />
-                    </button>
+                    <>
+                      {!isPaused ? (
+                        <button
+                          type="button"
+                          onClick={pauseRecording}
+                          className="w-14 h-14 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm flex items-center justify-center transition-all"
+                        >
+                          <div className="flex gap-1">
+                            <div className="w-1.5 h-5 bg-white rounded-sm" />
+                            <div className="w-1.5 h-5 bg-white rounded-sm" />
+                          </div>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={resumeRecording}
+                          className="w-14 h-14 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm flex items-center justify-center transition-all"
+                        >
+                          <Play className="w-6 h-6 text-white fill-white" />
+                        </button>
+                      )}
+                      <div className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-full">
+                        <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                        <span className="font-mono text-lg">{formatDuration(duration)}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={stopRecording}
+                        className="w-14 h-14 rounded-full bg-red-500 hover:bg-red-400 flex items-center justify-center transition-all"
+                      >
+                        <div className="w-5 h-5 bg-white rounded-sm" />
+                      </button>
+                    </>
                   )}
-                  
-                  {/* Timer */}
-                  <div className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-full">
-                    <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                    <span className="font-mono text-lg">{formatDuration(duration)}</span>
+                </div>
+              )}
+
+              {/* Non-fullscreen video: single floating stop + duration (no row below video) */}
+              {!isFullscreen && isRecording && countdown === null && (
+                <div className="absolute bottom-4 left-0 right-0 flex justify-center items-center gap-3 pb-[env(safe-area-inset-bottom)]">
+                  <div className="flex items-center gap-2 bg-black/60 text-white px-3 py-1.5 rounded-full">
+                    <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+                    <span className="font-mono text-sm">{formatDuration(duration)}</span>
                   </div>
-                  
-                  {/* Stop */}
                   <button
                     type="button"
                     onClick={stopRecording}
-                    className="w-14 h-14 rounded-full bg-red-500 hover:bg-red-400 flex items-center justify-center transition-all"
+                    className="min-w-[48px] min-h-[48px] rounded-full bg-red-500 hover:bg-red-400 flex items-center justify-center transition-all flex-shrink-0"
                   >
-                    <div className="w-5 h-5 bg-white rounded-sm" />
+                    <div className="w-4 h-4 bg-white rounded-sm" />
                   </button>
                 </div>
               )}
@@ -1273,8 +1301,8 @@ export function MediaRecorderComponent({
             </div>
           )}
 
-          {/* Timer with Circular Level Meter and Controls - Centered; compact gap on small viewports */}
-          {isRecording && countdown === null && streamRef.current && (
+          {/* Timer with Circular Level Meter and Controls - audio mode only; video/screen use overlay only */}
+          {isRecording && countdown === null && streamRef.current && mode === 'audio' && (
             <div className="w-full flex justify-center items-center overflow-x-auto">
               <div className="flex justify-center items-center gap-4 sm:gap-6 min-w-0">
                 {/* Pause/Resume Button - 48px touch target */}
@@ -1571,66 +1599,58 @@ export function MediaRecorderComponent({
 
       {/* Recorded Media Preview - Hidden in quick mode (no playback needed) */}
       {recordedBlob && recordedUrl && recordingPurpose !== 'quick' && (
-        <div className="bg-neutral-900 border-2 border-[#FFB701] rounded-2xl p-6 space-y-4">
-          <h3 className="text-lg font-semibold text-white mb-2">Recording Complete</h3>
-
-          {/* Instructions - Collapsible toggle for all modes */}
-          <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setShowInstructions(!showInstructions)}
-              className="w-full flex items-center justify-between p-4 text-left hover:bg-neutral-800/70 transition-colors"
-            >
-              <span className="text-sm font-semibold text-white">How to use</span>
-              {showInstructions ? (
-                <ChevronUp className="w-5 h-5 text-neutral-400" />
-              ) : (
-                <ChevronDown className="w-5 h-5 text-neutral-400" />
-              )}
-            </button>
-            {showInstructions && (
-              <div className="px-4 pb-4">
-                {recordingPurpose === 'support' ? (
-                  <IconList
-                    items={[
-                      'Review your clip in the player below',
-                      'Click "Submit" to send it to support (file uploads automatically)',
-                      'Click "Record again" to redo your recording'
-                    ]}
-                    bulletColor="text-primary-500"
-                    textColor="text-neutral-300"
-                    spacing="tight"
-                  />
-                ) : recordingPurpose === 'transcriptOnly' ? (
-                  <IconList
-                    items={[
-                      'Click Transcribe to convert speech to text',
-                      'Your text will appear in the text field above',
-                      "Use the page's Save button to save your changes"
-                    ]}
-                    bulletColor="text-primary-500"
-                    textColor="text-neutral-300"
-                    spacing="tight"
-                  />
-                ) : (
-                  <IconList
-                    items={[
-                      'Listen to your recording using the player below',
-                      ...(mode === 'audio' && enableEditor ? ['If needed, click "Edit" to trim or remove sections'] : []),
-                      ...(recordingPurpose !== 'audioOnly' ? [
-                        'Click "Transcribe" to convert speech to text (required for saving)',
-                        'Review the transcript, then click "Save" to keep your recording'
-                      ] : []),
-                      ...(recordingPurpose === 'audioOnly' ? ['Click "Save" when you\'re satisfied with your recording'] : [])
-                    ]}
-                    bulletColor="text-primary-500"
-                    textColor="text-neutral-300"
-                    spacing="tight"
-                  />
+        <div className={recordingPurpose === 'support' ? 'space-y-4' : 'bg-neutral-900 border-2 border-[#FFB701] rounded-2xl p-6 space-y-4'}>
+          {recordingPurpose !== 'support' && (
+            <>
+              <h3 className="text-lg font-semibold text-white mb-2">Recording Complete</h3>
+              {/* Instructions - Collapsible toggle (hidden for support flow) */}
+              <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowInstructions(!showInstructions)}
+                  className="w-full flex items-center justify-between p-4 text-left hover:bg-neutral-800/70 transition-colors"
+                >
+                  <span className="text-sm font-semibold text-white">How to use</span>
+                  {showInstructions ? (
+                    <ChevronUp className="w-5 h-5 text-neutral-400" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-neutral-400" />
+                  )}
+                </button>
+                {showInstructions && (
+                  <div className="px-4 pb-4">
+                    {recordingPurpose === 'transcriptOnly' ? (
+                      <IconList
+                        items={[
+                          'Click Transcribe to convert speech to text',
+                          'Your text will appear in the text field above',
+                          "Use the page's Save button to save your changes"
+                        ]}
+                        bulletColor="text-primary-500"
+                        textColor="text-neutral-300"
+                        spacing="tight"
+                      />
+                    ) : (
+                      <IconList
+                        items={[
+                          'Listen to your recording using the player below',
+                          ...(mode === 'audio' && enableEditor ? ['If needed, click "Edit" to trim or remove sections'] : []),
+                          ...(recordingPurpose !== 'audioOnly' ? [
+                            'Click "Transcribe" to convert speech to text (required for saving)',
+                            'Review the transcript, then click "Save" to keep your recording'
+                          ] : []),
+                          ...(recordingPurpose === 'audioOnly' ? ['Click "Save" when you\'re satisfied with your recording'] : [])
+                        ]}
+                        bulletColor="text-primary-500"
+                        textColor="text-neutral-300"
+                        spacing="tight"
+                      />
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-          </div>
+            </>
+          )}
 
           {/* Media Player */}
           {(mode === 'video' || mode === 'screen') ? (
@@ -1758,7 +1778,7 @@ export function MediaRecorderComponent({
                   ) : (
                     <>
                       <Send className="w-4 h-4" />
-                      Submit
+                      {submitLabel}
                     </>
                   )}
                 </Button>

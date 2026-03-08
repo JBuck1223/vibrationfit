@@ -915,16 +915,13 @@ export default function IntensiveUnlockPage() {
                 <>
                   <MediaRecorderComponent
                     mode="video"
-                    autoTranscribe={true}
                     maxDuration={180}
                     storageFolder="intensiveTestimonials"
-                    recordingPurpose="withFile"
+                    recordingPurpose="support"
+                    submitLabel="Send"
                     recordingId={intensiveId ? `intensive-${intensiveId}-testimonial` : undefined}
-                    onRecordingComplete={(blob, transcript, shouldSaveFile, s3Url) => {
+                    onRecordingComplete={(blob, _transcript, _shouldSaveFile, s3Url) => {
                       if (s3Url) setTestimonialVideoUrl(s3Url)
-                    }}
-                    onTranscriptComplete={(transcript) => {
-                      setTestimonialTranscript(transcript)
                     }}
                     enableEditor={false}
                   />
