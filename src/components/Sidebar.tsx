@@ -97,11 +97,11 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
         setUser(user)
         
         // Check super admin role (non-blocking)
-        supabase
+        Promise.resolve(supabase
           .from('user_accounts')
           .select('role')
           .eq('id', user.id)
-          .single()
+          .single())
           .then(({ data }) => setIsSuperAdmin(data?.role === 'super_admin'))
           .catch(() => setIsSuperAdmin(false))
         

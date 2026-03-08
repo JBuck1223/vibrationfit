@@ -229,7 +229,7 @@ export default function AdminNotificationsPage() {
                           <span className={`text-sm font-semibold ${notification.is_read ? 'text-neutral-300' : 'text-white'}`}>
                             {notification.title}
                           </span>
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                          <Badge variant="neutral" className="text-[10px] px-1.5 py-0">
                             {config.label}
                           </Badge>
                         </div>
