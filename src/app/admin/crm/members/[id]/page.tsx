@@ -749,7 +749,7 @@ export default function MemberDetailPage() {
                     <User className="w-4 h-4 text-neutral-500 shrink-0" />
                     <select
                       value={senderId}
-                      onChange={(e) => setSenderId(e.target.value)}
+                      onChange={(e) => setSenderId(e.target.value as typeof senderId)}
                       disabled={sendingEmail}
                       className="flex-1 px-4 py-2.5 text-sm bg-[#404040] border-2 border-[#666666] rounded-xl text-white focus:outline-none focus:border-[#39FF14] transition-all duration-200 disabled:opacity-50"
                     >

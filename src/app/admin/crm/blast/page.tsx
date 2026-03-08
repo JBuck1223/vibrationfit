@@ -624,7 +624,7 @@ export default function BlastPage() {
                 <User className="w-4 h-4 text-neutral-500 shrink-0" />
                 <select
                   value={senderId}
-                  onChange={(e) => setSenderId(e.target.value)}
+                  onChange={(e) => setSenderId(e.target.value as typeof senderId)}
                   disabled={sending}
                   className={inputClass}
                 >
