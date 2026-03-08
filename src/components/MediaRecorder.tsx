@@ -1193,9 +1193,9 @@ export function MediaRecorderComponent({
               {/* Source indicator - icon only for support (minimal overlay) */}
               <div className="absolute top-4 left-4 flex items-center gap-1.5 bg-black/50 text-white px-2 py-1.5 rounded-full text-sm backdrop-blur-sm">
                 {mode === 'screen' ? (
-                  <Monitor className="w-4 h-4" title="Screen" />
+                  <Monitor className="w-4 h-4" />
                 ) : (
-                  <Video className="w-4 h-4" title={facingMode === 'user' ? 'Front camera' : 'Back camera'} />
+                  <Video className="w-4 h-4" />
                 )}
                 {recordingPurpose !== 'support' && (
                   <span>{mode === 'screen' ? 'Screen' : facingMode === 'user' ? 'Front' : 'Back'}</span>
