@@ -295,7 +295,7 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
   }
 
   return (
-    <div className={cn('bg-[#1F1F1F] border-2 border-[#333] rounded-2xl p-4 md:p-6', className)}>
+    <div className={cn('bg-[#1F1F1F] border-2 border-[#333] rounded-2xl p-4 md:p-6 overflow-hidden', className)}>
       <audio ref={audioRef} autoPlay={autoPlay} />
 
       {(setIcon || setName) && (
@@ -321,11 +321,11 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
                     if (e.key === 'Escape') handleCancelEdit()
                   }}
                   autoFocus
-                  className="bg-[#2A2A2A] text-white px-3 py-1 rounded-lg text-lg font-semibold text-center focus:outline-none focus:ring-2 focus:ring-primary-500 max-w-md"
+                  className="bg-[#2A2A2A] text-white px-3 py-1 rounded-lg text-base md:text-lg font-semibold text-center focus:outline-none focus:ring-2 focus:ring-primary-500 max-w-md w-full"
                 />
               ) : (
                 <div
-                  className="relative group/title"
+                  className="group/title flex items-center justify-center gap-2"
                   onClick={onRename ? handleStartEdit : undefined}
                   role={onRename ? 'button' : undefined}
                   tabIndex={onRename ? 0 : undefined}
@@ -335,7 +335,7 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
                   </h3>
                   {onRename && (
                     <Edit2
-                      className="w-4 h-4 text-neutral-400 hover:text-white cursor-pointer opacity-100 md:opacity-0 md:group-hover/title:opacity-100 transition-opacity absolute top-1/2 -translate-y-1/2 -right-6"
+                      className="w-4 h-4 text-neutral-400 hover:text-white cursor-pointer opacity-100 md:opacity-0 md:group-hover/title:opacity-100 transition-opacity flex-shrink-0"
                       onClick={handleStartEdit}
                     />
                   )}

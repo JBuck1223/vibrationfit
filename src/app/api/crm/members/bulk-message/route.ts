@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
       const bulkResults = await sendAndLogBulkEmail({
         recipients: emailRecipients,
         subject,
-        from: '"Jordan at VibrationFit" <jordan@vibrationfit.com>',
+        from: '"Jordan Buckingham" <jordan@vibrationfit.com>',
         textBody: message,
         replyTo: 'jordan@vibrationfit.com',
       })

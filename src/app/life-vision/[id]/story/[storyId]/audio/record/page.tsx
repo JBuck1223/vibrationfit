@@ -243,11 +243,10 @@ export default function StoryAudioRecordPage({
                 </div>
               </div>
               <Button 
-                variant="ghost" 
+                variant="danger" 
                 size="sm"
                 onClick={handleDeleteRecording}
                 disabled={saving}
-                className="text-red-400 hover:text-red-300"
               >
                 <Trash2 className="w-4 h-4 mr-1" />
                 Delete

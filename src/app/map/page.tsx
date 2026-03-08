@@ -15,7 +15,8 @@ import {
   Inline,
   Text,
   Badge,
-  IntensiveCompletionBanner
+  IntensiveCompletionBanner,
+  IntensiveStepCompleteModal
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { 
@@ -114,6 +115,7 @@ export default function MAPPage() {
   const [selectedMilestoneBadge, setSelectedMilestoneBadge] = useState<BadgeWithProgressType | null>(null)
   const [completing, setCompleting] = useState(false)
   const [activeVisionId, setActiveVisionId] = useState<string | null>(null)
+  const [showStepCompleteModal, setShowStepCompleteModal] = useState(false)
   
   // Intensive flow states
   const [isIntensiveFlow, setIsIntensiveFlow] = useState(false)
@@ -195,8 +197,7 @@ export default function MAPPage() {
         })
         .eq('intensive_id', intensiveId)
 
-      // Redirect to Step 14: Unlock Platform
-      router.push('/intensive/intake/unlock')
+      setShowStepCompleteModal(true)
       
     } catch (error) {
       console.error('Error completing:', error)
@@ -761,6 +762,12 @@ export default function MAPPage() {
         badge={selectedMilestoneBadge}
         isOpen={!!selectedMilestoneBadge}
         onClose={() => setSelectedMilestoneBadge(null)}
+      />
+
+      <IntensiveStepCompleteModal
+        isOpen={showStepCompleteModal}
+        onClose={() => setShowStepCompleteModal(false)}
+        stepId="activation_protocol"
       />
     </Container>
   )

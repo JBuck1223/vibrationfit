@@ -202,6 +202,19 @@ input:-webkit-autofill:active {
   display: none;  /* Chrome, Safari and Opera */
 }
 
+/* Touch-action utilities for draggable/scrollable components */
+.touch-pan-x {
+  touch-action: pan-x;
+}
+
+.touch-pan-y {
+  touch-action: pan-y;
+}
+
+.touch-none {
+  touch-action: none;
+}
+
 /* Toast positioning - center on mobile, top-right on desktop */
 @media (max-width: 767px) {
   [data-sonner-toaster] {

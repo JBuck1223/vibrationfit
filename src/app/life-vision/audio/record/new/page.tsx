@@ -14,6 +14,7 @@ import {
   Spinner,
   Badge,
   IntensiveCompletionBanner,
+  IntensiveStepCompleteModal,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowRight, Mic, Heart, Brain, Sparkles, SkipForward, Rocket, Headphones } from 'lucide-react'
@@ -35,6 +36,7 @@ export default function AudioRecordNewPage() {
   const [wasSkipped, setWasSkipped] = useState(false) // Track if completed via skip vs actual recording
   const [hasActualRecordings, setHasActualRecordings] = useState(false)
   const [completedAt, setCompletedAt] = useState<string | null>(null)
+  const [showStepCompleteModal, setShowStepCompleteModal] = useState(false)
 
   useEffect(() => {
     checkActiveVision()
@@ -120,7 +122,7 @@ export default function AudioRecordNewPage() {
       } catch (err) {
         console.error('Error marking step as skipped:', err)
       }
-      router.push('/life-vision/audio/mix/new')
+      setShowStepCompleteModal(true)
     } else {
       router.push('/life-vision')
     }
@@ -391,6 +393,12 @@ export default function AudioRecordNewPage() {
           </Stack>
         </Card>
       </Stack>
+
+      <IntensiveStepCompleteModal
+        isOpen={showStepCompleteModal}
+        onClose={() => setShowStepCompleteModal(false)}
+        stepId="record_audio"
+      />
     </Container>
   )
 }

@@ -43,7 +43,7 @@ export async function POST(
     await sendAndLogEmail({
       to,
       subject,
-      from: '"Jordan at VibrationFit" <jordan@vibrationfit.com>',
+      from: '"Jordan Buckingham" <jordan@vibrationfit.com>',
       ...(htmlBody ? { htmlBody } : {}),
       textBody: textBody || htmlBody?.replace(/<[^>]*>/g, '') || '',
       replyTo: 'jordan@vibrationfit.com',

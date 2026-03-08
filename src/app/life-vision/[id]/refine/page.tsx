@@ -2308,13 +2308,14 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
               />
             </div>
             
-            <div className="p-6 border-t border-neutral-700 flex gap-3 justify-end">
+            <div className="p-4 sm:p-6 border-t border-neutral-700 flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 sm:justify-end">
               <Button
                 onClick={() => {
                   setShowCombinePreview(false)
                   setCombinedText('')
                 }}
                 variant="outline"
+                className="w-full sm:w-auto"
               >
                 Cancel
               </Button>
@@ -2325,13 +2326,14 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                 }}
                 variant="secondary"
                 disabled={isTyping}
+                className="w-full sm:w-auto"
               >
                 {isTyping ? 'Regenerating...' : 'Try Again'}
               </Button>
               <Button
                 onClick={acceptCombinedPreview}
                 variant="primary"
-                className="flex items-center gap-2"
+                className="flex items-center justify-center gap-2 w-full sm:w-auto"
               >
                 <Check className="w-4 h-4" />
                 Accept & Update

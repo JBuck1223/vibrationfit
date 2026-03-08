@@ -18,7 +18,8 @@ import {
   Badge,
   Container,
   Stack,
-  PageHero
+  PageHero,
+  IntensiveStepCompleteModal
 } from '@/lib/design-system/components'
 import { VisionCategoryCard } from '../../components/VisionCategoryCard'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
@@ -80,6 +81,8 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
   const [completionPercentage, setCompletionPercentage] = useState(0)
   const [isCommitting, setIsCommitting] = useState(false)
   const [showCommitDialog, setShowCommitDialog] = useState(false)
+  const [showStepCompleteModal, setShowStepCompleteModal] = useState(false)
+  const [committedVisionId, setCommittedVisionId] = useState<string | null>(null)
   const [isNotDraft, setIsNotDraft] = useState(false)
   const [editingCategory, setEditingCategory] = useState<string | null>(null)
   const [editContent, setEditContent] = useState<string>('')
@@ -121,8 +124,8 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
         const { markIntensiveStep } = await import('@/lib/intensive/checklist')
         const success = await markIntensiveStep('vision_refined')
         if (success) {
-          // Redirect to dashboard to show progress with completion toast
-          router.push('/intensive/dashboard?completed=refine_vision')
+          setCommittedVisionId(committedVision.id)
+          setShowStepCompleteModal(true)
           return
         }
       }
@@ -911,6 +914,17 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
         isLoading={isCommitting}
       />
       </Stack>
+
+      <IntensiveStepCompleteModal
+        isOpen={showStepCompleteModal}
+        onClose={() => setShowStepCompleteModal(false)}
+        stepId="refine_vision"
+        onStayHere={() => {
+          if (committedVisionId) {
+            router.push(`/life-vision/${committedVisionId}`)
+          }
+        }}
+      />
     </Container>
   )
 }

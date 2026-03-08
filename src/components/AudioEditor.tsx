@@ -491,16 +491,16 @@ export function AudioEditor({ audioBlob, onSave, onCancel }: AudioEditorProps) {
 
   return (
     <div className="space-y-4">
-      <div className="bg-[#1F1F1F] rounded-2xl p-6 border-2 border-[#333]">
+      <div className="bg-[#1F1F1F] rounded-2xl p-4 md:p-6 border-2 border-[#333]">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-semibold text-white">Edit Your Recording</h3>
+          <h3 className="text-lg md:text-xl font-semibold text-white">Edit Your Recording</h3>
           <span className="text-sm text-neutral-400">
-            Duration: {formatTime(duration)}
+            {formatTime(duration)}
           </span>
         </div>
         
         {/* Waveform - Container with horizontal scroll */}
-        <div className="mb-4 rounded-lg overflow-x-auto overflow-y-hidden bg-black/50 border border-[#333]">
+        <div className="mb-4 rounded-lg overflow-x-auto overflow-y-hidden bg-black/50 border border-[#333]" style={{ touchAction: 'pan-x' }}>
           <div 
             ref={waveformRef}
           />
@@ -543,97 +543,97 @@ export function AudioEditor({ audioBlob, onSave, onCancel }: AudioEditorProps) {
           )}
         </div>
         
-        {/* Controls */}
-        <div className="flex items-center justify-between gap-3">
-          {/* Left side - Editing tools */}
-          <div className="flex items-center gap-4">
-            {/* Play/Pause Button - Circular like countdown timer */}
+        {/* Controls - Stacked on mobile, compact on desktop */}
+        <div className="space-y-3">
+          {/* Row 1: Playback + Zoom */}
+          <div className="flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={togglePlayPause}
-              className="w-12 h-12 rounded-full bg-primary-500 hover:bg-primary-400 flex items-center justify-center transition-all duration-300 hover:scale-110"
+              className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-primary-500 hover:bg-primary-400 flex items-center justify-center transition-all duration-300 hover:scale-110 flex-shrink-0"
               title={isPlaying ? 'Pause' : 'Play'}
             >
               {isPlaying ? (
                 <div className="flex gap-1">
-                  <div className="w-1 h-4 bg-black rounded-sm" />
-                  <div className="w-1 h-4 bg-black rounded-sm" />
+                  <div className="w-1 h-3.5 md:h-4 bg-black rounded-sm" />
+                  <div className="w-1 h-3.5 md:h-4 bg-black rounded-sm" />
                 </div>
               ) : (
-                <Play className="w-5 h-5 text-black fill-black ml-0.5" />
+                <Play className="w-4 h-4 md:w-5 md:h-5 text-black fill-black ml-0.5" />
               )}
             </button>
             
-            {/* Divider */}
-            <div className="w-px h-8 bg-neutral-700" />
+            <div className="w-px h-6 bg-neutral-700 hidden md:block" />
             
-            {/* Zoom Controls */}
-            <button
-              type="button"
-              onClick={handleZoomOut}
-              className="w-10 h-10 rounded-full bg-neutral-800 hover:bg-neutral-700 flex items-center justify-center transition-all duration-300 hover:scale-110 border border-neutral-700"
-              title="Zoom Out"
-              disabled={duration > 0 && zoomLevel <= Math.max(1, (waveformRef.current?.parentElement?.clientWidth || 800) / duration)}
-            >
-              <ZoomOut className="w-4 h-4 text-white" />
-            </button>
-            
-            <button
-              type="button"
-              onClick={handleFitToView}
-              className="w-10 h-10 rounded-full bg-neutral-800 hover:bg-neutral-700 flex items-center justify-center transition-all duration-300 hover:scale-110 border border-neutral-700"
-              title="Fit to View"
-            >
-              <Maximize2 className="w-4 h-4 text-white" />
-            </button>
-            
-            <button
-              type="button"
-              onClick={handleZoomIn}
-              className="w-10 h-10 rounded-full bg-neutral-800 hover:bg-neutral-700 flex items-center justify-center transition-all duration-300 hover:scale-110 border border-neutral-700"
-              title="Zoom In"
-              disabled={zoomLevel >= 1000}
-            >
-              <ZoomIn className="w-4 h-4 text-white" />
-            </button>
-            
-            {/* Divider */}
-            <div className="w-px h-8 bg-neutral-700" />
-            
-            {/* Mark Section to Cut - Circular secondary button */}
+            <div className="flex items-center gap-1.5 md:gap-2">
+              <button
+                type="button"
+                onClick={handleZoomOut}
+                className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-neutral-800 hover:bg-neutral-700 flex items-center justify-center transition-all duration-300 border border-neutral-700"
+                title="Zoom Out"
+                disabled={duration > 0 && zoomLevel <= Math.max(1, (waveformRef.current?.parentElement?.clientWidth || 800) / duration)}
+              >
+                <ZoomOut className="w-3.5 h-3.5 md:w-4 md:h-4 text-white" />
+              </button>
+              
+              <button
+                type="button"
+                onClick={handleFitToView}
+                className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-neutral-800 hover:bg-neutral-700 flex items-center justify-center transition-all duration-300 border border-neutral-700"
+                title="Fit to View"
+              >
+                <Maximize2 className="w-3.5 h-3.5 md:w-4 md:h-4 text-white" />
+              </button>
+              
+              <button
+                type="button"
+                onClick={handleZoomIn}
+                className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-neutral-800 hover:bg-neutral-700 flex items-center justify-center transition-all duration-300 border border-neutral-700"
+                title="Zoom In"
+                disabled={zoomLevel >= 1000}
+              >
+                <ZoomIn className="w-3.5 h-3.5 md:w-4 md:h-4 text-white" />
+              </button>
+            </div>
+          </div>
+          
+          {/* Row 2: Edit tools */}
+          <div className="flex items-center justify-center gap-3">
             <button
               type="button"
               onClick={addRegionToCut}
-              className="w-12 h-12 rounded-full bg-secondary-500 hover:bg-secondary-400 flex items-center justify-center transition-all duration-300 hover:scale-110"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-secondary-500 hover:bg-secondary-400 transition-all duration-300"
               title="Mark Section to Cut"
             >
-              <Scissors className="w-5 h-5 text-black" />
+              <Scissors className="w-4 h-4 text-black" />
+              <span className="text-xs font-semibold text-black">Mark Cut</span>
             </button>
             
-            {/* Delete Selected Region - Circular red button */}
             {selectedRegion && (
               <button
                 type="button"
                 onClick={deleteSelectedRegion}
                 disabled={isProcessing}
-                className="w-12 h-12 rounded-full bg-red-500 hover:bg-red-400 flex items-center justify-center transition-all duration-300 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-red-500 hover:bg-red-400 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Cut This Section"
               >
                 {isProcessing ? (
-                  <Loader2 className="w-5 h-5 text-white animate-spin" />
+                  <Loader2 className="w-4 h-4 text-white animate-spin" />
                 ) : (
-                  <X className="w-5 h-5 text-white" />
+                  <>
+                    <X className="w-4 h-4 text-white" />
+                    <span className="text-xs font-semibold text-white">Delete</span>
+                  </>
                 )}
               </button>
             )}
             
-            {/* Clear All - Text button */}
             {regionsPluginRef.current?.getRegions().length > 0 && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={clearAllRegions}
-                className="px-3 h-10 text-xs"
+                className="px-3 h-9 text-xs rounded-full"
                 title="Clear All Markers"
               >
                 Clear All
@@ -641,14 +641,14 @@ export function AudioEditor({ audioBlob, onSave, onCancel }: AudioEditorProps) {
             )}
           </div>
           
-          {/* Right side - Action buttons */}
-          <div className="flex items-center gap-2">
+          {/* Row 3: Action buttons */}
+          <div className="flex flex-col sm:flex-row gap-2 sm:justify-end pt-2 border-t border-neutral-700/50">
             <Button
               variant="ghost"
               size="sm"
               onClick={onCancel}
               disabled={isProcessing}
-              className="px-4 h-10 text-sm"
+              className="px-4 h-10 text-sm w-full sm:w-auto"
             >
               Cancel
             </Button>
@@ -659,7 +659,7 @@ export function AudioEditor({ audioBlob, onSave, onCancel }: AudioEditorProps) {
                 size="sm"
                 onClick={exportEditedAudio}
                 disabled={isProcessing}
-                className="px-4 h-10 text-sm gap-2"
+                className="px-4 h-10 text-sm gap-2 w-full sm:w-auto"
               >
                 {isProcessing ? (
                   <>
@@ -679,7 +679,7 @@ export function AudioEditor({ audioBlob, onSave, onCancel }: AudioEditorProps) {
                 size="sm"
                 onClick={() => onSave(currentAudioBlob)}
                 disabled={isProcessing}
-                className="px-4 h-10 text-sm gap-2"
+                className="px-4 h-10 text-sm gap-2 w-full sm:w-auto"
               >
                 <Save className="w-4 h-4" />
                 Save & Close
@@ -690,7 +690,7 @@ export function AudioEditor({ audioBlob, onSave, onCancel }: AudioEditorProps) {
                 size="sm"
                 onClick={() => onSave(audioBlob)}
                 disabled={isProcessing}
-                className="px-4 h-10 text-sm gap-2"
+                className="px-4 h-10 text-sm gap-2 w-full sm:w-auto"
               >
                 <Save className="w-4 h-4" />
                 Close

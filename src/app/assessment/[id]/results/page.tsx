@@ -14,6 +14,7 @@ import {
   PageHero,
   Spinner,
   DeleteConfirmationDialog,
+  IntensiveStepCompleteModal,
 } from '@/lib/design-system/components'
 import { BarChart3, Eye, ArrowLeft, RefreshCw, Trash2, CalendarDays } from 'lucide-react'
 import { fetchAssessments, fetchAssessment } from '@/lib/services/assessmentService'
@@ -41,6 +42,7 @@ export default function AssessmentResultsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [isIntensiveMode, setIsIntensiveMode] = useState(false)
   const [assessmentCompletedAt, setAssessmentCompletedAt] = useState<string | null>(null)
+  const [showStepCompleteModal, setShowStepCompleteModal] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -73,6 +75,7 @@ export default function AssessmentResultsPage() {
             
             if (success) {
               setAssessmentCompletedAt(new Date().toISOString())
+              setShowStepCompleteModal(true)
             }
           }
         }
@@ -348,7 +351,12 @@ export default function AssessmentResultsPage() {
           isDeleting={deletingId !== null}
         />
       </Stack>
+
+      <IntensiveStepCompleteModal
+        isOpen={showStepCompleteModal}
+        onClose={() => setShowStepCompleteModal(false)}
+        stepId="assessment"
+      />
     </Container>
   )
 }
-

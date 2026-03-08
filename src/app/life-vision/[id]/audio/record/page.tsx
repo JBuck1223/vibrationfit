@@ -2,10 +2,11 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Container, StatusBadge, Icon, Spinner, Stack, PageHero } from '@/lib/design-system/components'
+import { Button, Card, Container, StatusBadge, Icon, Spinner, Stack, PageHero, IntensiveStepCompleteModal } from '@/lib/design-system/components'
+import { CategoryGrid } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { MediaRecorderComponent } from '@/components/MediaRecorder'
-import { CheckCircle, Eye, Headphones, Mic, Check, Wand2, Clock, ListMusic, Waves } from 'lucide-react'
+import { CheckCircle, Eye, Headphones, Mic, Wand2, Clock, ListMusic, Waves } from 'lucide-react'
 import Link from 'next/link'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
@@ -34,6 +35,7 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
   const [creatingFullTrack, setCreatingFullTrack] = useState(false)
   const [hasFullTrack, setHasFullTrack] = useState(false)
   const [intensiveId, setIntensiveId] = useState<string | null>(null)
+  const [showStepCompleteModal, setShowStepCompleteModal] = useState(false)
 
   useEffect(() => {
     ;(async () => {
@@ -250,6 +252,7 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
             voice_recording_completed_at: new Date().toISOString()
           })
           .eq('intensive_id', intensiveId)
+        setShowStepCompleteModal(true)
       }
 
       // Update local state
@@ -375,12 +378,12 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
           )}
 
           {/* Action Buttons */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 max-w-5xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-3 max-w-5xl mx-auto">
             <Button
               onClick={() => router.push(`/life-vision/${visionId}/audio/sets`)}
               variant="outline"
               size="sm"
-              className="w-full col-span-2 lg:col-span-1 flex items-center justify-center gap-2"
+              className="w-full flex items-center justify-center gap-2"
             >
               <ListMusic className="w-5 h-5" />
               <span>Audio Sets</span>
@@ -392,7 +395,7 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
                 variant="primary"
                 size="sm"
                 disabled={creatingFullTrack}
-                className="w-full col-span-2 lg:col-span-1 flex items-center justify-center gap-2"
+                className="w-full flex items-center justify-center gap-2"
               >
                 {creatingFullTrack ? (
                   <>
@@ -454,58 +457,28 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
 
       {/* Category Selection Bar */}
       <div className="mb-6">
-        <Card className="p-4">
-          <div className="mb-4 text-center">
-            <h3 className="text-lg font-semibold text-white mb-1">Select Section to Record</h3>
-            <p className="text-sm text-neutral-400">
-              Recording {VISION_SECTIONS.findIndex(s => s.key === activeSection) + 1} of {VISION_SECTIONS.length}
-              {completedCount > 0 && (
-                <span className="ml-2 text-[#39FF14]">
-                  • {completedCount} completed
-                </span>
-              )}
-            </p>
-          </div>
+        <div className="mb-4 text-center">
+          <h3 className="text-lg font-semibold text-white mb-1">Select Section to Record</h3>
+          <p className="text-sm text-neutral-400">
+            Recording {VISION_SECTIONS.findIndex(s => s.key === activeSection) + 1} of {VISION_SECTIONS.length}
+            {completedCount > 0 && (
+              <span className="ml-2 text-[#39FF14]">
+                • {completedCount} completed
+              </span>
+            )}
+          </p>
+        </div>
 
-          {/* Category Grid */}
-          <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:[grid-template-columns:repeat(14,minmax(0,1fr))] gap-1">
-            {VISION_SECTIONS.map((section) => {
-              const IconComponent = section.icon
-              const isCompleted = recordings.has(section.key)
-              const isActive = activeSection === section.key
-
-              return (
-                <Card 
-                  key={section.key}
-                  variant="outlined" 
-                  hover 
-                  className={`cursor-pointer aspect-square transition-all duration-300 relative ${
-                    isActive 
-                      ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' 
-                      : '!bg-transparent !border-2 !border-[#333]'
-                  } ${isCompleted && !isActive ? 'bg-green-500/10' : ''}`}
-                  onClick={() => setActiveSection(section.key)}
-                >
-                  {isCompleted && (
-                    <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#333] border-2 border-[#39FF14] flex items-center justify-center z-10">
-                      <Check className="w-3 h-3 text-[#39FF14]" strokeWidth={3} />
-                    </div>
-                  )}
-                  <div className="flex flex-col items-center gap-1 justify-center h-full">
-                    <Icon 
-                      icon={IconComponent} 
-                      size="sm" 
-                      color={isActive ? '#39FF14' : '#FFFFFF'} 
-                    />
-                    <span className="text-xs font-medium text-center leading-tight text-neutral-300 break-words hyphens-auto">
-                      {section.label}
-                    </span>
-                  </div>
-                </Card>
-              )
-            })}
-          </div>
-        </Card>
+        <CategoryGrid
+          categories={VISION_SECTIONS}
+          activeCategory={activeSection}
+          completedCategories={Array.from(recordings.keys())}
+          onCategoryClick={(key) => setActiveSection(key)}
+          layout="14-column"
+          mode="completion"
+          variant="outlined"
+          withCard={true}
+        />
       </div>
 
       {/* Recording Section */}
@@ -640,6 +613,11 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
           </div>
         </Card>
       )}
+      <IntensiveStepCompleteModal
+        isOpen={showStepCompleteModal}
+        onClose={() => setShowStepCompleteModal(false)}
+        stepId="record_audio"
+      />
     </Container>
   )
 }

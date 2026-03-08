@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import '@/styles/brand.css'
 import { GlobalLayout } from '@/components/GlobalLayout'
@@ -8,6 +8,13 @@ import { AppErrorHandling } from '@/components/AppErrorHandling'
 import { ASSETS } from '@/lib/storage/s3-storage-presigned'
 import { PixelScripts } from '@/components/PixelScripts'
 import { Toaster } from 'sonner'
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+}
 
 export const metadata: Metadata = {
   title: {

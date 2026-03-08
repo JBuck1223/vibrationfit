@@ -346,14 +346,14 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
                   value={firstName}
                   onChange={e => setFirstName(e.target.value)}
                   placeholder="First name"
-                  className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#00FFFF] transition-colors"
+                  className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-base text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#00FFFF] transition-colors"
                 />
                 <input
                   type="text"
                   value={lastName}
                   onChange={e => setLastName(e.target.value)}
                   placeholder="Last name"
-                  className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#00FFFF] transition-colors"
+                  className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-base text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#00FFFF] transition-colors"
                 />
               </div>
               <input
@@ -361,7 +361,7 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="member@email.com"
-                className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#00FFFF] transition-colors"
+                className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-base text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#00FFFF] transition-colors"
               />
               {formError && (
                 <p className="text-xs text-[#FF0040]">{formError}</p>
@@ -390,7 +390,7 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
                       if (couponResult) setCouponResult(null)
                     }}
                     placeholder="Coupon code"
-                    className="w-full bg-neutral-900 border border-neutral-700 rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#39FF14] transition-colors"
+                    className="w-full bg-neutral-900 border border-neutral-700 rounded-xl pl-9 pr-3 py-2 text-base text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#39FF14] transition-colors"
                     onKeyDown={e => e.key === 'Enter' && handleApplyCoupon()}
                   />
                 </div>

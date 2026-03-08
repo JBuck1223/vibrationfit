@@ -6,6 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { sendAndLogEmail } from '@/lib/email/send'
 import { triggerEvent } from '@/lib/messaging/events'
 import { sendServerConversion } from '@/lib/tracking/server-conversions'
+import { createAdminNotification } from '@/lib/admin/notifications'
 
 export async function POST(request: NextRequest) {
   try {
@@ -86,6 +87,15 @@ export async function POST(request: NextRequest) {
       leadType: body.type,
     }).catch((err) => console.error('triggerEvent error:', err))
 
+    const leadName = [body.first_name, body.last_name].filter(Boolean).join(' ') || body.email
+    createAdminNotification({
+      type: 'lead_created',
+      title: `New Lead: ${leadName}`,
+      body: `${body.type} - ${body.email}`,
+      metadata: { email: body.email, leadType: body.type, leadId: lead.id },
+      link: '/admin/crm/leads',
+    }).catch(err => console.error('Admin notification DB error:', err))
+
     // Send confirmation email
     try {
       const confirmationEmail = getConfirmationEmail(body.type, {
@@ -97,7 +107,7 @@ export async function POST(request: NextRequest) {
         to: body.email,
         subject: confirmationEmail.subject,
         textBody: confirmationEmail.textBody,
-        from: '"Jordan at VibrationFit" <jordan@vibrationfit.com>',
+        from: '"Jordan Buckingham" <jordan@vibrationfit.com>',
         replyTo: 'jordan@vibrationfit.com',
         context: { guestEmail: body.email },
       })
@@ -167,6 +177,25 @@ function getConfirmationEmail(type: string, data: { firstName: string; email: st
           '',
           `Looking forward to connecting.`,
           '',
+          'Jordan',
+          'https://vibrationfit.com',
+        ].join('\n'),
+      }
+
+    case 'assessment':
+      return {
+        subject: `${firstName}, your Vibration Assessment is underway`,
+        textBody: [
+          `Hey ${firstName},`,
+          '',
+          `Welcome to VibrationFit! Your Vibration Assessment measures your alignment across 12 life categories and shows you exactly where you're thriving and where the growth opportunities are.`,
+          '',
+          `If you need to step away and come back, your progress is saved. Just return to pick up where you left off:`,
+          'https://vibrationfit.com/assessment/start',
+          '',
+          `Quick favor: can you reply with "Got it" so I know this landed in your inbox?`,
+          '',
+          'Talk soon,',
           'Jordan',
           'https://vibrationfit.com',
         ].join('\n'),

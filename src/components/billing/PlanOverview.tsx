@@ -589,14 +589,14 @@ export default function PlanOverview({
                       value={partnerFirst}
                       onChange={e => setPartnerFirst(e.target.value)}
                       placeholder="First name"
-                      className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#BF00FF] transition-colors"
+                      className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-base text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#BF00FF] transition-colors"
                     />
                     <input
                       type="text"
                       value={partnerLast}
                       onChange={e => setPartnerLast(e.target.value)}
                       placeholder="Last name"
-                      className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#BF00FF] transition-colors"
+                      className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-base text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#BF00FF] transition-colors"
                     />
                   </div>
                   <input
@@ -604,7 +604,7 @@ export default function PlanOverview({
                     value={partnerEmail}
                     onChange={e => setPartnerEmail(e.target.value)}
                     placeholder="partner@email.com"
-                    className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#BF00FF] transition-colors"
+                    className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-base text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#BF00FF] transition-colors"
                   />
                   {partnerError && (
                     <p className="text-xs text-[#FF0040]">{partnerError}</p>
@@ -644,7 +644,7 @@ export default function PlanOverview({
                               if (couponResult) setCouponResult(null)
                             }}
                             placeholder="Coupon code"
-                            className="w-full bg-neutral-900 border border-neutral-700 rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#39FF14] transition-colors"
+                            className="w-full bg-neutral-900 border border-neutral-700 rounded-xl pl-9 pr-3 py-2 text-base text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#39FF14] transition-colors"
                             onKeyDown={e => e.key === 'Enter' && handleApplyCoupon()}
                           />
                         </div>

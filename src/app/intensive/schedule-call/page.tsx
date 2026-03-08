@@ -17,7 +17,8 @@ import {
   Input,
   Spinner,
   Stack,
-  PageHero
+  PageHero,
+  IntensiveStepCompleteModal
 } from '@/lib/design-system/components'
 import { formatPhoneDisplay, parsePhoneInput, phoneToE164, phoneToDigits } from '@/lib/phone-format'
 
@@ -65,6 +66,7 @@ export default function ScheduleCallPage() {
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [saving, setSaving] = useState(false)
   const [intensiveId, setIntensiveId] = useState<string | null>(null)
+  const [showStepCompleteModal, setShowStepCompleteModal] = useState(false)
   
   // Date/time selection
   const [selectedDate, setSelectedDate] = useState<string>('')
@@ -421,7 +423,7 @@ export default function ScheduleCallPage() {
         throw new Error(`Checklist update failed: ${checklistError.message}`)
       }
 
-      router.push('/intensive/dashboard?completed=schedule_call')
+      setShowStepCompleteModal(true)
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : JSON.stringify(error)
@@ -708,6 +710,12 @@ export default function ScheduleCallPage() {
           )}
         </Card>
       </Stack>
+
+      <IntensiveStepCompleteModal
+        isOpen={showStepCompleteModal}
+        onClose={() => setShowStepCompleteModal(false)}
+        stepId="schedule_call"
+      />
     </Container>
   )
 }

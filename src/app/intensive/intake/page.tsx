@@ -23,7 +23,7 @@ import {
 } from '@/lib/constants/intensive-intake-questions'
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
 import { ReadOnlySection } from '@/components/IntensiveStepCompletedBanner'
-import { IntensiveCompletionBanner } from '@/lib/design-system/components'
+import { IntensiveCompletionBanner, IntensiveStepCompleteModal } from '@/lib/design-system/components'
 import { getStepInfo, getNextStep } from '@/lib/intensive/step-mapping'
 
 // All question components defined outside IntensiveIntake to prevent
@@ -196,6 +196,7 @@ export default function IntensiveIntake() {
   const [justSubmitted, setJustSubmitted] = useState(false)
   const [completedAt, setCompletedAt] = useState<string | null>(null)
   const [savedResponses, setSavedResponses] = useState<IntakeFormData | null>(null)
+  const [showStepCompleteModal, setShowStepCompleteModal] = useState(false)
 
   const router = useRouter()
   const supabase = createClient()
@@ -336,8 +337,7 @@ export default function IntensiveIntake() {
         console.error('Error updating checklist:', checklistError)
       }
 
-      // Redirect to dashboard to show progress with completion toast
-      router.push('/intensive/dashboard?completed=intake')
+      setShowStepCompleteModal(true)
 
     } catch (error) {
       console.error('Error submitting form:', error)
@@ -633,6 +633,12 @@ export default function IntensiveIntake() {
           </form>
         </div>
       </Stack>
+
+      <IntensiveStepCompleteModal
+        isOpen={showStepCompleteModal}
+        onClose={() => setShowStepCompleteModal(false)}
+        stepId="intake"
+      />
     </Container>
   )
 }

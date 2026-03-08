@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Card, Input, Button, Badge, CategoryCard, PageHero, Container, Stack, Modal } from '@/lib/design-system'
+import { Card, Input, Button, Badge, CategoryCard, PageHero, Container, Stack, Modal, IntensiveStepCompleteModal } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
@@ -28,6 +28,7 @@ export default function NewVisionBoardItemPage() {
   const [existingItems, setExistingItems] = useState<any[]>([])
   const [categoriesNeeded, setCategoriesNeeded] = useState<string[]>(LIFE_CATEGORY_KEYS)
   const [isUserInIntensive, setIsUserInIntensive] = useState(false)
+  const [showStepCompleteModal, setShowStepCompleteModal] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [aiGeneratedImageUrl, setAiGeneratedImageUrl] = useState<string | null>(null)
   const [imageSource, setImageSource] = useState<'upload' | 'ai' | null>(null)
@@ -202,8 +203,7 @@ export default function NewVisionBoardItemPage() {
           if (allCategoriesCovered) {
             const { markIntensiveStep } = await import('@/lib/intensive/checklist')
             await markIntensiveStep('vision_board_completed')
-            // Redirect to dashboard to show progress with completion toast
-            router.push('/intensive/dashboard?completed=vision_board')
+            setShowStepCompleteModal(true)
             return
           } else {
             // Show which categories still need items
@@ -613,6 +613,12 @@ export default function NewVisionBoardItemPage() {
           </div>
         </div>
       </Modal>
+
+      <IntensiveStepCompleteModal
+        isOpen={showStepCompleteModal}
+        onClose={() => setShowStepCompleteModal(false)}
+        stepId="vision_board"
+      />
     </Container>
   )
 }

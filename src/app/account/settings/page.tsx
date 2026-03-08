@@ -5,7 +5,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Container, Stack, PageHero, Card, Button, Input, Spinner, DatePicker, Checkbox, Modal, Badge } from '@/lib/design-system/components'
+import { Container, Stack, PageHero, Card, Button, Input, Spinner, DatePicker, Checkbox, Modal, Badge, IntensiveStepCompleteModal } from '@/lib/design-system/components'
 import { User, Check, Rocket } from 'lucide-react'
 import { ProfilePictureUpload } from '@/app/profile/components/ProfilePictureUpload'
 import { createClient } from '@/lib/supabase/client'
@@ -47,6 +47,7 @@ export default function AccountSettingsPage() {
   const [showDefaultPictureModal, setShowDefaultPictureModal] = useState(false)
   const [justCompletedStep, setJustCompletedStep] = useState(false)
   const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
+  const [showStepCompleteModal, setShowStepCompleteModal] = useState(false)
   const [completedAt, setCompletedAt] = useState<string | null>(null)
   
   const supabase = createClient()
@@ -132,9 +133,8 @@ export default function AccountSettingsPage() {
       if (error) {
         console.error('Error marking intensive settings complete:', error)
       } else {
-        // Show completion banner instead of redirecting
         setJustCompletedStep(true)
-        toast.success('Account settings saved!')
+        setShowStepCompleteModal(true)
       }
     } catch (error) {
       console.error('Error in markIntensiveSettingsComplete:', error)
@@ -351,17 +351,16 @@ export default function AccountSettingsPage() {
           .eq('id', user.id)
       }
       
-      // In intensive mode, redirect back to dashboard after save (if required fields are filled)
-      if (isIntensiveMode) {
+      // In intensive mode, show completion modal after save (if required fields are filled)
+      if (isIntensiveMode && !isAlreadyCompleted) {
         const hasFirstName = firstName.trim().length > 0
         const hasLastName = lastName.trim().length > 0
         const hasEmail = email.trim().length > 0
         const hasPhone = phone.replace(/\D/g, '').length >= 10
         
         if (hasFirstName && hasLastName && hasEmail && hasPhone) {
-          // Redirect to dashboard with completion param for toast
-          // Don't show toast here - dashboard will show completion toast
-          router.push('/intensive/dashboard?completed=settings')
+          setIsAlreadyCompleted(true)
+          setShowStepCompleteModal(true)
           return
         }
       }
@@ -613,6 +612,12 @@ export default function AccountSettingsPage() {
           </div>
         </div>
       </Modal>
+
+      <IntensiveStepCompleteModal
+        isOpen={showStepCompleteModal}
+        onClose={() => setShowStepCompleteModal(false)}
+        stepId="settings"
+      />
     </Container>
   )
 }

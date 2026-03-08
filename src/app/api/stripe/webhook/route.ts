@@ -15,6 +15,7 @@ import { getPaymentPlanLabel } from '@/lib/intensive/utils'
 import { toTitleCase } from '@/lib/utils'
 import { sendServerConversion } from '@/lib/tracking/server-conversions'
 import { sendSMS } from '@/lib/messaging/twilio'
+import { createAdminNotification } from '@/lib/admin/notifications'
 
 async function notifyAdminPurchase(details: {
   customerName?: string
@@ -1503,6 +1504,17 @@ export async function POST(request: NextRequest) {
             product: session.metadata?.product_type || session.metadata?.purchase_type || 'checkout',
             paymentPlan: session.metadata?.payment_plan || session.metadata?.intensive_payment_plan || undefined,
           }).catch(err => console.error('Admin purchase notification error:', err))
+
+          const csProduct = session.metadata?.product_type || session.metadata?.purchase_type || 'checkout'
+          const csPlan = session.metadata?.payment_plan || session.metadata?.intensive_payment_plan || ''
+          const csAmountStr = `$${(session.amount_total / 100).toFixed(2)}`
+          createAdminNotification({
+            type: 'purchase',
+            title: `New Purchase: ${session.customer_details?.name || csEmail || 'Unknown'}`,
+            body: `${csProduct}${csPlan ? ` (${csPlan})` : ''} - ${csAmountStr}`,
+            metadata: { email: csEmail, amount: session.amount_total, product: csProduct, paymentPlan: csPlan },
+            link: '/admin/orders',
+          }).catch(err => console.error('Admin notification DB error:', err))
         }
         
         break
@@ -2034,6 +2046,15 @@ export async function POST(request: NextRequest) {
             product,
             paymentPlan: plan,
           }).catch(err => console.error('Admin purchase notification error:', err))
+
+          const piAmountStr = `$${(totalAmount / 100).toFixed(2)}`
+          createAdminNotification({
+            type: 'purchase',
+            title: `New Purchase: ${name || email || 'Unknown'}`,
+            body: `${product}${plan ? ` (${plan})` : ''} - ${piAmountStr}`,
+            metadata: { email, amount: totalAmount, product, paymentPlan: plan },
+            link: '/admin/orders',
+          }).catch(err => console.error('Admin notification DB error:', err))
         }
 
         if (promoCode) {

@@ -210,7 +210,7 @@ export default function IntensiveIntakePage() {
             <select
               value={formData.commitment_level}
               onChange={(e) => handleChange('commitment_level', e.target.value)}
-              className="w-full px-4 py-3 bg-[#1F1F1F] border border-[#333] rounded-xl text-white focus:outline-none focus:border-primary-500 text-sm md:text-base"
+              className="w-full px-4 py-3 bg-[#1F1F1F] border border-[#333] rounded-xl text-white focus:outline-none focus:border-primary-500 text-base"
               required
             >
               <option value="">Select commitment level</option>
@@ -231,7 +231,7 @@ export default function IntensiveIntakePage() {
             <select
               value={formData.timeline}
               onChange={(e) => handleChange('timeline', e.target.value)}
-              className="w-full px-4 py-3 bg-[#1F1F1F] border border-[#333] rounded-xl text-white focus:outline-none focus:border-primary-500 text-sm md:text-base"
+              className="w-full px-4 py-3 bg-[#1F1F1F] border border-[#333] rounded-xl text-white focus:outline-none focus:border-primary-500 text-base"
               required
             >
               <option value="">Select timeline</option>

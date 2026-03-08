@@ -1163,7 +1163,7 @@ export function MediaRecorderComponent({
               {/* Countdown Overlay */}
               {countdown !== null && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="text-9xl font-bold text-white animate-pulse" style={{
+                  <div className="text-6xl md:text-9xl font-bold text-white animate-pulse" style={{
                     textShadow: '0 0 40px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.8), 0 4px 8px rgba(0,0,0,0.7)'
                   }}>
                     {countdown}
@@ -1221,7 +1221,7 @@ export function MediaRecorderComponent({
               <div className="relative flex justify-center items-center">
                 <SimpleLevelMeter stream={streamRef.current} circular />
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="text-6xl font-bold text-red-500 animate-pulse">
+                  <div className="text-4xl md:text-6xl font-bold text-red-500 animate-pulse">
                     {countdown}
                   </div>
                 </div>
@@ -1295,18 +1295,15 @@ export function MediaRecorderComponent({
                 Your recording was saved before the page refresh. Continue recording, transcribe what you have, or start fresh.
               </p>
               <div className="flex flex-col gap-2">
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Button
                     onClick={async () => {
-                      // Continue recording - merge old chunks with new recording when done
                       console.log('▶️ Continuing recording - will merge with previous chunks:', {
                         previousChunks: previousChunks.length,
                         previousDuration: previousDuration,
                         currentChunks: chunksRef.current.length
                       })
                       setHasSavedRecording(false)
-                      // Don't clear chunksRef here - startRecording() will handle it
-                      // previousChunks is already stored in state and will be merged on stop
                       await startRecording()
                     }}
                     variant="primary"
@@ -1685,7 +1682,7 @@ export function MediaRecorderComponent({
           )}
 
           {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row sm:justify-end gap-3">
+          <div className="flex flex-wrap sm:flex-nowrap sm:justify-end gap-3">
             {/* support mode: Submit (no transcription) + Record again */}
             {recordingPurpose === 'support' ? (
               <>

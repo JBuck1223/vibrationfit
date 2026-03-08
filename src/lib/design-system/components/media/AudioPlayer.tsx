@@ -5,6 +5,41 @@ import { Play, Pause, Volume2, VolumeX } from 'lucide-react'
 import { cn } from '../shared-utils'
 import type { AudioTrack } from './types'
 
+const PROGRESS_STORAGE_PREFIX = 'vf_audio_progress_'
+const SAVE_THROTTLE_MS = 2000
+
+function getSavedProgress(trackId: string): number {
+  try {
+    const raw = localStorage.getItem(`${PROGRESS_STORAGE_PREFIX}${trackId}`)
+    if (!raw) return 0
+    const saved = JSON.parse(raw)
+    if (typeof saved.time === 'number' && Date.now() - saved.ts < 7 * 24 * 60 * 60 * 1000) {
+      return saved.time
+    }
+    localStorage.removeItem(`${PROGRESS_STORAGE_PREFIX}${trackId}`)
+  } catch { /* noop */ }
+  return 0
+}
+
+function saveProgress(trackId: string, time: number) {
+  try {
+    if (time < 1) {
+      localStorage.removeItem(`${PROGRESS_STORAGE_PREFIX}${trackId}`)
+      return
+    }
+    localStorage.setItem(
+      `${PROGRESS_STORAGE_PREFIX}${trackId}`,
+      JSON.stringify({ time, ts: Date.now() })
+    )
+  } catch { /* noop - storage full or unavailable */ }
+}
+
+function clearProgress(trackId: string) {
+  try {
+    localStorage.removeItem(`${PROGRESS_STORAGE_PREFIX}${trackId}`)
+  } catch { /* noop */ }
+}
+
 interface AudioPlayerProps {
   track: AudioTrack
   autoPlay?: boolean
@@ -22,6 +57,8 @@ export const AudioPlayer = React.forwardRef<HTMLAudioElement, AudioPlayerProps>(
     const [isMuted, setIsMuted] = useState(false)
     const audioRef = useRef<HTMLAudioElement>(null)
     const hasTrackedCurrentPlay = useRef<boolean>(false)
+    const lastSaveTimeRef = useRef<number>(0)
+    const trackIdRef = useRef<string>(track.id)
 
     const handleTrackComplete = useCallback(async (trackId: string) => {
       if (hasTrackedCurrentPlay.current) return
@@ -49,31 +86,62 @@ export const AudioPlayer = React.forwardRef<HTMLAudioElement, AudioPlayerProps>(
     }, [track?.id, handleTrackComplete])
 
     useEffect(() => {
+      trackIdRef.current = track.id
+    }, [track.id])
+
+    useEffect(() => {
       const audio = audioRef.current
       if (!audio) return
 
-      const setAudioData = () => setDuration(audio.duration)
-      const setAudioTime = () => setCurrentTime(audio.currentTime)
+      const setAudioData = () => {
+        setDuration(audio.duration)
+        const saved = getSavedProgress(trackIdRef.current)
+        if (saved > 0 && saved < audio.duration - 1) {
+          audio.currentTime = saved
+          setCurrentTime(saved)
+        }
+      }
+      const setAudioTime = () => {
+        setCurrentTime(audio.currentTime)
+        const now = Date.now()
+        if (now - lastSaveTimeRef.current >= SAVE_THROTTLE_MS) {
+          lastSaveTimeRef.current = now
+          saveProgress(trackIdRef.current, audio.currentTime)
+        }
+      }
+      const handlePause = () => {
+        saveProgress(trackIdRef.current, audio.currentTime)
+      }
       const handleEnded = () => {
         checkAndTrackCompletion()
         setIsPlaying(false)
         setCurrentTime(0)
+        clearProgress(trackIdRef.current)
         onTrackEnd?.()
       }
 
       audio.addEventListener('loadeddata', setAudioData)
       audio.addEventListener('timeupdate', setAudioTime)
+      audio.addEventListener('pause', handlePause)
       audio.addEventListener('ended', handleEnded)
 
       return () => {
         audio.removeEventListener('loadeddata', setAudioData)
         audio.removeEventListener('timeupdate', setAudioTime)
+        audio.removeEventListener('pause', handlePause)
         audio.removeEventListener('ended', handleEnded)
       }
     }, [track, onTrackEnd, checkAndTrackCompletion])
 
     useEffect(() => {
-      return () => checkAndTrackCompletion()
+      const id = track.id
+      return () => {
+        checkAndTrackCompletion()
+        const audio = audioRef.current
+        if (audio && audio.currentTime > 0) {
+          saveProgress(id, audio.currentTime)
+        }
+      }
     }, [track?.id, checkAndTrackCompletion])
 
     useEffect(() => {
@@ -99,6 +167,7 @@ export const AudioPlayer = React.forwardRef<HTMLAudioElement, AudioPlayerProps>(
       const time = parseFloat(e.target.value)
       audio.currentTime = time
       setCurrentTime(time)
+      saveProgress(track.id, time)
     }
 
     const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -137,6 +206,7 @@ export const AudioPlayer = React.forwardRef<HTMLAudioElement, AudioPlayerProps>(
           ref={audioRef}
           src={track.url}
           autoPlay={autoPlay}
+          preload="metadata"
         />
 
         {showInfo && (

@@ -19,6 +19,7 @@ interface CategoryGridProps extends React.HTMLAttributes<HTMLDivElement> {
   selectedCategories?: string[]
   completedCategories?: string[]
   refinedCategories?: string[]
+  activeCategory?: string
   onCategoryClick?: (categoryKey: string) => void
   layout?: '14-column' | '12-column'
   mode?: 'selection' | 'completion' | 'draft'
@@ -37,6 +38,7 @@ export const CategoryGrid = React.forwardRef<HTMLDivElement, CategoryGridProps>(
     selectedCategories = [],
     completedCategories = [],
     refinedCategories = [],
+    activeCategory,
     onCategoryClick,
     layout = '14-column',
     mode = 'selection',
@@ -76,11 +78,11 @@ export const CategoryGrid = React.forwardRef<HTMLDivElement, CategoryGridProps>(
         {/* Category Grid */}
         <div className={gridClass}>
           {categories.map((category) => {
-            const isSelected = selectedCategories.includes(category.key)
+            const isActive = activeCategory === category.key
+            const isSelected = isActive || selectedCategories.includes(category.key)
             const isCompleted = completedCategories.includes(category.key)
             const isRefined = refinedCategories.includes(category.key)
             
-            // Determine badge display based on mode
             const showBadge = 
               (mode === 'completion' && isCompleted) || 
               (mode === 'draft' && isRefined)
@@ -89,7 +91,6 @@ export const CategoryGrid = React.forwardRef<HTMLDivElement, CategoryGridProps>(
 
             return (
               <div key={category.key} className="relative">
-                {/* Mode-based Badge */}
                 {showBadge && (
                   <div
                     className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#333] border-2 flex items-center justify-center z-10"

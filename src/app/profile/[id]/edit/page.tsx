@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import {  Button, Badge, Card, CategoryCard, WarningConfirmationDialog, Icon, VersionBadge, StatusBadge, PageHero, Container, Stack, Spinner, IntensiveCompletionBanner } from '@/lib/design-system/components'
+import {  Button, Badge, Card, CategoryCard, WarningConfirmationDialog, Icon, VersionBadge, StatusBadge, PageHero, Container, Stack, Spinner, IntensiveCompletionBanner, IntensiveStepCompleteModal } from '@/lib/design-system/components'
 import ProfileVersionManager from '@/components/ProfileVersionManager'
 import VersionStatusIndicator from '@/components/VersionStatusIndicator'
 import VersionActionToolbar from '@/components/VersionActionToolbar'
@@ -59,6 +59,7 @@ export default function ProfileEditPage() {
   const [showCommitWarning, setShowCommitWarning] = useState(false)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [showStepCompleteModal, setShowStepCompleteModal] = useState(false)
 
   // Clear highlighted field when the field gets a value
   useEffect(() => {
@@ -320,26 +321,31 @@ export default function ProfileEditPage() {
     checkIntensiveMode()
   }, [])
 
-  // Auto-mark profile step complete when reaching 100% in intensive mode (only for first-time completion)
-  useEffect(() => {
-    async function markProfileComplete() {
-      // Only redirect if:
-      // 1. We've finished checking if the step is already complete
-      // 2. We're in intensive mode
-      // 3. Profile is 100% complete
-      // 4. Step is NOT already marked complete (first-time completion)
-      if (intensiveCheckComplete && intensiveMode && completionPercentage >= 100 && !profileMarkedComplete) {
-        const success = await markIntensiveStep('profile_completed')
-        if (success) {
-          setProfileMarkedComplete(true)
-          console.log('✅ Profile step marked complete in intensive')
-          // Redirect to dashboard to show progress with completion toast
-          router.push('/intensive/dashboard?completed=profile')
-        }
-      }
+  // Explicitly mark profile step complete - called when user clicks "Continue" button
+  // NOT auto-triggered, so the user can finish editing before proceeding
+  const handleIntensiveComplete = useCallback(async () => {
+    if (!intensiveMode || profileMarkedComplete) return
+
+    // Save all profile data first
+    try {
+      const apiUrl = profileId
+        ? `/api/profile?profileId=${profileId}`
+        : '/api/profile'
+      await fetch(apiUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(profileRef.current),
+      })
+    } catch (err) {
+      console.error('Error saving profile before marking complete:', err)
     }
-    markProfileComplete()
-  }, [intensiveCheckComplete, intensiveMode, completionPercentage, profileMarkedComplete, router])
+
+    const success = await markIntensiveStep('profile_completed')
+    if (success) {
+      setProfileMarkedComplete(true)
+      setShowStepCompleteModal(true)
+    }
+  }, [intensiveMode, profileMarkedComplete, profileId])
 
   // Fetch versions
   const fetchVersions = async () => {
@@ -955,15 +961,15 @@ export default function ProfileEditPage() {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-white">Profile Complete!</h3>
-                  <p className="text-sm text-neutral-300">You're ready for the next step of your Activation Intensive</p>
+                  <p className="text-sm text-neutral-300">Save your work, mark this step done, and continue your Activation Intensive</p>
                 </div>
               </div>
               <Button
                 variant="primary"
-                onClick={() => router.push('/assessment/new')}
+                onClick={handleIntensiveComplete}
                 className="whitespace-nowrap"
               >
-                Continue to Assessment
+                Save & Continue
                 <ChevronRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
@@ -1088,6 +1094,12 @@ export default function ProfileEditPage() {
         confirmText="Commit as Active"
         type="commit"
         isLoading={isSaving}
+      />
+
+      <IntensiveStepCompleteModal
+        isOpen={showStepCompleteModal}
+        onClose={() => setShowStepCompleteModal(false)}
+        stepId="profile"
       />
     </Container>
   )

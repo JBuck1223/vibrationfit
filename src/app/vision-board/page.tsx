@@ -3,12 +3,14 @@
 import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
-import { Card, Button, Badge, CategoryCard, DeleteConfirmationDialog, ActionButtons, Icon, TrackingMilestoneCard, PageHero, Container, Stack, Spinner } from '@/lib/design-system'
+import { Card, Button, Badge, CategoryCard, DeleteConfirmationDialog, ActionButtons, Icon, TrackingMilestoneCard, PageHero, Container, Stack, Spinner, Input, FileUpload } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Calendar, CheckCircle, Circle, XCircle, Filter, Grid3X3, X, ChevronLeft, ChevronRight, Eye, List, Grid, CheckSquare, Square, Lightbulb, Download } from 'lucide-react'
+import { Plus, Calendar, CheckCircle, XCircle, Filter, Grid3X3, X, ChevronLeft, ChevronRight, Eye, List, Grid, Lightbulb, Download, Edit3, Save, ChevronUp, Trash2, BookOpen, Upload, Sparkles } from 'lucide-react'
 import { useDeleteItem } from '@/hooks/useDeleteItem'
+import { AIImageGenerator } from '@/components/AIImageGenerator'
+import { colors } from '@/lib/design-system/tokens'
 
 // Hook to get responsive column count
 function useColumnCount() {
@@ -48,6 +50,26 @@ export default function VisionBoardPage() {
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [showFilters, setShowFilters] = useState(false)
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null)
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
+  const [editFormData, setEditFormData] = useState<{
+    name: string
+    description: string
+    status: string
+    categories: string[]
+    actualization_story: string
+  } | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [boardMode, setBoardMode] = useState<'clean' | 'detail'>('detail')
+  const [detailModalIndex, setDetailModalIndex] = useState<number | null>(null)
+  const [editFile, setEditFile] = useState<File | null>(null)
+  const [editImageSource, setEditImageSource] = useState<'upload' | 'ai'>('upload')
+  const [editAiImageUrl, setEditAiImageUrl] = useState<string | null>(null)
+  const [editActualizedFile, setEditActualizedFile] = useState<File | null>(null)
+  const [editActualizedImageSource, setEditActualizedImageSource] = useState<'upload' | 'ai'>('upload')
+  const [editActualizedAiImageUrl, setEditActualizedAiImageUrl] = useState<string | null>(null)
+  const [showImageEditor, setShowImageEditor] = useState(false)
+  const [showActualizedImageEditor, setShowActualizedImageEditor] = useState(false)
   
   // Use standardized delete functionality
   const {
@@ -150,6 +172,7 @@ export default function VisionBoardPage() {
 
   const closeLightbox = () => {
     setLightboxOpen(false)
+    if (editingItemId) cancelEditing()
   }
 
   const nextImage = () => {
@@ -177,6 +200,17 @@ export default function VisionBoardPage() {
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [lightboxOpen, filteredItems.length])
+
+  useEffect(() => {
+    if (detailModalIndex === null) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setDetailModalIndex(null)
+      else if (e.key === 'ArrowLeft') setDetailModalIndex(prev => prev !== null ? (prev - 1 + filteredItems.length) % filteredItems.length : null)
+      else if (e.key === 'ArrowRight') setDetailModalIndex(prev => prev !== null ? (prev + 1) % filteredItems.length : null)
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [detailModalIndex, filteredItems.length])
 
   const updateItemStatus = async (itemId: string, newStatus: string) => {
     try {
@@ -272,8 +306,547 @@ export default function VisionBoardPage() {
     }
   }
 
+  const toggleExpand = (itemId: string) => {
+    if (editingItemId === itemId) return
+    if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+      if (expandedItemId === itemId) {
+        setExpandedItemId(null)
+      }
+      const idx = filteredItems.findIndex(i => i.id === itemId)
+      if (idx !== -1) {
+        setDetailModalIndex(idx)
+        return
+      }
+    }
+    setExpandedItemId(prev => prev === itemId ? null : itemId)
+  }
 
+  const closeDetailModal = () => {
+    setDetailModalIndex(null)
+    if (editingItemId) cancelEditing()
+  }
 
+  const initEditState = (item: any) => {
+    setEditingItemId(item.id)
+    setEditFormData({
+      name: item.name,
+      description: item.description || '',
+      status: item.status,
+      categories: item.categories || [],
+      actualization_story: item.actualization_story || ''
+    })
+    setEditFile(null)
+    setEditImageSource('upload')
+    setEditAiImageUrl(null)
+    setEditActualizedFile(null)
+    setEditActualizedImageSource('upload')
+    setEditActualizedAiImageUrl(null)
+    setShowImageEditor(false)
+    setShowActualizedImageEditor(false)
+  }
+
+  const startEditing = (item: any) => {
+    const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768
+    if (isDesktop) {
+      const idx = filteredItems.findIndex(i => i.id === item.id)
+      if (idx !== -1) {
+        setExpandedItemId(null)
+        setLightboxOpen(true)
+        setLightboxIndex(item.originalIndex !== undefined ? item.originalIndex : idx)
+      }
+    } else {
+      setExpandedItemId(item.id)
+    }
+    initEditState(item)
+  }
+
+  const cancelEditing = () => {
+    setEditingItemId(null)
+    setEditFormData(null)
+    setEditFile(null)
+    setEditAiImageUrl(null)
+    setEditActualizedFile(null)
+    setEditActualizedAiImageUrl(null)
+    setShowImageEditor(false)
+    setShowActualizedImageEditor(false)
+  }
+
+  const handleEditCategoryToggle = (categoryKey: string) => {
+    if (!editFormData) return
+    setEditFormData(prev => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        categories: prev.categories.includes(categoryKey)
+          ? prev.categories.filter(c => c !== categoryKey)
+          : [...prev.categories, categoryKey]
+      }
+    })
+  }
+
+  const handleInlineSave = async (itemId: string) => {
+    if (!editFormData) return
+    setSaving(true)
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const currentItem = items.find(i => i.id === itemId)
+      let imageUrl = currentItem?.image_url
+
+      if (editFile || editAiImageUrl) {
+        if (currentItem?.image_url) {
+          try {
+            const url = new URL(currentItem.image_url)
+            const oldPath = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname
+            await deleteUserFile(oldPath)
+          } catch (e) { console.warn('Failed to delete old image:', e) }
+        }
+        if (editFile) {
+          const result = await uploadUserFile('visionBoardUploaded', editFile, user.id)
+          imageUrl = result.url
+        } else if (editAiImageUrl) {
+          imageUrl = editAiImageUrl
+        }
+      }
+
+      let actualizedImageUrl = currentItem?.actualized_image_url
+      if (editFormData.status === 'actualized') {
+        if (editActualizedFile || editActualizedAiImageUrl) {
+          if (currentItem?.actualized_image_url) {
+            try {
+              const url = new URL(currentItem.actualized_image_url)
+              const oldPath = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname
+              await deleteUserFile(oldPath)
+            } catch (e) { console.warn('Failed to delete old actualized image:', e) }
+          }
+          if (editActualizedFile) {
+            const result = await uploadUserFile('visionBoardUploaded', editActualizedFile, user.id)
+            actualizedImageUrl = result.url
+          } else if (editActualizedAiImageUrl) {
+            actualizedImageUrl = editActualizedAiImageUrl
+          }
+        }
+      } else {
+        if (currentItem?.actualized_image_url) {
+          try {
+            const url = new URL(currentItem.actualized_image_url)
+            const oldPath = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname
+            await deleteUserFile(oldPath)
+          } catch (e) { console.warn('Failed to delete actualized image:', e) }
+        }
+        actualizedImageUrl = null
+      }
+
+      const { error } = await supabase
+        .from('vision_board_items')
+        .update({
+          name: editFormData.name,
+          description: editFormData.description,
+          image_url: imageUrl,
+          actualized_image_url: actualizedImageUrl,
+          status: editFormData.status,
+          categories: editFormData.categories,
+          actualization_story: editFormData.status === 'actualized' ? editFormData.actualization_story : null,
+          actualized_at: editFormData.status === 'actualized' && currentItem?.status !== 'actualized'
+            ? new Date().toISOString()
+            : currentItem?.actualized_at
+        })
+        .eq('id', itemId)
+
+      if (error) throw error
+
+      if (currentItem && editFormData.status !== currentItem.status) {
+        await supabase.rpc('increment_vision_board_stats', {
+          p_user_id: user.id,
+          p_status: editFormData.status
+        })
+      }
+
+      setItems(prev => prev.map(i =>
+        i.id === itemId
+          ? {
+              ...i,
+              name: editFormData.name,
+              description: editFormData.description,
+              image_url: imageUrl,
+              actualized_image_url: actualizedImageUrl,
+              status: editFormData.status,
+              categories: editFormData.categories,
+              actualization_story: editFormData.status === 'actualized' ? editFormData.actualization_story : null,
+              actualized_at: editFormData.status === 'actualized' && i.status !== 'actualized'
+                ? new Date().toISOString()
+                : i.actualized_at,
+              updated_at: new Date().toISOString()
+            }
+          : i
+      ))
+
+      setEditingItemId(null)
+      setEditFormData(null)
+      setEditFile(null)
+      setEditAiImageUrl(null)
+      setEditActualizedFile(null)
+      setEditActualizedAiImageUrl(null)
+      setShowImageEditor(false)
+      setShowActualizedImageEditor(false)
+    } catch (error) {
+      console.error('Error saving:', error)
+      alert('Failed to save changes')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const renderInlineEditForm = (item: any) => {
+    if (!editFormData) return null
+    return (
+      <div className="space-y-4 pt-3">
+        <div>
+          <label className="block text-xs font-medium text-neutral-400 mb-1">Creation Name</label>
+          <input
+            type="text"
+            value={editFormData.name}
+            onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+            className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#39FF14] transition-colors"
+            placeholder="What do you want to create?"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-neutral-400 mb-1">Description</label>
+          <textarea
+            value={editFormData.description}
+            onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+            className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#39FF14] transition-colors resize-none"
+            rows={3}
+            placeholder="Describe this creation..."
+          />
+        </div>
+
+        {/* Vision Image */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-xs font-medium text-neutral-400">Vision Image</label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowImageEditor(!showImageEditor)}
+            >
+              {showImageEditor ? 'Hide' : (item.image_url ? 'Change Image' : 'Add Image')}
+            </Button>
+          </div>
+          {item.image_url && !showImageEditor && !editFile && !editAiImageUrl && (
+            <div className="flex items-center gap-3 p-2 bg-neutral-900 rounded-lg border border-neutral-700">
+              <img src={item.image_url} alt="Current" className="w-14 h-14 object-cover rounded-lg" />
+              <span className="text-xs text-neutral-400">Current image</span>
+            </div>
+          )}
+          {(editFile || editAiImageUrl) && !showImageEditor && (
+            <div className="flex items-center gap-3 p-2 bg-neutral-900 rounded-lg border border-[#39FF14]/30">
+              <div className="w-14 h-14 bg-[#39FF14]/10 rounded-lg flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 text-[#39FF14]" />
+              </div>
+              <span className="text-xs text-[#39FF14]">New image ready</span>
+              <button type="button" onClick={() => { setEditFile(null); setEditAiImageUrl(null) }} className="ml-auto text-neutral-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+          {showImageEditor && (
+            <div className="space-y-3 p-3 bg-neutral-900/50 rounded-lg border border-neutral-700">
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={editImageSource === 'upload' ? 'primary' : 'outline'}
+                  size="sm"
+                  onClick={() => { setEditImageSource('upload'); setEditAiImageUrl(null) }}
+                  className="flex-1"
+                >
+                  <Upload className="w-3.5 h-3.5 mr-1.5" />
+                  Upload
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => { setEditImageSource('ai'); setEditFile(null) }}
+                  style={editImageSource === 'ai'
+                    ? { backgroundColor: colors.semantic.premium, borderColor: colors.semantic.premium }
+                    : { borderColor: colors.semantic.premium, color: colors.semantic.premium }
+                  }
+                  className={`flex-1 inline-flex items-center justify-center rounded-full transition-all duration-300 py-2 px-4 text-xs font-medium border-2 ${
+                    editImageSource === 'ai' ? 'text-white hover:opacity-90' : 'bg-transparent hover:bg-[#BF00FF]/10'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                  VIVA
+                </button>
+              </div>
+              {editImageSource === 'upload' ? (
+                <FileUpload
+                  dragDrop
+                  accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
+                  multiple={false}
+                  maxFiles={1}
+                  maxSize={10}
+                  value={editFile ? [editFile] : []}
+                  onChange={(files) => setEditFile(files[0] || null)}
+                  onUpload={(files) => setEditFile(files[0] || null)}
+                  dragDropText="Click or drag to upload"
+                  dragDropSubtext="PNG, JPG, WEBP, HEIC (max 10MB)"
+                  previewSize="md"
+                />
+              ) : (
+                <AIImageGenerator
+                  type="vision_board"
+                  onImageGenerated={(url) => { setEditAiImageUrl(url); setShowImageEditor(false) }}
+                  title={editFormData.name}
+                  description={editFormData.description}
+                  visionText={editFormData.name && editFormData.description
+                    ? `${editFormData.name}. ${editFormData.description}`
+                    : editFormData.description || editFormData.name || ''}
+                />
+              )}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-neutral-400 mb-2">Status</label>
+          <div className="flex gap-1">
+            {STATUS_OPTIONS.map((status) => (
+              <button
+                key={status.value}
+                type="button"
+                onClick={() => setEditFormData({ ...editFormData, status: status.value })}
+                className={`px-2 py-1.5 rounded-full text-xs font-medium transition-all flex items-center justify-center gap-1.5 flex-1 ${
+                  editFormData.status === status.value
+                    ? status.value === 'active'
+                      ? 'bg-green-600 text-white shadow-lg'
+                      : status.value === 'actualized'
+                      ? 'bg-purple-500 text-white shadow-lg'
+                      : 'bg-gray-600 text-white shadow-lg'
+                    : 'bg-neutral-900 text-neutral-300 hover:bg-neutral-700'
+                }`}
+              >
+                {status.value === 'active' && <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />}
+                {status.value === 'actualized' && <CheckCircle className="w-3 h-3" />}
+                {status.value === 'inactive' && <XCircle className="w-3 h-3" />}
+                {status.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Actualization Story + Evidence Image */}
+        {editFormData.status === 'actualized' && (
+          <>
+            <div>
+              <label className="block text-xs font-medium text-neutral-400 mb-1">Actualization Story</label>
+              <textarea
+                value={editFormData.actualization_story}
+                onChange={(e) => setEditFormData({ ...editFormData, actualization_story: e.target.value })}
+                className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#39FF14] transition-colors resize-none"
+                rows={4}
+                placeholder="Tell the story of how this vision was actualized..."
+              />
+            </div>
+
+            {/* Actualized Evidence Image */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-medium text-neutral-400">Evidence Image</label>
+                <Button
+                  type="button"
+                  variant="accent"
+                  size="sm"
+                  onClick={() => setShowActualizedImageEditor(!showActualizedImageEditor)}
+                >
+                  {showActualizedImageEditor ? 'Hide' : (item.actualized_image_url ? 'Change Evidence' : 'Add Evidence')}
+                </Button>
+              </div>
+              {item.actualized_image_url && !showActualizedImageEditor && !editActualizedFile && !editActualizedAiImageUrl && (
+                <div className="flex items-center gap-3 p-2 bg-neutral-900 rounded-lg border border-neutral-700">
+                  <img src={item.actualized_image_url} alt="Evidence" className="w-14 h-14 object-cover rounded-lg" />
+                  <span className="text-xs text-neutral-400">Current evidence</span>
+                </div>
+              )}
+              {(editActualizedFile || editActualizedAiImageUrl) && !showActualizedImageEditor && (
+                <div className="flex items-center gap-3 p-2 bg-neutral-900 rounded-lg border border-purple-500/30">
+                  <div className="w-14 h-14 bg-purple-500/10 rounded-lg flex items-center justify-center">
+                    <CheckCircle className="w-5 h-5 text-purple-400" />
+                  </div>
+                  <span className="text-xs text-purple-400">New evidence ready</span>
+                  <button type="button" onClick={() => { setEditActualizedFile(null); setEditActualizedAiImageUrl(null) }} className="ml-auto text-neutral-400 hover:text-white">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+              {showActualizedImageEditor && (
+                <div className="space-y-3 p-3 bg-neutral-900/50 rounded-lg border border-neutral-700">
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={editActualizedImageSource === 'upload' ? 'primary' : 'outline'}
+                      size="sm"
+                      onClick={() => { setEditActualizedImageSource('upload'); setEditActualizedAiImageUrl(null) }}
+                      className="flex-1"
+                    >
+                      <Upload className="w-3.5 h-3.5 mr-1.5" />
+                      Upload
+                    </Button>
+                    <button
+                      type="button"
+                      onClick={() => { setEditActualizedImageSource('ai'); setEditActualizedFile(null) }}
+                      style={editActualizedImageSource === 'ai'
+                        ? { backgroundColor: colors.semantic.premium, borderColor: colors.semantic.premium }
+                        : { borderColor: colors.semantic.premium, color: colors.semantic.premium }
+                      }
+                      className={`flex-1 inline-flex items-center justify-center rounded-full transition-all duration-300 py-2 px-4 text-xs font-medium border-2 ${
+                        editActualizedImageSource === 'ai' ? 'text-white hover:opacity-90' : 'bg-transparent hover:bg-[#BF00FF]/10'
+                      }`}
+                    >
+                      <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                      VIVA
+                    </button>
+                  </div>
+                  {editActualizedImageSource === 'upload' ? (
+                    <FileUpload
+                      dragDrop
+                      accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
+                      multiple={false}
+                      maxFiles={1}
+                      maxSize={10}
+                      value={editActualizedFile ? [editActualizedFile] : []}
+                      onChange={(files) => setEditActualizedFile(files[0] || null)}
+                      onUpload={(files) => setEditActualizedFile(files[0] || null)}
+                      dragDropText="Click or drag to upload"
+                      dragDropSubtext="PNG, JPG, WEBP, HEIC (max 10MB)"
+                      previewSize="md"
+                    />
+                  ) : (
+                    <AIImageGenerator
+                      type="vision_board"
+                      onImageGenerated={(url) => { setEditActualizedAiImageUrl(url); setShowActualizedImageEditor(false) }}
+                      title={`Actualized: ${editFormData.name}`}
+                      description={`Evidence: ${editFormData.description}`}
+                      visionText={`Actualized: ${editFormData.name}. ${editFormData.description}`}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        <div>
+          <label className="block text-xs font-medium text-neutral-400 mb-2">Categories</label>
+          <div className="grid grid-cols-5 md:grid-cols-12 gap-2">
+            {VISION_CATEGORIES.filter(c => c.key !== 'forward' && c.key !== 'conclusion').map((category) => {
+              const isSelected = editFormData.categories.includes(category.key)
+              return (
+                <CategoryCard
+                  key={category.key}
+                  category={category}
+                  selected={isSelected}
+                  onClick={() => handleEditCategoryToggle(category.key)}
+                  variant="outlined"
+                  selectionStyle="border"
+                  iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
+                  selectedIconColor="#39FF14"
+                  className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)]' : '!bg-transparent !border-[#333]'}
+                />
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="flex gap-2 pt-2">
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={cancelEditing}
+            className="flex-1"
+          >
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => handleInlineSave(item.id)}
+            loading={saving}
+            disabled={saving}
+            className="flex-1"
+          >
+            {saving ? 'Saving...' : (
+              <>
+                <Save className="w-3.5 h-3.5 mr-1.5" />
+                Save
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  const renderViewDetails = (item: any, showDescription: boolean = true) => (
+    <div className="space-y-3 pt-3">
+      {showDescription && item.description && (
+        <p className="text-sm text-neutral-300">{item.description}</p>
+      )}
+
+      {item.status === 'actualized' && item.actualization_story && (
+        <div className="p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+          <h4 className="text-xs font-semibold text-purple-400 mb-1">Actualization Story</h4>
+          <p className="text-sm text-neutral-200 whitespace-pre-wrap">{item.actualization_story}</p>
+        </div>
+      )}
+
+      {item.categories && item.categories.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {item.categories.map((categoryKey: string) => {
+            const categoryInfo = VISION_CATEGORIES.find(c => c.key === categoryKey)
+            return (
+              <span key={categoryKey} className="text-xs bg-primary-500/20 text-primary-500 px-2.5 py-1 rounded-full">
+                {categoryInfo ? categoryInfo.label : categoryKey}
+              </span>
+            )
+          })}
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-neutral-400">
+        <span>Created: {new Date(item.created_at).toLocaleDateString()}</span>
+        {item.actualized_at && (
+          <span className="text-purple-400">Actualized: {new Date(item.actualized_at).toLocaleDateString()}</span>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2 pt-1">
+        <Button
+          asChild
+          variant="ghost"
+          size="sm"
+          className="text-xs"
+        >
+          <Link href={`/vision-board/${item.id}/story`}>
+            <BookOpen className="w-3.5 h-3.5 mr-1.5" />
+            Stories
+          </Link>
+        </Button>
+        <Button
+          variant="danger"
+          size="sm"
+          className="text-xs"
+          onClick={() => handleDeleteItem(item.id)}
+        >
+          <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+          Delete
+        </Button>
+      </div>
+    </div>
+  )
 
 
   const getStatusBadge = (status: string, isListView: boolean = false) => {
@@ -352,28 +925,27 @@ export default function VisionBoardPage() {
           title="Vision Board"
           subtitle="Visualize and track your conscious creations"
         >
-          <div className="flex justify-center gap-3 flex-wrap">
+          <div className="grid grid-cols-3 gap-2 md:gap-3 max-w-lg mx-auto">
             <Button
               onClick={() => router.push('/vision-board/ideas')}
               variant="primary"
               size="sm"
-              className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+              className="w-full flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
             >
               <Lightbulb className="w-4 h-4 shrink-0" />
-              <span>Get VIVA Ideas</span>
+              <span>VIVA Ideas</span>
             </Button>
             <Button
               onClick={() => router.push('/vision-board/new')}
               variant="outline"
               size="sm"
-              className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+              className="w-full flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
             >
               <Plus className="w-4 h-4 shrink-0" />
-              <span>Add Creation</span>
+              <span>Add New</span>
             </Button>
             <Button
               onClick={() => {
-                // Pass current filters to export page
                 const params = new URLSearchParams()
                 if (!selectedCategories.includes('all') && selectedCategories.length > 0) {
                   params.set('categories', selectedCategories.join(','))
@@ -385,16 +957,16 @@ export default function VisionBoardPage() {
               }}
               variant="secondary"
               size="sm"
-              className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+              className="w-full flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
             >
               <Download className="w-4 h-4 shrink-0" />
-              <span>Download PDF</span>
+              <span>PDF</span>
             </Button>
           </div>
         </PageHero>
 
         {/* Stats - Responsive Grid */}
-        <div id="stats" className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <div id="stats" className="grid grid-cols-3 gap-3 md:gap-6">
             <TrackingMilestoneCard
               label="Total"
               value={totalItems}
@@ -409,11 +981,6 @@ export default function VisionBoardPage() {
               label="Actualized"
               value={actualizedItems}
               theme="accent"
-            />
-            <TrackingMilestoneCard
-              label="Inactive"
-              value={inactiveItems}
-              theme="neutral"
             />
           </div>
 
@@ -438,28 +1005,52 @@ export default function VisionBoardPage() {
             <span>Filter</span>
           </Button>
           <div className="flex-1 flex justify-end">
-            <div className="flex gap-2">
+            <div className="flex items-center gap-1">
+              {/* Board Mode Toggle */}
+              <div className="flex bg-[#1F1F1F] rounded-full p-0.5 mr-2">
+                <button
+                  onClick={() => { setBoardMode('clean'); setExpandedItemId(null); cancelEditing() }}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                    boardMode === 'clean'
+                      ? 'bg-[#39FF14] text-black shadow-lg'
+                      : 'text-neutral-400 hover:text-white'
+                  }`}
+                >
+                  Clean
+                </button>
+                <button
+                  onClick={() => setBoardMode('detail')}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                    boardMode === 'detail'
+                      ? 'bg-[#39FF14] text-black shadow-lg'
+                      : 'text-neutral-400 hover:text-white'
+                  }`}
+                >
+                  Detail
+                </button>
+              </div>
+              {/* View Toggle */}
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-3 rounded-full transition-all ${
+                className={`p-2.5 rounded-full transition-all ${
                   viewMode === 'grid'
                     ? 'bg-[#39FF14] text-black shadow-lg'
                     : 'bg-[#1F1F1F] text-neutral-400 hover:text-white hover:bg-[#2A2A2A]'
                 }`}
                 aria-label="Grid view"
               >
-                <Grid className="w-5 h-5" />
+                <Grid className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-3 rounded-full transition-all ${
+                className={`p-2.5 rounded-full transition-all ${
                   viewMode === 'list'
                     ? 'bg-[#39FF14] text-black shadow-lg'
                     : 'bg-[#1F1F1F] text-neutral-400 hover:text-white hover:bg-[#2A2A2A]'
                 }`}
                 aria-label="List view"
               >
-                <List className="w-5 h-5" />
+                <List className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -585,165 +1176,231 @@ export default function VisionBoardPage() {
         ) : filteredItems && filteredItems.length > 0 ? (
           <>
             {viewMode === 'grid' ? (
-              /* Grid View - Masonry with horizontal-first distribution */
-              <div className="flex gap-6">
+              /* Grid View - Masonry with Clean/Detail modes */
+              <div className="flex gap-4 md:gap-6">
                 {columnizedItems.map((column, columnIndex) => (
-                  <div key={columnIndex} className="flex-1 flex flex-col gap-6">
-                    {column.map((item) => (
-                      <div 
-                        key={item.id} 
-                        className="group cursor-pointer"
-                        onClick={() => router.push(`/vision-board/${item.id}`)}
-                      >
-                        <div className="relative overflow-hidden rounded-lg bg-neutral-800 shadow-lg hover:shadow-xl transition-all duration-300">
+                  <div key={columnIndex} className="flex-1 flex flex-col gap-4 md:gap-6">
+                    {column.map((item) => {
+                      const isExpanded = expandedItemId === item.id
+                      const isEditing = editingItemId === item.id
+                      const isOpen = isExpanded || isEditing
+
+                      if (boardMode === 'clean') {
+                        return (
+                          <div
+                            key={item.id}
+                            className="rounded-2xl overflow-hidden bg-neutral-800 border-2 border-[#333] shadow-lg cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
+                            onClick={() => openLightbox(item.originalIndex)}
+                          >
+                            {(item.status === 'actualized' && item.actualized_image_url) ? (
+                              <img src={item.actualized_image_url} alt={item.name} className="w-full h-auto object-cover" loading="lazy" />
+                            ) : item.image_url ? (
+                              <img src={item.image_url} alt={item.name} className="w-full h-auto object-cover" loading="lazy" />
+                            ) : (
+                              <div className="w-full h-48 bg-neutral-900 flex items-center justify-center">
+                                <Grid3X3 className="w-12 h-12 text-neutral-600" />
+                              </div>
+                            )}
+                          </div>
+                        )
+                      }
+
+                      return (
+                        <div key={item.id} className="rounded-2xl overflow-hidden bg-neutral-800 border-2 border-[#333] shadow-lg transition-all duration-300">
+                          {/* Image - tap for lightbox */}
+                          <div
+                            className="relative cursor-pointer"
+                            onClick={() => openLightbox(item.originalIndex)}
+                          >
+                            {(item.status === 'actualized' && item.actualized_image_url) ? (
+                              <img src={item.actualized_image_url} alt={item.name} className="w-full h-auto object-cover" loading="lazy" />
+                            ) : item.image_url ? (
+                              <img src={item.image_url} alt={item.name} className="w-full h-auto object-cover" loading="lazy" />
+                            ) : (
+                              <div className="w-full h-48 bg-neutral-900 flex items-center justify-center">
+                                <Grid3X3 className="w-12 h-12 text-neutral-600" />
+                              </div>
+                            )}
+                            <div className="absolute top-3 right-3">
+                              {getStatusBadge(item.status)}
+                            </div>
+                          </div>
+
+                          {/* Name + Action Icons Bar */}
+                          <div className="px-3 py-2.5 flex items-center gap-2">
+                            <span className="flex-1 text-sm font-semibold text-white truncate">{item.name}</span>
+                            <button
+                              onClick={() => toggleExpand(item.id)}
+                              className={`p-1.5 rounded-full transition-colors ${
+                                isExpanded && !isEditing
+                                  ? 'bg-[#39FF14]/20 text-[#39FF14]'
+                                  : 'hover:bg-neutral-700 text-neutral-400 hover:text-white'
+                              }`}
+                              aria-label={isExpanded ? 'Collapse details' : 'View details'}
+                            >
+                              {isExpanded && !isEditing ? <ChevronUp className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                            <button
+                              onClick={() => isEditing ? cancelEditing() : startEditing(item)}
+                              className={`p-1.5 rounded-full transition-colors ${
+                                isEditing
+                                  ? 'bg-[#39FF14]/20 text-[#39FF14]'
+                                  : 'hover:bg-neutral-700 text-neutral-400 hover:text-white'
+                              }`}
+                              aria-label={isEditing ? 'Cancel editing' : 'Edit'}
+                            >
+                              {isEditing ? <X className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
+                            </button>
+                          </div>
+
+                          {/* Expandable Section */}
+                          <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${
+                            isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+                          }`}>
+                            <div className="overflow-hidden min-h-0">
+                              {isEditing && editFormData ? (
+                                <div className="px-4 pb-4 border-t border-neutral-700/50">
+                                  {renderInlineEditForm(item)}
+                                </div>
+                              ) : isExpanded ? (
+                                <div className="px-4 pb-4 border-t border-neutral-700/50">
+                                  {renderViewDetails(item)}
+                                </div>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* List View - Mobile-First with inline expand/edit */
+              <div className="space-y-3 md:space-y-4">
+                {filteredItems.map((item) => {
+                  const isExpanded = expandedItemId === item.id
+                  const isEditing = editingItemId === item.id
+                  const isOpen = isExpanded || isEditing
+
+                  return (
+                    <Card key={item.id} className="hover:border-primary-500 transition-all duration-200">
+                      <div className="flex flex-col md:flex-row gap-3 md:gap-4">
+
+                        {/* Image */}
+                        <div className="relative flex-shrink-0 w-full md:w-40 aspect-[4/3] rounded-lg overflow-hidden bg-neutral-800">
                           {(item.status === 'actualized' && item.actualized_image_url) ? (
                             <img
                               src={item.actualized_image_url}
                               alt={item.name}
-                              className="w-full h-auto object-cover transition-transform duration-300 md:group-hover:scale-105"
+                              className="w-full h-full object-cover"
                               loading="lazy"
                             />
                           ) : item.image_url ? (
                             <img
                               src={item.image_url}
                               alt={item.name}
-                              className="w-full h-auto object-cover transition-transform duration-300 md:group-hover:scale-105"
+                              className="w-full h-full object-cover"
                               loading="lazy"
                             />
                           ) : (
-                            <div className="w-full h-64 bg-neutral-800 rounded-lg flex items-center justify-center">
-                              <Grid3X3 className="w-12 h-12 text-neutral-600" />
-                            </div>
-                          )}
-                          
-                          {/* Status Badge */}
-                          <div className="absolute top-3 right-3">
-                            {getStatusBadge(item.status)}
-                          </div>
-
-                          {/* Actualized Indicator */}
-                          {item.status === 'actualized' && (
-                            <div className="absolute top-3 left-3">
-                              <div className="bg-purple-500 text-white p-1 rounded-full">
-                                <CheckCircle className="w-4 h-4" />
-                              </div>
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Grid3X3 className="w-8 h-8 md:w-6 md:h-6 text-neutral-600" />
                             </div>
                           )}
 
-                          {/* Hover Overlay - Desktop Only, Just Button */}
-                          <div className="hidden md:flex absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 items-center justify-center">
-                            <Button size="sm" variant="secondary" className="text-xs px-4 py-2">
-                              <Eye className="w-4 h-4 mr-2" />
-                              View Details
-                            </Button>
+                          <div className="absolute top-2 right-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                cycleItemStatus(item.id)
+                              }}
+                              className="cursor-pointer"
+                              title="Click to cycle status"
+                            >
+                              {getStatusBadge(item.status, true)}
+                            </button>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              /* List View - Mobile-First Design */
-              <div className="space-y-3 md:space-y-4">
-                {filteredItems.map((item) => (
-                  <Card key={item.id} className="hover:border-primary-500 transition-all duration-200">
-                    <div className="flex flex-col md:flex-row gap-3 md:gap-4">
 
-                      {/* Image - Consistent 4:3 aspect ratio */}
-                      <div className="relative flex-shrink-0 w-full md:w-40 aspect-[4/3] rounded-lg overflow-hidden bg-neutral-800">
-                        {(item.status === 'actualized' && item.actualized_image_url) ? (
-                          <img
-                            src={item.actualized_image_url}
-                            alt={item.name}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                          />
-                        ) : item.image_url ? (
-                          <img
-                            src={item.image_url}
-                            alt={item.name}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Grid3X3 className="w-8 h-8 md:w-6 md:h-6 text-neutral-600" />
-                          </div>
-                        )}
-                        
-                        {/* Status Badge - On photo like grid view - Smaller padding for list view due to smaller images */}
-                        <div className="absolute top-2 right-2">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              cycleItemStatus(item.id)
-                            }}
-                            className="cursor-pointer"
-                            title="Click to cycle status: Active → Actualized → Inactive"
-                          >
-                            {getStatusBadge(item.status, true)}
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Item Details - Mobile-first layout */}
-                      <div className="flex-1 min-w-0">
-                        <div className="space-y-4">
-                          {/* Title and Description */}
-                          <div>
-                            <h3 className="text-xl font-semibold text-white mb-2">{item.name}</h3>
-                            {item.description && (
-                              <p className="text-neutral-300">{item.description}</p>
-                            )}
+                        {/* Item Details */}
+                        <div className="flex-1 min-w-0">
+                          {/* Title row with action icons */}
+                          <div className="flex items-start gap-2 mb-2">
+                            <h3 className="flex-1 text-xl font-semibold text-white">{item.name}</h3>
+                            <button
+                              onClick={() => toggleExpand(item.id)}
+                              className={`p-1.5 rounded-full transition-colors flex-shrink-0 ${
+                                isExpanded && !isEditing
+                                  ? 'bg-[#39FF14]/20 text-[#39FF14]'
+                                  : 'hover:bg-neutral-700 text-neutral-400 hover:text-white'
+                              }`}
+                              aria-label={isExpanded ? 'Collapse' : 'Details'}
+                            >
+                              {isExpanded && !isEditing
+                                ? <ChevronUp className="w-4 h-4" />
+                                : <Eye className="w-4 h-4" />
+                              }
+                            </button>
+                            <button
+                              onClick={() => isEditing ? cancelEditing() : startEditing(item)}
+                              className={`p-1.5 rounded-full transition-colors flex-shrink-0 ${
+                                isEditing
+                                  ? 'bg-[#39FF14]/20 text-[#39FF14]'
+                                  : 'hover:bg-neutral-700 text-neutral-400 hover:text-white'
+                              }`}
+                              aria-label={isEditing ? 'Cancel' : 'Edit'}
+                            >
+                              {isEditing ? <X className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
+                            </button>
                           </div>
 
-                          {/* Created Date and Categories */}
-                          <div className="flex flex-wrap items-center gap-4">
-                            {/* Created Date */}
-                            <div className="flex items-center gap-2 text-sm">
-                              <span className="font-medium text-white">Created:</span>
-                              <span className="text-white px-3 py-1 border-2 border-neutral-600 rounded-lg">{new Date(item.created_at).toLocaleDateString()}</span>
-                            </div>
+                          {!isEditing && item.description && (
+                            <p className="text-neutral-300 mb-3">{item.description}</p>
+                          )}
 
-                            {/* Categories */}
-                            {item.categories && item.categories.length > 0 && (
-                              <div className="flex flex-wrap items-center gap-2">
-                                <h3 className="text-sm font-medium text-white">Categories:</h3>
-                                {item.categories.map((categoryKey: string) => {
-                                  const categoryInfo = VISION_CATEGORIES.find(c => c.key === categoryKey)
-                                  return (
-                                    <span
-                                      key={categoryKey}
-                                      className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full"
-                                    >
-                                      {categoryInfo ? categoryInfo.label : categoryKey}
-                                    </span>
-                                  )
-                                })}
+                          {!isEditing && (
+                            <div className="flex flex-wrap items-center gap-4">
+                              <div className="flex items-center gap-2 text-sm">
+                                <span className="font-medium text-white">Created:</span>
+                                <span className="text-white px-3 py-1 border-2 border-neutral-600 rounded-lg">{new Date(item.created_at).toLocaleDateString()}</span>
                               </div>
-                            )}
-                          </div>
+                              {item.categories && item.categories.length > 0 && (
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {item.categories.map((categoryKey: string) => {
+                                    const categoryInfo = VISION_CATEGORIES.find(c => c.key === categoryKey)
+                                    return (
+                                      <span key={categoryKey} className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full">
+                                        {categoryInfo ? categoryInfo.label : categoryKey}
+                                      </span>
+                                    )
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
 
-                      {/* Action Buttons - Right side */}
-                      <div className="flex-shrink-0 md:flex-shrink-0 w-full md:w-auto flex items-center">
-                        <Button
-                          asChild
-                          variant="primary"
-                          size="sm"
-                          className="w-full md:w-auto"
-                        >
-                          <Link href={`/vision-board/${item.id}`}>
-                            <Eye className="w-4 h-4 mr-2" />
-                            View
-                          </Link>
-                        </Button>
+                      {/* Expandable Section */}
+                      <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${
+                        isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+                      }`}>
+                        <div className="overflow-hidden min-h-0">
+                          {isEditing && editFormData ? (
+                            <div className="pt-2 border-t border-neutral-700/50 mt-3">
+                              {renderInlineEditForm(item)}
+                            </div>
+                          ) : isExpanded ? (
+                            <div className="border-t border-neutral-700/50 mt-3">
+                              {renderViewDetails(item, false)}
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
-                    </div>
-                  </Card>
-                ))}
+                    </Card>
+                  )
+                })}
               </div>
             )}
           </>
@@ -762,106 +1419,393 @@ export default function VisionBoardPage() {
         )}
 
 
-        {/* Lightbox */}
-        {lightboxOpen && filteredItems.length > 0 && (
-          <div 
-            className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center"
-            onClick={closeLightbox}
-          >
-            <div 
-              className="relative w-full h-full flex items-center justify-center p-4"
-              onClick={(e) => e.stopPropagation()}
+        {/* Lightbox Modal */}
+        {lightboxOpen && filteredItems.length > 0 && (() => {
+          const currentItem = filteredItems[lightboxIndex]
+          const imageUrl = (currentItem?.status === 'actualized' && currentItem?.actualized_image_url)
+            ? currentItem.actualized_image_url
+            : currentItem?.image_url
+
+          if (boardMode === 'clean') {
+            return (
+              <div
+                className="fixed inset-0 bg-black z-50 flex items-center justify-center"
+                onClick={closeLightbox}
+              >
+                <button
+                  onClick={closeLightbox}
+                  className="absolute top-3 right-3 z-20 p-2 text-white/60 hover:text-white transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+
+                {filteredItems.length > 1 && (
+                  <>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); prevImage() }}
+                      className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 z-20 p-2 text-white/40 hover:text-white transition-colors"
+                    >
+                      <ChevronLeft className="w-7 h-7" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); nextImage() }}
+                      className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 z-20 p-2 text-white/40 hover:text-white transition-colors"
+                    >
+                      <ChevronRight className="w-7 h-7" />
+                    </button>
+                  </>
+                )}
+
+                {imageUrl ? (
+                  <img
+                    src={imageUrl}
+                    alt={currentItem.name}
+                    className="max-w-[95vw] max-h-[95vh] object-contain"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                ) : (
+                  <div className="w-64 h-64 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                    <Grid3X3 className="w-16 h-16 text-neutral-700" />
+                  </div>
+                )}
+
+                {filteredItems.length > 1 && (
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-white/30">
+                    {lightboxIndex + 1} / {filteredItems.length}
+                  </div>
+                )}
+              </div>
+            )
+          }
+
+          return (
+            <div
+              className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-3"
+              onClick={closeLightbox}
             >
-              {/* Close Button */}
               <button
                 onClick={closeLightbox}
-                className="absolute top-4 right-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+                className="absolute top-3 right-3 md:top-5 md:right-5 z-20 p-2 bg-neutral-800/80 backdrop-blur-sm rounded-full text-white hover:bg-neutral-700 transition-colors"
               >
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5" />
               </button>
 
-              {/* Navigation Buttons */}
               {filteredItems.length > 1 && (
                 <>
                   <button
-                    onClick={prevImage}
-                    className="absolute left-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+                    onClick={(e) => { e.stopPropagation(); prevImage() }}
+                    className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 z-20 p-2 md:p-3 bg-neutral-800/80 backdrop-blur-sm rounded-full text-white hover:bg-neutral-700 transition-colors"
                   >
-                    <ChevronLeft className="w-6 h-6" />
+                    <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
                   </button>
                   <button
-                    onClick={nextImage}
-                    className="absolute right-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+                    onClick={(e) => { e.stopPropagation(); nextImage() }}
+                    className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 z-20 p-2 md:p-3 bg-neutral-800/80 backdrop-blur-sm rounded-full text-white hover:bg-neutral-700 transition-colors"
                   >
-                    <ChevronRight className="w-6 h-6" />
+                    <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
                   </button>
                 </>
               )}
 
-              {/* Image Content */}
-              <div className="max-w-4xl max-h-full w-full h-full flex items-center justify-center">
-                {(() => {
-                  const currentItem = filteredItems[lightboxIndex]
-                  const imageUrl = (currentItem?.status === 'actualized' && currentItem?.actualized_image_url) 
-                    ? currentItem.actualized_image_url 
-                    : currentItem?.image_url
-                  
-                  return imageUrl ? (
-                    <img
-                      src={imageUrl}
-                      alt={currentItem.name}
-                      className="max-w-full max-h-full object-contain"
-                    />
-                  ) : (
-                    <div className="w-96 h-96 bg-neutral-800 rounded-lg flex items-center justify-center">
-                      <Grid3X3 className="w-24 h-24 text-neutral-600" />
+              <div
+                className={`relative w-[94vw] max-w-[1600px] h-[96vh] flex bg-neutral-900 rounded-2xl overflow-hidden shadow-2xl border border-neutral-700/50 ${
+                  editingItemId === currentItem.id ? 'flex-row' : 'flex-col'
+                }`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {editingItemId === currentItem.id && editFormData ? (
+                  <>
+                    {/* Edit mode: image left, form right */}
+                    <div className="flex-1 min-w-0 flex items-center justify-center bg-black/50">
+                      {imageUrl ? (
+                        <img
+                          src={imageUrl}
+                          alt={currentItem.name}
+                          className="max-w-full max-h-full object-contain"
+                        />
+                      ) : (
+                        <div className="w-full h-64 flex items-center justify-center">
+                          <Grid3X3 className="w-16 h-16 text-neutral-600" />
+                        </div>
+                      )}
                     </div>
-                  )
-                })()}
-              </div>
+                    <div className="w-[420px] flex-shrink-0 border-l border-neutral-800 overflow-y-auto px-5 py-5">
+                      {renderInlineEditForm(currentItem)}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* View mode: image top, details bottom */}
+                    <div className="relative flex-1 min-h-0 flex items-center justify-center bg-black/50">
+                      {imageUrl ? (
+                        <img
+                          src={imageUrl}
+                          alt={currentItem.name}
+                          className="max-w-full max-h-full object-contain"
+                        />
+                      ) : (
+                        <div className="w-full h-64 flex items-center justify-center">
+                          <Grid3X3 className="w-16 h-16 text-neutral-600" />
+                        </div>
+                      )}
+                      {currentItem.status === 'actualized' && currentItem.actualized_image_url && (
+                        <div className="absolute bottom-2 left-3 text-xs text-purple-400 bg-black/60 px-2 py-1 rounded-full">
+                          Evidence of actualization
+                        </div>
+                      )}
+                    </div>
 
-              {/* Image Counter */}
-              {filteredItems.length > 1 && (
-                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-                  {lightboxIndex + 1} of {filteredItems.length}
-                </div>
-              )}
-
-              {/* Thumbnail Strip */}
-              {filteredItems.length > 1 && (
-                <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 flex gap-2 max-w-full overflow-x-auto px-4">
-                  {filteredItems.map((item, index) => {
-                    const thumbnailUrl = (item.status === 'actualized' && item.actualized_image_url) 
-                      ? item.actualized_image_url 
-                      : item.image_url
-                    
-                    return (
-                      <button
-                        key={index}
-                        onClick={() => setLightboxIndex(index)}
-                        className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
-                          index === lightboxIndex ? 'border-green-500' : 'border-neutral-600'
-                        }`}
-                      >
-                        {thumbnailUrl ? (
-                          <img
-                            src={thumbnailUrl}
-                            alt={`Thumbnail ${index + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-neutral-800 flex items-center justify-center">
-                            <Grid3X3 className="w-4 h-4 text-neutral-600" />
+                    <div className="flex-shrink-0 overflow-y-auto max-h-[25vh] px-5 py-4 border-t border-neutral-800">
+                      <div className="flex flex-col md:flex-row md:items-start gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-lg font-bold text-white truncate">{currentItem.name}</h3>
+                            {getStatusBadge(currentItem.status)}
                           </div>
-                        )}
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
+                          {currentItem.description && (
+                            <p className="text-sm text-neutral-300 mb-3 line-clamp-3">{currentItem.description}</p>
+                          )}
+                          {currentItem.status === 'actualized' && currentItem.actualization_story && (
+                            <div className="p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg mb-3">
+                              <h4 className="text-xs font-semibold text-purple-400 mb-1">Actualization Story</h4>
+                              <p className="text-sm text-neutral-200 whitespace-pre-wrap line-clamp-4">{currentItem.actualization_story}</p>
+                            </div>
+                          )}
+                          <div className="flex flex-wrap items-center gap-2">
+                            {currentItem.categories && currentItem.categories.length > 0 && currentItem.categories.map((categoryKey: string) => {
+                              const categoryInfo = VISION_CATEGORIES.find(c => c.key === categoryKey)
+                              return (
+                                <span key={categoryKey} className="text-xs bg-primary-500/20 text-primary-500 px-2.5 py-1 rounded-full">
+                                  {categoryInfo ? categoryInfo.label : categoryKey}
+                                </span>
+                              )
+                            })}
+                            <span className="text-xs text-neutral-500">
+                              Created {new Date(currentItem.created_at).toLocaleDateString()}
+                            </span>
+                            {currentItem.actualized_at && (
+                              <span className="text-xs text-purple-400">
+                                Actualized {new Date(currentItem.actualized_at).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <Button
+                            asChild
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs"
+                          >
+                            <Link href={`/vision-board/${currentItem.id}/story`}>
+                              <BookOpen className="w-3.5 h-3.5 mr-1.5" />
+                              Stories
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            className="text-xs"
+                            onClick={() => startEditing(currentItem)}
+                          >
+                            <Edit3 className="w-3.5 h-3.5 mr-1.5" />
+                            Edit
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {filteredItems.length > 1 && (
+                      <div className="flex-shrink-0 px-4 py-3 border-t border-neutral-800 flex items-center gap-3">
+                        <div className="flex-1 flex gap-1.5 overflow-x-auto scrollbar-none">
+                          {filteredItems.map((thumbItem, index) => {
+                            const thumbUrl = (thumbItem.status === 'actualized' && thumbItem.actualized_image_url)
+                              ? thumbItem.actualized_image_url
+                              : thumbItem.image_url
+                            return (
+                              <button
+                                key={index}
+                                onClick={() => setLightboxIndex(index)}
+                                className={`flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 transition-all ${
+                                  index === lightboxIndex
+                                    ? 'border-[#39FF14] shadow-[0_0_8px_rgba(57,255,20,0.3)]'
+                                    : 'border-neutral-700 hover:border-neutral-500'
+                                }`}
+                              >
+                                {thumbUrl ? (
+                                  <img src={thumbUrl} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full bg-neutral-800 flex items-center justify-center">
+                                    <Grid3X3 className="w-3 h-3 text-neutral-600" />
+                                  </div>
+                                )}
+                              </button>
+                            )
+                          })}
+                        </div>
+                        <span className="text-xs text-neutral-500 flex-shrink-0">
+                          {lightboxIndex + 1} / {filteredItems.length}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )
+        })()}
+
+        {/* Desktop Detail Modal */}
+        {detailModalIndex !== null && (() => {
+          const item = filteredItems[detailModalIndex]
+          if (!item) return null
+          const displayImageUrl = (item.status === 'actualized' && item.actualized_image_url)
+            ? item.actualized_image_url
+            : item.image_url
+
+          return (
+            <div
+              className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center"
+              onClick={closeDetailModal}
+            >
+              {/* Close */}
+              <button
+                onClick={closeDetailModal}
+                className="absolute top-4 right-4 z-20 p-2.5 bg-neutral-800/80 backdrop-blur-sm rounded-full text-white hover:bg-neutral-700 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {filteredItems.length > 1 && (
+                <>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setDetailModalIndex((detailModalIndex - 1 + filteredItems.length) % filteredItems.length) }}
+                    className="absolute left-2 md:left-3 top-1/2 -translate-y-1/2 z-20 p-2.5 bg-neutral-800/80 backdrop-blur-sm rounded-full text-white hover:bg-neutral-700 transition-colors"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setDetailModalIndex((detailModalIndex + 1) % filteredItems.length) }}
+                    className="absolute right-2 md:right-3 top-1/2 -translate-y-1/2 z-20 p-2.5 bg-neutral-800/80 backdrop-blur-sm rounded-full text-white hover:bg-neutral-700 transition-colors"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </>
+              )}
+
+              <div
+                className="relative h-[96vh] flex flex-col bg-neutral-900 rounded-2xl overflow-hidden shadow-2xl border border-neutral-700/50"
+                style={{ width: 'calc(100vw - 120px)', maxWidth: '1600px' }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {editingItemId === item.id && editFormData ? (
+                  <div className="flex-1 overflow-y-auto min-h-0 px-6 py-5">
+                    {renderInlineEditForm(item)}
+                  </div>
+                ) : (
+                  <>
+                    <div className="relative flex-1 min-h-0 bg-black/30 flex items-center justify-center">
+                      {displayImageUrl ? (
+                        <img
+                          src={displayImageUrl}
+                          alt={item.name}
+                          className="max-w-full max-h-full object-contain"
+                        />
+                      ) : (
+                        <div className="w-full h-48 flex items-center justify-center">
+                          <Grid3X3 className="w-16 h-16 text-neutral-600" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-shrink-0 overflow-y-auto max-h-[30vh] px-6 py-5 space-y-4 border-t border-neutral-800">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-1">
+                            <h2 className="text-xl font-bold text-white truncate">{item.name}</h2>
+                            {getStatusBadge(item.status)}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <Button asChild variant="ghost" size="sm">
+                            <Link href={`/vision-board/${item.id}/story`}>
+                              <BookOpen className="w-4 h-4 mr-1.5" />
+                              Stories
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => initEditState(item)}
+                          >
+                            <Edit3 className="w-4 h-4 mr-1.5" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={() => { closeDetailModal(); handleDeleteItem(item.id) }}
+                          >
+                            <Trash2 className="w-4 h-4 mr-1.5" />
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+
+                      {item.description && (
+                        <p className="text-neutral-300 leading-relaxed">{item.description}</p>
+                      )}
+
+                      {item.status === 'actualized' && item.actualization_story && (
+                        <div className="p-4 bg-purple-500/10 border border-purple-500/30 rounded-xl">
+                          <h3 className="text-sm font-semibold text-purple-400 mb-2">Actualization Story</h3>
+                          <p className="text-sm text-neutral-200 whitespace-pre-wrap">{item.actualization_story}</p>
+                        </div>
+                      )}
+
+                      {item.status === 'actualized' && item.image_url && item.actualized_image_url && (
+                        <div className="flex gap-3">
+                          <div className="flex-1">
+                            <p className="text-xs text-neutral-500 mb-1.5">Original Vision</p>
+                            <img src={item.image_url} alt="Vision" className="w-full h-28 object-cover rounded-lg border border-neutral-700" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-purple-400 mb-1.5">Evidence</p>
+                            <img src={item.actualized_image_url} alt="Evidence" className="w-full h-28 object-cover rounded-lg border border-purple-500/30" />
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                        {item.categories && item.categories.length > 0 && item.categories.map((categoryKey: string) => {
+                          const categoryInfo = VISION_CATEGORIES.find(c => c.key === categoryKey)
+                          return (
+                            <span key={categoryKey} className="text-xs bg-primary-500/20 text-primary-500 px-2.5 py-1 rounded-full">
+                              {categoryInfo ? categoryInfo.label : categoryKey}
+                            </span>
+                          )
+                        })}
+                        <span className="text-xs text-neutral-500">
+                          Created {new Date(item.created_at).toLocaleDateString()}
+                        </span>
+                        {item.actualized_at && (
+                          <span className="text-xs text-purple-400">
+                            Actualized {new Date(item.actualized_at).toLocaleDateString()}
+                          </span>
+                        )}
+                        {filteredItems.length > 1 && (
+                          <span className="text-xs text-neutral-600 ml-auto">
+                            {detailModalIndex + 1} of {filteredItems.length}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )
+        })()}
 
         </div>
 

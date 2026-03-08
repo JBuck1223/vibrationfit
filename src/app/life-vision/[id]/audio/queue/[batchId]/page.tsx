@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Container, Card, Button, Badge, Spinner, Stack } from '@/lib/design-system/components'
+import { Container, Card, Button, Badge, Spinner, Stack, IntensiveStepCompleteModal } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
 import { CheckCircle, Clock, AlertCircle, ArrowLeft, Play, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
@@ -71,6 +71,11 @@ export default function AudioQueuePage({
     binauralVolume?: number
   }>({})
   const [voiceName, setVoiceName] = useState<string>('')
+  const [showStepCompleteModal, setShowStepCompleteModal] = useState(false)
+  const [audioStepAlreadyComplete, setAudioStepAlreadyComplete] = useState(false)
+  const [isIntensiveMode, setIsIntensiveMode] = useState(false)
+  const [intensiveStepModalShown, setIntensiveStepModalShown] = useState(false)
+  const [isCustomMixBatch, setIsCustomMixBatch] = useState(false)
 
   useEffect(() => {
     ;(async () => {
@@ -84,6 +89,41 @@ export default function AudioQueuePage({
     if (!visionId || !batchId) return
     loadBatchStatus()
   }, [visionId, batchId])
+
+  // Check intensive mode on mount
+  useEffect(() => {
+    async function checkIntensive() {
+      const { getActiveIntensiveClient } = await import('@/lib/intensive/utils-client')
+      const intensiveData = await getActiveIntensiveClient()
+      if (intensiveData) {
+        setIsIntensiveMode(true)
+        // Both step 7 (audio_generated) and step 9 (audios_generated) use the queue page
+        setAudioStepAlreadyComplete(!!intensiveData.audio_generated && !!intensiveData.audios_generated)
+      }
+    }
+    checkIntensive()
+  }, [])
+
+  // Detect custom mix batches
+  useEffect(() => {
+    if (batch?.metadata?.custom_mix) {
+      setIsCustomMixBatch(true)
+    }
+  }, [batch?.metadata?.custom_mix])
+
+  // Show completion modal when batch finishes in intensive mode
+  useEffect(() => {
+    if (
+      isIntensiveMode &&
+      !audioStepAlreadyComplete &&
+      !intensiveStepModalShown &&
+      batch &&
+      (batch.status === 'completed' || batch.status === 'partial_success')
+    ) {
+      setIntensiveStepModalShown(true)
+      setShowStepCompleteModal(true)
+    }
+  }, [batch?.status, isIntensiveMode, audioStepAlreadyComplete, intensiveStepModalShown])
 
   // Auto-refresh while processing OR mixing
   useEffect(() => {
@@ -258,6 +298,22 @@ export default function AudioQueuePage({
         })
       }
     }
+
+    // Add the "Full Track" entry when output format includes concatenation
+    const batchOutputFormat = batchData.metadata?.output_format
+    const includesFullTrack = (batchOutputFormat === 'both' || batchOutputFormat === 'combined') && requestedSections.length > 1
+    if (includesFullTrack) {
+      expectedTracks.push({
+        id: 'full-standard-pending',
+        sectionKey: 'full',
+        title: prettySectionTitle('full'),
+        variant: 'standard',
+        status: 'pending',
+        mixStatus: undefined,
+        setName: 'Voice Only',
+        createdAt: batchData.created_at,
+      })
+    }
     
     // Load actual tracks if audio sets exist
     let audioSetIds = batchData.audio_set_ids || []
@@ -300,8 +356,8 @@ export default function AudioQueuePage({
           const setInfo = setMap.get(track.audio_set_id)
           const variant = setInfo?.variant || 'standard'
           
-          // Only include if section was requested
-          if (requestedSections.length > 0 && !requestedSections.includes(track.section_key)) {
+          // Only include if section was requested (always allow 'full' for concatenated track)
+          if (requestedSections.length > 0 && track.section_key !== 'full' && !requestedSections.includes(track.section_key)) {
             continue
           }
           
@@ -767,7 +823,11 @@ export default function AudioQueuePage({
           </div>
         </div>
       )}
+      <IntensiveStepCompleteModal
+        isOpen={showStepCompleteModal}
+        onClose={() => setShowStepCompleteModal(false)}
+        stepId={isCustomMixBatch ? 'mix_audio' : 'generate_audio'}
+      />
     </Container>
   )
 }
-

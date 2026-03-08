@@ -67,6 +67,7 @@ import {
   Radio,
   GitBranch,
   Send,
+  Bell,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -331,6 +332,13 @@ export const adminNavigation: NavItem[] = [
     icon: LayoutDashboard,
     requiresAdmin: true,
     description: 'Admin overview and quick access',
+  },
+  {
+    name: 'Notifications',
+    href: '/admin/notifications',
+    icon: Bell,
+    requiresAdmin: true,
+    description: 'Purchase alerts, lead notifications, and more',
   },
   
   // ============================================================================

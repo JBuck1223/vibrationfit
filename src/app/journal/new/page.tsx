@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Card, Input, Button, CategoryCard, DatePicker, PageHero, Container, Stack, Text, Inline } from '@/lib/design-system'
+import { Card, Input, Button, CategoryCard, DatePicker, PageHero, Container, Stack, Text, Inline, IntensiveStepCompleteModal } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
@@ -23,6 +23,7 @@ export default function NewJournalEntryPage() {
   const [loading, setLoading] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [isUserInIntensive, setIsUserInIntensive] = useState(false)
+  const [showStepCompleteModal, setShowStepCompleteModal] = useState(false)
   const [uploadProgress, setUploadProgress] = useState({
     progress: 0,
     status: '',
@@ -229,12 +230,11 @@ export default function NewJournalEntryPage() {
       // Hide progress bar
       setUploadProgress(prev => ({ ...prev, isVisible: false }))
 
-      // If in intensive mode, mark first journal entry as complete then redirect
+      // If in intensive mode, mark first journal entry as complete and show modal
       if (isUserInIntensive) {
         const { markIntensiveStep } = await import('@/lib/intensive/checklist')
         await markIntensiveStep('first_journal_entry')
-        // Redirect to dashboard to show progress with completion toast
-        router.push('/intensive/dashboard?completed=journal')
+        setShowStepCompleteModal(true)
       } else {
         // Show success screen for normal mode
         setShowSuccess(true)
@@ -478,6 +478,12 @@ export default function NewJournalEntryPage() {
             </form>
           </Card>
         </Stack>
+
+        <IntensiveStepCompleteModal
+          isOpen={showStepCompleteModal}
+          onClose={() => setShowStepCompleteModal(false)}
+          stepId="journal"
+        />
       </Container>
   )
 }

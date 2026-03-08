@@ -316,6 +316,10 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
         }
       }
 
+      // Include the full concatenated track in the count when format is 'both' or 'combined'
+      const includesFullTrack = (outputFormat === 'both' || outputFormat === 'combined') && sectionsPayload.length > 1
+      const totalTracksExpected = sectionsPayload.length + (includesFullTrack ? 1 : 0)
+
       // Create batch with metadata
       const { data: batch, error: batchError } = await supabase
         .from('audio_generation_batches')
@@ -325,7 +329,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
           variant_ids: ['standard'],
           voice_id: selectedVoiceForNew,
           sections_requested: sectionsPayload,
-          total_tracks_expected: sectionsPayload.length,
+          total_tracks_expected: totalTracksExpected,
           status: 'pending',
           metadata: {
             output_format: outputFormat,

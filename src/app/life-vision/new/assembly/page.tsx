@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Card, Button, Badge, Container, Stack, PageHero, VIVALoadingOverlay, Toggle, Spinner } from '@/lib/design-system/components'
+import { Card, Button, Badge, Container, Stack, PageHero, VIVALoadingOverlay, Toggle, Spinner, IntensiveStepCompleteModal } from '@/lib/design-system/components'
 import { Sparkles, CheckCircle, ArrowRight, AlertCircle, RefreshCw } from 'lucide-react'
 import { VISION_CATEGORIES, getVisionCategory, type VisionCategoryKey } from '@/lib/design-system/vision-categories'
 
@@ -34,6 +34,7 @@ export default function AssemblyPage() {
   const [isAssembling, setIsAssembling] = useState(false)
   const [batchId, setBatchId] = useState<string | null>(null)
   const [perspective, setPerspective] = useState<'singular' | 'plural'>('singular')
+  const [showStepCompleteModal, setShowStepCompleteModal] = useState(false)
 
   const categoryKeys = VISION_CATEGORIES
     .filter(c => c.order > 0 && c.order < 13)
@@ -590,9 +591,7 @@ export default function AssemblyPage() {
             const { markIntensiveStep } = await import('@/lib/intensive/checklist')
             const success = await markIntensiveStep('vision_built')
             if (success) {
-              // Redirect to dashboard to show progress with completion toast
-              router.push('/intensive/dashboard?completed=build_vision')
-              return
+              setShowStepCompleteModal(true)
             }
           }
         }
@@ -934,6 +933,12 @@ export default function AssemblyPage() {
           </Card>
         )}
       </Stack>
+
+      <IntensiveStepCompleteModal
+        isOpen={showStepCompleteModal}
+        onClose={() => setShowStepCompleteModal(false)}
+        stepId="build_vision"
+      />
     </Container>
   )
 }
