@@ -180,7 +180,7 @@ export default function AbundanceNewEntryPage() {
                     <HelpCircle className="w-4 h-4" />
                   </button>
                   </div>
-                  <div className="inline-flex rounded-lg border-2 border-[#333] bg-[#0D0D0D] p-0.5 md:ml-auto">
+                  <div className="inline-flex rounded-lg border-2 border-[#333] bg-[#0D0D0D] p-0.5 ml-auto">
                     <button
                       type="button"
                       onClick={() => setValueType('money')}
@@ -274,9 +274,9 @@ export default function AbundanceNewEntryPage() {
                     onChange={(value) => setNote(value)}
                     placeholder="Describe this abundance moment in present-tense appreciation. Type or use the microphone to turn your voice into text."
                     rows={3}
-                    storageFolder="journal"
+                    storageFolder="profile"
                     instanceId="abundance-note"
-                    recordingPurpose="transcriptOnly"
+                    recordingPurpose="quick"
                     className="!bg-[#404040] !border-[#333]"
                   />
                 </section>
