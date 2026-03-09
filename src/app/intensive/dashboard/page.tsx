@@ -3,10 +3,10 @@
 import { useState, useEffect, Suspense, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { completeIntensive } from '@/lib/intensive/utils-client'
+// completeIntensive no longer needed; step 14 marks the intensive as completed
 import { checkUserHasPassword } from '@/lib/auth/check-password'
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
-import { IntensiveCompletionScreen } from '@/components/IntensiveCompletionScreen'
+// IntensiveCompletionScreen removed; graduates are redirected to /dashboard
 import { getStepInfo, getNextStep } from '@/lib/intensive/step-mapping'
 import { toast } from 'sonner'
 import { 
@@ -486,16 +486,8 @@ function IntensiveDashboardContent() {
     setTimeRemaining(`${hours}h ${minutes}m ${seconds}s`)
   }
 
-  const handleComplete = async () => {
-    if (!intensive) return
-    
-    const result = await completeIntensive(intensive.id)
-    if (result.success) {
-      // Redirect to main dashboard
-      router.push('/dashboard')
-    } else {
-      alert('Failed to complete intensive: ' + result.error)
-    }
+  const handleComplete = () => {
+    router.push('/dashboard')
   }
 
   const getSteps = (): IntensiveStep[] => {
@@ -770,14 +762,13 @@ function IntensiveDashboardContent() {
 
   const progress = getProgress()
   
-  // STATE 2: 100% Complete - Show Celebration
+  // STATE 2: 100% Complete - Redirect to main dashboard with celebration
   if (progress === 100) {
+    router.push('/dashboard?unlocked=true')
     return (
-      <IntensiveCompletionScreen 
-        onComplete={handleComplete}
-        completionTimeHours={getCompletionTimeHours()}
-        startedAt={checklist.started_at ?? undefined}
-      />
+      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <Spinner size="lg" />
+      </Container>
     )
   }
 

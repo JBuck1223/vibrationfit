@@ -1,15 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Card, Button, Badge, ProgressBar, Container, Stack, PageHero, AIButton, TrackingMilestoneCard, VersionBadge, StatusBadge } from '@/lib/design-system'
+import { Card, Button, Badge, ProgressBar, Container, Stack, PageHero, AIButton, TrackingMilestoneCard, VersionBadge, StatusBadge, Video } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system'
 import Link from 'next/link'
+import confetti from 'canvas-confetti'
 import AITokenUsage from '@/components/AITokenUsage'
 import HouseholdTokenBalance from '@/components/HouseholdTokenBalance'
 import AssessmentBarChart from '@/app/assessment/components/AssessmentBarChart'
 import { RetentionDashboard } from '@/components/retention'
-import { UnlockCelebrationModal } from '@/components/UnlockCelebrationModal'
 import { GraduateChecklistCard } from '@/components/GraduateChecklistCard'
 import type { GraduateChecklistResult } from '@/lib/graduate-checklist'
 import { 
@@ -46,11 +46,13 @@ import {
   User,
   CalendarDays,
   HardDrive,
-  Video,
+  Video as VideoIcon,
   UsersRound,
   Award,
   Apple,
   Calendar,
+  Music,
+  Dumbbell,
 } from 'lucide-react'
 
 interface DashboardContentProps {
@@ -85,14 +87,29 @@ export default function DashboardContent({ user, profileData, visionData, vision
   const searchParams = useSearchParams()
   const router = useRouter()
 
+  const fireConfetti = useCallback(() => {
+    const duration = 3000
+    const end = Date.now() + duration
+    const colors = ['#199D67', '#14B8A6', '#8B5CF6', '#FFB701']
+
+    const frame = () => {
+      confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0, y: 0.8 }, colors })
+      confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1, y: 0.8 }, colors })
+      if (Date.now() < end) requestAnimationFrame(frame)
+    }
+
+    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors })
+    frame()
+  }, [])
+
   // Check for unlock celebration param
   useEffect(() => {
     if (searchParams.get('unlocked') === 'true') {
       setShowCelebration(true)
-      // Remove the param from URL without refresh
+      fireConfetti()
       router.replace('/dashboard', { scroll: false })
     }
-  }, [searchParams, router])
+  }, [searchParams, router, fireConfetti])
 
   // Prevent hydration mismatch for date formatting
   useEffect(() => {
@@ -302,20 +319,19 @@ export default function DashboardContent({ user, profileData, visionData, vision
     : null
 
   return (
-    <>
-      {/* Unlock Celebration Modal */}
-      <UnlockCelebrationModal 
-        isOpen={showCelebration} 
-        onClose={() => setShowCelebration(false)} 
-      />
-
       <Container size="xl">
         <Stack gap="lg">
           {/* PageHero */}
           <PageHero
             title="Dashboard"
             subtitle="Run your MAP and stay connected."
-          />
+          >
+            <Video
+              src="https://media.vibrationfit.com/site-assets/video/membership/dashboard-1080p.mp4"
+              poster="https://media.vibrationfit.com/site-assets/video/membership/dashboard-thumb.0000000.jpg"
+              variant="hero"
+            />
+          </PageHero>
 
         {/* Getting Started as a Graduate checklist (only for users who completed the intensive) */}
         {graduateChecklist?.isGraduate && graduateChecklist.progress && (
@@ -361,7 +377,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
                   <div className="flex flex-col gap-2 items-center md:items-end">
                     <Button variant="primary" asChild className="w-full sm:w-auto whitespace-nowrap">
                       <Link href={calibrationCall.session.join_link} className="flex items-center justify-center gap-2">
-                        <Video className="w-5 h-5" />
+                        <VideoIcon className="w-5 h-5" />
                         {calibrationCall.session.id ? 'Join Call' : 'View Details'}
                       </Link>
                     </Button>
@@ -510,7 +526,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
           <Card className="p-6">
             <div className="flex items-start gap-4 mb-4">
               <div className="w-12 h-12 bg-[#BF00FF]/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Video className="w-6 h-6 text-[#BF00FF]" />
+                <VideoIcon className="w-6 h-6 text-[#BF00FF]" />
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-lg font-bold text-white mb-1">Alignment Gym</h3>
@@ -566,6 +582,5 @@ export default function DashboardContent({ user, profileData, visionData, vision
         </Card>
       </Stack>
     </Container>
-    </>
   )
 }

@@ -14,8 +14,7 @@ import {
   RadioGroup,
   Badge,
   Checkbox,
-  IntensiveCompletionBanner,
-  IntensiveStepCompleteModal
+  IntensiveCompletionBanner
 } from '@/lib/design-system/components'
 import { MediaRecorderComponent } from '@/components/MediaRecorder'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
@@ -117,7 +116,6 @@ export default function IntensiveUnlockPage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [intensiveId, setIntensiveId] = useState<string | null>(null)
-  const [showStepCompleteModal, setShowStepCompleteModal] = useState(false)
   const [stats, setStats] = useState<IntensiveStats | null>(null)
   const [baseline, setBaseline] = useState<Record<string, number | string | null>>({})
   const [testimonialVideoUrl, setTestimonialVideoUrl] = useState<string | null>(null)
@@ -387,7 +385,7 @@ export default function IntensiveUnlockPage() {
       fetch('/api/intensive/completed', { method: 'POST' })
         .catch(err => console.error('intensive.completed event error:', err))
 
-      setShowStepCompleteModal(true)
+      router.push('/dashboard?unlocked=true')
 
     } catch (error) {
       console.error('Error submitting form:', error)
@@ -996,12 +994,6 @@ export default function IntensiveUnlockPage() {
         </form>
       </Stack>
 
-      <IntensiveStepCompleteModal
-        isOpen={showStepCompleteModal}
-        onClose={() => setShowStepCompleteModal(false)}
-        stepId="unlock"
-        onContinue={() => router.push('/dashboard?unlocked=true')}
-      />
     </Container>
   )
 }

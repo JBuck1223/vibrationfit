@@ -23,6 +23,7 @@ export interface BlastFilters {
 export interface BlastRecipient {
   email: string
   name: string
+  firstName: string
   type: 'member' | 'lead'
   userId?: string
 }
@@ -161,6 +162,7 @@ async function queryMembers(
     .map((p) => ({
       email: p.email!,
       name: [p.first_name, p.last_name].filter(Boolean).join(' ') || p.email!,
+      firstName: p.first_name || '',
       type: 'member' as const,
       userId: p.user_id,
     }))
@@ -199,6 +201,7 @@ async function queryLeads(
     .map((l) => ({
       email: l.email!,
       name: [l.first_name, l.last_name].filter(Boolean).join(' ') || l.email!,
+      firstName: l.first_name || '',
       type: 'lead' as const,
     }))
 }

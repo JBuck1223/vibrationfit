@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, type RefObject } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Card,
@@ -120,6 +120,34 @@ function isNumberField(field: FilterField) {
   return field === 'days_since_last_login_gt' || field === 'days_since_last_login_lt'
 }
 
+const MERGE_TAGS = [
+  { tag: '{{first_name}}', label: 'First Name' },
+  { tag: '{{name}}', label: 'Full Name' },
+  { tag: '{{email}}', label: 'Email' },
+]
+
+function insertAtCursor(
+  ref: RefObject<HTMLInputElement | HTMLTextAreaElement | null>,
+  value: string,
+  tag: string,
+  setValue: (v: string) => void
+) {
+  const el = ref.current
+  if (!el) {
+    setValue(value + tag)
+    return
+  }
+  const start = el.selectionStart ?? value.length
+  const end = el.selectionEnd ?? value.length
+  const next = value.slice(0, start) + tag + value.slice(end)
+  setValue(next)
+  requestAnimationFrame(() => {
+    el.focus()
+    const pos = start + tag.length
+    el.setSelectionRange(pos, pos)
+  })
+}
+
 const selectClass =
   'w-full px-4 py-3 text-sm bg-[#404040] border-2 border-[#666666] rounded-xl text-white focus:outline-none focus:border-[#39FF14] transition-all duration-200'
 const inputClass =
@@ -165,6 +193,8 @@ export default function BlastPage() {
     pending: number
   } | null>(null)
 
+  const subjectRef = useRef<HTMLInputElement | null>(null)
+  const bodyRef = useRef<HTMLTextAreaElement | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -641,12 +671,26 @@ export default function BlastPage() {
             <div className="mb-4">
               <label className="block text-sm text-neutral-400 mb-1">Subject</label>
               <input
+                ref={subjectRef}
                 type="text"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 placeholder="Email subject line..."
                 className={inputClass}
               />
+              <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                <span className="text-xs text-neutral-500">Merge tags:</span>
+                {MERGE_TAGS.map((m) => (
+                  <button
+                    key={m.tag}
+                    type="button"
+                    onClick={() => insertAtCursor(subjectRef, subject, m.tag, setSubject)}
+                    className="px-2 py-0.5 text-xs rounded-full border border-[#555] text-neutral-300 hover:border-[#39FF14] hover:text-[#39FF14] transition-all duration-200"
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Body */}
@@ -654,15 +698,29 @@ export default function BlastPage() {
               <label className="block text-sm text-neutral-400 mb-1">
                 Plain Text Body
               </label>
+              <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                <span className="text-xs text-neutral-500">Merge tags:</span>
+                {MERGE_TAGS.map((m) => (
+                  <button
+                    key={m.tag}
+                    type="button"
+                    onClick={() => insertAtCursor(bodyRef, textBody, m.tag, setTextBody)}
+                    className="px-2 py-0.5 text-xs rounded-full border border-[#555] text-neutral-300 hover:border-[#39FF14] hover:text-[#39FF14] transition-all duration-200"
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
               <textarea
+                ref={bodyRef}
                 value={textBody}
                 onChange={(e) => setTextBody(e.target.value)}
-                placeholder="Write your message..."
+                placeholder="Write your message... Use merge tags like {{first_name}} for personalization."
                 rows={10}
                 className={inputClass + ' resize-none font-mono'}
               />
               <p className="text-xs text-neutral-500 mt-1">
-                Plain text sends land in the Primary inbox.
+                Plain text sends land in the Primary inbox. Merge tags are replaced per recipient.
               </p>
             </div>
 

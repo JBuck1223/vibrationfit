@@ -7,6 +7,16 @@ import { isUserAdmin } from '@/lib/supabase/admin'
 import { queryRecipients, type BlastFilters } from '@/lib/crm/blast-filters'
 import { sendAndLogEmail } from '@/lib/email/send'
 import { getSenderById, DEFAULT_CRM_SENDER } from '@/lib/crm/senders'
+import { applyVariables } from '@/lib/messaging/templates'
+import type { BlastRecipient } from '@/lib/crm/blast-filters'
+
+function recipientVars(r: BlastRecipient): Record<string, string> {
+  return {
+    first_name: r.firstName || r.name.split(' ')[0] || '',
+    name: r.name,
+    email: r.email,
+  }
+}
 
 const MAX_RECIPIENTS = 500
 const SYNC_THRESHOLD = 50
@@ -116,12 +126,13 @@ async function sendSync(
     const batch = recipients.slice(i, i + BATCH)
 
     const settled = await Promise.allSettled(
-      batch.map((r) =>
-        sendAndLogEmail({
+      batch.map((r) => {
+        const vars = recipientVars(r)
+        return sendAndLogEmail({
           to: r.email,
-          subject: opts.subject,
+          subject: applyVariables(opts.subject, vars),
           from: opts.sender.from,
-          textBody: opts.textBody,
+          textBody: applyVariables(opts.textBody, vars),
           replyTo: opts.sender.email,
           context: {
             userId: r.userId || undefined,
@@ -129,7 +140,7 @@ async function sendSync(
             campaignId,
           },
         })
-      )
+      })
     )
 
     for (const result of settled) {
@@ -163,20 +174,23 @@ async function sendQueued(
   recipients: Awaited<ReturnType<typeof queryRecipients>>,
   opts: { subject: string; textBody: string; userId: string }
 ) {
-  const scheduledRows = recipients.map((r) => ({
-    message_type: 'email',
-    recipient_email: r.email,
-    recipient_name: r.name,
-    recipient_user_id: r.userId || null,
-    subject: opts.subject,
-    body: opts.textBody,
-    text_body: opts.textBody,
-    scheduled_for: new Date().toISOString(),
-    status: 'pending',
-    related_entity_type: 'campaign',
-    related_entity_id: campaignId,
-    created_by: opts.userId,
-  }))
+  const scheduledRows = recipients.map((r) => {
+    const vars = recipientVars(r)
+    return {
+      message_type: 'email',
+      recipient_email: r.email,
+      recipient_name: r.name,
+      recipient_user_id: r.userId || null,
+      subject: applyVariables(opts.subject, vars),
+      body: applyVariables(opts.textBody, vars),
+      text_body: applyVariables(opts.textBody, vars),
+      scheduled_for: new Date().toISOString(),
+      status: 'pending',
+      related_entity_type: 'campaign',
+      related_entity_id: campaignId,
+      created_by: opts.userId,
+    }
+  })
 
   const CHUNK = 200
   for (let i = 0; i < scheduledRows.length; i += CHUNK) {

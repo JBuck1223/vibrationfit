@@ -6,7 +6,7 @@ import { PageLayout } from '@/lib/design-system'
 import { Spinner } from '@/lib/design-system/components'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
-import { SidebarLayout, UserSidebar, MobileBottomNav } from '@/components/Sidebar'
+import { SidebarLayout, UserSidebar } from '@/components/Sidebar'
 import { IntensiveSidebar } from '@/components/IntensiveSidebar'
 import { IntensiveLockedOverlay } from '@/components/IntensiveLockedOverlay'
 import { getPageType } from '@/lib/navigation'
@@ -198,18 +198,15 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
     // Vibe Tribe pages: Full-screen layout with own sticky header
     // Uses custom flex layout to allow sidebar + full-height content
     if (pathname?.startsWith('/vibe-tribe')) {
-      // Allow scrolling for the new page (onboarding)
       const isNewPage = pathname?.includes('/vibe-tribe/new')
       return (
         <div className="flex h-screen bg-black">
           <UserSidebar />
           <main className={`flex-1 flex flex-col min-h-0 ${isNewPage ? 'overflow-y-auto' : 'overflow-hidden'}`}>
-            {/* Mobile safe area: reserve space above bottom nav so content is never hidden (pb-28 = 112px) */}
-            <div className={`flex-1 flex flex-col min-h-0 w-full ${isNewPage ? 'pb-28 md:pb-0' : ''}`}>
+            <div className="flex-1 flex flex-col min-h-0 w-full">
               {children}
             </div>
           </main>
-          <MobileBottomNav />
         </div>
       )
     }

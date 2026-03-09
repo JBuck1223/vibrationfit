@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { Card, Button } from '@/lib/design-system'
-import { CheckCircle, Circle, MapPin, Video, MessageCircle, Dumbbell, Music, FileText, BookOpen, Award, GraduationCap } from 'lucide-react'
+import { Card, Button, Badge } from '@/lib/design-system'
+import { CheckCircle, Circle, MapPin, Video, MessageCircle, Dumbbell, Music, FileText, BookOpen, Award, GraduationCap, Unlock } from 'lucide-react'
 import type { GraduateChecklistProgress } from '@/lib/graduate-checklist'
 
 interface GraduateChecklistCardProps {
@@ -18,6 +18,7 @@ const ITEMS: Array<{
   ctaLabel2?: string
   ctaHref2?: string
   icon: React.ComponentType<{ className?: string }>
+  graduateUnlock?: boolean
 }> = [
   {
     key: 'firstDailyActivation',
@@ -34,6 +35,7 @@ const ITEMS: Array<{
     ctaLabel: 'View / Join Call',
     ctaHref: '/intensive/call-prep',
     icon: Video,
+    graduateUnlock: true,
   },
   {
     key: 'firstVibeTribePost',
@@ -50,6 +52,7 @@ const ITEMS: Array<{
     ctaLabel: 'Go to Alignment Gym',
     ctaHref: '/alignment-gym',
     icon: Dumbbell,
+    graduateUnlock: true,
   },
   {
     key: 'firstAdvancedAudioMix',
@@ -58,6 +61,7 @@ const ITEMS: Array<{
     ctaLabel: 'Open Audio Studio',
     ctaHref: '/life-vision/active',
     icon: Music,
+    graduateUnlock: true,
   },
   {
     key: 'dailyPaperAndJournal',
@@ -80,103 +84,114 @@ const ITEMS: Array<{
 ]
 
 export function GraduateChecklistCard({ progress }: GraduateChecklistCardProps) {
-  return (
-    <Card className="relative overflow-hidden p-0 border-2 border-[#39FF14]/30">
-      <div className="absolute inset-0 opacity-5 bg-[#39FF14]" aria-hidden />
-      <div className="relative z-10 p-4 md:p-6 lg:p-8">
-        <div className="mb-6 flex flex-col items-center text-center">
-          <GraduationCap className="w-10 h-10 text-[#39FF14] mb-3" aria-hidden />
-          <h2 className="text-xl font-bold text-white mb-1">Getting Started as a Graduate</h2>
-          <p className="text-neutral-400 text-sm max-w-md">
-            Do these in your first 7 days to lock in your new rhythm.
-          </p>
-        </div>
+  const completedCount = ITEMS.filter(item => progress[item.key]).length
 
-        <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8 lg:gap-x-12">
-          <ul className="space-y-4">
-            {ITEMS.slice(0, 4).map((item, index) => {
-              const done = progress[item.key]
-              const Icon = item.icon
-              return (
-                <li key={item.key} className="flex gap-4 items-start">
-                  <div className="flex-shrink-0 mt-0.5">
+  return (
+    <Card className="relative overflow-hidden p-4 md:p-6 lg:p-8 border-2 border-[#39FF14]/30 bg-[#0A0F0A]">
+      <div className="absolute inset-0 opacity-[0.03] bg-[#39FF14]" aria-hidden />
+      <div className="relative z-10 space-y-4">
+      {/* Header */}
+      <div className="flex flex-col items-center text-center">
+        <GraduationCap className="w-10 h-10 text-[#39FF14] mb-3" aria-hidden />
+        <h2 className="text-xl font-bold text-white mb-1">Getting Started as a Graduate</h2>
+        <p className="text-neutral-400 text-sm max-w-md">
+          Do these in your first 7 days to lock in your new rhythm.
+        </p>
+        <p className="text-xs text-[#39FF14] mt-2">
+          {completedCount} of {ITEMS.length} complete
+        </p>
+      </div>
+
+      {/* Step Cards */}
+      <div className="grid grid-cols-1 gap-3">
+        {ITEMS.map((item, index) => {
+          const done = progress[item.key]
+          const Icon = item.icon
+          const stepNumber = index + 1
+
+          return (
+            <Card
+              key={item.key}
+              variant="outlined"
+              className={`
+                !p-0 overflow-hidden transition-all duration-300 bg-[#141414]
+                ${done ? 'border-primary-500/40' : 'border-neutral-600/50 hover:-translate-y-0.5'}
+              `}
+            >
+              <div className="flex">
+                {/* Number strip */}
+                <div className={`
+                  w-14 md:w-16 flex-shrink-0 flex items-center justify-center
+                  ${done ? 'bg-primary-500' : 'bg-neutral-700'}
+                `}>
+                  <span className={`text-xl md:text-2xl font-bold ${done ? 'text-black' : 'text-white'}`}>
+                    {stepNumber}
+                  </span>
+                </div>
+
+                {/* Content */}
+                <div className={`
+                  flex-1 p-4 md:p-5 relative flex flex-col md:flex-row md:items-center gap-3 md:gap-4
+                  ${done ? 'bg-primary-500/5' : ''}
+                `}>
+                  {/* Mobile status icon — top right */}
+                  <div className="absolute top-3 right-3 md:hidden">
                     {done ? (
-                      <CheckCircle className="w-6 h-6 text-[#39FF14]" aria-hidden />
+                      <CheckCircle className="w-6 h-6 text-primary-500" />
                     ) : (
-                      <Circle className="w-6 h-6 text-neutral-600" aria-hidden />
+                      <Circle className="w-6 h-6 text-neutral-600" />
                     )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={`font-medium ${done ? 'text-neutral-400' : 'text-white'}`}>
-                      {index + 1}. {item.title}
-                    </p>
-                    <p className="text-sm text-neutral-500 mt-0.5">{item.description}</p>
-                    {!done && (
-                      <div className="flex flex-wrap gap-2 mt-2">
+
+                  <div className="flex-1 min-w-0 pr-10 md:pr-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className={`text-sm md:text-base font-semibold ${done ? 'text-neutral-400' : 'text-white'}`}>
+                        {item.title}
+                      </h3>
+                      {item.graduateUnlock && (
+                        <Badge variant="premium" className="text-[10px] gap-1">
+                          <Unlock className="w-3 h-3" />
+                          Graduate Unlock
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs md:text-sm text-neutral-500 mt-0.5">{item.description}</p>
+                  </div>
+
+                  {/* CTA buttons — only when incomplete */}
+                  {!done && (
+                    <div className="flex flex-wrap gap-2 flex-shrink-0">
+                      <Button variant="outline" size="sm" asChild className="w-[14rem] justify-center">
+                        <Link href={item.ctaHref} className="inline-flex items-center gap-2">
+                          <Icon className="w-4 h-4 flex-shrink-0" />
+                          {item.ctaLabel}
+                        </Link>
+                      </Button>
+                      {item.ctaLabel2 && item.ctaHref2 && (
                         <Button variant="outline" size="sm" asChild>
-                          <Link href={item.ctaHref} className="inline-flex items-center gap-2">
-                            <Icon className="w-4 h-4" />
-                            {item.ctaLabel}
+                          <Link href={item.ctaHref2} className="inline-flex items-center gap-2">
+                            <BookOpen className="w-4 h-4" />
+                            {item.ctaLabel2}
                           </Link>
                         </Button>
-                        {item.ctaLabel2 && item.ctaHref2 && (
-                          <Button variant="outline" size="sm" asChild>
-                            <Link href={item.ctaHref2} className="inline-flex items-center gap-2">
-                              <BookOpen className="w-4 h-4" />
-                              {item.ctaLabel2}
-                            </Link>
-                          </Button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
-          <ul className="space-y-4 md:mt-0 mt-4">
-            {ITEMS.slice(4, 7).map((item, index) => {
-              const done = progress[item.key]
-              const Icon = item.icon
-              const displayIndex = index + 5
-              return (
-                <li key={item.key} className="flex gap-4 items-start">
-                  <div className="flex-shrink-0 mt-0.5">
+                      )}
+                    </div>
+                  )}
+
+                  {/* Desktop status icon — inline right */}
+                  <div className="hidden md:flex items-center flex-shrink-0">
                     {done ? (
-                      <CheckCircle className="w-6 h-6 text-[#39FF14]" aria-hidden />
+                      <CheckCircle className="w-6 h-6 text-primary-500" />
                     ) : (
-                      <Circle className="w-6 h-6 text-neutral-600" aria-hidden />
+                      <Circle className="w-6 h-6 text-neutral-600" />
                     )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={`font-medium ${done ? 'text-neutral-400' : 'text-white'}`}>
-                      {displayIndex}. {item.title}
-                    </p>
-                    <p className="text-sm text-neutral-500 mt-0.5">{item.description}</p>
-                    {!done && (
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        <Button variant="outline" size="sm" asChild>
-                          <Link href={item.ctaHref} className="inline-flex items-center gap-2">
-                            <Icon className="w-4 h-4" />
-                            {item.ctaLabel}
-                          </Link>
-                        </Button>
-                        {item.ctaLabel2 && item.ctaHref2 && (
-                          <Button variant="outline" size="sm" asChild>
-                            <Link href={item.ctaHref2} className="inline-flex items-center gap-2">
-                              <BookOpen className="w-4 h-4" />
-                              {item.ctaLabel2}
-                            </Link>
-                          </Button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
-        </div>
+                </div>
+              </div>
+            </Card>
+          )
+        })}
+      </div>
       </div>
     </Card>
   )

@@ -17,6 +17,7 @@ import {
   Target,
   Shield,
   Bell,
+  Menu,
 } from 'lucide-react'
 import { userNavigation, userNavigationGroups, adminNavigation, mobileNavigation, isNavItemActive, type NavItem, type NavGroup } from '@/lib/navigation'
 import { useAdminNotificationCount } from '@/hooks/useAdminNotificationCount'
@@ -43,6 +44,7 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
   const [activeVisionId, setActiveVisionId] = useState<string | null>(null)
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [mobileOpen, setMobileOpen] = useState(false)
   const pathname = usePathname()
   const { count: unreadNotifications } = useAdminNotificationCount(isAdmin)
   
@@ -196,6 +198,11 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
     }
   }, [pathname, navigation, profile?.id])
 
+  // Close mobile sidebar on navigation
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [pathname])
+
   const toggleExpanded = (itemName: string) => {
     setExpandedItems(prev => 
       prev.includes(itemName) 
@@ -212,17 +219,12 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
     )
   }
 
-  return (
-    <div className={cn(
-      'hidden md:flex flex-col bg-neutral-900 border-r border-neutral-800 transition-all duration-300',
-      collapsed ? 'w-16' : 'w-64',
-      className
-    )}>
+  const renderSidebarContent = (isCollapsed: boolean) => (
+    <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-neutral-800">
-        {!collapsed && (
+        {!isCollapsed && (
           <div className="flex items-center gap-3 min-w-0">
-            {/* Profile Picture */}
             {loading ? (
               <div className="w-8 h-8 rounded-full bg-neutral-700 animate-pulse flex-shrink-0" />
             ) : (
@@ -233,8 +235,6 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
                 loading="eager"
               />
             )}
-            
-            {/* Name */}
             {loading ? (
               <div className="w-24 h-4 bg-neutral-700 rounded animate-pulse" />
             ) : profile?.first_name ? (
@@ -247,10 +247,19 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
           </div>
         )}
         <div className="flex items-center gap-1">
+          {/* Mobile: close button */}
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="md:hidden p-1.5 rounded-lg hover:bg-neutral-800 transition-colors"
+            aria-label="Close menu"
+          >
+            <X className="w-4 h-4 text-neutral-400" />
+          </button>
+          {/* Desktop: admin notifications */}
           {isAdmin && (
             <Link
               href="/admin/notifications"
-              className="relative p-1.5 rounded-lg hover:bg-neutral-800 transition-colors"
+              className="hidden md:flex relative p-1.5 rounded-lg hover:bg-neutral-800 transition-colors"
               title="Notifications"
             >
               <Bell className="w-4 h-4 text-neutral-400" />
@@ -261,9 +270,10 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
               )}
             </Link>
           )}
+          {/* Desktop: collapse toggle */}
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="p-1.5 rounded-lg hover:bg-neutral-800 transition-colors"
+            className="hidden md:block p-1.5 rounded-lg hover:bg-neutral-800 transition-colors"
           >
             {collapsed ? (
               <ChevronRight className="w-4 h-4 text-neutral-400" />
@@ -276,9 +286,7 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-        {/* Top-level navigation items */}
         {navigation.map((item) => {
-          // Dynamically update Audio link if we have active vision
           const itemHref = item.name === 'Audio' && activeVisionId 
             ? `/life-vision/${activeVisionId}/audio/sets`
             : item.href
@@ -287,15 +295,14 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
           const isExpanded = expandedItems.includes(item.name)
           const Icon = item.icon
           
-          // Check if any child is active (don't highlight parent if child is active)
           const hasActiveChild = item.children?.some(child => 
-            isNavItemActive(child, pathname, profile?.id, true) // true = isChildOfDropdown
+            isNavItemActive(child, pathname, profile?.id, true)
           )
           const shouldHighlightParent = isActive && !hasActiveChild
 
           return (
             <div key={item.name}>
-              {item.hasDropdown && !collapsed ? (
+              {item.hasDropdown && !isCollapsed ? (
                 <div>
                   <button
                     onClick={() => toggleExpanded(item.name)}
@@ -318,7 +325,7 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
                     <div className="ml-6 mt-2 space-y-1">
                       {item.children.map((child) => {
                         const ChildIcon = child.icon
-                        const isChildActive = isNavItemActive(child, pathname, profile?.id, true) // true = isChildOfDropdown
+                        const isChildActive = isNavItemActive(child, pathname, profile?.id, true)
                         
                         return (
                           <Link
@@ -347,11 +354,11 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
                     isActive
                       ? 'bg-[#00CC44]/20 text-[#00CC44] border border-[#00CC44]/30'
                       : 'text-neutral-300 hover:text-white hover:bg-neutral-800',
-                    collapsed && 'justify-center'
+                    isCollapsed && 'justify-center'
                   )}
                 >
                   <Icon className="w-5 h-5 flex-shrink-0" />
-                  {!collapsed && (
+                  {!isCollapsed && (
                     <>
                       <span className="flex-1">{item.name}</span>
                       {item.badge && (
@@ -367,13 +374,11 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
           )
         })}
         
-        {/* Collapsible Groups */}
-        {!collapsed && groups.map((group) => {
+        {!isCollapsed && groups.map((group) => {
           const isGroupExpanded = expandedGroups.includes(group.name)
           
           return (
             <div key={group.name} className="mt-4">
-              {/* Group Header */}
               <button
                 onClick={() => toggleGroup(group.name)}
                 className="flex items-center gap-2 px-3 py-2 w-full text-left rounded-lg hover:bg-neutral-800/50 transition-colors"
@@ -387,7 +392,6 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
                 )} />
               </button>
               
-              {/* Group Items */}
               {isGroupExpanded && (
                 <div className="mt-2 space-y-1">
                   {group.items.map((item) => {
@@ -471,7 +475,7 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
       </nav>
 
       {/* Footer */}
-      {!collapsed && (
+      {!isCollapsed && (
         <div className="p-4 border-t border-neutral-800 space-y-3">
           <div className="flex items-center gap-2">
             <button
@@ -504,6 +508,47 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
         </div>
       )}
     </div>
+  )
+
+  return (
+    <>
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="md:hidden fixed top-4 left-4 z-40 bg-neutral-800 p-2 rounded-lg border-2 border-neutral-700 hover:border-neutral-600"
+        aria-label="Open menu"
+      >
+        <Menu className="w-5 h-5 text-white" />
+      </button>
+
+      {/* Mobile Overlay */}
+      {mobileOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      {/* Mobile Sidebar */}
+      <aside
+        className={cn(
+          'md:hidden fixed top-0 left-0 bottom-0 w-[280px] bg-neutral-900 border-r border-neutral-800 z-50',
+          'transform transition-transform duration-300',
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        )}
+      >
+        {renderSidebarContent(false)}
+      </aside>
+
+      {/* Desktop Sidebar */}
+      <div className={cn(
+        'hidden md:flex flex-col bg-neutral-900 border-r border-neutral-800 transition-all duration-300',
+        collapsed ? 'w-16' : 'w-64',
+        className
+      )}>
+        {renderSidebarContent(collapsed)}
+      </div>
+    </>
   )
 }
 
@@ -782,12 +827,10 @@ export function SidebarLayout({ children, className, isAdmin = false }: SidebarL
         <UserSidebar className={className} />
       )}
       <main className={cn('flex-1 overflow-auto min-h-0', className)}>
-        {/* Mobile safe area: reserve space above bottom nav so content is never hidden (pb-24 = 96px) */}
-        <div className="w-full pb-24 md:pb-0">
+        <div className="w-full">
           {children}
         </div>
       </main>
-      <MobileBottomNav />
     </div>
   )
 }
