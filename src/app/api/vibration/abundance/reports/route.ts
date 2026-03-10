@@ -45,7 +45,9 @@ export async function GET(request: Request) {
         const [y, m] = key.split('-')
         periodLabel = `${months[m] || m} ${y}`
       } else if (period === 'quarter') {
-        periodLabel = key.replace('-', ' ')
+        const [y, qPart] = key.split('-')
+        const q = qPart?.replace('Q', '') || ''
+        periodLabel = q ? `Q${q} ${y}` : key
       } else {
         periodLabel = key
       }

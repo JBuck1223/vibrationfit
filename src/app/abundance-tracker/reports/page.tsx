@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { Target } from 'lucide-react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts'
-import { Container, Card, Stack, PageHero, Button, Text, DatePicker } from '@/lib/design-system/components'
+import { Container, Card, Stack, PageHero, Button, Text, Select, DatePicker } from '@/lib/design-system/components'
 import { colors } from '@/lib/design-system/tokens'
 import { getEntryCategoryDisplay } from '@/lib/abundance/entry-categories'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
@@ -34,6 +35,31 @@ function formatCurrency(value: number): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(value)
+}
+
+function ChartLegend(props: { payload?: Array<{ value: string; color: string; payload?: { value?: number } }>; formatCurrency?: (n: number) => string }) {
+  const { payload = [], formatCurrency: fmt = formatCurrency } = props
+  return (
+    <ul className="flex flex-wrap justify-center gap-2 pt-3 list-none p-0 m-0">
+      {payload.map((entry, i) => (
+        <li
+          key={`legend-${i}`}
+          className="inline-flex items-center gap-2 rounded-full border border-[#333] bg-[#0d0d0d] px-3 py-1.5 text-sm text-white shadow-sm transition hover:border-[#444] hover:bg-[#151515]"
+        >
+          <span
+            className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
+            style={{
+              backgroundColor: entry.color,
+              boxShadow: `0 0 8px ${entry.color}40`,
+            }}
+          />
+          <span>
+            {entry.value}: {fmt(entry.payload?.value ?? 0)}
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
 }
 
 export default function AbundanceReportsPage() {
@@ -154,8 +180,24 @@ export default function AbundanceReportsPage() {
           subtitle="View abundance by period: money vs value and by category."
         >
           <div className="flex flex-wrap justify-center gap-2">
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/abundance-tracker">Back to Abundance</Link>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+            >
+              <Link href="/abundance-tracker">Abundance Tracker</Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+            >
+              <Link href="/abundance-tracker/goals">
+                <Target className="w-4 h-4 shrink-0" />
+                <span>Goals</span>
+              </Link>
             </Button>
           </div>
         </PageHero>
@@ -183,50 +225,66 @@ export default function AbundanceReportsPage() {
           </div>
 
           {period !== 'custom' && (
-            <div className="flex flex-wrap items-center gap-3">
-              {period === 'month' && (
-                <DatePicker
-                  value={periodKey ? `${periodKey}-01` : ''}
-                  onChange={(dateString) => {
-                    if (dateString) setPeriodKey(dateString.slice(0, 7))
-                  }}
-                  className="w-full min-w-0 max-w-full sm:min-w-[180px] sm:max-w-[220px]"
-                />
-              )}
-              {period === 'quarter' && (
-                <select
-                  value={periodKey}
-                  onChange={(e) => setPeriodKey(e.target.value)}
-                  className="rounded-xl border-2 border-[#666666] bg-[#404040] px-4 py-3 text-white focus:border-[#39FF14] focus:outline-none transition-colors min-w-[140px]"
-                >
-                  {[1, 2, 3, 4].map((q) => (
-                    <option key={q} value={`${now.getFullYear()}-Q${q}`}>
-                      Q{q} {now.getFullYear()}
-                    </option>
-                  ))}
-                  {[1, 2, 3, 4].map((q) => (
-                    <option key={`prev-${q}`} value={`${now.getFullYear() - 1}-Q${q}`}>
-                      Q{q} {now.getFullYear() - 1}
-                    </option>
-                  ))}
-                </select>
-              )}
+            <div className="flex flex-wrap items-center gap-3 pt-5">
+              {period === 'month' && (() => {
+                const currentYear = now.getFullYear()
+                const currentMonth = now.getMonth()
+                const options: { value: string; label: string }[] = []
+                for (let i = 0; i < 24; i++) {
+                  const d = new Date(currentYear, currentMonth + i, 1)
+                  const y = d.getFullYear()
+                  const m = d.getMonth() + 1
+                  const value = `${y}-${String(m).padStart(2, '0')}`
+                  const label = d.toLocaleString('en-US', { month: 'long', year: 'numeric' })
+                  options.push({ value, label })
+                }
+                return (
+                  <Select
+                    value={periodKey}
+                    onChange={(value) => setPeriodKey(value)}
+                    placeholder="Select month..."
+                    options={options}
+                    className="min-w-[200px]"
+                  />
+                )
+              })()}
+              {period === 'quarter' && (() => {
+                const currentYear = now.getFullYear()
+                const currentQ = Math.ceil((now.getMonth() + 1) / 3)
+                const options: { value: string; label: string }[] = []
+                for (let y = currentYear; y <= currentYear + 2; y++) {
+                  const startQ = y === currentYear ? currentQ : 1
+                  for (let q = startQ; q <= 4; q++) {
+                    options.push({ value: `${y}-Q${q}`, label: `Q${q} ${y}` })
+                  }
+                }
+                return (
+                  <Select
+                    value={periodKey}
+                    onChange={(value) => setPeriodKey(value)}
+                    placeholder="Select quarter..."
+                    options={options}
+                    className="min-w-[180px]"
+                  />
+                )
+              })()}
               {period === 'year' && (
-                <select
+                <Select
                   value={periodKey}
-                  onChange={(e) => setPeriodKey(e.target.value)}
-                  className="rounded-xl border-2 border-[#666666] bg-[#404040] px-4 py-3 text-white focus:border-[#39FF14] focus:outline-none transition-colors min-w-[100px]"
-                >
-                  {Array.from({ length: 5 }, (_, i) => now.getFullYear() - i).map((y) => (
-                    <option key={y} value={String(y)}>{y}</option>
-                  ))}
-                </select>
+                  onChange={(value) => setPeriodKey(value)}
+                  placeholder="Select year..."
+                  options={Array.from({ length: 5 }, (_, i) => {
+                    const y = now.getFullYear() + i
+                    return { value: String(y), label: String(y) }
+                  })}
+                  className="min-w-[140px]"
+                />
               )}
             </div>
           )}
 
           {period === 'custom' && (
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3 pt-5">
               <DatePicker
                 value={customStart}
                 onChange={(dateString) => setCustomStart(dateString)}
@@ -283,12 +341,11 @@ export default function AbundanceReportsPage() {
                         cy="45%"
                         innerRadius={50}
                         outerRadius={75}
-                        paddingAngle={2}
+                        paddingAngle={0}
                         dataKey="value"
                         nameKey="name"
-                        label={(props: any) => (props.value > 0 ? `${props.name}: ${formatCurrency(props.value)}` : '')}
-                        stroke="#fff"
-                        strokeWidth={1}
+                        label={false}
+                        stroke="none"
                       >
                         {moneyValuePieData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
@@ -298,12 +355,7 @@ export default function AbundanceReportsPage() {
                         layout="vertical"
                         verticalAlign="bottom"
                         align="center"
-                        wrapperStyle={{ paddingTop: 8 }}
-                        formatter={(value, entry) => (
-                          <span className="text-white">
-                            {value}: {formatCurrency(entry.payload?.value ?? 0)}
-                          </span>
-                        )}
+                        content={(props) => <ChartLegend {...props} formatCurrency={formatCurrency} />}
                       />
                     </PieChart>
                   </ResponsiveContainer>
@@ -348,12 +400,11 @@ export default function AbundanceReportsPage() {
                         cy="40%"
                         innerRadius={50}
                         outerRadius={75}
-                        paddingAngle={2}
+                        paddingAngle={0}
                         dataKey="value"
                         nameKey="name"
-                        label={(props: any) => (props.value > 0 ? `${props.name}: ${formatCurrency(props.value)}` : '')}
-                        stroke="#fff"
-                        strokeWidth={1}
+                        label={false}
+                        stroke="none"
                       >
                         {categoryPieData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
@@ -363,12 +414,7 @@ export default function AbundanceReportsPage() {
                         layout="vertical"
                         verticalAlign="bottom"
                         align="center"
-                        wrapperStyle={{ paddingTop: 8 }}
-                        formatter={(value, entry) => (
-                          <span className="text-white">
-                            {value}: {formatCurrency(entry.payload?.value ?? 0)}
-                          </span>
-                        )}
+                        content={(props) => <ChartLegend {...props} formatCurrency={formatCurrency} />}
                       />
                     </PieChart>
                   </ResponsiveContainer>
