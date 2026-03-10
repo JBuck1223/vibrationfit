@@ -70,7 +70,7 @@ export async function POST(
     const hostName = host?.name || 'Your Host'
 
     const scheduledAt = new Date(session.scheduled_at)
-    const joinLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'}/session/${session.id}?email=${encodeURIComponent(participant.email)}`
+    const joinLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'}/session/${session.id}`
 
     const { date: scheduledDate, time: scheduledTime } = formatDateInTimeZone(scheduledAt, timeZone)
 
@@ -167,7 +167,7 @@ export async function GET(
     const hostName = host?.name || 'Your Host'
 
     const scheduledAt = new Date(session.scheduled_at)
-    const joinLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'}/session/${session.id}?email=${encodeURIComponent(participant.email)}`
+    const joinLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'}/session/${session.id}`
 
     const { date: scheduledDate, time: scheduledTime } = formatDateInTimeZone(scheduledAt, timeZone)
 

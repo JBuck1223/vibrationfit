@@ -15,7 +15,7 @@ import {
   CategoryGrid,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
-import { ArrowRight, Eye, Sparkles, Target, Compass, Lightbulb, RotateCcw } from 'lucide-react'
+import { ArrowRight, Eye, Sparkles, Target, Compass, Lightbulb, RotateCcw, CheckCircle } from 'lucide-react'
 import { VISION_CATEGORIES, getCategoryStateField, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
 import { createClient } from '@/lib/supabase/client'
 
@@ -251,6 +251,22 @@ export default function VIVALifeVisionLandingPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
+        {/* Ready to Assemble Banner */}
+        {allCategoriesCompleted && (
+          <button
+            onClick={() => router.push('/life-vision/new/assembly')}
+            className="w-full flex items-center justify-between gap-3 px-5 py-3 rounded-xl bg-primary-500/15 border border-primary-500/40 hover:bg-primary-500/25 transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <CheckCircle className="w-5 h-5 text-primary-500 flex-shrink-0" />
+              <span className="text-sm font-semibold text-primary-400">
+                All 12 categories are ready. Create your vision now.
+              </span>
+            </div>
+            <ArrowRight className="w-4 h-4 text-primary-500 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+        )}
+
         {/* Completion Banner - Shows above PageHero when step is already complete */}
         {isIntensiveMode && isAlreadyCompleted && completedAt && (
           <IntensiveCompletionBanner 

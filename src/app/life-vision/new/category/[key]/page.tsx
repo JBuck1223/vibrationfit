@@ -6,9 +6,10 @@ import { createClient } from '@/lib/supabase/client'
 import { Card, Button, Spinner, Container, Stack, PageHero, CategoryGrid, IconList, InsufficientTokensDialog, VIVALoadingOverlay } from '@/lib/design-system/components'
 import { ProfileStateCard } from '@/lib/design-system/profile-cards'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
-import { Sparkles, ArrowLeft, ArrowRight, ChevronDown, User, Lightbulb, Wand2, RefreshCw, Trash2 } from 'lucide-react'
-import { VISION_CATEGORIES, getVisionCategory, getCategoryStateField, getCategoryStoryField, visionToRecordingKey, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
+import { Sparkles, ArrowLeft, ArrowRight, ChevronDown, User, Lightbulb, Wand2, RefreshCw, Trash2, CheckCircle } from 'lucide-react'
+import { VISION_CATEGORIES, LIFE_CATEGORY_KEYS, getVisionCategory, getCategoryStateField, getCategoryStoryField, visionToRecordingKey, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
 import { getFilteredQuestionsForCategory } from '@/lib/life-vision/ideal-state-questions'
+import { Modal } from '@/lib/design-system/components/overlays'
 
 export default function CategoryPage() {
   const router = useRouter()
@@ -41,6 +42,7 @@ export default function CategoryPage() {
   const [completedCategoryKeys, setCompletedCategoryKeys] = useState<string[]>([])
   const [isSaving, setIsSaving] = useState(false)
   const [restoredDraft, setRestoredDraft] = useState(false)
+  const [showAllReadyModal, setShowAllReadyModal] = useState(false)
 
   const DRAFT_STARTER_KEY = `life-vision-new-starter-${categoryKey}`
   const DRAFT_IMAGINATION_KEY = `life-vision-new-imagination-${categoryKey}`
@@ -164,11 +166,14 @@ export default function CategoryPage() {
       // Load completion status for all categories for the grid
       const { data: allCategoryStates } = await supabase
         .from('vision_new_category_state')
-        .select('category, get_me_started_text')
+        .select('category, get_me_started_text, imagination_text')
         .eq('user_id', user.id)
       
       const completed = allCategoryStates
-        ?.filter(state => state.get_me_started_text && state.get_me_started_text.trim().length > 0)
+        ?.filter(state => 
+          (state.get_me_started_text && state.get_me_started_text.trim().length > 0) ||
+          (state.imagination_text && state.imagination_text.trim().length > 0)
+        )
         .map(state => state.category) || []
       
       setCompletedCategoryKeys(completed)
@@ -278,11 +283,20 @@ export default function CategoryPage() {
         }
       } catch (_) { /* ignore */ }
 
-      // Navigate to next category or assembly
-      if (nextCategory) {
+      // Update local completion state with this category
+      const updatedCompleted = completedCategoryKeys.includes(categoryKey)
+        ? completedCategoryKeys
+        : [...completedCategoryKeys, categoryKey]
+      setCompletedCategoryKeys(updatedCompleted)
+
+      // Check if all 12 life categories are now complete
+      const allReady = LIFE_CATEGORY_KEYS.every(key => updatedCompleted.includes(key))
+
+      if (allReady && !completedCategoryKeys.includes(categoryKey)) {
+        // This save just completed all 12 — show the modal
+        setShowAllReadyModal(true)
+      } else if (nextCategory) {
         router.push(`/life-vision/new/category/${nextCategory.key}`)
-      } else {
-        router.push('/life-vision/new/assembly')
       }
     } catch (err) {
       console.error('Error saving ideal state:', err)
@@ -321,6 +335,8 @@ export default function CategoryPage() {
     }
   }
 
+  const allCategoriesReady = LIFE_CATEGORY_KEYS.every(key => completedCategoryKeys.includes(key))
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -332,6 +348,22 @@ export default function CategoryPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
+        {/* Ready to Assemble Banner */}
+        {allCategoriesReady && !showAllReadyModal && (
+          <button
+            onClick={() => router.push('/life-vision/new/assembly')}
+            className="w-full flex items-center justify-between gap-3 px-5 py-3 rounded-xl bg-primary-500/15 border border-primary-500/40 hover:bg-primary-500/25 transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <CheckCircle className="w-5 h-5 text-primary-500 flex-shrink-0" />
+              <span className="text-sm font-semibold text-primary-400">
+                All 12 categories are ready. Create your vision now.
+              </span>
+            </div>
+            <ArrowRight className="w-4 h-4 text-primary-500 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+        )}
+
         {/* Page Hero with Category Navigation */}
         <PageHero
           eyebrow={`Category ${currentIndex + 1} of ${allCategories.length}`}
@@ -742,6 +774,57 @@ export default function CategoryPage() {
         tokensRemaining={tokenErrorInfo.tokensRemaining}
         actionName="Get Me Started"
       />
+
+      {/* All Categories Ready Modal */}
+      <Modal
+        isOpen={showAllReadyModal}
+        onClose={() => setShowAllReadyModal(false)}
+        size="sm"
+        showCloseButton={false}
+      >
+        <div className="text-center space-y-6 py-2">
+          <div className="flex justify-center">
+            <div className="w-16 h-16 rounded-full bg-primary-500/20 flex items-center justify-center ring-4 ring-primary-500/10">
+              <CheckCircle className="w-10 h-10 text-primary-500" />
+            </div>
+          </div>
+
+          <div className="inline-block px-4 py-1 rounded-full bg-primary-500/20 border border-primary-500/40">
+            <span className="text-sm font-semibold text-primary-400">
+              12 of 12 Categories Complete
+            </span>
+          </div>
+
+          <h2 className="text-2xl font-bold text-white">
+            All Categories Are Ready to Assemble!
+          </h2>
+
+          <p className="text-neutral-300 text-sm">
+            You can now combine all 12 categories into your unified Life Vision.
+          </p>
+
+          <div className="flex flex-col gap-3 pt-2">
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={() => router.push('/life-vision/new/assembly')}
+              className="w-full"
+            >
+              Go to Assembly
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowAllReadyModal(false)}
+              className="w-full"
+            >
+              Stay Here
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </Container>
   )
 }

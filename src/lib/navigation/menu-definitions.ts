@@ -68,6 +68,7 @@ import {
   GitBranch,
   Send,
   Bell,
+  Fingerprint,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -377,6 +378,7 @@ export const adminNavigation: NavItem[] = [
       { name: 'Members Board', href: '/admin/crm/members/board', icon: Kanban, description: 'Kanban board for members' },
       { name: 'Support Board', href: '/admin/crm/support/board', icon: Headset, description: 'Support tickets board' },
       { name: 'UTM Builder', href: '/admin/crm/utm-builder', icon: Link2, description: 'Build UTM tracking URLs' },
+      { name: 'Attribution', href: '/admin/crm/attribution', icon: Fingerprint, description: 'Visitor acquisition and session tracking' },
     ]
   },
   
@@ -477,6 +479,7 @@ export const adminNavigation: NavItem[] = [
     hasDropdown: true,
     description: 'Manage Activation Intensive program',
     children: [
+      { name: 'Intensive Dashboard', href: '/admin/intensive/dashboard', icon: BarChart3, description: 'Enrollment status and step progress' },
       { name: 'Intensive Tester', href: '/admin/intensive/tester', icon: Rocket, description: 'Test intensive flows' },
     ]
   },

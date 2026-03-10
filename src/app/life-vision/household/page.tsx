@@ -112,22 +112,19 @@ export default function HouseholdVisionsPage() {
 
       setHousehold(householdData)
 
-      // Fetch household visions
-      const { data: visionData, error: visionError } = await supabase
-        .from('vision_versions')
-        .select('*')
-        .eq('household_id', householdData.household.id)
-        .order('created_at', { ascending: false })
+      // Fetch household visions via server-side API (bypasses RLS)
+      const visionsResponse = await fetch('/api/household/visions')
+      const visionsData = await visionsResponse.json()
 
-      if (visionError) {
-        console.error('Error fetching household visions:', visionError)
+      if (!visionsResponse.ok) {
+        console.error('Error fetching household visions:', visionsData.error)
         setError('Failed to load household visions')
         return
       }
 
       // Add calculated version numbers
       const visionsWithVersions = await addCalculatedVersionNumbers(
-        visionData || []
+        visionsData.visions || []
       )
 
       // Add completion percentages
@@ -291,12 +288,11 @@ export default function HouseholdVisionsPage() {
             <h3 className="text-lg font-semibold">Household Members</h3>
           </div>
           <div className="flex flex-wrap gap-3">
-            {household.members.map((member) => (
+            {household.members.filter((member) => member.profile != null).map((member) => (
               <div
                 key={member.user_id}
                 className="flex items-center gap-2 bg-neutral-800 px-4 py-2 rounded-full"
               >
-                {/* Profile Picture */}
                 {member.profile.profile_picture_url ? (
                   <img
                     src={member.profile.profile_picture_url}

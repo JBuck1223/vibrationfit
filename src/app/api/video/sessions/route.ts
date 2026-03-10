@@ -160,10 +160,8 @@ export async function POST(request: NextRequest) {
         is_host: false,
       })
 
-      // Build join link
-      const joinLink = body.participant_email
-        ? `${process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'}/session/${session.id}?email=${encodeURIComponent(body.participant_email)}`
-        : `${process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'}/session/${session.id}`
+      // Session link — no login required, the link is the credential
+      const joinLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'}/session/${session.id}`
 
       // Resolve timezone for email: staff's timezone if provided, else default
       let timeZone = DEFAULT_DISPLAY_TIMEZONE

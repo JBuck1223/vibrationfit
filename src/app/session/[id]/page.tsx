@@ -4,13 +4,16 @@
  * Video Session Page
  * 
  * The main page for joining and participating in a video session.
- * Handles:
- * - Non-authenticated users: Shows session details + login prompt
- * - Authenticated users: Full flow: pre-call check → in-call → post-call
+ * 
+ * Authenticated users (hosts): Full auth flow via /api/video/sessions/[id]/join
+ * Everyone else (guests): No auth required. The session link is the credential.
+ *   Uses /api/video/sessions/[id]/guest-join to fetch info and get a Daily token.
+ * 
+ * Flow: pre-call check → in-call → post-call
  */
 
 import { useEffect, useState, useCallback } from 'react'
-import { useRouter, useParams, useSearchParams } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { PreCallCheck } from '@/components/video/PreCallCheck'
 import { VideoCall } from '@/components/video/VideoCall'
@@ -22,17 +25,15 @@ import {
   Card, 
   Button, 
   Spinner,
-  Input
 } from '@/lib/design-system/components'
-import { AlertCircle, ArrowLeft, Video, Calendar, Clock, User, LogIn } from 'lucide-react'
+import { AlertCircle, ArrowLeft } from 'lucide-react'
 import type { VideoSession, VideoSessionParticipant, CallSettings, JoinSessionResponse } from '@/lib/video/types'
 
-/** Extended session type returned by the API with joined participants */
 type SessionWithParticipants = VideoSession & { participants?: VideoSessionParticipant[] }
 
-type PageState = 'loading' | 'login-required' | 'error' | 'pre-call' | 'in-call' | 'post-call'
+type PageState = 'loading' | 'error' | 'pre-call' | 'in-call' | 'post-call'
 
-interface PublicSessionInfo {
+interface GuestSessionInfo {
   id: string
   title: string
   description?: string
@@ -46,15 +47,12 @@ interface PublicSessionInfo {
 export default function SessionPage() {
   const router = useRouter()
   const params = useParams()
-  const searchParams = useSearchParams()
   const sessionId = params?.id as string
-  const emailFromUrl = searchParams?.get('email') || ''
   const supabase = createClient()
 
-  // State
   const [pageState, setPageState] = useState<PageState>('loading')
-  const [publicSession, setPublicSession] = useState<PublicSessionInfo | null>(null)
   const [session, setSession] = useState<SessionWithParticipants | null>(null)
+  const [guestSession, setGuestSession] = useState<GuestSessionInfo | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [roomUrl, setRoomUrl] = useState<string | null>(null)
   const [isHost, setIsHost] = useState(false)
@@ -65,65 +63,59 @@ export default function SessionPage() {
   const [callDuration, setCallDuration] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
-  
-  // Login form state - pre-fill from URL if available
-  const [email, setEmail] = useState(emailFromUrl)
-  const [isLoggingIn, setIsLoggingIn] = useState(false)
-  const [loginError, setLoginError] = useState<string | null>(null)
-  const [loginSent, setLoginSent] = useState(false)
+  // Tracks whether this user is joining as a guest (no auth)
+  const [isGuestJoin, setIsGuestJoin] = useState(false)
 
-  // Check auth status and fetch session info
   useEffect(() => {
-    const checkAuthAndFetchSession = async () => {
+    const init = async () => {
       try {
-        // Check if user is authenticated
         const { data: { user } } = await supabase.auth.getUser()
         setIsAuthenticated(!!user)
         setUserId(user?.id)
 
         if (user) {
-          // User is logged in - fetch full session details
+          // Authenticated — try the normal session API first (works for hosts & known participants)
           const response = await fetch(`/api/video/sessions/${sessionId}`)
           const data = await response.json()
 
-          if (!response.ok) {
-            setError(data.error || 'Failed to load session')
-            setPageState('error')
+          if (response.ok) {
+            setSession(data.session)
+            setIsHost(data.is_host)
+
+            const host = data.session.participants?.find((p: { is_host: boolean }) => p.is_host)
+            if (host?.name) setHostName(host.name)
+
+            const profileResponse = await fetch('/api/profile')
+            if (profileResponse.ok) {
+              const profileData = await profileResponse.json()
+              setUserName(profileData.full_name || profileData.email || 'Participant')
+            }
+
+            setPageState('pre-call')
             return
           }
 
-          setSession(data.session)
-          setIsHost(data.is_host)
-
-          // Get host name from participants
-          const host = data.session.participants?.find((p: { is_host: boolean }) => p.is_host)
-          if (host?.name) {
-            setHostName(host.name)
-          }
-
-          // Get current user's profile for name
-          const profileResponse = await fetch('/api/profile')
-          if (profileResponse.ok) {
-            const profileData = await profileResponse.json()
-            setUserName(profileData.full_name || profileData.email || 'Participant')
-          }
-
-          setPageState('pre-call')
-        } else {
-          // User is not logged in - fetch public session info
-          const response = await fetch(`/api/video/sessions/${sessionId}/public`)
-          const data = await response.json()
-
-          if (!response.ok) {
-            setError(data.error || 'Session not found')
-            setPageState('error')
-            return
-          }
-
-          setPublicSession(data.session)
-          setHostName(data.session.host_name)
-          setPageState('login-required')
+          // If the authenticated endpoint fails (e.g. not an invited participant),
+          // fall through to guest flow so the link still works.
         }
+
+        // Guest flow — no auth needed, the link is the credential
+        setIsGuestJoin(true)
+        const guestRes = await fetch(`/api/video/sessions/${sessionId}/guest-join`)
+        const guestData = await guestRes.json()
+
+        if (!guestRes.ok) {
+          setError(guestData.error || 'Session not found')
+          setPageState('error')
+          return
+        }
+
+        setGuestSession(guestData.session)
+        setHostName(guestData.session.host_name)
+        if (guestData.participant?.name) {
+          setUserName(guestData.participant.name)
+        }
+        setPageState('pre-call')
       } catch (err) {
         console.error('Error:', err)
         setError('Failed to load session')
@@ -131,98 +123,88 @@ export default function SessionPage() {
       }
     }
 
-    if (sessionId) {
-      checkAuthAndFetchSession()
-    }
+    if (sessionId) init()
   }, [sessionId, supabase.auth])
 
-  // Handle magic link login
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoggingIn(true)
-    setLoginError(null)
+  // Join via the authenticated endpoint (hosts & known users)
+  const joinSessionAuthenticated = useCallback(async () => {
+    const response = await fetch(`/api/video/sessions/${sessionId}/join`, {
+      method: 'POST',
+    })
+    const data = await response.json()
 
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/session/${sessionId}`,
-        },
-      })
-
-      if (error) {
-        setLoginError(error.message)
-      } else {
-        setLoginSent(true)
-      }
-    } catch (err) {
-      setLoginError('Failed to send login link')
-    } finally {
-      setIsLoggingIn(false)
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to join session')
     }
-  }
 
-  // Join the session (get token)
-  const joinSession = useCallback(async () => {
+    const joinData = data as JoinSessionResponse
+    setToken(joinData.token)
+    setRoomUrl(joinData.room_url)
+    setSession(joinData.session)
+    setIsHost(joinData.is_host)
+  }, [sessionId])
+
+  // Join via the guest endpoint (no auth)
+  const joinSessionGuest = useCallback(async () => {
+    const response = await fetch(`/api/video/sessions/${sessionId}/guest-join`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: userName }),
+    })
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to join session')
+    }
+
+    const joinData = data as JoinSessionResponse
+    setToken(joinData.token)
+    setRoomUrl(joinData.room_url)
+    setSession(joinData.session)
+    setIsHost(false)
+  }, [sessionId, userName])
+
+  const handlePreCallReady = async (settings: CallSettings) => {
+    setCallSettings(settings)
     try {
-      const response = await fetch(`/api/video/sessions/${sessionId}/join`, {
-        method: 'POST',
-      })
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to join session')
+      if (isGuestJoin) {
+        await joinSessionGuest()
+      } else {
+        await joinSessionAuthenticated()
       }
-      
-      const joinData = data as JoinSessionResponse
-
-      setToken(joinData.token)
-      setRoomUrl(joinData.room_url)
-      setSession(joinData.session)
-      setIsHost(joinData.is_host)
-
-      // Go straight to the call — no waiting room
       setPageState('in-call')
     } catch (err) {
       console.error('Error joining session:', err)
       setError(err instanceof Error ? err.message : 'Failed to join session')
       setPageState('error')
     }
-  }, [sessionId])
-
-  // Handle pre-call ready
-  const handlePreCallReady = async (settings: CallSettings) => {
-    setCallSettings(settings)
-    await joinSession()
   }
 
-  // Handle leaving the call
   const handleLeave = () => {
     setPageState('post-call')
   }
 
-  // Handle post-call close — route alignment gym sessions back to /alignment-gym
   const handlePostCallClose = () => {
-    if (session?.session_type === 'alignment_gym') {
+    if (!isAuthenticated) {
+      window.close()
+      router.push('/')
+    } else if (session?.session_type === 'alignment_gym') {
       router.push('/alignment-gym')
     } else {
       router.push('/sessions')
     }
   }
 
-  // Handle scheduling follow-up
   const handleScheduleFollowUp = () => {
     router.push('/admin/sessions/new')
   }
 
-  // Handle viewing recording
   const handleViewRecording = () => {
     if (session?.recording_url) {
       window.open(session.recording_url, '_blank')
     }
   }
 
-  // Handle saving notes
   const handleSaveNotes = async (notes: string) => {
     try {
       await fetch(`/api/video/sessions/${sessionId}`, {
@@ -235,14 +217,12 @@ export default function SessionPage() {
     }
   }
 
-  // Handle error during call
   const handleCallError = (error: Error) => {
     console.error('Call error:', error)
     setError(error.message)
     setPageState('error')
   }
 
-  // Cancel/go back — route alignment gym sessions back to /alignment-gym
   const handleCancel = () => {
     if (!isAuthenticated) {
       router.push('/')
@@ -253,26 +233,7 @@ export default function SessionPage() {
     }
   }
 
-  // Format session date/time
-  const formatSessionDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-    })
-  }
-
-  const formatSessionTime = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
-
-  // Loading state
+  // Loading
   if (pageState === 'loading') {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -284,150 +245,7 @@ export default function SessionPage() {
     )
   }
 
-  // Login required state - show session details and login form
-  if (pageState === 'login-required' && publicSession) {
-    return (
-      <div className="min-h-screen bg-black">
-        <Container size="md">
-          <Stack gap="lg">
-            <PageHero
-              eyebrow="VIDEO SESSION"
-              title={publicSession.title}
-              subtitle={`You're invited to join a session with ${hostName}`}
-            />
-
-            {/* Session Details Card */}
-            <Card className="p-4 md:p-6 lg:p-8">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                    <Calendar className="w-5 h-5 text-blue-400" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-neutral-500">Date</p>
-                    <p className="text-sm md:text-base text-white">
-                      {formatSessionDate(publicSession.scheduled_at)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-                    <Clock className="w-5 h-5 text-purple-400" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-neutral-500">Time</p>
-                    <p className="text-sm md:text-base text-white">
-                      {formatSessionTime(publicSession.scheduled_at)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center flex-shrink-0">
-                    <Video className="w-5 h-5 text-green-400" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-neutral-500">Duration</p>
-                    <p className="text-sm md:text-base text-white">
-                      {publicSession.scheduled_duration_minutes} minutes
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {publicSession.description && (
-                <div className="mb-6 p-4 bg-neutral-800/50 rounded-lg">
-                  <p className="text-sm md:text-base text-neutral-300">
-                    {publicSession.description}
-                  </p>
-                </div>
-              )}
-
-              <div className="flex items-center gap-3 p-4 bg-primary-500/10 rounded-lg border border-primary-500/30">
-                <div className="w-10 h-10 rounded-full bg-primary-500/20 flex items-center justify-center flex-shrink-0">
-                  <User className="w-5 h-5 text-primary-500" />
-                </div>
-                <div>
-                  <p className="text-xs text-primary-500">Your Host</p>
-                  <p className="text-sm md:text-base text-white font-medium">
-                    {hostName}
-                  </p>
-                </div>
-              </div>
-            </Card>
-
-            {/* Login Card */}
-            <Card className="p-4 md:p-6 lg:p-8">
-              <div className="text-center mb-6">
-                <div className="w-16 h-16 rounded-full bg-primary-500/20 flex items-center justify-center mx-auto mb-4">
-                  <LogIn className="w-8 h-8 text-primary-500" />
-                </div>
-                <h2 className="text-lg md:text-xl font-bold text-white mb-2">
-                  Sign in to Join
-                </h2>
-                <p className="text-sm md:text-base text-neutral-400">
-                  Enter your email to receive a magic link
-                </p>
-              </div>
-
-              {loginSent ? (
-                <div className="text-center p-6 bg-primary-500/10 rounded-xl border border-primary-500/30">
-                  <h3 className="text-lg font-medium text-primary-500 mb-2">
-                    Check your email
-                  </h3>
-                  <p className="text-sm text-neutral-400 mb-4">
-                    We sent a login link to <strong className="text-white">{email}</strong>
-                  </p>
-                  <p className="text-xs text-neutral-500">
-                    Click the link in the email to join the session
-                  </p>
-                </div>
-              ) : (
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div>
-                    <Input
-                      type="email"
-                      placeholder="Enter your email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      className="w-full"
-                    />
-                  </div>
-
-                  {loginError && (
-                    <p className="text-red-400 text-sm text-center">{loginError}</p>
-                  )}
-
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    className="w-full"
-                    disabled={isLoggingIn || !email}
-                  >
-                    {isLoggingIn ? (
-                      <>
-                        <Spinner size="sm" className="mr-2" />
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        <LogIn className="w-4 h-4 mr-2" />
-                        Send Magic Link
-                      </>
-                    )}
-                  </Button>
-                </form>
-              )}
-            </Card>
-          </Stack>
-        </Container>
-      </div>
-    )
-  }
-
-  // Error state
+  // Error
   if (pageState === 'error') {
     return (
       <div className="min-h-screen bg-black">
@@ -465,12 +283,15 @@ export default function SessionPage() {
     )
   }
 
-  // Pre-call check
+  // Pre-call check — works for both guests and authenticated users
   if (pageState === 'pre-call') {
+    const title = session?.title || guestSession?.title
+    const showHostName = !isHost ? hostName || undefined : undefined
+
     return (
       <PreCallCheck
-        sessionTitle={session?.title}
-        hostName={!isHost ? hostName || undefined : undefined}
+        sessionTitle={title}
+        hostName={showHostName}
         onReady={handlePreCallReady}
         onCancel={handleCancel}
       />
@@ -492,7 +313,6 @@ export default function SessionPage() {
         initialSettings={callSettings || undefined}
         onLeave={handleLeave}
         onError={handleCallError}
-        // For 1:1 sessions, pass the other participant's user_id so host can see their data
         memberUserId={
           isHost && session?.session_type === 'one_on_one'
             ? session.participants?.find(p => !p.is_host)?.user_id
@@ -510,7 +330,7 @@ export default function SessionPage() {
         duration={callDuration}
         isHost={isHost}
         onClose={handlePostCallClose}
-        onScheduleFollowUp={handleScheduleFollowUp}
+        onScheduleFollowUp={isHost ? handleScheduleFollowUp : undefined}
         onViewRecording={session.recording_url ? handleViewRecording : undefined}
         onSaveNotes={isHost ? handleSaveNotes : undefined}
       />

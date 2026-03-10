@@ -173,28 +173,34 @@ export async function getHouseholdWithMembers(
     return null
   }
 
-  // Fetch members - note: user_profiles is versioned, so we need to manually join on active profiles
   const { data: members, error: membersError } = await supabase
     .from('household_members')
     .select('*')
     .eq('household_id', householdId)
     .eq('status', 'active')
   
-  // Manually fetch active profiles for each member
   let membersWithProfiles = []
   if (members && members.length > 0) {
     const userIds = members.map(m => m.user_id)
-    const { data: profiles } = await supabase
-      .from('user_profiles')
-      .select('user_id, first_name, last_name, email, profile_picture_url')
-      .in('user_id', userIds)
-      .eq('is_active', true)
+    const { data: accounts } = await supabase
+      .from('user_accounts')
+      .select('id, first_name, last_name, email, profile_picture_url')
+      .in('id', userIds)
     
-    // Join profiles to members
-    membersWithProfiles = members.map(member => ({
-      ...member,
-      profile: profiles?.find(p => p.user_id === member.user_id) || null
-    }))
+    membersWithProfiles = members.map(member => {
+      const account = accounts?.find(a => a.id === member.user_id)
+      return {
+        ...member,
+        profile: account
+          ? {
+              first_name: account.first_name,
+              last_name: account.last_name,
+              email: account.email,
+              profile_picture_url: account.profile_picture_url,
+            }
+          : null,
+      }
+    })
   }
 
   if (membersError) {
@@ -496,7 +502,7 @@ export async function removeMemberFromHousehold(
     return { success: false, error: 'Failed to remove member' }
   }
 
-  // Note: We don't immediately clear household_id from user_profiles
+  // Note: We don't immediately clear household_id from user_accounts
   // This allows for potential re-invite or recovery
   // Admin can choose to fully remove later
 
@@ -620,11 +626,10 @@ export async function updateTokenSharingPreference(
     return { success: false, error: 'Failed to update preference' }
   }
 
-  // Also update in user_profiles for consistency
   await supabase
-    .from('user_profiles')
+    .from('user_accounts')
     .update({ allow_shared_tokens: allowSharedTokens })
-    .eq('user_id', userId)
+    .eq('id', userId)
 
   return { success: true }
 }

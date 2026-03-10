@@ -119,7 +119,7 @@ export function MergeVisionsTool({
 
   function getOwnerName(userId: string) {
     const member = householdMembers.find(m => m.user_id === userId)
-    if (!member) return 'Unknown'
+    if (!member?.profile) return 'Unknown'
     return `${member.profile.first_name} ${member.profile.last_name || ''}`.trim()
   }
 
