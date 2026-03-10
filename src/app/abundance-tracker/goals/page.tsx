@@ -499,7 +499,7 @@ export default function AbundanceGoalsPage() {
                           layout="vertical"
                           verticalAlign="bottom"
                           align="center"
-                          content={(props) => <ChartLegend {...props} formatCurrency={formatCurrency} />}
+                          content={(props: any) => <ChartLegend {...props} formatCurrency={formatCurrency} />}
                         />
                       </PieChart>
                     </ResponsiveContainer>

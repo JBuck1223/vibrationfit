@@ -133,7 +133,7 @@ export default function HouseholdVisionsPage() {
         completion_percent: calculateCompletionPercentage(vision)
       }))
 
-      setVisions(visionsWithCompletion)
+      setVisions(visionsWithCompletion as VisionData[])
     } catch (err) {
       console.error('Error loading household visions:', err)
       setError('Failed to load household visions')

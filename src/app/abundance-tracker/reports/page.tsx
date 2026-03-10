@@ -355,7 +355,7 @@ export default function AbundanceReportsPage() {
                         layout="vertical"
                         verticalAlign="bottom"
                         align="center"
-                        content={(props) => <ChartLegend {...props} formatCurrency={formatCurrency} />}
+                        content={(props: any) => <ChartLegend {...props} formatCurrency={formatCurrency} />}
                       />
                     </PieChart>
                   </ResponsiveContainer>
@@ -414,7 +414,7 @@ export default function AbundanceReportsPage() {
                         layout="vertical"
                         verticalAlign="bottom"
                         align="center"
-                        content={(props) => <ChartLegend {...props} formatCurrency={formatCurrency} />}
+                        content={(props: any) => <ChartLegend {...props} formatCurrency={formatCurrency} />}
                       />
                     </PieChart>
                   </ResponsiveContainer>
