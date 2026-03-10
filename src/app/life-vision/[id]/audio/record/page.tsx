@@ -6,7 +6,7 @@ import { Button, Card, Container, StatusBadge, Icon, Spinner, Stack, PageHero, I
 import { CategoryGrid } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { MediaRecorderComponent } from '@/components/MediaRecorder'
-import { CheckCircle, Eye, Headphones, Mic, Wand2, Clock, ListMusic, Waves } from 'lucide-react'
+import { CheckCircle, Headphones, Mic, Wand2, Clock, AudioLines, ListMusic, Eye } from 'lucide-react'
 import Link from 'next/link'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
@@ -385,7 +385,7 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
               size="sm"
               className="w-full flex items-center justify-center gap-2"
             >
-              <ListMusic className="w-5 h-5" />
+              <Icon icon={ListMusic} size="sm" className="shrink-0" />
               <span>Audio Sets</span>
             </Button>
             
@@ -417,7 +417,7 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
               size="sm"
               className="w-full flex items-center justify-center gap-2"
             >
-              <Waves className="w-5 h-5" />
+              <Icon icon={AudioLines} size="sm" className="shrink-0" />
               <span>Generate</span>
             </Button>
             
@@ -427,7 +427,7 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
               size="sm"
               className="w-full flex items-center justify-center gap-2"
             >
-              <Clock className="w-5 h-5" />
+              <Icon icon={Clock} size="sm" className="shrink-0" />
               <span>Queue</span>
             </Button>
             
@@ -437,7 +437,7 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
               size="sm"
               className="w-full flex items-center justify-center gap-2"
             >
-              <Headphones className="w-5 h-5" />
+              <Icon icon={Headphones} size="sm" className="shrink-0" />
               <span>All Audios</span>
             </Button>
             
@@ -447,7 +447,7 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
               size="sm"
               className="w-full flex items-center justify-center gap-2"
             >
-              <Eye className="w-5 h-5" />
+              <Icon icon={Eye} size="sm" className="shrink-0" />
               <span className="lg:hidden">Vision</span>
               <span className="hidden lg:inline">View Vision</span>
             </Button>

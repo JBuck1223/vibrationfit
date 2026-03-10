@@ -14,7 +14,7 @@ import {
   Select,
   DatePicker,
 } from '@/lib/design-system/components'
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts'
 import { colors } from '@/lib/design-system/tokens'
 import {
   getPeriodKey,
@@ -52,6 +52,31 @@ function formatCurrency(value: number): string {
   }).format(value)
 }
 
+function ChartLegend(props: { payload?: Array<{ value: string; color: string; payload?: { value?: number } }>; formatCurrency?: (n: number) => string }) {
+  const { payload = [], formatCurrency: fmt = formatCurrency } = props
+  return (
+    <ul className="flex flex-wrap justify-center gap-2 pt-3 list-none p-0 m-0">
+      {payload.map((entry, i) => (
+        <li
+          key={`legend-${i}`}
+          className="inline-flex items-center gap-2 rounded-full border border-[#333] bg-[#0d0d0d] px-3 py-1.5 text-sm text-white shadow-sm transition hover:border-[#444] hover:bg-[#151515]"
+        >
+          <span
+            className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
+            style={{
+              backgroundColor: entry.color,
+              boxShadow: `0 0 8px ${entry.color}40`,
+            }}
+          />
+          <span>
+            {entry.value}: {fmt(entry.payload?.value ?? 0)}
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 const MONEY_COLOR = colors.secondary[500]
 const VALUE_COLOR = colors.energy.pink[500]
 const LEFT_TO_GO_COLOR = colors.neutral[500]
@@ -80,7 +105,6 @@ function parseAmountInput(value: string): string {
 }
 
 const PERIOD_OPTIONS: { value: PeriodType; label: string }[] = [
-  { value: 'week', label: 'This week' },
   { value: 'month', label: 'Month' },
   { value: 'quarter', label: 'Quarter' },
   { value: 'year', label: 'Year' },
@@ -223,8 +247,24 @@ export default function AbundanceGoalsPage() {
           subtitle="Set a goal for the period and track money vs value."
         >
           <div className="flex flex-wrap justify-center gap-2">
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/abundance-tracker">Back to Abundance</Link>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+            >
+              <Link href="/abundance-tracker">Abundance Tracker</Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+            >
+              <Link href="/abundance-tracker/reports">
+                <BarChart3 className="w-4 h-4 shrink-0" />
+                <span>Reports</span>
+              </Link>
             </Button>
           </div>
         </PageHero>
@@ -237,8 +277,11 @@ export default function AbundanceGoalsPage() {
         ) : (
           <>
             {/* Set goal - 3 steps */}
-            <Card variant="outlined" className="w-full max-w-2xl mx-auto bg-[#1F1F1F] border-2 border-[#333]">
+            <Card variant="outlined" className="w-full bg-[#1F1F1F] border-2 border-[#333]">
               <div className="space-y-6 flex flex-col items-center text-center">
+                <h2 className="text-lg font-semibold tracking-wide text-white">
+                  Set Your Money Goal
+                </h2>
                 {/* 1. Select time period */}
                 <section className="space-y-2.5 w-full flex flex-col items-center">
                   <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
@@ -253,7 +296,7 @@ export default function AbundanceGoalsPage() {
                           setPeriodType(value)
                           if (value !== 'custom') setPeriodKey(getPeriodKey(now, value))
                         }}
-                        className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                           periodType === value
                             ? 'bg-[#39FF14] text-black'
                             : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700 hover:text-white border border-neutral-700'
@@ -263,8 +306,66 @@ export default function AbundanceGoalsPage() {
                       </button>
                     ))}
                   </div>
+                  {periodType !== 'custom' && (
+                    <div className="w-full flex justify-center pt-5">
+                      {periodType === 'month' && (() => {
+                        const currentYear = now.getFullYear()
+                        const currentMonth = now.getMonth()
+                        const options: { value: string; label: string }[] = []
+                        for (let i = 0; i < 24; i++) {
+                          const d = new Date(currentYear, currentMonth + i, 1)
+                          const y = d.getFullYear()
+                          const m = d.getMonth() + 1
+                          const value = `${y}-${String(m).padStart(2, '0')}`
+                          const label = d.toLocaleString('en-US', { month: 'long', year: 'numeric' })
+                          options.push({ value, label })
+                        }
+                        return (
+                          <Select
+                            value={periodKey}
+                            onChange={(value) => setPeriodKey(value)}
+                            placeholder="Select month..."
+                            options={options}
+                            className="w-full sm:w-[200px]"
+                          />
+                        )
+                      })()}
+                      {periodType === 'quarter' && (() => {
+                        const currentYear = now.getFullYear()
+                        const currentQ = Math.ceil((now.getMonth() + 1) / 3)
+                        const options: { value: string; label: string }[] = []
+                        for (let y = currentYear; y <= currentYear + 2; y++) {
+                          const startQ = y === currentYear ? currentQ : 1
+                          for (let q = startQ; q <= 4; q++) {
+                            options.push({ value: `${y}-Q${q}`, label: `Q${q} ${y}` })
+                          }
+                        }
+                        return (
+                          <Select
+                            value={periodKey}
+                            onChange={(value) => setPeriodKey(value)}
+                            placeholder="Select quarter..."
+                            options={options}
+                            className="w-full sm:w-[200px]"
+                          />
+                        )
+                      })()}
+                      {periodType === 'year' && (
+                        <Select
+                          value={periodKey}
+                          onChange={(value) => setPeriodKey(value)}
+                          placeholder="Select year..."
+                          options={Array.from({ length: 5 }, (_, i) => {
+                            const y = now.getFullYear() + i
+                            return { value: String(y), label: String(y) }
+                          })}
+                          className="w-full sm:w-[200px]"
+                        />
+                      )}
+                    </div>
+                  )}
                   {periodType === 'custom' && (
-                    <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                    <div className="flex flex-wrap items-center justify-center gap-3 pt-5">
                       <DatePicker
                         value={customStart}
                         onChange={(dateString: string) => setCustomStart(dateString)}
@@ -279,50 +380,27 @@ export default function AbundanceGoalsPage() {
                       />
                     </div>
                   )}
-                  {periodType !== 'custom' && (
-                    <div className="pt-4 pb-2">
-                      <div className="rounded-2xl border-2 py-2.5 px-5 inline-block bg-[#39FF14]/10" style={{ borderColor: 'rgba(57, 255, 20, 0.3)' }}>
-                        <p className="text-white font-semibold text-base">
-                          {formatPeriodForGoalLabel(periodType, periodKey)}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  {periodType === 'custom' && customStart && customEnd && (
-                    <div className="pt-4 pb-2">
-                      <div className="rounded-2xl border-2 py-2.5 px-5 inline-block max-w-xs bg-[#39FF14]/10" style={{ borderColor: 'rgba(57, 255, 20, 0.3)' }}>
-                        <p className="text-white font-semibold text-base">
-                          {formatPeriodForGoalLabel('custom', buildCustomPeriodKey(customStart, customEnd))}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  {periodType === 'custom' && !customStart && !customEnd && (
-                    <div className="pt-4 pb-2">
-                      <div className="rounded-2xl border-2 py-2.5 px-5 inline-block bg-[#39FF14]/10" style={{ borderColor: 'rgba(57, 255, 20, 0.3)' }}>
-                        <p className="text-neutral-500 font-medium text-sm">Custom range</p>
-                      </div>
-                    </div>
-                  )}
                 </section>
 
                 {/* 2. Choose amount */}
                 {(() => {
                   const canSetGoal = periodType !== 'custom' || (customStart && customEnd)
                   return canSetGoal ? (
-                    <section className="space-y-2.5 flex flex-col items-center">
+                    <section className="space-y-2.5 w-full flex flex-col items-center">
                       <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
                         Choose amount
                       </Text>
-                      <Input
-                        type="text"
-                        inputMode="decimal"
-                        placeholder="$"
-                        value={formatAmountWithCommas(goalInput)}
-                        onChange={(e) => setGoalInput(parseAmountInput(e.target.value))}
-                        prefix="$"
-                        className="!bg-[#404040] !border-2 !border-[#333] max-w-[200px]"
-                      />
+                      <div className="w-full sm:max-w-[200px]">
+                        <Input
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="$"
+                          value={formatAmountWithCommas(goalInput)}
+                          onChange={(e) => setGoalInput(parseAmountInput(e.target.value))}
+                          prefix="$"
+                          className="!bg-[#404040] !border-2 !border-[#333]"
+                        />
+                      </div>
                     </section>
                   ) : null
                 })()}
@@ -331,13 +409,13 @@ export default function AbundanceGoalsPage() {
                 {(() => {
                   const canSetGoal = periodType !== 'custom' || (customStart && customEnd)
                   return canSetGoal ? (
-                    <section className="space-y-2.5 flex flex-col items-center">
+                    <section className="w-full flex flex-col items-center">
                       <Button
                         variant="primary"
                         size="sm"
                         onClick={handleSaveGoal}
                         disabled={saving}
-                        className="flex items-center gap-2"
+                        className="w-full sm:w-auto flex items-center justify-center gap-2"
                       >
                         <Save className="w-4 h-4" />
                         {saving ? 'Saving...' : 'Save goal'}
@@ -358,6 +436,12 @@ export default function AbundanceGoalsPage() {
                   </p>
                 </Card>
                 <Card variant="outlined" className="p-4 bg-[#1F1F1F]">
+                  <p className="text-xs uppercase tracking-[0.3em] text-neutral-400 underline underline-offset-4 decoration-[#333] mb-1">Left to go</p>
+                  <p className="text-xl font-bold text-white tabular-nums">
+                    {formatCurrency(summary.leftToGo)}
+                  </p>
+                </Card>
+                <Card variant="outlined" className="p-4 bg-[#1F1F1F]">
                   <p className="text-xs uppercase tracking-[0.3em] text-neutral-400 underline underline-offset-4 decoration-[#333] mb-1">Money</p>
                   <p className="text-xl font-bold tabular-nums" style={{ color: MONEY_COLOR }}>
                     {formatCurrency(summary.moneyTotal)}
@@ -367,12 +451,6 @@ export default function AbundanceGoalsPage() {
                   <p className="text-xs uppercase tracking-[0.3em] text-neutral-400 underline underline-offset-4 decoration-[#333] mb-1">Value</p>
                   <p className="text-xl font-bold tabular-nums" style={{ color: VALUE_COLOR }}>
                     {formatCurrency(summary.valueTotal)}
-                  </p>
-                </Card>
-                <Card variant="outlined" className="p-4 bg-[#1F1F1F]">
-                  <p className="text-xs uppercase tracking-[0.3em] text-neutral-400 underline underline-offset-4 decoration-[#333] mb-1">Left to go</p>
-                  <p className="text-xl font-bold text-white tabular-nums">
-                    {formatCurrency(summary.leftToGo)}
                   </p>
                 </Card>
               </div>
@@ -395,38 +473,34 @@ export default function AbundanceGoalsPage() {
 
             {/* Pie chart */}
             {summary && (pieData.length > 0 || summary.goalAmount > 0) && (
-              <Card variant="outlined" className="p-6 bg-[#1F1F1F]">
+              <Card variant="outlined" className="p-6 bg-[#101010] border-[#1F1F1F]">
                 <h3 className="text-sm uppercase tracking-[0.3em] text-neutral-400 underline underline-offset-4 decoration-[#333] mb-4">Goal vs actual</h3>
                 {pieData.length > 0 ? (
-                  <div className="h-[280px]">
+                  <div className="h-[280px] w-full min-w-0 overflow-hidden">
                     <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
+                      <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
                         <Pie
                           data={pieData}
                           cx="50%"
-                          cy="50%"
-                          innerRadius={60}
-                          outerRadius={100}
-                          paddingAngle={2}
+                          cy="45%"
+                          innerRadius={50}
+                          outerRadius={75}
+                          paddingAngle={0}
                           dataKey="value"
                           nameKey="name"
-                          label={(props: any) =>
-                            props.value > 0 ? `${props.name}: ${formatCurrency(props.value)}` : ''
-                          }
+                          label={false}
+                          stroke="none"
                         >
                           {pieData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.color} />
                           ))}
                         </Pie>
-                        <Tooltip
-                          formatter={(value: number) => formatCurrency(value)}
-                          contentStyle={{
-                            backgroundColor: colors.neutral[800],
-                            border: `1px solid ${colors.neutral[600]}`,
-                            borderRadius: '8px',
-                          }}
+                        <Legend
+                          layout="vertical"
+                          verticalAlign="bottom"
+                          align="center"
+                          content={(props) => <ChartLegend {...props} formatCurrency={formatCurrency} />}
                         />
-                        <Legend />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
@@ -444,7 +518,7 @@ export default function AbundanceGoalsPage() {
                 Your goals
               </Text>
               <Card variant="outlined" className="w-full bg-[#0D0D0D] border-[#333] p-4">
-                <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-4">
                   <div className="flex flex-wrap items-center gap-3">
                     <span className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Time frame</span>
                     <div className="flex flex-wrap gap-1.5">
@@ -476,12 +550,6 @@ export default function AbundanceGoalsPage() {
                       className="min-w-[140px]"
                     />
                   </div>
-                  <Button asChild variant="outline" size="sm" className="shrink-0">
-                    <Link href="/abundance-tracker/reports" className="flex items-center gap-2">
-                      <BarChart3 className="w-4 h-4" />
-                      See Reports
-                    </Link>
-                  </Button>
                 </div>
               </Card>
 
@@ -492,7 +560,7 @@ export default function AbundanceGoalsPage() {
                     : 'No goals match the current filters.'}
                 </p>
               ) : (
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-3">
                   {filteredGoals.map((goal) => (
                     <Card
                       key={goal.id}

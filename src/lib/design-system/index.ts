@@ -111,6 +111,9 @@ export {
   type StatusType
 } from './components'
 
+// Re-export audio navigation icons
+export { AUDIO_NAV_ICONS } from './audio-nav-icons'
+
 // Re-export vision categories
 export {
   VISION_CATEGORIES,

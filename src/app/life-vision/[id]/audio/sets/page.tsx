@@ -1,11 +1,11 @@
 "use client"
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Container, Stack, Badge, Spinner, VersionBadge, StatusBadge, TrackingMilestoneCard, DeleteConfirmationDialog, Input, PageHero, Toggle } from '@/lib/design-system/components'
+import { Button, Card, Container, Stack, Badge, Spinner, VersionBadge, StatusBadge, TrackingMilestoneCard, DeleteConfirmationDialog, Input, PageHero, Toggle, Icon } from '@/lib/design-system/components'
 import { PlaylistPlayer, type AudioTrack as BaseAudioTrack } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { assessmentToVisionKey } from '@/lib/design-system/vision-categories'
-import { Play, Clock, CalendarDays, Moon, Zap, Sparkles, Headphones, Plus, ArrowRight, Trash2, Eye, Music, Waves, Mic, Edit2, Check, X } from 'lucide-react'
+import { Play, Clock, CalendarDays, Moon, Zap, Sparkles, Headphones, Plus, ArrowRight, Trash2, Music, Mic, Edit2, Check, X, AudioLines, Eye } from 'lucide-react'
 import Link from 'next/link'
 
 // Extend AudioTrack with sectionKey for Life Vision audio
@@ -560,7 +560,7 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
               size="sm"
               className="w-full col-span-2 lg:col-span-1 flex items-center justify-center gap-2"
             >
-              <Waves className="w-5 h-5" />
+              <Icon icon={AudioLines} size="sm" className="shrink-0" />
               <span>Generate</span>
             </Button>
             
@@ -570,7 +570,7 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
               size="sm"
               className="w-full flex items-center justify-center gap-2"
             >
-              <Mic className="w-5 h-5" />
+              <Icon icon={Mic} size="sm" className="shrink-0" />
               <span>Record</span>
             </Button>
             
@@ -580,7 +580,7 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
               size="sm"
               className="w-full flex items-center justify-center gap-2"
             >
-              <Clock className="w-5 h-5" />
+              <Icon icon={Clock} size="sm" className="shrink-0" />
               <span>Queue</span>
             </Button>
             
@@ -590,7 +590,7 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
               size="sm"
               className="w-full flex items-center justify-center gap-2"
             >
-              <Headphones className="w-5 h-5" />
+              <Icon icon={Headphones} size="sm" className="shrink-0" />
               <span>All Audios</span>
             </Button>
             
@@ -600,7 +600,7 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
               size="sm"
               className="w-full flex items-center justify-center gap-2"
             >
-              <Eye className="w-5 h-5" />
+              <Icon icon={Eye} size="sm" className="shrink-0" />
               <span className="lg:hidden">Vision</span>
               <span className="hidden lg:inline">View Vision</span>
             </Button>
