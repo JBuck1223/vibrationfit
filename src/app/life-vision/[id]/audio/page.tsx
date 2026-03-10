@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Container, Stack, Card, Button, Badge, Spinner, TrackingMilestoneCard, StatusBadge, VersionBadge, PageHero } from '@/lib/design-system/components'
+import { Container, Stack, Card, Button, Badge, Spinner, TrackingMilestoneCard, StatusBadge, VersionBadge, PageHero, Icon } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
-import { Mic, Headphones, Clock, ArrowRight, CheckCircle, Waves, CalendarDays, Eye, ListMusic } from 'lucide-react'
+import { Mic, Headphones, Clock, ArrowRight, AudioLines, CalendarDays, Eye, ListMusic, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 
 interface VisionData {
@@ -20,6 +20,7 @@ export default function AudioHubPage({ params }: { params: Promise<{ id: string 
   const [visionId, setVisionId] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [vision, setVision] = useState<VisionData | null>(null)
+  const [howItWorksOpen, setHowItWorksOpen] = useState(false)
   const [stats, setStats] = useState({
     totalSets: 0,
     activeBatches: 0,
@@ -142,31 +143,31 @@ export default function AudioHubPage({ params }: { params: Promise<{ id: string 
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 max-w-5xl mx-auto">
             <Button variant="outline" size="sm" asChild className="w-full col-span-2 lg:col-span-1">
               <Link href={`/life-vision/${visionId}/audio/sets`} className="flex items-center justify-center gap-2">
-                <ListMusic className="w-5 h-5" />
+                <Icon icon={ListMusic} size="sm" className="shrink-0" />
                 <span>Audio Sets</span>
               </Link>
             </Button>
             <Button variant="outline" size="sm" asChild className="w-full">
               <Link href={`/life-vision/${visionId}/audio/generate`} className="flex items-center justify-center gap-2">
-                <Waves className="w-5 h-5" />
+                <Icon icon={AudioLines} size="sm" className="shrink-0" />
                 <span>Generate</span>
               </Link>
             </Button>
             <Button variant="outline" size="sm" asChild className="w-full">
               <Link href={`/life-vision/${visionId}/audio/record`} className="flex items-center justify-center gap-2">
-                <Mic className="w-5 h-5" />
+                <Icon icon={Mic} size="sm" className="shrink-0" />
                 <span>Record</span>
               </Link>
             </Button>
             <Button variant="outline" size="sm" asChild className="w-full">
               <Link href={`/life-vision/${visionId}/audio/queue`} className="flex items-center justify-center gap-2">
-                <Clock className="w-5 h-5" />
+                <Icon icon={Clock} size="sm" className="shrink-0" />
                 <span>Queue</span>
               </Link>
             </Button>
             <Button variant="outline" size="sm" asChild className="w-full">
               <Link href={`/life-vision/${visionId}`} className="flex items-center justify-center gap-2">
-                <Eye className="w-5 h-5" />
+                <Icon icon={Eye} size="sm" className="shrink-0" />
                 <span className="lg:hidden">Vision</span>
                 <span className="hidden lg:inline">View Vision</span>
               </Link>
@@ -225,6 +226,48 @@ export default function AudioHubPage({ params }: { params: Promise<{ id: string 
           </Card>
         )}
 
+        {/* How It Works Toggle */}
+        <Card variant="elevated" className="bg-primary-500/5 border-primary-500/30">
+          <button
+            onClick={() => setHowItWorksOpen(!howItWorksOpen)}
+            className="w-full flex items-center justify-between text-left"
+          >
+            <h3 className="text-xl font-semibold text-white">How It Works</h3>
+            <ChevronDown className={`w-5 h-5 text-neutral-400 transition-transform duration-300 ${howItWorksOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {howItWorksOpen && (
+            <div className="space-y-4 mt-6">
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center flex-shrink-0 text-black text-sm font-bold">
+                  1
+                </div>
+                <div>
+                  <p className="text-white font-medium">Generate Audio or Record Voice</p>
+                  <p className="text-sm text-neutral-300">Select a VIVA voice and generate audio for all sections or record your own voice.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center flex-shrink-0 text-black text-sm font-bold">
+                  2
+                </div>
+                <div>
+                  <p className="text-white font-medium">Add Background Music and/or Frequency Enhancements</p>
+                  <p className="text-sm text-neutral-300">Create unlimited variations using background tracks and/or healing frequencies.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center flex-shrink-0 text-black text-sm font-bold">
+                  3
+                </div>
+                <div>
+                  <p className="text-white font-medium">Activate</p>
+                  <p className="text-sm text-neutral-300">Play your audio daily to align with your vision. You can use it for sleep, energy, meditation, category-specific activation, or any other way you choose.</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </Card>
+
         {/* Main Navigation Cards */}
         <Card>
           <h2 className="text-2xl font-bold text-white mb-6 text-center">Audio Navigation</h2>
@@ -233,7 +276,7 @@ export default function AudioHubPage({ params }: { params: Promise<{ id: string 
             <Link href={`/life-vision/${visionId}/audio/sets`}>
               <Card variant="elevated" hover className="cursor-pointer h-full p-6 flex flex-col items-center text-center">
                 <div className="w-12 h-12 bg-primary-500/20 rounded-xl flex items-center justify-center mb-4">
-                  <ListMusic className="w-6 h-6 text-primary-500" />
+                  <Icon icon={ListMusic} size="md" color="#39FF14" />
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-3">Audio Sets</h3>
                 <p className="text-sm text-neutral-300">
@@ -246,7 +289,7 @@ export default function AudioHubPage({ params }: { params: Promise<{ id: string 
             <Link href={`/life-vision/${visionId}/audio/generate`}>
               <Card variant="elevated" hover className="cursor-pointer h-full p-6 flex flex-col items-center text-center">
               <div className="w-12 h-12 bg-accent-500/20 rounded-xl flex items-center justify-center mb-4">
-                <Waves className="w-6 h-6 text-accent-500" />
+                <Icon icon={AudioLines} size="md" color="#BF00FF" />
               </div>
               <h3 className="text-xl font-semibold text-white mb-3">Generate Audio</h3>
               <p className="text-sm text-neutral-300">
@@ -259,7 +302,7 @@ export default function AudioHubPage({ params }: { params: Promise<{ id: string 
             <Link href={`/life-vision/${visionId}/audio/record`}>
               <Card variant="elevated" hover className="cursor-pointer h-full p-6 flex flex-col items-center text-center">
               <div className="w-12 h-12 bg-secondary-500/20 rounded-xl flex items-center justify-center mb-4">
-                <Mic className="w-6 h-6 text-secondary-500" />
+                <Icon icon={Mic} size="md" color="#00FFFF" />
               </div>
               <h3 className="text-xl font-semibold text-white mb-3">Record Voice</h3>
               <p className="text-sm text-neutral-300">
@@ -276,7 +319,7 @@ export default function AudioHubPage({ params }: { params: Promise<{ id: string 
                 className={`cursor-pointer h-full p-6 flex flex-col items-center text-center ${stats.activeBatches > 0 ? 'bg-blue-500/5 border-blue-500/30' : ''}`}
               >
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${stats.activeBatches > 0 ? 'bg-blue-500/20' : 'bg-neutral-500/20'}`}>
-                <Clock className={`w-6 h-6 ${stats.activeBatches > 0 ? 'text-blue-400 animate-pulse' : 'text-neutral-400'}`} />
+                <Icon icon={Clock} size="md" color={stats.activeBatches > 0 ? '#60A5FA' : '#A3A3A3'} className={stats.activeBatches > 0 ? 'animate-pulse' : ''} />
               </div>
               <h3 className="text-xl font-semibold text-white mb-3">Audio Queue</h3>
               <p className="text-sm text-neutral-300">
@@ -286,50 +329,6 @@ export default function AudioHubPage({ params }: { params: Promise<{ id: string 
             </Link>
           </div>
         </Card>
-
-        {/* Quick Start Guide */}
-        {stats.totalSets === 0 && (
-          <Card variant="elevated" className="bg-primary-500/5 border-primary-500/30">
-            <h3 className="text-xl font-semibold text-white mb-4">Getting Started with Audio</h3>
-            <div className="space-y-3">
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center flex-shrink-0 text-white text-sm font-bold">
-                  1
-                </div>
-                <div>
-                  <p className="text-white font-medium">Generate Audio</p>
-                  <p className="text-sm text-neutral-300">Select a voice and generate narrated audio for all sections</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center flex-shrink-0 text-white text-sm font-bold">
-                  2
-                </div>
-                <div>
-                  <p className="text-white font-medium">Add Background Music</p>
-                  <p className="text-sm text-neutral-300">Create variations with sleep, energy, or meditation music</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center flex-shrink-0 text-white text-sm font-bold">
-                  3
-                </div>
-                <div>
-                  <p className="text-white font-medium">Listen and Align</p>
-                  <p className="text-sm text-neutral-300">Play your audio daily to align with your vision</p>
-                </div>
-              </div>
-            </div>
-            <div className="mt-6">
-              <Button variant="primary" asChild>
-                <Link href={`/life-vision/${visionId}/audio/generate`}>
-                  Get Started
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Link>
-              </Button>
-            </div>
-          </Card>
-        )}
 
       </Stack>
     </Container>

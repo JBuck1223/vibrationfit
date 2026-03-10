@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Eye, Headphones, Music, Moon, Zap, Sparkles, Clock, CheckCircle, Circle, X, Target, Volume2, CalendarDays, HelpCircle } from 'lucide-react'
-import { Card, Button, Badge, Spinner, VersionBadge, StatusBadge, TrackingMilestoneCard, Container, Stack, PageHero } from '@/lib/design-system/components'
+import { Plus, Headphones, Music, Moon, Zap, Sparkles, Clock, CheckCircle, Circle, X, Target, Volume2, CalendarDays, HelpCircle, Eye } from 'lucide-react'
+import { Card, Button, Badge, Spinner, VersionBadge, StatusBadge, TrackingMilestoneCard, Container, Stack, PageHero, Icon } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
 import { colors } from '@/lib/design-system/tokens'
 
@@ -463,7 +463,7 @@ export default function AllVisionAudiosPage() {
                         size="sm"
                         className="text-xs md:text-sm flex-1 md:flex-initial flex items-center justify-center gap-2"
                       >
-                        <Eye className="w-5 h-5" />
+                        <Icon icon={Eye} size="sm" className="shrink-0" />
                         <span>Vision</span>
                       </Button>
                     </div>
