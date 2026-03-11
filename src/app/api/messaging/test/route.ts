@@ -2,28 +2,14 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { verifyAdminAccess } from '@/lib/supabase/admin'
 import { isTwilioConfigured } from '@/lib/messaging/twilio'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Check if user is admin
-    const isAdmin =
-      user.email === 'buckinghambliss@gmail.com' ||
-      user.email === 'admin@vibrationfit.com' ||
-      user.user_metadata?.is_admin === true
-
-    if (!isAdmin) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const auth = await verifyAdminAccess()
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
     // Check Twilio configuration

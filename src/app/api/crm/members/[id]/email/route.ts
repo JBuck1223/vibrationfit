@@ -2,8 +2,7 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { isUserAdmin } from '@/lib/supabase/admin'
+import { verifyAdminAccess } from '@/lib/supabase/admin'
 import { sendAndLogEmail } from '@/lib/email/send'
 import { getSenderById, DEFAULT_CRM_SENDER } from '@/lib/crm/senders'
 
@@ -13,17 +12,9 @@ export async function POST(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    if (!isUserAdmin(user)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const auth = await verifyAdminAccess()
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
     const body = await request.json()

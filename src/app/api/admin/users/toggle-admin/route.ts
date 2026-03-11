@@ -1,36 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { verifyAdminAccess, createAdminClient } from '@/lib/supabase/admin'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const auth = await verifyAdminAccess()
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
+    const { user } = auth
 
-    // Check if user is admin
-    const adminEmails = ['buckinghambliss@gmail.com', 'admin@vibrationfit.com']
-    const isEmailAdmin = adminEmails.includes(user.email?.toLowerCase() || '')
-    const isMetadataAdmin = user.user_metadata?.is_admin === true
-    
-    if (!isEmailAdmin && !isMetadataAdmin) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
-    }
-
-    // Create admin client with service role key
-    const supabaseAdmin = createAdminClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
+    const supabaseAdmin = createAdminClient()
 
     const { userId, isAdmin } = await request.json()
 
@@ -38,14 +17,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
     }
 
-    // Get the target user
     const { data: targetUser, error: getUserError } = await supabaseAdmin.auth.admin.getUserById(userId)
 
     if (getUserError || !targetUser.user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Update user metadata to include admin status
     const updatedMetadata = {
       ...targetUser.user.user_metadata,
       is_admin: isAdmin,

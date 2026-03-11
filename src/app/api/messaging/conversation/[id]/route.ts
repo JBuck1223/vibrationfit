@@ -2,7 +2,7 @@
 // Get SMS conversation thread for a lead, ticket, or user
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { verifyAdminAccess } from '@/lib/supabase/admin'
 import { getConversation } from '@/lib/messaging'
 
 export async function GET(
@@ -11,24 +11,10 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    // Check authentication
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
 
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Check if user is admin
-    const isAdmin =
-      user.email === 'buckinghambliss@gmail.com' ||
-      user.email === 'admin@vibrationfit.com' ||
-      user.user_metadata?.is_admin === true
-
-    if (!isAdmin) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const auth = await verifyAdminAccess()
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
     const { searchParams } = new URL(request.url)

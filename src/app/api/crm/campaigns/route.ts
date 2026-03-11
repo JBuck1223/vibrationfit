@@ -4,8 +4,7 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createAdminClient, isUserAdmin } from '@/lib/supabase/admin'
+import { verifyAdminAccess, createAdminClient } from '@/lib/supabase/admin'
 
 // Allowed fields for campaign creation
 const CAMPAIGN_INSERT_FIELDS = [
@@ -28,17 +27,9 @@ function pickAllowedFields(body: Record<string, unknown>, allowedFields: readonl
 // GET /api/crm/campaigns - List all campaigns
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    if (!isUserAdmin(user)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const auth = await verifyAdminAccess()
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
     const adminClient = createAdminClient()
@@ -78,18 +69,11 @@ export async function GET(request: NextRequest) {
 // POST /api/crm/campaigns - Create new campaign
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const auth = await verifyAdminAccess()
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
-
-    if (!isUserAdmin(user)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
+    const { user } = auth
 
     const adminClient = createAdminClient()
     const body = await request.json()

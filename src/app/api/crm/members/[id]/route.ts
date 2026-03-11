@@ -2,8 +2,7 @@
 // Individual member operations - Uses auth.users as source of truth
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createAdminClient, isUserAdmin } from '@/lib/supabase/admin'
+import { verifyAdminAccess, createAdminClient } from '@/lib/supabase/admin'
 
 // Force dynamic rendering (no caching)
 export const dynamic = 'force-dynamic'
@@ -29,20 +28,11 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const auth = await verifyAdminAccess()
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
-    if (!isUserAdmin(user)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-
-    // Use admin client for ALL queries
     const adminClient = createAdminClient()
     const { data: authUserData, error: authError } = await adminClient.auth.admin.getUserById(id)
 
@@ -257,17 +247,9 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    if (!isUserAdmin(user)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const auth = await verifyAdminAccess()
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
     const body = await request.json()

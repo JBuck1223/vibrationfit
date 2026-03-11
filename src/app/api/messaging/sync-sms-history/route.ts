@@ -2,8 +2,7 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { verifyAdminAccess, createAdminClient } from '@/lib/supabase/admin'
 import twilio from 'twilio'
 
 // Helper function to normalize phone numbers for comparison
@@ -27,20 +26,9 @@ function normalizePhone(phone: string): string {
 
 export async function POST(request: NextRequest) {
   try {
-    // Auth check
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const isAdmin = user.email === 'buckinghambliss@gmail.com' || 
-                    user.email === 'admin@vibrationfit.com' ||
-                    user.user_metadata?.is_admin === true
-
-    if (!isAdmin) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const auth = await verifyAdminAccess()
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
     const adminClient = createAdminClient()

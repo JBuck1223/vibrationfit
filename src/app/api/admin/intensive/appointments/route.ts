@@ -1,40 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { verifyAdminAccess } from '@/lib/supabase/admin'
 
 export async function GET(request: NextRequest) {
   try {
-    // Check admin authentication
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-          set() {},
-          remove() {},
-        },
-      }
-    )
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    const auth = await verifyAdminAccess()
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
+    const { supabase } = auth
 
-    // Check if user is admin
-    const adminEmails = ['buckinghambliss@gmail.com', 'admin@vibrationfit.com']
-    const isAdmin = adminEmails.includes(user.email?.toLowerCase() || '') || user.user_metadata?.is_admin === true
-    
-    if (!isAdmin) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
-    }
-
-    // Get all scheduled calls from intensive_checklist
     const { data: checklistData, error } = await supabase
       .from('intensive_checklist')
       .select(`
@@ -57,7 +31,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ appointments: [] })
     }
 
-    // Get user info for each appointment
     const appointments = await Promise.all(
       checklistData.map(async (item) => {
         const { data: profileData } = await supabase
@@ -96,4 +69,3 @@ export async function GET(request: NextRequest) {
     )
   }
 }
-

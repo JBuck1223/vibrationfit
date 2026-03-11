@@ -1,37 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { verifyAdminAccess } from '@/lib/supabase/admin'
 import { generateBulkCodes } from '@/lib/billing/coupons'
-
-async function verifyAdmin() {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) { return cookieStore.get(name)?.value },
-        set() {},
-        remove() {},
-      },
-    },
-  )
-
-  const { data: { user }, error } = await supabase.auth.getUser()
-  if (error || !user) return { error: 'Authentication required', status: 401 }
-
-  const adminEmails = ['buckinghambliss@gmail.com']
-  const isAdmin = adminEmails.includes(user.email || '') || user.user_metadata?.is_admin
-  if (!isAdmin) return { error: 'Admin access required', status: 403 }
-
-  return { user }
-}
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const auth = await verifyAdmin()
+  const auth = await verifyAdminAccess()
   if ('error' in auth) {
     return NextResponse.json({ error: auth.error }, { status: auth.status })
   }

@@ -1,16 +1,13 @@
 export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { isUserAdmin, createAdminClient } from '@/lib/supabase/admin'
+import { verifyAdminAccess, createAdminClient } from '@/lib/supabase/admin'
 
 export async function GET() {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user || !isUserAdmin(user)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const auth = await verifyAdminAccess()
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
     const admin = createAdminClient()

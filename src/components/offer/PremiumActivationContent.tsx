@@ -456,7 +456,7 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
                     <Video
                       src="https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-3-6-26-new-1080p.mp4"
                       poster="https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-3-6-26-new-thumb.0000000.jpg"
-                      variant="hero"
+                      variant="default"
                       caption="Five minute overview video"
                       trackingId="homepage-hero-video"
                       saveProgress={true}

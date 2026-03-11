@@ -1,48 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { verifyAdminAccess } from '@/lib/supabase/admin'
 
-// Create service role client for admin operations
 function getServiceClient() {
   return createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
-}
-
-// Check admin authentication
-async function checkAdmin() {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
-        set() {},
-        remove() {},
-      },
-    }
-  )
-  
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  
-  if (authError || !user) {
-    return { error: 'Authentication required', status: 401 }
-  }
-
-  // Check if user is admin
-  const adminEmails = ['buckinghambliss@gmail.com']
-  const isAdmin = adminEmails.includes(user.email || '') || user.user_metadata?.is_admin
-  
-  if (!isAdmin) {
-    return { error: 'Admin access required', status: 403 }
-  }
-
-  return { user, supabase }
 }
 
 /**
@@ -52,7 +16,7 @@ async function checkAdmin() {
  */
 export async function GET(request: NextRequest) {
   try {
-    const auth = await checkAdmin()
+    const auth = await verifyAdminAccess()
     if ('error' in auth) {
       return NextResponse.json({ error: auth.error }, { status: auth.status })
     }

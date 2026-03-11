@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient, isUserAdmin } from '@/lib/supabase/admin'
+import { verifyAdminAccess, createAdminClient } from '@/lib/supabase/admin'
 
 // Allowed fields for ticket updates
 const TICKET_UPDATABLE_FIELDS = [
@@ -29,14 +29,11 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const auth = await verifyAdminAccess()
+    const isAdmin = !('error' in auth)
 
     const adminClient = createAdminClient()
 
-    // Get ticket
     const { data: ticket, error } = await adminClient
       .from('support_tickets')
       .select('*')
@@ -48,12 +45,15 @@ export async function GET(
       return NextResponse.json({ error: 'Ticket not found' }, { status: 404 })
     }
 
-    // Check permissions
-    const isAdmin = isUserAdmin(user)
-    const isOwner = user?.id === ticket.user_id
-
-    if (!isAdmin && !isOwner) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    if (!isAdmin) {
+      if ('error' in auth && auth.status === 401) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
+      const supabase = await createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user || user.id !== ticket.user_id) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
     }
 
     // Get replies
@@ -88,17 +88,9 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    if (!isUserAdmin(user)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const auth = await verifyAdminAccess()
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
     const adminClient = createAdminClient()

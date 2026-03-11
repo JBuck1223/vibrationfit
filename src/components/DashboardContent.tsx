@@ -326,11 +326,13 @@ export default function DashboardContent({ user, profileData, visionData, vision
             title="Dashboard"
             subtitle="Run your MAP and stay connected."
           >
-            <Video
-              src="https://media.vibrationfit.com/site-assets/video/membership/dashboard-1080p.mp4"
-              poster="https://media.vibrationfit.com/site-assets/video/membership/dashboard-thumb.0000000.jpg"
-              variant="hero"
-            />
+            <div className="mx-auto w-full max-w-3xl">
+              <Video
+                src="https://media.vibrationfit.com/site-assets/video/membership/dashboard-1080p.mp4"
+                poster="https://media.vibrationfit.com/site-assets/video/membership/dashboard-thumb.0000000.jpg"
+                variant="default"
+              />
+            </div>
           </PageHero>
 
         {/* Getting Started as a Graduate checklist (only for users who completed the intensive) */}

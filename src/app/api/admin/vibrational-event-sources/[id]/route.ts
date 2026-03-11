@@ -1,37 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { verifyAdminAccess, createAdminClient } from '@/lib/supabase/admin'
 import { clearVibrationalSourceCache } from '@/lib/vibration/sources'
-
-const ADMIN_EMAILS = ['buckinghambliss@gmail.com', 'admin@vibrationfit.com']
-
-function isAdminUser(user: { email?: string | null; user_metadata?: Record<string, any> } | null): boolean {
-  if (!user) return false
-  const email = user.email?.toLowerCase() || ''
-  if (ADMIN_EMAILS.includes(email)) return true
-  return Boolean(user.user_metadata?.is_admin)
-}
-
-async function getAdminSupabase() {
-  // First verify the user is an admin using regular client
-  const userSupabase = await createClient()
-  const {
-    data: { user },
-    error,
-  } = await userSupabase.auth.getUser()
-
-  if (error || !user) {
-    return { supabase: null, user: null }
-  }
-
-  if (!isAdminUser(user)) {
-    return { supabase: null, user: null }
-  }
-
-  // Return admin client for database operations
-  const adminSupabase = createAdminClient()
-  return { supabase: adminSupabase, user }
-}
 
 export async function PATCH(
   request: NextRequest,
@@ -39,12 +8,12 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params
-    const { supabase, user } = await getAdminSupabase()
-
-    if (!user || !supabase) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    const auth = await verifyAdminAccess()
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
+    const adminClient = createAdminClient()
     const body = await request.json().catch(() => null)
     if (!body || typeof body !== 'object') {
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
@@ -102,7 +71,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await adminClient
       .from('vibrational_event_sources')
       .update(updates)
       .eq('id', id)
@@ -133,13 +102,13 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    const { supabase, user } = await getAdminSupabase()
-
-    if (!user || !supabase) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    const auth = await verifyAdminAccess()
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
-    const { error } = await supabase
+    const adminClient = createAdminClient()
+    const { error } = await adminClient
       .from('vibrational_event_sources')
       .delete()
       .eq('id', id)

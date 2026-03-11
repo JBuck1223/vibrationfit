@@ -1,60 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminTokenSummary, getTokenUsageByUser, getReconciliationData } from '@/lib/tokens/tracking'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { verifyAdminAccess } from '@/lib/supabase/admin'
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('Admin token usage API called')
-    
-    // Check admin authentication
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-          set() {
-            // No-op for API routes
-          },
-          remove() {
-            // No-op for API routes
-          },
-        },
-      }
-    )
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    console.log('User:', user?.email, 'Auth error:', authError)
-    
-    if (authError || !user) {
-      console.log('Authentication failed')
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    const auth = await verifyAdminAccess()
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
-    // Check if user is admin
-    const adminEmails = ['buckinghambliss@gmail.com']
-    const isAdmin = adminEmails.includes(user.email || '') || user.user_metadata?.is_admin
-    
-    console.log('Is admin:', isAdmin, 'Email:', user.email)
-    
-    if (!isAdmin) {
-      console.log('Admin access denied')
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
-    }
-
-    // Get query parameters
     const { searchParams } = new URL(request.url)
     const days = parseInt(searchParams.get('days') || '30')
     const limit = parseInt(searchParams.get('limit') || '100')
-    const type = searchParams.get('type') || 'summary' // 'summary', 'by-user', or 'reconciliation'
+    const type = searchParams.get('type') || 'summary'
 
     if (type === 'summary') {
-      // Get overall token usage summary
       const summary = await getAdminTokenSummary(days)
       
       if (!summary) {
@@ -67,7 +27,6 @@ export async function GET(request: NextRequest) {
         success: true
       })
     } else if (type === 'by-user') {
-      // Get token usage by user
       const userUsage = await getTokenUsageByUser(days, limit)
       
       return NextResponse.json({
@@ -77,7 +36,6 @@ export async function GET(request: NextRequest) {
         success: true
       })
     } else if (type === 'reconciliation') {
-      // Get OpenAI cost reconciliation data
       const reconciliation = await getReconciliationData(days, limit)
       
       return NextResponse.json({

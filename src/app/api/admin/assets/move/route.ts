@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { S3Client, CopyObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3'
+import { verifyAdminAccess } from '@/lib/supabase/admin'
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION || 'us-east-2',
@@ -14,6 +15,11 @@ const SITE_ASSETS_PREFIX = 'site-assets/'
 
 export async function POST(request: Request) {
   try {
+    const auth = await verifyAdminAccess()
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
+    }
+
     const { fileKeys, targetFolder } = await request.json()
 
     if (!fileKeys || !Array.isArray(fileKeys) || fileKeys.length === 0) {

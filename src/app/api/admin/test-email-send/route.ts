@@ -2,19 +2,16 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { verifyAdminAccess } from '@/lib/supabase/admin'
 import { sendAndLogEmail } from '@/lib/email/send'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const auth = await verifyAdminAccess()
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
+    const { user } = auth
 
     console.log('[test-email] Testing email send...')
     console.log('AWS_SES_FROM_EMAIL:', process.env.AWS_SES_FROM_EMAIL)

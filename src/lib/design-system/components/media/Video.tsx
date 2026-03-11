@@ -23,7 +23,7 @@ export function getVideoThumbnailUrl(videoUrl: string): string {
 interface VideoProps extends React.VideoHTMLAttributes<HTMLVideoElement> {
   src: string
   poster?: string
-  variant?: 'default' | 'hero' | 'card'
+  variant?: 'default' | 'card'
   autoplay?: boolean
   muted?: boolean
   loop?: boolean
@@ -79,7 +79,6 @@ export const Video = React.forwardRef<HTMLVideoElement, VideoProps>(
 
     const variants = {
       default: 'rounded-xl border-2 border-[#404040]',
-      hero: 'rounded-3xl border-2 border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.3)]',
       card: 'rounded-2xl border border-[#404040]'
     }
 

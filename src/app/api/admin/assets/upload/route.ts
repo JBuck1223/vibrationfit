@@ -8,6 +8,7 @@ import {
   CompleteMultipartUploadCommand,
   AbortMultipartUploadCommand,
 } from '@aws-sdk/client-s3'
+import { verifyAdminAccess } from '@/lib/supabase/admin'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
@@ -30,6 +31,11 @@ const CHUNK_SIZE = 10 * 1024 * 1024 // 10MB
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await verifyAdminAccess()
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
+    }
+
     const formData = await request.formData()
     const file = formData.get('file') as File
     const category = formData.get('category') as string
@@ -96,6 +102,11 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const auth = await verifyAdminAccess()
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
+    }
+
     const { s3Key } = await request.json()
 
     if (!s3Key) {

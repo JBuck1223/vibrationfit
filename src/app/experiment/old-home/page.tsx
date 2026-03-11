@@ -141,7 +141,7 @@ export default function HomePage() {
                   <Video
                     src="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-1080p.mp4"
                     poster="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-poster.jpg"
-                    variant="hero"
+                    variant="default"
                     quality="auto"
                     trackingId="homepage-hero-video"
                     saveProgress={true}

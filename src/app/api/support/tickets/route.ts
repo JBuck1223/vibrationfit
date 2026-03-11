@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient, isUserAdmin } from '@/lib/supabase/admin'
+import { verifyAdminAccess, createAdminClient } from '@/lib/supabase/admin'
 import { sendAndLogEmail } from '@/lib/email/send'
 import { generateSupportTicketCreatedEmail } from '@/lib/email/templates/support-ticket-created'
 import { triggerEvent } from '@/lib/messaging/events'
@@ -113,16 +113,13 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const auth = await verifyAdminAccess()
+    const isAdmin = !('error' in auth)
 
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if ('error' in auth && auth.status === 401) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
-    const isAdmin = isUserAdmin(user)
     const adminClient = createAdminClient()
 
     let query = adminClient
@@ -130,8 +127,12 @@ export async function GET(request: NextRequest) {
       .select('*')
       .order('created_at', { ascending: false })
 
-    // If not admin, only show their tickets
     if (!isAdmin) {
+      const supabase = await createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
       query = query.eq('user_id', user.id)
     }
 

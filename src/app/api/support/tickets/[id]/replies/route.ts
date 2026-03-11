@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient, isUserAdmin } from '@/lib/supabase/admin'
+import { verifyAdminAccess, createAdminClient } from '@/lib/supabase/admin'
 import { sendAndLogEmail } from '@/lib/email/send'
 import { generatePersonalMessageEmail } from '@/lib/email/templates/personal-message'
 
@@ -14,20 +14,22 @@ export async function GET(
   try {
     const { id: ticketId } = await params
 
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const auth = await verifyAdminAccess()
+    const isAdmin = !('error' in auth)
 
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if ('error' in auth && auth.status === 401) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
     const adminClient = createAdminClient()
-    const isAdmin = isUserAdmin(user)
 
-    // If not admin, verify user owns this ticket
     if (!isAdmin) {
+      const supabase = await createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+
       const { data: ticket, error: ticketError } = await adminClient
         .from('support_tickets')
         .select('user_id')
@@ -78,17 +80,27 @@ export async function POST(
 ) {
   try {
     const { id: ticketId } = await params
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const auth = await verifyAdminAccess()
+    const isAdmin = !('error' in auth)
+
+    if ('error' in auth && auth.status === 401) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
+    }
+
+    let user
+    if (!('error' in auth)) {
+      user = auth.user
+    } else {
+      const supabase = await createClient()
+      const { data } = await supabase.auth.getUser()
+      user = data.user
+    }
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const adminClient = createAdminClient()
-    const isAdmin = isUserAdmin(user)
 
     // Get ticket details
     const { data: ticket, error: ticketError } = await adminClient

@@ -1,8 +1,6 @@
 import { NextRequest } from 'next/server'
 import { streamText } from 'ai'
-import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
-import { isUserAdmin } from '@/lib/supabase/admin'
+import { verifyAdminAccess, createAdminClient } from '@/lib/supabase/admin'
 import { gateway } from '@/lib/ai/gateway'
 import { buildIndividualCategoryPrompt } from '@/lib/viva/prompts/single-category-vision-prompt'
 import {
@@ -24,14 +22,9 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now()
 
   try {
-    const supabase = await createClient()
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
-    }
-
-    if (!isUserAdmin(user)) {
-      return new Response(JSON.stringify({ error: 'Admin access required' }), { status: 403 })
+    const auth = await verifyAdminAccess()
+    if ('error' in auth) {
+      return new Response(JSON.stringify({ error: auth.error }), { status: auth.status })
     }
 
     const body = await request.json()

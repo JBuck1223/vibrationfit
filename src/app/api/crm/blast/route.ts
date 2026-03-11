@@ -1,9 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
-import { isUserAdmin } from '@/lib/supabase/admin'
+import { verifyAdminAccess, createAdminClient } from '@/lib/supabase/admin'
 import { queryRecipients, type BlastFilters } from '@/lib/crm/blast-filters'
 import { sendAndLogEmail } from '@/lib/email/send'
 import { getSenderById, DEFAULT_CRM_SENDER } from '@/lib/crm/senders'
@@ -23,18 +21,11 @@ const SYNC_THRESHOLD = 50
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const auth = await verifyAdminAccess()
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
-
-    if (!isUserAdmin(user)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
+    const { user } = auth
 
     const { filters, subject, textBody, senderId } = (await request.json()) as {
       filters: BlastFilters
