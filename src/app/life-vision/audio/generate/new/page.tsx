@@ -18,9 +18,9 @@ import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowRight, Volume2, Headphones, LayoutGrid, MousePointerClick, ListMusic, Music2, Layers } from 'lucide-react'
 
 const AUDIO_GENERATE_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/intensive/07-audio-generation-1080p.mp4'
+  'https://media.vibrationfit.com/site-assets/video/intensive/07-audio-generation-3-11-26-1080p.mp4'
 const AUDIO_GENERATE_POSTER =
-  'https://media.vibrationfit.com/site-assets/video/intensive/07-audio-generation-thumb.0000000.jpg'
+  'https://media.vibrationfit.com/site-assets/video/intensive/07-audio-generation-3-11-26-thumb.0000000.jpg'
 
 export default function AudioGenerateNewPage() {
   const router = useRouter()

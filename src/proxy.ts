@@ -9,8 +9,9 @@ export async function proxy(req: NextRequest) {
   // Handle auth params redirect (existing logic)
   const hasAuthParams = url.searchParams.has('code') || url.searchParams.has('token_hash') || url.searchParams.has('type')
   const isAuthPath = pathname.startsWith('/auth')
+  const isApiRoute = pathname.startsWith('/api')
 
-  if (hasAuthParams && !isAuthPath) {
+  if (hasAuthParams && !isAuthPath && !isApiRoute) {
     const redirectUrl = new URL('/auth/callback', url.origin)
     // Preserve all query params
     url.searchParams.forEach((value, key) => {
