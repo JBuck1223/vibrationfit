@@ -413,7 +413,7 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
           metadata: {
             custom_mix: true,
             background_track_id: combo.background_track_id,
-            background_track_url: selectedTrack.file_url,
+            background_track_url: selectedTrack?.file_url,
             mix_ratio_id: combo.mix_ratio_id,
             voice_volume: selectedRatio.voice_volume,
             bg_volume: selectedRatio.bg_volume,
@@ -442,7 +442,7 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
           batchId: batch.id,
           voice: selectedBaseVoice,
           sections: sectionsPayload,
-          backgroundTrackUrl: selectedTrack.file_url,
+          backgroundTrackUrl: selectedTrack?.file_url,
           voiceVolume: selectedRatio.voice_volume,
           bgVolume: selectedRatio.bg_volume,
           binauralTrackUrl: selectedBinaural?.file_url || null,
@@ -604,7 +604,7 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
             selected_sections: mixAllSections ? null : selectedMixSections,
             audio_set_name: mixSetName || null,
             background_track_id: selectedBackgroundTrack,
-            background_track_url: selectedTrack.file_url,
+            background_track_url: selectedTrack?.file_url,
             mix_ratio_id: selectedMixRatio,
             // Store ADJUSTED volumes (accounting for binaural if present)
             voice_volume: selectedBinaural && binauralVolume > 0
@@ -638,7 +638,7 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
         sections: sectionsPayload,
         voice: selectedBaseVoice,
         batchId: batch.id,
-        backgroundTrackUrl: selectedTrack.file_url,
+        backgroundTrackUrl: selectedTrack?.file_url,
         voiceVolume: selectedRatio.voice_volume,
         bgVolume: selectedRatio.bg_volume,
         audioSetName: mixSetName || undefined,
