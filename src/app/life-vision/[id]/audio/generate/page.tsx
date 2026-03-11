@@ -9,7 +9,6 @@ import Link from 'next/link'
 import { getVisionCategoryKeys, VISION_CATEGORIES } from '@/lib/design-system'
 import { ChevronDown } from 'lucide-react'
 import { SectionSelector } from '@/components/SectionSelector'
-import { FormatSelector, OutputFormat } from '@/components/FormatSelector'
 
 interface Voice {
   id: string
@@ -61,7 +60,6 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
   // Section Selection for Voice Generation
   const [generateAllSections, setGenerateAllSections] = useState(true)
   const [selectedVoiceSections, setSelectedVoiceSections] = useState<string[]>([])
-  const [outputFormat, setOutputFormat] = useState<OutputFormat>('both')
   const [isVoiceSetDropdownOpen, setIsVoiceSetDropdownOpen] = useState(false)
   const [selectedVoiceSetId, setSelectedVoiceSetId] = useState<string | null>(null)
   const [selectedSetTracks, setSelectedSetTracks] = useState<any[]>([])
@@ -316,10 +314,6 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
         }
       }
 
-      // Include the full concatenated track in the count when format is 'both' or 'combined'
-      const includesFullTrack = (outputFormat === 'both' || outputFormat === 'combined') && sectionsPayload.length > 1
-      const totalTracksExpected = sectionsPayload.length + (includesFullTrack ? 1 : 0)
-
       // Create batch with metadata
       const { data: batch, error: batchError } = await supabase
         .from('audio_generation_batches')
@@ -329,10 +323,9 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
           variant_ids: ['standard'],
           voice_id: selectedVoiceForNew,
           sections_requested: sectionsPayload,
-          total_tracks_expected: totalTracksExpected,
+          total_tracks_expected: sectionsPayload.length,
           status: 'pending',
           metadata: {
-            output_format: outputFormat,
             generate_all_sections: generateAllSections,
             selected_sections: generateAllSections ? null : selectedVoiceSections,
             audio_set_name: audioSetName || null
@@ -638,23 +631,6 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
                   onAllSelectedChange={setGenerateAllSections}
                   selectedSections={selectedVoiceSections}
                   onSelectedSectionsChange={setSelectedVoiceSections}
-                />
-              </div>
-
-              {/* Divider */}
-              <div className="border-t border-[#333]" />
-
-              {/* Output Format Selection */}
-              <div className="py-4">
-                <div className="flex flex-col items-center mb-4">
-                  <div className="w-12 h-12 rounded-full bg-primary-500/20 flex items-center justify-center mb-2">
-                    <span className="text-primary-500 font-bold text-2xl">3</span>
-                  </div>
-                  <h3 className="text-lg md:text-xl font-semibold text-white">Output Format</h3>
-                </div>
-                <FormatSelector
-                  value={outputFormat}
-                  onChange={setOutputFormat}
                 />
               </div>
 

@@ -24,8 +24,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 1. Verify user has access to source vision
-    const { data: sourceVision, error: fetchError } = await supabase
+    // 1. Verify user is a member of the target household
+    const { data: isMember, error: memberError } = await supabase
+      .rpc('is_active_household_member', { 
+        h: householdId, 
+        u: user.id 
+      })
+
+    if (memberError || !isMember) {
+      return NextResponse.json(
+        { error: 'You are not a member of this household' },
+        { status: 403 }
+      )
+    }
+
+    // 2. Fetch source vision using service client (bypasses RLS so any
+    //    household member can convert another member's personal vision)
+    const { createServiceClient } = await import('@/lib/supabase/service')
+    const serviceClient = createServiceClient()
+
+    const { data: sourceVision, error: fetchError } = await serviceClient
       .from('vision_versions')
       .select('*')
       .eq('id', sourceVisionId)
@@ -38,7 +56,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 2. Verify source is a personal vision (not already household)
+    // 3. Verify source is a personal vision (not already household)
     if (sourceVision.household_id) {
       return NextResponse.json(
         { error: 'Source vision is already a household vision' },
@@ -46,25 +64,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 3. Verify user owns the source vision
-    if (sourceVision.user_id !== user.id) {
-      return NextResponse.json(
-        { error: 'You do not have permission to convert this vision' },
-        { status: 403 }
-      )
-    }
-
-    // 4. Verify user is a member of the target household
-    // Use SECURITY DEFINER function to bypass RLS on household_members
-    const { data: isMember, error: memberError } = await supabase
-      .rpc('is_active_household_member', { 
-        h: householdId, 
-        u: user.id 
+    // 4. Verify the source vision owner is also in this household
+    const { data: ownerIsMember } = await supabase
+      .rpc('is_active_household_member', {
+        h: householdId,
+        u: sourceVision.user_id
       })
 
-    if (memberError || !isMember) {
+    if (!ownerIsMember) {
       return NextResponse.json(
-        { error: 'You are not a member of this household' },
+        { error: 'Vision owner is not a member of this household' },
         { status: 403 }
       )
     }

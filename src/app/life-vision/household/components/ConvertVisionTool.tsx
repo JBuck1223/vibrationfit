@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { X, CheckCircle, Sparkles, ArrowRight } from 'lucide-react'
 import { Card, Button, Badge, Spinner } from '@/lib/design-system/components'
-import { createClient } from '@/lib/supabase/client'
 
 interface ConvertVisionToolProps {
   householdId: string
@@ -48,29 +47,14 @@ export function ConvertVisionTool({
 
   async function loadPersonalVisions() {
     try {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (!user) {
-        setError('Please log in')
-        setLoading(false)
-        return
+      const response = await fetch('/api/household/visions?type=personal')
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load personal visions')
       }
 
-      // Get all household member IDs
-      const memberIds = householdMembers.map(m => m.user_id)
-
-      // Fetch personal visions from all household members
-      const { data: visions, error: visionError } = await supabase
-        .from('vision_versions')
-        .select('id, user_id, title, created_at, is_active')
-        .in('user_id', memberIds)
-        .is('household_id', null)  // Only personal visions
-        .order('created_at', { ascending: false })
-
-      if (visionError) throw visionError
-
-      setPersonalVisions(visions || [])
+      setPersonalVisions(data.visions || [])
       setLoading(false)
     } catch (err: any) {
       console.error('Error loading personal visions:', err)

@@ -30,7 +30,7 @@ function LoginForm() {
   const [showCodeEntry, setShowCodeEntry] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
-  const returnTo = searchParams.get('returnTo')
+  const returnTo = searchParams.get('returnTo') ?? searchParams.get('redirect')
   const supabase = createClient()
 
   // If redirected with magic link errors (e.g., otp_expired), auto-switch to code entry

@@ -553,56 +553,47 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
           )}
 
           {/* Action Buttons */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 max-w-5xl mx-auto">
-            <Button
-              onClick={() => router.push(`/life-vision/${visionId}/audio/generate`)}
-              variant="outline"
-              size="sm"
-              className="w-full col-span-2 lg:col-span-1 flex items-center justify-center gap-2"
-            >
-              <Icon icon={AudioLines} size="sm" className="shrink-0" />
-              <span>Generate</span>
+          <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 md:gap-4">
+            <Button variant="outline" size="sm" asChild className="w-full">
+              <Link href={`/life-vision/${visionId}/audio/generate`} className="flex items-center justify-center gap-2">
+                <Icon icon={AudioLines} size="sm" className="shrink-0" />
+                <span>Generate</span>
+              </Link>
+            </Button>
+
+            <Button variant="outline" size="sm" asChild className="w-full">
+              <Link href={`/life-vision/${visionId}/audio/mix`} className="flex items-center justify-center gap-2">
+                <Icon icon={Music} size="sm" className="shrink-0" />
+                <span>Create Mix</span>
+              </Link>
             </Button>
             
-            <Button
-              onClick={() => router.push(`/life-vision/${visionId}/audio/record`)}
-              variant="outline"
-              size="sm"
-              className="w-full flex items-center justify-center gap-2"
-            >
-              <Icon icon={Mic} size="sm" className="shrink-0" />
-              <span>Record</span>
+            <Button variant="outline" size="sm" asChild className="w-full">
+              <Link href={`/life-vision/${visionId}/audio/record`} className="flex items-center justify-center gap-2">
+                <Icon icon={Mic} size="sm" className="shrink-0" />
+                <span>Record</span>
+              </Link>
             </Button>
             
-            <Button
-              onClick={() => router.push(`/life-vision/${visionId}/audio/queue`)}
-              variant="outline"
-              size="sm"
-              className="w-full flex items-center justify-center gap-2"
-            >
-              <Icon icon={Clock} size="sm" className="shrink-0" />
-              <span>Queue</span>
+            <Button variant="outline" size="sm" asChild className="w-full">
+              <Link href={`/life-vision/${visionId}/audio/queue`} className="flex items-center justify-center gap-2">
+                <Icon icon={Clock} size="sm" className="shrink-0" />
+                <span>Queue</span>
+              </Link>
             </Button>
             
-            <Button
-              onClick={() => router.push(`/life-vision/audio`)}
-              variant="outline"
-              size="sm"
-              className="w-full flex items-center justify-center gap-2"
-            >
-              <Icon icon={Headphones} size="sm" className="shrink-0" />
-              <span>All Audios</span>
+            <Button variant="outline" size="sm" asChild className="w-full">
+              <Link href={`/life-vision/audio`} className="flex items-center justify-center gap-2">
+                <Icon icon={Headphones} size="sm" className="shrink-0" />
+                <span>All Audios</span>
+              </Link>
             </Button>
             
-            <Button
-              onClick={() => router.push(`/life-vision/${visionId}`)}
-              variant="outline"
-              size="sm"
-              className="w-full flex items-center justify-center gap-2"
-            >
-              <Icon icon={Eye} size="sm" className="shrink-0" />
-              <span className="lg:hidden">Vision</span>
-              <span className="hidden lg:inline">View Vision</span>
+            <Button variant="outline" size="sm" asChild className="w-full">
+              <Link href={`/life-vision/${visionId}`} className="flex items-center justify-center gap-2">
+                <Icon icon={Eye} size="sm" className="shrink-0" />
+                <span>View Vision</span>
+              </Link>
             </Button>
           </div>
         </PageHero>

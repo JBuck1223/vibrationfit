@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Users, Heart, Copy, Eye, Sparkles, Edit3, Trash2 } from 'lucide-react'
+import { Users, Heart, Copy, Eye, Sparkles, Edit3, Trash2 } from 'lucide-react'
 import { Card, Button, Badge, Spinner, Container, Stack, PageHero } from '@/lib/design-system/components'
 import { VisionVersionCard } from '../components/VisionVersionCard'
 import { getVisionCategoryKeys } from '@/lib/design-system/vision-categories'
@@ -338,7 +338,7 @@ export default function HouseholdVisionsPage() {
                 Convert Personal Vision
               </Button>
               <Button 
-                variant="primary"
+                variant="outline"
                 onClick={() => setShowMergeTool(true)}
               >
                 <Copy className="w-4 h-4 mr-2" />

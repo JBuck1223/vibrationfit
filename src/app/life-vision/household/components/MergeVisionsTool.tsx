@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { X } from 'lucide-react'
 import { Card, Button, Spinner, Badge } from '@/lib/design-system/components'
-import { createClient } from '@/lib/supabase/client'
 
 interface VisionData {
   id: string
@@ -46,27 +45,17 @@ export function MergeVisionsTool({
   async function loadPersonalVisions() {
     try {
       setLoading(true)
-      const supabase = createClient()
 
-      // Get all household members' user IDs
-      const memberIds = householdMembers.map(m => m.user_id)
+      const response = await fetch('/api/household/visions?type=personal')
+      const data = await response.json()
 
-      // Fetch all personal visions from household members
-      const { data, error } = await supabase
-        .from('vision_versions')
-        .select('id, user_id, title, created_at')
-        .in('user_id', memberIds)
-        .is('household_id', null)  // Only personal visions
-        .eq('is_draft', false)      // Only completed visions
-        .order('created_at', { ascending: false })
-
-      if (error) {
-        console.error('Error fetching personal visions:', error)
+      if (!response.ok) {
+        console.error('Error fetching personal visions:', data.error)
         setError('Failed to load personal visions')
         return
       }
 
-      setPersonalVisions(data || [])
+      setPersonalVisions(data.visions || [])
     } catch (err) {
       console.error('Error:', err)
       setError('Failed to load personal visions')

@@ -100,6 +100,11 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
   const [previewingTrack, setPreviewingTrack] = useState<string | null>(null)
   const [previewProgress, setPreviewProgress] = useState<number>(0)
   const audioRef = React.useRef<HTMLAudioElement | null>(null)
+
+  const isVoiceOnly = (() => {
+    const ratio = mixRatios.find(r => r.id === selectedMixRatio)
+    return ratio ? ratio.bg_volume === 0 : false
+  })()
   
   // Initialize audio element on mount
   useEffect(() => {
@@ -461,13 +466,13 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
   }
 
   async function handleGenerateCustomMix() {
-    if (!selectedBackgroundTrack) {
-      alert('Please select a background track')
+    if (!selectedMixRatio) {
+      alert('Please select a mix ratio')
       return
     }
 
-    if (!selectedMixRatio) {
-      alert('Please select a mix ratio')
+    if (!isVoiceOnly && !selectedBackgroundTrack) {
+      alert('Please select a background track')
       return
     }
 
@@ -556,7 +561,7 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
         ? binauralTracks.find(t => t.id === selectedBinauralTrack)
         : null
 
-      if (!selectedTrack || !selectedRatio) {
+      if (!selectedRatio || (!isVoiceOnly && !selectedTrack)) {
         alert('Invalid track or ratio selection')
         setGenerating(false)
         return
@@ -1047,7 +1052,62 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
           {/* CUSTOM BUILD MODE */}
           {mixMode === 'custom' && (
             <>
-              {/* Background Track Selection */}
+              {/* 1. Mix Ratio Selection */}
+              <Card variant="glass" className="p-4 md:p-6 mb-6 overflow-visible relative z-30">
+                <button 
+                  onClick={() => setShowMixRatioSection(!showMixRatioSection)}
+                  className={`w-full relative flex flex-col items-center justify-center ${showMixRatioSection ? 'mb-3' : ''}`}
+                >
+                  <h3 className="text-base font-semibold text-white">Choose Mix Ratio</h3>
+                  {!showMixRatioSection && (
+                    <p className="text-xs text-neutral-400 mt-1">
+                      {selectedMixRatio 
+                        ? (() => {
+                            const ratio = mixRatios.find(r => r.id === selectedMixRatio)
+                            if (!ratio) return 'None selected'
+                            return `${ratio.voice_volume}% Voice / ${ratio.bg_volume}% BG`
+                          })()
+                        : 'None selected'}
+                    </p>
+                  )}
+                  <div className="absolute right-0 top-1/2 -translate-y-1/2">
+                    {showMixRatioSection ? (
+                      <ChevronUp className="w-5 h-5 text-neutral-400" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-neutral-400" />
+                    )}
+                  </div>
+                </button>
+                
+                {showMixRatioSection && (
+                <>
+                <p className="text-sm text-neutral-400 mb-3 text-center">
+                  {selectedBinauralTrack && binauralVolume > 0
+                    ? `Voice + Background ratio (Binaural at ${binauralVolume}%)`
+                    : 'Voice + Background balance'}
+                </p>
+                <Select
+                  value={selectedMixRatio}
+                  onChange={(value) => setSelectedMixRatio(value)}
+                  placeholder="Select a mix ratio..."
+                  options={mixRatios.map((ratio) => {
+                    const cleanName = ratio.name.replace(/\s*\(\d+\/\d+\)\s*$/, '')
+                    const adjusted = (selectedBinauralTrack && binauralVolume > 0)
+                      ? calculateAdjustedVolumes(ratio.voice_volume, ratio.bg_volume, binauralVolume)
+                      : { voice: ratio.voice_volume, bg: ratio.bg_volume, binaural: 0 }
+                    
+                    return {
+                      value: ratio.id,
+                      label: `${cleanName} - ${adjusted.voice}% Voice / ${adjusted.bg}% BG${adjusted.binaural > 0 ? ` / ${adjusted.binaural}% Binaural` : ''}`
+                    }
+                  })}
+                />
+                </>
+                )}
+              </Card>
+
+              {/* 2. Background Track Selection (hidden when ratio is voice-only) */}
+              {!isVoiceOnly && (
               <Card variant="glass" className="p-4 md:p-6 mb-6">
                 <button 
                   onClick={() => setShowBackgroundSection(!showBackgroundSection)}
@@ -1122,10 +1182,8 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
                               </Badge>
                             </div>
                             <div className="relative flex-shrink-0 w-9 h-9">
-                              {/* Circular progress indicator */}
                               {isPreviewing && (
                                 <svg className="absolute inset-0 w-9 h-9 -rotate-90 pointer-events-none" viewBox="0 0 36 36" style={{ zIndex: 10 }}>
-                                  {/* Background track */}
                                   <circle
                                     cx="18"
                                     cy="18"
@@ -1134,7 +1192,6 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
                                     stroke="rgba(31,31,31,0.3)"
                                     strokeWidth="2"
                                   />
-                                  {/* Progress */}
                                   <circle
                                     cx="18"
                                     cy="18"
@@ -1167,63 +1224,10 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
                 </>
                 )}
               </Card>
+              )}
 
-              {/* Mix Ratio Selection */}
-              <Card variant="glass" className="p-4 md:p-6 mb-6 overflow-visible relative z-30">
-                <button 
-                  onClick={() => setShowMixRatioSection(!showMixRatioSection)}
-                  className={`w-full relative flex flex-col items-center justify-center ${showMixRatioSection ? 'mb-3' : ''}`}
-                >
-                  <h3 className="text-base font-semibold text-white">Choose Mix Ratio</h3>
-                  {!showMixRatioSection && (
-                    <p className="text-xs text-neutral-400 mt-1">
-                      {selectedMixRatio 
-                        ? (() => {
-                            const ratio = mixRatios.find(r => r.id === selectedMixRatio)
-                            if (!ratio) return 'None selected'
-                            return `${ratio.voice_volume}% Voice / ${ratio.bg_volume}% BG`
-                          })()
-                        : 'None selected'}
-                    </p>
-                  )}
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2">
-                    {showMixRatioSection ? (
-                      <ChevronUp className="w-5 h-5 text-neutral-400" />
-                    ) : (
-                      <ChevronDown className="w-5 h-5 text-neutral-400" />
-                    )}
-                  </div>
-                </button>
-                
-                {showMixRatioSection && (
-                <>
-                <p className="text-sm text-neutral-400 mb-3 text-center">
-                  {selectedBinauralTrack && binauralVolume > 0
-                    ? `Voice + Background ratio (Binaural at ${binauralVolume}%)`
-                    : 'Voice + Background balance'}
-                </p>
-                <Select
-                  value={selectedMixRatio}
-                  onChange={(value) => setSelectedMixRatio(value)}
-                  placeholder="Select a mix ratio..."
-                  options={mixRatios.map((ratio) => {
-                    const cleanName = ratio.name.replace(/\s*\(\d+\/\d+\)\s*$/, '')
-                    const adjusted = (selectedBinauralTrack && binauralVolume > 0)
-                      ? calculateAdjustedVolumes(ratio.voice_volume, ratio.bg_volume, binauralVolume)
-                      : { voice: ratio.voice_volume, bg: ratio.bg_volume, binaural: 0 }
-                    
-                    return {
-                      value: ratio.id,
-                      label: `${cleanName} - ${adjusted.voice}% Voice / ${adjusted.bg}% BG${adjusted.binaural > 0 ? ` / ${adjusted.binaural}% Binaural` : ''}`
-                    }
-                  })}
-                />
-                </>
-                )}
-              </Card>
-
-              {/* Optional Binaural Enhancement (hidden during intensive; graduate unlock) */}
-              {binauralTracks.length > 0 && !isIntensiveMode && (
+              {/* 3. Optional Binaural Enhancement (hidden when voice-only or during intensive) */}
+              {!isVoiceOnly && binauralTracks.length > 0 && !isIntensiveMode && (
                 <Card variant="glass" className="p-4 md:p-6 mb-6 relative z-10">
                   <button 
                     onClick={() => setShowBinauralSection(!showBinauralSection)}
@@ -1262,7 +1266,6 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
                   </div>
                   
                   <div className="space-y-2 mb-4 max-h-80 overflow-y-auto">
-                    {/* None option */}
                     <div
                       className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${
                         !selectedBinauralTrack 
@@ -1318,10 +1321,8 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
                               )}
                             </div>
                             <div className="relative flex-shrink-0 w-9 h-9">
-                              {/* Circular progress indicator */}
                               {isPreviewing && (
                                 <svg className="absolute inset-0 w-9 h-9 -rotate-90 pointer-events-none" viewBox="0 0 36 36" style={{ zIndex: 10 }}>
-                                  {/* Background track */}
                                   <circle
                                     cx="18"
                                     cy="18"
@@ -1330,7 +1331,6 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
                                     stroke="rgba(31,31,31,0.3)"
                                     strokeWidth="2"
                                   />
-                                  {/* Progress */}
                                   <circle
                                     cx="18"
                                     cy="18"
@@ -1386,7 +1386,7 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
                 </Card>
               )}
 
-              {/* Section Selection */}
+              {/* 4. Section Selection */}
               <Card variant="glass" className="p-4 md:p-6 mb-6 relative z-10">
                 <button 
                   onClick={() => setShowSectionsSection(!showSectionsSection)}
@@ -1473,7 +1473,7 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
               })()}
 
               {/* Mix Summary */}
-              {selectedBackgroundTrack && selectedMixRatio && (
+              {selectedMixRatio && (isVoiceOnly || selectedBackgroundTrack) && (
                 <div className="mb-6">
                   <Card variant="glass" className="p-4">
                     <h4 className="text-base font-semibold text-white mb-4 text-center">Final Mix Preview</h4>
@@ -1495,10 +1495,12 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
                               <span className="text-neutral-300">Your Voice:</span>
                               <span className="text-white font-semibold">{adjusted.voice}%</span>
                             </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-neutral-300">{selectedBg?.display_name}:</span>
-                              <span className="text-white font-semibold">{adjusted.bg}%</span>
-                            </div>
+                            {!isVoiceOnly && selectedBg && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-neutral-300">{selectedBg.display_name}:</span>
+                                <span className="text-white font-semibold">{adjusted.bg}%</span>
+                              </div>
+                            )}
                             {selectedBin && (
                               <div className="flex items-center justify-between">
                                 <span className="text-purple-300">{selectedBin.display_name}:</span>
@@ -1524,7 +1526,7 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
                 <Button 
                   variant="primary" 
                   onClick={handleGenerateCustomMix}
-                  disabled={generating || !selectedBackgroundTrack || !selectedMixRatio || !selectedBaseVoice || (!mixAllSections && selectedMixSections.length === 0)}
+                  disabled={generating || !selectedMixRatio || !selectedBaseVoice || (!isVoiceOnly && !selectedBackgroundTrack) || (!mixAllSections && selectedMixSections.length === 0)}
                   className="w-full md:w-auto"
                 >
                   {generating ? (

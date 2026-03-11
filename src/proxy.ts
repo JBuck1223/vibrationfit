@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
-import { isAdminRoute, createAdminResponse } from './middleware/admin'
+import { isAdminRoute, checkIsAdmin, createAdminResponse } from './middleware/admin'
 
 export async function proxy(req: NextRequest) {
   const url = req.nextUrl
@@ -49,12 +49,9 @@ export async function proxy(req: NextRequest) {
         return createAdminResponse(req)
       }
 
-      // Check if user is admin (email check + metadata check)
-      const adminEmails = ['buckinghambliss@gmail.com', 'admin@vibrationfit.com']
-      const isEmailAdmin = adminEmails.includes(user.email?.toLowerCase() || '')
-      const isMetadataAdmin = user.user_metadata?.is_admin === true
+      const hasAdminAccess = await checkIsAdmin(supabase, { id: user.id, email: user.email })
       
-      if (!isEmailAdmin && !isMetadataAdmin) {
+      if (!hasAdminAccess) {
         return createAdminResponse(req)
       }
 
