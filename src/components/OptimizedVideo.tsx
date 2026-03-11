@@ -192,9 +192,9 @@ export function OptimizedVideo({
   }
 
   // Auto-determine variant from context if not explicitly provided
-  const getVariant = (): 'default' | 'hero' | 'card' => {
-    if (variant) return variant
-    if (context === 'hero') return 'hero'
+  const getVariant = (): 'default' | 'card' => {
+    if (variant === 'card') return 'card'
+    if (variant === 'default' || variant === 'hero') return 'default'
     if (context === 'list') return 'card'
     return 'default'
   }

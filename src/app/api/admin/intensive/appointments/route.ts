@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     }
 
     const appointments = await Promise.all(
-      checklistData.map(async (item) => {
+      checklistData.map(async (item: any) => {
         const { data: profileData } = await supabase
           .from('user_profiles')
           .select('email, first_name, last_name')

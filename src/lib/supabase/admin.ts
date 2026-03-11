@@ -28,7 +28,7 @@ export function createAdminClient() {
  * Returns the authenticated user or an error response object.
  */
 export async function verifyAdminAccess(): Promise<
-  { user: User; supabase: ReturnType<typeof createClient> } | { error: string; status: number }
+  { user: User; supabase: any } | { error: string; status: number }
 > {
   const supabase = await createServerSupabase()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
