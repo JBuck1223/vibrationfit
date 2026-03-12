@@ -110,8 +110,13 @@ export default function AdminScheduleCallPage() {
   // Bookings tab state
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loadingBookings, setLoadingBookings] = useState(false)
-  const [bookingFilter, setBookingFilter] = useState<'all' | 'upcoming' | 'past'>('all')
+  const [bookingFilter, setBookingFilter] = useState<'all' | 'pending' | 'upcoming' | 'past'>('all')
   const [syncingRecordings, setSyncingRecordings] = useState(false)
+
+  // Confirm & assign state
+  const [confirmingBookingId, setConfirmingBookingId] = useState<string | null>(null)
+  const [confirmStaffId, setConfirmStaffId] = useState<string>('')
+  const [confirmingSave, setConfirmingSave] = useState(false)
 
   useEffect(() => {
     loadInitialData()
@@ -241,6 +246,41 @@ export default function AdminScheduleCallPage() {
     }
   }
 
+  const handleConfirmBooking = async (bookingId: string) => {
+    if (!confirmStaffId) {
+      toast.error('Please select a staff member')
+      return
+    }
+
+    setConfirmingSave(true)
+    try {
+      const res = await fetch('/api/admin/intensive/schedule-call', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          booking_id: bookingId,
+          staff_id: confirmStaffId,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to confirm booking')
+      }
+
+      toast.success(`Booking confirmed with ${data.staff_name || 'staff'}`)
+      setConfirmingBookingId(null)
+      setConfirmStaffId('')
+      await loadBookings()
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unknown error'
+      toast.error(`Failed to confirm: ${msg}`)
+    } finally {
+      setConfirmingSave(false)
+    }
+  }
+
   const handleSelectUser = (user: IntensiveUser) => {
     setSelectedUser(user)
     setContactEmail(user.email || '')
@@ -345,8 +385,10 @@ export default function AdminScheduleCallPage() {
 
   // Booking filters
   const now = new Date()
+  const pendingCount = bookings.filter((b) => b.status === 'pending').length
   const filteredBookings = bookings.filter((b) => {
-    if (bookingFilter === 'upcoming') return new Date(b.scheduled_at) >= now && b.status !== 'cancelled'
+    if (bookingFilter === 'pending') return b.status === 'pending'
+    if (bookingFilter === 'upcoming') return new Date(b.scheduled_at) >= now && b.status !== 'cancelled' && b.status !== 'pending'
     if (bookingFilter === 'past') return new Date(b.scheduled_at) < now || b.status === 'completed'
     return true
   })
@@ -730,7 +772,7 @@ export default function AdminScheduleCallPage() {
               {/* Filters */}
               <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
                 <div className="flex gap-2">
-                  {(['all', 'upcoming', 'past'] as const).map((filter) => (
+                  {(['all', 'pending', 'upcoming', 'past'] as const).map((filter) => (
                     <Button
                       key={filter}
                       variant={bookingFilter === filter ? 'primary' : 'ghost'}
@@ -738,6 +780,9 @@ export default function AdminScheduleCallPage() {
                       onClick={() => setBookingFilter(filter)}
                     >
                       {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                      {filter === 'pending' && pendingCount > 0 && (
+                        <span className="ml-1 bg-red-500 text-white text-[10px] rounded-full px-1.5 py-0.5 font-bold">{pendingCount}</span>
+                      )}
                     </Button>
                   ))}
                 </div>
@@ -827,39 +872,97 @@ export default function AdminScheduleCallPage() {
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2 flex-wrap ml-[52px] md:ml-0">
-                            <Badge
-                              variant={
-                                booking.status === 'confirmed' ? 'success'
-                                : booking.status === 'completed' ? 'info'
-                                : booking.status === 'cancelled' ? 'neutral'
-                                : 'warning'
-                              }
-                              className="text-xs"
-                            >
-                              {booking.status}
-                            </Badge>
-
-                            {booking.recording_url && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => window.open(booking.recording_url!, '_blank')}
+                          <div className="flex flex-col items-end gap-2 ml-[52px] md:ml-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Badge
+                                variant={
+                                  booking.status === 'confirmed' ? 'success'
+                                  : booking.status === 'completed' ? 'info'
+                                  : booking.status === 'cancelled' ? 'neutral'
+                                  : 'warning'
+                                }
+                                className="text-xs"
                               >
-                                <Play className="w-3 h-3 mr-1" />
-                                Recording
-                              </Button>
-                            )}
+                                {booking.status}
+                              </Badge>
 
-                            {booking.video_session_id && !isPast && booking.status === 'confirmed' && (
-                              <Button
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => window.open(`/session/${booking.video_session_id}`, '_blank')}
-                              >
-                                <ExternalLink className="w-3 h-3 mr-1" />
-                                Join
-                              </Button>
+                              {booking.recording_url && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => window.open(booking.recording_url!, '_blank')}
+                                >
+                                  <Play className="w-3 h-3 mr-1" />
+                                  Recording
+                                </Button>
+                              )}
+
+                              {booking.video_session_id && !isPast && booking.status === 'confirmed' && (
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => window.open(`/session/${booking.video_session_id}`, '_blank')}
+                                >
+                                  <ExternalLink className="w-3 h-3 mr-1" />
+                                  Join
+                                </Button>
+                              )}
+
+                              {booking.status === 'pending' && confirmingBookingId !== booking.id && (
+                                <Button
+                                  variant="accent"
+                                  size="sm"
+                                  onClick={() => {
+                                    setConfirmingBookingId(booking.id)
+                                    setConfirmStaffId('')
+                                  }}
+                                >
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  Confirm & Assign
+                                </Button>
+                              )}
+                            </div>
+
+                            {booking.status === 'pending' && confirmingBookingId === booking.id && (
+                              <div className="w-full border border-primary-500/30 rounded-xl p-3 bg-primary-500/5 mt-1">
+                                <p className="text-xs font-medium text-primary-500 mb-2">Assign a coach to confirm this booking:</p>
+                                <div className="flex flex-col sm:flex-row gap-2">
+                                  <select
+                                    value={confirmStaffId}
+                                    onChange={(e) => setConfirmStaffId(e.target.value)}
+                                    className="flex-1 px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-700 text-sm text-white focus:border-primary-500 focus:outline-none"
+                                  >
+                                    <option value="">Select coach...</option>
+                                    {staff.map((s) => (
+                                      <option key={s.id} value={s.id}>{s.display_name}</option>
+                                    ))}
+                                  </select>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      variant="primary"
+                                      size="sm"
+                                      onClick={() => handleConfirmBooking(booking.id)}
+                                      disabled={!confirmStaffId || confirmingSave}
+                                    >
+                                      {confirmingSave ? (
+                                        <><Spinner size="sm" className="mr-1" /> Confirming...</>
+                                      ) : (
+                                        <><CheckCircle className="w-3 h-3 mr-1" /> Confirm</>
+                                      )}
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        setConfirmingBookingId(null)
+                                        setConfirmStaffId('')
+                                      }}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
                             )}
                           </div>
                         </div>

@@ -225,6 +225,9 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ * POST - Admin creates a new booking directly (already confirmed with staff)
+ */
 export async function POST(request: NextRequest) {
   try {
     const auth = await verifyAdminAccess()
@@ -260,7 +263,6 @@ export async function POST(request: NextRequest) {
       ? `Calibration Call with ${staff_name}`
       : 'Activation Intensive - Calibration Call'
 
-    // Create video session via the existing API (as the admin user)
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'
     const sessionResponse = await fetch(`${baseUrl}/api/video/sessions`, {
       method: 'POST',
@@ -293,7 +295,6 @@ export async function POST(request: NextRequest) {
     const sessionData = await sessionResponse.json()
     const videoSessionId = sessionData.session.id
 
-    // Create booking using admin client (bypasses RLS)
     const supabase = createAdminClient()
 
     const { data: booking, error: bookingError } = await supabase
@@ -324,7 +325,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Update intensive checklist if we have an intensive_id
     if (intensive_id) {
       const { error: checklistError } = await supabase
         .from('intensive_checklist')
@@ -348,6 +348,125 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error in admin schedule-call POST:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+/**
+ * PATCH - Confirm a pending booking: assign staff, create video session, set status = confirmed
+ */
+export async function PATCH(request: NextRequest) {
+  try {
+    const auth = await verifyAdminAccess()
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
+    }
+
+    const body = await request.json()
+    const { booking_id, staff_id } = body
+
+    if (!booking_id || !staff_id) {
+      return NextResponse.json(
+        { error: 'Missing required fields: booking_id, staff_id' },
+        { status: 400 }
+      )
+    }
+
+    const supabase = createAdminClient()
+
+    // Fetch the pending booking
+    const { data: booking, error: fetchError } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('id', booking_id)
+      .single()
+
+    if (fetchError || !booking) {
+      return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
+    }
+
+    if (booking.status !== 'pending') {
+      return NextResponse.json(
+        { error: `Booking is already ${booking.status}` },
+        { status: 400 }
+      )
+    }
+
+    // Look up staff name
+    const { data: staffMember } = await supabase
+      .from('staff')
+      .select('display_name')
+      .eq('id', staff_id)
+      .single()
+
+    const staffName = staffMember?.display_name || ''
+    const sessionTitle = staffName
+      ? `Calibration Call with ${staffName}`
+      : 'Activation Intensive - Calibration Call'
+
+    // Create video session
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'
+    const sessionResponse = await fetch(`${baseUrl}/api/video/sessions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: request.headers.get('cookie') || '',
+      },
+      body: JSON.stringify({
+        title: sessionTitle,
+        description: 'Your personalized 1-on-1 vision calibration session',
+        session_type: 'one_on_one',
+        scheduled_at: booking.scheduled_at,
+        scheduled_duration_minutes: booking.duration_minutes || SLOT_DURATION,
+        participant_email: booking.contact_email,
+        enable_recording: true,
+        enable_waiting_room: true,
+        staff_id,
+        event_type: EVENT_TYPE,
+      }),
+    })
+
+    if (!sessionResponse.ok) {
+      const sessionError = await sessionResponse.json()
+      return NextResponse.json(
+        { error: `Video session creation failed: ${sessionError.error || 'Unknown error'}` },
+        { status: 500 }
+      )
+    }
+
+    const sessionData = await sessionResponse.json()
+    const videoSessionId = sessionData.session.id
+
+    // Update booking: assign staff, link video session, set confirmed
+    const { data: updatedBooking, error: updateError } = await supabase
+      .from('bookings')
+      .update({
+        staff_id,
+        video_session_id: videoSessionId,
+        title: sessionTitle,
+        status: 'confirmed',
+      })
+      .eq('id', booking_id)
+      .select()
+      .single()
+
+    if (updateError) {
+      console.error('Booking update error:', updateError)
+      return NextResponse.json(
+        { error: `Failed to confirm booking: ${updateError.message}` },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      booking: updatedBooking,
+      video_session_id: videoSessionId,
+      session_join_url: `${baseUrl}/session/${videoSessionId}`,
+      staff_name: staffName,
+    })
+  } catch (error) {
+    console.error('Error in admin schedule-call PATCH:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

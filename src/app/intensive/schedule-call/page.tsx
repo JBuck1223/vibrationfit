@@ -71,7 +71,6 @@ export default function ScheduleCallPage() {
   // Date/time selection
   const [selectedDate, setSelectedDate] = useState<string>('')
   const [selectedTime, setSelectedTime] = useState<string>('')
-  const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null)
   
   // Available data
   const [availableStaff, setAvailableStaff] = useState<AvailableStaff[]>([])
@@ -211,7 +210,6 @@ export default function ScheduleCallPage() {
   const loadSlotsForDate = async (date: string) => {
     setLoadingSlots(true)
     setSelectedTime('')
-    setSelectedStaffId(null)
     
     try {
       const dateObj = new Date(date + 'T00:00:00')
@@ -317,86 +315,25 @@ export default function ScheduleCallPage() {
       if (!user) return
 
       const scheduledDateTime = new Date(`${selectedDate}T${selectedTime}:00`)
-      
-      // Find staff for this slot
-      let assignedStaffId = selectedStaffId
-      let assignedStaffName = ''
-      
-      if (!assignedStaffId) {
-        const availableSlot = availableSlots.find(s => s.time === selectedTime)
-        if (availableSlot) {
-          assignedStaffId = availableSlot.staff_id
-          assignedStaffName = availableSlot.staff_name
-        } else {
-          const { data: staffData } = await supabase
-            .from('staff')
-            .select('id, display_name')
-            .eq('is_active', true)
-            .contains('event_types', [EVENT_TYPE])
-            .limit(1)
-            .single()
-          
-          if (staffData) {
-            assignedStaffId = staffData.id
-            assignedStaffName = staffData.display_name
-          }
-        }
-      } else {
-        const staffMember = availableStaff.find(s => s.id === assignedStaffId)
-        assignedStaffName = staffMember?.display_name || ''
-      }
 
-      // Create video session (only if meeting type is video)
-      let videoSessionId = null
-      if (MEETING_TYPE === 'video') {
-        const sessionResponse = await fetch('/api/video/sessions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: assignedStaffName 
-              ? `Calibration Call with ${assignedStaffName}`
-              : 'Activation Intensive - Calibration Call',
-            description: 'Your personalized 1-on-1 vision calibration session',
-            session_type: 'one_on_one',
-            scheduled_at: scheduledDateTime.toISOString(),
-            scheduled_duration_minutes: SLOT_DURATION,
-            participant_email: contactInfo.email,
-            enable_recording: true,
-            enable_waiting_room: true,
-            staff_id: assignedStaffId,
-            event_type: EVENT_TYPE
-          }),
-        })
-
-        if (!sessionResponse.ok) {
-          const sessionError = await sessionResponse.json()
-          throw new Error(sessionError.error || 'Failed to create video session')
-        }
-
-        const sessionData = await sessionResponse.json()
-        videoSessionId = sessionData.session.id
-        console.log('Video session created:', videoSessionId, sessionData.session.daily_room_url)
-      }
-
-      // Create booking (this auto-creates calendar_event via trigger)
+      // Create pending booking (no staff assigned, no video session yet)
+      // Admin will confirm, assign staff, and create the video session
       const { data: booking, error: bookingError } = await supabase
         .from('bookings')
         .insert({
-          staff_id: assignedStaffId,
+          staff_id: null,
           user_id: user.id,
           event_type: EVENT_TYPE,
-          title: assignedStaffName 
-            ? `Calibration Call with ${assignedStaffName}`
-            : 'Activation Intensive - Calibration Call',
+          title: 'Activation Intensive - Calibration Call',
           description: 'Your personalized 1-on-1 vision calibration session',
           scheduled_at: scheduledDateTime.toISOString(),
           duration_minutes: SLOT_DURATION,
           timezone: contactInfo.timezone,
           meeting_type: MEETING_TYPE,
-          video_session_id: videoSessionId,
+          video_session_id: null,
           contact_email: contactInfo.email,
           contact_phone: phoneToE164(contactInfo.phone),
-          status: 'confirmed'
+          status: 'pending'
         })
         .select()
         .single()
@@ -405,22 +342,21 @@ export default function ScheduleCallPage() {
         console.error('Booking insert error:', bookingError)
         throw new Error(`Booking failed: ${bookingError.message}`)
       }
-      
-      console.log('Booking created:', booking.id, 'with video_session_id:', booking.video_session_id)
 
       // Update intensive checklist
-      const { error: checklistError } = await supabase
-        .from('intensive_checklist')
-        .update({
-          call_scheduled: true,
-          call_scheduled_at: new Date().toISOString(),
-          call_scheduled_time: scheduledDateTime.toISOString()
-        })
-        .eq('intensive_id', intensiveId)
+      if (intensiveId && intensiveId !== 'super-admin-test-mode') {
+        const { error: checklistError } = await supabase
+          .from('intensive_checklist')
+          .update({
+            call_scheduled: true,
+            call_scheduled_at: new Date().toISOString(),
+            call_scheduled_time: scheduledDateTime.toISOString()
+          })
+          .eq('intensive_id', intensiveId)
 
-      if (checklistError) {
-        console.error('Checklist update error:', checklistError)
-        throw new Error(`Checklist update failed: ${checklistError.message}`)
+        if (checklistError) {
+          console.error('Checklist update error:', checklistError)
+        }
       }
 
       setShowStepCompleteModal(true)
@@ -482,7 +418,7 @@ export default function ScheduleCallPage() {
           
           <ReadOnlySection
             title="Your Scheduled Call"
-            helperText="This booking is confirmed. Check your email for the calendar invite."
+            helperText="Your booking has been submitted. You'll receive a confirmation once your coach is assigned."
           >
             <Card className="p-6 bg-neutral-800/50">
               <div className="flex items-center gap-4 mb-4">
@@ -638,11 +574,7 @@ export default function ScheduleCallPage() {
                         return (
                           <button
                             key={time}
-                            onClick={() => {
-                              setSelectedTime(time)
-                              const slot = availableSlots.find(s => s.time === time)
-                              setSelectedStaffId(slot?.staff_id || null)
-                            }}
+                            onClick={() => setSelectedTime(time)}
                             className={`
                               px-3 py-2 rounded-lg border transition-all text-sm
                               ${isSelected 
@@ -693,18 +625,18 @@ export default function ScheduleCallPage() {
                 {saving ? (
                   <>
                     <Spinner size="sm" className="mr-2" />
-                    Scheduling...
+                    Submitting...
                   </>
                 ) : (
                   <>
                     <Calendar className="w-5 h-5 mr-2" />
-                    Schedule Call
+                    Request Call
                   </>
                 )}
               </Button>
 
               <p className="text-xs text-neutral-500 text-center mt-4">
-                You&apos;ll receive a calendar invite via email
+                Your request will be reviewed and confirmed by your coach
               </p>
             </>
           )}
