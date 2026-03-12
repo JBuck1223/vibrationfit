@@ -675,7 +675,7 @@ function VideoCallUI({
             {isSharingScreen ? <ScreenShareOff className="w-5 h-5 md:w-6 md:h-6" /> : <ScreenShare className="w-5 h-5 md:w-6 md:h-6" />}
           </button>
 
-          {/* Recording (host only) */}
+          {/* Recording (host only — auto-starts, but host can stop/restart) */}
           {isHost && (
             <button
               onClick={toggleRecording}
@@ -684,7 +684,7 @@ function VideoCallUI({
                   ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse' 
                   : 'bg-neutral-700 hover:bg-neutral-600 text-white'
               }`}
-              title={isRecording ? 'Stop recording' : 'Start recording'}
+              title={isRecording ? 'Stop recording' : 'Resume recording'}
             >
               {isRecording ? <Square className="w-4 h-4 md:w-5 md:h-5" /> : <Circle className="w-5 h-5 md:w-6 md:h-6" />}
             </button>

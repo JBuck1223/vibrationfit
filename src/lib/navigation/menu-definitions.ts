@@ -69,6 +69,7 @@ import {
   Send,
   Bell,
   Fingerprint,
+  GraduationCap,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -207,6 +208,12 @@ export const userNavigationGroups: NavGroup[] = [
         icon: Award,
         description: 'Your activation badges',
       },
+      {
+        name: 'My Sessions',
+        href: '/sessions',
+        icon: Calendar,
+        description: 'Upcoming calls and past session recordings',
+      },
     ],
   },
   // =================================================================
@@ -329,7 +336,7 @@ export const adminNavigation: NavItem[] = [
   // ============================================================================
   {
     name: 'Admin Dashboard',
-    href: '/admin/users',
+    href: '/admin',
     icon: LayoutDashboard,
     requiresAdmin: true,
     description: 'Admin overview and quick access',
@@ -355,6 +362,8 @@ export const adminNavigation: NavItem[] = [
     children: [
       { name: 'All Users', href: '/admin/users', icon: Users, description: 'View and manage all users' },
       { name: 'Token Analytics', href: '/admin/token-usage', icon: BarChart3, description: 'User token usage analytics' },
+      { name: 'Badges', href: '/admin/badges', icon: Award, description: 'Award and manage badges' },
+      { name: 'Membership Tiers', href: '/admin/membership-tiers', icon: Layers, description: 'Token grants & storage quotas' },
     ]
   },
   
@@ -371,12 +380,14 @@ export const adminNavigation: NavItem[] = [
     children: [
       { name: 'CRM Dashboard', href: '/admin/crm/dashboard', icon: LayoutDashboard, description: 'CRM overview and metrics' },
       { name: 'Campaigns', href: '/admin/crm/campaigns', icon: Megaphone, description: 'Marketing campaigns and tracking' },
-      { name: 'New Campaign', href: '/admin/crm/campaigns/new', icon: Plus, description: 'Create new campaign' },
       { name: 'Leads', href: '/admin/crm/leads', icon: UserPlus, description: 'Lead management' },
       { name: 'Leads Board', href: '/admin/crm/leads/board', icon: Kanban, description: 'Kanban board for leads' },
       { name: 'Members', href: '/admin/crm/members', icon: UserCheck, description: 'Platform members management' },
       { name: 'Members Board', href: '/admin/crm/members/board', icon: Kanban, description: 'Kanban board for members' },
       { name: 'Support Board', href: '/admin/crm/support/board', icon: Headset, description: 'Support tickets board' },
+      { name: 'Orders', href: '/admin/orders', icon: ShoppingCart, description: 'Order status & email delivery' },
+      { name: 'Coupons', href: '/admin/coupons', icon: Star, description: 'Manage coupon codes & discounts' },
+      { name: 'Blasts', href: '/admin/crm/blast', icon: Send, description: 'One-time broadcast messages' },
       { name: 'UTM Builder', href: '/admin/crm/utm-builder', icon: Link2, description: 'Build UTM tracking URLs' },
       { name: 'Attribution', href: '/admin/crm/attribution', icon: Fingerprint, description: 'Visitor acquisition and session tracking' },
     ]
@@ -437,18 +448,18 @@ export const adminNavigation: NavItem[] = [
   },
   
   // ============================================================================
-  // AI & INTELLIGENCE
+  // VIVA & INTELLIGENCE
   // ============================================================================
   {
-    name: 'AI & Models',
+    name: 'VIVA & Models',
     href: '/admin/ai-models',
     icon: Brain,
     requiresAdmin: true,
     hasDropdown: true,
-    description: 'Configure AI models and pricing',
+    description: 'Configure VIVA models and pricing',
     children: [
-      { name: 'AI Model Config', href: '/admin/ai-models', icon: Wand2, description: 'Configure AI model settings' },
-      { name: 'Vision Tester', href: '/admin/vision-tester', icon: Target, description: 'Compare vision output across AI models' },
+      { name: 'VIVA Model Config', href: '/admin/ai-models', icon: Wand2, description: 'Configure VIVA model settings' },
+      { name: 'Vision Tester', href: '/admin/vision-tester', icon: Target, description: 'Compare vision output across models' },
     ]
   },
   
@@ -465,6 +476,7 @@ export const adminNavigation: NavItem[] = [
     children: [
       { name: 'All Schedules', href: '/admin/scheduling', icon: Calendar, description: 'Manage all scheduling' },
       { name: 'Sessions', href: '/admin/sessions', icon: Video, description: 'View booked sessions' },
+      { name: 'Calendar', href: '/admin/calendar', icon: Calendar, description: 'View and manage calendar' },
     ]
   },
 
@@ -473,7 +485,7 @@ export const adminNavigation: NavItem[] = [
   // ============================================================================
   {
     name: 'Intensive Program',
-    href: '/admin/intensive/tester',
+    href: '/admin/intensive/dashboard',
     icon: Rocket,
     requiresAdmin: true,
     hasDropdown: true,
@@ -481,9 +493,21 @@ export const adminNavigation: NavItem[] = [
     children: [
       { name: 'Intensive Dashboard', href: '/admin/intensive/dashboard', icon: BarChart3, description: 'Enrollment status and step progress' },
       { name: 'Intensive Tester', href: '/admin/intensive/tester', icon: Rocket, description: 'Test intensive flows' },
+      { name: 'Schedule Call', href: '/admin/intensive/schedule-call', icon: Calendar, description: 'Schedule intensive calls' },
     ]
   },
   
+  // ============================================================================
+  // HOMESCHOOL CURRICULUM
+  // ============================================================================
+  {
+    name: 'Homeschool',
+    href: '/admin/homeschool',
+    icon: GraduationCap,
+    requiresAdmin: true,
+    description: 'VibrationFit homeschool curriculum overview',
+  },
+
   // ============================================================================
   // DEVELOPER TOOLS
   // ============================================================================

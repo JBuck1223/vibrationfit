@@ -69,6 +69,7 @@ export interface DailyMeetingTokenConfig {
   is_owner?: boolean              // Can start/stop recording, remove participants
   enable_screenshare?: boolean
   enable_recording?: 'cloud' | 'local' | 'raw-tracks' | false
+  start_cloud_recording?: boolean // Auto-start cloud recording when this participant joins
   start_video_off?: boolean
   start_audio_off?: boolean
   exp?: number                    // Token expiration (Unix seconds)
@@ -207,21 +208,24 @@ export async function updateRoom(
 export async function createMeetingToken(
   config: DailyMeetingTokenConfig
 ): Promise<DailyMeetingToken> {
-  const body = {
-    properties: {
-      room_name: config.room_name,
-      user_id: config.user_id,
-      user_name: config.user_name,
-      is_owner: config.is_owner || false,
-      enable_screenshare: config.enable_screenshare ?? true,
-      enable_recording: config.enable_recording ?? 'cloud',
-      start_video_off: config.start_video_off ?? false,
-      start_audio_off: config.start_audio_off ?? false,
-      // Token valid for 24 hours by default
-      exp: config.exp || Math.floor(Date.now() / 1000) + 86400,
-      nbf: config.nbf,
-    },
+  const properties: Record<string, unknown> = {
+    room_name: config.room_name,
+    user_id: config.user_id,
+    user_name: config.user_name,
+    is_owner: config.is_owner || false,
+    enable_screenshare: config.enable_screenshare ?? true,
+    enable_recording: config.enable_recording ?? 'cloud',
+    start_video_off: config.start_video_off ?? false,
+    start_audio_off: config.start_audio_off ?? false,
+    exp: config.exp || Math.floor(Date.now() / 1000) + 86400,
+    nbf: config.nbf,
   }
+
+  if (config.start_cloud_recording) {
+    properties.start_cloud_recording = true
+  }
+
+  const body = { properties }
 
   return dailyFetch<DailyMeetingToken>('/meeting-tokens', {
     method: 'POST',
@@ -244,6 +248,7 @@ export async function createHostToken(
     is_owner: true,
     enable_screenshare: true,
     enable_recording: 'cloud',
+    start_cloud_recording: true,
   })
 }
 

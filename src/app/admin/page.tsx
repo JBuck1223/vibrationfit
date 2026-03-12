@@ -1,298 +1,55 @@
 // /src/app/admin/page.tsx
-// Admin Dashboard - Central navigation hub
+// Admin Dashboard - Auto-generated from adminNavigation (single source of truth)
 
 'use client'
 
 import { useRouter } from 'next/navigation'
 import { Container, Stack, PageHero, Card } from '@/lib/design-system/components'
-import {
-  Users,
-  Mail,
-  MessageSquare,
-  Calendar,
-  Headphones,
-  Image,
-  Bot,
-  Coins,
-  Sparkles,
-  Target,
-  TestTube,
-  LayoutDashboard,
-  UserPlus,
-  Megaphone,
-  HeadphonesIcon,
-  Link2,
-  Award,
-  Layers,
-  Radio,
-  GitBranch,
-  Send,
-  ShoppingBag,
-  Ticket,
-} from 'lucide-react'
+import { adminNavigation, type NavItem } from '@/lib/navigation'
 
-interface AdminSection {
-  title: string
-  description: string
-  href: string
-  icon: React.ElementType
-  color: string
+const GROUP_COLORS: Record<string, string> = {
+  'User Management': 'text-primary-500',
+  'CRM & Marketing': 'text-[#FFB701]',
+  'Messaging': 'text-secondary-500',
+  'Content': 'text-[#8B5CF6]',
+  'Audio': 'text-[#BF00FF]',
+  'VIVA & Models': 'text-accent-500',
+  'Scheduling': 'text-[#00FFFF]',
+  'Intensive Program': 'text-[#39FF14]',
+  'Developer': 'text-neutral-400',
 }
 
-const crmSections: AdminSection[] = [
-  {
-    title: 'CRM Dashboard',
-    description: 'Overview of business metrics',
-    href: '/admin/crm/dashboard',
-    icon: LayoutDashboard,
-    color: 'text-primary-500',
-  },
-  {
-    title: 'Members',
-    description: 'Manage active members',
-    href: '/admin/crm/members',
-    icon: Users,
-    color: 'text-secondary-500',
-  },
-  {
-    title: 'Leads',
-    description: 'Track and convert leads',
-    href: '/admin/crm/leads',
-    icon: UserPlus,
-    color: 'text-[#FFB701]',
-  },
-  {
-    title: 'Campaigns',
-    description: 'Marketing campaigns',
-    href: '/admin/crm/campaigns',
-    icon: Megaphone,
-    color: 'text-[#8B5CF6]',
-  },
-  {
-    title: 'Support',
-    description: 'Support ticket board',
-    href: '/admin/crm/support/board',
-    icon: HeadphonesIcon,
-    color: 'text-[#D03739]',
-  },
-  {
-    title: 'UTM Builder',
-    description: 'Create tracking links',
-    href: '/admin/crm/utm-builder',
-    icon: Link2,
-    color: 'text-neutral-400',
-  },
-  {
-    title: 'Orders & Emails',
-    description: 'Order status & email delivery',
-    href: '/admin/orders',
-    icon: ShoppingBag,
-    color: 'text-green-400',
-  },
-  {
-    title: 'Coupons',
-    description: 'Manage coupon codes & discounts',
-    href: '/admin/coupons',
-    icon: Ticket,
-    color: 'text-[#39FF14]',
-  },
-]
-
-const communicationSections: AdminSection[] = [
-  {
-    title: 'Messaging Hub',
-    description: 'Overview, stats, and quick actions',
-    href: '/admin/emails',
-    icon: Mail,
-    color: 'text-primary-500',
-  },
-  {
-    title: 'Email Templates',
-    description: 'Database-driven email templates',
-    href: '/admin/emails/list',
-    icon: Mail,
-    color: 'text-primary-500',
-  },
-  {
-    title: 'SMS Templates',
-    description: 'Database-driven SMS templates',
-    href: '/admin/sms',
-    icon: MessageSquare,
-    color: 'text-secondary-500',
-  },
-  {
-    title: 'Automation Rules',
-    description: 'Event-driven message triggers',
-    href: '/admin/automations',
-    icon: Radio,
-    color: 'text-[#FF6B35]',
-  },
-  {
-    title: 'Sequences',
-    description: 'Multi-step drip campaigns',
-    href: '/admin/sequences',
-    icon: GitBranch,
-    color: 'text-accent-500',
-  },
-  {
-    title: 'Campaigns',
-    description: 'Bulk audience sends',
-    href: '/admin/messaging-campaigns',
-    icon: Send,
-    color: 'text-energy-500',
-  },
-]
-
-const contentSections: AdminSection[] = [
-  {
-    title: 'Audio Designer',
-    description: 'Design audio experiences',
-    href: '/admin/audio-designer',
-    icon: Headphones,
-    color: 'text-[#8B5CF6]',
-  },
-  {
-    title: 'Audio Generator',
-    description: 'Generate audio content',
-    href: '/admin/audio-generator',
-    icon: Sparkles,
-    color: 'text-primary-500',
-  },
-  {
-    title: 'Audio Mixer',
-    description: 'Mix and master audio',
-    href: '/admin/audio-mixer',
-    icon: Headphones,
-    color: 'text-secondary-500',
-  },
-  {
-    title: 'Assets',
-    description: 'Manage media assets',
-    href: '/admin/assets',
-    icon: Image,
-    color: 'text-[#FFB701]',
-  },
-]
-
-const systemSections: AdminSection[] = [
-  {
-    title: 'Users',
-    description: 'User management',
-    href: '/admin/users',
-    icon: Users,
-    color: 'text-primary-500',
-  },
-  {
-    title: 'Badges',
-    description: 'Award and manage badges',
-    href: '/admin/badges',
-    icon: Award,
-    color: 'text-[#FFB701]',
-  },
-  {
-    title: 'Sessions',
-    description: 'Coaching sessions',
-    href: '/admin/sessions',
-    icon: Calendar,
-    color: 'text-secondary-500',
-  },
-  {
-    title: 'Scheduling',
-    description: 'Schedule management',
-    href: '/admin/scheduling',
-    icon: Calendar,
-    color: 'text-[#8B5CF6]',
-  },
-  {
-    title: 'Token Usage',
-    description: 'Track token consumption',
-    href: '/admin/token-usage',
-    icon: Coins,
-    color: 'text-[#FFB701]',
-  },
-  {
-    title: 'Membership Tiers',
-    description: 'Token grants & storage quotas',
-    href: '/admin/membership-tiers',
-    icon: Layers,
-    color: 'text-primary-500',
-  },
-  {
-    title: 'VIVA Models',
-    description: 'Configure VIVA models',
-    href: '/admin/ai-models',
-    icon: Bot,
-    color: 'text-[#8B5CF6]',
-  },
-  {
-    title: 'Vision Tester',
-    description: 'Compare vision output across models',
-    href: '/admin/vision-tester',
-    icon: Target,
-    color: 'text-accent-500',
-  },
-  {
-    title: 'Vibrational Events',
-    description: 'Event source management',
-    href: '/admin/vibrational-event/sources',
-    icon: Target,
-    color: 'text-[#D03739]',
-  },
-]
-
-const intensiveSections: AdminSection[] = [
-  {
-    title: 'Schedule Call',
-    description: 'Schedule intensive calls',
-    href: '/admin/intensive/schedule-call',
-    icon: Calendar,
-    color: 'text-primary-500',
-  },
-  {
-    title: 'Intensive Tester',
-    description: 'Test intensive flows',
-    href: '/admin/intensive/tester',
-    icon: TestTube,
-    color: 'text-secondary-500',
-  },
-  {
-    title: 'Calendar',
-    description: 'View and manage calendar',
-    href: '/admin/calendar',
-    icon: Calendar,
-    color: 'text-[#00FFFF]',
-  },
-]
-
-function AdminSectionCard({ section }: { section: AdminSection }) {
+function AdminSectionCard({ item, groupColor }: { item: NavItem; groupColor: string }) {
   const router = useRouter()
-  const Icon = section.icon
+  const Icon = item.icon
 
   return (
     <Card
       className="p-4 cursor-pointer hover:border-neutral-600 transition-all duration-200 hover:-translate-y-0.5"
-      onClick={() => router.push(section.href)}
+      onClick={() => router.push(item.href)}
     >
       <div className="flex items-start gap-3">
-        <div className={`${section.color}`}>
+        <div className={groupColor}>
           <Icon className="w-5 h-5" />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-sm md:text-base truncate">{section.title}</h3>
-          <p className="text-xs md:text-sm text-neutral-400 truncate">{section.description}</p>
+          <h3 className="font-semibold text-sm md:text-base truncate">{item.name}</h3>
+          <p className="text-xs md:text-sm text-neutral-400 truncate">{item.description || ''}</p>
         </div>
       </div>
     </Card>
   )
 }
 
-function SectionGroup({ title, sections }: { title: string; sections: AdminSection[] }) {
+function SectionGroup({ title, items, groupColor }: { title: string; items: NavItem[]; groupColor: string }) {
+  if (items.length === 0) return null
+
   return (
     <div>
       <h2 className="text-lg md:text-xl font-semibold mb-4 text-neutral-300">{title}</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-        {sections.map((section) => (
-          <AdminSectionCard key={section.href} section={section} />
+        {items.map((item) => (
+          <AdminSectionCard key={item.href} item={item} groupColor={groupColor} />
         ))}
       </div>
     </div>
@@ -300,6 +57,19 @@ function SectionGroup({ title, sections }: { title: string; sections: AdminSecti
 }
 
 export default function AdminDashboardPage() {
+  const topLevelItems: NavItem[] = []
+  const groups: { name: string; items: NavItem[] }[] = []
+
+  for (const item of adminNavigation) {
+    if (item.href === '/admin') continue
+
+    if (item.hasDropdown && item.children?.length) {
+      groups.push({ name: item.name, items: item.children })
+    } else {
+      topLevelItems.push(item)
+    }
+  }
+
   return (
     <Container size="xl">
       <Stack gap="lg">
@@ -309,11 +79,22 @@ export default function AdminDashboardPage() {
           subtitle="Central hub for managing Vibration Fit"
         />
 
-        <SectionGroup title="CRM" sections={crmSections} />
-        <SectionGroup title="Messaging & Automation" sections={communicationSections} />
-        <SectionGroup title="Content & Audio" sections={contentSections} />
-        <SectionGroup title="Intensive Program" sections={intensiveSections} />
-        <SectionGroup title="System" sections={systemSections} />
+        {topLevelItems.length > 0 && (
+          <SectionGroup
+            title="Quick Access"
+            items={topLevelItems}
+            groupColor="text-[#FF0040]"
+          />
+        )}
+
+        {groups.map((group) => (
+          <SectionGroup
+            key={group.name}
+            title={group.name}
+            items={group.items}
+            groupColor={GROUP_COLORS[group.name] || 'text-neutral-400'}
+          />
+        ))}
       </Stack>
     </Container>
   )

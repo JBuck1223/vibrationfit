@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { Container, Card, Button, Badge, Input, Stack, PageHero } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
 import { createClient } from '@/lib/supabase/client'
-import { Search, UserPlus, Shield, Mail, Calendar, CheckCircle, Clock, RefreshCw, AlertCircle, Zap, Trash2 } from 'lucide-react'
+import { Search, UserPlus, Shield, Mail, Calendar, CheckCircle, Clock, RefreshCw, AlertCircle, Zap, Trash2, Eye } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 
 interface User {
@@ -32,6 +33,7 @@ interface User {
 }
 
 function UsersAdminContent() {
+  const router = useRouter()
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -156,6 +158,24 @@ function UsersAdminContent() {
       alert(err instanceof Error ? err.message : 'Failed to delete user')
     } finally {
       setDeletingUserId(null)
+    }
+  }
+
+  const viewAsUser = async (userId: string) => {
+    try {
+      const res = await fetch('/api/admin/impersonate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      })
+      if (res.ok) {
+        router.push('/dashboard')
+      } else {
+        const data = await res.json()
+        alert(`Failed: ${data.error || 'Unknown error'}`)
+      }
+    } catch (err: any) {
+      alert(`Error: ${err.message || 'Network error'}`)
     }
   }
 
@@ -476,6 +496,15 @@ function UsersAdminContent() {
                     >Add Storage</Button>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="whitespace-nowrap text-secondary-400 border-secondary-500/50 hover:bg-secondary-500/10"
+                      onClick={() => viewAsUser(user.id)}
+                    >
+                      <Eye className="w-4 h-4 mr-1" />
+                      View as User
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"
@@ -816,6 +845,15 @@ function UsersAdminContent() {
                         </div>
                       )}
                     </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="whitespace-nowrap text-secondary-400 border-secondary-500/50 hover:bg-secondary-500/10"
+                      onClick={() => viewAsUser(user.id)}
+                    >
+                      <Eye className="w-4 h-4 mr-1" />
+                      View as User
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"

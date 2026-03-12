@@ -516,7 +516,7 @@ export async function POST(req: Request) {
 
     const result = streamText({
       ...streamParams,
-      async onFinish({ text, usage }: { text: string; usage?: any }) {
+      async onFinish({ text, usage, response: aiResponse }: { text: string; usage?: any; response?: any }) {
         console.log('[VIVA CHAT] Stream finished, text length:', text?.length || 0)
         
         // Store assistant message in database after completion
@@ -565,16 +565,16 @@ export async function POST(req: Request) {
             }
           }
 
-          // Track actual token usage (if available in streaming mode)
           if (usage && usage.totalTokens > 0) {
             await trackTokenUsage({
               user_id: user.id,
               action_type: 'chat_conversation',
-              model_used: MODEL,
+              model_used: aiResponse?.modelId || MODEL,
               tokens_used: usage.totalTokens,
               input_tokens: usage.promptTokens || 0,
               output_tokens: usage.completionTokens || 0,
-              actual_cost_cents: 0, // Will be calculated by trackTokenUsage
+              actual_cost_cents: 0,
+              openai_request_id: aiResponse?.id,
               success: true,
               metadata: {
                 phase: visionBuildPhase,

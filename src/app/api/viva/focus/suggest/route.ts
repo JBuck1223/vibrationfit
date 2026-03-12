@@ -188,21 +188,16 @@ export async function POST(request: NextRequest) {
       storyId = newStory.id
     }
 
-    // Track token usage (AI SDK v4 usage object properties)
     if (result.usage) {
-      const usage = result.usage
-      const promptTokens = (usage as any).prompt || (usage as any).promptTokens || 0
-      const completionTokens = (usage as any).completion || (usage as any).completionTokens || 0
-      const totalTokens = (usage as any).total || (usage as any).totalTokens || (promptTokens + completionTokens)
-      
       trackTokenUsage({
         user_id: user.id,
-        action_type: 'focus_story_generation', // Using focus_story_generation for all focus operations
-        model_used: toolConfig.model_name,
-        tokens_used: totalTokens,
-        input_tokens: promptTokens,
-        output_tokens: completionTokens,
+        action_type: 'focus_story_generation',
+        model_used: result.response?.modelId || toolConfig.model_name,
+        tokens_used: result.usage.totalTokens || 0,
+        input_tokens: result.usage.promptTokens || 0,
+        output_tokens: result.usage.completionTokens || 0,
         actual_cost_cents: 0,
+        openai_request_id: result.response?.id,
         success: true,
         metadata: {
           vision_id: visionId,

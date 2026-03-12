@@ -198,37 +198,46 @@ export async function POST(req: NextRequest) {
         const completion = await gatewayClient.chat.completions.create({
           ...openaiParams,
           stream: true,
+          stream_options: { include_usage: true },
         }) as unknown as AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>;
 
         let fullText = '';
-        let inputTokens = 0;
-        let outputTokens = 0;
+        let streamUsage: { prompt_tokens: number; completion_tokens: number; total_tokens: number } | null = null;
+        let actualModel: string | null = null;
 
-        // Stream the response
         for await (const chunk of completion) {
+          if (!actualModel && chunk.model) {
+            actualModel = chunk.model;
+          }
           const content = chunk.choices[0]?.delta?.content;
           if (content) {
             fullText += content;
-            outputTokens++;
             controller.enqueue(
               encoder.encode(`data: ${JSON.stringify({ content })}\n\n`)
             );
           }
+          if ((chunk as any).usage) {
+            streamUsage = (chunk as any).usage;
+          }
         }
 
-        // Estimate input tokens (we don't get them from streaming)
-        inputTokens = tokenEstimate;
+        const inputTokens = streamUsage?.prompt_tokens || 0;
+        const outputTokens = streamUsage?.completion_tokens || 0;
+        const totalTokens = streamUsage?.total_tokens || (inputTokens + outputTokens);
 
-        // Track usage
         await trackTokenUsage({
           user_id: user.id,
           action_type: "vision_refinement",
-          model_used: toolConfig.model_name,
-          tokens_used: inputTokens + outputTokens,
-          actual_cost_cents: 0, // Will be calculated
+          model_used: actualModel || VISION_MODEL,
+          tokens_used: totalTokens,
+          actual_cost_cents: 0,
           input_tokens: inputTokens,
           output_tokens: outputTokens,
           success: true,
+          metadata: {
+            streaming: true,
+            had_stream_usage: !!streamUsage,
+          },
         });
 
         // Save refinement to database

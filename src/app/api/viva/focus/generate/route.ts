@@ -133,21 +133,16 @@ export async function POST(request: NextRequest) {
 
     console.log(`[FocusGenerate] Story generated: ${wordCount} words`)
 
-    // Track story generation tokens (AI SDK v4 usage object properties)
     if (storyResult.usage) {
-      const usage = storyResult.usage
-      const promptTokens = (usage as any).prompt || (usage as any).promptTokens || 0
-      const completionTokens = (usage as any).completion || (usage as any).completionTokens || 0
-      const totalTokens = (usage as any).total || (usage as any).totalTokens || (promptTokens + completionTokens)
-      
       trackTokenUsage({
         user_id: user.id,
         action_type: 'focus_story_generation',
-        model_used: toolConfig.model_name,
-        tokens_used: totalTokens,
-        input_tokens: promptTokens,
-        output_tokens: completionTokens,
+        model_used: storyResult.response?.modelId || toolConfig.model_name,
+        tokens_used: storyResult.usage.totalTokens || 0,
+        input_tokens: storyResult.usage.promptTokens || 0,
+        output_tokens: storyResult.usage.completionTokens || 0,
         actual_cost_cents: 0,
+        openai_request_id: storyResult.response?.id,
         success: true,
         metadata: {
           story_id: focusId,

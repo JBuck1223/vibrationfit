@@ -185,12 +185,11 @@ export async function POST(request: NextRequest) {
             await trackTokenUsage({
               user_id: user.id,
               action_type: 'life_vision_category_summary',
-              model_used: toolConfig.model_name,
+              model_used: completion.model || toolConfig.model_name,
               tokens_used: completion.usage.total_tokens || 0,
               input_tokens: completion.usage.prompt_tokens || 0,
               output_tokens: completion.usage.completion_tokens || 0,
-              actual_cost_cents: 0, // Will be calculated by trackTokenUsage
-              // OpenAI reconciliation fields
+              actual_cost_cents: 0,
               openai_request_id: completion.id,
               openai_created: completion.created,
               system_fingerprint: completion.system_fingerprint,

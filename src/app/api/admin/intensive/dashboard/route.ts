@@ -20,6 +20,13 @@ const STEP_CHECKLIST_KEYS = [
   { step: 14, name: 'Full Unlock', key: 'unlock_completed' },
 ]
 
+function isStepComplete(checklist: Record<string, unknown>, step: typeof STEP_CHECKLIST_KEYS[number]): boolean {
+  if (!step.key) return true
+  if (checklist[step.key]) return true
+  if (step.key === 'voice_recording_completed' && (checklist.voice_recording_skipped || checklist.audios_generated)) return true
+  return false
+}
+
 function getCurrentStep(checklist: Record<string, unknown>): { stepNumber: number; stepName: string } {
   if (checklist.status === 'completed') {
     return { stepNumber: 15, stepName: 'Completed' }
@@ -30,7 +37,7 @@ function getCurrentStep(checklist: Record<string, unknown>): { stepNumber: numbe
 
   for (const step of STEP_CHECKLIST_KEYS) {
     if (!step.key) continue
-    if (!checklist[step.key]) {
+    if (!isStepComplete(checklist, step)) {
       return { stepNumber: step.step, stepName: step.name }
     }
   }
@@ -43,7 +50,7 @@ function getCompletedStepCount(checklist: Record<string, unknown>): number {
   if (checklist.started_at) count++
   for (const step of STEP_CHECKLIST_KEYS) {
     if (!step.key) continue
-    if (checklist[step.key]) count++
+    if (isStepComplete(checklist, step)) count++
   }
   return count
 }

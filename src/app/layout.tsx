@@ -8,6 +8,7 @@ import { AppErrorHandling } from '@/components/AppErrorHandling'
 import { ASSETS } from '@/lib/storage/s3-storage-presigned'
 import { PixelScripts } from '@/components/PixelScripts'
 import { Toaster } from 'sonner'
+import { ImpersonationBanner } from '@/components/ImpersonationBanner'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -61,6 +62,7 @@ export default function RootLayout({
         suppressHydrationWarning={true}
       >
         <PixelScripts />
+        <ImpersonationBanner />
         <AuthProvider>
           <TrackingProvider>
           <AppErrorHandling>

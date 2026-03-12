@@ -104,16 +104,14 @@ export async function POST(request: NextRequest) {
       throw new Error('Invalid JSON response from AI')
     }
 
-    // Track token usage for forward/conclusion
     await trackTokenUsage({
       user_id: user.id,
-      action_type: 'vision_generation',  // TODO: Add 'final_assembly' type if needed
-      model_used: toolConfig.model_name,
+      action_type: 'vision_generation',
+      model_used: completion.model || VISION_MODEL,
       tokens_used: completion.usage?.total_tokens || 0,
       input_tokens: completion.usage?.prompt_tokens || 0,
       output_tokens: completion.usage?.completion_tokens || 0,
       actual_cost_cents: 0,
-      // OpenAI reconciliation fields
       openai_request_id: completion.id,
       openai_created: completion.created,
       system_fingerprint: completion.system_fingerprint,
@@ -167,16 +165,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Track activation token usage
     await trackTokenUsage({
       user_id: user.id,
-      action_type: 'vision_generation',  // TODO: Add 'activation_message' type if needed
-      model_used: toolConfig.model_name,
+      action_type: 'vision_generation',
+      model_used: activationCompletion.model || VISION_MODEL,
       tokens_used: activationCompletion.usage?.total_tokens || 0,
       input_tokens: activationCompletion.usage?.prompt_tokens || 0,
       output_tokens: activationCompletion.usage?.completion_tokens || 0,
       actual_cost_cents: 0,
-      // OpenAI reconciliation fields
       openai_request_id: activationCompletion.id,
       openai_created: activationCompletion.created,
       system_fingerprint: activationCompletion.system_fingerprint,

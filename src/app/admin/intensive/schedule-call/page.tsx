@@ -1,134 +1,146 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import React, { useState, useEffect, useCallback } from 'react'
 import { AdminWrapper } from '@/components/AdminWrapper'
-import { 
-  Container, 
-  Card, 
-  Button, 
+import {
+  Container,
+  Card,
+  Button,
   Input,
   Badge,
   Spinner,
   Stack,
   PageHero,
-  DatePicker,
-  TimePicker,
-  Checkbox
 } from '@/lib/design-system/components'
-import { Calendar, Clock, Plus, X, Trash2, Users, CheckCircle, Repeat, CalendarRange, Edit2, MoreVertical, Target, MessageSquare, Video, GraduationCap, User } from 'lucide-react'
+import {
+  Calendar,
+  Clock,
+  Users,
+  CheckCircle,
+  Video,
+  User,
+  Search,
+  ChevronRight,
+  ExternalLink,
+  Play,
+  RefreshCw,
+  Phone,
+  Mail,
+  ArrowLeft,
+} from 'lucide-react'
 import { toast } from 'sonner'
 
-interface Schedule {
-  id: string
-  event_type: string // e.g., 'intensive_calibration', 'group_workshop', 'coaching_session'
-  meeting_type: 'one_on_one' | 'group'
-  schedule_type: 'single' | 'range' | 'recurring'
-  name: string | null
-  max_bookings: number
-  slot_length: number
-  single_date: string | null
-  single_time: string | null
-  start_date: string | null
-  end_date: string | null
-  start_time: string | null
-  end_time: string | null
-  exclude_weekends: boolean | null
-  recurring_start_date: string | null
-  recurring_end_date: string | null
-  recurring_start_time: string | null
-  recurring_end_time: string | null
-  days_of_week: number[] | null
-  is_active: boolean
-  created_at: string
-  slot_count?: number
-}
-
-interface Appointment {
+interface IntensiveUser {
   id: string
   user_id: string
   intensive_id: string
-  scheduled_date: string
-  scheduled_time: string
-  scheduled_datetime: string
-  user_email: string
-  user_name: string
-  status: 'scheduled' | 'completed' | 'cancelled'
-  created_at: string
+  call_scheduled: boolean
+  call_scheduled_time: string | null
+  call_scheduled_at: string | null
+  status: string
+  email: string
+  first_name: string
+  last_name: string
+  phone: string
+  display_name: string
 }
 
-type AddMode = 'single' | 'range' | 'recurring'
+interface AvailableSlot {
+  staff_id: string
+  staff_name: string
+  time: string
+  date: string
+}
+
+interface StaffMember {
+  id: string
+  display_name: string
+  default_buffer_minutes: number
+  availability: Record<string, { enabled: boolean; start: string; end: string }>
+  event_types: string[]
+  timezone: string
+}
+
+interface Booking {
+  id: string
+  staff_id: string
+  user_id: string
+  event_type: string
+  title: string
+  description: string
+  scheduled_at: string
+  duration_minutes: number
+  timezone: string
+  meeting_type: string
+  video_session_id: string | null
+  contact_email: string
+  contact_phone: string
+  status: string
+  staff_notes: string | null
+  client_notes: string | null
+  created_at: string
+  user_name: string
+  user_email: string
+  staff_name: string
+  recording_url: string | null
+  session_status: string | null
+}
+
+type ActiveTab = 'schedule' | 'bookings'
 
 export default function AdminScheduleCallPage() {
-  const supabase = createClient()
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [activeTab, setActiveTab] = useState<'schedules' | 'slots' | 'appointments'>('schedules')
-  
-  // Schedules management
-  const [schedules, setSchedules] = useState<Schedule[]>([])
-  const [selectedScheduleType, setSelectedScheduleType] = useState<'all' | 'single' | 'range' | 'recurring'>('all')
-  const [selectedEventType, setSelectedEventType] = useState<string>('all')
-  
-  // Event types
-  const eventTypes = [
-    { value: 'intensive_calibration', label: 'Intensive Calibration', Icon: Target },
-    { value: 'group_workshop', label: 'Group Workshop', Icon: Users },
-    { value: 'coaching_session', label: 'Coaching Session', Icon: MessageSquare },
-    { value: 'webinar', label: 'Webinar', Icon: Video },
-    { value: 'masterclass', label: 'Masterclass', Icon: GraduationCap },
-  ]
-  
-  // Add schedule modes
-  const [addMode, setAddMode] = useState<AddMode>('single')
-  const [scheduleName, setScheduleName] = useState('')
-  const [eventType, setEventType] = useState('intensive_calibration')
-  const [meetingType, setMeetingType] = useState<'one_on_one' | 'group'>('one_on_one')
-  const [singleSchedule, setSingleSchedule] = useState({ date: '', time: '', max_bookings: 1, slot_length: 30 })
-  const [rangeSchedule, setRangeSchedule] = useState({ 
-    startDate: '', 
-    endDate: '', 
-    startTime: '', 
-    endTime: '',
-    slotLength: 30,
-    max_bookings: 1,
-    excludeWeekends: true 
-  })
-  const [recurringSchedule, setRecurringSchedule] = useState({
-    startDate: '',
-    endDate: '',
-    startTime: '',
-    endTime: '',
-    slotLength: 30,
-    daysOfWeek: [] as number[],
-    max_bookings: 1
-  })
-  
-  // Appointments view
-  const [appointments, setAppointments] = useState<Appointment[]>([])
-  const [filterDate, setFilterDate] = useState<string>('')
+  const [activeTab, setActiveTab] = useState<ActiveTab>('schedule')
 
-  const daysOfWeekOptions = [
-    { value: 0, label: 'Sunday', short: 'Sun' },
-    { value: 1, label: 'Monday', short: 'Mon' },
-    { value: 2, label: 'Tuesday', short: 'Tue' },
-    { value: 3, label: 'Wednesday', short: 'Wed' },
-    { value: 4, label: 'Thursday', short: 'Thu' },
-    { value: 5, label: 'Friday', short: 'Fri' },
-    { value: 6, label: 'Saturday', short: 'Sat' },
-  ]
+  // Schedule tab state
+  const [users, setUsers] = useState<IntensiveUser[]>([])
+  const [staff, setStaff] = useState<StaffMember[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedUser, setSelectedUser] = useState<IntensiveUser | null>(null)
+  const [availableDates, setAvailableDates] = useState<string[]>([])
+  const [selectedDate, setSelectedDate] = useState('')
+  const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([])
+  const [selectedTime, setSelectedTime] = useState('')
+  const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null)
+  const [loadingSlots, setLoadingSlots] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [contactEmail, setContactEmail] = useState('')
+  const [contactPhone, setContactPhone] = useState('')
+
+  // Bookings tab state
+  const [bookings, setBookings] = useState<Booking[]>([])
+  const [loadingBookings, setLoadingBookings] = useState(false)
+  const [bookingFilter, setBookingFilter] = useState<'all' | 'upcoming' | 'past'>('all')
+  const [syncingRecordings, setSyncingRecordings] = useState(false)
 
   useEffect(() => {
-    loadData()
+    loadInitialData()
   }, [])
 
-  const loadData = async () => {
+  useEffect(() => {
+    if (activeTab === 'bookings' && bookings.length === 0) {
+      loadBookings()
+    }
+  }, [activeTab])
+
+  const loadInitialData = async () => {
     setLoading(true)
     try {
-      await Promise.all([
-        loadSchedules(),
-        loadAppointments()
+      const [usersRes, staffRes] = await Promise.all([
+        fetch('/api/admin/intensive/schedule-call?section=users'),
+        fetch('/api/admin/intensive/schedule-call?section=staff'),
       ])
+
+      if (usersRes.ok) {
+        const usersData = await usersRes.json()
+        setUsers(usersData.users || [])
+      }
+
+      if (staffRes.ok) {
+        const staffData = await staffRes.json()
+        setStaff(staffData.staff || [])
+        generateAvailableDates(staffData.staff || [])
+      }
     } catch (error) {
       console.error('Error loading data:', error)
       toast.error('Failed to load data')
@@ -137,506 +149,207 @@ export default function AdminScheduleCallPage() {
     }
   }
 
-  const loadSchedules = async () => {
-    try {
-      // Try generic schedules table first, fallback to intensive_schedules
-      let data, error
-      
-      const { data: genericData, error: genericError } = await supabase
-        .from('schedules')
-        .select('*')
-        .order('created_at', { ascending: false })
+  const generateAvailableDates = (staffList: StaffMember[]) => {
+    const dates: string[] = []
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
 
-      if (!genericError && genericData) {
-        data = genericData
-        error = null
-      } else {
-        // Fallback to intensive_schedules
-        const { data: intensiveData, error: intensiveError } = await supabase
-          .from('intensive_schedules')
-          .select('*')
-          .order('created_at', { ascending: false })
-        
-        data = intensiveData
-        error = intensiveError
-      }
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
 
-      if (error && error.code === '42P01') {
-        console.log('Schedules table does not exist yet')
-        setSchedules([])
-        return
-      }
+    for (let i = 1; i <= 28; i++) {
+      const date = new Date(today)
+      date.setDate(date.getDate() + i)
+      const dayName = dayNames[date.getDay()]
 
-      if (data) {
-        // Get slot counts for each schedule
-        const schedulesWithCounts = await Promise.all(
-          data.map(async (schedule) => {
-            // Try schedule_time_slots first, fallback to intensive_time_slots
-            let count = 0
-            
-            const { count: genericCount } = await supabase
-              .from('schedule_time_slots')
-              .select('*', { count: 'exact', head: true })
-              .eq('schedule_id', schedule.id)
-            
-            if (genericCount !== null) {
-              count = genericCount
-            } else {
-              const { count: intensiveCount } = await supabase
-                .from('intensive_time_slots')
-                .select('*', { count: 'exact', head: true })
-                .eq('schedule_id', schedule.id)
-              
-              count = intensiveCount || 0
-            }
-
-            return {
-              ...schedule,
-              event_type: schedule.event_type || 'intensive_calibration',
-              meeting_type: schedule.meeting_type || (schedule.max_bookings > 1 ? 'group' : 'one_on_one'),
-              slot_count: count
-            }
-          })
-        )
-        setSchedules(schedulesWithCounts)
-      }
-    } catch (error) {
-      console.error('Error loading schedules:', error)
-      setSchedules([])
-    }
-  }
-
-  const loadAppointments = async () => {
-    try {
-      const response = await fetch('/api/admin/intensive/appointments')
-      if (response.ok) {
-        const data = await response.json()
-        setAppointments(data.appointments || [])
-        return
-      }
-
-      const { data: checklistData, error } = await supabase
-        .from('intensive_checklist')
-        .select(`
-          id,
-          intensive_id,
-          user_id,
-          call_scheduled_time,
-          call_scheduled_at
-        `)
-        .eq('call_scheduled', true)
-        .not('call_scheduled_time', 'is', null)
-        .order('call_scheduled_time', { ascending: true })
-
-      if (error || !checklistData) return
-
-      const appointmentsWithUsers = await Promise.all(
-        checklistData.map(async (item) => {
-          const { data: profileData } = await supabase
-            .from('user_profiles')
-            .select('email, first_name, last_name')
-            .eq('user_id', item.user_id)
-            .single()
-
-          const scheduledDateTime = new Date(item.call_scheduled_time)
-          const dateStr = scheduledDateTime.toISOString().split('T')[0]
-          const timeStr = scheduledDateTime.toTimeString().split(' ')[0].slice(0, 5)
-
-          return {
-            id: item.id,
-            user_id: item.user_id,
-            intensive_id: item.intensive_id,
-            scheduled_date: dateStr,
-            scheduled_time: timeStr,
-            scheduled_datetime: item.call_scheduled_time,
-            user_email: profileData?.email || 'Unknown',
-            user_name: profileData ? `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() : 'Unknown',
-            status: 'scheduled' as const,
-            created_at: item.call_scheduled_at || ''
-          }
-        })
+      const hasAvailableStaff = staffList.some(
+        (s) => s.availability?.[dayName]?.enabled === true
       )
 
-      setAppointments(appointmentsWithUsers)
-    } catch (error) {
-      console.error('Error loading appointments:', error)
-      toast.error('Failed to load appointments')
-    }
-  }
-
-  // Generate time slots within a time range based on slot length
-  const generateTimeSlots = (startTime: string, endTime: string, slotLength: number): string[] => {
-    const slots: string[] = []
-    const [startHour, startMin] = startTime.split(':').map(Number)
-    const [endHour, endMin] = endTime.split(':').map(Number)
-    
-    const startMinutes = startHour * 60 + startMin
-    const endMinutes = endHour * 60 + endMin
-    
-    for (let minutes = startMinutes; minutes < endMinutes; minutes += slotLength) {
-      const hours = Math.floor(minutes / 60)
-      const mins = minutes % 60
-      const timeStr = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
-      slots.push(timeStr)
-    }
-    
-    return slots
-  }
-
-  const generateSlotsFromSchedule = async (schedule: Schedule): Promise<TimeSlot[]> => {
-    const slots: TimeSlot[] = []
-
-    if (schedule.schedule_type === 'single' && schedule.single_date && schedule.single_time) {
-      slots.push({
-        date: schedule.single_date,
-        time: schedule.single_time,
-        available: schedule.is_active,
-        max_bookings: schedule.max_bookings,
-        current_bookings: 0
-      })
-    } else if (schedule.schedule_type === 'range' && schedule.start_date && schedule.end_date && schedule.start_time && schedule.end_time) {
-      const start = new Date(schedule.start_date)
-      const end = new Date(schedule.end_date)
-      const timeSlots = generateTimeSlots(schedule.start_time, schedule.end_time, schedule.slot_length)
-      
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        if (schedule.exclude_weekends && (d.getDay() === 0 || d.getDay() === 6)) continue
-        
-        const dateStr = d.toISOString().split('T')[0]
-        timeSlots.forEach(time => {
-          slots.push({
-            date: dateStr,
-            time: time,
-            available: schedule.is_active,
-            max_bookings: schedule.max_bookings,
-            current_bookings: 0
-          })
-        })
+      if (hasAvailableStaff) {
+        dates.push(date.toISOString().split('T')[0])
       }
-    } else if (schedule.schedule_type === 'recurring' && schedule.recurring_start_date && schedule.recurring_end_date && schedule.recurring_start_time && schedule.recurring_end_time && schedule.days_of_week) {
-      const start = new Date(schedule.recurring_start_date)
-      const end = new Date(schedule.recurring_end_date)
-      const timeSlots = generateTimeSlots(schedule.recurring_start_time, schedule.recurring_end_time, schedule.slot_length)
-      
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        if (schedule.days_of_week.includes(d.getDay())) {
-          const dateStr = d.toISOString().split('T')[0]
-          timeSlots.forEach(time => {
-            slots.push({
-              date: dateStr,
-              time: time,
-              available: schedule.is_active,
-              max_bookings: schedule.max_bookings,
-              current_bookings: 0
-            })
-          })
-        }
-      }
+
+      if (dates.length >= 10) break
     }
 
-    return slots
+    setAvailableDates(dates)
   }
 
-  interface TimeSlot {
-    date: string
-    time: string
-    available: boolean
-    max_bookings: number
-    current_bookings: number
-  }
+  const loadSlotsForDate = useCallback(async (date: string) => {
+    setLoadingSlots(true)
+    setSelectedTime('')
+    setSelectedStaffId(null)
 
-  const createSchedule = async () => {
-    setSaving(true)
     try {
-      // Determine max_bookings based on meeting type
-      const baseMaxBookings = addMode === 'single' 
-        ? singleSchedule.max_bookings 
-        : addMode === 'range' 
-          ? rangeSchedule.max_bookings 
-          : recurringSchedule.max_bookings
-      
-      const finalMaxBookings = meetingType === 'one_on_one' ? 1 : baseMaxBookings
+      const res = await fetch(`/api/admin/intensive/schedule-call?section=slots&date=${date}`)
+      if (res.ok) {
+        const data = await res.json()
+        setAvailableSlots(data.slots || [])
+      }
+    } catch (error) {
+      console.error('Error loading slots:', error)
+    } finally {
+      setLoadingSlots(false)
+    }
+  }, [])
 
-      let scheduleData: any = {
-        event_type: eventType,
-        meeting_type: meetingType,
-        schedule_type: addMode,
-        name: scheduleName || null,
-        max_bookings: finalMaxBookings,
-        slot_length: addMode === 'single' ? singleSchedule.slot_length : addMode === 'range' ? rangeSchedule.slotLength : recurringSchedule.slotLength,
-        is_active: true
+  useEffect(() => {
+    if (selectedDate) {
+      loadSlotsForDate(selectedDate)
+    }
+  }, [selectedDate, loadSlotsForDate])
+
+  const loadBookings = async () => {
+    setLoadingBookings(true)
+    try {
+      const res = await fetch('/api/admin/intensive/schedule-call?section=bookings')
+      if (res.ok) {
+        const data = await res.json()
+        setBookings(data.bookings || [])
+      }
+    } catch (error) {
+      console.error('Error loading bookings:', error)
+      toast.error('Failed to load bookings')
+    } finally {
+      setLoadingBookings(false)
+    }
+  }
+
+  const syncRecordings = async () => {
+    setSyncingRecordings(true)
+    try {
+      const res = await fetch('/api/admin/recordings/sync', { method: 'POST' })
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Sync failed')
       }
 
-      if (addMode === 'single') {
-        if (!singleSchedule.date || !singleSchedule.time) {
-          toast.error('Please fill in all required fields')
-          setSaving(false)
-          return
-        }
-        scheduleData.single_date = singleSchedule.date
-        scheduleData.single_time = singleSchedule.time
-      } else if (addMode === 'range') {
-        if (!rangeSchedule.startDate || !rangeSchedule.endDate || !rangeSchedule.startTime || !rangeSchedule.endTime) {
-          toast.error('Please fill in all required fields')
-          setSaving(false)
-          return
-        }
-        if (new Date(rangeSchedule.startDate) > new Date(rangeSchedule.endDate)) {
-          toast.error('End date must be after start date')
-          setSaving(false)
-          return
-        }
-        if (rangeSchedule.startTime >= rangeSchedule.endTime) {
-          toast.error('End time must be after start time')
-          setSaving(false)
-          return
-        }
-        scheduleData.start_date = rangeSchedule.startDate
-        scheduleData.end_date = rangeSchedule.endDate
-        scheduleData.start_time = rangeSchedule.startTime
-        scheduleData.end_time = rangeSchedule.endTime
-        scheduleData.exclude_weekends = rangeSchedule.excludeWeekends
-      } else if (addMode === 'recurring') {
-        if (!recurringSchedule.startDate || !recurringSchedule.endDate || !recurringSchedule.startTime || !recurringSchedule.endTime || recurringSchedule.daysOfWeek.length === 0) {
-          toast.error('Please fill in all required fields and select at least one day')
-          setSaving(false)
-          return
-        }
-        if (new Date(recurringSchedule.startDate) > new Date(recurringSchedule.endDate)) {
-          toast.error('End date must be after start date')
-          setSaving(false)
-          return
-        }
-        if (recurringSchedule.startTime >= recurringSchedule.endTime) {
-          toast.error('End time must be after start time')
-          setSaving(false)
-          return
-        }
-        scheduleData.recurring_start_date = recurringSchedule.startDate
-        scheduleData.recurring_end_date = recurringSchedule.endDate
-        scheduleData.recurring_start_time = recurringSchedule.startTime
-        scheduleData.recurring_end_time = recurringSchedule.endTime
-        scheduleData.days_of_week = recurringSchedule.daysOfWeek
-      }
-
-      // Create schedule - try generic table first, fallback to intensive_schedules
-      let newSchedule, scheduleError
-      
-      const { data: genericSchedule, error: genericError } = await supabase
-        .from('schedules')
-        .insert(scheduleData)
-        .select()
-        .single()
-
-      if (!genericError && genericSchedule) {
-        newSchedule = genericSchedule
-        scheduleError = null
+      if (data.synced > 0) {
+        toast.success(`Synced ${data.synced} recording${data.synced !== 1 ? 's' : ''} from Daily.co to S3`)
+        await loadBookings()
+      } else if (data.already_synced > 0) {
+        toast.info('All recordings already synced')
       } else {
-        // Fallback to intensive_schedules (remove event_type and meeting_type for compatibility)
-        const { event_type, meeting_type, ...intensiveData } = scheduleData
-        const { data: intensiveSchedule, error: intensiveError } = await supabase
-          .from('intensive_schedules')
-          .insert(intensiveData)
-          .select()
-          .single()
-        
-        newSchedule = intensiveSchedule
-        scheduleError = intensiveError
+        toast.info('No recordings found to sync')
       }
-
-      if (scheduleError) {
-        console.error('Error creating schedule:', scheduleError.message || scheduleError.code || JSON.stringify(scheduleError))
-        toast.error(`Failed to create schedule: ${scheduleError.message || scheduleError.code || 'Database error'}`)
-        setSaving(false)
-        return
-      }
-
-      // Generate slots from schedule
-      const slots = await generateSlotsFromSchedule(newSchedule)
-
-      if (slots.length > 0) {
-        // Insert slots with schedule_id - try generic table first
-        const slotData = slots.map(slot => ({
-          ...slot,
-          schedule_id: newSchedule.id,
-          event_type: eventType,
-          meeting_type: meetingType
-        }))
-
-        const { error: genericSlotsError } = await supabase
-          .from('schedule_time_slots')
-          .insert(slotData)
-
-        let slotsError = genericSlotsError
-
-        // If generic table doesn't exist, try intensive_time_slots
-        if (slotsError && slotsError.code === '42P01') {
-          const { error: intensiveSlotsError } = await supabase
-            .from('intensive_time_slots')
-            .insert(slots.map(slot => ({
-              ...slot,
-              schedule_id: newSchedule.id
-            })))
-          
-          slotsError = intensiveSlotsError
-        }
-
-        if (slotsError) {
-          console.error('Error creating slots:', slotsError)
-          // Delete schedule if slots failed
-          const deleteFromGeneric = await supabase.from('schedules').delete().eq('id', newSchedule.id)
-          if (deleteFromGeneric.error) {
-            await supabase.from('intensive_schedules').delete().eq('id', newSchedule.id)
-          }
-          toast.error('Failed to create time slots')
-          setSaving(false)
-          return
-        }
-      }
-
-      toast.success(`Created ${addMode} schedule with ${slots.length} time slot${slots.length !== 1 ? 's' : ''}`)
-      
-      // Reset forms
-      setScheduleName('')
-      setEventType('intensive_calibration')
-      setMeetingType('one_on_one')
-      setSingleSchedule({ date: '', time: '', max_bookings: 1, slot_length: 30 })
-      setRangeSchedule({ startDate: '', endDate: '', startTime: '', endTime: '', slotLength: 30, max_bookings: 1, excludeWeekends: true })
-      setRecurringSchedule({ startDate: '', endDate: '', startTime: '', endTime: '', slotLength: 30, daysOfWeek: [], max_bookings: 1 })
-      
-      // Reload schedules
-      await loadSchedules()
     } catch (error) {
-      console.error('Error creating schedule:', error instanceof Error ? error.message : JSON.stringify(error))
-      toast.error(`Failed to create schedule: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      const msg = error instanceof Error ? error.message : 'Unknown error'
+      toast.error(`Recording sync failed: ${msg}`)
     } finally {
-      setSaving(false)
+      setSyncingRecordings(false)
     }
   }
 
-  const deleteSchedule = async (scheduleId: string) => {
-    if (!confirm('Are you sure you want to delete this schedule? This will delete all associated time slots.')) return
+  const handleSelectUser = (user: IntensiveUser) => {
+    setSelectedUser(user)
+    setContactEmail(user.email || '')
+    setContactPhone(user.phone || '')
+    setSelectedDate('')
+    setSelectedTime('')
+    setSelectedStaffId(null)
+  }
+
+  const handleSchedule = async () => {
+    if (!selectedUser || !selectedDate || !selectedTime || !selectedStaffId) {
+      toast.error('Please select a user, date, and time')
+      return
+    }
+
+    const staffMember = staff.find((s) => s.id === selectedStaffId)
+    const slotMatch = availableSlots.find((s) => s.time === selectedTime)
 
     setSaving(true)
     try {
-      // Delete schedule (slots will cascade delete) - try generic table first
-      const { error: genericError } = await supabase
-        .from('schedules')
-        .delete()
-        .eq('id', scheduleId)
+      const res = await fetch('/api/admin/intensive/schedule-call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: selectedUser.user_id,
+          intensive_id: selectedUser.intensive_id,
+          staff_id: selectedStaffId,
+          date: selectedDate,
+          time: selectedTime,
+          contact_email: contactEmail,
+          contact_phone: contactPhone,
+          staff_name: staffMember?.display_name || slotMatch?.staff_name || '',
+        }),
+      })
 
-      let error = genericError
+      const data = await res.json()
 
-      // If generic table doesn't exist or schedule not found, try intensive_schedules
-      if (error && error.code === '42P01') {
-        const { error: intensiveError } = await supabase
-          .from('intensive_schedules')
-          .delete()
-          .eq('id', scheduleId)
-        error = intensiveError
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to schedule call')
       }
 
-      if (error) throw error
+      toast.success(`Call scheduled for ${selectedUser.display_name}`)
 
-      toast.success('Schedule deleted successfully')
-      await loadSchedules()
+      // Reset form
+      setSelectedUser(null)
+      setSelectedDate('')
+      setSelectedTime('')
+      setSelectedStaffId(null)
+      setContactEmail('')
+      setContactPhone('')
+      setSearchQuery('')
+
+      // Refresh data
+      await loadInitialData()
+      if (activeTab === 'bookings') {
+        await loadBookings()
+      }
     } catch (error) {
-      console.error('Error deleting schedule:', error)
-      toast.error('Failed to delete schedule')
+      const msg = error instanceof Error ? error.message : 'Unknown error'
+      console.error('Error scheduling call:', msg)
+      toast.error(`Failed to schedule: ${msg}`)
     } finally {
       setSaving(false)
     }
   }
 
-  const toggleScheduleActive = async (schedule: Schedule) => {
-    setSaving(true)
-    try {
-      // Update schedule - try generic table first
-      const { error: genericError } = await supabase
-        .from('schedules')
-        .update({ is_active: !schedule.is_active })
-        .eq('id', schedule.id)
-
-      let error = genericError
-
-      if (error && error.code === '42P01') {
-        const { error: intensiveError } = await supabase
-          .from('intensive_schedules')
-          .update({ is_active: !schedule.is_active })
-          .eq('id', schedule.id)
-        error = intensiveError
-      }
-
-      if (error) throw error
-
-      // Update all slots for this schedule
-      const { error: genericSlotsError } = await supabase
-        .from('schedule_time_slots')
-        .update({ available: !schedule.is_active })
-        .eq('schedule_id', schedule.id)
-
-      if (genericSlotsError && genericSlotsError.code === '42P01') {
-        await supabase
-          .from('intensive_time_slots')
-          .update({ available: !schedule.is_active })
-          .eq('schedule_id', schedule.id)
-      }
-
-      toast.success(`Schedule ${!schedule.is_active ? 'activated' : 'deactivated'}`)
-      await loadSchedules()
-    } catch (error) {
-      console.error('Error updating schedule:', error)
-      toast.error('Failed to update schedule')
-    } finally {
-      setSaving(false)
-    }
+  const formatTime12h = (time: string) => {
+    const [hours, minutes] = time.split(':').map(Number)
+    const period = hours >= 12 ? 'PM' : 'AM'
+    const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours
+    return `${displayHours}:${String(minutes).padStart(2, '0')} ${period}`
   }
 
-  const toggleDayOfWeek = (day: number) => {
-    setRecurringSchedule(prev => ({
-      ...prev,
-      daysOfWeek: prev.daysOfWeek.includes(day)
-        ? prev.daysOfWeek.filter(d => d !== day)
-        : [...prev.daysOfWeek, day].sort()
-    }))
+  const formatDateTime = (dateStr: string) => {
+    const date = new Date(dateStr)
+    return date.toLocaleString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    })
   }
 
-  const formatScheduleDescription = (schedule: Schedule): string => {
-    if (schedule.schedule_type === 'single') {
-      if (schedule.single_date && schedule.single_time) {
-        const date = new Date(schedule.single_date)
-        return `${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} at ${schedule.single_time}`
-      }
-      return 'Single slot'
-    } else if (schedule.schedule_type === 'range') {
-      if (schedule.start_date && schedule.end_date && schedule.start_time && schedule.end_time) {
-        const start = new Date(schedule.start_date)
-        const end = new Date(schedule.end_date)
-        return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}, ${schedule.start_time}-${schedule.end_time}${schedule.exclude_weekends ? ' (weekdays only)' : ''}`
-      }
-      return 'Date range'
-    } else if (schedule.schedule_type === 'recurring') {
-      if (schedule.recurring_start_date && schedule.recurring_end_date && schedule.recurring_start_time && schedule.recurring_end_time && schedule.days_of_week) {
-        const start = new Date(schedule.recurring_start_date)
-        const end = new Date(schedule.recurring_end_date)
-        const dayNames = schedule.days_of_week.map(d => daysOfWeekOptions[d].short).join(', ')
-        return `${dayNames}, ${schedule.recurring_start_time}-${schedule.recurring_end_time} (${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})`
-      }
-      return 'Recurring schedule'
-    }
-    return 'Unknown schedule'
-  }
-
-  const filteredSchedules = schedules.filter(s => {
-    const matchesScheduleType = selectedScheduleType === 'all' || s.schedule_type === selectedScheduleType
-    const matchesEventType = selectedEventType === 'all' || s.event_type === selectedEventType
-    return matchesScheduleType && matchesEventType
+  // Filter users by search query and scheduling status
+  const filteredUsers = users.filter((u) => {
+    const query = searchQuery.toLowerCase()
+    return (
+      u.display_name.toLowerCase().includes(query) ||
+      u.email.toLowerCase().includes(query) ||
+      u.first_name.toLowerCase().includes(query) ||
+      u.last_name.toLowerCase().includes(query)
+    )
   })
 
-  // Filter appointments by date
-  const filteredAppointments = filterDate
-    ? appointments.filter(a => a.scheduled_date === filterDate)
-    : appointments
+  const unscheduledUsers = filteredUsers.filter((u) => !u.call_scheduled)
+  const scheduledUsers = filteredUsers.filter((u) => u.call_scheduled)
+
+  const uniqueTimes = [...new Set(availableSlots.map((s) => s.time))].sort()
+
+  // Booking filters
+  const now = new Date()
+  const filteredBookings = bookings.filter((b) => {
+    if (bookingFilter === 'upcoming') return new Date(b.scheduled_at) >= now && b.status !== 'cancelled'
+    if (bookingFilter === 'past') return new Date(b.scheduled_at) < now || b.status === 'completed'
+    return true
+  })
 
   if (loading) {
     return (
@@ -652,556 +365,509 @@ export default function AdminScheduleCallPage() {
     <AdminWrapper>
       <Container size="xl">
         <Stack gap="lg">
-          <PageHero 
-            eyebrow="ADMIN" 
-            title="Schedule Call Admin" 
-            subtitle="Manage schedules and view booked appointments"
+          <PageHero
+            eyebrow="ADMIN"
+            title="Schedule Call"
+            subtitle="Schedule calibration calls for intensive users and manage existing bookings"
           />
 
           {/* Tabs */}
           <div className="flex gap-2 md:gap-4 border-b border-neutral-800 overflow-x-auto">
             <button
-              onClick={() => setActiveTab('schedules')}
+              onClick={() => setActiveTab('schedule')}
               className={`px-3 md:px-4 py-2 text-sm md:text-base font-semibold border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === 'schedules'
+                activeTab === 'schedule'
                   ? 'border-primary-500 text-primary-500'
                   : 'border-transparent text-neutral-400 hover:text-neutral-300'
               }`}
             >
               <Calendar className="w-4 h-4 inline mr-2" />
-              Schedules ({schedules.length})
+              Schedule Call
             </button>
             <button
-              onClick={() => setActiveTab('appointments')}
+              onClick={() => setActiveTab('bookings')}
               className={`px-3 md:px-4 py-2 text-sm md:text-base font-semibold border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === 'appointments'
+                activeTab === 'bookings'
                   ? 'border-primary-500 text-primary-500'
                   : 'border-transparent text-neutral-400 hover:text-neutral-300'
               }`}
             >
               <Users className="w-4 h-4 inline mr-2" />
-              Appointments ({appointments.length})
+              Bookings ({bookings.length})
             </button>
           </div>
 
-          {/* Schedules Tab */}
-          {activeTab === 'schedules' && (
+          {/* ──────────────── SCHEDULE TAB ──────────────── */}
+          {activeTab === 'schedule' && (
             <Stack gap="lg">
-              {/* Create New Schedule */}
-              <Card>
-                <h2 className="text-lg md:text-xl lg:text-2xl font-bold mb-4">Create New Schedule</h2>
-                
-                {/* Event Type and Meeting Type */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Event Type</label>
-                    <select
-                      value={eventType}
-                      onChange={(e) => setEventType(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#1F1F1F] border-2 border-[#333] rounded-xl focus:border-primary-500 focus:outline-none transition-all"
-                    >
-                      {eventTypes.map(type => (
-                        <option key={type.value} value={type.value}>
-                          {type.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Meeting Type</label>
-                    <select
-                      value={meetingType}
-                      onChange={(e) => {
-                        const newType = e.target.value as 'one_on_one' | 'group'
-                        setMeetingType(newType)
-                        // Auto-set max_bookings for one_on_one
-                        if (newType === 'one_on_one') {
-                          setSingleSchedule(prev => ({ ...prev, max_bookings: 1 }))
-                          setRangeSchedule(prev => ({ ...prev, max_bookings: 1 }))
-                          setRecurringSchedule(prev => ({ ...prev, max_bookings: 1 }))
-                        }
-                      }}
-                      className="w-full px-4 py-3 bg-[#1F1F1F] border-2 border-[#333] rounded-xl focus:border-primary-500 focus:outline-none transition-all"
-                    >
-                      <option value="one_on_one">One-on-One</option>
-                      <option value="group">Group Meeting</option>
-                    </select>
-                    {meetingType === 'one_on_one' && (
-                      <p className="text-xs text-neutral-400 mt-1">Max bookings will be set to 1</p>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Schedule Name */}
-                <div className="mb-4">
-                  <Input
-                    label="Schedule Name (Optional)"
-                    placeholder="e.g., 'Monday-Thursday Afternoons'"
-                    value={scheduleName}
-                    onChange={(e) => setScheduleName(e.target.value)}
-                    className="max-w-md"
-                  />
-                </div>
+              {/* Step indicator */}
+              <div className="flex items-center gap-2 text-sm text-neutral-400">
+                <Badge variant={!selectedUser ? 'premium' : 'success'} className="text-xs">1</Badge>
+                <span className={!selectedUser ? 'text-white font-medium' : 'text-neutral-500'}>Select User</span>
+                <ChevronRight className="w-4 h-4" />
+                <Badge variant={selectedUser && !selectedDate ? 'premium' : selectedDate ? 'success' : 'neutral'} className="text-xs">2</Badge>
+                <span className={selectedUser && !selectedDate ? 'text-white font-medium' : 'text-neutral-500'}>Pick Date & Time</span>
+                <ChevronRight className="w-4 h-4" />
+                <Badge variant={selectedDate && selectedTime ? 'premium' : 'neutral'} className="text-xs">3</Badge>
+                <span className={selectedDate && selectedTime ? 'text-white font-medium' : 'text-neutral-500'}>Confirm</span>
+              </div>
 
-                {/* Mode Tabs */}
-                <div className="flex flex-wrap gap-2 mb-6">
-                  <Button
-                    variant={addMode === 'single' ? 'primary' : 'ghost'}
-                    size="sm"
-                    onClick={() => setAddMode('single')}
-                  >
-                    Single
-                  </Button>
-                  <Button
-                    variant={addMode === 'range' ? 'primary' : 'ghost'}
-                    size="sm"
-                    onClick={() => setAddMode('range')}
-                  >
-                    <CalendarRange className="w-4 h-4 mr-2" />
-                    Date Range
-                  </Button>
-                  <Button
-                    variant={addMode === 'recurring' ? 'primary' : 'ghost'}
-                    size="sm"
-                    onClick={() => setAddMode('recurring')}
-                  >
-                    <Repeat className="w-4 h-4 mr-2" />
-                    Recurring
-                  </Button>
-                </div>
+              {/* ── Step 1: User Selection ── */}
+              {!selectedUser ? (
+                <Card>
+                  <h2 className="text-lg md:text-xl font-bold mb-4">Select Intensive User</h2>
 
-                {/* Single Schedule Form */}
-                {addMode === 'single' && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                    <DatePicker
-                      label="Date"
-                      value={singleSchedule.date}
-                      onChange={(dateString: string) => setSingleSchedule({ ...singleSchedule, date: dateString })}
-                      minDate={new Date().toISOString().split('T')[0]}
-                    />
-                    <TimePicker
-                      label="Time"
-                      value={singleSchedule.time}
-                      onChange={(time) => setSingleSchedule({ ...singleSchedule, time })}
-                      step={15}
-                    />
+                  <div className="relative mb-4">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
                     <Input
-                      label={meetingType === 'one_on_one' ? 'Max Bookings (1 for one-on-one)' : 'Max Attendees'}
-                      type="number"
-                      value={singleSchedule.max_bookings}
-                      onChange={(e) => setSingleSchedule({ ...singleSchedule, max_bookings: Math.max(1, parseInt(e.target.value) || 1) })}
-                      min={1}
-                      disabled={meetingType === 'one_on_one'}
+                      placeholder="Search by name or email..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
                     />
-                    <div className="flex items-end">
-                      <Button
-                        onClick={createSchedule}
-                        disabled={saving || !singleSchedule.date || !singleSchedule.time}
-                        className="w-full"
-                        size="md"
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Create Schedule
-                      </Button>
-                    </div>
                   </div>
-                )}
 
-                {/* Range Schedule Form */}
-                {addMode === 'range' && (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                      <DatePicker
-                        label="Start Date"
-                        value={rangeSchedule.startDate}
-                        onChange={(dateString: string) => setRangeSchedule({ ...rangeSchedule, startDate: dateString })}
-                        minDate={new Date().toISOString().split('T')[0]}
-                      />
-                      <DatePicker
-                        label="End Date"
-                        value={rangeSchedule.endDate}
-                        onChange={(dateString: string) => setRangeSchedule({ ...rangeSchedule, endDate: dateString })}
-                        minDate={rangeSchedule.startDate || new Date().toISOString().split('T')[0]}
-                      />
-                      <Input
-                        label={meetingType === 'one_on_one' ? 'Max Bookings (1 for one-on-one)' : 'Max Attendees'}
-                        type="number"
-                        value={rangeSchedule.max_bookings}
-                        onChange={(e) => setRangeSchedule({ ...rangeSchedule, max_bookings: Math.max(1, parseInt(e.target.value) || 1) })}
-                        min={1}
-                        disabled={meetingType === 'one_on_one'}
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                      <TimePicker
-                        label="Start Time"
-                        value={rangeSchedule.startTime}
-                        onChange={(time) => setRangeSchedule({ ...rangeSchedule, startTime: time })}
-                        step={15}
-                      />
-                      <TimePicker
-                        label="End Time"
-                        value={rangeSchedule.endTime}
-                        onChange={(time) => setRangeSchedule({ ...rangeSchedule, endTime: time })}
-                        step={15}
-                      />
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Slot Length (minutes)</label>
-                        <select
-                          value={rangeSchedule.slotLength}
-                          onChange={(e) => setRangeSchedule({ ...rangeSchedule, slotLength: parseInt(e.target.value) })}
-                          className="w-full px-4 py-3 bg-[#1F1F1F] border-2 border-[#333] rounded-xl focus:border-primary-500 focus:outline-none transition-all"
-                        >
-                          <option value={15}>15 minutes</option>
-                          <option value={30}>30 minutes</option>
-                          <option value={45}>45 minutes</option>
-                          <option value={60}>60 minutes</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="excludeWeekends"
-                        label="Exclude weekends"
-                        checked={rangeSchedule.excludeWeekends}
-                        onChange={(e) => setRangeSchedule({ ...rangeSchedule, excludeWeekends: e.target.checked })}
-                      />
-                    </div>
-                    <Button
-                      onClick={createSchedule}
-                      disabled={saving || !rangeSchedule.startDate || !rangeSchedule.endDate || !rangeSchedule.startTime || !rangeSchedule.endTime}
-                      className="w-full sm:w-auto"
-                      size="md"
-                    >
-                      <CalendarRange className="w-4 h-4 mr-2" />
-                      Create Schedule
-                    </Button>
-                  </div>
-                )}
-
-                {/* Recurring Schedule Form */}
-                {addMode === 'recurring' && (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                      <DatePicker
-                        label="Start Date"
-                        value={recurringSchedule.startDate}
-                        onChange={(dateString: string) => setRecurringSchedule({ ...recurringSchedule, startDate: dateString })}
-                        minDate={new Date().toISOString().split('T')[0]}
-                      />
-                      <DatePicker
-                        label="End Date"
-                        value={recurringSchedule.endDate}
-                        onChange={(dateString: string) => setRecurringSchedule({ ...recurringSchedule, endDate: dateString })}
-                        minDate={recurringSchedule.startDate || new Date().toISOString().split('T')[0]}
-                      />
-                      <Input
-                        label={meetingType === 'one_on_one' ? 'Max Bookings (1 for one-on-one)' : 'Max Attendees'}
-                        type="number"
-                        value={recurringSchedule.max_bookings}
-                        onChange={(e) => setRecurringSchedule({ ...recurringSchedule, max_bookings: Math.max(1, parseInt(e.target.value) || 1) })}
-                        min={1}
-                        disabled={meetingType === 'one_on_one'}
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                      <TimePicker
-                        label="Start Time"
-                        value={recurringSchedule.startTime}
-                        onChange={(time) => setRecurringSchedule({ ...recurringSchedule, startTime: time })}
-                        step={15}
-                      />
-                      <TimePicker
-                        label="End Time"
-                        value={recurringSchedule.endTime}
-                        onChange={(time) => setRecurringSchedule({ ...recurringSchedule, endTime: time })}
-                        step={15}
-                      />
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Slot Length (minutes)</label>
-                        <select
-                          value={recurringSchedule.slotLength}
-                          onChange={(e) => setRecurringSchedule({ ...recurringSchedule, slotLength: parseInt(e.target.value) })}
-                          className="w-full px-4 py-3 bg-[#1F1F1F] border-2 border-[#333] rounded-xl focus:border-primary-500 focus:outline-none transition-all"
-                        >
-                          <option value={15}>15 minutes</option>
-                          <option value={30}>30 minutes</option>
-                          <option value={45}>45 minutes</option>
-                          <option value={60}>60 minutes</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Days of Week</label>
-                      <div className="flex flex-wrap gap-2">
-                        {daysOfWeekOptions.map(day => (
+                  {/* Needs Scheduling */}
+                  {unscheduledUsers.length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="text-sm font-medium text-neutral-400 mb-3 uppercase tracking-wider">
+                        Needs Scheduling ({unscheduledUsers.length})
+                      </h3>
+                      <div className="space-y-2">
+                        {unscheduledUsers.map((user) => (
                           <button
-                            key={day.value}
-                            onClick={() => toggleDayOfWeek(day.value)}
-                            className={`
-                              px-3 py-2 rounded-lg border-2 text-sm transition-all
-                              ${recurringSchedule.daysOfWeek.includes(day.value)
-                                ? 'border-primary-500 bg-primary-500/10 text-primary-500'
-                                : 'border-neutral-700 hover:border-neutral-600 text-neutral-300'
-                              }
-                            `}
+                            key={user.id}
+                            onClick={() => handleSelectUser(user)}
+                            className="w-full flex items-center gap-3 p-3 rounded-xl border-2 border-neutral-700 hover:border-primary-500 transition-all text-left"
                           >
-                            {day.short}
+                            <div className="w-10 h-10 rounded-full bg-neutral-800 flex items-center justify-center flex-shrink-0">
+                              <User className="w-5 h-5 text-neutral-400" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-white truncate">{user.display_name}</p>
+                              <p className="text-xs text-neutral-500 truncate">{user.email}</p>
+                            </div>
+                            <Badge variant="warning" className="text-xs flex-shrink-0">No Call</Badge>
+                            <ChevronRight className="w-4 h-4 text-neutral-500 flex-shrink-0" />
                           </button>
                         ))}
                       </div>
                     </div>
-                    <Button
-                      onClick={createSchedule}
-                      disabled={saving || !recurringSchedule.startDate || !recurringSchedule.endDate || !recurringSchedule.startTime || !recurringSchedule.endTime || recurringSchedule.daysOfWeek.length === 0}
-                      className="w-full sm:w-auto"
-                      size="md"
-                    >
-                      <Repeat className="w-4 h-4 mr-2" />
-                      Create Schedule
-                    </Button>
-                  </div>
-                )}
-              </Card>
+                  )}
 
-              {/* Existing Schedules */}
-              <Card>
-                <div className="flex flex-col gap-4 mb-4">
-                  <h2 className="text-lg md:text-xl lg:text-2xl font-bold">Existing Schedules</h2>
-                  
-                  {/* Filters */}
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    {/* Event Type Filter */}
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium mb-2">Filter by Event Type</label>
-                      <select
-                        value={selectedEventType}
-                        onChange={(e) => setSelectedEventType(e.target.value)}
-                        className="w-full px-4 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-xl focus:border-primary-500 focus:outline-none transition-all text-sm"
-                      >
-                        <option value="all">All Event Types</option>
-                        {eventTypes.map(type => (
-                          <option key={type.value} value={type.value}>
-                            {type.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    
-                    {/* Schedule Type Filter */}
-                    <div className="flex flex-wrap gap-2 items-end">
-                      <Button
-                        variant={selectedScheduleType === 'all' ? 'primary' : 'ghost'}
-                        size="sm"
-                        onClick={() => setSelectedScheduleType('all')}
-                      >
-                        All ({schedules.length})
-                      </Button>
-                      <Button
-                        variant={selectedScheduleType === 'single' ? 'primary' : 'ghost'}
-                        size="sm"
-                        onClick={() => setSelectedScheduleType('single')}
-                      >
-                        Single ({schedules.filter(s => s.schedule_type === 'single').length})
-                      </Button>
-                      <Button
-                        variant={selectedScheduleType === 'range' ? 'primary' : 'ghost'}
-                        size="sm"
-                        onClick={() => setSelectedScheduleType('range')}
-                      >
-                        Range ({schedules.filter(s => s.schedule_type === 'range').length})
-                      </Button>
-                      <Button
-                        variant={selectedScheduleType === 'recurring' ? 'primary' : 'ghost'}
-                        size="sm"
-                        onClick={() => setSelectedScheduleType('recurring')}
-                      >
-                        Recurring ({schedules.filter(s => s.schedule_type === 'recurring').length})
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                {filteredSchedules.length === 0 ? (
-                  <div className="text-center py-8 text-neutral-400 text-sm md:text-base">
-                    No schedules found. Create one using the form above.
-                  </div>
-                ) : (
-                  <div className="space-y-3 md:space-y-4">
-                    {filteredSchedules.map((schedule) => (
-                      <div
-                        key={schedule.id}
-                        className={`
-                          p-4 rounded-xl border-2 transition-all
-                          ${schedule.is_active
-                            ? 'border-neutral-700 hover:border-primary-500'
-                            : 'border-neutral-800 bg-neutral-900/50 opacity-60'
-                          }
-                        `}
-                      >
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              {schedule.schedule_type === 'single' && <Calendar className="w-5 h-5 text-primary-500" />}
-                              {schedule.schedule_type === 'range' && <CalendarRange className="w-5 h-5 text-secondary-500" />}
-                              {schedule.schedule_type === 'recurring' && <Repeat className="w-5 h-5 text-accent-500" />}
-                              <div>
-                                <h3 className="text-base md:text-lg font-semibold text-white">
-                                  {schedule.name || `${schedule.schedule_type.charAt(0).toUpperCase() + schedule.schedule_type.slice(1)} Schedule`}
-                                </h3>
-                                <p className="text-xs md:text-sm text-neutral-400 mt-1">
-                                  {formatScheduleDescription(schedule)}
+                  {/* Already Scheduled */}
+                  {scheduledUsers.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-medium text-neutral-400 mb-3 uppercase tracking-wider">
+                        Already Scheduled ({scheduledUsers.length})
+                      </h3>
+                      <div className="space-y-2">
+                        {scheduledUsers.map((user) => (
+                          <button
+                            key={user.id}
+                            onClick={() => handleSelectUser(user)}
+                            className="w-full flex items-center gap-3 p-3 rounded-xl border-2 border-neutral-800 hover:border-neutral-600 transition-all text-left opacity-70"
+                          >
+                            <div className="w-10 h-10 rounded-full bg-neutral-800 flex items-center justify-center flex-shrink-0">
+                              <User className="w-5 h-5 text-neutral-400" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-white truncate">{user.display_name}</p>
+                              <p className="text-xs text-neutral-500 truncate">{user.email}</p>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <Badge variant="success" className="text-xs">Scheduled</Badge>
+                              {user.call_scheduled_time && (
+                                <p className="text-xs text-neutral-500 mt-1">
+                                  {new Date(user.call_scheduled_time).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                  })}
                                 </p>
+                              )}
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-neutral-500 flex-shrink-0" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {filteredUsers.length === 0 && (
+                    <div className="text-center py-8 text-neutral-400 text-sm">
+                      {searchQuery ? 'No users match your search.' : 'No intensive users found.'}
+                    </div>
+                  )}
+                </Card>
+              ) : (
+                <>
+                  {/* Selected User Banner */}
+                  <Card className="bg-neutral-800/50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary-500/20 border-2 border-primary-500/40 flex items-center justify-center flex-shrink-0">
+                          <User className="w-5 h-5 text-primary-500" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-white">{selectedUser.display_name}</p>
+                          <p className="text-xs text-neutral-400">{selectedUser.email}</p>
+                        </div>
+                        {selectedUser.call_scheduled && (
+                          <Badge variant="warning" className="text-xs ml-2">Already Has a Call</Badge>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedUser(null)
+                          setSelectedDate('')
+                          setSelectedTime('')
+                          setSelectedStaffId(null)
+                        }}
+                      >
+                        <ArrowLeft className="w-4 h-4 mr-1" />
+                        Change
+                      </Button>
+                    </div>
+                  </Card>
+
+                  {/* ── Step 2: Date & Time Selection ── */}
+                  <Card>
+                    <h2 className="text-lg md:text-xl font-bold mb-2">Select Date & Time</h2>
+                    <p className="text-sm text-neutral-400 mb-6">
+                      Showing available slots based on staff availability. All times are EST.
+                    </p>
+
+                    {staff.length === 0 ? (
+                      <div className="text-center py-8 text-neutral-400">
+                        <p>No staff members configured for calibration calls.</p>
+                        <p className="text-xs mt-2">Add staff with the &quot;intensive_calibration&quot; event type.</p>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Date Selection */}
+                        <div className="mb-6">
+                          <label className="block text-sm font-medium mb-3">Choose a Date</label>
+                          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                            {availableDates.map((date) => {
+                              const dateObj = new Date(date + 'T00:00:00')
+                              const isSelected = selectedDate === date
+                              return (
+                                <button
+                                  key={date}
+                                  onClick={() => setSelectedDate(date)}
+                                  className={`
+                                    p-3 rounded-xl border-2 transition-all text-center
+                                    ${isSelected
+                                      ? 'border-primary-500 bg-primary-500/10'
+                                      : 'border-neutral-700 hover:border-neutral-600'
+                                    }
+                                  `}
+                                >
+                                  <p className="text-xs text-neutral-400">
+                                    {dateObj.toLocaleDateString('en-US', { weekday: 'short' })}
+                                  </p>
+                                  <p className="text-sm font-semibold">
+                                    {dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                  </p>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Time Selection */}
+                        {selectedDate && (
+                          <div className="mb-6">
+                            <label className="block text-sm font-medium mb-3">Choose a Time (EST)</label>
+                            {loadingSlots ? (
+                              <div className="flex items-center justify-center py-8">
+                                <Spinner size="sm" className="mr-2" />
+                                <span className="text-neutral-400">Loading available times...</span>
                               </div>
-                            </div>
-                            <div className="flex flex-wrap gap-2 mt-2">
-                              <Badge variant={schedule.is_active ? 'success' : 'neutral'} className="text-xs">
-                                {schedule.is_active ? 'Active' : 'Inactive'}
-                              </Badge>
-                              <Badge variant="premium" className="text-xs">
-                                {(() => {
-                                  const EventIcon = eventTypes.find(e => e.value === schedule.event_type)?.Icon || Calendar
-                                  return <EventIcon className="w-4 h-4 inline mr-2" />
-                                })()} {eventTypes.find(e => e.value === schedule.event_type)?.label || schedule.event_type}
-                              </Badge>
-                              <Badge variant={schedule.meeting_type === 'group' ? 'accent' : 'neutral'} className="text-xs">
-                                {schedule.meeting_type === 'group' ? (
-                                  <><Users className="w-4 h-4 inline mr-1" />Group</>
-                                ) : (
-                                  <><User className="w-4 h-4 inline mr-1" />One-on-One</>
-                                )}
-                              </Badge>
-                              <Badge variant="info" className="text-xs">
-                                {schedule.slot_count || 0} slots
-                              </Badge>
-                              <Badge variant="neutral" className="text-xs">
-                                {schedule.max_bookings} max {schedule.meeting_type === 'group' ? 'attendees' : 'booking'}{schedule.max_bookings !== 1 ? 's' : ''}
-                              </Badge>
-                              <Badge variant="neutral" className="text-xs">
-                                {schedule.slot_length} min slots
-                              </Badge>
-                            </div>
+                            ) : uniqueTimes.length === 0 ? (
+                              <div className="text-center py-8 text-neutral-400">
+                                No times available on this date. Try another date.
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                                {uniqueTimes.map((time) => {
+                                  const isSelected = selectedTime === time
+                                  const slot = availableSlots.find((s) => s.time === time)
+                                  return (
+                                    <button
+                                      key={time}
+                                      onClick={() => {
+                                        setSelectedTime(time)
+                                        setSelectedStaffId(slot?.staff_id || null)
+                                      }}
+                                      className={`
+                                        px-3 py-2 rounded-lg border transition-all text-sm
+                                        ${isSelected
+                                          ? 'border-primary-500 bg-primary-500 text-black font-semibold'
+                                          : 'border-neutral-700 hover:border-primary-500'
+                                        }
+                                      `}
+                                    >
+                                      {formatTime12h(time)}
+                                      {slot && (
+                                        <p className={`text-[10px] mt-0.5 ${isSelected ? 'text-black/60' : 'text-neutral-500'}`}>
+                                          {slot.staff_name}
+                                        </p>
+                                      )}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </Card>
+
+                  {/* ── Step 3: Contact Info & Confirm ── */}
+                  {selectedDate && selectedTime && (
+                    <Card>
+                      <h2 className="text-lg md:text-xl font-bold mb-4">Confirm Booking</h2>
+
+                      {/* Summary */}
+                      <div className="p-4 rounded-xl bg-neutral-800/50 border border-neutral-700 mb-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                          <div className="flex items-center gap-2">
+                            <User className="w-4 h-4 text-primary-500" />
+                            <span className="text-neutral-400">Client:</span>
+                            <span className="text-white font-medium">{selectedUser.display_name}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => toggleScheduleActive(schedule)}
-                              disabled={saving}
-                            >
-                              {schedule.is_active ? 'Deactivate' : 'Activate'}
-                            </Button>
-                            <Button
-                              variant="danger"
-                              size="sm"
-                              onClick={() => deleteSchedule(schedule.id)}
-                              disabled={saving}
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Delete
-                            </Button>
+                            <Calendar className="w-4 h-4 text-primary-500" />
+                            <span className="text-neutral-400">Date:</span>
+                            <span className="text-white font-medium">
+                              {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', {
+                                weekday: 'long',
+                                month: 'long',
+                                day: 'numeric',
+                              })}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-primary-500" />
+                            <span className="text-neutral-400">Time:</span>
+                            <span className="text-white font-medium">{formatTime12h(selectedTime)} EST</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Video className="w-4 h-4 text-primary-500" />
+                            <span className="text-neutral-400">With:</span>
+                            <span className="text-white font-medium">
+                              {availableSlots.find((s) => s.time === selectedTime)?.staff_name || 'Staff'}
+                            </span>
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </Card>
+
+                      {/* Contact info */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                        <div>
+                          <label className="block text-sm font-medium mb-2">
+                            <Mail className="w-3 h-3 inline mr-1" />
+                            Client Email
+                          </label>
+                          <Input
+                            type="email"
+                            placeholder="client@email.com"
+                            value={contactEmail}
+                            onChange={(e) => setContactEmail(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2">
+                            <Phone className="w-3 h-3 inline mr-1" />
+                            Client Phone (optional)
+                          </label>
+                          <Input
+                            type="tel"
+                            placeholder="+1 (555) 123-4567"
+                            value={contactPhone}
+                            onChange={(e) => setContactPhone(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      <Button
+                        variant="primary"
+                        size="lg"
+                        onClick={handleSchedule}
+                        disabled={saving}
+                        className="w-full"
+                      >
+                        {saving ? (
+                          <>
+                            <Spinner size="sm" className="mr-2" />
+                            Scheduling...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="w-5 h-5 mr-2" />
+                            Schedule Call for {selectedUser.display_name}
+                          </>
+                        )}
+                      </Button>
+
+                      <p className="text-xs text-neutral-500 text-center mt-3">
+                        This will create a video session, send an email invitation, and update their intensive checklist.
+                      </p>
+                    </Card>
+                  )}
+                </>
+              )}
             </Stack>
           )}
 
-          {/* Appointments Tab */}
-          {activeTab === 'appointments' && (
+          {/* ──────────────── BOOKINGS TAB ──────────────── */}
+          {activeTab === 'bookings' && (
             <Stack gap="lg">
-              {/* Filter */}
-              <Card>
-                <div className="flex flex-col sm:flex-row gap-4 items-end">
-                  <DatePicker
-                    label="Filter by Date"
-                    value={filterDate}
-                    onChange={(dateString: string) => setFilterDate(dateString)}
-                    className="flex-1"
-                  />
+              {/* Filters */}
+              <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+                <div className="flex gap-2">
+                  {(['all', 'upcoming', 'past'] as const).map((filter) => (
+                    <Button
+                      key={filter}
+                      variant={bookingFilter === filter ? 'primary' : 'ghost'}
+                      size="sm"
+                      onClick={() => setBookingFilter(filter)}
+                    >
+                      {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                    </Button>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" onClick={loadBookings} disabled={loadingBookings}>
+                    <RefreshCw className={`w-4 h-4 mr-1 ${loadingBookings ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
                   <Button
-                    variant="ghost"
-                    onClick={() => setFilterDate('')}
-                    size="md"
+                    variant="secondary"
+                    size="sm"
+                    onClick={syncRecordings}
+                    disabled={syncingRecordings}
                   >
-                    Clear Filter
+                    <Video className={`w-4 h-4 mr-1 ${syncingRecordings ? 'animate-pulse' : ''}`} />
+                    {syncingRecordings ? 'Syncing...' : 'Sync Recordings'}
                   </Button>
                 </div>
-              </Card>
+              </div>
 
-              {/* Appointments List */}
-              <Card>
-                <h2 className="text-lg md:text-xl lg:text-2xl font-bold mb-4">
-                  Booked Appointments ({filteredAppointments.length})
-                </h2>
+              {loadingBookings ? (
+                <div className="flex items-center justify-center py-12">
+                  <Spinner size="lg" />
+                </div>
+              ) : filteredBookings.length === 0 ? (
+                <Card className="text-center py-8">
+                  <p className="text-neutral-400">No bookings found.</p>
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  {filteredBookings.map((booking) => {
+                    const scheduledDate = new Date(booking.scheduled_at)
+                    const isPast = scheduledDate < now
+                    const isCancelled = booking.status === 'cancelled'
 
-                {filteredAppointments.length === 0 ? (
-                  <div className="text-center py-8 text-neutral-400 text-sm md:text-base">
-                    No appointments found{filterDate ? ` for ${filterDate}` : ''}.
-                  </div>
-                ) : (
-                  <div className="space-y-3 md:space-y-4">
-                    {filteredAppointments.map((appointment) => {
-                      const appointmentDate = new Date(appointment.scheduled_datetime)
-                      const isPast = appointmentDate < new Date()
-
-                      return (
-                        <div
-                          key={appointment.id}
-                          className={`
-                            p-3 md:p-4 rounded-xl border-2 transition-all
-                            ${isPast
-                              ? 'border-neutral-800 bg-neutral-900/50'
-                              : 'border-neutral-700 hover:border-primary-500'
-                            }
-                          `}
-                        >
-                          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 md:gap-3 mb-2">
-                                <Calendar className="w-4 h-4 md:w-5 md:h-5 text-primary-500 flex-shrink-0" />
-                                <div>
-                                  <p className="text-sm md:text-base font-semibold text-white">
-                                    {appointmentDate.toLocaleDateString('en-US', {
-                                      weekday: 'long',
-                                      year: 'numeric',
-                                      month: 'long',
-                                      day: 'numeric'
-                                    })}
-                                  </p>
-                                  <p className="text-xs md:text-sm text-neutral-400 flex items-center gap-2">
-                                    <Clock className="w-3 h-3 md:w-4 md:h-4" />
-                                    {appointment.scheduled_time} EST
-                                  </p>
-                                </div>
+                    return (
+                      <Card
+                        key={booking.id}
+                        className={`${isCancelled ? 'opacity-50' : ''}`}
+                      >
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                                isPast ? 'bg-neutral-800' : 'bg-primary-500/20'
+                              }`}>
+                                {isPast ? (
+                                  <CheckCircle className="w-5 h-5 text-neutral-500" />
+                                ) : (
+                                  <Calendar className="w-5 h-5 text-primary-500" />
+                                )}
                               </div>
-                              <div className="mt-2">
-                                <p className="text-xs md:text-sm text-neutral-300">
-                                  <strong>Client:</strong> {appointment.user_name || 'Unknown'}
+                              <div>
+                                <p className="text-sm font-semibold text-white">
+                                  {scheduledDate.toLocaleDateString('en-US', {
+                                    weekday: 'long',
+                                    month: 'long',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                  })}
                                 </p>
-                                <p className="text-xs text-neutral-400 truncate">
-                                  {appointment.user_email}
+                                <p className="text-xs text-neutral-400 flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {scheduledDate.toLocaleTimeString('en-US', {
+                                    hour: 'numeric',
+                                    minute: '2-digit',
+                                    hour12: true,
+                                  })}{' '}
+                                  EST · {booking.duration_minutes} min
                                 </p>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <Badge variant={isPast ? 'neutral' : 'success'} className="text-xs">
-                                {isPast ? 'Past' : 'Upcoming'}
-                              </Badge>
-                              <Badge variant="info" className="text-xs">
-                                {appointment.status}
-                              </Badge>
+
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-neutral-400 ml-[52px]">
+                              <span>
+                                <User className="w-3 h-3 inline mr-1" />
+                                {booking.user_name}
+                              </span>
+                              <span>
+                                <Mail className="w-3 h-3 inline mr-1" />
+                                {booking.user_email}
+                              </span>
+                              <span>
+                                <Video className="w-3 h-3 inline mr-1" />
+                                with {booking.staff_name}
+                              </span>
                             </div>
                           </div>
+
+                          <div className="flex items-center gap-2 flex-wrap ml-[52px] md:ml-0">
+                            <Badge
+                              variant={
+                                booking.status === 'confirmed' ? 'success'
+                                : booking.status === 'completed' ? 'info'
+                                : booking.status === 'cancelled' ? 'neutral'
+                                : 'warning'
+                              }
+                              className="text-xs"
+                            >
+                              {booking.status}
+                            </Badge>
+
+                            {booking.recording_url && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => window.open(booking.recording_url!, '_blank')}
+                              >
+                                <Play className="w-3 h-3 mr-1" />
+                                Recording
+                              </Button>
+                            )}
+
+                            {booking.video_session_id && !isPast && booking.status === 'confirmed' && (
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => window.open(`/session/${booking.video_session_id}`, '_blank')}
+                              >
+                                <ExternalLink className="w-3 h-3 mr-1" />
+                                Join
+                              </Button>
+                            )}
+                          </div>
                         </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </Card>
+                      </Card>
+                    )
+                  })}
+                </div>
+              )}
             </Stack>
           )}
         </Stack>

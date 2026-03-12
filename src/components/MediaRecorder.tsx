@@ -84,6 +84,7 @@ export function MediaRecorderComponent({
   const [previousChunks, setPreviousChunks] = useState<Blob[]>([]) // Chunks from before refresh
   const [previousDuration, setPreviousDuration] = useState(0) // Duration from before refresh
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]) // Available microphones
+  const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]) // Available cameras
   const [selectedMic, setSelectedMic] = useState<string>('') // Selected microphone ID
   const [isMicDropdownOpen, setIsMicDropdownOpen] = useState(false) // Microphone dropdown state
   const micDropdownRef = useRef<HTMLDivElement>(null) // Ref for microphone dropdown
@@ -174,8 +175,9 @@ export function MediaRecorderComponent({
     try {
       const devices = await navigator.mediaDevices.enumerateDevices()
       const audioInputs = devices.filter(d => d.kind === 'audioinput')
+      const videoInputs = devices.filter(d => d.kind === 'videoinput')
 
-      // If labels are empty the browser hasn't granted mic access yet —
+      // If labels are empty the browser hasn't granted access yet —
       // the selector would be useless, so only populate when labels exist.
       const hasLabels = audioInputs.some(d => d.label)
       if (hasLabels) {
@@ -184,6 +186,11 @@ export function MediaRecorderComponent({
           if (!prev && audioInputs.length > 0) return audioInputs[0].deviceId
           return prev
         })
+      }
+
+      const hasVideoLabels = videoInputs.some(d => d.label)
+      if (hasVideoLabels) {
+        setVideoDevices(videoInputs)
       }
     } catch {
       // Silently ignore — devices will be loaded after first recording
@@ -1053,44 +1060,35 @@ export function MediaRecorderComponent({
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  // Switch between front and back camera
+  // Switch between front and back camera (only during preview/preparing, not mid-recording)
   const switchCamera = async () => {
+    if (!streamRef.current || !isPreparing) return
+    if (isRecording) return // Cannot switch mid-recording
+
     const newFacingMode = facingMode === 'user' ? 'environment' : 'user'
-    setFacingMode(newFacingMode)
-    
-    // If currently recording or preparing, restart with new camera
-    if (streamRef.current && (isRecording || isPreparing)) {
-      // Stop current stream
+
+    try {
+      // Acquire new stream BEFORE stopping the old one so failure is safe
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: newFacingMode
+        },
+        audio: selectedMic ? { deviceId: { exact: selectedMic } } : true
+      })
+
+      // Success — now stop the old stream and swap in the new one
       streamRef.current.getTracks().forEach(track => track.stop())
-      
-      try {
-        const newStream = await navigator.mediaDevices.getUserMedia({
-          video: { 
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            facingMode: newFacingMode
-          },
-          audio: selectedMic ? { deviceId: { exact: selectedMic } } : true
-        })
-        
-        streamRef.current = newStream
-        
-        if (videoRef.current) {
-          videoRef.current.srcObject = newStream
-          await videoRef.current.play()
-        }
-        
-        // If recording, update the media recorder with new stream
-        if (isRecording && mediaRecorderRef.current) {
-          // Note: Can't change stream mid-recording, camera switch only works during preview
-          console.log('⚠️ Camera switch during recording - will take effect on next recording')
-        }
-      } catch (err) {
-        console.error('Failed to switch camera:', err)
-        setError('Failed to switch camera. Please try again.')
-        // Revert facing mode
-        setFacingMode(facingMode)
+      streamRef.current = newStream
+      setFacingMode(newFacingMode)
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = newStream
+        await videoRef.current.play()
       }
+    } catch (err) {
+      console.error('Failed to switch camera:', err)
     }
   }
 
@@ -1153,8 +1151,8 @@ export function MediaRecorderComponent({
                 ref={videoRef}
                 className={
                   isFullscreen
-                    ? 'w-full h-full object-contain'
-                    : 'w-full h-full max-h-[70vh] object-contain'
+                    ? 'w-full h-full object-cover'
+                    : 'w-full h-full object-cover'
                 }
                 autoPlay
                 muted
@@ -1166,9 +1164,9 @@ export function MediaRecorderComponent({
                 }}
               />
               
-              {/* Top Controls - Camera Switch (video only) & Fullscreen - 44px min touch targets */}
+              {/* Top Controls - Camera Switch (only during preview with 2+ cameras) & Fullscreen - 44px min touch targets */}
               <div className="absolute top-4 right-4 flex gap-2 z-10">
-                {allowCameraSwitch && mode === 'video' && (
+                {allowCameraSwitch && mode === 'video' && isPreparing && !isRecording && isMobile && videoDevices.length >= 2 && (
                   <button
                     type="button"
                     onClick={switchCamera}
@@ -1190,17 +1188,17 @@ export function MediaRecorderComponent({
                 )}
               </div>
 
-              {/* Source indicator - icon only for support (minimal overlay) */}
-              <div className="absolute top-4 left-4 flex items-center gap-1.5 bg-black/50 text-white px-2 py-1.5 rounded-full text-sm backdrop-blur-sm">
-                {mode === 'screen' ? (
-                  <Monitor className="w-4 h-4" />
-                ) : (
-                  <Video className="w-4 h-4" />
-                )}
-                {recordingPurpose !== 'support' && (
+              {/* Source indicator - only show for non-support modes where camera direction matters */}
+              {recordingPurpose !== 'support' && (
+                <div className="absolute top-4 left-4 flex items-center gap-1.5 bg-black/50 text-white px-2 py-1.5 rounded-full text-sm backdrop-blur-sm pointer-events-none select-none">
+                  {mode === 'screen' ? (
+                    <Monitor className="w-4 h-4" />
+                  ) : (
+                    <Video className="w-4 h-4" />
+                  )}
                   <span>{mode === 'screen' ? 'Screen' : facingMode === 'user' ? 'Front' : 'Back'}</span>
-                )}
-              </div>
+                </div>
+              )}
               
               {/* Countdown Overlay */}
               {countdown !== null && (
@@ -1790,7 +1788,7 @@ export function MediaRecorderComponent({
                   disabled={isUploading}
                 >
                   <Trash2 className="w-4 h-4" />
-                  Record again
+                  Delete
                 </Button>
               </>
             ) : recordingPurpose === 'transcriptOnly' ? (

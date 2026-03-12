@@ -207,12 +207,19 @@ export async function DELETE(
       }
     }
 
-    // Can't delete live sessions
-    if (session.status === 'live') {
-      return NextResponse.json(
-        { error: 'Cannot delete a live session' },
-        { status: 400 }
-      )
+    // Non-admins can't delete live sessions
+    if (session.status === 'live' && session.host_user_id === user.id) {
+      const { data: account } = await supabase
+        .from('user_accounts')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+      if (account?.role !== 'admin' && account?.role !== 'super_admin') {
+        return NextResponse.json(
+          { error: 'Cannot delete a live session. End the call first.' },
+          { status: 400 }
+        )
+      }
     }
 
     // Delete Daily.co room

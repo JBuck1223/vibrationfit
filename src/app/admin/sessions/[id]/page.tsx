@@ -17,6 +17,7 @@ import {
   Users,
   Play,
   Trash2,
+  CheckCircle,
   ArrowLeft,
   Copy,
   Check,
@@ -582,17 +583,39 @@ export default function AdminSessionDetailPage() {
                   Open in Daily.co
                 </Button>
 
-                {session.status !== 'live' && (
+                {session.status === 'live' && (
                   <Button
-                    variant="danger"
+                    variant="outline"
                     size="sm"
-                    onClick={handleDelete}
+                    onClick={async () => {
+                      if (!confirm('Mark this session as completed? Use this if the call ended but status is stuck on "live".')) return
+                      try {
+                        await fetch(`/api/video/sessions/${sessionId}`, {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ status: 'completed', ended_at: new Date().toISOString() }),
+                        })
+                        fetchSession()
+                      } catch (err) {
+                        console.error('Error updating session:', err)
+                      }
+                    }}
                     className="w-full justify-start"
                   >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete Session
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Mark Completed
                   </Button>
                 )}
+
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={handleDelete}
+                  className="w-full justify-start"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Session
+                </Button>
               </div>
             </Card>
 

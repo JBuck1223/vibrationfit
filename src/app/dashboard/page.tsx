@@ -1,11 +1,10 @@
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import DashboardContent from '@/components/DashboardContent'
 import { getGraduateChecklist } from '@/lib/graduate-checklist'
+import { getEffectiveUser } from '@/lib/impersonation'
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { user, supabase } = await getEffectiveUser()
 
   if (!user) {
     redirect('/auth/login')

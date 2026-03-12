@@ -404,18 +404,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Track usage
     const usage = completion.usage;
     if (usage) {
       await trackTokenUsage({
         user_id: user.id,
         action_type: "vision_refinement",
-        model_used: toolConfig.model_name,
+        model_used: completion.model || VISION_MODEL,
         tokens_used: usage.total_tokens,
-        actual_cost_cents: 0, // Will be calculated
+        actual_cost_cents: 0,
         input_tokens: usage.prompt_tokens,
         output_tokens: usage.completion_tokens,
-        // OpenAI reconciliation fields
         openai_request_id: completion.id,
         openai_created: completion.created,
         system_fingerprint: completion.system_fingerprint,
