@@ -65,7 +65,7 @@ export default async function DashboardPage() {
 
   // Get version numbers for all visions using RPC function
   const visionDataWithVersions = visionData ? await Promise.all(
-    visionData.map(async (vision) => {
+    visionData.map(async (vision: any) => {
       const { data: versionNumber, error: visionVersionError } = await supabase
         .rpc('get_vision_version_number', { p_vision_id: vision.id })
       
@@ -107,7 +107,7 @@ export default async function DashboardPage() {
     .select('id')
     .in('vision_id', visionIds)
   
-  const audioSetIds = audioSets?.map(set => set.id) || []
+  const audioSetIds = audioSets?.map((set: any) => set.id) || []
   
   // Count all audio tracks in these sets
   const { count: audioSetsCount } = await supabase
