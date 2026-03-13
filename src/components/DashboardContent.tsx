@@ -68,7 +68,7 @@ interface DashboardContentProps {
   audioSetsCount: number
   refinementsCount: number
   storageQuotaGB: number
-  initialCalibrationCall?: { show: boolean; session?: { id: string | null; title: string; scheduled_at: string; join_link: string } } | null
+  initialCalibrationCall?: { show: boolean; session?: { id: string | null; title: string; scheduled_at: string | null; join_link: string } } | null
   graduateChecklist?: GraduateChecklistResult | null
 }
 
@@ -80,7 +80,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
   const [activationDays, setActivationDays] = useState(0)
   const [calibrationCall, setCalibrationCall] = useState<{
     show: boolean
-    session?: { id: string | null; title: string; scheduled_at: string; join_link: string }
+    session?: { id: string | null; title: string; scheduled_at: string | null; join_link: string }
   } | null>(initialCalibrationCall)
   const [countdown, setCountdown] = useState<{ days: number; hours: number; minutes: number } | null>(null)
   

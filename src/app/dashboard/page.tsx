@@ -136,7 +136,7 @@ export default async function DashboardPage() {
   const storageQuotaGB = storageQuotaData?.[0]?.total_quota_gb || 5 // Default to 5GB if no quota found
 
   // Fetch calibration call server-side so the card renders with initial load (no client lag)
-  let calibrationCall: { show: boolean; session?: { id: string | null; title: string; scheduled_at: string; join_link: string } } | null = null
+  let calibrationCall: { show: boolean; session?: { id: string | null; title: string; scheduled_at: string | null; join_link: string } } | null = null
   try {
     const { data: checklist } = await supabase
       .from('intensive_checklist')
