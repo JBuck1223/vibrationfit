@@ -223,12 +223,22 @@ export default function DashboardContent({ user, profileData, visionData, vision
   const completionPercentage = calculateCompletionManually(profileData)
 
   // Safe date formatting that prevents hydration mismatch
+  // Uses browser's local timezone so members see times in their own zone
   const formatDate = (dateString: string) => {
-    if (!mounted) return '' // Return empty string during SSR
+    if (!mounted) return ''
     return new Date(dateString).toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric', 
-      year: 'numeric'
+      year: 'numeric',
+    })
+  }
+
+  const formatTime = (dateString: string) => {
+    if (!mounted) return ''
+    return new Date(dateString).toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      timeZoneName: 'short',
     })
   }
 
@@ -357,7 +367,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
                       </span>
                       <span className="flex items-center gap-1.5 justify-center">
                         <Clock className="w-4 h-4 text-[#00FFFF]" />
-                        {mounted && new Date(calibrationCall.session.scheduled_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                        {formatTime(calibrationCall.session.scheduled_at)}
                       </span>
                     </div>
                   )}

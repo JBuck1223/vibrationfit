@@ -912,6 +912,7 @@ export default function AdminScheduleCallPage() {
                                     month: 'long',
                                     day: 'numeric',
                                     year: 'numeric',
+                                    timeZone: 'America/New_York',
                                   })}
                                 </p>
                                 <p className="text-xs text-neutral-400 flex items-center gap-1">
@@ -920,8 +921,9 @@ export default function AdminScheduleCallPage() {
                                     hour: 'numeric',
                                     minute: '2-digit',
                                     hour12: true,
+                                    timeZone: 'America/New_York',
                                   })}{' '}
-                                  EST · {booking.duration_minutes} min
+                                  ET · {booking.duration_minutes} min
                                 </p>
                               </div>
                             </div>

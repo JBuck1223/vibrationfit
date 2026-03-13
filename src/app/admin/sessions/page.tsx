@@ -142,6 +142,23 @@ function AdminSessionsContent() {
           title="Video Sessions"
           subtitle="Manage and schedule coaching sessions"
         />
+
+        {/* Link to pending booking requests */}
+        <Card className="p-4 border-yellow-500/30 bg-yellow-500/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-white">Member call requests live in the Schedule Call page</p>
+            <p className="text-xs text-neutral-400">Pending bookings won&apos;t appear here until you confirm and assign a coach.</p>
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => router.push('/admin/intensive/schedule-call')}
+          >
+            <Calendar className="w-4 h-4 mr-1" />
+            View Bookings
+          </Button>
+        </Card>
+
         {/* Quick Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="bg-neutral-900 border-neutral-700 p-4">

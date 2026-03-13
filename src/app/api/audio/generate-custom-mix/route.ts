@@ -220,44 +220,66 @@ export async function POST(request: NextRequest) {
 
     if ((effectiveOutputFormat === 'combined' || effectiveOutputFormat === 'both') && lambdaSections.length > 1) {
       combinedOutputKey = `user-uploads/${user.id}/life-vision/audio/${visionId}/full-mixed-${audioSetId}.mp3`
-      const contentHash = hashContent('full-vision-audio').substring(0, 16)
+      const combinedAudioUrl = `https://media.vibrationfit.com/${combinedOutputKey}`
+      const contentHash = hashContent(`full-vision-audio-${audioSetId}`).substring(0, 16)
 
-      // Upsert the full track record
-      const { data: existing } = await supabase
-        .from('audio_tracks')
-        .select('id')
-        .eq('audio_set_id', audioSetId)
-        .eq('section_key', 'full')
-        .maybeSingle()
-
-      if (existing) {
-        await supabase
+      try {
+        // Check for existing full track
+        const { data: existing } = await supabase
           .from('audio_tracks')
-          .update({ status: 'processing', mix_status: 'mixing', error_message: null })
-          .eq('id', existing.id)
-        combinedTrackId = existing.id
-      } else {
-        const { data: newTrack } = await supabase
-          .from('audio_tracks')
-          .insert({
-            audio_set_id: audioSetId,
-            user_id: user.id,
-            vision_id: visionId,
-            section_key: 'full',
-            content_hash: contentHash,
-            text_content: 'Full Vision Audio - All Sections Combined',
-            voice_id: voice,
-            s3_bucket: BUCKET_NAME,
-            s3_key: combinedOutputKey,
-            status: 'processing',
-            mix_status: 'mixing'
-          })
           .select('id')
-          .single()
-        combinedTrackId = newTrack?.id || null
+          .eq('audio_set_id', audioSetId)
+          .eq('section_key', 'full')
+          .maybeSingle()
+
+        if (existing) {
+          const { error: updateError } = await supabase
+            .from('audio_tracks')
+            .update({
+              status: 'processing',
+              mix_status: 'mixing',
+              error_message: null,
+              s3_key: combinedOutputKey,
+              audio_url: combinedAudioUrl
+            })
+            .eq('id', existing.id)
+
+          if (updateError) {
+            console.error('[CUSTOM MIX] Failed to update full track:', updateError)
+          } else {
+            combinedTrackId = existing.id
+          }
+        } else {
+          const { data: newTrack, error: insertError } = await supabase
+            .from('audio_tracks')
+            .insert({
+              audio_set_id: audioSetId,
+              user_id: user.id,
+              vision_id: visionId,
+              section_key: 'full',
+              content_hash: contentHash,
+              text_content: 'Full Vision Audio - All Sections Combined',
+              voice_id: voice,
+              s3_bucket: BUCKET_NAME,
+              s3_key: combinedOutputKey,
+              audio_url: combinedAudioUrl,
+              status: 'processing',
+              mix_status: 'mixing'
+            })
+            .select('id')
+            .single()
+
+          if (insertError) {
+            console.error('[CUSTOM MIX] Failed to insert full track:', insertError)
+          } else {
+            combinedTrackId = newTrack?.id || null
+          }
+        }
+      } catch (err: any) {
+        console.error('[CUSTOM MIX] Error creating full track record:', err.message)
       }
 
-      console.log(`[CUSTOM MIX] Created/updated full track record: ${combinedTrackId}`)
+      console.log(`[CUSTOM MIX] Combined track record: id=${combinedTrackId}, key=${combinedOutputKey}`)
     }
 
     // Convert percentages to decimals for Lambda
@@ -314,8 +336,8 @@ export async function POST(request: NextRequest) {
     const completedCount = results.filter(r => r.status === 'generated' || r.status === 'skipped' || r.status === 'reused').length
     const failedCount = results.filter(r => r.status === 'failed').length
 
-    // Don't mark batch as completed yet - Lambda will update tracks as it finishes
-    // Keep it as 'processing' so the queue page continues polling
+    // Keep batch as 'processing' so queue page continues polling
+    // Lambda will update final status when done
     await supabase
       .from('audio_generation_batches')
       .update({
@@ -323,6 +345,7 @@ export async function POST(request: NextRequest) {
         tracks_completed: 0,
         tracks_failed: failedCount,
         tracks_pending: completedCount,
+        audio_set_ids: [audioSetId],
       })
       .eq('id', batchId)
 

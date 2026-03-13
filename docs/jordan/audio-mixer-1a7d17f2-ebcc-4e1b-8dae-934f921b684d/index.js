@@ -123,7 +123,12 @@ async function handleMix(eventData) {
 // ─── BATCH MIX ──────────────────────────────────────────────────────────────
 //
 // Mixes multiple sections in one invocation, with output format routing.
-// Downloads bg/binaural once and reuses for all sections.
+//
+// Output format determines the approach:
+//   'combined'  - Concatenate all voices into one file, THEN mix with background.
+//                 Produces one seamless track with continuous background music.
+//   'individual'- Mix each section separately with background.
+//   'both'      - Both individual mixes AND a combined track.
 //
 // Payload:
 // {
@@ -132,7 +137,8 @@ async function handleMix(eventData) {
 //   bgUrl, voiceVolume, bgVolume,
 //   binauralUrl?, binauralVolume?,
 //   outputFormat: 'individual' | 'combined' | 'both',
-//   combinedTrackId?, combinedOutputKey?
+//   combinedTrackId?, combinedOutputKey?,
+//   batchId?
 // }
 
 async function handleBatchMix(eventData) {
@@ -149,7 +155,10 @@ async function handleBatchMix(eventData) {
 
   console.log(`[BatchMix] Starting batch mix of ${sections?.length} sections`)
   console.log(`[BatchMix] Output format: ${outputFormat}`)
+  console.log(`[BatchMix] BG URL: ${bgUrl}`)
   console.log(`[BatchMix] Volumes: voice=${voiceVolume}, bg=${bgVolume}, binaural=${binauralVolume || 'none'}`)
+  console.log(`[BatchMix] Combined track ID: ${combinedTrackId || 'none'}`)
+  console.log(`[BatchMix] Combined output key: ${combinedOutputKey || 'none'}`)
 
   try {
     if (!Array.isArray(sections) || sections.length === 0) {
@@ -162,7 +171,7 @@ async function handleBatchMix(eventData) {
       throw new Error('outputFormat is required')
     }
 
-    // Download background track once (shared across all mixes)
+    // Download background track once
     const bgPath = `/tmp/batch-bg-${timestamp}.mp3`
     console.log('[BatchMix] Downloading background track...')
     await downloadFromS3(bgUrl, bgPath)
@@ -177,74 +186,82 @@ async function handleBatchMix(eventData) {
       filesToClean.push(binauralPath)
     }
 
-    const mixedPaths = []
+    // Download all voice tracks
+    const voicePaths = []
+    for (let i = 0; i < sections.length; i++) {
+      const section = sections[i]
+      const voicePath = `/tmp/batch-voice-${timestamp}-${i}.mp3`
+      console.log(`[BatchMix] [${i + 1}/${sections.length}] Downloading voice: ${section.trackId}`)
+      await downloadFromS3(section.voiceUrl, voicePath)
+      filesToClean.push(voicePath)
+      voicePaths.push(voicePath)
+    }
+    console.log(`[BatchMix] All ${voicePaths.length} voice tracks downloaded`)
+
     const mixResults = []
     let mixSuccessCount = 0
     let mixFailCount = 0
 
-    // Mix each section
-    for (let i = 0; i < sections.length; i++) {
-      const section = sections[i]
-      const sectionLabel = `${i + 1}/${sections.length}`
+    // ── INDIVIDUAL MIXES (for 'individual' and 'both') ──
+    if (outputFormat === 'individual' || outputFormat === 'both') {
+      console.log(`[BatchMix] Mixing ${sections.length} individual sections...`)
+      for (let i = 0; i < sections.length; i++) {
+        const section = sections[i]
+        const label = `${i + 1}/${sections.length}`
+        try {
+          const mixedPath = `/tmp/batch-mixed-${timestamp}-${i}.mp3`
+          filesToClean.push(mixedPath)
+          await mixAudio(voicePaths[i], bgPath, binauralPath, mixedPath, voiceVolume || 0.7, bgVolume || 0.3, binauralVolume || 0.2)
 
-      try {
-        // Download voice track
-        const voicePath = `/tmp/batch-voice-${timestamp}-${i}.mp3`
-        console.log(`[BatchMix] [${sectionLabel}] Downloading voice for track ${section.trackId}...`)
-        await downloadFromS3(section.voiceUrl, voicePath)
-        filesToClean.push(voicePath)
-
-        // Mix
-        const mixedPath = `/tmp/batch-mixed-${timestamp}-${i}.mp3`
-        filesToClean.push(mixedPath)
-        await mixAudio(voicePath, bgPath, binauralPath, mixedPath, voiceVolume || 0.7, bgVolume || 0.3, binauralVolume || 0.2)
-
-        console.log(`[BatchMix] [${sectionLabel}] Mixed successfully`)
-
-        // For 'individual' or 'both': upload and update each track
-        if (outputFormat === 'individual' || outputFormat === 'both') {
           const mixedUrl = await uploadToS3(mixedPath, section.outputKey)
           await updateMixStatus(section.trackId, 'completed', mixedUrl, section.outputKey)
-          console.log(`[BatchMix] [${sectionLabel}] Uploaded individual: ${section.outputKey}`)
+          console.log(`[BatchMix] [${label}] Individual mix uploaded: ${section.outputKey}`)
           mixResults.push({ trackId: section.trackId, status: 'completed', url: mixedUrl })
-        } else {
-          // 'combined' only: mark individual track mix as completed but don't upload separate file
-          // Still update DB so queue doesn't show it as pending
-          await updateMixStatus(section.trackId, 'completed', null, null)
-          mixResults.push({ trackId: section.trackId, status: 'completed' })
+          mixSuccessCount++
+        } catch (err) {
+          console.error(`[BatchMix] [${label}] Individual mix failed:`, err.message)
+          await updateMixStatus(section.trackId, 'failed', null, null, err.message)
+          mixResults.push({ trackId: section.trackId, status: 'failed', error: err.message })
+          mixFailCount++
         }
-
-        mixedPaths.push(mixedPath)
-        mixSuccessCount++
-      } catch (sectionError) {
-        console.error(`[BatchMix] [${sectionLabel}] Failed:`, sectionError.message)
-        await updateMixStatus(section.trackId, 'failed', null, null, sectionError.message)
-        mixResults.push({ trackId: section.trackId, status: 'failed', error: sectionError.message })
-        mixFailCount++
       }
     }
 
-    // For 'combined' or 'both': concatenate all mixed tracks into one file
+    // ── COMBINED TRACK (for 'combined' and 'both') ──
+    // Concatenate all voices first, then mix with background once = seamless output
     let combinedUrl = null
     let combinedDuration = 0
+    const needsCombined = (outputFormat === 'combined' || outputFormat === 'both') && combinedOutputKey && combinedTrackId
 
-    if ((outputFormat === 'combined' || outputFormat === 'both') && mixedPaths.length > 0 && combinedOutputKey && combinedTrackId) {
-      console.log(`[BatchMix] Concatenating ${mixedPaths.length} mixed tracks into combined file...`)
+    if (needsCombined) {
+      console.log(`[BatchMix] Building combined track: concat ${voicePaths.length} voices -> mix with background`)
 
       try {
-        const concatListPath = `/tmp/batch-concat-${timestamp}-list.txt`
-        const concatContent = mixedPaths.map(f => `file '${f}'`).join('\n')
+        // Step 1: Concatenate all voice tracks into one continuous voice file
+        const concatListPath = `/tmp/batch-voiceconcat-${timestamp}-list.txt`
+        const concatContent = voicePaths.map(f => `file '${f}'`).join('\n')
         fs.writeFileSync(concatListPath, concatContent)
         filesToClean.push(concatListPath)
 
+        const concatVoicePath = `/tmp/batch-voiceconcat-${timestamp}.mp3`
+        filesToClean.push(concatVoicePath)
+
+        const concatCommand = `${ffmpegPath} -f concat -safe 0 -i "${concatListPath}" -c copy -y "${concatVoicePath}"`
+        console.log('[BatchMix] Concatenating voices...')
+        await execAsync(concatCommand)
+
+        const concatStats = fs.statSync(concatVoicePath)
+        console.log(`[BatchMix] Concatenated voice file: ${(concatStats.size / 1024 / 1024).toFixed(1)}MB`)
+
+        // Step 2: Mix the single concatenated voice with background (+ optional binaural)
         const combinedPath = `/tmp/batch-combined-${timestamp}.mp3`
         filesToClean.push(combinedPath)
 
-        const concatCommand = `${ffmpegPath} -f concat -safe 0 -i "${concatListPath}" -c copy -y "${combinedPath}"`
-        await execAsync(concatCommand)
+        console.log('[BatchMix] Mixing combined voice with background...')
+        await mixAudio(concatVoicePath, bgPath, binauralPath, combinedPath, voiceVolume || 0.7, bgVolume || 0.3, binauralVolume || 0.2)
 
         const outputStats = fs.statSync(combinedPath)
-        console.log(`[BatchMix] Combined file size: ${(outputStats.size / 1024 / 1024).toFixed(1)}MB`)
+        console.log(`[BatchMix] Combined mixed file: ${(outputStats.size / 1024 / 1024).toFixed(1)}MB`)
 
         // Get duration
         try {
@@ -257,21 +274,44 @@ async function handleBatchMix(eventData) {
           console.warn('[BatchMix] Could not determine combined duration:', e.message)
         }
 
+        // Step 3: Upload
         combinedUrl = await uploadToS3(combinedPath, combinedOutputKey)
-        console.log(`[BatchMix] Uploaded combined: ${combinedOutputKey}`)
+        console.log(`[BatchMix] Combined track uploaded: ${combinedOutputKey}`)
 
-        // Update the combined/full track record
+        // Step 4: Update DB
         await updateTrackStatus(combinedTrackId, 'completed', combinedUrl, combinedOutputKey, combinedDuration)
+
+        // For 'combined' only mode, mark individual section tracks as completed (no mixed URL)
+        if (outputFormat === 'combined') {
+          mixSuccessCount = sections.length
+          for (const section of sections) {
+            await updateMixStatus(section.trackId, 'completed', null, null)
+            mixResults.push({ trackId: section.trackId, status: 'completed' })
+          }
+        }
       } catch (concatError) {
-        console.error('[BatchMix] Concatenation failed:', concatError.message)
+        console.error('[BatchMix] Combined track failed:', concatError.message)
         await updateTrackStatus(combinedTrackId, 'failed', null, null, 0, concatError.message)
+
+        if (outputFormat === 'combined') {
+          mixFailCount = sections.length
+          for (const section of sections) {
+            await updateMixStatus(section.trackId, 'failed', null, null, 'Combined track generation failed')
+            mixResults.push({ trackId: section.trackId, status: 'failed' })
+          }
+        }
       }
+    }
+
+    // For 'individual' only (no combined needed), mark as completed
+    if (outputFormat === 'individual') {
+      // Individual mixes already handled above
     }
 
     // Cleanup
     await Promise.all(filesToClean.map(removeFile))
 
-    console.log(`[BatchMix] Complete: ${mixSuccessCount} succeeded, ${mixFailCount} failed`)
+    console.log(`[BatchMix] Complete: ${mixSuccessCount} succeeded, ${mixFailCount} failed, format=${outputFormat}`)
 
     // Update batch status
     if (batchId) {
@@ -289,13 +329,12 @@ async function handleBatchMix(eventData) {
         mixResults,
         combinedUrl,
         combinedDuration,
-        message: `Batch mix complete: ${mixSuccessCount}/${sections.length} tracks mixed`
+        message: `Batch mix complete: ${mixSuccessCount}/${sections.length} tracks, format=${outputFormat}`
       })
     }
   } catch (error) {
     console.error('[BatchMix] Error:', error)
 
-    // Mark combined track as failed if it exists
     if (combinedTrackId) {
       await updateTrackStatus(combinedTrackId, 'failed', null, null, 0, error.message)
     }
@@ -555,15 +594,20 @@ async function updateTrackStatus(trackId, status, audioUrl, s3Key, durationSecon
   }
   
   try {
+    const mixStatus = status === 'completed' ? 'completed' : status === 'failed' ? 'failed' : 'mixing'
     const updateData = {
-      status: status,
+      status,
+      mix_status: mixStatus,
+      updated_at: new Date().toISOString(),
     }
     
     if (audioUrl) {
       updateData.audio_url = audioUrl
+      updateData.mixed_audio_url = audioUrl
     }
     if (s3Key) {
       updateData.s3_key = s3Key
+      updateData.mixed_s3_key = s3Key
     }
     if (durationSeconds > 0) {
       updateData.duration_seconds = durationSeconds
@@ -572,7 +616,7 @@ async function updateTrackStatus(trackId, status, audioUrl, s3Key, durationSecon
       updateData.error_message = errorMessage
     }
     
-    await fetch(`${supabaseUrl}/rest/v1/audio_tracks?id=eq.${trackId}`, {
+    const resp = await fetch(`${supabaseUrl}/rest/v1/audio_tracks?id=eq.${trackId}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -583,7 +627,7 @@ async function updateTrackStatus(trackId, status, audioUrl, s3Key, durationSecon
       body: JSON.stringify(updateData),
     })
     
-    console.log(`[Concat] Updated track ${trackId}: status=${status}, duration=${durationSeconds}s`)
+    console.log(`[TrackStatus] Updated ${trackId}: status=${status}, mix_status=${mixStatus}, duration=${durationSeconds}s, httpStatus=${resp.status}`)
   } catch (error) {
     console.error('Failed to update Supabase:', error)
   }
