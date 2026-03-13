@@ -94,17 +94,33 @@ export async function GET(request: NextRequest) {
     }
 
     const userIds = [...new Set(checklists.map(c => c.user_id))]
-    const { data: accounts } = await adminClient
-      .from('user_accounts')
-      .select('id, email, full_name, first_name, last_name')
-      .in('id', userIds)
+    const intensiveIds = [...new Set(checklists.map(c => c.intensive_id).filter(Boolean))]
+
+    const [{ data: accounts }, { data: responses }] = await Promise.all([
+      adminClient
+        .from('user_accounts')
+        .select('id, email, full_name, first_name, last_name')
+        .in('id', userIds),
+      adminClient
+        .from('intensive_responses')
+        .select('intensive_id, user_id, testimonial_video_url, testimonial_transcript, testimonial_duration_seconds, biggest_shift, sharing_preference, created_at')
+        .eq('phase', 'post_intensive')
+        .in('intensive_id', intensiveIds),
+    ])
 
     const accountMap = Object.fromEntries(
       (accounts || []).map(a => [a.id, a])
     )
 
+    const responseMap = Object.fromEntries(
+      (responses || []).map(r => [r.intensive_id, r])
+    )
+
+    const hasVideoFilter = searchParams.get('has_video')
+
     let enrollments = checklists.map(checklist => {
       const account = accountMap[checklist.user_id]
+      const response = responseMap[checklist.intensive_id]
       const { stepNumber, stepName } = getCurrentStep(checklist)
       const completedSteps = getCompletedStepCount(checklist)
 
@@ -124,12 +140,21 @@ export async function GET(request: NextRequest) {
         completed_at: checklist.completed_at,
         created_at: checklist.created_at,
         updated_at: checklist.updated_at,
+        testimonial_video_url: response?.testimonial_video_url || null,
+        testimonial_transcript: response?.testimonial_transcript || null,
+        testimonial_duration_seconds: response?.testimonial_duration_seconds || null,
+        biggest_shift: response?.biggest_shift || null,
+        sharing_preference: response?.sharing_preference || null,
       }
     })
 
     if (stepFilter && stepFilter !== 'all') {
       const stepNum = parseInt(stepFilter)
       enrollments = enrollments.filter(e => e.current_step_number === stepNum)
+    }
+
+    if (hasVideoFilter === 'true') {
+      enrollments = enrollments.filter(e => !!e.testimonial_video_url)
     }
 
     // Step breakdown for the chart

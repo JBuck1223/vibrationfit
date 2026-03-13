@@ -44,6 +44,7 @@ export interface VibeComment {
   deleted_at: string | null
   deleted_by: string | null
   created_at: string
+  edited_at: string | null
   // Joined data
   user?: {
     id: string

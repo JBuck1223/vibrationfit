@@ -412,6 +412,7 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
           status: 'pending',
           metadata: {
             custom_mix: true,
+            output_format: 'both',
             background_track_id: combo.background_track_id,
             background_track_url: selectedTrack?.file_url,
             mix_ratio_id: combo.mix_ratio_id,
@@ -446,7 +447,8 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
           voiceVolume: selectedRatio.voice_volume,
           bgVolume: selectedRatio.bg_volume,
           binauralTrackUrl: selectedBinaural?.file_url || null,
-          binauralVolume: combo.binaural_volume || 0
+          binauralVolume: combo.binaural_volume || 0,
+          outputFormat: 'both'
         })
       }).then(res => {
         if (!res.ok) {

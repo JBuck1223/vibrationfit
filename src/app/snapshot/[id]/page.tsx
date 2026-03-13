@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import { Container, Stack, PageHero, Card, Spinner, Button } from '@/lib/design-system/components'
 import { RetentionDashboard } from '@/components/retention'
 import { BadgeDisplay } from '@/components/badges'
 import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
-import { User, Calendar, ArrowLeft, Award } from 'lucide-react'
+import { User, Calendar, ArrowLeft, Award, Pencil, Check, X } from 'lucide-react'
 import Link from 'next/link'
 
 interface MemberProfile {
@@ -15,6 +15,8 @@ interface MemberProfile {
   first_name: string | null
   profile_picture_url: string | null
   created_at: string
+  about_me: string | null
+  isOwner: boolean
 }
 
 export default function SnapshotPage() {
@@ -24,6 +26,10 @@ export default function SnapshotPage() {
   const [member, setMember] = useState<MemberProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [editingAbout, setEditingAbout] = useState(false)
+  const [aboutDraft, setAboutDraft] = useState('')
+  const [savingAbout, setSavingAbout] = useState(false)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     async function fetchMemberProfile() {
@@ -55,13 +61,52 @@ export default function SnapshotPage() {
     }
   }, [userId])
 
-  // Format the member since date
+  useEffect(() => {
+    if (editingAbout && textareaRef.current) {
+      textareaRef.current.focus()
+      const len = textareaRef.current.value.length
+      textareaRef.current.setSelectionRange(len, len)
+    }
+  }, [editingAbout])
+
   const formatMemberSince = (dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleDateString('en-US', { 
       month: 'long', 
       year: 'numeric' 
     })
+  }
+
+  const handleEditAbout = () => {
+    setAboutDraft(member?.about_me || '')
+    setEditingAbout(true)
+  }
+
+  const handleCancelAbout = () => {
+    setEditingAbout(false)
+    setAboutDraft('')
+  }
+
+  const handleSaveAbout = async () => {
+    if (!member) return
+    setSavingAbout(true)
+    try {
+      const response = await fetch(`/api/snapshot/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ about_me: aboutDraft }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setMember(prev => prev ? { ...prev, about_me: data.about_me } : prev)
+        setEditingAbout(false)
+      }
+    } catch (err) {
+      console.error('Error saving about me:', err)
+    } finally {
+      setSavingAbout(false)
+    }
   }
 
   if (loading) {
@@ -135,6 +180,71 @@ export default function SnapshotPage() {
             </Button>
           </div>
         </PageHero>
+
+        {/* About Me Section */}
+        <Card className="p-4 md:p-6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <User className="w-5 h-5 text-[#39FF14]" />
+              <h2 className="text-lg font-semibold text-white">About</h2>
+            </div>
+            {member.isOwner && !editingAbout && (
+              <button
+                onClick={handleEditAbout}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                {member.about_me ? 'Edit' : 'Add'}
+              </button>
+            )}
+          </div>
+
+          {editingAbout ? (
+            <div className="space-y-3">
+              <textarea
+                ref={textareaRef}
+                value={aboutDraft}
+                onChange={(e) => setAboutDraft(e.target.value.slice(0, 500))}
+                placeholder="Tell the Tribe a little about yourself..."
+                className="w-full bg-neutral-800 border border-neutral-600 rounded-xl px-4 py-3 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#39FF14]/50 resize-none transition-colors"
+                rows={4}
+              />
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-neutral-500">{aboutDraft.length}/500</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleCancelAbout}
+                    disabled={savingAbout}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveAbout}
+                    disabled={savingAbout}
+                    className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold bg-[#39FF14] text-black hover:bg-[#39FF14]/90 transition-colors disabled:opacity-50"
+                  >
+                    {savingAbout ? (
+                      <Spinner size="sm" />
+                    ) : (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        Save
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : member.about_me ? (
+            <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap">{member.about_me}</p>
+          ) : (
+            <p className="text-sm text-neutral-500 italic">
+              {member.isOwner ? 'Tell the Tribe a little about yourself...' : 'This member hasn\'t added a bio yet.'}
+            </p>
+          )}
+        </Card>
 
         {/* Retention Metrics Section */}
         <Card className="p-4 md:p-6">

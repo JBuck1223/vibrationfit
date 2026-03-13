@@ -27,6 +27,7 @@ import {
   Phone,
   Mail,
   ArrowLeft,
+  Pencil,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -90,7 +91,7 @@ type ActiveTab = 'schedule' | 'bookings'
 
 export default function AdminScheduleCallPage() {
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<ActiveTab>('schedule')
+  const [activeTab, setActiveTab] = useState<ActiveTab>('bookings')
 
   // Schedule tab state
   const [users, setUsers] = useState<IntensiveUser[]>([])
@@ -118,12 +119,18 @@ export default function AdminScheduleCallPage() {
   const [confirmStaffId, setConfirmStaffId] = useState<string>('')
   const [confirmingSave, setConfirmingSave] = useState(false)
 
+  // Reschedule state
+  const [reschedulingBookingId, setReschedulingBookingId] = useState<string | null>(null)
+  const [rescheduleDate, setRescheduleDate] = useState('')
+  const [rescheduleTime, setRescheduleTime] = useState('')
+  const [rescheduleSaving, setRescheduleSaving] = useState(false)
+
   useEffect(() => {
     loadInitialData()
   }, [])
 
   useEffect(() => {
-    if (activeTab === 'bookings' && bookings.length === 0) {
+    if (activeTab === 'bookings') {
       loadBookings()
     }
   }, [activeTab])
@@ -278,6 +285,69 @@ export default function AdminScheduleCallPage() {
       toast.error(`Failed to confirm: ${msg}`)
     } finally {
       setConfirmingSave(false)
+    }
+  }
+
+  const handleMarkComplete = async (bookingId: string) => {
+    if (!confirm('Mark this booking as completed? This will also update the member\'s intensive checklist.')) return
+
+    try {
+      const res = await fetch('/api/admin/intensive/schedule-call', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ booking_id: bookingId }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to mark complete')
+      }
+
+      toast.success('Booking marked as completed')
+      await loadBookings()
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unknown error'
+      toast.error(`Failed: ${msg}`)
+    }
+  }
+
+  const handleReschedule = async (bookingId: string) => {
+    if (!rescheduleDate || !rescheduleTime) {
+      toast.error('Please pick a new date and time')
+      return
+    }
+
+    setRescheduleSaving(true)
+    try {
+      const newDateTime = new Date(`${rescheduleDate}T${rescheduleTime}:00`)
+
+      const res = await fetch('/api/admin/intensive/schedule-call', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reschedule',
+          booking_id: bookingId,
+          scheduled_at: newDateTime.toISOString(),
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to reschedule')
+      }
+
+      toast.success('Booking rescheduled')
+      setReschedulingBookingId(null)
+      setRescheduleDate('')
+      setRescheduleTime('')
+      await loadBookings()
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unknown error'
+      toast.error(`Failed to reschedule: ${msg}`)
+    } finally {
+      setRescheduleSaving(false)
     }
   }
 
@@ -921,6 +991,31 @@ export default function AdminScheduleCallPage() {
                                   Confirm & Assign
                                 </Button>
                               )}
+
+                              {(booking.status === 'pending' || booking.status === 'confirmed') && (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setReschedulingBookingId(reschedulingBookingId === booking.id ? null : booking.id)
+                                      setRescheduleDate('')
+                                      setRescheduleTime('')
+                                    }}
+                                  >
+                                    <Pencil className="w-3 h-3 mr-1" />
+                                    Reschedule
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleMarkComplete(booking.id)}
+                                  >
+                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                    Mark Complete
+                                  </Button>
+                                </>
+                              )}
                             </div>
 
                             {booking.status === 'pending' && confirmingBookingId === booking.id && (
@@ -956,6 +1051,52 @@ export default function AdminScheduleCallPage() {
                                       onClick={() => {
                                         setConfirmingBookingId(null)
                                         setConfirmStaffId('')
+                                      }}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {reschedulingBookingId === booking.id && (
+                              <div className="w-full border border-neutral-600 rounded-xl p-3 bg-neutral-800/50 mt-1">
+                                <p className="text-xs font-medium text-white mb-2">Pick a new date and time:</p>
+                                <div className="flex flex-col sm:flex-row gap-2">
+                                  <input
+                                    type="date"
+                                    value={rescheduleDate}
+                                    onChange={(e) => setRescheduleDate(e.target.value)}
+                                    min={new Date().toISOString().split('T')[0]}
+                                    className="flex-1 px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-700 text-sm text-white focus:border-primary-500 focus:outline-none"
+                                  />
+                                  <input
+                                    type="time"
+                                    value={rescheduleTime}
+                                    onChange={(e) => setRescheduleTime(e.target.value)}
+                                    className="flex-1 px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-700 text-sm text-white focus:border-primary-500 focus:outline-none"
+                                  />
+                                  <div className="flex gap-2">
+                                    <Button
+                                      variant="primary"
+                                      size="sm"
+                                      onClick={() => handleReschedule(booking.id)}
+                                      disabled={!rescheduleDate || !rescheduleTime || rescheduleSaving}
+                                    >
+                                      {rescheduleSaving ? (
+                                        <><Spinner size="sm" className="mr-1" /> Saving...</>
+                                      ) : (
+                                        <><Calendar className="w-3 h-3 mr-1" /> Save</>
+                                      )}
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        setReschedulingBookingId(null)
+                                        setRescheduleDate('')
+                                        setRescheduleTime('')
                                       }}
                                     >
                                       Cancel

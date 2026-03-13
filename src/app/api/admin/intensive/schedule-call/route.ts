@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminAccess } from '@/lib/supabase/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { notifyAdminSMS } from '@/lib/admin/notifications'
 
 const EVENT_TYPE = 'intensive_calibration'
 const SLOT_DURATION = 45
@@ -178,17 +179,27 @@ export async function GET(request: NextRequest) {
 
       const bookingsWithDetails = await Promise.all(
         (bookings || []).map(async (booking) => {
+          const { data: account } = await supabase
+            .from('user_accounts')
+            .select('email, full_name, first_name, last_name')
+            .eq('id', booking.user_id)
+            .single()
+
           const { data: profile } = await supabase
             .from('user_profiles')
             .select('email, first_name, last_name')
             .eq('user_id', booking.user_id)
             .single()
 
-          const { data: staffMember } = await supabase
-            .from('staff')
-            .select('display_name')
-            .eq('id', booking.staff_id)
-            .single()
+          let staffName = 'Unassigned'
+          if (booking.staff_id) {
+            const { data: staffMember } = await supabase
+              .from('staff')
+              .select('display_name')
+              .eq('id', booking.staff_id)
+              .single()
+            staffName = staffMember?.display_name || 'Unassigned'
+          }
 
           let recordingUrl: string | null = null
           let sessionStatus: string | null = null
@@ -202,13 +213,17 @@ export async function GET(request: NextRequest) {
             sessionStatus = session?.status || null
           }
 
+          const userName = account?.full_name
+            || `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim()
+            || account?.email
+            || booking.contact_email
+            || 'Unknown'
+
           return {
             ...booking,
-            user_name: profile
-              ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.email
-              : 'Unknown',
-            user_email: profile?.email || booking.contact_email || 'Unknown',
-            staff_name: staffMember?.display_name || 'Unassigned',
+            user_name: userName,
+            user_email: account?.email || profile?.email || booking.contact_email || 'Unknown',
+            staff_name: staffName,
             recording_url: recordingUrl,
             session_status: sessionStatus,
           }
@@ -277,6 +292,7 @@ export async function POST(request: NextRequest) {
         scheduled_at: scheduledDateTime.toISOString(),
         scheduled_duration_minutes: SLOT_DURATION,
         participant_email: contact_email,
+        participant_phone: contact_phone || undefined,
         enable_recording: true,
         enable_waiting_room: true,
         staff_id,
@@ -340,6 +356,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('first_name, last_name')
+      .eq('user_id', user_id)
+      .maybeSingle()
+    const userName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ')
+      || contact_email || user_id
+    const dateStr = new Date(scheduledDateTime).toLocaleDateString('en-US', {
+      weekday: 'short', month: 'short', day: 'numeric',
+    })
+    const timeStr = new Date(scheduledDateTime).toLocaleTimeString('en-US', {
+      hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York',
+    })
+    const coach = staff_name || 'TBD'
+    notifyAdminSMS(`Calibration Call Booked: ${userName} on ${dateStr} at ${timeStr} ET with ${coach}`)
+      .catch(err => console.error('Admin SMS error:', err))
+
     return NextResponse.json({
       success: true,
       booking,
@@ -353,7 +386,9 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * PATCH - Confirm a pending booking: assign staff, create video session, set status = confirmed
+ * PATCH - Two actions:
+ *   1. action=confirm  -> Assign staff, create video session, set status = confirmed
+ *   2. action=reschedule -> Change the scheduled date/time on a pending or confirmed booking
  */
 export async function PATCH(request: NextRequest) {
   try {
@@ -363,6 +398,67 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json()
+    const action = body.action || 'confirm'
+
+    // ── Reschedule action ──
+    if (action === 'reschedule') {
+      const { booking_id, scheduled_at } = body
+
+      if (!booking_id || !scheduled_at) {
+        return NextResponse.json(
+          { error: 'Missing required fields: booking_id, scheduled_at' },
+          { status: 400 }
+        )
+      }
+
+      const supabase = createAdminClient()
+
+      const { data: booking, error: fetchError } = await supabase
+        .from('bookings')
+        .select('*')
+        .eq('id', booking_id)
+        .single()
+
+      if (fetchError || !booking) {
+        return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
+      }
+
+      if (booking.status === 'completed' || booking.status === 'cancelled') {
+        return NextResponse.json(
+          { error: `Cannot reschedule a ${booking.status} booking` },
+          { status: 400 }
+        )
+      }
+
+      const { error: updateError } = await supabase
+        .from('bookings')
+        .update({ scheduled_at })
+        .eq('id', booking_id)
+
+      if (updateError) {
+        return NextResponse.json({ error: `Update failed: ${updateError.message}` }, { status: 500 })
+      }
+
+      // Update intensive checklist scheduled time
+      const { data: checklist } = await supabase
+        .from('intensive_checklist')
+        .select('intensive_id')
+        .eq('user_id', booking.user_id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (checklist) {
+        await supabase
+          .from('intensive_checklist')
+          .update({ call_scheduled_time: scheduled_at })
+          .eq('intensive_id', checklist.intensive_id)
+      }
+
+      return NextResponse.json({ success: true })
+    }
+
+    // ── Confirm action (default) ──
     const { booking_id, staff_id } = body
 
     if (!booking_id || !staff_id) {
@@ -419,6 +515,7 @@ export async function PATCH(request: NextRequest) {
         scheduled_at: booking.scheduled_at,
         scheduled_duration_minutes: booking.duration_minutes || SLOT_DURATION,
         participant_email: booking.contact_email,
+        participant_phone: booking.contact_phone || undefined,
         enable_recording: true,
         enable_waiting_room: true,
         staff_id,
@@ -467,6 +564,77 @@ export async function PATCH(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error in admin schedule-call PATCH:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+/**
+ * PUT - Mark a booking as completed (call already happened outside the system)
+ * Also updates the user's intensive checklist so the step is marked done.
+ */
+export async function PUT(request: NextRequest) {
+  try {
+    const auth = await verifyAdminAccess()
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
+    }
+
+    const body = await request.json()
+    const { booking_id } = body
+
+    if (!booking_id) {
+      return NextResponse.json({ error: 'Missing booking_id' }, { status: 400 })
+    }
+
+    const supabase = createAdminClient()
+
+    const { data: booking, error: fetchError } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('id', booking_id)
+      .single()
+
+    if (fetchError || !booking) {
+      return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
+    }
+
+    if (booking.status === 'completed') {
+      return NextResponse.json({ error: 'Booking is already completed' }, { status: 400 })
+    }
+
+    // Mark booking as completed
+    const { error: updateError } = await supabase
+      .from('bookings')
+      .update({ status: 'completed' })
+      .eq('id', booking_id)
+
+    if (updateError) {
+      return NextResponse.json({ error: `Update failed: ${updateError.message}` }, { status: 500 })
+    }
+
+    // Find and update the user's intensive checklist
+    const { data: checklist } = await supabase
+      .from('intensive_checklist')
+      .select('intensive_id')
+      .eq('user_id', booking.user_id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (checklist) {
+      await supabase
+        .from('intensive_checklist')
+        .update({
+          call_scheduled: true,
+          call_scheduled_at: new Date().toISOString(),
+          call_scheduled_time: booking.scheduled_at,
+        })
+        .eq('intensive_id', checklist.intensive_id)
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Error in admin schedule-call PUT:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

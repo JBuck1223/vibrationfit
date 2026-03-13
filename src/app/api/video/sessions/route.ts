@@ -8,9 +8,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createOneOnOneRoom, createGroupRoom, createAlignmentGymRoom, createWebinarRoom, createHostToken, getRoomUrl } from '@/lib/video/daily'
-import { sendAndLogEmail } from '@/lib/email/send'
+import { sendAndLogEmail, sendAndLogBulkEmail } from '@/lib/email/send'
+import { sendSMS } from '@/lib/messaging/twilio'
 import { generateSessionInvitationEmail } from '@/lib/email/templates'
 import { formatDateInTimeZone, DEFAULT_DISPLAY_TIMEZONE } from '@/lib/format/timezone'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { notifyAdminSMS } from '@/lib/admin/notifications'
 import type { CreateSessionRequest, CreateSessionResponse, VideoSession, VideoSessionType } from '@/lib/video/types'
 
 export async function POST(request: NextRequest) {
@@ -257,6 +260,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // --- Alignment Gym: notify all graduates ---
+    if (sessionType === 'alignment_gym') {
+      notifyAlignmentGymGraduates(session, hostName, user.id).catch(err =>
+        console.error('Alignment gym graduate notification error:', err)
+      )
+    }
+
     const response: CreateSessionResponse = {
       session: session as VideoSession,
       host_token: hostToken.token,
@@ -326,5 +336,158 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+// ── Alignment Gym graduate notifications ──
+
+async function notifyAlignmentGymGraduates(
+  session: Record<string, any>,
+  hostName: string,
+  createdByUserId: string
+) {
+  const admin = createAdminClient()
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'
+  const joinLink = `${appUrl}/alignment-gym`
+
+  const scheduledAt = new Date(session.scheduled_at)
+  const { date: scheduledDate, time: scheduledTime } = formatDateInTimeZone(
+    scheduledAt,
+    DEFAULT_DISPLAY_TIMEZONE
+  )
+  const duration = session.scheduled_duration_minutes || 60
+
+  // Find all graduates (completed intensive or unlock_completed)
+  const { data: graduates, error: gradError } = await admin
+    .from('intensive_checklist')
+    .select('user_id')
+    .or('status.eq.completed,unlock_completed.eq.true')
+
+  if (gradError || !graduates?.length) {
+    console.log('[alignment-gym] No graduates found or query error:', gradError)
+    return
+  }
+
+  const userIds = [...new Set(graduates.map(g => g.user_id))]
+
+  // Get emails and phones for all graduates
+  const { data: accounts } = await admin
+    .from('user_accounts')
+    .select('id, email, phone, first_name')
+    .in('id', userIds)
+
+  if (!accounts?.length) return
+
+  // --- Bulk email ---
+  const emailRecipients = accounts
+    .filter(a => a.email)
+    .map(a => ({ email: a.email!, userId: a.id }))
+
+  if (emailRecipients.length > 0) {
+    const firstName = '{{name}}'
+    const htmlBody = `
+      <div style="background:#000;padding:40px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+        <div style="max-width:600px;margin:0 auto;background:#1F1F1F;border:2px solid #39FF14;border-radius:16px;padding:40px;">
+          <div style="text-align:center;margin:0 0 24px;">
+            <span style="display:inline-block;padding:8px 24px;background:rgba(57,255,20,0.1);border-radius:50px;border:2px solid #39FF14;color:#39FF14;font-weight:700;font-size:14px;letter-spacing:1px;">ALIGNMENT GYM</span>
+          </div>
+
+          <h1 style="color:#E5E5E5;font-size:22px;margin:0 0 8px;text-align:center;">${session.title || 'Alignment Gym Session'}</h1>
+          <p style="color:#999;font-size:14px;margin:0 0 32px;text-align:center;">A new session has been scheduled</p>
+
+          <div style="background:rgba(57,255,20,0.05);border:1px solid #333;border-radius:12px;padding:20px;margin:0 0 24px;">
+            <p style="color:#E5E5E5;margin:0 0 8px;font-size:15px;"><strong style="color:#39FF14;">Date:</strong> ${scheduledDate}</p>
+            <p style="color:#E5E5E5;margin:0 0 8px;font-size:15px;"><strong style="color:#39FF14;">Time:</strong> ${scheduledTime}</p>
+            <p style="color:#E5E5E5;margin:0 0 8px;font-size:15px;"><strong style="color:#39FF14;">Duration:</strong> ${duration} minutes</p>
+            <p style="color:#E5E5E5;margin:0;font-size:15px;"><strong style="color:#39FF14;">Host:</strong> ${hostName}</p>
+          </div>
+
+          ${session.description ? `<p style="color:#999;font-size:14px;line-height:1.6;margin:0 0 24px;text-align:center;font-style:italic;">"${session.description}"</p>` : ''}
+
+          <div style="text-align:center;margin:0 0 32px;">
+            <a href="${joinLink}" style="display:inline-block;padding:18px 48px;background:#39FF14;color:#000;text-decoration:none;border-radius:50px;font-weight:700;font-size:16px;">View Session</a>
+          </div>
+
+          <div style="text-align:center;padding:24px 0 0;border-top:1px solid #333;">
+            <p style="color:#555;font-size:12px;margin:0;">Vibration Fit &middot; Above the Green Line</p>
+          </div>
+        </div>
+      </div>`
+
+    const textBody = `Alignment Gym Session Scheduled!\n\n${session.title || 'Alignment Gym Session'}\nDate: ${scheduledDate}\nTime: ${scheduledTime}\nDuration: ${duration} minutes\nHost: ${hostName}\n${session.description ? `\n"${session.description}"\n` : ''}\nView and join: ${joinLink}\n\nVibration Fit`
+
+    try {
+      await sendAndLogBulkEmail({
+        recipients: emailRecipients,
+        subject: `Alignment Gym: ${session.title || 'New Session'} - ${scheduledDate}`,
+        htmlBody,
+        textBody,
+      })
+      console.log(`[alignment-gym] Emailed ${emailRecipients.length} graduates`)
+    } catch (err) {
+      console.error('[alignment-gym] Bulk email error:', err)
+    }
+  }
+
+  // --- SMS to graduates with phone numbers ---
+  const smsRecipients = accounts.filter(a => a.phone)
+  if (smsRecipients.length > 0) {
+    const smsBody = `VibrationFit Alignment Gym: "${session.title || 'New Session'}" on ${scheduledDate} at ${scheduledTime} with ${hostName}. Join: ${joinLink}`
+
+    await Promise.allSettled(
+      smsRecipients.map(a =>
+        sendSMS({ to: a.phone!, body: smsBody })
+      )
+    ).catch(err => console.error('[alignment-gym] SMS batch error:', err))
+
+    console.log(`[alignment-gym] Texted ${smsRecipients.length} graduates`)
+  }
+
+  // --- Schedule reminders (1 hour before + 15 min before) ---
+  const oneHourBefore = new Date(scheduledAt.getTime() - 60 * 60 * 1000)
+  const fifteenMinBefore = new Date(scheduledAt.getTime() - 15 * 60 * 1000)
+  const now = new Date()
+
+  for (const account of accounts) {
+    const name = account.first_name || 'there'
+
+    if (account.email && oneHourBefore > now) {
+      const { error: emailErr } = await admin.from('scheduled_messages').insert({
+        message_type: 'email',
+        recipient_email: account.email,
+        recipient_name: name,
+        recipient_user_id: account.id,
+        related_entity_type: 'video_session',
+        related_entity_id: session.id,
+        subject: `Alignment Gym starts in 1 hour - ${session.title || 'Join Us'}`,
+        body: `<p>Hi ${name},</p><p>The Alignment Gym session "<strong>${session.title}</strong>" with ${hostName} starts in 1 hour.</p><p><a href="${joinLink}" style="display:inline-block;padding:12px 24px;background:#39FF14;color:#000;text-decoration:none;border-radius:9999px;font-weight:700;">View Session</a></p>`,
+        text_body: `Hi ${name}, The Alignment Gym session "${session.title}" starts in 1 hour. Join: ${joinLink}`,
+        scheduled_for: oneHourBefore.toISOString(),
+        status: 'pending',
+        created_by: createdByUserId,
+      })
+      if (emailErr) console.error('[alignment-gym] 1hr email reminder schedule error:', emailErr.message)
+    }
+
+    if (account.phone && fifteenMinBefore > now) {
+      const { error: smsErr } = await admin.from('scheduled_messages').insert({
+        message_type: 'sms',
+        recipient_phone: account.phone,
+        recipient_name: name,
+        recipient_user_id: account.id,
+        related_entity_type: 'video_session',
+        related_entity_id: session.id,
+        body: `VibrationFit: Alignment Gym with ${hostName} starts in 15 min! Join: ${joinLink}`,
+        scheduled_for: fifteenMinBefore.toISOString(),
+        status: 'pending',
+        created_by: createdByUserId,
+      })
+      if (smsErr) console.error('[alignment-gym] 15min SMS reminder schedule error:', smsErr.message)
+    }
+  }
+
+  // --- Admin SMS ---
+  notifyAdminSMS(
+    `Alignment Gym Scheduled: "${session.title}" on ${scheduledDate} at ${scheduledTime} - ${emailRecipients.length} graduates notified`
+  ).catch(() => {})
 }
 

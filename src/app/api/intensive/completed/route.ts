@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { triggerEvent } from '@/lib/messaging/events'
-import { createAdminNotification } from '@/lib/admin/notifications'
+import { createAdminNotification, notifyAdminSMS } from '@/lib/admin/notifications'
 
 export async function POST() {
   try {
@@ -45,6 +45,9 @@ export async function POST() {
       metadata: { userId: user.id, email: user.email },
       link: '/admin/users',
     }).catch(err => console.error('Admin notification DB error:', err))
+
+    notifyAdminSMS(`Intensive Completed: ${completedName} (${user.email || 'no email'})`)
+      .catch(err => console.error('Admin SMS error:', err))
 
     return NextResponse.json({ success: true })
   } catch (error) {

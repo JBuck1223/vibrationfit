@@ -3,12 +3,17 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { Spinner } from '@/lib/design-system'
-import { Search, Pin, ChevronDown, Image as ImageIcon, ArrowUp, ArrowRight, X, Trophy, Heart, Sparkles, Lightbulb, Send, User, FileText, MessageCircle } from 'lucide-react'
+import { Search, Pin, ChevronDown, ArrowRight, X, Trophy, Heart, Sparkles, Lightbulb, User, FileText, MessageCircle, HelpCircle, Filter } from 'lucide-react'
 import { VibeTag, VIBE_TAG_CONFIG, VibePost, VIBE_TAGS } from '@/lib/vibe-tribe/types'
 import { PostCard } from './PostCard'
 import { StickyPostComposer } from './StickyPostComposer'
-import { HowToVibeCard } from './HowToVibeCard'
-import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
+
+const TAG_DESCRIPTIONS: Record<VibeTag, string> = {
+  win: 'Evidence, synchronicities, "this matched my Life Vision today"',
+  wobble: 'Doubt, resistance, contrast you\'re working through',
+  vision: 'Updates, insights, new clarity about what you want',
+  collaboration: 'Share what\'s working and invite others to try it, adapt it, or build on it',
+}
 
 const ICON_MAP: Record<VibeTag, any> = {
   win: Trophy,
@@ -45,13 +50,14 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
   const [showFilterDropdown, setShowFilterDropdown] = useState(false)
   const [showPinned, setShowPinned] = useState(false)
   const [activityFilter, setActivityFilter] = useState<'off' | 'posts' | 'hearts' | 'comments'>('off')
+  const [showHowToVibe, setShowHowToVibe] = useState(false)
   
   const observerRef = useRef<IntersectionObserver | null>(null)
   const loadMoreRef = useRef<HTMLDivElement>(null)
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const filterDropdownRef = useRef<HTMLDivElement>(null)
-  const feedEndRef = useRef<HTMLDivElement>(null)
+  
   const LIMIT = 20
 
   // Close dropdown when clicking outside
@@ -107,14 +113,11 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
       
       if (response.ok) {
         const data = await response.json()
-        // Reverse posts so oldest appears at top, newest at bottom (chat-like)
-        const reversedPosts = [...(data.posts || [])].reverse()
         
         if (reset || currentOffset === 0) {
-          setPosts(reversedPosts)
+          setPosts(data.posts || [])
         } else {
-          // Prepend older posts to the top
-          setPosts(prev => [...reversedPosts, ...prev])
+          setPosts(prev => [...prev, ...(data.posts || [])])
         }
         
         setHasMore(data.hasMore)
@@ -198,12 +201,8 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
   }, [hasMore, loadingMore, loading, fetchPosts])
 
   const handlePostCreated = (post: VibePost) => {
-    // Add new post to the bottom (end of array)
-    setPosts(prev => [...prev, post])
-    // Scroll to the new post after it renders
-    setTimeout(() => {
-      feedEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }, 100)
+    setPosts(prev => [post, ...prev])
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const handlePostDeleted = (postId: string) => {
@@ -224,7 +223,7 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
     <div className="flex flex-col h-full min-h-screen md:min-h-0 md:h-full bg-black">
       {/* Sticky Top Bar */}
       <div className="sticky top-0 z-30 bg-black border-b border-neutral-800 px-4 py-3">
-        <div className="flex items-center justify-between max-w-2xl mx-auto">
+        <div className="flex items-center justify-between max-w-[772px] mx-auto">
           {/* Left side - Profile Picture + Title/Name */}
           {showSearch ? (
             <div className="flex-1 flex items-center gap-2">
@@ -252,29 +251,16 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
             </div>
           ) : (
             <>
-              {/* Profile Picture + Vibe Tribe Title + User Name */}
-              <div className="flex items-center gap-3">
-                {/* Profile Picture */}
-                <div className="w-10 h-10 rounded-full bg-neutral-700 overflow-hidden flex-shrink-0 ring-2 ring-neutral-600">
-                  <img
-                    src={userProfile?.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
-                    alt={userProfile?.full_name || 'User'}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                
-                {/* Title and User Name */}
+              {/* Vibe Tribe Title + User Name — hidden on mobile to not conflict with sidebar hamburger */}
+              <div className="hidden md:flex items-center gap-3">
                 <div className="flex flex-col">
-                  {/* Vibe Tribe title - hidden on mobile */}
-                  <h1 className="hidden md:block text-base font-bold text-white leading-tight">Vibe Tribe</h1>
+                  <h1 className="text-base font-bold text-white leading-tight">Vibe Tribe</h1>
                   {userProfile?.full_name && (
                     <Link 
                       href={`/snapshot/${userProfile.id}`}
-                      className="text-sm md:text-xs font-bold text-[#39FF14] leading-tight hover:underline"
+                      className="text-xs font-bold text-[#39FF14] leading-tight hover:underline"
                     >
-                      {/* First name on mobile, full name on desktop */}
-                      <span className="md:hidden">{userProfile.full_name.split(' ')[0]}</span>
-                      <span className="hidden md:inline">{userProfile.full_name}</span>
+                      {userProfile.full_name}
                     </Link>
                   )}
                 </div>
@@ -359,6 +345,14 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
                 >
                   <Pin className="w-5 h-5" />
                 </button>
+
+                {/* How to Vibe - ? Button */}
+                <button
+                  onClick={() => setShowHowToVibe(true)}
+                  className="w-10 h-10 rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center text-neutral-400 hover:text-[#BF00FF] hover:border-[#BF00FF]/50 hover:bg-neutral-700 transition-colors"
+                >
+                  <span className="text-base font-bold">?</span>
+                </button>
               </div>
             </>
           )}
@@ -368,7 +362,7 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
       {/* Activity Filter Bar - shows when activity filter is active */}
       {activityFilter !== 'off' && (
         <div className="bg-black border-b border-neutral-800 px-4 py-2">
-          <div className="flex items-center gap-2 max-w-2xl mx-auto overflow-x-auto pb-1">
+          <div className="flex items-center gap-2 max-w-[772px] mx-auto overflow-x-auto pb-1">
             <button
               onClick={() => setActivityFilter('posts')}
               className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all duration-200 text-sm font-medium ${
@@ -416,7 +410,7 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
       {/* Onboarding Banner - shows when user hasn't posted yet */}
       {!hasPostedBefore && (
         <div className="bg-gradient-to-r from-[#39FF14]/10 to-[#BF00FF]/10 border-b border-neutral-800">
-          <div className="max-w-2xl mx-auto px-4 py-4">
+          <div className="max-w-[772px] mx-auto px-4 py-4">
             <Link 
               href="/vibe-tribe/new"
               className="flex items-center justify-between gap-4 group"
@@ -434,30 +428,24 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
         </div>
       )}
 
+      {/* Top Composer - only show if user has posted before */}
+      {hasPostedBefore && (
+        <StickyPostComposer 
+          userId={userId} 
+          userProfile={userProfile}
+          onPostCreated={handlePostCreated} 
+        />
+      )}
+
       {/* Feed */}
-      <div className={`flex-1 overflow-y-auto ${hasPostedBefore ? 'pb-40 md:pb-24' : 'pb-8'}`}>
-        <div className="max-w-2xl mx-auto px-4 py-4">
-          {/* How to Vibe Guide - only show for users who have posted */}
-          {hasPostedBefore && (
-            <div className="mb-2">
-              <HowToVibeCard />
-            </div>
-          )}
+      <div className="flex-1 overflow-y-auto pb-8">
+        <div className="max-w-[772px] mx-auto px-4 py-4">
           {(loading || refreshing) ? (
             <div className="flex justify-center py-12">
               <Spinner size="lg" />
             </div>
           ) : posts.length > 0 ? (
             <div className="space-y-4">
-              {/* Load Older Posts Trigger - at top */}
-              <div ref={loadMoreRef}>
-                {loadingMore && (
-                  <div className="flex justify-center py-2">
-                    <Spinner size="md" />
-                  </div>
-                )}
-              </div>
-
               {posts.map((post) => (
                 <PostCard
                   key={post.id}
@@ -468,8 +456,14 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
                 />
               ))}
 
-              {/* Scroll target for new posts */}
-              <div ref={feedEndRef} />
+              {/* Load older posts trigger */}
+              <div ref={loadMoreRef}>
+                {loadingMore && (
+                  <div className="flex justify-center py-2">
+                    <Spinner size="md" />
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <div className="text-center py-12">
@@ -523,12 +517,98 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
         </div>
       </div>
 
-      {/* Sticky Bottom Composer - only show if user has posted before */}
-      {hasPostedBefore && (
-        <StickyPostComposer 
-          userId={userId} 
-          onPostCreated={handlePostCreated} 
-        />
+      {/* How to Vibe Modal */}
+      {showHowToVibe && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-[6vh] px-4">
+          <div 
+            className="absolute inset-0 bg-black/80"
+            onClick={() => setShowHowToVibe(false)}
+          />
+          <div className="relative w-full max-w-2xl bg-neutral-900 border border-neutral-700 rounded-2xl shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3 border-b border-neutral-800">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-[#BF00FF]/20 flex items-center justify-center">
+                  <HelpCircle className="w-4 h-4 text-[#BF00FF]" />
+                </div>
+                <h2 className="text-base font-semibold text-white">How to Vibe With the Tribe</h2>
+              </div>
+              <button
+                onClick={() => setShowHowToVibe(false)}
+                className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-700 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="px-5 py-4 space-y-4 max-h-[60vh] overflow-y-auto">
+              {/* Tag Guide */}
+              <div>
+                <p className="text-xs text-neutral-500 uppercase tracking-wider mb-3">Use Tags to Categorize Your Posts</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {(['win', 'wobble', 'vision', 'collaboration'] as VibeTag[]).map((tag) => {
+                    const config = VIBE_TAG_CONFIG[tag]
+                    const Icon = ICON_MAP[tag]
+                    
+                    return (
+                      <div 
+                        key={tag}
+                        className="flex items-start gap-2 p-2.5 rounded-lg bg-neutral-800/50"
+                      >
+                        <div 
+                          className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+                          style={{ backgroundColor: `${config.color}20` }}
+                        >
+                          <Icon className="w-3.5 h-3.5" style={{ color: config.color }} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium" style={{ color: config.color }}>
+                            {config.label}
+                          </p>
+                          <p className="text-xs text-neutral-400 leading-relaxed">
+                            {TAG_DESCRIPTIONS[tag]}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Life Categories Reminder */}
+              <div className="bg-neutral-800/30 rounded-lg p-3">
+                <p className="text-sm text-neutral-300">
+                  <span className="text-white font-medium">Add Life Categories</span> to your posts (money, love, health, etc.) so others can filter and find posts that resonate.
+                </p>
+              </div>
+
+              {/* Connection Practice */}
+              <div>
+                <p className="text-xs text-neutral-500 uppercase tracking-wider mb-2">2-Minute Connection Practice</p>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-neutral-300">
+                    <Filter className="w-4 h-4 text-neutral-500" />
+                    <span>Filter the feed by your top Life Category</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-neutral-300">
+                    <Heart className="w-4 h-4 text-neutral-500" />
+                    <span>Find 2-3 posts and drop a heart</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-neutral-300">
+                    <MessageCircle className="w-4 h-4 text-neutral-500" />
+                    <span>Leave 1 sentence of support or celebration</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Closing */}
+              <p className="text-xs text-neutral-500 text-center pt-2 border-t border-neutral-800">
+                Every tagged post is a rep for &quot;I am a conscious creator in action.&quot;
+              </p>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

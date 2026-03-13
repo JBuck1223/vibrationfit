@@ -1,16 +1,14 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { Image as ImageIcon, ArrowUp, X, Trophy, Heart, Sparkles, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import Link from 'next/link'
+import { Image as ImageIcon, Video, Send, X, Trophy, Heart, Sparkles, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react'
 import { VibeTag, VIBE_TAG_CONFIG, VibePost, VIBE_TAGS } from '@/lib/vibe-tribe/types'
-import { FileUpload } from '@/components/FileUpload'
 import { UploadProgress } from '@/components/UploadProgress'
 import { uploadMultipleUserFiles, getUploadErrorMessage } from '@/lib/storage/s3-storage-presigned'
 import { CategoryCard, Spinner } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
-
-// LocalStorage key for sidebar state (must match Sidebar.tsx)
-const SIDEBAR_COLLAPSED_KEY = 'vibrationfit-sidebar-collapsed'
+import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
 
 const ICON_MAP: Record<VibeTag, any> = {
   win: Trophy,
@@ -19,22 +17,26 @@ const ICON_MAP: Record<VibeTag, any> = {
   collaboration: Lightbulb,
 }
 
+interface UserProfile {
+  id: string
+  full_name: string | null
+  profile_picture_url: string | null
+}
+
 interface StickyPostComposerProps {
   userId: string
+  userProfile?: UserProfile | null
   onPostCreated?: (post: VibePost) => void
 }
 
-export function StickyPostComposer({ userId, onPostCreated }: StickyPostComposerProps) {
+export function StickyPostComposer({ userId, userProfile, onPostCreated }: StickyPostComposerProps) {
   const [content, setContent] = useState('')
   const [selectedTag, setSelectedTag] = useState<VibeTag | null>(null)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [showCategories, setShowCategories] = useState(false)
   const [files, setFiles] = useState<File[]>([])
-  const [showMediaPicker, setShowMediaPicker] = useState(false)
-  const [showTagPicker, setShowTagPicker] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [expanded, setExpanded] = useState(false)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [focusOpen, setFocusOpen] = useState(false)
   const [uploadProgress, setUploadProgress] = useState({
     progress: 0,
     status: '',
@@ -43,37 +45,58 @@ export function StickyPostComposer({ userId, onPostCreated }: StickyPostComposer
     isVisible: false,
   })
   
-  // Input ref removed - using simple input now
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  // Sync with sidebar collapsed state from localStorage
-  useEffect(() => {
-    // Initial read
-    const saved = localStorage.getItem(SIDEBAR_COLLAPSED_KEY)
-    setSidebarCollapsed(saved === 'true')
-
-    // Listen for changes (when sidebar is toggled)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === SIDEBAR_COLLAPSED_KEY) {
-        setSidebarCollapsed(e.newValue === 'true')
-      }
-    }
-
-    // Also poll for changes since storage events don't fire in the same tab
-    const checkInterval = setInterval(() => {
-      const current = localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true'
-      setSidebarCollapsed(prev => prev !== current ? current : prev)
-    }, 100)
-
-    window.addEventListener('storage', handleStorageChange)
-    return () => {
-      window.removeEventListener('storage', handleStorageChange)
-      clearInterval(checkInterval)
-    }
-  }, [])
+  const modalRef = useRef<HTMLDivElement>(null)
 
   const hasContent = content.trim() || files.length > 0
   const canSubmit = selectedTag && hasContent
+  const firstName = userProfile?.full_name?.split(' ')[0] || 'Tribe'
+
+  const autoResize = useCallback(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+      const scrollHeight = textareaRef.current.scrollHeight
+      const minH = 120
+      const maxH = 300
+      const newHeight = Math.min(Math.max(scrollHeight, minH), maxH)
+      textareaRef.current.style.height = `${newHeight}px`
+      textareaRef.current.style.overflowY = scrollHeight > maxH ? 'auto' : 'hidden'
+    }
+  }, [])
+
+  useEffect(() => {
+    requestAnimationFrame(autoResize)
+  }, [content, autoResize])
+
+  useEffect(() => {
+    if (focusOpen && textareaRef.current) {
+      setTimeout(() => textareaRef.current?.focus(), 100)
+    }
+  }, [focusOpen])
+
+  const [viewportHeight, setViewportHeight] = useState(0)
+
+  useEffect(() => {
+    if (focusOpen) {
+      document.body.style.overflow = 'hidden'
+      const updateHeight = () => {
+        const vh = window.visualViewport?.height ?? window.innerHeight
+        setViewportHeight(vh)
+      }
+      updateHeight()
+      window.visualViewport?.addEventListener('resize', updateHeight)
+      window.addEventListener('resize', updateHeight)
+      return () => {
+        document.body.style.overflow = ''
+        window.visualViewport?.removeEventListener('resize', updateHeight)
+        window.removeEventListener('resize', updateHeight)
+      }
+    } else {
+      document.body.style.overflow = ''
+      setViewportHeight(0)
+    }
+  }, [focusOpen])
 
   const handleCategoryToggle = (categoryKey: string) => {
     setSelectedCategories(prev => 
@@ -87,7 +110,6 @@ export function StickyPostComposer({ userId, onPostCreated }: StickyPostComposer
     if (e.target.files) {
       const newFiles = Array.from(e.target.files).slice(0, 4 - files.length)
       setFiles(prev => [...prev, ...newFiles].slice(0, 4))
-      setExpanded(true)
     }
   }
 
@@ -103,7 +125,6 @@ export function StickyPostComposer({ userId, onPostCreated }: StickyPostComposer
     try {
       let mediaUrls: string[] = []
 
-      // Upload files if any
       if (files.length > 0) {
         setUploadProgress({
           progress: 0,
@@ -142,7 +163,6 @@ export function StickyPostComposer({ userId, onPostCreated }: StickyPostComposer
           .map((result: any) => result.url)
       }
 
-      // Create post
       const response = await fetch('/api/vibe-tribe/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -157,15 +177,12 @@ export function StickyPostComposer({ userId, onPostCreated }: StickyPostComposer
       if (response.ok) {
         const data = await response.json()
         
-        // Reset form
         setContent('')
         setFiles([])
-        setShowMediaPicker(false)
         setSelectedCategories([])
         setShowCategories(false)
         setSelectedTag(null)
-        setShowTagPicker(false)
-        setExpanded(false)
+        setFocusOpen(false)
         
         onPostCreated?.(data.post)
       } else {
@@ -181,12 +198,11 @@ export function StickyPostComposer({ userId, onPostCreated }: StickyPostComposer
     }
   }
 
-  const handleFocus = () => {
-    setExpanded(true)
-    setShowTagPicker(true)
+  const handleClose = () => {
+    if (submitting) return
+    setFocusOpen(false)
   }
 
-  // Filter out forward and conclusion from life categories
   const lifeCategories = VISION_CATEGORIES.filter(
     cat => cat.key !== 'forward' && cat.key !== 'conclusion'
   )
@@ -195,7 +211,7 @@ export function StickyPostComposer({ userId, onPostCreated }: StickyPostComposer
     <>
       {/* Upload Progress Overlay */}
       {uploadProgress.isVisible && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
           <div className="bg-neutral-900 rounded-2xl p-6 w-full max-w-sm">
             <UploadProgress
               progress={uploadProgress.progress}
@@ -208,64 +224,115 @@ export function StickyPostComposer({ userId, onPostCreated }: StickyPostComposer
         </div>
       )}
 
-      {/* Backdrop when expanded - respects sidebar on desktop */}
-      {expanded && (
-        <div 
-          className={`fixed inset-0 bg-black/50 z-40 transition-all duration-300 ${sidebarCollapsed ? 'md:left-16' : 'md:left-64'}`}
-          onClick={() => {
-            if (!content && files.length === 0) {
-              setExpanded(false)
-              setShowTagPicker(false)
-              setShowCategories(false)
-              setSelectedTag(null)
-              setSelectedCategories([])
-            }
-          }}
-        />
-      )}
+      {/* Collapsed Bar — Facebook-style prompt */}
+      <div className="border-b border-neutral-800 bg-black">
+        <div className="max-w-[772px] mx-auto px-4 py-3">
+          <div className="flex items-center gap-3">
+            {/* Profile Picture — links to own snapshot */}
+            <Link 
+              href={`/snapshot/${userId}`}
+              className="w-10 h-10 rounded-full bg-neutral-700 overflow-hidden flex-shrink-0 ring-2 ring-neutral-600 hover:ring-[#39FF14]/50 transition-all"
+            >
+              <img
+                src={userProfile?.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
+                alt={userProfile?.full_name || 'User'}
+                className="w-full h-full object-cover"
+              />
+            </Link>
 
-      {/* Sticky Bottom Bar - positioned above mobile nav on mobile, at bottom on desktop (after sidebar) */}
-      <div className={`fixed left-0 right-0 bg-black border-t border-neutral-800 z-40 transition-all duration-300 bottom-[72px] md:bottom-0 ${sidebarCollapsed ? 'md:left-16' : 'md:left-64'} ${expanded ? 'pb-2' : ''}`}>
-        <div className="max-w-2xl mx-auto">
-          {/* Expanded Content */}
-          {expanded && (
-            <div className="px-4 pt-4 space-y-3">
-              {/* Tag Selector */}
-              {showTagPicker && (
-                <div className="space-y-2">
-                  <p className="text-xs text-neutral-500 uppercase tracking-wider">Select a vibe</p>
-                  <div className="flex flex-wrap gap-2">
-                    {VIBE_TAGS.map((tag) => {
-                      const config = VIBE_TAG_CONFIG[tag]
-                      const Icon = ICON_MAP[tag]
-                      const isSelected = selectedTag === tag
-                      
-                      return (
-                        <button
-                          key={tag}
-                          onClick={() => setSelectedTag(tag)}
-                          className={`
-                            flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
-                            border transition-all duration-200
-                          `}
-                          style={{
-                            borderColor: config.color,
-                            backgroundColor: isSelected ? config.color : 'transparent',
-                            color: isSelected ? '#000' : config.color,
-                          }}
-                        >
-                          <Icon className="w-3.5 h-3.5" />
-                          {config.label}
-                        </button>
-                      )
-                    })}
-                  </div>
+            {/* Clickable placeholder */}
+            <button
+              onClick={() => setFocusOpen(true)}
+              className="flex-1 h-10 bg-neutral-900 border border-neutral-700 rounded-full px-4 text-left text-sm text-neutral-500 hover:bg-neutral-800 hover:border-neutral-600 transition-colors"
+            >
+              What&apos;s on your mind, {firstName}?
+            </button>
+
+            {/* Action buttons */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => {
+                  setFocusOpen(true)
+                  setTimeout(() => fileInputRef.current?.click(), 200)
+                }}
+                className="w-9 h-9 rounded-full flex items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+              >
+                <ImageIcon className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => {
+                  setFocusOpen(true)
+                  setTimeout(() => fileInputRef.current?.click(), 200)
+                }}
+                className="w-9 h-9 rounded-full flex items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+              >
+                <Video className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Focus Modal */}
+      {focusOpen && (
+        <div 
+          className="fixed inset-x-0 top-0 z-50 flex items-start justify-center px-4 md:pt-[6vh]"
+          style={{ height: viewportHeight ? `${viewportHeight}px` : '100dvh' }}
+        >
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/80"
+            onClick={handleClose}
+          />
+
+          {/* Modal — flexes vertically so the scrollable middle fills available space */}
+          <div 
+            ref={modalRef}
+            className="relative w-full max-w-2xl bg-neutral-900 border border-neutral-700 md:rounded-2xl shadow-2xl flex flex-col"
+            style={{ maxHeight: viewportHeight ? `${viewportHeight}px` : '100dvh' }}
+          >
+            {/* Header — pinned */}
+            <div className="flex-shrink-0 flex items-center justify-between px-5 py-3 border-b border-neutral-800">
+              <h2 className="text-base font-semibold text-white">Create Post</h2>
+              <button
+                onClick={handleClose}
+                className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-700 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Scrollable content area */}
+            <div className="flex-1 overflow-y-auto min-h-0">
+              {/* User info */}
+              <div className="flex items-center gap-3 px-5 pt-4 pb-2">
+                <div className="w-10 h-10 rounded-full bg-neutral-700 overflow-hidden flex-shrink-0">
+                  <img
+                    src={userProfile?.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
+                    alt={userProfile?.full_name || 'User'}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
-              )}
+                <div>
+                  <p className="text-sm font-semibold text-white leading-tight">{userProfile?.full_name || 'Tribe Member'}</p>
+                </div>
+              </div>
+
+              {/* Textarea */}
+              <div className="px-5 pb-3">
+                <textarea
+                  ref={textareaRef}
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder={`What's on your mind, ${firstName}?`}
+                  className="w-full bg-transparent text-white text-base placeholder-neutral-500 focus:outline-none resize-none"
+                  style={{ minHeight: '100px' }}
+                />
+              </div>
 
               {/* File Previews */}
               {files.length > 0 && (
-                <div className="flex gap-2 overflow-x-auto pb-2">
+                <div className="flex gap-2 px-5 pb-3 overflow-x-auto">
                   {files.map((file, index) => (
                     <div key={index} className="relative flex-shrink-0">
                       {file.type.startsWith('image/') ? (
@@ -292,8 +359,36 @@ export function StickyPostComposer({ userId, onPostCreated }: StickyPostComposer
                 </div>
               )}
 
+              {/* Vibe Tag Selector */}
+              <div className="px-5 pb-3 space-y-1.5">
+                <p className="text-xs text-neutral-500 uppercase tracking-wider">Select a vibe</p>
+                <div className="flex flex-wrap gap-2">
+                  {VIBE_TAGS.map((tag) => {
+                    const config = VIBE_TAG_CONFIG[tag]
+                    const Icon = ICON_MAP[tag]
+                    const isSelected = selectedTag === tag
+                    
+                    return (
+                      <button
+                        key={tag}
+                        onClick={() => setSelectedTag(tag)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200"
+                        style={{
+                          borderColor: config.color,
+                          backgroundColor: isSelected ? config.color : 'transparent',
+                          color: isSelected ? '#000' : config.color,
+                        }}
+                      >
+                        <Icon className="w-3.5 h-3.5" />
+                        {config.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
               {/* Life Categories (Optional) */}
-              <div>
+              <div className="px-5 pb-3">
                 <button
                   type="button"
                   onClick={() => setShowCategories(!showCategories)}
@@ -331,58 +426,56 @@ export function StickyPostComposer({ userId, onPostCreated }: StickyPostComposer
                 )}
               </div>
             </div>
-          )}
 
-          {/* Input Row - Horizontally aligned */}
-          <div className="flex items-center gap-3 px-4 py-3">
-            {/* Image Upload Button - Circle with border */}
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={files.length >= 4}
-              className="flex-shrink-0 w-11 h-11 rounded-full border border-neutral-600 flex items-center justify-center text-white hover:border-neutral-400 transition-colors disabled:opacity-50"
-            >
-              <ImageIcon className="w-5 h-5" />
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*,video/*"
-              multiple
-              onChange={handleFileSelect}
-              className="hidden"
-            />
+            {/* Bottom Action Bar — pinned */}
+            <div className="flex-shrink-0 flex items-center justify-between px-5 py-3 border-t border-neutral-800">
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={files.length >= 4}
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors disabled:opacity-50"
+                >
+                  <ImageIcon className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={files.length >= 4}
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors disabled:opacity-50"
+                >
+                  <Video className="w-5 h-5" />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,video/*"
+                  multiple
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+              </div>
 
-            {/* Text Input - Pill shaped */}
-            <div className="flex-1">
-              <input
-                type="text"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                onFocus={handleFocus}
-                placeholder="Type a Message..."
-                className="w-full h-11 bg-neutral-900 border border-neutral-700 rounded-full px-5 text-base md:text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500"
-              />
+              <button
+                onClick={handleSubmit}
+                disabled={!canSubmit || submitting}
+                className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold transition-all ${
+                  canSubmit && !submitting
+                    ? 'bg-[#39FF14] text-black hover:bg-[#39FF14]/90'
+                    : 'bg-neutral-800 text-neutral-500 cursor-not-allowed'
+                }`}
+              >
+                {submitting ? (
+                  <Spinner size="sm" />
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Post
+                  </>
+                )}
+              </button>
             </div>
-
-            {/* Send Button - Circle */}
-            <button
-              onClick={handleSubmit}
-              disabled={!canSubmit || submitting}
-              className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all ${
-                hasContent && !submitting
-                  ? 'bg-[#39FF14] text-black hover:bg-[#39FF14]/90'
-                  : 'bg-[#39FF14]/30 text-[#39FF14]/60'
-              }`}
-            >
-              {submitting ? (
-                <Spinner size="sm" />
-              ) : (
-                <ArrowUp className="w-5 h-5" />
-              )}
-            </button>
           </div>
         </div>
-      </div>
+      )}
     </>
   )
 }
