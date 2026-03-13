@@ -404,7 +404,7 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
                 </button>
                 
                 {showCategories && (
-                  <div className="mt-2 grid grid-cols-6 gap-1.5">
+                  <div className="mt-2 grid grid-cols-3 sm:grid-cols-6 gap-1.5">
                     {lifeCategories.map((category) => {
                       const isSelected = selectedCategories.includes(category.key)
                       return (
