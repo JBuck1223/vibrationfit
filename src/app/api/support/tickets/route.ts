@@ -9,7 +9,7 @@ import { verifyAdminAccess, createAdminClient } from '@/lib/supabase/admin'
 import { sendAndLogEmail } from '@/lib/email/send'
 import { generateSupportTicketCreatedEmail } from '@/lib/email/templates/support-ticket-created'
 import { triggerEvent } from '@/lib/messaging/events'
-import { createAdminNotification } from '@/lib/admin/notifications'
+import { createAdminNotification, notifyAdminSMS } from '@/lib/admin/notifications'
 
 export async function POST(request: NextRequest) {
   try {
@@ -103,6 +103,11 @@ export async function POST(request: NextRequest) {
       metadata: { ticketId: ticket.id, subject: body.subject, priority: body.priority || 'normal' },
       link: '/admin/crm/support/board',
     }).catch(err => console.error('Admin notification DB error:', err))
+
+    const priority = body.priority || 'normal'
+    const from = email || 'Unknown'
+    notifyAdminSMS(`New Support Ticket [${priority}]: "${body.subject}" from ${from}`)
+      .catch(err => console.error('Admin SMS error:', err))
 
     return NextResponse.json({ ticket }, { status: 201 })
   } catch (error: unknown) {

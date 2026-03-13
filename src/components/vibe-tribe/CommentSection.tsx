@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { Spinner } from '@/lib/design-system'
-import { Heart, Trash2, Send, Reply, X } from 'lucide-react'
+import { Heart, Trash2, Send, Reply, X, Pencil, Check } from 'lucide-react'
 import { VibeComment } from '@/lib/vibe-tribe/types'
 import { UserBadgeIndicator } from '@/components/badges'
 import { format, isToday, isYesterday } from 'date-fns'
@@ -181,6 +181,37 @@ export function CommentSection({
     }
   }
 
+  const handleEditComment = async (commentId: string, newContent: string) => {
+    const updateInTree = (comments: VibeComment[], targetId: string, updates: Partial<VibeComment>): VibeComment[] => {
+      return comments.map(c => {
+        if (c.id === targetId) return { ...c, ...updates }
+        if (c.replies) return { ...c, replies: updateInTree(c.replies, targetId, updates) }
+        return c
+      })
+    }
+
+    try {
+      const response = await fetch(`/api/vibe-tribe/comments/${commentId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: newContent }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setComments(prev => updateInTree(prev, commentId, {
+          content: data.comment.content,
+          edited_at: data.comment.edited_at,
+        }))
+        return true
+      }
+      return false
+    } catch (error) {
+      console.error('Error editing comment:', error)
+      return false
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex justify-center py-4 mt-4 border-t border-neutral-800">
@@ -225,10 +256,12 @@ export function CommentSection({
               key={comment.id}
               comment={comment}
               canDelete={currentUserId === comment.user_id || isAdmin}
+              canEdit={currentUserId === comment.user_id}
               currentUserId={currentUserId}
               isAdmin={isAdmin}
               onDelete={() => handleDeleteComment(comment.id)}
               onHeart={() => handleHeartComment(comment)}
+              onEdit={handleEditComment}
               replyingToId={replyingToId}
               setReplyingToId={setReplyingToId}
               replyText={replyText}
@@ -237,6 +270,7 @@ export function CommentSection({
               submitting={submitting}
               onDeleteComment={handleDeleteComment}
               onHeartComment={handleHeartComment}
+              onEditComment={handleEditComment}
             />
           ))
         )}
@@ -248,10 +282,12 @@ export function CommentSection({
 interface CommentItemProps {
   comment: VibeComment
   canDelete: boolean
+  canEdit: boolean
   currentUserId?: string
   isAdmin?: boolean
   onDelete: () => void
   onHeart: () => void
+  onEdit: (commentId: string, newContent: string) => Promise<boolean>
   replyingToId: string | null
   setReplyingToId: (id: string | null) => void
   replyText: string
@@ -260,18 +296,21 @@ interface CommentItemProps {
   submitting: boolean
   onDeleteComment: (id: string, parentId?: string) => void
   onHeartComment: (comment: VibeComment) => void
+  onEditComment: (commentId: string, newContent: string) => Promise<boolean>
   isReply?: boolean
-  replyToAuthor?: { name: string; userId: string } // Who this comment is replying to
-  nestingLevel?: number // Track nesting depth for indentation
+  replyToAuthor?: { name: string; userId: string }
+  nestingLevel?: number
 }
 
 function CommentItem({ 
   comment, 
-  canDelete, 
+  canDelete,
+  canEdit,
   currentUserId,
   isAdmin,
   onDelete, 
   onHeart,
+  onEdit,
   replyingToId,
   setReplyingToId,
   replyText,
@@ -280,12 +319,17 @@ function CommentItem({
   submitting,
   onDeleteComment,
   onHeartComment,
+  onEditComment,
   isReply = false,
   replyToAuthor,
   nestingLevel = 0,
 }: CommentItemProps) {
   const [deleting, setDeleting] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [editText, setEditText] = useState(comment.content)
+  const [saving, setSaving] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const editInputRef = useRef<HTMLInputElement>(null)
   
   // Format time: show time for today, "Yesterday" for yesterday, or date for older
   const commentDate = new Date(comment.created_at)
@@ -297,12 +341,32 @@ function CommentItem({
   
   const isReplying = replyingToId === comment.id
 
-  // Focus input when replying
   useEffect(() => {
     if (isReplying && inputRef.current) {
       inputRef.current.focus()
     }
   }, [isReplying])
+
+  useEffect(() => {
+    if (editing && editInputRef.current) {
+      editInputRef.current.focus()
+      editInputRef.current.setSelectionRange(editText.length, editText.length)
+    }
+  }, [editing])
+
+  const handleSaveEdit = async () => {
+    const trimmed = editText.trim()
+    if (!trimmed || trimmed === comment.content || saving) return
+    setSaving(true)
+    const success = await onEdit(comment.id, trimmed)
+    setSaving(false)
+    if (success) setEditing(false)
+  }
+
+  const handleCancelEdit = () => {
+    setEditing(false)
+    setEditText(comment.content)
+  }
 
   const handleDelete = async () => {
     setDeleting(true)
@@ -395,52 +459,99 @@ function CommentItem({
             </Link>
             <span className="text-xs text-neutral-500">{timeDisplay}</span>
           </div>
-          {/* Comment content - directly under name */}
-          <p className="text-sm text-neutral-200 whitespace-pre-wrap">
-            {renderContentWithMention(comment.content)}
-          </p>
+          {/* Comment content or edit input */}
+          {editing ? (
+            <div className="mt-1 flex items-center gap-2">
+              <input
+                ref={editInputRef}
+                type="text"
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !saving) {
+                    e.preventDefault()
+                    handleSaveEdit()
+                  }
+                  if (e.key === 'Escape') handleCancelEdit()
+                }}
+                className="flex-1 bg-neutral-800 border border-neutral-700 rounded-full px-4 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#39FF14]"
+              />
+              <button
+                onClick={handleSaveEdit}
+                disabled={saving || !editText.trim() || editText.trim() === comment.content}
+                className="h-9 w-9 rounded-full flex items-center justify-center bg-[#39FF14] text-black hover:bg-[rgba(57,255,20,0.9)] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-shrink-0"
+              >
+                <Check className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleCancelEdit}
+                className="h-9 w-9 rounded-full flex items-center justify-center bg-neutral-800 text-neutral-400 hover:text-white transition-all flex-shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <p className="text-sm text-neutral-200 whitespace-pre-wrap">
+              {renderContentWithMention(comment.content)}
+              {comment.edited_at && (
+                <span className="text-xs text-neutral-500 ml-2">(edited)</span>
+              )}
+            </p>
+          )}
           
           {/* Comment Actions */}
-          <div className="flex items-center gap-4 mt-2">
-            <button
-              onClick={onHeart}
-              className={`
-                flex items-center gap-1 text-xs transition-colors
-                ${comment.has_hearted 
-                  ? 'text-[#39FF14]' 
-                  : 'text-neutral-500 hover:text-white'
-                }
-              `}
-            >
-              <Heart 
-                className="w-3.5 h-3.5" 
-                fill={comment.has_hearted ? 'currentColor' : 'none'}
-              />
-              {comment.hearts_count > 0 && (
-                <span>{comment.hearts_count}</span>
-              )}
-            </button>
-            
-            <button
-              onClick={handleReplyClick}
-              className={`flex items-center gap-1 text-xs transition-colors ${
-                isReplying ? 'text-[#39FF14]' : 'text-neutral-500 hover:text-white'
-              }`}
-            >
-              <Reply className="w-3.5 h-3.5" />
-              {isReplying ? 'Cancel' : 'Reply'}
-            </button>
-            
-            {canDelete && (
+          {!editing && (
+            <div className="flex items-center gap-4 mt-2">
               <button
-                onClick={handleDelete}
-                disabled={deleting}
-                className="text-xs text-neutral-500 hover:text-red-500 transition-colors"
+                onClick={onHeart}
+                className={`
+                  flex items-center gap-1 text-xs transition-colors
+                  ${comment.has_hearted 
+                    ? 'text-[#39FF14]' 
+                    : 'text-neutral-500 hover:text-white'
+                  }
+                `}
               >
-                {deleting ? 'Deleting...' : 'Delete'}
+                <Heart 
+                  className="w-3.5 h-3.5" 
+                  fill={comment.has_hearted ? 'currentColor' : 'none'}
+                />
+                {comment.hearts_count > 0 && (
+                  <span>{comment.hearts_count}</span>
+                )}
               </button>
-            )}
-          </div>
+              
+              <button
+                onClick={handleReplyClick}
+                className={`flex items-center gap-1 text-xs transition-colors ${
+                  isReplying ? 'text-[#39FF14]' : 'text-neutral-500 hover:text-white'
+                }`}
+              >
+                <Reply className="w-3.5 h-3.5" />
+                {isReplying ? 'Cancel' : 'Reply'}
+              </button>
+
+              {canEdit && (
+                <button
+                  onClick={() => { setEditing(true); setEditText(comment.content) }}
+                  className="flex items-center gap-1 text-xs text-neutral-500 hover:text-white transition-colors"
+                >
+                  <Pencil className="w-3 h-3" />
+                  Edit
+                </button>
+              )}
+              
+              {canDelete && (
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="text-xs text-neutral-500 hover:text-red-500 transition-colors"
+                >
+                  {deleting ? 'Deleting...' : 'Delete'}
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Inline Reply Input */}
           {isReplying && (
@@ -482,10 +593,12 @@ function CommentItem({
               key={reply.id}
               comment={reply}
               canDelete={currentUserId === reply.user_id || !!isAdmin}
+              canEdit={currentUserId === reply.user_id}
               currentUserId={currentUserId}
               isAdmin={isAdmin}
               onDelete={() => onDeleteComment(reply.id)}
               onHeart={() => onHeartComment(reply)}
+              onEdit={onEditComment}
               replyingToId={replyingToId}
               setReplyingToId={setReplyingToId}
               replyText={replyText}
@@ -494,6 +607,7 @@ function CommentItem({
               submitting={submitting}
               onDeleteComment={onDeleteComment}
               onHeartComment={onHeartComment}
+              onEditComment={onEditComment}
               isReply={true}
               replyToAuthor={{ 
                 name: comment.user?.full_name || 'Anonymous', 

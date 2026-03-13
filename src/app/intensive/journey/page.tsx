@@ -148,7 +148,7 @@ function formatDuration(startStr: string | null, endStr: string | null): string 
   const hours = Math.floor(ms / (1000 * 60 * 60))
   const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60))
   if (hours < 1) return `${minutes}m`
-  if (hours < 24) return `${hours}h ${minutes}m`
+  if (hours < 72) return `${hours}h ${minutes}m`
   const days = Math.floor(hours / 24)
   const remainingHours = hours % 24
   return `${days}d ${remainingHours}h`

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Card, Button, Badge } from '@/lib/design-system'
-import { CheckCircle, Circle, MapPin, Video, MessageCircle, Dumbbell, Music, FileText, BookOpen, Award, GraduationCap, Unlock } from 'lucide-react'
+import { CheckCircle, Circle, MapPin, Video, MessageCircle, Dumbbell, Music, FileText, BookOpen, Award, GraduationCap, Unlock, Compass } from 'lucide-react'
 import type { GraduateChecklistProgress } from '@/lib/graduate-checklist'
 
 interface GraduateChecklistCardProps {
@@ -100,6 +100,12 @@ export function GraduateChecklistCard({ progress }: GraduateChecklistCardProps) 
         <p className="text-xs text-[#39FF14] mt-2">
           {completedCount} of {ITEMS.length} complete
         </p>
+        <Button variant="outline" size="sm" asChild className="mt-3">
+          <Link href="/intensive/journey" className="inline-flex items-center gap-1.5">
+            <Compass className="w-4 h-4" />
+            View Your Intensive Journey
+          </Link>
+        </Button>
       </div>
 
       {/* Step Cards */}

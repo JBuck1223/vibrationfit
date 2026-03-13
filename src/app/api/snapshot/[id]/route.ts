@@ -15,20 +15,17 @@ export async function GET(
     const { id: rawId } = await params
     const supabase = await createClient()
     
-    // Verify the requesting user is authenticated
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     
     if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Resolve "me" alias to the authenticated user's own ID
     const id = rawId === 'me' ? user.id : rawId
 
-    // Fetch the member's public profile
     const { data: member, error: memberError } = await supabase
       .from('user_accounts')
-      .select('id, full_name, first_name, profile_picture_url, created_at')
+      .select('id, full_name, first_name, profile_picture_url, created_at, about_me')
       .eq('id', id)
       .maybeSingle()
 
@@ -41,9 +38,56 @@ export async function GET(
       return NextResponse.json({ error: 'Member not found' }, { status: 404 })
     }
 
-    return NextResponse.json(member)
+    return NextResponse.json({ ...member, isOwner: user.id === id })
   } catch (error) {
     console.error('Error in snapshot API:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+/**
+ * PATCH /api/snapshot/[id]
+ * 
+ * Updates the authenticated user's own about_me blurb.
+ * Users can only update their own profile.
+ */
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const supabase = await createClient()
+    
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    if (user.id !== id) {
+      return NextResponse.json({ error: 'You can only edit your own profile' }, { status: 403 })
+    }
+
+    const body = await request.json()
+    const aboutMe = typeof body.about_me === 'string' ? body.about_me.trim().slice(0, 500) : null
+
+    const { error: updateError } = await supabase
+      .from('user_accounts')
+      .update({ about_me: aboutMe || null })
+      .eq('id', id)
+
+    if (updateError) {
+      console.error('Error updating about_me:', updateError)
+      return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true, about_me: aboutMe || null })
+  } catch (error) {
+    console.error('Error in snapshot PATCH:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

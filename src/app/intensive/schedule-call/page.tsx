@@ -359,6 +359,13 @@ export default function ScheduleCallPage() {
         }
       }
 
+      // Send confirmation email, SMS, and admin notification
+      fetch('/api/intensive/booking-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ booking_id: booking.id }),
+      }).catch(err => console.error('Booking confirmation notify error:', err))
+
       setShowStepCompleteModal(true)
       
     } catch (error) {

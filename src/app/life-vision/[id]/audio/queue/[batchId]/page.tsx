@@ -28,6 +28,7 @@ interface Batch {
   vision_id: string
   metadata?: {
     custom_mix?: boolean
+    output_format?: 'individual' | 'combined' | 'both'
     background_track_id?: string
     mix_ratio_id?: string
     binaural_track_id?: string
@@ -276,41 +277,45 @@ export default function AudioQueuePage({
     // Generate list of all expected tracks
     const requestedSections = batchData.sections_requested?.map((s: any) => s.sectionKey) || []
     const variants = batchData.variant_ids || ['standard']
+    const batchOutputFormat = batchData.metadata?.output_format
+    const isCombinedOnly = batchOutputFormat === 'combined'
     
     // Create map of all expected tracks (section × variant combinations)
+    // For 'combined' output format, individual sections are intermediate (hidden from user)
     const expectedTracks: TrackJob[] = []
-    for (const sectionKey of requestedSections) {
-      for (const variant of variants) {
-        const variantName = variant === 'standard' ? 'Voice Only' :
-                           variant === 'sleep' ? 'Sleep' :
-                           variant === 'energy' ? 'Energy' :
-                           variant === 'meditation' ? 'Meditation' :
-                           variant
-        expectedTracks.push({
-          id: `${sectionKey}-${variant}-pending`,
-          sectionKey,
-          title: prettySectionTitle(sectionKey),
-          variant,
-          status: 'pending',
-          mixStatus: undefined,
-          setName: variantName,
-          createdAt: batchData.created_at,
-        })
+    if (!isCombinedOnly) {
+      for (const sectionKey of requestedSections) {
+        for (const variant of variants) {
+          const variantName = variant === 'standard' ? 'Voice Only' :
+                             variant === 'sleep' ? 'Sleep' :
+                             variant === 'energy' ? 'Energy' :
+                             variant === 'meditation' ? 'Meditation' :
+                             variant
+          expectedTracks.push({
+            id: `${sectionKey}-${variant}-pending`,
+            sectionKey,
+            title: prettySectionTitle(sectionKey),
+            variant,
+            status: 'pending',
+            mixStatus: undefined,
+            setName: variantName,
+            createdAt: batchData.created_at,
+          })
+        }
       }
     }
 
     // Add the "Full Track" entry when output format includes concatenation
-    const batchOutputFormat = batchData.metadata?.output_format
     const includesFullTrack = (batchOutputFormat === 'both' || batchOutputFormat === 'combined') && requestedSections.length > 1
     if (includesFullTrack) {
       expectedTracks.push({
-        id: 'full-standard-pending',
+        id: 'full-custom-pending',
         sectionKey: 'full',
         title: prettySectionTitle('full'),
-        variant: 'standard',
+        variant: 'custom',
         status: 'pending',
         mixStatus: undefined,
-        setName: 'Voice Only',
+        setName: 'Combined Full Track',
         createdAt: batchData.created_at,
       })
     }
@@ -451,9 +456,9 @@ export default function AudioQueuePage({
     t.status === 'failed' || t.mixStatus === 'failed'
   )
   
-  // Calculate progress based on actual track completion (including mixing)
-  // Handle case where tracks are still being created
-  const totalTracks = batch?.total_tracks_expected || 1
+  // Calculate progress based on visible tracks only
+  const isCombinedOnlyBatch = batch?.metadata?.output_format === 'combined'
+  const totalTracks = isCombinedOnlyBatch ? 1 : (batch?.total_tracks_expected || 1)
   const actuallyCompleted = completedTracks.length
   const stillProcessing = processingTracks.length
   const hasFailed = failedTracks.length
@@ -530,7 +535,10 @@ export default function AudioQueuePage({
               <div>
                 <h2 className="text-xl md:text-2xl font-semibold text-white mb-1">Generation Progress</h2>
                 <p className="text-sm md:text-base text-neutral-400">
-                  {actuallyCompleted} of {batch.total_tracks_expected} tracks completed
+                  {isCombinedOnlyBatch 
+                    ? (actuallyCompleted > 0 ? 'Combined track ready' : 'Creating combined track...')
+                    : `${actuallyCompleted} of ${totalTracks} tracks completed`
+                  }
                   {failedTracks.length > 0 && (
                     <span className="text-red-400 ml-2">
                       ({failedTracks.length} failed)
@@ -624,7 +632,7 @@ export default function AudioQueuePage({
             </div>
 
             {/* Success Message */}
-            {batch.status === 'completed' && actuallyCompleted === batch.total_tracks_expected && failedTracks.length === 0 && (
+            {((batch.status === 'completed' && actuallyCompleted >= totalTracks && failedTracks.length === 0) || (isCombinedOnlyBatch && completedTracks.some(t => t.sectionKey === 'full'))) && (
               <div className="pt-4 border-t border-neutral-700">
                 <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
                   <p className="text-green-400 font-medium text-center flex flex-col sm:flex-row items-center justify-center gap-2">

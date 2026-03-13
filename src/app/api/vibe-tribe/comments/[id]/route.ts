@@ -2,6 +2,70 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 /**
+ * PATCH /api/vibe-tribe/comments/[id]
+ * Edit a comment (owner only)
+ */
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const supabase = await createClient()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { content } = body
+
+    if (!content || content.trim() === '') {
+      return NextResponse.json({ error: 'Comment content is required' }, { status: 400 })
+    }
+
+    const { data: comment, error: fetchError } = await supabase
+      .from('vibe_comments')
+      .select('id, user_id')
+      .eq('id', id)
+      .eq('is_deleted', false)
+      .single()
+
+    if (fetchError || !comment) {
+      return NextResponse.json({ error: 'Comment not found' }, { status: 404 })
+    }
+
+    if (comment.user_id !== user.id) {
+      return NextResponse.json({ error: 'Only the author can edit a comment' }, { status: 403 })
+    }
+
+    const { data: updated, error: updateError } = await supabase
+      .from('vibe_comments')
+      .update({
+        content: content.trim(),
+        edited_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select('*')
+      .single()
+
+    if (updateError) {
+      console.error('Error updating comment:', updateError)
+      return NextResponse.json({ error: 'Failed to update comment' }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true, comment: updated })
+  } catch (error: any) {
+    console.error('VIBE TRIBE COMMENT PATCH ERROR:', error)
+    return NextResponse.json(
+      { error: error.message || 'Failed to update comment' },
+      { status: 500 }
+    )
+  }
+}
+
+/**
  * DELETE /api/vibe-tribe/comments/[id]
  * Soft delete a comment (owner or admin only)
  */

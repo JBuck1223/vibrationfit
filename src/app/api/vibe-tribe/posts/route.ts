@@ -57,8 +57,7 @@ export async function GET(request: NextRequest) {
       filteredPostIds = commentedPostIds as string[]
     }
 
-    // Build query - fetch posts (newest first, frontend reverses for chat-like display)
-    // Note: Once the pinned posts migration is run, pinned posts will appear first
+    // Build query - fetch posts newest first
     let query = supabase
       .from('vibe_posts')
       .select('*', { count: 'exact' })

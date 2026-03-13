@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Card, Badge, Container, Spinner, Stack, PageHero, ProgressBar } from '@/lib/design-system/components'
 import {
   Users, CheckCircle, Clock, Pause, ArrowRight,
   Settings, FileText, User, ClipboardCheck, Sparkles, Wand2,
   Music, Mic, Sliders, ImageIcon, BookOpen, Calendar, Rocket, Unlock,
+  Video, X, ExternalLink,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -26,6 +27,11 @@ interface Enrollment {
   completed_at: string | null
   created_at: string
   updated_at: string
+  testimonial_video_url: string | null
+  testimonial_transcript: string | null
+  testimonial_duration_seconds: number | null
+  biggest_shift: string | null
+  sharing_preference: string | null
 }
 
 interface StepBreakdown {
@@ -100,6 +106,8 @@ export default function IntensiveDashboardPage() {
 
   const [statusFilter, setStatusFilter] = useState('all')
   const [stepFilter, setStepFilter] = useState('all')
+  const [hasVideoFilter, setHasVideoFilter] = useState(false)
+  const [selectedEnrollment, setSelectedEnrollment] = useState<Enrollment | null>(null)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -107,6 +115,7 @@ export default function IntensiveDashboardPage() {
       const params = new URLSearchParams()
       if (statusFilter !== 'all') params.append('status', statusFilter)
       if (stepFilter !== 'all') params.append('step', stepFilter)
+      if (hasVideoFilter) params.append('has_video', 'true')
 
       const response = await fetch(`/api/admin/intensive/dashboard?${params.toString()}`)
       if (!response.ok) throw new Error('Failed to fetch intensive data')
@@ -121,7 +130,7 @@ export default function IntensiveDashboardPage() {
     } finally {
       setLoading(false)
     }
-  }, [statusFilter, stepFilter])
+  }, [statusFilter, stepFilter, hasVideoFilter])
 
   useEffect(() => {
     fetchData()
@@ -252,14 +261,24 @@ export default function IntensiveDashboardPage() {
             </Button>
           ))}
 
-          {stepFilter !== 'all' && (
+          <span className="text-xs text-neutral-500 ml-3 mr-1">Media:</span>
+          <Button
+            variant={hasVideoFilter ? 'primary' : 'outline'}
+            size="sm"
+            onClick={() => setHasVideoFilter(!hasVideoFilter)}
+          >
+            <Video className="w-3.5 h-3.5 mr-1" />
+            Has Video
+          </Button>
+
+          {(stepFilter !== 'all' || hasVideoFilter) && (
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setStepFilter('all')}
+              onClick={() => { setStepFilter('all'); setHasVideoFilter(false) }}
               className="ml-2"
             >
-              Clear Step Filter
+              Clear Filters
             </Button>
           )}
         </div>
@@ -279,6 +298,9 @@ export default function IntensiveDashboardPage() {
                     <th className="text-left py-3 md:py-4 px-3 md:px-4 text-neutral-400 font-medium text-xs md:text-sm">Status</th>
                     <th className="text-left py-3 md:py-4 px-3 md:px-4 text-neutral-400 font-medium text-xs md:text-sm">Current Step</th>
                     <th className="text-left py-3 md:py-4 px-3 md:px-4 text-neutral-400 font-medium text-xs md:text-sm hidden md:table-cell">Progress</th>
+                    <th className="text-center py-3 md:py-4 px-2 text-neutral-400 font-medium text-xs md:text-sm w-16">
+                      <Video className="w-3.5 h-3.5 mx-auto" />
+                    </th>
                     <th className="text-left py-3 md:py-4 px-3 md:px-4 text-neutral-400 font-medium text-xs md:text-sm hidden md:table-cell">Started</th>
                     <th className="text-left py-3 md:py-4 px-3 md:px-4 text-neutral-400 font-medium text-xs md:text-sm hidden lg:table-cell">Last Activity</th>
                   </tr>
@@ -292,7 +314,7 @@ export default function IntensiveDashboardPage() {
                       <tr
                         key={enrollment.id}
                         className="border-b border-[#333] hover:bg-[#1F1F1F] cursor-pointer transition-colors"
-                        onClick={() => router.push(`/admin/crm/members/${enrollment.user_id}`)}
+                        onClick={() => setSelectedEnrollment(enrollment)}
                       >
                         <td className="py-3 md:py-4 px-3 md:px-4">
                           <div className="font-medium text-xs md:text-sm text-white truncate max-w-[180px]">
@@ -333,6 +355,15 @@ export default function IntensiveDashboardPage() {
                             <span className="text-xs text-neutral-400">{enrollment.progress_pct}%</span>
                           </div>
                         </td>
+                        <td className="py-3 md:py-4 px-2 text-center">
+                          {enrollment.testimonial_video_url ? (
+                            <div className="w-7 h-7 rounded-full bg-primary-500/15 flex items-center justify-center mx-auto">
+                              <Video className="w-3.5 h-3.5 text-primary-500" />
+                            </div>
+                          ) : (
+                            <span className="text-neutral-600">-</span>
+                          )}
+                        </td>
                         <td className="py-3 md:py-4 px-3 md:px-4 text-neutral-400 text-xs hidden md:table-cell">
                           {formatDate(enrollment.started_at || enrollment.created_at)}
                         </td>
@@ -348,6 +379,177 @@ export default function IntensiveDashboardPage() {
           </Card>
         )}
       </Stack>
+
+      {/* Enrollment Detail Modal */}
+      {selectedEnrollment && (
+        <EnrollmentModal
+          enrollment={selectedEnrollment}
+          onClose={() => setSelectedEnrollment(null)}
+          onViewCRM={(userId) => router.push(`/admin/crm/members/${userId}`)}
+        />
+      )}
     </Container>
+  )
+}
+
+function EnrollmentModal({
+  enrollment,
+  onClose,
+  onViewCRM,
+}: {
+  enrollment: Enrollment
+  onClose: () => void
+  onViewCRM: (userId: string) => void
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const phase = getPhaseForStep(enrollment.current_step_number)
+  const Icon = STEP_ICONS[enrollment.current_step_number] || Rocket
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
+
+  function formatDuration(seconds: number) {
+    const m = Math.floor(seconds / 60)
+    const s = seconds % 60
+    return `${m}:${s.toString().padStart(2, '0')}`
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-[#111] border border-[#333] rounded-2xl shadow-2xl">
+        {/* Header */}
+        <div className="sticky top-0 z-10 bg-[#111] border-b border-[#222] px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${PHASE_COLORS[phase]?.split(' ')[0] || 'bg-[#555]'}`}>
+              <Icon className="w-4 h-4 text-black" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-base font-semibold text-white truncate">
+                {enrollment.full_name || 'Unnamed'}
+              </h2>
+              <p className="text-xs text-neutral-500 truncate">
+                {enrollment.email || enrollment.user_id.slice(0, 12)}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-[#222] transition-colors flex-shrink-0"
+          >
+            <X className="w-5 h-5 text-neutral-400" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-5">
+          {/* Quick stats row */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-[#0A0A0A] rounded-xl p-3 border border-[#222]">
+              <div className="text-xs text-neutral-500 mb-1">Status</div>
+              <Badge className={`${getStatusColor(enrollment.status)} px-2 py-0.5 text-xs`}>
+                {enrollment.status === 'in_progress' ? 'Active' : enrollment.status.charAt(0).toUpperCase() + enrollment.status.slice(1)}
+              </Badge>
+            </div>
+            <div className="bg-[#0A0A0A] rounded-xl p-3 border border-[#222]">
+              <div className="text-xs text-neutral-500 mb-1">Progress</div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-white">{enrollment.progress_pct}%</span>
+                <span className="text-xs text-neutral-500">({enrollment.completed_steps}/{enrollment.total_steps})</span>
+              </div>
+            </div>
+            <div className="bg-[#0A0A0A] rounded-xl p-3 border border-[#222]">
+              <div className="text-xs text-neutral-500 mb-1">Current Step</div>
+              <div className="text-sm font-medium text-white">
+                {enrollment.current_step_number === 0 ? 'Not Started'
+                  : enrollment.current_step_number === 15 ? 'Complete'
+                  : `Step ${enrollment.current_step_number}`}
+              </div>
+            </div>
+          </div>
+
+          {/* Testimonial Video */}
+          {enrollment.testimonial_video_url ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Video className="w-4 h-4 text-primary-500" />
+                <h3 className="text-sm font-semibold text-white">Testimonial Video</h3>
+                {enrollment.testimonial_duration_seconds && (
+                  <span className="text-xs text-neutral-500 ml-auto">
+                    {formatDuration(enrollment.testimonial_duration_seconds)}
+                  </span>
+                )}
+              </div>
+              <video
+                ref={videoRef}
+                src={enrollment.testimonial_video_url}
+                controls
+                playsInline
+                className="w-full rounded-xl border border-[#222] bg-black"
+              />
+              {enrollment.sharing_preference && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-neutral-500">Sharing:</span>
+                  <Badge className={`text-xs px-2 py-0.5 ${
+                    enrollment.sharing_preference === 'named' ? 'bg-primary-500/15 text-primary-400'
+                    : enrollment.sharing_preference === 'anonymous' ? 'bg-secondary-500/15 text-secondary-400'
+                    : 'bg-[#333] text-neutral-400'
+                  }`}>
+                    {enrollment.sharing_preference.charAt(0).toUpperCase() + enrollment.sharing_preference.slice(1)}
+                  </Badge>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="bg-[#0A0A0A] rounded-xl p-6 border border-[#222] text-center">
+              <Video className="w-8 h-8 text-neutral-600 mx-auto mb-2" />
+              <p className="text-sm text-neutral-500">No testimonial video submitted</p>
+            </div>
+          )}
+
+          {/* Transcript */}
+          {enrollment.testimonial_transcript && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-white">Transcript</h3>
+              <div className="bg-[#0A0A0A] rounded-xl p-4 border border-[#222]">
+                <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap">
+                  {enrollment.testimonial_transcript}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Biggest Shift */}
+          {enrollment.biggest_shift && !enrollment.testimonial_transcript && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-white">Biggest Shift</h3>
+              <div className="bg-[#0A0A0A] rounded-xl p-4 border border-[#222]">
+                <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap">
+                  {enrollment.biggest_shift}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-2 pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onViewCRM(enrollment.user_id)}
+            >
+              <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+              View in CRM
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
