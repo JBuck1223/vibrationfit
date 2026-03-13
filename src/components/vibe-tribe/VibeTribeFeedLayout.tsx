@@ -267,7 +267,7 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
               </div>
 
               {/* Right side - Search, My Posts, Filter dropdown and Pin */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 ml-auto">
                 {/* Search Icon */}
                 <button
                   onClick={() => setShowSearch(true)}

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { Spinner } from '@/lib/design-system'
-import { Heart, Trash2, Send, Reply, X, Pencil, Check } from 'lucide-react'
+import { Heart, Trash2, Send, Reply, X, Pencil } from 'lucide-react'
 import { VibeComment } from '@/lib/vibe-tribe/types'
 import { UserBadgeIndicator } from '@/components/badges'
 import { format, isToday, isYesterday } from 'date-fns'
@@ -329,7 +329,7 @@ function CommentItem({
   const [editText, setEditText] = useState(comment.content)
   const [saving, setSaving] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
-  const editInputRef = useRef<HTMLInputElement>(null)
+  const editInputRef = useRef<HTMLTextAreaElement>(null)
   
   // Format time: show time for today, "Yesterday" for yesterday, or date for older
   const commentDate = new Date(comment.created_at)
@@ -351,6 +351,8 @@ function CommentItem({
     if (editing && editInputRef.current) {
       editInputRef.current.focus()
       editInputRef.current.setSelectionRange(editText.length, editText.length)
+      editInputRef.current.style.height = 'auto'
+      editInputRef.current.style.height = `${editInputRef.current.scrollHeight}px`
     }
   }, [editing])
 
@@ -386,8 +388,7 @@ function CommentItem({
     }
   }
 
-  // Calculate indentation based on nesting level (max 3 levels deep visually)
-  const indentClass = nestingLevel === 0 ? '' : nestingLevel === 1 ? 'ml-10' : 'ml-8'
+  const indentClass = nestingLevel === 0 ? '' : nestingLevel === 1 ? 'ml-6 md:ml-10' : 'ml-4 md:ml-8'
 
   // Render content with @ mentions as clickable links
   const renderContentWithMention = (content: string) => {
@@ -429,11 +430,13 @@ function CommentItem({
 
   return (
     <div className={`relative ${indentClass}`}>
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-2 md:gap-3">
         {/* Avatar - Links to user snapshot */}
         <Link 
           href={`/snapshot/${comment.user_id}`}
-          className="w-10 h-10 rounded-full bg-neutral-700 overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-primary-500 transition-all"
+          className={`rounded-full bg-neutral-700 overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-primary-500 transition-all ${
+            nestingLevel > 0 ? 'w-7 h-7 md:w-10 md:h-10' : 'w-10 h-10'
+          }`}
         >
           {comment.user?.profile_picture_url ? (
             <img
@@ -461,34 +464,40 @@ function CommentItem({
           </div>
           {/* Comment content or edit input */}
           {editing ? (
-            <div className="mt-1 flex items-center gap-2">
-              <input
+            <div className="mt-1">
+              <textarea
                 ref={editInputRef}
-                type="text"
                 value={editText}
-                onChange={(e) => setEditText(e.target.value)}
+                onChange={(e) => {
+                  setEditText(e.target.value)
+                  e.target.style.height = 'auto'
+                  e.target.style.height = `${e.target.scrollHeight}px`
+                }}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !saving) {
+                  if (e.key === 'Enter' && !e.shiftKey && !saving) {
                     e.preventDefault()
                     handleSaveEdit()
                   }
                   if (e.key === 'Escape') handleCancelEdit()
                 }}
-                className="flex-1 bg-neutral-800 border border-neutral-700 rounded-full px-4 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#39FF14]"
+                className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#39FF14] resize-none overflow-hidden"
+                rows={1}
               />
-              <button
-                onClick={handleSaveEdit}
-                disabled={saving || !editText.trim() || editText.trim() === comment.content}
-                className="h-9 w-9 rounded-full flex items-center justify-center bg-[#39FF14] text-black hover:bg-[rgba(57,255,20,0.9)] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-shrink-0"
-              >
-                <Check className="w-4 h-4" />
-              </button>
-              <button
-                onClick={handleCancelEdit}
-                className="h-9 w-9 rounded-full flex items-center justify-center bg-neutral-800 text-neutral-400 hover:text-white transition-all flex-shrink-0"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-2 mt-2">
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={saving || !editText.trim() || editText.trim() === comment.content}
+                  className="px-3 py-1.5 rounded-full text-xs font-medium bg-[#39FF14] text-black hover:bg-[rgba(57,255,20,0.9)] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  {saving ? 'Saving...' : 'Save'}
+                </button>
+                <button
+                  onClick={handleCancelEdit}
+                  className="px-3 py-1.5 rounded-full text-xs font-medium bg-neutral-800 text-neutral-400 hover:text-white transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           ) : (
             <p className="text-sm text-neutral-200 whitespace-pre-wrap">
