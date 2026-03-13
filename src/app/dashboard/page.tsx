@@ -136,7 +136,7 @@ export default async function DashboardPage() {
   const storageQuotaGB = storageQuotaData?.[0]?.total_quota_gb || 5 // Default to 5GB if no quota found
 
   // Fetch calibration call server-side so the card renders with initial load (no client lag)
-  let calibrationCall: { show: boolean; session?: { id: string | null; title: string; scheduled_at: string; join_link: string } } | null = null
+  let calibrationCall: { show: boolean; session?: { id: string | null; title: string; scheduled_at: string | null; join_link: string } } | null = null
   try {
     const { data: checklist } = await supabase
       .from('intensive_checklist')
@@ -164,10 +164,14 @@ export default async function DashboardPage() {
       }
 
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'
+      // call_scheduled_time is stored as `timestamp without time zone` but the value
+      // was originally UTC (via .toISOString()). Re-append "Z" so JS parses it correctly.
+      const rawTime = checklist.call_scheduled_time as string | null
+      const scheduledAtUtc = rawTime && !rawTime.endsWith('Z') ? rawTime + 'Z' : rawTime
       const fallbackSession = {
         id: null,
         title: 'Calibration Call',
-        scheduled_at: checklist.call_scheduled_time,
+        scheduled_at: scheduledAtUtc,
         join_link: `${appUrl}/intensive/call-prep`,
       }
 
