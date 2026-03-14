@@ -369,9 +369,9 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
         <button onClick={toggleShuffle} className={cn('p-2 rounded-lg transition-colors', isShuffled ? 'text-[#39FF14] bg-[#39FF14]/20' : 'text-neutral-400 hover:text-white')}>
           <Shuffle className="w-4 h-4" />
         </button>
-        <button onClick={toggleRepeat} className={cn('p-2 rounded-lg transition-colors', repeatMode !== 'off' ? 'text-[#39FF14] bg-[#39FF14]/20' : 'text-neutral-400 hover:text-white')}>
+        <button onClick={toggleRepeat} className={cn('relative p-2 rounded-lg transition-colors', repeatMode !== 'off' ? 'text-[#39FF14] bg-[#39FF14]/20' : 'text-neutral-400 hover:text-white')}>
           <Repeat className="w-4 h-4" />
-          {repeatMode === 'one' && <span className="text-[10px] absolute">1</span>}
+          {repeatMode === 'one' && <span className="absolute -top-0.5 -right-0.5 text-[9px] font-bold leading-none">1</span>}
         </button>
       </div>
 
