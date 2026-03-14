@@ -135,6 +135,9 @@ export const PAGE_CLASSIFICATIONS = {
     
     // Alignment Gym (Graduate Unlock)
     '/alignment-gym',
+    
+    // Referral Program
+    '/referral',
   ],
   
   /**

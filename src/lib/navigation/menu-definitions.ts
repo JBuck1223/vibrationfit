@@ -70,6 +70,7 @@ import {
   Bell,
   Fingerprint,
   GraduationCap,
+  Share2,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -266,13 +267,19 @@ export const userNavigationGroups: NavGroup[] = [
     ],
   },
   // =================================================================
-  // GROUP 3: System & Billing (Administrative)
+  // GROUP 3: Account & Billing (Administrative)
   // =================================================================
   {
-    name: 'System & Billing',
+    name: 'Account & Billing',
     isCollapsible: true,
     defaultCollapsed: true,
     items: [
+      {
+        name: 'Referral',
+        href: '/referral',
+        icon: Share2,
+        description: 'Share your referral link and earn rewards',
+      },
       {
         name: 'Billing & Subscription',
         href: '/billing',

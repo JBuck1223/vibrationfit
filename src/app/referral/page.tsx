@@ -5,6 +5,7 @@ import { Container, Stack, PageHero, Card, Button, Input, Badge, ProgressBar, Sp
 import {
   Copy, Check, Share2, Mail, MessageCircle, Send,
   Users, Zap, Target, Crown, Link2, Edit3, Gift, ChevronRight,
+  Save, Pen, Smartphone,
 } from 'lucide-react'
 
 interface Participant {
@@ -12,6 +13,7 @@ interface Participant {
   email: string
   referral_code: string
   display_name: string | null
+  custom_message: string | null
   total_clicks: number
   email_signups: number
   paid_conversions: number
@@ -81,8 +83,16 @@ export default function ReferralPage() {
   const [codeLoading, setCodeLoading] = useState(false)
   const [codeError, setCodeError] = useState<string | null>(null)
 
+  // My Message
+  const [myMessage, setMyMessage] = useState('')
+  const [editingMessage, setEditingMessage] = useState(false)
+  const [messageSaving, setMessageSaving] = useState(false)
+  const [messageSaved, setMessageSaved] = useState(false)
+  const [messageError, setMessageError] = useState<string | null>(null)
+  const [messageCopied, setMessageCopied] = useState(false)
+
   // Warm intro
-  const [activeTab, setActiveTab] = useState<'share' | 'intro'>('share')
+  const [activeTab, setActiveTab] = useState<'message' | 'share' | 'intro'>('message')
   const [introName, setIntroName] = useState('')
   const [introEmail, setIntroEmail] = useState('')
   const [introInterest, setIntroInterest] = useState(INTEREST_OPTIONS[0])
@@ -101,6 +111,20 @@ export default function ReferralPage() {
         const data = await res.json()
         setDashboard(data)
         setEnrolled(true)
+      } else if (res.status === 404 && !participantEmail) {
+        const joinRes = await fetch('/api/referral/join', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        })
+        if (joinRes.ok) {
+          const retryRes = await fetch('/api/referral/dashboard')
+          if (retryRes.ok) {
+            const data = await retryRes.json()
+            setDashboard(data)
+            setEnrolled(true)
+          }
+        }
       }
     } catch {} finally {
       setLoading(false)
@@ -226,6 +250,68 @@ export default function ReferralPage() {
     } finally {
       setSendLoading(false)
     }
+  }
+
+  const defaultMessage = dashboard
+    ? `Hey! I've been using something called VibrationFit and thought you'd love it. It's a 72-Hour Activation Intensive where you create a written life vision, custom AM/PM audios, a vision board, and a 28-day plan to make it all stick. Check it out here: ${dashboard.referralLink}`
+    : ''
+
+  const activeMessage = myMessage || defaultMessage
+
+  useEffect(() => {
+    if (dashboard?.participant.custom_message) {
+      setMyMessage(dashboard.participant.custom_message)
+    }
+  }, [dashboard?.participant.custom_message])
+
+  const handleSaveMessage = async () => {
+    setMessageSaving(true)
+    setMessageError(null)
+    setMessageSaved(false)
+
+    try {
+      const res = await fetch('/api/referral/message', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customMessage: myMessage.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setMessageError(data.error || 'Failed to save')
+        return
+      }
+      setMessageSaved(true)
+      setEditingMessage(false)
+      setTimeout(() => setMessageSaved(false), 3000)
+    } catch {
+      setMessageError('Something went wrong')
+    } finally {
+      setMessageSaving(false)
+    }
+  }
+
+  const copyMyMessage = async () => {
+    await navigator.clipboard.writeText(activeMessage)
+    setMessageCopied(true)
+    setTimeout(() => setMessageCopied(false), 2000)
+  }
+
+  const shareMessageVia = (platform: 'sms' | 'email' | 'dm') => {
+    const encoded = encodeURIComponent(activeMessage)
+
+    if (platform === 'sms') {
+      window.open(`sms:?body=${encoded}`, '_blank')
+    } else if (platform === 'email') {
+      const subject = encodeURIComponent('Something I thought you might love')
+      window.open(`mailto:?subject=${subject}&body=${encoded}`, '_blank')
+    } else {
+      copyMyMessage()
+    }
+  }
+
+  const handleResetMessage = () => {
+    setMyMessage('')
+    setEditingMessage(true)
   }
 
   if (loading) {
@@ -358,32 +444,125 @@ export default function ReferralPage() {
           </div>
         </Card>
 
-        {/* Share / Warm Intro */}
+        {/* My Message / Share / Warm Intro */}
         <Card className="p-4 md:p-6 lg:p-8">
-          <div className="flex gap-1 mb-6 border-b border-[#333]">
+          <div className="flex gap-1 mb-6 border-b border-[#333] overflow-x-auto">
+            <button
+              onClick={() => setActiveTab('message')}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === 'message'
+                  ? 'border-[#39FF14] text-[#39FF14]'
+                  : 'border-transparent text-neutral-400 hover:text-white'
+              }`}
+            >
+              <Pen className="w-4 h-4 inline mr-1.5" />
+              My Message
+            </button>
             <button
               onClick={() => setActiveTab('share')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === 'share'
                   ? 'border-[#39FF14] text-[#39FF14]'
                   : 'border-transparent text-neutral-400 hover:text-white'
               }`}
             >
               <Share2 className="w-4 h-4 inline mr-1.5" />
-              Share Your Link
+              Quick Share
             </button>
             <button
               onClick={() => setActiveTab('intro')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === 'intro'
                   ? 'border-[#39FF14] text-[#39FF14]'
                   : 'border-transparent text-neutral-400 hover:text-white'
               }`}
             >
               <Send className="w-4 h-4 inline mr-1.5" />
-              Send a Personal Intro
+              Warm Intro
             </button>
           </div>
+
+          {activeTab === 'message' && (
+            <div className="space-y-4">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-neutral-400">
+                    {editingMessage
+                      ? 'Edit your personal referral message below'
+                      : 'Your saved message to send directly to friends'}
+                  </p>
+                  {!editingMessage && (
+                    <button
+                      onClick={() => setEditingMessage(true)}
+                      className="text-xs text-[#00FFFF] hover:underline flex items-center gap-1"
+                    >
+                      <Edit3 className="w-3 h-3" /> Edit
+                    </button>
+                  )}
+                </div>
+
+                {editingMessage ? (
+                  <div className="space-y-3">
+                    <textarea
+                      value={myMessage || defaultMessage}
+                      onChange={(e) => setMyMessage(e.target.value)}
+                      rows={6}
+                      maxLength={2000}
+                      className="w-full bg-[#1a1a1a] border border-[#333] rounded-xl px-4 py-3 text-sm text-white focus:border-[#39FF14] focus:outline-none resize-y"
+                      placeholder="Write your personal referral message..."
+                    />
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-neutral-500">
+                        {(myMessage || defaultMessage).length}/2000
+                      </span>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => {
+                          setMyMessage(dashboard?.participant.custom_message || '')
+                          setEditingMessage(false)
+                          setMessageError(null)
+                        }}>
+                          Cancel
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={handleResetMessage}>
+                          Reset to Default
+                        </Button>
+                        <Button variant="primary" size="sm" onClick={handleSaveMessage} disabled={messageSaving}>
+                          {messageSaving ? <Spinner size="sm" /> : <><Save className="w-4 h-4 mr-1" /> Save</>}
+                        </Button>
+                      </div>
+                    </div>
+                    {messageError && <p className="text-[#FF0040] text-sm">{messageError}</p>}
+                  </div>
+                ) : (
+                  <div className="bg-[#1a1a1a] border border-[#333] rounded-xl p-4 text-sm text-neutral-300 whitespace-pre-wrap">
+                    {activeMessage}
+                  </div>
+                )}
+
+                {messageSaved && (
+                  <div className="flex items-center gap-2 text-[#39FF14] text-sm">
+                    <Check className="w-4 h-4" /> Message saved
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <p className="text-xs text-neutral-500 mb-3">Send your message directly to a friend</p>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button variant="outline" size="sm" onClick={() => shareMessageVia('sms')} className="flex-1">
+                    <Smartphone className="w-4 h-4 mr-1.5" /> Text
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => shareMessageVia('email')} className="flex-1">
+                    <Mail className="w-4 h-4 mr-1.5" /> Email
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => shareMessageVia('dm')} className="flex-1">
+                    {messageCopied ? <Check className="w-4 h-4 mr-1.5" /> : <Copy className="w-4 h-4 mr-1.5" />}
+                    {messageCopied ? 'Copied' : 'Copy for DM'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {activeTab === 'share' && (
             <div className="space-y-4">
