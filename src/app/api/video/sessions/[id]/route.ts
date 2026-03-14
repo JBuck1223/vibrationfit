@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { deleteRoom } from '@/lib/video/daily'
 import type { UpdateSessionRequest, VideoSession } from '@/lib/video/types'
 
@@ -155,6 +156,13 @@ export async function PATCH(
       )
     }
 
+    // Auto-complete calibration call checklist for participants
+    if (body.status === 'completed') {
+      markCalibrationCallCompleted(id).catch(err =>
+        console.error('[video/sessions] calibration auto-complete error:', err)
+      )
+    }
+
     return NextResponse.json({ session })
   } catch (error) {
     console.error('Error in PATCH /api/video/sessions/[id]:', error)
@@ -251,6 +259,53 @@ export async function DELETE(
       { error: 'Internal server error' },
       { status: 500 }
     )
+  }
+}
+
+// ── Auto-complete calibration call for intensive participants ──
+
+async function markCalibrationCallCompleted(sessionId: string) {
+  const admin = createAdminClient()
+
+  // Find non-host participants with a user_id linked
+  const { data: participants } = await admin
+    .from('video_session_participants')
+    .select('user_id')
+    .eq('session_id', sessionId)
+    .eq('is_host', false)
+    .not('user_id', 'is', null)
+
+  if (!participants?.length) return
+
+  const userIds = participants.map(p => p.user_id).filter(Boolean) as string[]
+
+  // For each participant, mark calibration_call_completed if they have
+  // an intensive checklist with call_scheduled but not yet completed
+  for (const userId of userIds) {
+    const { data: checklist } = await admin
+      .from('intensive_checklist')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('call_scheduled', true)
+      .eq('calibration_call_completed', false)
+      .limit(1)
+      .maybeSingle()
+
+    if (!checklist) continue
+
+    const { error } = await admin
+      .from('intensive_checklist')
+      .update({
+        calibration_call_completed: true,
+        calibration_call_completed_at: new Date().toISOString(),
+      })
+      .eq('id', checklist.id)
+
+    if (error) {
+      console.error(`[calibration] Failed to auto-complete for user ${userId}:`, error.message)
+    } else {
+      console.log(`[calibration] Auto-completed calibration call for user ${userId}`)
+    }
   }
 }
 

@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
 
     const inviterName = inviterAccount?.first_name
       ? `${inviterAccount.first_name} ${inviterAccount.last_name || ''}`.trim()
-      : user.email?.split('@')[0] || 'A VibrationFit user'
+      : 'A VibrationFit member'
 
     const result = await invitePartnerToHousehold({
       supabaseAdmin: serviceClient,

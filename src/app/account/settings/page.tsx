@@ -6,7 +6,7 @@
 
 import { useState, useEffect } from 'react'
 import { Container, Stack, PageHero, Card, Button, Input, Spinner, DatePicker, Checkbox, Modal, Badge, IntensiveStepCompleteModal } from '@/lib/design-system/components'
-import { User, Check, Rocket } from 'lucide-react'
+import { User, Check, Rocket, Globe } from 'lucide-react'
 import { ProfilePictureUpload } from '@/app/profile/components/ProfilePictureUpload'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
@@ -33,6 +33,8 @@ export default function AccountSettingsPage() {
   const [dateOfBirth, setDateOfBirth] = useState('')
   const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null)
   
+  const [timezone, setTimezone] = useState('')
+
   // Notification preferences (stored in user_accounts)
   const [smsOptIn, setSmsOptIn] = useState(true)
   const [emailOptIn, setEmailOptIn] = useState(true)
@@ -166,11 +168,12 @@ export default function AccountSettingsPage() {
       email !== (originalAccount.email || '') ||
       phone !== (originalAccount.phone || '') ||
       dateOfBirth !== (originalAccount.date_of_birth || '') ||
+      timezone !== (originalAccount.timezone || '') ||
       smsOptIn !== (originalAccount.sms_opt_in ?? true) ||
       emailOptIn !== (originalAccount.email_opt_in ?? true)
     
     setHasChanges(changed)
-  }, [firstName, lastName, email, phone, dateOfBirth, smsOptIn, emailOptIn, originalAccount])
+  }, [firstName, lastName, email, phone, dateOfBirth, timezone, smsOptIn, emailOptIn, originalAccount])
 
   const fetchUserData = async () => {
     try {
@@ -179,11 +182,9 @@ export default function AccountSettingsPage() {
 
       setUser(user)
 
-      // Fetch all user account data
-      // Note: email_opt_in may not exist until migration is run - query without it first
       const { data: accountData, error } = await supabase
         .from('user_accounts')
-        .select('first_name, last_name, full_name, email, phone, profile_picture_url, date_of_birth, sms_opt_in, sms_opt_in_date')
+        .select('first_name, last_name, full_name, email, phone, profile_picture_url, date_of_birth, sms_opt_in, sms_opt_in_date, timezone')
         .eq('id', user.id)
         .single()
 
@@ -207,16 +208,28 @@ export default function AccountSettingsPage() {
           // Column doesn't exist yet, use default
         }
 
-        // Default both opt-ins to true (user must explicitly opt out)
-        setOriginalAccount({ ...accountData, email_opt_in: true, sms_opt_in: true })
+        const detectedTz = Intl.DateTimeFormat().resolvedOptions().timeZone
+        const userTz = accountData.timezone || detectedTz || 'America/New_York'
+
+        setOriginalAccount({ ...accountData, email_opt_in: true, sms_opt_in: true, timezone: userTz })
         setFirstName(accountData.first_name || '')
         setLastName(accountData.last_name || '')
         setEmail(accountData.email || user.email || '')
         setPhone(formatPhoneNumber(accountData.phone || ''))
         setDateOfBirth(accountData.date_of_birth || '')
         setProfilePictureUrl(accountData.profile_picture_url)
+        setTimezone(userTz)
         setSmsOptIn(true)
         setEmailOptIn(true)
+
+        // Auto-save detected timezone if the user doesn't have one stored yet
+        if (!accountData.timezone && detectedTz) {
+          supabase
+            .from('user_accounts')
+            .update({ timezone: detectedTz })
+            .eq('id', user.id)
+            .then(() => {})
+        }
       } else {
         setEmail(user.email || '')
       }
@@ -300,12 +313,12 @@ export default function AccountSettingsPage() {
         }
       }
 
-      // Update user_accounts
       const updateData: any = {
         first_name: firstName || null,
         last_name: lastName || null,
         phone: phone || null,
         date_of_birth: dateOfBirth || null,
+        timezone: timezone || null,
         sms_opt_in: phone ? smsOptIn : false,
       }
 
@@ -518,6 +531,43 @@ export default function AccountSettingsPage() {
                 maxDate={new Date().toISOString().split('T')[0]}
                 className="w-full"
               />
+            </div>
+
+            {/* Timezone */}
+            <div>
+              <label className="block text-sm font-medium text-neutral-200 mb-2">
+                <Globe className="w-3.5 h-3.5 inline mr-1.5 -mt-0.5" />
+                Time Zone
+              </label>
+              <select
+                value={timezone}
+                onChange={(e) => setTimezone(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-neutral-900 border-2 border-neutral-700 text-white text-sm focus:border-primary-500 focus:outline-none transition-colors"
+              >
+                <optgroup label="United States">
+                  <option value="America/New_York">Eastern Time (ET)</option>
+                  <option value="America/Chicago">Central Time (CT)</option>
+                  <option value="America/Denver">Mountain Time (MT)</option>
+                  <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                  <option value="America/Anchorage">Alaska Time (AKT)</option>
+                  <option value="Pacific/Honolulu">Hawaii Time (HT)</option>
+                </optgroup>
+                <optgroup label="Other">
+                  <option value="America/Phoenix">Arizona (no DST)</option>
+                  <option value="America/Puerto_Rico">Atlantic Time (AT)</option>
+                  <option value="Europe/London">London (GMT/BST)</option>
+                  <option value="Europe/Paris">Central Europe (CET)</option>
+                  <option value="Europe/Berlin">Berlin (CET)</option>
+                  <option value="Asia/Tokyo">Tokyo (JST)</option>
+                  <option value="Asia/Shanghai">China (CST)</option>
+                  <option value="Asia/Kolkata">India (IST)</option>
+                  <option value="Australia/Sydney">Sydney (AEST)</option>
+                  <option value="Pacific/Auckland">New Zealand (NZST)</option>
+                </optgroup>
+              </select>
+              <p className="text-xs text-neutral-500 mt-1.5">
+                Used for scheduling calls and displaying times
+              </p>
             </div>
 
             {/* Communication Opt-In */}

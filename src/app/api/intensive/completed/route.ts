@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { triggerEvent } from '@/lib/messaging/events'
-import { createAdminNotification, notifyAdminSMS } from '@/lib/admin/notifications'
+import { createAdminNotification } from '@/lib/admin/notifications'
+import { sendNotification } from '@/lib/notifications/config'
 
 export async function POST() {
   try {
@@ -23,19 +24,19 @@ export async function POST() {
       return NextResponse.json({ error: 'Intensive not completed' }, { status: 400 })
     }
 
-    const { data: profile } = await supabase
-      .from('user_profiles')
+    const { data: account } = await supabase
+      .from('user_accounts')
       .select('first_name, last_name')
-      .eq('user_id', user.id)
+      .eq('id', user.id)
       .maybeSingle()
 
-    const completedName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || user.email?.split('@')[0] || ''
+    const completedName = [account?.first_name, account?.last_name].filter(Boolean).join(' ') || user.email || ''
 
     await triggerEvent('intensive.completed', {
       email: user.email || '',
       userId: user.id,
       name: completedName,
-      firstName: profile?.first_name || user.email?.split('@')[0] || '',
+      firstName: account?.first_name || 'there',
     })
 
     createAdminNotification({
@@ -46,8 +47,14 @@ export async function POST() {
       link: '/admin/users',
     }).catch(err => console.error('Admin notification DB error:', err))
 
-    notifyAdminSMS(`Intensive Completed: ${completedName} (${user.email || 'no email'})`)
-      .catch(err => console.error('Admin SMS error:', err))
+    sendNotification({
+      slug: 'intensive_completed',
+      variables: {
+        userName: completedName,
+        email: user.email || 'no email',
+        userId: user.id,
+      },
+    }).catch(err => console.error('Notification error:', err))
 
     return NextResponse.json({ success: true })
   } catch (error) {

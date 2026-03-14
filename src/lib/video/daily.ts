@@ -363,9 +363,8 @@ export async function createOneOnOneRoom(
   scheduledAt: Date,
   durationMinutes = 60
 ): Promise<DailyRoom> {
-  // Room expires 30 minutes after scheduled end time
   const expirationTime = new Date(scheduledAt)
-  expirationTime.setMinutes(expirationTime.getMinutes() + durationMinutes + 30)
+  expirationTime.setHours(expirationTime.getHours() + 24)
   
   return createRoom({
     properties: {
@@ -389,7 +388,7 @@ export async function createGroupRoom(
   durationMinutes = 90
 ): Promise<DailyRoom> {
   const expirationTime = new Date(scheduledAt)
-  expirationTime.setMinutes(expirationTime.getMinutes() + durationMinutes + 30)
+  expirationTime.setHours(expirationTime.getHours() + 24)
   
   return createRoom({
     properties: {
@@ -413,7 +412,7 @@ export async function createAlignmentGymRoom(
   durationMinutes = 90
 ): Promise<DailyRoom> {
   const expirationTime = new Date(scheduledAt)
-  expirationTime.setMinutes(expirationTime.getMinutes() + durationMinutes + 30)
+  expirationTime.setHours(expirationTime.getHours() + 24)
   
   return createRoom({
     properties: {
@@ -438,7 +437,7 @@ export async function createWebinarRoom(
   durationMinutes = 120
 ): Promise<DailyRoom> {
   const expirationTime = new Date(scheduledAt)
-  expirationTime.setMinutes(expirationTime.getMinutes() + durationMinutes + 30)
+  expirationTime.setHours(expirationTime.getHours() + 24)
   
   return createRoom({
     properties: {

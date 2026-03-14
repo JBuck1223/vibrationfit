@@ -212,18 +212,18 @@ export default function CallPrepPage() {
 
         </div>
 
-        {/* After Call Button */}
+        {/* After Call */}
         <Card className="mt-8 text-center">
           <h3 className="text-xl font-bold mb-4">After Your Call</h3>
           <p className="text-neutral-400 mb-6">
-            Once you've completed your calibration call, mark it as complete to continue to the final step.
+            Your calibration call will be marked complete automatically when the session ends. If it wasn't updated, you can mark it manually below.
           </p>
           <Button
-            variant="primary"
+            variant="secondary"
             size="lg"
             onClick={handleMarkComplete}
           >
-            Mark Call as Complete
+            Mark Call as Complete Manually
             <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
         </Card>

@@ -5,7 +5,8 @@
 
 import { useEffect, useState } from 'react'
 import { Container, Card, Badge, Button, Spinner, Stack, PageHero } from '@/lib/design-system/components'
-import { Mail, Send, Calendar, User, ArrowRight, ArrowDown, ArrowUp, RefreshCw } from 'lucide-react'
+import { AdminWrapper } from '@/components/AdminWrapper'
+import { Mail, Send, Calendar, User, ArrowRight, ArrowDown, ArrowUp, ArrowLeft, RefreshCw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface EmailLog {
@@ -20,7 +21,7 @@ interface EmailLog {
   created_at: string
 }
 
-export default function SentEmailsPage() {
+function SentEmailsContent() {
   const router = useRouter()
   const [emails, setEmails] = useState<EmailLog[]>([])
   const [loading, setLoading] = useState(true)
@@ -126,22 +127,29 @@ export default function SentEmailsPage() {
   }
 
   return (
-    <Container size="xl" className="py-8">
+    <Container size="xl">
       <Stack gap="lg">
-        <div className="flex items-center justify-between">
-          <PageHero
-            title="Email Log"
-            subtitle="View all sent and received emails"
-          />
-          <div className="flex gap-2">
+        <PageHero
+          eyebrow="EMAIL LOG"
+          title="Email Log"
+          subtitle="View all sent and received emails"
+        >
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push('/admin/emails')}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Messaging Hub
+            </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={syncEmails}
               disabled={syncing}
-              className="flex items-center gap-2"
             >
-              <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
               {syncing ? 'Syncing...' : 'Sync Emails'}
             </Button>
             <Button
@@ -149,9 +157,8 @@ export default function SentEmailsPage() {
               size="sm"
               onClick={syncSMSHistory}
               disabled={syncingSMS}
-              className="flex items-center gap-2"
             >
-              <RefreshCw className={`w-4 h-4 ${syncingSMS ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 mr-2 ${syncingSMS ? 'animate-spin' : ''}`} />
               {syncingSMS ? 'Syncing...' : 'Sync SMS History'}
             </Button>
             <Button
@@ -162,7 +169,7 @@ export default function SentEmailsPage() {
               Templates
             </Button>
           </div>
-        </div>
+        </PageHero>
 
         {/* Filter Buttons */}
         <Card className="p-4">
@@ -266,3 +273,10 @@ export default function SentEmailsPage() {
   )
 }
 
+export default function SentEmailsPage() {
+  return (
+    <AdminWrapper>
+      <SentEmailsContent />
+    </AdminWrapper>
+  )
+}

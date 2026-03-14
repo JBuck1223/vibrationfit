@@ -8,10 +8,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminAccess } from '@/lib/supabase/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { notifyAdminSMS } from '@/lib/admin/notifications'
+import { sendNotification } from '@/lib/notifications/config'
 
 const EVENT_TYPE = 'intensive_calibration'
 const SLOT_DURATION = 45
+
+function toEasternUTC(dateStr: string, timeStr: string): Date {
+  const noonUtc = new Date(`${dateStr}T12:00:00Z`)
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    hour: 'numeric',
+    hour12: false,
+  })
+  const etNoonHour = parseInt(formatter.format(noonUtc))
+  const offsetHours = etNoonHour - 12
+  const [h, m] = timeStr.split(':').map(Number)
+  const result = new Date(`${dateStr}T00:00:00Z`)
+  result.setUTCHours(h - offsetHours, m, 0, 0)
+  return result
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -44,27 +59,20 @@ export async function GET(request: NextRequest) {
 
       const usersWithProfiles = await Promise.all(
         (users || []).map(async (item) => {
-          const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('email, first_name, last_name')
-            .eq('user_id', item.user_id)
-            .single()
-
           const { data: account } = await supabase
             .from('user_accounts')
-            .select('email, phone')
+            .select('email, phone, first_name, last_name')
             .eq('id', item.user_id)
             .single()
 
+          const fullName = [account?.first_name, account?.last_name].filter(Boolean).join(' ')
           return {
             ...item,
-            email: profile?.email || account?.email || 'Unknown',
-            first_name: profile?.first_name || '',
-            last_name: profile?.last_name || '',
+            email: account?.email || 'Unknown',
+            first_name: account?.first_name || '',
+            last_name: account?.last_name || '',
             phone: account?.phone || '',
-            display_name: profile
-              ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.email || 'Unknown'
-              : account?.email || 'Unknown',
+            display_name: fullName || account?.email || 'Unknown',
           }
         })
       )
@@ -107,8 +115,8 @@ export async function GET(request: NextRequest) {
         .neq('status', 'cancelled')
 
       const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-      const dateObj = new Date(date + 'T00:00:00')
-      const dayName = dayNames[dateObj.getDay()]
+      const dateObj = new Date(date + 'T12:00:00Z')
+      const dayName = dayNames[dateObj.getUTCDay()]
 
       const blockedByStaff = new Map<string, Array<{ start: number; end: number }>>()
       blockingEvents?.forEach((event: any) => {
@@ -185,12 +193,6 @@ export async function GET(request: NextRequest) {
             .eq('id', booking.user_id)
             .single()
 
-          const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('email, first_name, last_name')
-            .eq('user_id', booking.user_id)
-            .single()
-
           let staffName = 'Unassigned'
           if (booking.staff_id) {
             const { data: staffMember } = await supabase
@@ -214,7 +216,6 @@ export async function GET(request: NextRequest) {
           }
 
           const userName = account?.full_name
-            || `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim()
             || account?.email
             || booking.contact_email
             || 'Unknown'
@@ -222,7 +223,7 @@ export async function GET(request: NextRequest) {
           return {
             ...booking,
             user_name: userName,
-            user_email: account?.email || profile?.email || booking.contact_email || 'Unknown',
+            user_email: account?.email || booking.contact_email || 'Unknown',
             staff_name: staffName,
             recording_url: recordingUrl,
             session_status: sessionStatus,
@@ -269,7 +270,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const scheduledDateTime = new Date(`${date}T${time}:00`)
+    const scheduledDateTime = toEasternUTC(date, time)
     if (isNaN(scheduledDateTime.getTime())) {
       return NextResponse.json({ error: 'Invalid date/time' }, { status: 400 })
     }
@@ -291,6 +292,7 @@ export async function POST(request: NextRequest) {
         session_type: 'one_on_one',
         scheduled_at: scheduledDateTime.toISOString(),
         scheduled_duration_minutes: SLOT_DURATION,
+        participant_user_id: user_id,
         participant_email: contact_email,
         participant_phone: contact_phone || undefined,
         enable_recording: true,
@@ -356,12 +358,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const { data: profile } = await supabase
-      .from('user_profiles')
+    const { data: userAccount } = await supabase
+      .from('user_accounts')
       .select('first_name, last_name')
-      .eq('user_id', user_id)
+      .eq('id', user_id)
       .maybeSingle()
-    const userName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ')
+    const userName = [userAccount?.first_name, userAccount?.last_name].filter(Boolean).join(' ')
       || contact_email || user_id
     const dateStr = new Date(scheduledDateTime).toLocaleDateString('en-US', {
       weekday: 'short', month: 'short', day: 'numeric',
@@ -369,9 +371,18 @@ export async function POST(request: NextRequest) {
     const timeStr = new Date(scheduledDateTime).toLocaleTimeString('en-US', {
       hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York',
     })
-    const coach = staff_name || 'TBD'
-    notifyAdminSMS(`Calibration Call Booked: ${userName} on ${dateStr} at ${timeStr} ET with ${coach}`)
-      .catch(err => console.error('Admin SMS error:', err))
+    const joinLink = `${baseUrl}/session/${videoSessionId}`
+    sendNotification({
+      slug: 'calibration_call_booked',
+      variables: {
+        userName,
+        email: contact_email || '',
+        scheduledDate: dateStr,
+        scheduledTime: timeStr,
+        coach: staff_name || 'TBD',
+        joinLink,
+      },
+    }).catch(err => console.error('Notification error:', err))
 
     return NextResponse.json({
       success: true,
@@ -455,6 +466,45 @@ export async function PATCH(request: NextRequest) {
           .eq('intensive_id', checklist.intensive_id)
       }
 
+      // Notify the user about the reschedule
+      const newDateTime = new Date(scheduled_at)
+      const newDate = newDateTime.toLocaleDateString('en-US', {
+        weekday: 'short', month: 'short', day: 'numeric',
+      })
+      const newTime = newDateTime.toLocaleTimeString('en-US', {
+        hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York',
+      })
+
+      const { data: account } = await supabase
+        .from('user_accounts')
+        .select('first_name, last_name')
+        .eq('id', booking.user_id)
+        .maybeSingle()
+
+      const firstName = account?.first_name || booking.contact_email?.split('@')[0] || ''
+      const userName = [account?.first_name, account?.last_name].filter(Boolean).join(' ')
+        || booking.contact_email || ''
+
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'
+      const joinLink = booking.video_session_id
+        ? `${baseUrl}/session/${booking.video_session_id}`
+        : `${baseUrl}/intensive/call-prep`
+
+      sendNotification({
+        slug: 'calibration_call_rescheduled',
+        variables: {
+          firstName,
+          userName,
+          email: booking.contact_email || '',
+          newDate,
+          newTime,
+          joinLink,
+        },
+        recipientEmail: booking.contact_email || undefined,
+        recipientPhone: booking.contact_phone || undefined,
+        userId: booking.user_id,
+      }).catch(err => console.error('Reschedule notification error:', err))
+
       return NextResponse.json({ success: true })
     }
 
@@ -514,6 +564,7 @@ export async function PATCH(request: NextRequest) {
         session_type: 'one_on_one',
         scheduled_at: booking.scheduled_at,
         scheduled_duration_minutes: booking.duration_minutes || SLOT_DURATION,
+        participant_user_id: booking.user_id,
         participant_email: booking.contact_email,
         participant_phone: booking.contact_phone || undefined,
         enable_recording: true,
@@ -564,6 +615,73 @@ export async function PATCH(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error in admin schedule-call PATCH:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+/**
+ * DELETE - Remove a booking entirely. Also resets the user's intensive checklist
+ * call_scheduled fields so they can rebook if needed.
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const auth = await verifyAdminAccess()
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const bookingId = searchParams.get('booking_id')
+
+    if (!bookingId) {
+      return NextResponse.json({ error: 'Missing booking_id' }, { status: 400 })
+    }
+
+    const supabase = createAdminClient()
+
+    const { data: booking, error: fetchError } = await supabase
+      .from('bookings')
+      .select('id, user_id, video_session_id')
+      .eq('id', bookingId)
+      .single()
+
+    if (fetchError || !booking) {
+      return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
+    }
+
+    // Delete the booking row
+    const { error: deleteError } = await supabase
+      .from('bookings')
+      .delete()
+      .eq('id', bookingId)
+
+    if (deleteError) {
+      return NextResponse.json({ error: `Delete failed: ${deleteError.message}` }, { status: 500 })
+    }
+
+    // Reset the user's intensive checklist so they can rebook
+    const { data: checklist } = await supabase
+      .from('intensive_checklist')
+      .select('intensive_id')
+      .eq('user_id', booking.user_id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (checklist) {
+      await supabase
+        .from('intensive_checklist')
+        .update({
+          call_scheduled: false,
+          call_scheduled_at: null,
+          call_scheduled_time: null,
+        })
+        .eq('intensive_id', checklist.intensive_id)
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Error in admin schedule-call DELETE:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

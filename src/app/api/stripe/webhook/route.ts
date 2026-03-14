@@ -950,11 +950,12 @@ export async function POST(request: NextRequest) {
                   console.log('Creating household for user:', userId)
                   
                   try {
+                    const householdOwnerName = session.customer_details?.name?.split(' ')[0] || 'My'
                     const { data: household, error: householdError } = await supabaseAdmin
                       .from('households')
                       .insert({
                         admin_user_id: userId,
-                        name: `${customerEmail?.split('@')[0] || 'My'}'s Household`,
+                        name: `${toTitleCase(householdOwnerName)}'s Household`,
                         shared_tokens_enabled: true,
                       })
                       .select()
@@ -966,14 +967,12 @@ export async function POST(request: NextRequest) {
                       console.log('Household created:', household.id)
 
                       await supabaseAdmin
-                        .from('user_profiles')
-                        .upsert({
-                          user_id: userId,
+                        .from('user_accounts')
+                        .update({
                           household_id: household.id,
                           is_household_admin: true,
-                        }, {
-                          onConflict: 'user_id',
                         })
+                        .eq('id', userId)
 
                       await supabaseAdmin
                         .from('household_members')
@@ -994,7 +993,7 @@ export async function POST(request: NextRequest) {
                           supabaseAdmin,
                           householdId: household.id,
                           adminUserId: userId,
-                          adminName: session.customer_details?.name || customerEmail?.split('@')[0] || '',
+                          adminName: session.customer_details?.name || 'A VibrationFit member',
                           adminEmail: customerEmail || '',
                           householdName: household.name,
                           partnerFirstName: pFirstName,
@@ -1019,8 +1018,8 @@ export async function POST(request: NextRequest) {
           triggerEvent('intensive.purchased', {
             email: customerEmail || '',
             userId,
-            name: session.customer_details?.name || customerEmail?.split('@')[0] || '',
-            firstName: session.customer_details?.name?.split(' ')[0] || customerEmail?.split('@')[0] || '',
+            name: session.customer_details?.name || customerEmail || '',
+            firstName: session.customer_details?.name?.split(' ')[0] || 'there',
             paymentPlan,
             paymentPlanLabel: getPaymentPlanLabel(paymentPlan),
           }).catch(err => console.error('triggerEvent intensive.purchased error:', err))
@@ -1224,11 +1223,12 @@ export async function POST(request: NextRequest) {
               console.log('Creating household for user:', userId)
               
               try {
+                const hhOwnerName = session.customer_details?.name?.split(' ')[0] || 'My'
                 const { data: household, error: householdError } = await supabaseAdmin
                   .from('households')
                   .insert({
                     admin_user_id: userId,
-                    name: `${customerEmail?.split('@')[0] || 'My'}'s Household`,
+                    name: `${toTitleCase(hhOwnerName)}'s Household`,
                     shared_tokens_enabled: true,
                   })
                   .select()
@@ -1240,14 +1240,12 @@ export async function POST(request: NextRequest) {
                   console.log('Household created:', household.id)
 
                   await supabaseAdmin
-                    .from('user_profiles')
-                    .upsert({
-                      user_id: userId,
+                    .from('user_accounts')
+                    .update({
                       household_id: household.id,
                       is_household_admin: true,
-                    }, {
-                      onConflict: 'user_id',
                     })
+                    .eq('id', userId)
 
                   await supabaseAdmin
                     .from('household_members')
@@ -1268,7 +1266,7 @@ export async function POST(request: NextRequest) {
                       supabaseAdmin,
                       householdId: household.id,
                       adminUserId: userId,
-                      adminName: session.customer_details?.name || customerEmail?.split('@')[0] || '',
+                      adminName: session.customer_details?.name || 'A VibrationFit member',
                       adminEmail: customerEmail || '',
                       householdName: household.name,
                       partnerFirstName: pFirstName,
@@ -1462,8 +1460,8 @@ export async function POST(request: NextRequest) {
           triggerEvent(intensiveEventName, {
             email: customerEmail || '',
             userId,
-            name: session.customer_details?.name || customerEmail?.split('@')[0] || '',
-            firstName: session.customer_details?.name?.split(' ')[0] || customerEmail?.split('@')[0] || '',
+            name: session.customer_details?.name || customerEmail || '',
+            firstName: session.customer_details?.name?.split(' ')[0] || 'there',
             paymentPlan: intensivePaymentPlan,
             paymentPlanLabel: getPaymentPlanLabel(intensivePaymentPlan),
           }).catch(err => console.error(`triggerEvent ${intensiveEventName} error:`, err))
@@ -1936,11 +1934,6 @@ export async function POST(request: NextRequest) {
           userId = newUser.user.id
         }
 
-        await supabaseAdmin.from('user_profiles').upsert(
-          { user_id: userId, full_name: [firstName, lastName].filter(Boolean).join(' ') || name, phone: phone || null },
-          { onConflict: 'user_id' }
-        )
-
         if (firstName || lastName || phone) {
           await supabaseAdmin.from('user_accounts').update({
             ...(firstName ? { first_name: firstName } : {}),
@@ -2213,21 +2206,21 @@ export async function POST(request: NextRequest) {
                 // Create household if plan type is 'household'
                 if (planType === 'household') {
                   try {
+                    const hhName = name?.split(' ')[0] || 'My'
                     const { data: household, error: householdError } = await supabaseAdmin
                       .from('households')
                       .insert({
                         admin_user_id: userId,
-                        name: `${email?.split('@')[0] || 'My'}'s Household`,
+                        name: `${toTitleCase(hhName)}'s Household`,
                         shared_tokens_enabled: true,
                       })
                       .select()
                       .single()
 
                     if (!householdError && household) {
-                      await supabaseAdmin.from('user_profiles').upsert(
-                        { user_id: userId, household_id: household.id, is_household_admin: true },
-                        { onConflict: 'user_id' }
-                      )
+                      await supabaseAdmin.from('user_accounts').update(
+                        { household_id: household.id, is_household_admin: true }
+                      ).eq('id', userId)
                       await supabaseAdmin.from('household_members').insert({
                         household_id: household.id,
                         user_id: userId,
@@ -2245,7 +2238,7 @@ export async function POST(request: NextRequest) {
                           supabaseAdmin,
                           householdId: household.id,
                           adminUserId: userId,
-                          adminName: name || email?.split('@')[0] || '',
+                          adminName: name || 'A VibrationFit member',
                           adminEmail: email || '',
                           householdName: household.name,
                           partnerFirstName: pFirstName,
@@ -2317,8 +2310,8 @@ export async function POST(request: NextRequest) {
           triggerEvent(intensiveEventName, {
             email: email || '',
             userId,
-            name: name || email?.split('@')[0] || '',
-            firstName: name?.split(' ')[0] || email?.split('@')[0] || '',
+            name: name || email || '',
+            firstName: name?.split(' ')[0] || 'there',
             orderId: order.id,
             intensiveId: intensiveOrderItem.id,
             paymentPlan: plan,

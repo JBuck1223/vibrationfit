@@ -7,10 +7,17 @@
     {
       "path": "/api/messaging/process-scheduled",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/map/refresh-notifications",
+      "schedule": "0 0 * * *"
     }
   ],
   "functions": {
     "src/app/api/messaging/process-scheduled/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/map/refresh-notifications/route.ts": {
       "maxDuration": 60
     },
     "src/app/api/upload/route.ts": {

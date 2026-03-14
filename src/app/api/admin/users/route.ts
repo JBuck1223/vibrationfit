@@ -10,6 +10,44 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { checkIsAdmin } from '@/middleware/admin'
 
+export async function PATCH(request: NextRequest) {
+  try {
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    if (!await checkIsAdmin(supabase, user)) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    }
+
+    const { userId, field, value } = await request.json()
+    if (!userId || !field) {
+      return NextResponse.json({ error: 'Missing userId or field' }, { status: 400 })
+    }
+
+    const allowedFields = ['timezone']
+    if (!allowedFields.includes(field)) {
+      return NextResponse.json({ error: `Field '${field}' is not editable` }, { status: 400 })
+    }
+
+    const adminDb = createAdminClient()
+    const { error } = await adminDb
+      .from('user_accounts')
+      .update({ [field]: value || null })
+      .eq('id', userId)
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Error in PATCH /api/admin/users:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -35,7 +73,7 @@ export async function GET(request: NextRequest) {
     // Build query from user_accounts
     let query = adminDb
       .from('user_accounts')
-      .select('id, email, first_name, last_name, full_name, role, profile_picture_url')
+      .select('id, email, first_name, last_name, full_name, role, profile_picture_url, timezone')
       .order('full_name', { ascending: true })
 
     // Filter by role if specified

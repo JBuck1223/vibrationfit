@@ -58,6 +58,29 @@ const EVENT_TYPE = 'intensive_calibration'
 const SLOT_DURATION = 45 // minutes
 const MEETING_TYPE = 'video' as const
 
+/**
+ * Interpret a date + time string as Eastern timezone and return a UTC Date.
+ * Slot times come from staff availability defined in ET, so we must honor that
+ * regardless of the user's browser timezone.
+ */
+function toEasternUTC(dateStr: string, timeStr: string): Date {
+  const noonUtc = new Date(`${dateStr}T12:00:00Z`)
+  const etNoonHour = parseInt(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York',
+      hour: 'numeric',
+      hour12: false,
+    }).format(noonUtc)
+  )
+  // etNoonHour will be 7 (EST, offset -5) or 8 (EDT, offset -4)
+  const offsetHours = etNoonHour - 12 // -5 or -4
+
+  const [h, m] = timeStr.split(':').map(Number)
+  const result = new Date(`${dateStr}T00:00:00Z`)
+  result.setUTCHours(h - offsetHours, m, 0, 0)
+  return result
+}
+
 export default function ScheduleCallPage() {
   const router = useRouter()
   const supabase = createClient()
@@ -71,6 +94,9 @@ export default function ScheduleCallPage() {
   // Date/time selection
   const [selectedDate, setSelectedDate] = useState<string>('')
   const [selectedTime, setSelectedTime] = useState<string>('')
+
+  // User's timezone (loaded from account, falls back to browser detect)
+  const [userTimezone, setUserTimezone] = useState<string>('America/New_York')
   
   // Available data
   const [availableStaff, setAvailableStaff] = useState<AvailableStaff[]>([])
@@ -138,14 +164,15 @@ export default function ScheduleCallPage() {
         }
       }
 
-      // Get user account for contact info (primary source)
       const { data: accountData } = await supabase
         .from('user_accounts')
-        .select('email, phone')
+        .select('email, phone, timezone')
         .eq('id', user.id)
         .single()
 
-      // Priority: user_accounts > auth user
+      const detectedTz = Intl.DateTimeFormat().resolvedOptions().timeZone
+      setUserTimezone(accountData?.timezone || detectedTz || 'America/New_York')
+
       const rawPhone = accountData?.phone || ''
       setContactInfo(prev => ({
         ...prev,
@@ -212,9 +239,9 @@ export default function ScheduleCallPage() {
     setSelectedTime('')
     
     try {
-      const dateObj = new Date(date + 'T00:00:00')
+      const dateObj = new Date(date + 'T12:00:00Z')
       const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-      const dayName = dayNames[dateObj.getDay()]
+      const dayName = dayNames[dateObj.getUTCDay()]
       
       // Get ALL blocking calendar events for this date (bookings + personal + travel)
       const { data: blockingEvents } = await supabase
@@ -228,16 +255,29 @@ export default function ScheduleCallPage() {
       // Build map of blocked times per staff
       const blockedByStaff = new Map<string, Array<{ start: number, end: number }>>()
       
+      const getEasternHourMin = (d: Date) => {
+        const parts = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'America/New_York',
+          hour: 'numeric', minute: 'numeric', hour12: false,
+        }).formatToParts(d)
+        const h = parseInt(parts.find(p => p.type === 'hour')?.value || '0')
+        const m = parseInt(parts.find(p => p.type === 'minute')?.value || '0')
+        return { h, m }
+      }
+      const getEasternDate = (d: Date) =>
+        new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(d)
+
       blockingEvents?.forEach((event: CalendarEvent) => {
         if (!event.staff_id) return
         const startTime = new Date(event.scheduled_at)
         const endTime = new Date(event.end_at)
-        
-        // Only consider events on this specific date
-        if (startTime.toISOString().split('T')[0] !== date) return
-        
-        const startMinutes = startTime.getHours() * 60 + startTime.getMinutes()
-        const endMinutes = endTime.getHours() * 60 + endTime.getMinutes()
+
+        if (getEasternDate(startTime) !== date) return
+
+        const st = getEasternHourMin(startTime)
+        const et = getEasternHourMin(endTime)
+        const startMinutes = st.h * 60 + st.m
+        const endMinutes = et.h * 60 + et.m
         
         if (!blockedByStaff.has(event.staff_id)) {
           blockedByStaff.set(event.staff_id, [])
@@ -295,6 +335,17 @@ export default function ScheduleCallPage() {
     }
   }
 
+  // Convert an Eastern time slot (HH:MM) to the user's timezone for display
+  const formatSlotInUserTz = (time: string, date?: string) => {
+    const refDate = date || selectedDate || new Date().toISOString().split('T')[0]
+    const utcDate = toEasternUTC(refDate, time)
+    return utcDate.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZone: userTimezone,
+    })
+  }
+
   const formatTime12h = (time: string) => {
     const [hours, minutes] = time.split(':').map(Number)
     const period = hours >= 12 ? 'PM' : 'AM'
@@ -314,7 +365,7 @@ export default function ScheduleCallPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const scheduledDateTime = new Date(`${selectedDate}T${selectedTime}:00`)
+      const scheduledDateTime = toEasternUTC(selectedDate, selectedTime)
 
       // Create pending booking (no staff assigned, no video session yet)
       // Admin will confirm, assign staff, and create the video session
@@ -396,6 +447,7 @@ export default function ScheduleCallPage() {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
+      timeZone: userTimezone,
       timeZoneName: 'short',
     })
   }
@@ -565,7 +617,7 @@ export default function ScheduleCallPage() {
               {/* Time Selection */}
               {selectedDate && (
                 <div className="mb-6">
-                  <label className="block text-sm font-medium mb-3">Choose a Time (EST)</label>
+                  <label className="block text-sm font-medium mb-3">Choose a Time</label>
                   {loadingSlots ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="w-6 h-6 animate-spin text-primary-500" />
@@ -591,7 +643,7 @@ export default function ScheduleCallPage() {
                               }
                             `}
                           >
-                            {formatTime12h(time)}
+                            {formatSlotInUserTz(time)}
                           </button>
                         )
                       })}

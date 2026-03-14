@@ -11,6 +11,8 @@ import {
   Spinner,
   Stack,
   PageHero,
+  DatePicker,
+  TimePicker,
 } from '@/lib/design-system/components'
 import {
   Calendar,
@@ -28,6 +30,7 @@ import {
   Mail,
   ArrowLeft,
   Pencil,
+  Trash2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -88,6 +91,22 @@ interface Booking {
 }
 
 type ActiveTab = 'schedule' | 'bookings'
+
+function toEasternUTC(dateStr: string, timeStr: string): Date {
+  const noonUtc = new Date(`${dateStr}T12:00:00Z`)
+  const etNoonHour = parseInt(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York',
+      hour: 'numeric',
+      hour12: false,
+    }).format(noonUtc)
+  )
+  const offsetHours = etNoonHour - 12
+  const [h, m] = timeStr.split(':').map(Number)
+  const result = new Date(`${dateStr}T00:00:00Z`)
+  result.setUTCHours(h - offsetHours, m, 0, 0)
+  return result
+}
 
 export default function AdminScheduleCallPage() {
   const [loading, setLoading] = useState(true)
@@ -320,7 +339,7 @@ export default function AdminScheduleCallPage() {
 
     setRescheduleSaving(true)
     try {
-      const newDateTime = new Date(`${rescheduleDate}T${rescheduleTime}:00`)
+      const newDateTime = toEasternUTC(rescheduleDate, rescheduleTime)
 
       const res = await fetch('/api/admin/intensive/schedule-call', {
         method: 'PATCH',
@@ -348,6 +367,28 @@ export default function AdminScheduleCallPage() {
       toast.error(`Failed to reschedule: ${msg}`)
     } finally {
       setRescheduleSaving(false)
+    }
+  }
+
+  const handleDeleteBooking = async (bookingId: string) => {
+    if (!confirm('Delete this booking? This will also reset the member\'s checklist so they can rebook.')) return
+
+    try {
+      const res = await fetch(`/api/admin/intensive/schedule-call?booking_id=${bookingId}`, {
+        method: 'DELETE',
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to delete booking')
+      }
+
+      toast.success('Booking deleted')
+      await loadBookings()
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unknown error'
+      toast.error(`Failed: ${msg}`)
     }
   }
 
@@ -659,34 +700,14 @@ export default function AdminScheduleCallPage() {
                     ) : (
                       <>
                         {/* Date Selection */}
-                        <div className="mb-6">
-                          <label className="block text-sm font-medium mb-3">Choose a Date</label>
-                          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                            {availableDates.map((date) => {
-                              const dateObj = new Date(date + 'T00:00:00')
-                              const isSelected = selectedDate === date
-                              return (
-                                <button
-                                  key={date}
-                                  onClick={() => setSelectedDate(date)}
-                                  className={`
-                                    p-3 rounded-xl border-2 transition-all text-center
-                                    ${isSelected
-                                      ? 'border-primary-500 bg-primary-500/10'
-                                      : 'border-neutral-700 hover:border-neutral-600'
-                                    }
-                                  `}
-                                >
-                                  <p className="text-xs text-neutral-400">
-                                    {dateObj.toLocaleDateString('en-US', { weekday: 'short' })}
-                                  </p>
-                                  <p className="text-sm font-semibold">
-                                    {dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                  </p>
-                                </button>
-                              )
-                            })}
-                          </div>
+                        <div className="mb-6 max-w-xs">
+                          <DatePicker
+                            label="Choose a Date"
+                            value={selectedDate}
+                            onChange={(date) => setSelectedDate(date)}
+                            minDate={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
+                            helperText={availableDates.length > 0 ? `${availableDates.length} dates with staff availability in the next 4 weeks` : undefined}
+                          />
                         </div>
 
                         {/* Time Selection */}
@@ -1018,6 +1039,18 @@ export default function AdminScheduleCallPage() {
                                   </Button>
                                 </>
                               )}
+
+                              {booking.status !== 'completed' && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                  onClick={() => handleDeleteBooking(booking.id)}
+                                >
+                                  <Trash2 className="w-3 h-3 mr-1" />
+                                  Delete
+                                </Button>
+                              )}
                             </div>
 
                             {booking.status === 'pending' && confirmingBookingId === booking.id && (
@@ -1063,47 +1096,48 @@ export default function AdminScheduleCallPage() {
                             )}
 
                             {reschedulingBookingId === booking.id && (
-                              <div className="w-full border border-neutral-600 rounded-xl p-3 bg-neutral-800/50 mt-1">
-                                <p className="text-xs font-medium text-white mb-2">Pick a new date and time:</p>
-                                <div className="flex flex-col sm:flex-row gap-2">
-                                  <input
-                                    type="date"
+                              <div className="w-full border border-neutral-600 rounded-xl p-4 bg-neutral-800/50 mt-1">
+                                <p className="text-xs font-medium text-white mb-3">Pick a new date and time (Eastern):</p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                                  <DatePicker
                                     value={rescheduleDate}
-                                    onChange={(e) => setRescheduleDate(e.target.value)}
-                                    min={new Date().toISOString().split('T')[0]}
-                                    className="flex-1 px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-700 text-sm text-white focus:border-primary-500 focus:outline-none"
+                                    onChange={(date) => setRescheduleDate(date)}
+                                    minDate={new Date().toISOString().split('T')[0]}
+                                    placeholder="New date..."
                                   />
-                                  <input
-                                    type="time"
+                                  <TimePicker
                                     value={rescheduleTime}
-                                    onChange={(e) => setRescheduleTime(e.target.value)}
-                                    className="flex-1 px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-700 text-sm text-white focus:border-primary-500 focus:outline-none"
+                                    onChange={(time) => setRescheduleTime(time)}
+                                    step={15}
+                                    minTime="08:00"
+                                    maxTime="20:00"
+                                    placeholder="New time..."
                                   />
-                                  <div className="flex gap-2">
-                                    <Button
-                                      variant="primary"
-                                      size="sm"
-                                      onClick={() => handleReschedule(booking.id)}
-                                      disabled={!rescheduleDate || !rescheduleTime || rescheduleSaving}
-                                    >
-                                      {rescheduleSaving ? (
-                                        <><Spinner size="sm" className="mr-1" /> Saving...</>
-                                      ) : (
-                                        <><Calendar className="w-3 h-3 mr-1" /> Save</>
-                                      )}
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => {
-                                        setReschedulingBookingId(null)
-                                        setRescheduleDate('')
-                                        setRescheduleTime('')
-                                      }}
-                                    >
-                                      Cancel
-                                    </Button>
-                                  </div>
+                                </div>
+                                <div className="flex gap-2 justify-end">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setReschedulingBookingId(null)
+                                      setRescheduleDate('')
+                                      setRescheduleTime('')
+                                    }}
+                                  >
+                                    Cancel
+                                  </Button>
+                                  <Button
+                                    variant="primary"
+                                    size="sm"
+                                    onClick={() => handleReschedule(booking.id)}
+                                    disabled={!rescheduleDate || !rescheduleTime || rescheduleSaving}
+                                  >
+                                    {rescheduleSaving ? (
+                                      <><Spinner size="sm" className="mr-1" /> Saving...</>
+                                    ) : (
+                                      <><Calendar className="w-3 h-3 mr-1" /> Save</>
+                                    )}
+                                  </Button>
                                 </div>
                               </div>
                             )}

@@ -70,9 +70,10 @@ interface DashboardContentProps {
   storageQuotaGB: number
   initialCalibrationCall?: { show: boolean; session?: { id: string | null; title: string; scheduled_at: string | null; join_link: string } } | null
   graduateChecklist?: GraduateChecklistResult | null
+  userTimezone?: string | null
 }
 
-export default function DashboardContent({ user, profileData, visionData, visionBoardData, journalData, assessmentData = [], profileCount, audioSetsCount, refinementsCount, storageQuotaGB, initialCalibrationCall = null, graduateChecklist = null }: DashboardContentProps) {
+export default function DashboardContent({ user, profileData, visionData, visionBoardData, journalData, assessmentData = [], profileCount, audioSetsCount, refinementsCount, storageQuotaGB, initialCalibrationCall = null, graduateChecklist = null, userTimezone = null }: DashboardContentProps) {
   const [storageUsed, setStorageUsed] = useState(0)
   const [mounted, setMounted] = useState(false)
   const [showCelebration, setShowCelebration] = useState(false)
@@ -222,14 +223,16 @@ export default function DashboardContent({ user, profileData, visionData, vision
 
   const completionPercentage = calculateCompletionManually(profileData)
 
-  // Safe date formatting that prevents hydration mismatch
-  // Uses browser's local timezone so members see times in their own zone
+  // Use stored timezone from account, fall back to browser timezone
+  const displayTz = userTimezone || (mounted ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'America/New_York')
+
   const formatDate = (dateString: string) => {
     if (!mounted) return ''
     return new Date(dateString).toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric', 
       year: 'numeric',
+      timeZone: displayTz,
     })
   }
 
@@ -238,6 +241,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
     return new Date(dateString).toLocaleTimeString('en-US', { 
       hour: 'numeric', 
       minute: '2-digit',
+      timeZone: displayTz,
       timeZoneName: 'short',
     })
   }

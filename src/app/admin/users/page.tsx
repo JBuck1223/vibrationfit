@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Container, Card, Button, Badge, Input, Stack, PageHero } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
 import { createClient } from '@/lib/supabase/client'
-import { Search, UserPlus, Shield, Mail, Calendar, CheckCircle, Clock, RefreshCw, AlertCircle, Zap, Trash2, Eye } from 'lucide-react'
+import { Search, UserPlus, Shield, Mail, Calendar, CheckCircle, Clock, RefreshCw, AlertCircle, Zap, Trash2, Eye, Globe } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 
@@ -30,6 +30,7 @@ interface User {
   first_name?: string
   last_name?: string
   role?: string
+  timezone?: string
 }
 
 function UsersAdminContent() {
@@ -179,10 +180,51 @@ function UsersAdminContent() {
     }
   }
 
-  const filteredUsers = users.filter(user =>
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.id.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const timezoneOptions = [
+    { value: 'America/New_York', label: 'Eastern (ET)' },
+    { value: 'America/Chicago', label: 'Central (CT)' },
+    { value: 'America/Denver', label: 'Mountain (MT)' },
+    { value: 'America/Los_Angeles', label: 'Pacific (PT)' },
+    { value: 'America/Anchorage', label: 'Alaska (AKT)' },
+    { value: 'Pacific/Honolulu', label: 'Hawaii (HT)' },
+    { value: 'America/Phoenix', label: 'Arizona (no DST)' },
+    { value: 'America/Puerto_Rico', label: 'Atlantic (AT)' },
+    { value: 'Europe/London', label: 'London (GMT/BST)' },
+    { value: 'Europe/Paris', label: 'Central Europe (CET)' },
+    { value: 'Asia/Tokyo', label: 'Tokyo (JST)' },
+    { value: 'Asia/Kolkata', label: 'India (IST)' },
+    { value: 'Australia/Sydney', label: 'Sydney (AEST)' },
+    { value: 'Pacific/Auckland', label: 'New Zealand (NZST)' },
+  ]
+
+  const updateUserTimezone = async (userId: string, newTimezone: string) => {
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, field: 'timezone', value: newTimezone }),
+      })
+      if (res.ok) {
+        setUsers(prev => prev.map(u => u.id === userId ? { ...u, timezone: newTimezone } : u))
+      } else {
+        const data = await res.json().catch(() => ({ error: 'Unknown error' }))
+        alert(`Failed to update timezone: ${data.error}`)
+      }
+    } catch (err: any) {
+      alert(`Error: ${err.message || 'Network error'}`)
+    }
+  }
+
+  const filteredUsers = users.filter(user => {
+    const q = searchTerm.toLowerCase()
+    return (
+      user.email.toLowerCase().includes(q) ||
+      user.id.toLowerCase().includes(q) ||
+      (user.full_name || '').toLowerCase().includes(q) ||
+      (user.first_name || '').toLowerCase().includes(q) ||
+      (user.last_name || '').toLowerCase().includes(q)
+    )
+  })
 
   const adminUsers = filteredUsers.filter(user => user.is_admin)
   const regularUsers = filteredUsers.filter(user => !user.is_admin)
@@ -421,6 +463,22 @@ function UsersAdminContent() {
                     )}
                   </div>
                 </div>
+
+                {/* Timezone */}
+                <div className="flex items-center gap-2 text-sm">
+                  <Globe className="w-3.5 h-3.5 text-neutral-400 flex-shrink-0" />
+                  <span className="text-neutral-400">Timezone:</span>
+                  <select
+                    value={user.timezone || ''}
+                    onChange={(e) => updateUserTimezone(user.id, e.target.value)}
+                    className="bg-neutral-700 border border-neutral-600 rounded-lg px-2 py-1 text-sm text-white focus:border-primary-500 focus:outline-none"
+                  >
+                    <option value="">Not set</option>
+                    {timezoneOptions.map(tz => (
+                      <option key={tz.value} value={tz.value}>{tz.label}</option>
+                    ))}
+                  </select>
+                </div>
                 
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
@@ -646,6 +704,22 @@ function UsersAdminContent() {
                   </div>
                 </div>
                 
+                {/* Timezone */}
+                <div className="flex items-center gap-2 text-sm">
+                  <Globe className="w-3.5 h-3.5 text-neutral-400 flex-shrink-0" />
+                  <span className="text-neutral-400">Timezone:</span>
+                  <select
+                    value={user.timezone || ''}
+                    onChange={(e) => updateUserTimezone(user.id, e.target.value)}
+                    className="bg-neutral-700 border border-neutral-600 rounded-lg px-2 py-1 text-sm text-white focus:border-primary-500 focus:outline-none"
+                  >
+                    <option value="">Not set</option>
+                    {timezoneOptions.map(tz => (
+                      <option key={tz.value} value={tz.value}>{tz.label}</option>
+                    ))}
+                  </select>
+                </div>
+
                 {/* Admin Controls */}
                 <div className="space-y-3 pt-3 border-t border-neutral-600">
                   <div className="flex items-center gap-2">

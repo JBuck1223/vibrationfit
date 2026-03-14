@@ -7,7 +7,7 @@ import { Card, Button, Badge, CategoryCard, DeleteConfirmationDialog, ActionButt
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Calendar, CheckCircle, XCircle, Filter, Grid3X3, X, ChevronLeft, ChevronRight, Eye, List, Grid, Lightbulb, Download, Edit3, Save, ChevronUp, Trash2, BookOpen, Upload, Sparkles } from 'lucide-react'
+import { Plus, Calendar, CheckCircle, XCircle, Filter, Grid3X3, X, ChevronLeft, ChevronRight, Eye, List, Grid, Lightbulb, Download, Edit3, Save, ChevronUp, Trash2, BookOpen, Upload, Sparkles, CheckSquare, Square, ListChecks } from 'lucide-react'
 import { useDeleteItem } from '@/hooks/useDeleteItem'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { colors } from '@/lib/design-system/tokens'
@@ -70,6 +70,13 @@ export default function VisionBoardPage() {
   const [editActualizedAiImageUrl, setEditActualizedAiImageUrl] = useState<string | null>(null)
   const [showImageEditor, setShowImageEditor] = useState(false)
   const [showActualizedImageEditor, setShowActualizedImageEditor] = useState(false)
+
+  // Bulk selection mode
+  const [bulkMode, setBulkMode] = useState(false)
+  const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set())
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
+  const [bulkDeleting, setBulkDeleting] = useState(false)
+  const [bulkStatusChanging, setBulkStatusChanging] = useState(false)
   
   // Use standardized delete functionality
   const {
@@ -303,6 +310,138 @@ export default function VisionBoardPage() {
     const item = items.find(i => i.id === itemId)
     if (item) {
       initiateDelete(item)
+    }
+  }
+
+  const toggleBulkMode = () => {
+    if (bulkMode) {
+      setBulkMode(false)
+      setSelectedItemIds(new Set())
+    } else {
+      setBulkMode(true)
+      setExpandedItemId(null)
+      cancelEditing()
+    }
+  }
+
+  const toggleItemSelection = (itemId: string) => {
+    setSelectedItemIds(prev => {
+      const next = new Set(prev)
+      if (next.has(itemId)) {
+        next.delete(itemId)
+      } else {
+        next.add(itemId)
+      }
+      return next
+    })
+  }
+
+  const selectAllFiltered = () => {
+    setSelectedItemIds(new Set(filteredItems.map(i => i.id)))
+  }
+
+  const deselectAll = () => {
+    setSelectedItemIds(new Set())
+  }
+
+  const bulkUpdateStatus = async (newStatus: string) => {
+    if (selectedItemIds.size === 0) return
+    setBulkStatusChanging(true)
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const ids = Array.from(selectedItemIds)
+      const { error } = await supabase
+        .from('vision_board_items')
+        .update({
+          status: newStatus,
+          actualized_at: newStatus === 'actualized' ? new Date().toISOString() : null
+        })
+        .in('id', ids)
+
+      if (error) throw error
+
+      setItems(prevItems =>
+        prevItems.map(item =>
+          selectedItemIds.has(item.id)
+            ? {
+                ...item,
+                status: newStatus,
+                actualized_at: newStatus === 'actualized' ? new Date().toISOString() : item.actualized_at
+              }
+            : item
+        )
+      )
+
+      for (const id of ids) {
+        await supabase.rpc('increment_vision_board_stats', {
+          p_user_id: user.id,
+          p_status: newStatus
+        })
+      }
+
+      setSelectedItemIds(new Set())
+    } catch (error) {
+      console.error('Error bulk updating status:', error)
+    } finally {
+      setBulkStatusChanging(false)
+    }
+  }
+
+  const bulkDeleteItems = async () => {
+    if (selectedItemIds.size === 0) return
+    setBulkDeleting(true)
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      const itemsToDelete = items.filter(i => selectedItemIds.has(i.id))
+
+      for (const item of itemsToDelete) {
+        if (item.image_url) {
+          try {
+            const url = new URL(item.image_url)
+            const imagePath = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname
+            await deleteUserFile(imagePath)
+          } catch (e) { console.warn('Failed to delete image:', e) }
+        }
+        if (item.actualized_image_url) {
+          try {
+            const url = new URL(item.actualized_image_url)
+            const imagePath = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname
+            await deleteUserFile(imagePath)
+          } catch (e) { console.warn('Failed to delete actualized image:', e) }
+        }
+      }
+
+      const ids = Array.from(selectedItemIds)
+      const { error } = await supabase
+        .from('vision_board_items')
+        .delete()
+        .in('id', ids)
+
+      if (error) throw error
+
+      for (const item of itemsToDelete) {
+        try {
+          await supabase.rpc('decrement_vision_board_stats', {
+            p_user_id: user.id,
+            p_status: item.status
+          })
+        } catch (e) { console.warn('Stats decrement failed:', e) }
+      }
+
+      setItems(prev => prev.filter(i => !selectedItemIds.has(i.id)))
+      setSelectedItemIds(new Set())
+      setShowBulkDeleteConfirm(false)
+    } catch (error) {
+      console.error('Error bulk deleting items:', error)
+      alert('Failed to delete some items. Please try again.')
+    } finally {
+      setBulkDeleting(false)
     }
   }
 
@@ -995,15 +1134,26 @@ export default function VisionBoardPage() {
               <Plus className="w-6 h-6 text-[#39FF14]" />
             </button>
           </div>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2"
-          >
-            <Filter className="w-4 h-4" />
-            <span>Filter</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={bulkMode ? 'danger' : 'ghost'}
+              size="sm"
+              onClick={toggleBulkMode}
+              className="flex items-center gap-2"
+            >
+              <ListChecks className="w-4 h-4" />
+              <span>{bulkMode ? 'Cancel' : 'Select'}</span>
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2"
+            >
+              <Filter className="w-4 h-4" />
+              <span>Filter</span>
+            </Button>
+          </div>
           <div className="flex-1 flex justify-end">
             <div className="flex items-center gap-1">
               {/* Board Mode Toggle */}
@@ -1186,12 +1336,24 @@ export default function VisionBoardPage() {
                       const isOpen = isExpanded || isEditing
 
                       if (boardMode === 'clean') {
+                        const isSelected = selectedItemIds.has(item.id)
                         return (
                           <div
                             key={item.id}
-                            className="rounded-2xl overflow-hidden bg-neutral-800 border-2 border-[#333] shadow-lg cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
-                            onClick={() => openLightbox(item.originalIndex)}
+                            className={`rounded-2xl overflow-hidden bg-neutral-800 border-2 shadow-lg cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 relative ${
+                              bulkMode && isSelected ? 'border-[#39FF14] ring-2 ring-[#39FF14]/30' : 'border-[#333]'
+                            }`}
+                            onClick={() => bulkMode ? toggleItemSelection(item.id) : openLightbox(item.originalIndex)}
                           >
+                            {bulkMode && (
+                              <div className="absolute top-3 left-3 z-10">
+                                {isSelected ? (
+                                  <CheckSquare className="w-6 h-6 text-[#39FF14] drop-shadow-lg" />
+                                ) : (
+                                  <Square className="w-6 h-6 text-white/60 drop-shadow-lg" />
+                                )}
+                              </div>
+                            )}
                             {(item.status === 'actualized' && item.actualized_image_url) ? (
                               <img src={item.actualized_image_url} alt={item.name} className="w-full h-auto object-cover" loading="lazy" />
                             ) : item.image_url ? (
@@ -1206,12 +1368,23 @@ export default function VisionBoardPage() {
                       }
 
                       return (
-                        <div key={item.id} className="rounded-2xl overflow-hidden bg-neutral-800 border-2 border-[#333] shadow-lg transition-all duration-300">
-                          {/* Image - tap for lightbox */}
+                        <div key={item.id} className={`rounded-2xl overflow-hidden bg-neutral-800 border-2 shadow-lg transition-all duration-300 ${
+                          bulkMode && selectedItemIds.has(item.id) ? 'border-[#39FF14] ring-2 ring-[#39FF14]/30' : 'border-[#333]'
+                        }`}>
+                          {/* Image - tap for lightbox or select */}
                           <div
                             className="relative cursor-pointer"
-                            onClick={() => openLightbox(item.originalIndex)}
+                            onClick={() => bulkMode ? toggleItemSelection(item.id) : openLightbox(item.originalIndex)}
                           >
+                            {bulkMode && (
+                              <div className="absolute top-3 left-3 z-10">
+                                {selectedItemIds.has(item.id) ? (
+                                  <CheckSquare className="w-6 h-6 text-[#39FF14] drop-shadow-lg" />
+                                ) : (
+                                  <Square className="w-6 h-6 text-white/60 drop-shadow-lg" />
+                                )}
+                              </div>
+                            )}
                             {(item.status === 'actualized' && item.actualized_image_url) ? (
                               <img src={item.actualized_image_url} alt={item.name} className="w-full h-auto object-cover" loading="lazy" />
                             ) : item.image_url ? (
@@ -1227,30 +1400,37 @@ export default function VisionBoardPage() {
                           </div>
 
                           {/* Name + Action Icons Bar */}
-                          <div className="px-3 py-2.5 flex items-center gap-2">
+                          <div
+                            className={`px-3 py-2.5 flex items-center gap-2 ${bulkMode ? 'cursor-pointer' : ''}`}
+                            onClick={() => bulkMode && toggleItemSelection(item.id)}
+                          >
                             <span className="flex-1 text-sm font-semibold text-white truncate">{item.name}</span>
-                            <button
-                              onClick={() => toggleExpand(item.id)}
-                              className={`p-1.5 rounded-full transition-colors ${
-                                isExpanded && !isEditing
-                                  ? 'bg-[#39FF14]/20 text-[#39FF14]'
-                                  : 'hover:bg-neutral-700 text-neutral-400 hover:text-white'
-                              }`}
-                              aria-label={isExpanded ? 'Collapse details' : 'View details'}
-                            >
-                              {isExpanded && !isEditing ? <ChevronUp className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            </button>
-                            <button
-                              onClick={() => isEditing ? cancelEditing() : startEditing(item)}
-                              className={`p-1.5 rounded-full transition-colors ${
-                                isEditing
-                                  ? 'bg-[#39FF14]/20 text-[#39FF14]'
-                                  : 'hover:bg-neutral-700 text-neutral-400 hover:text-white'
-                              }`}
-                              aria-label={isEditing ? 'Cancel editing' : 'Edit'}
-                            >
-                              {isEditing ? <X className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
-                            </button>
+                            {!bulkMode && (
+                              <>
+                                <button
+                                  onClick={() => toggleExpand(item.id)}
+                                  className={`p-1.5 rounded-full transition-colors ${
+                                    isExpanded && !isEditing
+                                      ? 'bg-[#39FF14]/20 text-[#39FF14]'
+                                      : 'hover:bg-neutral-700 text-neutral-400 hover:text-white'
+                                  }`}
+                                  aria-label={isExpanded ? 'Collapse details' : 'View details'}
+                                >
+                                  {isExpanded && !isEditing ? <ChevronUp className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                                <button
+                                  onClick={() => isEditing ? cancelEditing() : startEditing(item)}
+                                  className={`p-1.5 rounded-full transition-colors ${
+                                    isEditing
+                                      ? 'bg-[#39FF14]/20 text-[#39FF14]'
+                                      : 'hover:bg-neutral-700 text-neutral-400 hover:text-white'
+                                  }`}
+                                  aria-label={isEditing ? 'Cancel editing' : 'Edit'}
+                                >
+                                  {isEditing ? <X className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
+                                </button>
+                              </>
+                            )}
                           </div>
 
                           {/* Expandable Section */}
@@ -1284,11 +1464,27 @@ export default function VisionBoardPage() {
                   const isOpen = isExpanded || isEditing
 
                   return (
-                    <Card key={item.id} className="hover:border-primary-500 transition-all duration-200">
+                    <Card key={item.id} className={`transition-all duration-200 ${
+                      bulkMode && selectedItemIds.has(item.id)
+                        ? '!border-[#39FF14] ring-2 ring-[#39FF14]/30'
+                        : 'hover:border-primary-500'
+                    }`}>
                       <div className="flex flex-col md:flex-row gap-3 md:gap-4">
 
-                        {/* Image */}
-                        <div className="relative flex-shrink-0 w-full md:w-40 aspect-[4/3] rounded-lg overflow-hidden bg-neutral-800">
+                        {/* Bulk checkbox + Image */}
+                        <div
+                          className={`relative flex-shrink-0 w-full md:w-40 aspect-[4/3] rounded-lg overflow-hidden bg-neutral-800 ${bulkMode ? 'cursor-pointer' : ''}`}
+                          onClick={() => bulkMode && toggleItemSelection(item.id)}
+                        >
+                          {bulkMode && (
+                            <div className="absolute top-2 left-2 z-10">
+                              {selectedItemIds.has(item.id) ? (
+                                <CheckSquare className="w-6 h-6 text-[#39FF14] drop-shadow-lg" />
+                              ) : (
+                                <Square className="w-6 h-6 text-white/60 drop-shadow-lg" />
+                              )}
+                            </div>
+                          )}
                           {(item.status === 'actualized' && item.actualized_image_url) ? (
                             <img
                               src={item.actualized_image_url}
@@ -1324,35 +1520,39 @@ export default function VisionBoardPage() {
                         </div>
 
                         {/* Item Details */}
-                        <div className="flex-1 min-w-0">
+                        <div className={`flex-1 min-w-0 ${bulkMode ? 'cursor-pointer' : ''}`} onClick={() => bulkMode && toggleItemSelection(item.id)}>
                           {/* Title row with action icons */}
                           <div className="flex items-start gap-2 mb-2">
                             <h3 className="flex-1 text-xl font-semibold text-white">{item.name}</h3>
-                            <button
-                              onClick={() => toggleExpand(item.id)}
-                              className={`p-1.5 rounded-full transition-colors flex-shrink-0 ${
-                                isExpanded && !isEditing
-                                  ? 'bg-[#39FF14]/20 text-[#39FF14]'
-                                  : 'hover:bg-neutral-700 text-neutral-400 hover:text-white'
-                              }`}
-                              aria-label={isExpanded ? 'Collapse' : 'Details'}
-                            >
-                              {isExpanded && !isEditing
-                                ? <ChevronUp className="w-4 h-4" />
-                                : <Eye className="w-4 h-4" />
-                              }
-                            </button>
-                            <button
-                              onClick={() => isEditing ? cancelEditing() : startEditing(item)}
-                              className={`p-1.5 rounded-full transition-colors flex-shrink-0 ${
-                                isEditing
-                                  ? 'bg-[#39FF14]/20 text-[#39FF14]'
-                                  : 'hover:bg-neutral-700 text-neutral-400 hover:text-white'
-                              }`}
-                              aria-label={isEditing ? 'Cancel' : 'Edit'}
-                            >
-                              {isEditing ? <X className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
-                            </button>
+                            {!bulkMode && (
+                              <>
+                                <button
+                                  onClick={() => toggleExpand(item.id)}
+                                  className={`p-1.5 rounded-full transition-colors flex-shrink-0 ${
+                                    isExpanded && !isEditing
+                                      ? 'bg-[#39FF14]/20 text-[#39FF14]'
+                                      : 'hover:bg-neutral-700 text-neutral-400 hover:text-white'
+                                  }`}
+                                  aria-label={isExpanded ? 'Collapse' : 'Details'}
+                                >
+                                  {isExpanded && !isEditing
+                                    ? <ChevronUp className="w-4 h-4" />
+                                    : <Eye className="w-4 h-4" />
+                                  }
+                                </button>
+                                <button
+                                  onClick={() => isEditing ? cancelEditing() : startEditing(item)}
+                                  className={`p-1.5 rounded-full transition-colors flex-shrink-0 ${
+                                    isEditing
+                                      ? 'bg-[#39FF14]/20 text-[#39FF14]'
+                                      : 'hover:bg-neutral-700 text-neutral-400 hover:text-white'
+                                  }`}
+                                  aria-label={isEditing ? 'Cancel' : 'Edit'}
+                                >
+                                  {isEditing ? <X className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
+                                </button>
+                              </>
+                            )}
                           </div>
 
                           {!isEditing && item.description && (
@@ -1808,6 +2008,80 @@ export default function VisionBoardPage() {
         })()}
 
         </div>
+
+        {/* Floating Bulk Action Bar */}
+        {bulkMode && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 animate-in slide-in-from-bottom duration-300">
+            <div className="bg-[#1A1A1A] border-2 border-[#333] rounded-2xl shadow-2xl shadow-black/60 px-5 py-3 flex items-center gap-3 backdrop-blur-sm">
+              <span className="text-sm font-medium text-neutral-300 whitespace-nowrap">
+                {selectedItemIds.size} selected
+              </span>
+
+              <div className="w-px h-6 bg-neutral-700" />
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={selectedItemIds.size === filteredItems.length ? deselectAll : selectAllFiltered}
+                className="whitespace-nowrap"
+              >
+                {selectedItemIds.size === filteredItems.length ? 'Deselect All' : 'Select All'}
+              </Button>
+
+              <div className="w-px h-6 bg-neutral-700" />
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => bulkUpdateStatus('active')}
+                  disabled={selectedItemIds.size === 0 || bulkStatusChanging}
+                  className="px-3 py-1.5 rounded-full text-xs font-medium transition-all bg-green-600/20 text-green-400 border border-green-600/30 hover:bg-green-600 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+                >
+                  <div className="w-1.5 h-1.5 bg-current rounded-full" />
+                  Active
+                </button>
+                <button
+                  onClick={() => bulkUpdateStatus('actualized')}
+                  disabled={selectedItemIds.size === 0 || bulkStatusChanging}
+                  className="px-3 py-1.5 rounded-full text-xs font-medium transition-all bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+                >
+                  <CheckCircle className="w-3 h-3" />
+                  Actualized
+                </button>
+                <button
+                  onClick={() => bulkUpdateStatus('inactive')}
+                  disabled={selectedItemIds.size === 0 || bulkStatusChanging}
+                  className="px-3 py-1.5 rounded-full text-xs font-medium transition-all bg-gray-600/20 text-gray-400 border border-gray-600/30 hover:bg-gray-600 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+                >
+                  <XCircle className="w-3 h-3" />
+                  Inactive
+                </button>
+              </div>
+
+              <div className="w-px h-6 bg-neutral-700" />
+
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => setShowBulkDeleteConfirm(true)}
+                disabled={selectedItemIds.size === 0}
+              >
+                <Trash2 className="w-4 h-4 mr-1.5" />
+                Delete
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Bulk Delete Confirmation Dialog */}
+        <DeleteConfirmationDialog
+          isOpen={showBulkDeleteConfirm}
+          onClose={() => setShowBulkDeleteConfirm(false)}
+          onConfirm={bulkDeleteItems}
+          title={`Delete ${selectedItemIds.size} Creation${selectedItemIds.size === 1 ? '' : 's'}`}
+          message={`Are you sure you want to permanently delete ${selectedItemIds.size} creation${selectedItemIds.size === 1 ? '' : 's'}? All associated images will also be removed. This action cannot be undone.`}
+          isLoading={bulkDeleting}
+          loadingText={`Deleting ${selectedItemIds.size} item${selectedItemIds.size === 1 ? '' : 's'}...`}
+        />
 
         {/* Delete Confirmation Dialog */}
         <DeleteConfirmationDialog

@@ -208,7 +208,7 @@ export async function POST(request: NextRequest) {
 
               const adminName = adminAccount?.first_name
                 ? `${adminAccount.first_name} ${adminAccount.last_name || ''}`.trim()
-                : user.email?.split('@')[0] || ''
+                : 'A VibrationFit member'
 
               const { invitePartnerToHousehold } = await import('@/lib/supabase/household')
               const inviteResult = await invitePartnerToHousehold({
@@ -397,7 +397,7 @@ async function createHouseholdForUser(userId: string, email: string): Promise<bo
     .eq('id', userId)
     .maybeSingle()
 
-  const nameBase = adminAccount?.first_name || email.split('@')[0] || 'My'
+  const nameBase = adminAccount?.first_name || 'My'
   const householdName = `${toTitleCase(nameBase)}'s Household`
 
   const { data: household, error: householdError } = await serviceClient

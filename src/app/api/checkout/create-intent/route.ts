@@ -205,11 +205,6 @@ export async function POST(request: NextRequest) {
       if (!hasPassword) redirectToSetupPassword = true
     }
 
-    await supabaseAdmin.from('user_profiles').upsert(
-      { user_id: userId, full_name: name, phone: phone || null },
-      { onConflict: 'user_id' }
-    )
-
     const nameParts = (name || '').trim().split(' ')
     const firstName = nameParts[0] ? toTitleCase(nameParts[0]) : null
     const lastName = nameParts.length > 1 ? toTitleCase(nameParts.slice(1).join(' ')) : null
@@ -500,21 +495,21 @@ export async function POST(request: NextRequest) {
             // Create household if plan type is 'household'
             if (planType === 'household') {
               try {
+                const hhOwnerName = name?.split(' ')[0] || 'My'
                 const { data: household, error: householdError } = await supabaseAdmin
                   .from('households')
                   .insert({
                     admin_user_id: userId,
-                    name: `${email?.split('@')[0] || 'My'}'s Household`,
+                    name: `${toTitleCase(hhOwnerName)}'s Household`,
                     shared_tokens_enabled: true,
                   })
                   .select()
                   .single()
 
                 if (!householdError && household) {
-                  await supabaseAdmin.from('user_profiles').upsert(
-                    { user_id: userId, household_id: household.id, is_household_admin: true },
-                    { onConflict: 'user_id' }
-                  )
+                  await supabaseAdmin.from('user_accounts').update(
+                    { household_id: household.id, is_household_admin: true }
+                  ).eq('id', userId)
                   await supabaseAdmin.from('household_members').insert({
                     household_id: household.id,
                     user_id: userId,
@@ -528,7 +523,7 @@ export async function POST(request: NextRequest) {
                       supabaseAdmin,
                       householdId: household.id,
                       adminUserId: userId,
-                      adminName: name || email?.split('@')[0] || '',
+                      adminName: name || 'A VibrationFit member',
                       adminEmail: email || '',
                       householdName: household.name,
                       partnerFirstName,

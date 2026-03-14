@@ -8,12 +8,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createOneOnOneRoom, createGroupRoom, createAlignmentGymRoom, createWebinarRoom, createHostToken, getRoomUrl } from '@/lib/video/daily'
-import { sendAndLogEmail, sendAndLogBulkEmail } from '@/lib/email/send'
-import { sendSMS } from '@/lib/messaging/twilio'
+import { sendAndLogEmail } from '@/lib/email/send'
 import { generateSessionInvitationEmail } from '@/lib/email/templates'
 import { formatDateInTimeZone, DEFAULT_DISPLAY_TIMEZONE } from '@/lib/format/timezone'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { notifyAdminSMS } from '@/lib/admin/notifications'
+import { sendBulkNotification, getNotificationConfig } from '@/lib/notifications/config'
 import type { CreateSessionRequest, CreateSessionResponse, VideoSession, VideoSessionType } from '@/lib/video/types'
 
 export async function POST(request: NextRequest) {
@@ -140,24 +139,41 @@ export async function POST(request: NextRequest) {
     })
 
     // Add invited participant if provided
-    if (body.participant_email || body.participant_name) {
-      // Check if user exists
-      let existingUser = null
-      if (body.participant_email) {
+    if (body.participant_user_id || body.participant_email || body.participant_name) {
+      let participantUserId: string | null = body.participant_user_id || null
+      let participantEmail: string | null = body.participant_email || null
+      let participantFullName: string | null = body.participant_name || null
+
+      // If user_id is provided directly, look up their details
+      if (participantUserId) {
+        const { data: userAccount } = await supabase
+          .from('user_accounts')
+          .select('id, first_name, last_name, full_name, email')
+          .eq('id', participantUserId)
+          .single()
+        if (userAccount) {
+          if (!participantFullName) participantFullName = userAccount.full_name || null
+          if (!participantEmail) participantEmail = userAccount.email || null
+        }
+      } else if (participantEmail) {
+        // Fall back to email lookup for backwards compatibility
         const { data: foundUser } = await supabase
           .from('user_accounts')
           .select('id, first_name, last_name, full_name')
-          .eq('email', body.participant_email)
+          .eq('email', participantEmail)
           .single()
-        existingUser = foundUser
+        if (foundUser) {
+          participantUserId = foundUser.id
+          if (!participantFullName) participantFullName = foundUser.full_name || null
+        }
       }
 
-      const participantName = body.participant_name || existingUser?.full_name || body.participant_email || 'Guest'
+      const participantName = participantFullName || participantEmail || 'Guest'
 
       await supabase.from('video_session_participants').insert({
         session_id: session.id,
-        user_id: existingUser?.id || null,
-        email: body.participant_email || null,
+        user_id: participantUserId,
+        email: participantEmail,
         phone: body.participant_phone || null,
         name: participantName,
         is_host: false,
@@ -219,7 +235,7 @@ export async function POST(request: NextRequest) {
               message_type: 'email',
               recipient_email: body.participant_email,
               recipient_name: participantName,
-              recipient_user_id: existingUser?.id || null,
+              recipient_user_id: participantUserId,
               related_entity_type: 'video_session',
               related_entity_id: session.id,
               subject: `Your session with ${hostName} starts in 15 minutes!`,
@@ -244,7 +260,7 @@ export async function POST(request: NextRequest) {
               message_type: 'sms',
               recipient_phone: body.participant_phone,
               recipient_name: participantName,
-              recipient_user_id: existingUser?.id || null,
+              recipient_user_id: participantUserId,
               related_entity_type: 'video_session',
               related_entity_id: session.id,
               body: `Hi ${participantName}! Your session with ${hostName} starts in 15 mins. Join: ${joinLink}`,
@@ -356,6 +372,13 @@ async function notifyAlignmentGymGraduates(
   )
   const duration = session.scheduled_duration_minutes || 60
 
+  // Check if alignment gym notifications are configured
+  const config = await getNotificationConfig('alignment_gym_created')
+  if (!config) {
+    console.log('[alignment-gym] No notification config found, skipping')
+    return
+  }
+
   // Find all graduates (completed intensive or unlock_completed)
   const { data: graduates, error: gradError } = await admin
     .from('intensive_checklist')
@@ -369,7 +392,6 @@ async function notifyAlignmentGymGraduates(
 
   const userIds = [...new Set(graduates.map(g => g.user_id))]
 
-  // Get emails and phones for all graduates
   const { data: accounts } = await admin
     .from('user_accounts')
     .select('id, email, phone, first_name')
@@ -377,72 +399,29 @@ async function notifyAlignmentGymGraduates(
 
   if (!accounts?.length) return
 
-  // --- Bulk email ---
-  const emailRecipients = accounts
-    .filter(a => a.email)
-    .map(a => ({ email: a.email!, userId: a.id }))
+  const recipients = accounts.map(a => ({
+    email: a.email || undefined,
+    phone: a.phone || undefined,
+    userId: a.id,
+  }))
 
-  if (emailRecipients.length > 0) {
-    const firstName = '{{name}}'
-    const htmlBody = `
-      <div style="background:#000;padding:40px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
-        <div style="max-width:600px;margin:0 auto;background:#1F1F1F;border:2px solid #39FF14;border-radius:16px;padding:40px;">
-          <div style="text-align:center;margin:0 0 24px;">
-            <span style="display:inline-block;padding:8px 24px;background:rgba(57,255,20,0.1);border-radius:50px;border:2px solid #39FF14;color:#39FF14;font-weight:700;font-size:14px;letter-spacing:1px;">ALIGNMENT GYM</span>
-          </div>
+  // Send bulk email + SMS + admin SMS via config engine
+  await sendBulkNotification({
+    slug: 'alignment_gym_created',
+    variables: {
+      sessionTitle: session.title || 'Alignment Gym Session',
+      sessionDescription: session.description || '',
+      scheduledDate,
+      scheduledTime,
+      duration: String(duration),
+      hostName,
+      joinLink,
+      graduateCount: String(recipients.length),
+    },
+    recipients,
+  })
 
-          <h1 style="color:#E5E5E5;font-size:22px;margin:0 0 8px;text-align:center;">${session.title || 'Alignment Gym Session'}</h1>
-          <p style="color:#999;font-size:14px;margin:0 0 32px;text-align:center;">A new session has been scheduled</p>
-
-          <div style="background:rgba(57,255,20,0.05);border:1px solid #333;border-radius:12px;padding:20px;margin:0 0 24px;">
-            <p style="color:#E5E5E5;margin:0 0 8px;font-size:15px;"><strong style="color:#39FF14;">Date:</strong> ${scheduledDate}</p>
-            <p style="color:#E5E5E5;margin:0 0 8px;font-size:15px;"><strong style="color:#39FF14;">Time:</strong> ${scheduledTime}</p>
-            <p style="color:#E5E5E5;margin:0 0 8px;font-size:15px;"><strong style="color:#39FF14;">Duration:</strong> ${duration} minutes</p>
-            <p style="color:#E5E5E5;margin:0;font-size:15px;"><strong style="color:#39FF14;">Host:</strong> ${hostName}</p>
-          </div>
-
-          ${session.description ? `<p style="color:#999;font-size:14px;line-height:1.6;margin:0 0 24px;text-align:center;font-style:italic;">"${session.description}"</p>` : ''}
-
-          <div style="text-align:center;margin:0 0 32px;">
-            <a href="${joinLink}" style="display:inline-block;padding:18px 48px;background:#39FF14;color:#000;text-decoration:none;border-radius:50px;font-weight:700;font-size:16px;">View Session</a>
-          </div>
-
-          <div style="text-align:center;padding:24px 0 0;border-top:1px solid #333;">
-            <p style="color:#555;font-size:12px;margin:0;">Vibration Fit &middot; Above the Green Line</p>
-          </div>
-        </div>
-      </div>`
-
-    const textBody = `Alignment Gym Session Scheduled!\n\n${session.title || 'Alignment Gym Session'}\nDate: ${scheduledDate}\nTime: ${scheduledTime}\nDuration: ${duration} minutes\nHost: ${hostName}\n${session.description ? `\n"${session.description}"\n` : ''}\nView and join: ${joinLink}\n\nVibration Fit`
-
-    try {
-      await sendAndLogBulkEmail({
-        recipients: emailRecipients,
-        subject: `Alignment Gym: ${session.title || 'New Session'} - ${scheduledDate}`,
-        htmlBody,
-        textBody,
-      })
-      console.log(`[alignment-gym] Emailed ${emailRecipients.length} graduates`)
-    } catch (err) {
-      console.error('[alignment-gym] Bulk email error:', err)
-    }
-  }
-
-  // --- SMS to graduates with phone numbers ---
-  const smsRecipients = accounts.filter(a => a.phone)
-  if (smsRecipients.length > 0) {
-    const smsBody = `VibrationFit Alignment Gym: "${session.title || 'New Session'}" on ${scheduledDate} at ${scheduledTime} with ${hostName}. Join: ${joinLink}`
-
-    await Promise.allSettled(
-      smsRecipients.map(a =>
-        sendSMS({ to: a.phone!, body: smsBody })
-      )
-    ).catch(err => console.error('[alignment-gym] SMS batch error:', err))
-
-    console.log(`[alignment-gym] Texted ${smsRecipients.length} graduates`)
-  }
-
-  // --- Schedule reminders (1 hour before + 15 min before) ---
+  // Schedule reminders (1 hour email + 15 min SMS) — these are operational, not template-driven
   const oneHourBefore = new Date(scheduledAt.getTime() - 60 * 60 * 1000)
   const fifteenMinBefore = new Date(scheduledAt.getTime() - 15 * 60 * 1000)
   const now = new Date()
@@ -465,7 +444,7 @@ async function notifyAlignmentGymGraduates(
         status: 'pending',
         created_by: createdByUserId,
       })
-      if (emailErr) console.error('[alignment-gym] 1hr email reminder schedule error:', emailErr.message)
+      if (emailErr) console.error('[alignment-gym] 1hr email reminder error:', emailErr.message)
     }
 
     if (account.phone && fifteenMinBefore > now) {
@@ -481,13 +460,8 @@ async function notifyAlignmentGymGraduates(
         status: 'pending',
         created_by: createdByUserId,
       })
-      if (smsErr) console.error('[alignment-gym] 15min SMS reminder schedule error:', smsErr.message)
+      if (smsErr) console.error('[alignment-gym] 15min SMS reminder error:', smsErr.message)
     }
   }
-
-  // --- Admin SMS ---
-  notifyAdminSMS(
-    `Alignment Gym Scheduled: "${session.title}" on ${scheduledDate} at ${scheduledTime} - ${emailRecipients.length} graduates notified`
-  ).catch(() => {})
 }
 
