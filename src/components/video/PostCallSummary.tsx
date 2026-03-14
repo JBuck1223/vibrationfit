@@ -28,6 +28,7 @@ import { formatDuration } from '@/lib/video/types'
 interface PostCallSummaryProps {
   session: VideoSession
   duration: number // seconds
+  wasRecording?: boolean
   isHost?: boolean
   onClose?: () => void
   onScheduleFollowUp?: () => void
@@ -38,6 +39,7 @@ interface PostCallSummaryProps {
 export function PostCallSummary({
   session,
   duration,
+  wasRecording,
   isHost = false,
   onClose,
   onScheduleFollowUp,
@@ -47,6 +49,8 @@ export function PostCallSummary({
   const [notes, setNotes] = useState(session.host_notes || '')
   const [isSavingNotes, setIsSavingNotes] = useState(false)
   const [showNotes, setShowNotes] = useState(false)
+  const [rating, setRating] = useState<number>(session.feedback_rating || 0)
+  const [hoveredStar, setHoveredStar] = useState<number>(0)
 
   const handleSaveNotes = async () => {
     if (!onSaveNotes) return
@@ -54,6 +58,25 @@ export function PostCallSummary({
     await onSaveNotes(notes)
     setIsSavingNotes(false)
   }
+
+  const handleRate = async (value: number) => {
+    setRating(value)
+    try {
+      await fetch(`/api/video/sessions/${session.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feedback_rating: value }),
+      })
+    } catch (err) {
+      console.error('Failed to save rating:', err)
+    }
+  }
+
+  const recordingActive = wasRecording
+    || session.recording_status === 'recording'
+    || session.recording_status === 'processing'
+    || session.recording_status === 'ready'
+    || session.recording_status === 'uploaded'
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-neutral-900 to-black flex items-center justify-center p-4">
@@ -96,7 +119,7 @@ export function PostCallSummary({
             <div className="bg-neutral-800/50 rounded-xl p-4 text-center">
               <VideoIcon className="w-5 h-5 text-accent-500 mx-auto mb-2" />
               <p className="text-xl font-bold text-white">
-                {session.recording_status === 'ready' || session.recording_status === 'uploaded' ? 'Yes' : 'No'}
+                {recordingActive ? 'Yes' : 'No'}
               </p>
               <p className="text-xs text-neutral-500">Recording</p>
             </div>
@@ -195,17 +218,25 @@ export function PostCallSummary({
           {/* Feedback prompt */}
           <div className="pt-4 border-t border-neutral-800">
             <p className="text-center text-sm text-neutral-500">
-              How was this session?
+              {rating > 0 ? 'Thanks for your feedback!' : 'How was this session?'}
             </p>
             <div className="flex justify-center gap-2 mt-3">
-              {[1, 2, 3, 4, 5].map((rating) => (
-                <button
-                  key={rating}
-                  className="p-2 rounded-lg hover:bg-neutral-800 transition-colors group"
-                >
-                  <Star className="w-6 h-6 text-neutral-600 group-hover:text-yellow-400 group-hover:fill-yellow-400 transition-colors" />
-                </button>
-              ))}
+              {[1, 2, 3, 4, 5].map((value) => {
+                const filled = value <= (hoveredStar || rating)
+                return (
+                  <button
+                    key={value}
+                    onClick={() => handleRate(value)}
+                    onMouseEnter={() => setHoveredStar(value)}
+                    onMouseLeave={() => setHoveredStar(0)}
+                    className="p-2 rounded-lg hover:bg-neutral-800 transition-colors"
+                  >
+                    <Star className={`w-6 h-6 transition-colors ${
+                      filled ? 'text-yellow-400 fill-yellow-400' : 'text-neutral-600'
+                    }`} />
+                  </button>
+                )
+              })}
             </div>
           </div>
         </div>

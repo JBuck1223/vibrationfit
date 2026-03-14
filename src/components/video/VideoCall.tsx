@@ -7,7 +7,7 @@
  * Provides a beautiful, branded experience for 1:1 coaching calls.
  */
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import {
   DailyProvider,
   useDaily,
@@ -48,17 +48,17 @@ interface VideoCallProps {
   roomUrl: string
   token: string
   userName: string
-  userId?: string // Current user's ID for chat
-  sessionId?: string // For triggering host-joined notification
+  userId?: string
+  sessionId?: string
   sessionTitle?: string
-  sessionType?: string // 'one_on_one' | 'group' | 'alignment_gym' | 'webinar'
+  sessionType?: string
   isHost?: boolean
   initialSettings?: CallSettings
-  onLeave?: () => void
+  onLeave?: (stats: { durationSeconds: number; wasRecording: boolean }) => void
   onError?: (error: Error) => void
   onRecordingStart?: () => void
   onRecordingStop?: () => void
-  memberUserId?: string // For 1:1: the other participant's user_id (host sees their data)
+  memberUserId?: string
 }
 
 // Main wrapper that provides the Daily context
@@ -150,6 +150,11 @@ function VideoCallUI({
   const [error, setError] = useState<string | null>(null)
   const [hostJoinedNotified, setHostJoinedNotified] = useState(false)
   const [highlightedMessage, setHighlightedMessage] = useState<{ sender_name: string; message: string } | null>(null)
+
+  // Stable callback for SessionChat's onHighlightChange so it doesn't tear down Realtime
+  const handleHighlightChange = useCallback((msg: { sender_name: string; message: string } | null) => {
+    setHighlightedMessage(msg ? { sender_name: msg.sender_name, message: msg.message } : null)
+  }, [])
 
   // Refs
   const containerRef = useRef<HTMLDivElement>(null)
@@ -278,12 +283,26 @@ function VideoCallUI({
     setMicEnabled(newState)
   }, [daily, micEnabled])
 
-  // Toggle screen share (uses useScreenShare hook for reliable state)
-  const toggleScreenShare = useCallback(() => {
+  const [screenShareError, setScreenShareError] = useState<string | null>(null)
+
+  // Toggle screen share with error handling
+  const toggleScreenShare = useCallback(async () => {
+    setScreenShareError(null)
     if (isSharingScreen) {
       stopScreenShare()
     } else {
-      startScreenShare()
+      try {
+        await startScreenShare()
+      } catch (err: any) {
+        const msg = err?.message || err?.errorMsg || String(err)
+        console.error('Screen share failed:', msg, err)
+        if (msg.includes('Permission denied') || msg.includes('NotAllowedError')) {
+          setScreenShareError('Screen share permission denied. Check your browser settings.')
+        } else {
+          setScreenShareError(`Screen share failed: ${msg}`)
+        }
+        setTimeout(() => setScreenShareError(null), 5000)
+      }
     }
   }, [isSharingScreen, startScreenShare, stopScreenShare])
 
@@ -338,10 +357,12 @@ function VideoCallUI({
       }
     }
 
+    const stats = { durationSeconds: callDuration, wasRecording: isRecording }
+
     if (daily) {
       await daily.leave()
     }
-    onLeave?.()
+    onLeave?.(stats)
   }, [daily, onLeave, sessionId, isHost, isRecording, callDuration])
 
   // Toggle fullscreen
@@ -396,6 +417,9 @@ function VideoCallUI({
 
   // Get remote participant
   const remoteParticipantId = participantIds[0]
+
+  // Determine if anyone is sharing their screen (local or remote)
+  const activeScreenShare = screens.length > 0 ? screens[0] : null
 
   // Error state
   if (error || meetingState === 'error') {
@@ -506,9 +530,16 @@ function VideoCallUI({
       <div className="flex-1 flex min-h-0">
         {/* Video Area */}
         <div className="flex-1 relative min-w-0">
-          {/* Remote Video (Full Screen) */}
+          {/* Main Video Area — screen share takes priority when active */}
           <div className="absolute inset-0">
-            {remoteParticipantId ? (
+            {activeScreenShare ? (
+              <DailyVideo
+                fit="contain"
+                sessionId={activeScreenShare.session_id}
+                type="screenVideo"
+                className="w-full h-full bg-black"
+              />
+            ) : remoteParticipantId ? (
               <RemoteParticipantTile participantId={remoteParticipantId} />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-neutral-900">
@@ -551,8 +582,15 @@ function VideoCallUI({
             )}
           </div>
 
+          {/* Remote participant PiP — shown when screen share is active so you still see them */}
+          {activeScreenShare && remoteParticipantId && (
+            <div className="absolute top-4 right-4 w-36 md:w-48 aspect-video rounded-xl overflow-hidden shadow-2xl border-2 border-neutral-700 bg-neutral-800 z-10">
+              <RemoteParticipantTile participantId={remoteParticipantId} />
+            </div>
+          )}
+
           {/* Local Video (Picture-in-Picture) */}
-          <div className="absolute bottom-4 right-4 w-36 md:w-56 aspect-video rounded-xl overflow-hidden shadow-2xl border-2 border-neutral-700 bg-neutral-800 z-10">
+          <div className={`absolute ${activeScreenShare ? 'bottom-4 right-4 w-28 md:w-40' : 'bottom-4 right-4 w-36 md:w-56'} aspect-video rounded-xl overflow-hidden shadow-2xl border-2 border-neutral-700 bg-neutral-800 z-10`}>
             {localParticipant && cameraEnabled ? (
               <DailyVideo
                 automirror
@@ -616,7 +654,7 @@ function VideoCallUI({
                 currentUserName={userName}
                 isHost={isHost}
                 onClose={() => setShowChat(false)}
-                onHighlightChange={(msg) => setHighlightedMessage(msg ? { sender_name: msg.sender_name, message: msg.message } : null)}
+                onHighlightChange={handleHighlightChange}
               />
             </div>
             {/* Mobile: bottom sheet overlay */}
@@ -627,12 +665,19 @@ function VideoCallUI({
                 currentUserName={userName}
                 isHost={isHost}
                 onClose={() => setShowChat(false)}
-                onHighlightChange={(msg) => setHighlightedMessage(msg ? { sender_name: msg.sender_name, message: msg.message } : null)}
+                onHighlightChange={handleHighlightChange}
               />
             </div>
           </>
         )}
       </div>
+
+      {/* Screen share error toast */}
+      {screenShareError && (
+        <div className="flex-shrink-0 px-4 py-2 bg-red-500/20 border-t border-red-500/30 text-center">
+          <p className="text-sm text-red-300">{screenShareError}</p>
+        </div>
+      )}
 
       {/* Control Bar — solid bar, not overlaying video */}
       <div className="flex-shrink-0 px-4 py-3 bg-neutral-900 border-t border-neutral-800">

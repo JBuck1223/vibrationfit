@@ -286,7 +286,7 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+      <nav className="flex-1 min-h-0 p-4 space-y-2 overflow-y-auto">
         {navigation.map((item) => {
           const itemHref = item.name === 'Audio' && activeVisionId 
             ? `/life-vision/${activeVisionId}/audio/sets`

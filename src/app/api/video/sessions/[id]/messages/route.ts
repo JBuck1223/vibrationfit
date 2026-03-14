@@ -22,7 +22,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Verify user has access to this session (participant or host)
+    // Verify user has access to this session (participant, host, or super_admin)
     const { data: participant } = await supabase
       .from('video_session_participants')
       .select('id')
@@ -38,7 +38,14 @@ export async function GET(
       .single()
 
     if (!participant && !session) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      const { data: account } = await supabase
+        .from('user_accounts')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+      if (account?.role !== 'super_admin') {
+        return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      }
     }
 
     // Parse query params for pagination
@@ -107,10 +114,19 @@ export async function POST(
       .eq('id', sessionId)
       .single()
 
-    const isHost = session?.host_user_id === user.id
+    let isHost = session?.host_user_id === user.id
 
     if (!participant && !isHost) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      const { data: account } = await supabase
+        .from('user_accounts')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+      if (account?.role === 'super_admin') {
+        isHost = true
+      } else {
+        return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      }
     }
 
     // Get sender name
