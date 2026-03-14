@@ -230,12 +230,13 @@ export async function DELETE(
       }
     }
 
-    // Delete Daily.co room
-    try {
-      await deleteRoom(session.daily_room_name)
-    } catch (dailyError) {
-      console.warn('Failed to delete Daily.co room:', dailyError)
-      // Continue anyway - the room might have already expired
+    // Delete Daily.co room if one was provisioned
+    if (session.daily_room_name) {
+      try {
+        await deleteRoom(session.daily_room_name)
+      } catch (dailyError) {
+        console.warn('Failed to delete Daily.co room:', dailyError)
+      }
     }
 
     // Delete session (cascades to participants, messages, recordings)

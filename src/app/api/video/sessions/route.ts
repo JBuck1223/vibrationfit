@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createOneOnOneRoom, createGroupRoom, createAlignmentGymRoom, createWebinarRoom, createHostToken, getRoomUrl } from '@/lib/video/daily'
+import { getRoomUrl } from '@/lib/video/daily'
 import { sendAndLogEmail } from '@/lib/email/send'
 import { generateSessionInvitationEmail } from '@/lib/email/templates'
 import { formatDateInTimeZone, DEFAULT_DISPLAY_TIMEZONE } from '@/lib/format/timezone'
@@ -39,32 +39,12 @@ export async function POST(request: NextRequest) {
     const scheduledAt = new Date(body.scheduled_at)
     const durationMinutes = body.scheduled_duration_minutes || 60
 
-    // Create Daily.co room based on session type
-    let dailyRoom
+    // Determine max participants by session type
     let maxParticipants = 2
-    try {
-      if (sessionType === 'one_on_one') {
-        dailyRoom = await createOneOnOneRoom(scheduledAt, durationMinutes)
-        maxParticipants = 2
-      } else if (sessionType === 'group' || sessionType === 'workshop') {
-        dailyRoom = await createGroupRoom(scheduledAt, 25, durationMinutes)
-        maxParticipants = 25
-      } else if (sessionType === 'alignment_gym') {
-        dailyRoom = await createAlignmentGymRoom(scheduledAt, durationMinutes)
-        maxParticipants = 0  // Unlimited — stored as 0 in DB
-      } else if (sessionType === 'webinar') {
-        dailyRoom = await createWebinarRoom(scheduledAt, durationMinutes)
-        maxParticipants = 0  // Unlimited — stored as 0 in DB
-      } else {
-        dailyRoom = await createOneOnOneRoom(scheduledAt, durationMinutes)
-        maxParticipants = 2
-      }
-    } catch (dailyError) {
-      console.error('Daily.co API error:', dailyError)
-      return NextResponse.json(
-        { error: `Daily.co error: ${dailyError instanceof Error ? dailyError.message : 'Failed to create room'}` },
-        { status: 500 }
-      )
+    if (sessionType === 'group' || sessionType === 'workshop') {
+      maxParticipants = 25
+    } else if (sessionType === 'alignment_gym' || sessionType === 'webinar') {
+      maxParticipants = 0
     }
 
     // Determine host: use staff member when staff_id is provided (e.g. calibration calls),
@@ -95,15 +75,10 @@ export async function POST(request: NextRequest) {
       hostName = account?.full_name || account?.first_name || user.email || 'Host'
     }
 
-    // Create host token
-    const hostToken = await createHostToken(dailyRoom.name, hostUserId, hostName)
-
-    // Create session in database
+    // Create session in database (no Daily.co room yet -- created on demand at join time)
     const { data: session, error: sessionError } = await supabase
       .from('video_sessions')
       .insert({
-        daily_room_name: dailyRoom.name,
-        daily_room_url: dailyRoom.url,
         title: body.title,
         description: body.description,
         session_type: sessionType,
@@ -115,7 +90,6 @@ export async function POST(request: NextRequest) {
         enable_waiting_room: false,
         max_participants: maxParticipants,
         is_group_session: sessionType !== 'one_on_one',
-        // Dynamic scheduling fields
         staff_id: body.staff_id || null,
         event_type: body.event_type || null,
       })
@@ -285,8 +259,8 @@ export async function POST(request: NextRequest) {
 
     const response: CreateSessionResponse = {
       session: session as VideoSession,
-      host_token: hostToken.token,
-      room_url: dailyRoom.url,
+      host_token: '',
+      room_url: '',
     }
 
     return NextResponse.json(response, { status: 201 })

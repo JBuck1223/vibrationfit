@@ -6,7 +6,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createHostToken, createParticipantToken } from '@/lib/video/daily'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { createHostToken, createParticipantToken, ensureDailyRoom } from '@/lib/video/daily'
 import type { JoinSessionResponse, VideoSession } from '@/lib/video/types'
 
 interface RouteContext {
@@ -45,11 +46,24 @@ export async function POST(
     }
 
     // Check if user is authorized to join
-    const isHost = session.host_user_id === user.id
+    let isHost = session.host_user_id === user.id
     let participant = session.participants?.find(
       (p: { user_id?: string; email?: string }) => 
         p.user_id === user.id || p.email === user.email
     )
+
+    // Super admins can join any session as host
+    if (!isHost && !participant) {
+      const { data: account } = await supabase
+        .from('user_accounts')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (account?.role === 'super_admin') {
+        isHost = true
+      }
+    }
 
     // Alignment Gym sessions are open to all authenticated users
     // Auto-add them as a participant if they aren't already
@@ -107,12 +121,22 @@ export async function POST(
 
     const userName = account?.full_name || account?.first_name || user.email || 'Participant'
 
+    // Ensure a Daily.co room exists (created on demand if not yet provisioned)
+    const room = await ensureDailyRoom(session)
+    if (room.created) {
+      const admin = createAdminClient()
+      await admin
+        .from('video_sessions')
+        .update({ daily_room_name: room.name, daily_room_url: room.url })
+        .eq('id', id)
+    }
+
     // Create appropriate token
     let token
     if (isHost) {
-      token = await createHostToken(session.daily_room_name, user.id, userName)
+      token = await createHostToken(room.name, user.id, userName)
     } else {
-      token = await createParticipantToken(session.daily_room_name, user.id, userName)
+      token = await createParticipantToken(room.name, user.id, userName)
     }
 
     // Update participant record with user_id if they were invited by email
@@ -126,7 +150,7 @@ export async function POST(
     const response: JoinSessionResponse = {
       session: session as VideoSession,
       token: token.token,
-      room_url: session.daily_room_url,
+      room_url: room.url,
       is_host: isHost,
     }
 

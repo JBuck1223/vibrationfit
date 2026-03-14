@@ -450,6 +450,32 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: `Update failed: ${updateError.message}` }, { status: 500 })
       }
 
+      // Update the linked video session time and clear any stale Daily.co room
+      // (a fresh room will be created on-demand when someone joins)
+      if (booking.video_session_id) {
+        const { data: videoSession } = await supabase
+          .from('video_sessions')
+          .select('daily_room_name')
+          .eq('id', booking.video_session_id)
+          .single()
+
+        await supabase
+          .from('video_sessions')
+          .update({
+            scheduled_at,
+            daily_room_name: null,
+            daily_room_url: null,
+          })
+          .eq('id', booking.video_session_id)
+
+        // Best-effort cleanup of the old Daily.co room if one existed
+        if (videoSession?.daily_room_name) {
+          import('@/lib/video/daily').then(({ deleteRoom }) =>
+            deleteRoom(videoSession.daily_room_name).catch(() => {})
+          )
+        }
+      }
+
       // Update intensive checklist scheduled time
       const { data: checklist } = await supabase
         .from('intensive_checklist')
