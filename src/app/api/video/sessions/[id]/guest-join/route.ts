@@ -15,7 +15,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { createParticipantToken } from '@/lib/video/daily'
+import { createParticipantToken, ensureDailyRoom } from '@/lib/video/daily'
 import type { JoinSessionResponse, VideoSession } from '@/lib/video/types'
 
 interface RouteContext {
@@ -102,9 +102,17 @@ export async function POST(
         .eq('id', participant.id)
     }
 
-    // Create a Daily.co token
+    // Ensure a Daily.co room exists (created on demand if not yet provisioned)
+    const room = await ensureDailyRoom(session)
+    if (room.created) {
+      await supabaseAdmin
+        .from('video_sessions')
+        .update({ daily_room_name: room.name, daily_room_url: room.url })
+        .eq('id', id)
+    }
+
     const dailyToken = await createParticipantToken(
-      session.daily_room_name,
+      room.name,
       participant.user_id || participant.id,
       participantName
     )
@@ -112,7 +120,7 @@ export async function POST(
     const response: JoinSessionResponse = {
       session: session as VideoSession,
       token: dailyToken.token,
-      room_url: session.daily_room_url,
+      room_url: room.url,
       is_host: false,
     }
 

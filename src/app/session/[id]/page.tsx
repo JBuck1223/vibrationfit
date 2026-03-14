@@ -15,6 +15,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { SessionLobby } from '@/components/video/SessionLobby'
 import { PreCallCheck } from '@/components/video/PreCallCheck'
 import { VideoCall } from '@/components/video/VideoCall'
 import { PostCallSummary } from '@/components/video/PostCallSummary'
@@ -31,7 +32,7 @@ import type { VideoSession, VideoSessionParticipant, CallSettings, JoinSessionRe
 
 type SessionWithParticipants = VideoSession & { participants?: VideoSessionParticipant[] }
 
-type PageState = 'loading' | 'error' | 'pre-call' | 'in-call' | 'post-call'
+type PageState = 'loading' | 'error' | 'lobby' | 'pre-call' | 'in-call' | 'post-call'
 
 interface GuestSessionInfo {
   id: string
@@ -91,7 +92,8 @@ export default function SessionPage() {
               setUserName(profileData.full_name || profileData.email || 'Participant')
             }
 
-            setPageState('pre-call')
+            // Hosts skip the lobby and go straight to pre-call
+            setPageState(data.is_host ? 'pre-call' : 'lobby')
             return
           }
 
@@ -115,7 +117,7 @@ export default function SessionPage() {
         if (guestData.participant?.name) {
           setUserName(guestData.participant.name)
         }
-        setPageState('pre-call')
+        setPageState('lobby')
       } catch (err) {
         console.error('Error:', err)
         setError('Failed to load session')
@@ -280,6 +282,23 @@ export default function SessionPage() {
           </Stack>
         </Container>
       </div>
+    )
+  }
+
+  // Lobby — session info, countdown, and preparation while waiting
+  if (pageState === 'lobby') {
+    const lobbySession = session || guestSession
+    return (
+      <SessionLobby
+        title={lobbySession?.title || 'Your Session'}
+        description={lobbySession?.description}
+        hostName={!isHost ? hostName || undefined : undefined}
+        scheduledAt={lobbySession?.scheduled_at}
+        durationMinutes={lobbySession?.scheduled_duration_minutes}
+        sessionType={session?.session_type || guestSession?.session_type}
+        onReady={() => setPageState('pre-call')}
+        onCancel={handleCancel}
+      />
     )
   }
 

@@ -197,7 +197,8 @@ export default function AdminScheduleCallPage() {
       )
 
       if (hasAvailableStaff) {
-        dates.push(date.toISOString().split('T')[0])
+        const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+        dates.push(dateStr)
       }
 
       if (dates.length >= 10) break
@@ -705,7 +706,7 @@ export default function AdminScheduleCallPage() {
                             label="Choose a Date"
                             value={selectedDate}
                             onChange={(date) => setSelectedDate(date)}
-                            minDate={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
+                            minDate={(() => { const d = new Date(); d.setDate(d.getDate() + 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })()}
                             helperText={availableDates.length > 0 ? `${availableDates.length} dates with staff availability in the next 4 weeks` : undefined}
                           />
                         </div>
@@ -1102,15 +1103,13 @@ export default function AdminScheduleCallPage() {
                                   <DatePicker
                                     value={rescheduleDate}
                                     onChange={(date) => setRescheduleDate(date)}
-                                    minDate={new Date().toISOString().split('T')[0]}
+                                    minDate={`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`}
                                     placeholder="New date..."
                                   />
                                   <TimePicker
                                     value={rescheduleTime}
                                     onChange={(time) => setRescheduleTime(time)}
                                     step={15}
-                                    minTime="08:00"
-                                    maxTime="20:00"
                                     placeholder="New time..."
                                   />
                                 </div>

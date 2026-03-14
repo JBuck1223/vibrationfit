@@ -353,6 +353,48 @@ export function verifyWebhookSignature(
 }
 
 // ============================================================================
+// ON-DEMAND ROOM PROVISIONING
+// ============================================================================
+
+/**
+ * Ensure a Daily.co room exists for a session.
+ * If the session already has a room, returns it as-is.
+ * Otherwise creates one based on session_type and returns the new room details.
+ */
+export async function ensureDailyRoom(session: {
+  daily_room_name?: string | null
+  daily_room_url?: string | null
+  session_type: string
+  scheduled_at: string
+  scheduled_duration_minutes?: number
+}): Promise<{ name: string; url: string; created: boolean }> {
+  if (session.daily_room_name && session.daily_room_url) {
+    return { name: session.daily_room_name, url: session.daily_room_url, created: false }
+  }
+
+  const scheduledAt = new Date(session.scheduled_at)
+  const duration = session.scheduled_duration_minutes || 60
+  let room: DailyRoom
+
+  switch (session.session_type) {
+    case 'group':
+    case 'workshop':
+      room = await createGroupRoom(scheduledAt, 25, duration)
+      break
+    case 'alignment_gym':
+      room = await createAlignmentGymRoom(scheduledAt, duration)
+      break
+    case 'webinar':
+      room = await createWebinarRoom(scheduledAt, duration)
+      break
+    default:
+      room = await createOneOnOneRoom(scheduledAt, duration)
+  }
+
+  return { name: room.name, url: room.url, created: true }
+}
+
+// ============================================================================
 // PRESETS FOR VIBRATIONFIT SESSIONS
 // ============================================================================
 

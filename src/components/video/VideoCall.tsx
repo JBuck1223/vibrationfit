@@ -206,10 +206,11 @@ function VideoCallUI({
             console.error('Error sending host-joined notification:', notifyErr)
           }
         }
-      } catch (err) {
-        console.error('Error joining call:', err)
-        setError(err instanceof Error ? err.message : 'Failed to join call')
-        onError?.(err instanceof Error ? err : new Error('Failed to join call'))
+      } catch (err: any) {
+        const message = err?.message || err?.error || err?.errorMsg || (typeof err === 'string' ? err : JSON.stringify(err)) || 'Failed to join call'
+        console.error('Error joining call:', message, err)
+        setError(message)
+        onError?.(new Error(message))
       }
     }
 
