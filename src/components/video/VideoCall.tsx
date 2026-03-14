@@ -431,7 +431,7 @@ function VideoCallUI({
           </div>
           <h2 className="text-xl font-bold text-white mb-2">Connection Error</h2>
           <p className="text-neutral-400 mb-6">{error || 'Failed to connect to the call'}</p>
-          <Button variant="primary" onClick={onLeave}>
+          <Button variant="primary" onClick={() => onLeave?.({ durationSeconds: 0, wasRecording: false })}>
             Return to Dashboard
           </Button>
         </Card>
@@ -460,7 +460,7 @@ function VideoCallUI({
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
           <p className="text-white text-lg">You have left the call</p>
-          <Button variant="primary" onClick={onLeave} className="mt-4">
+          <Button variant="primary" onClick={() => onLeave?.({ durationSeconds: 0, wasRecording: false })} className="mt-4">
             Continue
           </Button>
         </div>
