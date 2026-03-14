@@ -26,7 +26,8 @@ import {
   Eye,
   Gem,
   CheckCircle,
-  X
+  X,
+  RotateCcw
 } from 'lucide-react'
 import { 
    
@@ -309,6 +310,8 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const [refinementNotes, setRefinementNotes] = useState('')
   const [viewMode, setViewMode] = useState<'edit' | 'highlight'>('edit')
   const [originalVisionText, setOriginalVisionText] = useState('')
+  const [previousRefinement, setPreviousRefinement] = useState<string | null>(null)
+  const [refineFromRevision, setRefineFromRevision] = useState(false)
 
   const supabase = createClient()
 
@@ -412,9 +415,26 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
         const activeVersion = await calculateVersionNumber(activeVisionData.id)
         setVision({ ...activeVisionData, version_number: activeVersion })
         console.log('Active vision loaded for comparison:', activeVisionData.id, 'Version:', activeVersion)
+      } else if (visionData.parent_id) {
+        // No active vision but draft has a parent — fetch the parent as baseline
+        const { data: parentVision } = await supabase
+          .from('vision_versions')
+          .select('*')
+          .eq('id', visionData.parent_id)
+          .eq('user_id', user.id)
+          .maybeSingle()
+        
+        if (parentVision) {
+          const parentVersion = await calculateVersionNumber(parentVision.id)
+          setVision({ ...parentVision, version_number: parentVersion })
+          console.log('Parent vision loaded for comparison:', parentVision.id, 'Version:', parentVersion)
+        } else {
+          console.log('Parent vision not found, no baseline available')
+          setVision(null)
+        }
       } else {
-        // No active vision, use draft as vision too (edge case)
-        setVision(visionWithVersion)
+        console.log('No active or parent vision, no baseline available')
+        setVision(null)
       }
       
       // Also fetch user profile for avatar
@@ -1159,16 +1179,22 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const handleVivaRefine = async () => {
     if (!selectedCategory || !draftVision || !vision) return
     
-    // Get the active vision text for this category
     const activeVisionText = getCategoryValue(selectedCategory)
-    if (!activeVisionText.trim()) return
+    const inputText = refineFromRevision && currentRefinement.trim()
+      ? currentRefinement
+      : activeVisionText
+    if (!inputText.trim()) return
+    
+    if (currentRefinement.trim()) {
+      setPreviousRefinement(currentRefinement)
+    }
     
     setIsVivaRefining(true)
-    setOriginalVisionText(activeVisionText) // Store original active vision
-    setCurrentRefinement('') // Clear refinement field to stream into it
-    setShowCurrentVision(true) // Show current vision for comparison
-    setShowRefinement(true) // Show refinement field
-    setViewMode('edit') // Reset to edit mode
+    setOriginalVisionText(activeVisionText)
+    setCurrentRefinement('')
+    setShowCurrentVision(true)
+    setShowRefinement(true)
+    setViewMode('edit')
     
     try {
       const refinement = {
@@ -1176,7 +1202,6 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       }
       const weave = { enabled: false as const }
       
-      // Get user perspective from profile
       const { data: profile } = await supabase
         .from('user_profiles')
         .select('perspective')
@@ -1185,14 +1210,13 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       
       const perspective = profile?.perspective || 'singular'
       
-      // Call the API
       const response = await fetch('/api/viva/refine-category-weave', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           visionId: draftVision.id,
           category: selectedCategory,
-          currentVisionText: activeVisionText,
+          currentVisionText: inputText,
           refinement,
           weave,
           perspective
@@ -1563,18 +1587,17 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                     : ''}
                   onClick={() => {
                     setSelectedCategory(category.key)
+                    setPreviousRefinement(null)
+                    setRefineFromRevision(false)
                     
-                    // Update URL parameter to reflect the selected category
                     const currentPath = window.location.pathname
                     router.replace(`${currentPath}?category=${category.key}`, { scroll: false })
                     
-                    // Set original vision text from active vision for diff comparison
                     if (vision) {
                       const activeValue = getCategoryValue(category.key)
                       setOriginalVisionText(activeValue)
                     }
                     
-                    // Load content from draft vision
                     if (draftVision) {
                       const draftValue = draftVision[category.key as keyof VisionData] as string
                       setCurrentRefinement(draftValue || '')
@@ -1618,7 +1641,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
             </div>
 
             {showVivaRefine && (
-              <div className="space-y-6">
+              <div>
                 {/* VIVA Refinement Notes */}
                 <div>
                   <label className="block text-sm font-medium text-neutral-300 mb-2">
@@ -1637,6 +1660,28 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                   />
                 </div>
 
+                {/* Refine from revision toggle */}
+                {selectedCategory && currentRefinement.trim() &&
+                  currentRefinement.trim() !== getCategoryValue(selectedCategory).trim() && (
+                  <label className="flex items-center justify-center gap-2 pt-3 cursor-pointer select-none">
+                    <div
+                      role="switch"
+                      aria-checked={refineFromRevision}
+                      onClick={() => setRefineFromRevision(!refineFromRevision)}
+                      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ${
+                        refineFromRevision ? 'bg-accent-500' : 'bg-neutral-600'
+                      }`}
+                    >
+                      <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform duration-200 ${
+                        refineFromRevision ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                      }`} />
+                    </div>
+                    <span className="text-sm text-neutral-300">
+                      Refine from current revision
+                    </span>
+                  </label>
+                )}
+
                 {/* Generate Button */}
                 <div className="flex justify-center pt-4">
                   <Button
@@ -1654,7 +1699,10 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                     ) : (
                       <>
                         <Wand2 className="w-5 h-5" />
-                        Generate VIVA Revision
+                        {refineFromRevision && currentRefinement.trim() && selectedCategory &&
+                          currentRefinement.trim() !== getCategoryValue(selectedCategory).trim()
+                          ? 'Revise Current Revision'
+                          : 'Generate VIVA Revision'}
                       </>
                     )}
                   </Button>
@@ -1842,8 +1890,23 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                   />
                 )}
                 
-                {/* Centered Save Button */}
-                <div className="flex justify-center mt-4 md:mt-5 lg:mt-6">
+                {/* Action Buttons */}
+                <div className="flex flex-wrap justify-center gap-3 mt-4 md:mt-5 lg:mt-6">
+                  {previousRefinement && !isVivaRefining && (
+                    <Button
+                      onClick={() => {
+                        setCurrentRefinement(previousRefinement)
+                        setPreviousRefinement(null)
+                        setShowRefinement(true)
+                      }}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      Revert to Previous
+                    </Button>
+                  )}
                   <SaveButton
                     saveLabel="Save Refinement"
                     hasUnsavedChanges={
