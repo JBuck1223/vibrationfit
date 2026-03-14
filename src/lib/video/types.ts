@@ -119,6 +119,7 @@ export interface CreateSessionRequest {
   session_type?: VideoSessionType
   scheduled_at: string  // ISO string
   scheduled_duration_minutes?: number
+  participant_user_id?: string
   participant_email?: string
   participant_name?: string
   participant_phone?: string

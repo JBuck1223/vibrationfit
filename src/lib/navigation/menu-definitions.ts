@@ -758,9 +758,11 @@ export function isNavItemActive(
       }
     }
     
-    // Special handling for /map
+    // Special handling for /map - match sub-routes like /map/new, /map/[id]
     if (item.href === '/map') {
-      // Exact match only
+      if (pathname.startsWith('/map/')) {
+        return true
+      }
       return false
     }
   }

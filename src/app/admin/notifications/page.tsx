@@ -13,8 +13,10 @@ import {
   MessageSquare,
   ExternalLink,
   Filter,
+  Settings,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import type { AdminNotificationType } from '@/lib/admin/notifications'
 
 interface AdminNotification {
@@ -150,16 +152,24 @@ export default function AdminNotificationsPage() {
                 {total} total{unreadCount > 0 ? ` \u00b7 ${unreadCount} unread` : ''}
               </p>
             </div>
-            {unreadCount > 0 && (
-              <Button
-                variant="ghost"
-                onClick={markAllAsRead}
-                disabled={markingAll}
-              >
-                <CheckCheck className="w-4 h-4 mr-2" />
-                {markingAll ? 'Marking...' : 'Mark all as read'}
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {unreadCount > 0 && (
+                <Button
+                  variant="ghost"
+                  onClick={markAllAsRead}
+                  disabled={markingAll}
+                >
+                  <CheckCheck className="w-4 h-4 mr-2" />
+                  {markingAll ? 'Marking...' : 'Mark all as read'}
+                </Button>
+              )}
+              <Link href="/admin/notification-settings">
+                <Button variant="outline">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Settings
+                </Button>
+              </Link>
+            </div>
           </div>
 
           {/* Filters */}

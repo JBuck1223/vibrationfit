@@ -42,26 +42,29 @@ interface PendingBooking {
   status: string
 }
 
-function formatDateLong(dateString: string) {
+function formatDateLong(dateString: string, tz: string) {
   return new Date(dateString).toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
+    timeZone: tz,
   })
 }
 
-function formatDateShort(dateString: string) {
+function formatDateShort(dateString: string, tz: string) {
   return new Date(dateString).toLocaleDateString('en-US', {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
+    timeZone: tz,
   })
 }
 
-function formatTime(dateString: string) {
+function formatTime(dateString: string, tz: string) {
   return new Date(dateString).toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',
+    timeZone: tz,
     timeZoneName: 'short',
   })
 }
@@ -74,19 +77,28 @@ export default function MemberSessionsPage() {
   const [pendingBookings, setPendingBookings] = useState<PendingBooking[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [tz, setTz] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone)
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true)
 
-      const [sessionsRes, bookingsRes] = await Promise.all([
+      const [sessionsRes, bookingsRes, accountRes] = await Promise.all([
         fetch('/api/video/sessions'),
         supabase
           .from('bookings')
           .select('id, title, scheduled_at, duration_minutes, status')
           .in('status', ['pending', 'confirmed'])
           .order('scheduled_at', { ascending: true }),
+        supabase
+          .from('user_accounts')
+          .select('timezone')
+          .single(),
       ])
+
+      if (accountRes.data?.timezone) {
+        setTz(accountRes.data.timezone)
+      }
 
       const sessionsData = await sessionsRes.json()
       if (!sessionsRes.ok) {
@@ -216,7 +228,7 @@ export default function MemberSessionsPage() {
                       {booking.title}
                     </h4>
                     <p className="text-xs md:text-sm text-neutral-400">
-                      {formatDateShort(booking.scheduled_at)} at {formatTime(booking.scheduled_at)}
+                      {formatDateShort(booking.scheduled_at, tz)} at {formatTime(booking.scheduled_at, tz)}
                     </p>
                   </div>
                   <Badge variant="warning" className="text-xs flex-shrink-0">
@@ -258,11 +270,11 @@ export default function MemberSessionsPage() {
             <div className="flex flex-wrap gap-4 text-sm">
               <div className="flex items-center gap-2 text-neutral-300">
                 <Calendar className="w-4 h-4 text-primary-500" />
-                <span>{formatDateLong(nextSession.scheduled_at)}</span>
+                <span>{formatDateLong(nextSession.scheduled_at, tz)}</span>
               </div>
               <div className="flex items-center gap-2 text-neutral-300">
                 <Clock className="w-4 h-4 text-primary-500" />
-                <span>{formatTime(nextSession.scheduled_at)}</span>
+                <span>{formatTime(nextSession.scheduled_at, tz)}</span>
               </div>
               <div className="flex items-center gap-2 text-neutral-300">
                 <Video className="w-4 h-4 text-primary-500" />
@@ -301,7 +313,7 @@ export default function MemberSessionsPage() {
                         {session.title}
                       </h4>
                       <p className="text-xs md:text-sm text-neutral-500">
-                        {formatDateShort(session.scheduled_at)} at {formatTime(session.scheduled_at)}
+                        {formatDateShort(session.scheduled_at, tz)} at {formatTime(session.scheduled_at, tz)}
                       </p>
                     </div>
                     {joinable ? (
@@ -353,6 +365,7 @@ export default function MemberSessionsPage() {
                         month: 'short',
                         day: 'numeric',
                         year: 'numeric',
+                        timeZone: tz,
                       })}
                       {session.actual_duration_seconds && (
                         <> · {formatDuration(session.actual_duration_seconds)}</>

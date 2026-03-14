@@ -56,6 +56,28 @@ export async function processSequenceSteps(): Promise<ProcessResult> {
     result.processed++
     const nextOrder = enrollment.current_step_order + 1
 
+    // Resolve user_id from email if missing (prevents condition checks from
+    // being skipped entirely when the enrollment was created without a userId)
+    let resolvedUserId = enrollment.user_id
+    if (!resolvedUserId && enrollment.email) {
+      try {
+        const { data: acct } = await supabase
+          .from('user_accounts')
+          .select('id')
+          .eq('email', enrollment.email)
+          .maybeSingle()
+        if (acct?.id) {
+          resolvedUserId = acct.id
+          await supabase
+            .from('sequence_enrollments')
+            .update({ user_id: acct.id })
+            .eq('id', enrollment.id)
+        }
+      } catch {
+        // Non-fatal: continue without resolved userId
+      }
+    }
+
     try {
       const { data: step } = await supabase
         .from('sequence_steps')
@@ -101,8 +123,6 @@ export async function processSequenceSteps(): Promise<ProcessResult> {
       }
 
       // --- Exit (dropoff) condition check ---
-      // If the step has an exit_if_checklist condition and the user meets it,
-      // cancel the enrollment entirely so no further steps fire.
       const exitCheck = (step.conditions as Record<string, unknown>)?.exit_if_checklist as {
         table: string
         user_field: string
@@ -110,12 +130,12 @@ export async function processSequenceSteps(): Promise<ProcessResult> {
         check_value: unknown
       } | undefined
 
-      if (exitCheck && enrollment.user_id) {
+      if (exitCheck && resolvedUserId) {
         try {
           const { data: row } = await supabase
             .from(exitCheck.table)
             .select(exitCheck.check_field)
-            .eq(exitCheck.user_field, enrollment.user_id)
+            .eq(exitCheck.user_field, resolvedUserId)
             .maybeSingle()
 
           if (row && (row as unknown as Record<string, unknown>)[exitCheck.check_field] === exitCheck.check_value) {
@@ -141,8 +161,6 @@ export async function processSequenceSteps(): Promise<ProcessResult> {
       }
 
       // --- Skip condition check ---
-      // If the step has a skip_if_checklist condition and the user meets it,
-      // skip this message entirely but still advance the enrollment.
       const skipCheck = (step.conditions as Record<string, unknown>)?.skip_if_checklist as {
         table: string
         user_field: string
@@ -151,15 +169,18 @@ export async function processSequenceSteps(): Promise<ProcessResult> {
       } | undefined
 
       let shouldSkip = false
-      if (skipCheck && enrollment.user_id) {
+      if (skipCheck && resolvedUserId) {
         try {
           const { data: row } = await supabase
             .from(skipCheck.table)
             .select(skipCheck.check_field)
-            .eq(skipCheck.user_field, enrollment.user_id)
+            .eq(skipCheck.user_field, resolvedUserId)
             .maybeSingle()
 
-          if (row && (row as unknown as Record<string, unknown>)[skipCheck.check_field] === skipCheck.check_value) {
+          if (!row) {
+            // No checklist row means the user hasn't started -- skip step-progress emails
+            shouldSkip = true
+          } else if ((row as unknown as Record<string, unknown>)[skipCheck.check_field] === skipCheck.check_value) {
             shouldSkip = true
           }
         } catch (checkErr) {

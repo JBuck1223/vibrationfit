@@ -212,6 +212,12 @@ export default async function DashboardPage() {
 
   const graduateChecklist = await getGraduateChecklist(supabase, user.id)
 
+  const { data: accountTz } = await supabase
+    .from('user_accounts')
+    .select('timezone')
+    .eq('id', user.id)
+    .single()
+
   return (
     <DashboardContent 
       user={user}
@@ -226,6 +232,7 @@ export default async function DashboardPage() {
       storageQuotaGB={storageQuotaGB}
       initialCalibrationCall={calibrationCall}
       graduateChecklist={graduateChecklist}
+      userTimezone={accountTz?.timezone || null}
     />
   )
 }

@@ -105,7 +105,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         first_name: r.first_name,
       }))
     } else {
-      let query = admin.from('user_profiles').select('id, email, phone, full_name, first_name')
+      let query = admin.from('user_accounts').select('id, email, phone, full_name, first_name')
       if (filter.subscription_status) query = query.eq('subscription_status', filter.subscription_status as string)
       if (filter.role) query = query.eq('role', filter.role as string)
       const { data } = await query

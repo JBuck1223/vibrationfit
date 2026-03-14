@@ -18,6 +18,7 @@ import {
   Shield,
   Bell,
   Menu,
+  Home,
 } from 'lucide-react'
 import { userNavigation, userNavigationGroups, adminNavigation, mobileNavigation, isNavItemActive, type NavItem, type NavGroup } from '@/lib/navigation'
 import { useAdminNotificationCount } from '@/hooks/useAdminNotificationCount'
@@ -494,11 +495,16 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
             </button>
             {isSuperAdmin && (
               <Link
-                href="/admin"
-                className="flex items-center justify-center p-2.5 rounded-lg text-neutral-400 hover:text-[#BF00FF] hover:bg-[#BF00FF]/10 transition-all duration-200"
-                title="Admin"
+                href={isAdmin ? '/dashboard' : '/admin'}
+                className={cn(
+                  'flex items-center justify-center p-2.5 rounded-lg transition-all duration-200',
+                  isAdmin
+                    ? 'text-neutral-400 hover:text-[#39FF14] hover:bg-[#39FF14]/10'
+                    : 'text-neutral-400 hover:text-[#BF00FF] hover:bg-[#BF00FF]/10'
+                )}
+                title={isAdmin ? 'Back to User Dashboard' : 'Admin'}
               >
-                <Shield className="w-4 h-4" />
+                {isAdmin ? <Home className="w-4 h-4" /> : <Shield className="w-4 h-4" />}
               </Link>
             )}
           </div>

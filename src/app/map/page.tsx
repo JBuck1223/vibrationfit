@@ -5,12 +5,12 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
 import Link from 'next/link'
-import { 
-  Container, 
+import {
+  Container,
   Stack,
   PageHero,
-  Card, 
-  Button, 
+  Card,
+  Button,
   Spinner,
   Inline,
   Text,
@@ -19,10 +19,10 @@ import {
   IntensiveStepCompleteModal
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
-import { 
-  Sun, 
-  Moon, 
-  Zap, 
+import {
+  Sun,
+  Moon,
+  Zap,
   ArrowRight,
   Calendar,
   BookOpen,
@@ -41,6 +41,13 @@ import {
   UsersRound,
   Award,
   Info,
+  Plus,
+  ChevronDown,
+  ChevronUp,
+  Bell,
+  BellOff,
+  ExternalLink,
+  Map as MapIcon,
 } from 'lucide-react'
 import { BadgeDetailModal } from '@/components/badges'
 import {
@@ -48,13 +55,22 @@ import {
   type BadgeType,
   type BadgeWithProgress as BadgeWithProgressType,
 } from '@/lib/badges/types'
+import type { UserMap, UserMapItem, MapCategory } from '@/lib/map/types'
+import { DAY_LABELS, CATEGORY_LABELS, CATEGORY_ORDER } from '@/lib/map/types'
+import { getActivityDefinition } from '@/lib/map/activities'
 
 const MAP_VIDEO =
   'https://media.vibrationfit.com/site-assets/video/intensive/13-map-1080p.mp4'
 const MAP_POSTER =
   'https://media.vibrationfit.com/site-assets/video/intensive/13-map-thumb.0000000.jpg'
 
-// Milestone data for activation badges
+const CATEGORY_COLORS: Record<MapCategory, string> = {
+  activations: '#39FF14',
+  connections: '#BF00FF',
+  sessions: '#00FFFF',
+  creations: '#FFFF00',
+}
+
 const MILESTONES: Array<{
   day: number
   label: string
@@ -93,7 +109,6 @@ const MILESTONES: Array<{
   },
 ]
 
-// Helper to create a stub BadgeWithProgress for the modal from a badge type
 function makeBadgeStub(badgeType: BadgeType): BadgeWithProgressType {
   const definition = BADGE_DEFINITIONS[badgeType]
   return {
@@ -107,21 +122,34 @@ function makeBadgeStub(badgeType: BadgeType): BadgeWithProgressType {
   }
 }
 
+function formatTime(t: string | null) {
+  if (!t) return ''
+  const [h, m] = t.split(':').map(Number)
+  const period = h >= 12 ? 'PM' : 'AM'
+  const dh = h === 0 ? 12 : h > 12 ? h - 12 : h
+  return `${dh}:${String(m).padStart(2, '0')} ${period}`
+}
+
 export default function MAPPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  
+
   const [loading, setLoading] = useState(true)
   const [selectedMilestoneBadge, setSelectedMilestoneBadge] = useState<BadgeWithProgressType | null>(null)
   const [completing, setCompleting] = useState(false)
   const [activeVisionId, setActiveVisionId] = useState<string | null>(null)
   const [showStepCompleteModal, setShowStepCompleteModal] = useState(false)
-  
+  const [showGuide, setShowGuide] = useState(false)
+
   // Intensive flow states
   const [isIntensiveFlow, setIsIntensiveFlow] = useState(false)
   const [intensiveId, setIntensiveId] = useState<string | null>(null)
   const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
   const [completedAt, setCompletedAt] = useState<string | null>(null)
+
+  // MAP data
+  const [maps, setMaps] = useState<UserMap[]>([])
+  const [activeMap, setActiveMap] = useState<UserMap | null>(null)
 
   useEffect(() => {
     loadData()
@@ -130,35 +158,27 @@ export default function MAPPage() {
   const loadData = async () => {
     try {
       const supabase = createClient()
-      
+
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         router.push('/auth/login')
         return
       }
 
-      // Check if coming from intensive flow (via query param or active intensive)
       const fromIntensive = searchParams.get('intensive') === 'true'
-      
-      // Check for active intensive
       const intensiveData = await getActiveIntensiveClient()
 
       if (intensiveData) {
         setIntensiveId(intensiveData.intensive_id)
-        
-        // If intensive exists but not completed, this is part of intensive flow
         if (!intensiveData.unlock_completed || fromIntensive) {
           setIsIntensiveFlow(true)
         }
-        
-        // Check if activation protocol step is already completed
         if (intensiveData.activation_protocol_completed) {
           setIsAlreadyCompleted(true)
           setCompletedAt(intensiveData.activation_protocol_completed_at || intensiveData.created_at)
         }
       }
 
-      // Get active vision for linking
       const { data: visionData } = await supabase
         .from('vision_versions')
         .select('id')
@@ -172,6 +192,19 @@ export default function MAPPage() {
         setActiveVisionId(visionData.id)
       }
 
+      // Fetch user's MAPs
+      try {
+        const mapsRes = await fetch('/api/map')
+        if (mapsRes.ok) {
+          const mapsData = await mapsRes.json()
+          setMaps(mapsData.maps || [])
+          const active = (mapsData.maps || []).find((m: UserMap) => m.status === 'active')
+          if (active) setActiveMap(active)
+        }
+      } catch {
+        // Maps table may not exist yet
+      }
+
     } catch (error) {
       console.error('Error loading data:', error)
     } finally {
@@ -181,14 +214,12 @@ export default function MAPPage() {
 
   const handleContinueToUnlock = async () => {
     if (!intensiveId) return
-    
+
     setCompleting(true)
     try {
       const supabase = createClient()
-      
       const completedTime = new Date().toISOString()
-      
-      // Mark activation protocol complete (step 13)
+
       await supabase
         .from('intensive_checklist')
         .update({
@@ -198,7 +229,6 @@ export default function MAPPage() {
         .eq('intensive_id', intensiveId)
 
       setShowStepCompleteModal(true)
-      
     } catch (error) {
       console.error('Error completing:', error)
       alert('Failed to continue. Please try again.')
@@ -207,7 +237,6 @@ export default function MAPPage() {
     }
   }
 
-  // Helper to build vision-specific links
   const getVisionLink = (path: string) => {
     if (activeVisionId) {
       return `/life-vision/${activeVisionId}${path}`
@@ -225,12 +254,14 @@ export default function MAPPage() {
     )
   }
 
+  const pastMaps = maps.filter(m => m.status !== 'active')
+
   return (
     <Container size="xl">
       <Stack gap="lg">
         {/* Completion Banner if revisiting during intensive */}
         {isIntensiveFlow && isAlreadyCompleted && completedAt && (
-          <IntensiveCompletionBanner 
+          <IntensiveCompletionBanner
             stepTitle="My Activation Plan"
             completedAt={completedAt}
           />
@@ -240,39 +271,32 @@ export default function MAPPage() {
         {/* HERO SECTION */}
         {/* ============================================ */}
         <PageHero
-          eyebrow={isIntensiveFlow ? "ACTIVATION INTENSIVE • STEP 13 OF 14" : "MAP"}
+          eyebrow={isIntensiveFlow ? "ACTIVATION INTENSIVE \u2022 STEP 13 OF 14" : "MAP"}
           title="My Activation Plan"
-          subtitle="Your personal roadmap to make The Life I Choose your new normal."
+          subtitle={activeMap
+            ? `Your active MAP: ${activeMap.title}`
+            : "Build your personal weekly roadmap to make The Life I Choose your new normal."
+          }
         >
-          <div className="mx-auto w-full max-w-3xl">
-            <OptimizedVideo
-              url={MAP_VIDEO}
-              thumbnailUrl={MAP_POSTER}
-              context="single"
-              className="w-full"
-            />
-          </div>
-
-          <div className="flex flex-col gap-2 items-center">
+          <Inline gap="sm" className="justify-center flex-wrap">
             {isIntensiveFlow ? (
-              // Intensive flow buttons
               isAlreadyCompleted ? (
-                <Button 
+                <Button
                   variant="primary"
                   size="lg"
                   onClick={() => router.push('/dashboard')}
-                  className="w-full sm:w-auto px-8"
+                  className="px-8"
                 >
                   <ArrowRight className="w-5 h-5 mr-2" />
                   Go to Dashboard
                 </Button>
               ) : (
-                <Button 
+                <Button
                   variant="primary"
                   size="lg"
                   onClick={handleContinueToUnlock}
                   disabled={completing}
-                  className="w-full sm:w-auto px-8"
+                  className="px-8"
                 >
                   {completing ? (
                     <>
@@ -288,476 +312,479 @@ export default function MAPPage() {
                 </Button>
               )
             ) : (
-              // Standalone page - just show dashboard link
-              <Button 
-                variant="primary"
-                size="lg"
-                onClick={() => router.push('/dashboard')}
-                className="w-full sm:w-auto px-8"
-              >
-                <ArrowRight className="w-5 h-5 mr-2" />
-                Go to Dashboard
-              </Button>
+              <>
+                {activeMap ? (
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    asChild
+                    className="px-8"
+                  >
+                    <Link href={`/map/${activeMap.id}`}>
+                      <MapIcon className="w-5 h-5 mr-2" />
+                      View Active MAP
+                    </Link>
+                  </Button>
+                ) : null}
+                <Button
+                  variant={activeMap ? 'outline' : 'primary'}
+                  size="lg"
+                  asChild
+                  className="px-8"
+                >
+                  <Link href="/map/new">
+                    <Plus className="w-5 h-5 mr-2" />
+                    Build New MAP
+                  </Link>
+                </Button>
+              </>
             )}
-          </div>
+          </Inline>
         </PageHero>
 
         {/* ============================================ */}
-        {/* INTRO CARD */}
+        {/* ACTIVE MAP PREVIEW */}
         {/* ============================================ */}
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
-          <Stack gap="md">
-            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-              About Your MAP
-            </Text>
-            <p className="text-sm text-neutral-300 leading-relaxed">
-              You&apos;ve completed your first Creations. Your profile, assessment, Life Vision, audios, Vision Board, and journal entry are complete.
-            </p>
-            <p className="text-sm text-neutral-300 leading-relaxed">
-              Now your daily MAP shows you exactly how to run your Daily Activations, Connections and Sessions so The Life I Choose becomes your new normal.
-            </p>
-          </Stack>
-        </Card>
-
-        {/* ============================================ */}
-        {/* SECTION 2: YOUR DAILY RITUAL */}
-        {/* ============================================ */}
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
-          <Stack gap="lg">
-            <div>
-              <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-                Daily Activations
-              </Text>
-              <p className="text-sm text-neutral-500 mt-2">Your 10–20 Minute Ritual</p>
-            </div>
-
-            {/* Step 1: Morning */}
-            <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
-              <Stack gap="md">
-                <Inline gap="sm" className="items-start">
-                  <Sun className="h-5 w-5 text-amber-400" />
-                  <div>
-                    <Text size="sm" className="text-white font-semibold">
-                      Step 1: Morning Vision + Daily Paper
-                    </Text>
-                    <Text size="xs" className="text-neutral-500">Approximately 10-15 minutes</Text>
-                  </div>
+        {activeMap && activeMap.items && (activeMap.items as UserMapItem[]).length > 0 && (
+          <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+            <Stack gap="md">
+              <div className="flex items-center justify-between">
+                <Inline gap="sm" className="items-center">
+                  <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                    Active MAP
+                  </Text>
+                  <Badge variant="neutral" className="text-[#39FF14] border-[#39FF14]/30 text-xs">
+                    V{activeMap.version_number}
+                  </Badge>
                 </Inline>
-                
-                <div className="space-y-2 text-sm text-neutral-300">
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
-                    <span>Read your <strong>Life Vision</strong> out loud or listen to the audio.</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
-                    <span>Ask: <em>&quot;This is who I choose to be now. How does this version of me show up/behave?&quot;</em></span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
-                    <span>Open your <strong>Vision Board</strong> and quickly scan your tiles to remember what you&apos;re creating.</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
-                    <span>Complete your <strong>Daily Paper</strong> for the day.</span>
-                  </div>
-                  <div className="flex items-start gap-2 text-neutral-500">
-                    <Circle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                    <span><em>(Optional)</em> Open your <strong>Journal</strong> and capture one intention: &quot;One aligned choice I&apos;ll make today is...&quot;</span>
-                  </div>
-                </div>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href={`/map/${activeMap.id}`}>
+                    <ExternalLink className="w-4 h-4 mr-1" />
+                    View Details
+                  </Link>
+                </Button>
+              </div>
 
-                <div className="grid grid-cols-2 gap-2 pt-2">
-                  <Button variant="outline" size="sm" className="w-full" asChild>
-                    <Link href={getVisionLink('')}>
-                      <Target className="w-4 h-4 mr-2" />
-                      Life Vision
-                    </Link>
-                  </Button>
-                  <Button variant="outline" size="sm" className="w-full" asChild>
-                    <Link href="/vision-board">
-                      <ImageIcon className="w-4 h-4 mr-2" />
-                      Vision Board
-                    </Link>
-                  </Button>
-                  <Button variant="outline" size="sm" className="w-full" asChild>
-                    <Link href="/daily-paper">
-                      <FileText className="w-4 h-4 mr-2" />
-                      Daily Paper
-                    </Link>
-                  </Button>
-                  <Button variant="outline" size="sm" className="w-full" asChild>
-                    <Link href="/journal">
-                      <BookOpen className="w-4 h-4 mr-2" />
-                      Journal
-                    </Link>
-                  </Button>
-                </div>
-              </Stack>
-            </div>
-
-            {/* Step 2: Real-Time */}
-            <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
-              <Stack gap="md">
-                <Inline gap="sm" className="items-start">
-                  <Zap className="h-5 w-5 text-primary-400" />
-                  <div>
-                    <Text size="sm" className="text-white font-semibold">
-                      Step 2: Real-Time Category Activation
-                    </Text>
-                    <Text size="xs" className="text-neutral-500">1+ time per day</Text>
-                  </div>
-                </Inline>
-                
-                <p className="text-sm text-neutral-300">
-                  At least once today, before a key moment (work, money, health, family, love):
-                </p>
-
-                <div className="space-y-2 text-sm text-neutral-300">
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
-                    <span>Open your <strong>Vision Audios</strong>.</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
-                    <span>Listen 1-3 minutes to the category you&apos;re about to step into.</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
-                    <span>Ask: <em>&quot;This is who I choose to be now. How does this version of me show up/behave?&quot;</em></span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
-                    <span>Make one micro decision from that place.</span>
-                  </div>
-                  <div className="flex items-start gap-2 text-neutral-500">
-                    <Circle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                    <span><em>(Optional)</em> After the moment, Journal: &quot;Did anything shift in how I intentionally showed up?&quot;</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 pt-2">
-                  <Button variant="outline" size="sm" className="w-full" asChild>
-                    <Link href={getVisionLink('/audio')}>
-                      <Headphones className="w-4 h-4 mr-2" />
-                      Vision Audios
-                    </Link>
-                  </Button>
-                  <Button variant="outline" size="sm" className="w-full" asChild>
-                    <Link href="/journal">
-                      <BookOpen className="w-4 h-4 mr-2" />
-                      Journal
-                    </Link>
-                  </Button>
-                </div>
-              </Stack>
-            </div>
-
-            {/* Step 3: Night */}
-            <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
-              <Stack gap="md">
-                <Inline gap="sm" className="items-start">
-                  <Moon className="h-5 w-5 text-purple-400" />
-                  <div>
-                    <Text size="sm" className="text-white font-semibold">
-                      Step 3: Night Sleep Immersion + Vision Focus + Evidence Journal
-                    </Text>
-                    <Text size="xs" className="text-neutral-500">Approximately 10-15 minutes</Text>
-                  </div>
-                </Inline>
-
-                <div className="space-y-2 text-sm text-neutral-300">
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
-                    <span>Read your <strong>Life Vision</strong> out loud or listen to the audio.</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <span>Open your <strong>Journal</strong> and record (written, audio, or video):</span>
-                      <ul className="mt-1 ml-4 space-y-1 text-neutral-400 text-xs">
-                        <li>&quot;What matched my Life I Choose today?&quot;</li>
-                        <li>&quot;What synchronicities or manifestations did I notice?&quot;</li>
-                      </ul>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <span>Open your <strong>Vision Board</strong> (morning or evening):</span>
-                      <ul className="mt-1 ml-4 space-y-1 text-neutral-400 text-xs">
-                        <li>Slowly look at each tile and feel what it will be like when it&apos;s normal.</li>
-                        <li>Mark items complete and add an Actualization Story for manifested items.</li>
-                        <li>Add descriptions for items you have new clarity on.</li>
-                        <li>Add new desires as they form.</li>
-                      </ul>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
-                    <span>Press play on your <strong>All Categories Sleep Immersion</strong> track with your chosen background sound. Let it loop while you fall asleep.</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 pt-2">
-                  <Button variant="outline" size="sm" className="w-full" asChild>
-                    <Link href={getVisionLink('')}>
-                      <Target className="w-4 h-4 mr-2" />
-                      Life Vision
-                    </Link>
-                  </Button>
-                  <Button variant="outline" size="sm" className="w-full" asChild>
-                    <Link href="/journal">
-                      <BookOpen className="w-4 h-4 mr-2" />
-                      Journal
-                    </Link>
-                  </Button>
-                  <Button variant="outline" size="sm" className="w-full" asChild>
-                    <Link href="/vision-board">
-                      <ImageIcon className="w-4 h-4 mr-2" />
-                      Vision Board
-                    </Link>
-                  </Button>
-                  <Button variant="outline" size="sm" className="w-full" asChild>
-                    <Link href={getVisionLink('/audio')}>
-                      <Headphones className="w-4 h-4 mr-2" />
-                      Vision Audios
-                    </Link>
-                  </Button>
-                </div>
-              </Stack>
-            </div>
-          </Stack>
-        </Card>
-
-        {/* ============================================ */}
-        {/* SECTION 3: WEEKLY ALIGNMENT */}
-        {/* ============================================ */}
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
-          <Stack gap="lg">
-            <div>
-              <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-                Weekly Alignment
-              </Text>
-            </div>
-
-            <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
-              <Stack gap="md">
-                <Inline gap="sm" className="items-start">
-                  <Video className="h-5 w-5 text-teal-400" />
-                  <div>
-                    <Text size="sm" className="text-white font-semibold">
-                      Sessions: Alignment Gym
-                    </Text>
-                    <Text size="xs" className="text-neutral-500">Every 7 days</Text>
-                  </div>
-                </Inline>
-                
-                <div className="space-y-2 text-sm text-neutral-300">
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
-                    <span>Attend live or watch the replay.</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
-                    <span>Take session notes to &quot;Track your workout: What are my main takeaways from the gym today?&quot;</span>
-                  </div>
-                </div>
-              </Stack>
-            </div>
-
-            <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
-              <Stack gap="md">
-                <Inline gap="sm" className="items-start">
-                  <UsersRound className="h-5 w-5 text-purple-400" />
-                  <div>
-                    <Text size="sm" className="text-white font-semibold">
-                      Connections: Vibe Tribe
-                    </Text>
-                    <Text size="xs" className="text-neutral-500">Optional but recommended</Text>
-                  </div>
-                </Inline>
-                
-                <div className="space-y-2 text-sm text-neutral-300">
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
-                    <span>Share a short post or clip with your key takeaway from Alignment Gym so others can calibrate with you.</span>
-                  </div>
-                </div>
-              </Stack>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" size="sm" className="w-full" asChild>
-                <Link href="/alignment-gym">
-                  <Video className="w-4 h-4 mr-2" />
-                  Alignment Gym
-                </Link>
-              </Button>
-              <Button variant="outline" size="sm" className="w-full" asChild>
-                <Link href="/vibe-tribe">
-                  <UsersRound className="w-4 h-4 mr-2" />
-                  Vibe Tribe
-                </Link>
-              </Button>
-            </div>
-          </Stack>
-        </Card>
-
-        {/* ============================================ */}
-        {/* SECTION 4: 28-DAY MILESTONES */}
-        {/* ============================================ */}
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
-          <Stack gap="lg">
-            <div>
-              <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-                Activation Milestones
-              </Text>
-              <p className="text-sm text-neutral-500 mt-2">Earn badges by logging activations on different days. They don&apos;t have to be consecutive:</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {MILESTONES.map((milestone) => (
-                <div 
-                  key={milestone.day} 
-                  className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800"
-                >
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-primary-500/20 rounded-full flex items-center justify-center">
-                      <span className="text-primary-400 font-bold">{milestone.day}</span>
-                    </div>
-                    <Badge variant="neutral" className="text-primary-400 border-primary-500/30 flex-1">
-                      {milestone.label}
-                    </Badge>
-                    <button
-                      onClick={() => setSelectedMilestoneBadge(makeBadgeStub(milestone.badgeType))}
-                      className="p-1 rounded-md hover:bg-white/10 transition-colors text-neutral-400 hover:text-primary-400"
-                      aria-label={`Learn more about ${milestone.label}`}
+              {/* Compact summary of the active MAP */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {CATEGORY_ORDER.map(category => {
+                  const items = ((activeMap.items || []) as UserMapItem[]).filter(
+                    i => i.category === category
+                  )
+                  const color = CATEGORY_COLORS[category]
+                  return (
+                    <div
+                      key={category}
+                      className="p-3 rounded-xl bg-neutral-900/50 border border-neutral-800"
                     >
-                      <Info className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <p className="text-neutral-300 text-sm leading-relaxed">
-                    &quot;{milestone.message}&quot;
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            <div className="text-center pt-2">
-              <Button variant="outline" size="sm" asChild>
-                <Link href="/snapshot/me" className="inline-flex items-center gap-2">
-                  <Award className="w-4 h-4" />
-                  View my badges
-                </Link>
-              </Button>
-            </div>
-          </Stack>
-        </Card>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: color }}
+                        />
+                        <Text size="xs" className="text-neutral-500 uppercase tracking-wider">
+                          {CATEGORY_LABELS[category]}
+                        </Text>
+                      </div>
+                      {items.length === 0 ? (
+                        <Text size="xs" className="text-neutral-600">None</Text>
+                      ) : (
+                        <div className="space-y-1">
+                          {items.map(item => (
+                            <div key={item.id} className="flex items-center gap-1.5">
+                              {item.notify_sms ? (
+                                <Bell className="w-3 h-3 text-[#39FF14] flex-shrink-0" />
+                              ) : (
+                                <BellOff className="w-3 h-3 text-neutral-700 flex-shrink-0" />
+                              )}
+                              <Text size="xs" className="text-neutral-300 truncate">
+                                {item.label}
+                              </Text>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </Stack>
+          </Card>
+        )}
 
         {/* ============================================ */}
-        {/* SECTION 5: WHEN LIFE CHANGES */}
+        {/* PAST MAPS */}
+        {/* ============================================ */}
+        {pastMaps.length > 0 && (
+          <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+            <Stack gap="md">
+              <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                Past MAPs
+              </Text>
+              <div className="space-y-2">
+                {pastMaps.map(m => (
+                  <Link
+                    key={m.id}
+                    href={`/map/${m.id}`}
+                    className="flex items-center justify-between p-3 rounded-xl bg-neutral-900/30 border border-neutral-800/50 hover:border-neutral-700 transition-colors"
+                  >
+                    <div>
+                      <Text size="sm" className="text-white font-medium">
+                        {m.title}
+                      </Text>
+                      <Text size="xs" className="text-neutral-500">
+                        V{m.version_number} &middot; {(m.items as UserMapItem[] | undefined)?.length ?? 0} activities &middot;{' '}
+                        {m.status === 'draft' ? 'Draft' : 'Archived'}
+                      </Text>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-neutral-600" />
+                  </Link>
+                ))}
+              </div>
+            </Stack>
+          </Card>
+        )}
+
+        {/* ============================================ */}
+        {/* MAP GUIDE (Collapsible) */}
         {/* ============================================ */}
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
-          <Stack gap="lg">
-            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-              When Everything Upgrades, Start a New Creations Cycle
+          <button
+            onClick={() => setShowGuide(!showGuide)}
+            className="w-full flex items-center justify-between"
+          >
+            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em]">
+              MAP Guide
             </Text>
+            {showGuide ? (
+              <ChevronUp className="w-5 h-5 text-neutral-500" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-neutral-500" />
+            )}
+          </button>
 
-            <p className="text-sm text-neutral-300 leading-relaxed">
-              When your current Life Vision mostly manifests or life takes a sharp turn, don&apos;t force an old vision. Start a new version. If you&apos;re not sure whether it&apos;s time, bring it to The Alignment Gym and ask.
-            </p>
+          {showGuide && (
+            <Stack gap="lg" className="mt-6">
+              {/* Video */}
+              <div className="mx-auto w-full max-w-3xl">
+                <OptimizedVideo
+                  url={MAP_VIDEO}
+                  thumbnailUrl={MAP_POSTER}
+                  context="single"
+                  className="w-full"
+                />
+              </div>
 
-            <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
-              <Text size="sm" className="text-white font-semibold mb-3">Checklist for a new version:</Text>
-              <div className="space-y-2">
-                <div className="flex items-center gap-3 text-sm text-neutral-300">
-                  <div className="w-5 h-5 rounded border border-neutral-600 flex items-center justify-center flex-shrink-0">
-                    <User className="w-3 h-3 text-neutral-500" />
+              {/* Intro */}
+              <div>
+                <p className="text-sm text-neutral-300 leading-relaxed mb-3">
+                  You&apos;ve completed your first Creations. Your profile, assessment, Life Vision, audios, Vision Board, and journal entry are complete.
+                </p>
+                <p className="text-sm text-neutral-300 leading-relaxed">
+                  Now your daily MAP shows you exactly how to run your Daily Activations, Connections and Sessions so The Life I Choose becomes your new normal.
+                </p>
+              </div>
+
+              {/* Daily Activations */}
+              <div>
+                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333] mb-4">
+                  Daily Activations
+                </Text>
+                <p className="text-sm text-neutral-500 mt-2 mb-4">Your 10-20 Minute Ritual</p>
+
+                {/* Step 1 */}
+                <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800 mb-3">
+                  <Inline gap="sm" className="items-start mb-3">
+                    <Sun className="h-5 w-5 text-amber-400" />
+                    <div>
+                      <Text size="sm" className="text-white font-semibold">Step 1: Morning Vision + Daily Paper</Text>
+                      <Text size="xs" className="text-neutral-500">Approximately 10-15 minutes</Text>
+                    </div>
+                  </Inline>
+                  <div className="space-y-2 text-sm text-neutral-300">
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
+                      <span>Read your <strong>Life Vision</strong> out loud or listen to the audio.</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
+                      <span>Open your <strong>Vision Board</strong> and quickly scan your tiles.</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
+                      <span>Complete your <strong>Daily Paper</strong> for the day.</span>
+                    </div>
                   </div>
-                  <span>Update Profile</span>
+                  <div className="grid grid-cols-2 gap-2 pt-3">
+                    <Button variant="outline" size="sm" className="w-full" asChild>
+                      <Link href={getVisionLink('')}>
+                        <Target className="w-4 h-4 mr-2" />
+                        Life Vision
+                      </Link>
+                    </Button>
+                    <Button variant="outline" size="sm" className="w-full" asChild>
+                      <Link href="/daily-paper">
+                        <FileText className="w-4 h-4 mr-2" />
+                        Daily Paper
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 text-sm text-neutral-300">
-                  <div className="w-5 h-5 rounded border border-neutral-600 flex items-center justify-center flex-shrink-0">
-                    <ClipboardCheck className="w-3 h-3 text-neutral-500" />
+
+                {/* Step 2 */}
+                <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800 mb-3">
+                  <Inline gap="sm" className="items-start mb-3">
+                    <Zap className="h-5 w-5 text-primary-400" />
+                    <div>
+                      <Text size="sm" className="text-white font-semibold">Step 2: Real-Time Category Activation</Text>
+                      <Text size="xs" className="text-neutral-500">1+ time per day</Text>
+                    </div>
+                  </Inline>
+                  <div className="space-y-2 text-sm text-neutral-300">
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
+                      <span>Open your <strong>Vision Audios</strong> and listen 1-3 minutes to the category you&apos;re about to step into.</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
+                      <span>Make one micro decision from that place.</span>
+                    </div>
                   </div>
-                  <span>New Assessment</span>
+                  <div className="grid grid-cols-2 gap-2 pt-3">
+                    <Button variant="outline" size="sm" className="w-full" asChild>
+                      <Link href={getVisionLink('/audio')}>
+                        <Headphones className="w-4 h-4 mr-2" />
+                        Vision Audios
+                      </Link>
+                    </Button>
+                    <Button variant="outline" size="sm" className="w-full" asChild>
+                      <Link href="/journal">
+                        <BookOpen className="w-4 h-4 mr-2" />
+                        Journal
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 text-sm text-neutral-300">
-                  <div className="w-5 h-5 rounded border border-neutral-600 flex items-center justify-center flex-shrink-0">
-                    <FileText className="w-3 h-3 text-neutral-500" />
+
+                {/* Step 3 */}
+                <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
+                  <Inline gap="sm" className="items-start mb-3">
+                    <Moon className="h-5 w-5 text-purple-400" />
+                    <div>
+                      <Text size="sm" className="text-white font-semibold">Step 3: Night Sleep Immersion + Evidence Journal</Text>
+                      <Text size="xs" className="text-neutral-500">Approximately 10-15 minutes</Text>
+                    </div>
+                  </Inline>
+                  <div className="space-y-2 text-sm text-neutral-300">
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
+                      <span>Read your <strong>Life Vision</strong> out loud or listen to the audio.</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
+                      <span>Open your <strong>Journal</strong> and record evidence of alignment.</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
+                      <span>Press play on your <strong>Sleep Immersion</strong> track and let it loop.</span>
+                    </div>
                   </div>
-                  <span>Write your new Life Vision</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm text-neutral-300">
-                  <div className="w-5 h-5 rounded border border-neutral-600 flex items-center justify-center flex-shrink-0">
-                    <Mic className="w-3 h-3 text-neutral-500" />
+                  <div className="grid grid-cols-2 gap-2 pt-3">
+                    <Button variant="outline" size="sm" className="w-full" asChild>
+                      <Link href="/journal">
+                        <BookOpen className="w-4 h-4 mr-2" />
+                        Journal
+                      </Link>
+                    </Button>
+                    <Button variant="outline" size="sm" className="w-full" asChild>
+                      <Link href="/vision-board">
+                        <ImageIcon className="w-4 h-4 mr-2" />
+                        Vision Board
+                      </Link>
+                    </Button>
                   </div>
-                  <span>Record fresh audios</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm text-neutral-300">
-                  <div className="w-5 h-5 rounded border border-neutral-600 flex items-center justify-center flex-shrink-0">
-                    <Layers className="w-3 h-3 text-neutral-500" />
-                  </div>
-                  <span>Refresh your Vision Board from your new Life Vision</span>
                 </div>
               </div>
-            </div>
 
-            <p className="text-sm text-neutral-400 italic">
-              Your Daily Activations stay the same. They simply run on your newest Life Vision Version.
-            </p>
-          </Stack>
+              {/* Weekly Alignment */}
+              <div>
+                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333] mb-4">
+                  Weekly Alignment
+                </Text>
+                <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800 mb-3">
+                  <Inline gap="sm" className="items-start mb-2">
+                    <Video className="h-5 w-5 text-teal-400" />
+                    <Text size="sm" className="text-white font-semibold">Sessions: Alignment Gym</Text>
+                  </Inline>
+                  <p className="text-sm text-neutral-300">Attend live or watch the replay. Take session notes.</p>
+                </div>
+                <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
+                  <Inline gap="sm" className="items-start mb-2">
+                    <UsersRound className="h-5 w-5 text-purple-400" />
+                    <Text size="sm" className="text-white font-semibold">Connections: Vibe Tribe</Text>
+                  </Inline>
+                  <p className="text-sm text-neutral-300">Share a short post or clip with your key takeaway from Alignment Gym.</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mt-3">
+                  <Button variant="outline" size="sm" className="w-full" asChild>
+                    <Link href="/alignment-gym">
+                      <Video className="w-4 h-4 mr-2" />
+                      Alignment Gym
+                    </Link>
+                  </Button>
+                  <Button variant="outline" size="sm" className="w-full" asChild>
+                    <Link href="/vibe-tribe">
+                      <UsersRound className="w-4 h-4 mr-2" />
+                      Vibe Tribe
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+
+              {/* Milestones */}
+              <div>
+                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333] mb-2">
+                  Activation Milestones
+                </Text>
+                <p className="text-sm text-neutral-500 mb-4">Earn badges by logging activations on different days:</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {MILESTONES.map((milestone) => (
+                    <div
+                      key={milestone.day}
+                      className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800"
+                    >
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 bg-primary-500/20 rounded-full flex items-center justify-center">
+                          <span className="text-primary-400 font-bold">{milestone.day}</span>
+                        </div>
+                        <Badge variant="neutral" className="text-primary-400 border-primary-500/30 flex-1">
+                          {milestone.label}
+                        </Badge>
+                        <button
+                          onClick={() => setSelectedMilestoneBadge(makeBadgeStub(milestone.badgeType))}
+                          className="p-1 rounded-md hover:bg-white/10 transition-colors text-neutral-400 hover:text-primary-400"
+                          aria-label={`Learn more about ${milestone.label}`}
+                        >
+                          <Info className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <p className="text-neutral-300 text-sm leading-relaxed">
+                        &quot;{milestone.message}&quot;
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* New Creations Cycle */}
+              <div>
+                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333] mb-4">
+                  When Everything Upgrades, Start a New Creations Cycle
+                </Text>
+                <p className="text-sm text-neutral-300 leading-relaxed mb-3">
+                  When your current Life Vision mostly manifests or life takes a sharp turn, don&apos;t force an old vision. Start a new version.
+                </p>
+                <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
+                  <Text size="sm" className="text-white font-semibold mb-3">Checklist for a new version:</Text>
+                  <div className="space-y-2">
+                    {[
+                      { icon: User, label: 'Update Profile' },
+                      { icon: ClipboardCheck, label: 'New Assessment' },
+                      { icon: FileText, label: 'Write your new Life Vision' },
+                      { icon: Mic, label: 'Record fresh audios' },
+                      { icon: Layers, label: 'Refresh your Vision Board' },
+                    ].map(({ icon: StepIcon, label }) => (
+                      <div key={label} className="flex items-center gap-3 text-sm text-neutral-300">
+                        <div className="w-5 h-5 rounded border border-neutral-600 flex items-center justify-center flex-shrink-0">
+                          <StepIcon className="w-3 h-3 text-neutral-500" />
+                        </div>
+                        <span>{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </Stack>
+          )}
         </Card>
 
         {/* ============================================ */}
         {/* BOTTOM CTA */}
         {/* ============================================ */}
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] text-center">
-          <div className="py-6">
-            {isIntensiveFlow && !isAlreadyCompleted ? (
-              <>
-                <h2 className="text-xl md:text-2xl font-bold mb-3 text-white">Ready to Unlock?</h2>
-                <p className="text-sm text-neutral-300 mb-6">
-                  You&apos;ve reviewed your MAP. Continue to unlock your full platform access.
-                </p>
-                <Button
-                  variant="primary"
-                  size="lg"
-                  onClick={handleContinueToUnlock}
-                  disabled={completing}
-                  className="w-full sm:w-auto"
-                >
-                  {completing ? (
-                    <>
-                      <Spinner size="sm" className="mr-2" />
-                      Continuing...
-                    </>
-                  ) : (
-                    <>
-                      <Unlock className="w-5 h-5 mr-2" />
-                      Continue to Unlock Platform
-                    </>
-                  )}
-                </Button>
-              </>
-            ) : (
-              <>
-                <p className="text-neutral-300 mb-4">
-                  This is your MAP. Come back anytime during your journey.
-                </p>
+        {!isIntensiveFlow && (
+          <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] text-center">
+            <div className="py-6">
+              <p className="text-neutral-300 mb-4">
+                {activeMap
+                  ? 'Build a new MAP to update your weekly practice.'
+                  : 'Ready to plan your week? Build your first MAP.'
+                }
+              </p>
+              <Inline gap="sm" className="justify-center">
+                {activeMap && (
+                  <Button variant="outline" asChild>
+                    <Link href={`/map/${activeMap.id}`}>
+                      View Active MAP
+                    </Link>
+                  </Button>
+                )}
                 <Button variant="primary" asChild>
-                  <Link href="/dashboard">
-                    Go to Dashboard
+                  <Link href="/map/new">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Build New MAP
                   </Link>
                 </Button>
-              </>
-            )}
-          </div>
-        </Card>
+              </Inline>
+            </div>
+          </Card>
+        )}
+
+        {isIntensiveFlow && (
+          <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] text-center">
+            <div className="py-6">
+              {!isAlreadyCompleted ? (
+                <>
+                  <h2 className="text-xl md:text-2xl font-bold mb-3 text-white">Ready to Unlock?</h2>
+                  <p className="text-sm text-neutral-300 mb-6">
+                    You&apos;ve reviewed your MAP. Continue to unlock your full platform access.
+                  </p>
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    onClick={handleContinueToUnlock}
+                    disabled={completing}
+                    className="w-full sm:w-auto"
+                  >
+                    {completing ? (
+                      <>
+                        <Spinner size="sm" className="mr-2" />
+                        Continuing...
+                      </>
+                    ) : (
+                      <>
+                        <Unlock className="w-5 h-5 mr-2" />
+                        Continue to Unlock Platform
+                      </>
+                    )}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="text-neutral-300 mb-4">
+                    This is your MAP. Come back anytime during your journey.
+                  </p>
+                  <Button variant="primary" asChild>
+                    <Link href="/dashboard">
+                      Go to Dashboard
+                    </Link>
+                  </Button>
+                </>
+              )}
+            </div>
+          </Card>
+        )}
       </Stack>
 
-      {/* Badge detail modal for milestones */}
       <BadgeDetailModal
         badge={selectedMilestoneBadge}
         isOpen={!!selectedMilestoneBadge}

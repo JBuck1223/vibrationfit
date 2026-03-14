@@ -137,16 +137,16 @@ export async function POST(request: NextRequest) {
         // Fire exit event to cancel the onboarding sequence
         {
           const { data: userAuth } = await adminClient.auth.admin.getUserById(userId)
-          const { data: profile } = await adminClient
-            .from('user_profiles')
+          const { data: account } = await adminClient
+            .from('user_accounts')
             .select('first_name')
-            .eq('user_id', userId)
+            .eq('id', userId)
             .maybeSingle()
 
           triggerEvent('intensive.completed', {
             email: userAuth?.user?.email || '',
             userId,
-            firstName: profile?.first_name || userAuth?.user?.email?.split('@')[0] || '',
+            firstName: account?.first_name || 'there',
           }).catch(err => console.error('triggerEvent intensive.completed error:', err))
         }
         break

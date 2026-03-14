@@ -568,7 +568,14 @@ function SequenceDetailContent() {
   }
 
   const filteredEnrollments = enrollmentFilter
-    ? enrollments.filter((e) => e.status === enrollmentFilter)
+    ? enrollments.filter((e) => {
+        if (enrollmentFilter === 'completed') {
+          const effectivelyComplete =
+            e.status === 'active' && !e.next_step_at && e.current_step_order >= steps.length
+          return e.status === 'completed' || effectivelyComplete
+        }
+        return e.status === enrollmentFilter
+      })
     : enrollments
 
   if (loading || !sequence) {
@@ -971,7 +978,13 @@ function SequenceDetailContent() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredEnrollments.map((enr) => (
+                  {filteredEnrollments.map((enr) => {
+                    const effectivelyComplete =
+                      enr.status === 'active' &&
+                      !enr.next_step_at &&
+                      enr.current_step_order >= steps.length
+
+                    return (
                     <tr key={enr.id} className="border-b border-neutral-800/50">
                       <td className="py-3 pr-4 text-white">
                         {enr.email || enr.phone || '-'}
@@ -979,7 +992,9 @@ function SequenceDetailContent() {
                       <td className="py-3 pr-4">
                         <Badge
                           className={
-                            enr.status === 'active'
+                            effectivelyComplete
+                              ? 'bg-green-500/20 text-green-500'
+                              : enr.status === 'active'
                               ? 'bg-primary-500/20 text-primary-500'
                               : enr.status === 'completed'
                               ? 'bg-green-500/20 text-green-500'
@@ -988,7 +1003,7 @@ function SequenceDetailContent() {
                               : 'bg-neutral-600 text-neutral-400'
                           }
                         >
-                          {enr.status}
+                          {effectivelyComplete ? 'completed' : enr.status}
                         </Badge>
                       </td>
                       <td className="py-3 pr-4 text-neutral-400">{enr.current_step_order}</td>
@@ -1001,7 +1016,7 @@ function SequenceDetailContent() {
                           : '-'}
                       </td>
                       <td className="py-3">
-                        {enr.status === 'active' && (
+                        {enr.status === 'active' && !effectivelyComplete && (
                           <div className="flex gap-1">
                             <Button
                               variant="ghost"
@@ -1030,7 +1045,8 @@ function SequenceDetailContent() {
                         )}
                       </td>
                     </tr>
-                  ))}
+                    )
+                  })}
                 </tbody>
               </table>
             </div>

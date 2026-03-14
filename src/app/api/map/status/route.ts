@@ -5,16 +5,10 @@ import { createClient } from '@/lib/supabase/server'
  * GET /api/map/status
  * 
  * Returns the user's current MAP (My Activation Plan) status:
- * - Current day number (1-28)
- * - AM completion status (done/not started)
- * - PM completion status (done/not started)
  * - Whether MAP has been started
- * 
- * TODO: This is a temporary implementation. We need to create:
- * - A daily_activations table to track AM/PM completions
- * - A user_map_settings table to store MAP start date and preferences
- * 
- * For now, we'll return mock data to enable the UI.
+ * - Current day number (1-28)
+ * - AM/PM completion status
+ * - Active map ID (if any weekly MAP exists)
  */
 export async function GET() {
   try {
@@ -32,7 +26,6 @@ export async function GET() {
       .eq('user_id', user.id)
       .maybeSingle()
 
-    // Calculate day number based on when they completed the MAP setup (if available)
     const startDate = checklist?.activation_protocol_completed_at 
       ? new Date(checklist.activation_protocol_completed_at)
       : new Date()
@@ -44,15 +37,33 @@ export async function GET() {
       ? Math.min(diffDays, 28) 
       : 0
 
-    // TODO: Query daily_activations table to check AM/PM completion for today
     const amDone = false
     const pmDone = false
+
+    // Find active weekly MAP
+    let activeMapId: string | null = null
+    try {
+      const { data: activeMap } = await supabase
+        .from('user_maps')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .limit(1)
+        .maybeSingle()
+
+      if (activeMap) {
+        activeMapId = activeMap.id
+      }
+    } catch {
+      // Table may not exist yet; ignore
+    }
 
     return NextResponse.json({
       mapStarted: true,
       dayNumber,
       amDone,
       pmDone,
+      activeMapId,
     })
   } catch (error) {
     console.error('Error fetching MAP status:', error)

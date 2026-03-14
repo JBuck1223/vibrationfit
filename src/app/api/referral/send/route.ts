@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
       .eq('status', 'active')
       .maybeSingle()
 
-    const referrerName = bodyReferrerName || participant.display_name || participant.email.split('@')[0]
+    const referrerName = bodyReferrerName || participant.display_name || 'A VibrationFit member'
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vibrationfit.com'
     const referralLink = `${siteUrl}/offer/launch?ref=${participant.referral_code}`
 
