@@ -18,9 +18,9 @@ import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowRight, Sparkles, Target, Heart, Zap, Eye, TrendingUp, RefreshCw, Layers, Activity, FlaskConical } from 'lucide-react'
 
 const VISION_INTRO_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/intensive/06-refine-1080p.mp4'
+  'https://media.vibrationfit.com/site-assets/video/intensive/06-refine-2-1080p.mp4'
 const VISION_INTRO_POSTER =
-  'https://media.vibrationfit.com/site-assets/video/intensive/06-refine-thumb.0000000.jpg'
+  'https://media.vibrationfit.com/site-assets/video/intensive/06-refine-2-thumb.0000000.jpg'
 
 export default function LifeVisionRefineNewPage() {
   const router = useRouter()
