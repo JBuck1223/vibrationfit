@@ -346,7 +346,12 @@ export const adminNavigation: NavItem[] = [
     href: '/admin/notifications',
     icon: Bell,
     requiresAdmin: true,
+    hasDropdown: true,
     description: 'Purchase alerts, lead notifications, and more',
+    children: [
+      { name: 'Notification Feed', href: '/admin/notifications', icon: Bell, description: 'Purchase alerts, lead notifications' },
+      { name: 'Notification Settings', href: '/admin/notification-settings', icon: Settings, description: 'Configure notification templates & channels' },
+    ]
   },
   
   // ============================================================================

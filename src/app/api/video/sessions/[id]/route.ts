@@ -56,7 +56,7 @@ export async function GET(
     const isOpenSession = session.session_type === 'alignment_gym'
 
     let isAdmin = false
-    if (!isHost && !isParticipant && !isOpenSession) {
+    if (!isHost) {
       const { data: account } = await supabase
         .from('user_accounts')
         .select('role')
@@ -72,7 +72,7 @@ export async function GET(
       )
     }
 
-    return NextResponse.json({ session, is_host: isHost })
+    return NextResponse.json({ session, is_host: isHost || isAdmin })
   } catch (error) {
     console.error('Error in GET /api/video/sessions/[id]:', error)
     return NextResponse.json(
@@ -139,6 +139,7 @@ export async function PATCH(
     if (body.actual_duration_seconds !== undefined) updates.actual_duration_seconds = body.actual_duration_seconds
     if (body.host_notes !== undefined) updates.host_notes = body.host_notes
     if (body.session_summary !== undefined) updates.session_summary = body.session_summary
+    if (body.feedback_rating !== undefined) updates.feedback_rating = body.feedback_rating
 
     // Update session
     const { data: session, error: updateError } = await supabase

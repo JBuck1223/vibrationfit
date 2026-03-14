@@ -52,6 +52,7 @@ export interface VideoSession {
   host_notes?: string
   session_summary?: string
   highlighted_message_id?: string
+  feedback_rating?: number
   created_at: string
   updated_at: string
 }
@@ -158,6 +159,7 @@ export interface UpdateSessionRequest {
   actual_duration_seconds?: number
   host_notes?: string
   session_summary?: string
+  feedback_rating?: number
 }
 
 // ============================================================================

@@ -38,7 +38,17 @@ export async function POST(
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
 
-    if (session.host_user_id !== user.id) {
+    // Allow actual host or super_admin to trigger
+    let canTrigger = session.host_user_id === user.id
+    if (!canTrigger) {
+      const { data: account } = await supabase
+        .from('user_accounts')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+      canTrigger = account?.role === 'super_admin'
+    }
+    if (!canTrigger) {
       return NextResponse.json({ error: 'Only the host can trigger this notification' }, { status: 403 })
     }
 
@@ -75,30 +85,50 @@ export async function POST(
     }
 
     for (const participant of participants) {
-      const joinLink = participant.email
-        ? `${baseUrl}/session/${sessionId}?email=${encodeURIComponent(participant.email)}`
+      // Resolve contact info: participant row may be sparse, so fall back to user_accounts
+      let email = participant.email as string | null
+      let phone = participant.phone as string | null
+      let name = participant.name || 'there'
+
+      if (participant.user_id && (!email || !phone)) {
+        const { data: account } = await supabase
+          .from('user_accounts')
+          .select('email, phone, first_name, full_name')
+          .eq('id', participant.user_id)
+          .single()
+        if (account) {
+          if (!email) email = account.email || null
+          if (!phone) phone = account.phone || null
+          if (name === 'there') name = account.full_name || account.first_name || name
+        }
+      }
+
+      const joinLink = email
+        ? `${baseUrl}/session/${sessionId}?email=${encodeURIComponent(email)}`
         : `${baseUrl}/session/${sessionId}`
 
       if (!config) continue
+
+      console.log(`[host-joined] Notifying participant: email=${email}, phone=${phone}, name=${name}`)
 
       try {
         await sendNotification({
           slug: 'host_joined_session',
           variables: {
             hostName,
-            participantName: participant.name || 'there',
+            participantName: name,
             sessionTitle: session.title || 'Your Session',
             joinLink,
           },
-          recipientEmail: participant.email || undefined,
-          recipientPhone: participant.phone || undefined,
+          recipientEmail: email || undefined,
+          recipientPhone: phone || undefined,
           userId: participant.user_id || undefined,
         })
 
-        if (participant.email && config.email_enabled) results.emailsSent++
-        if (participant.phone && config.sms_enabled) results.smsSent++
+        if (email && config.email_enabled) results.emailsSent++
+        if (phone && config.sms_enabled) results.smsSent++
       } catch (err) {
-        const error = `Participant ${participant.email || participant.phone}: ${err instanceof Error ? err.message : 'Failed'}`
+        const error = `Participant ${email || phone}: ${err instanceof Error ? err.message : 'Failed'}`
         results.errors.push(error)
         console.error(`[host-joined] ${error}`)
       }

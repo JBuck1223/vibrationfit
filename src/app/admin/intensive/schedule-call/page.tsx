@@ -991,7 +991,7 @@ export default function AdminScheduleCallPage() {
                                 </Button>
                               )}
 
-                              {booking.video_session_id && !isPast && booking.status === 'confirmed' && (
+                              {booking.video_session_id && booking.status === 'confirmed' && (
                                 <Button
                                   variant="secondary"
                                   size="sm"

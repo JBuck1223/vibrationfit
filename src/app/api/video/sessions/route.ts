@@ -118,16 +118,19 @@ export async function POST(request: NextRequest) {
       let participantEmail: string | null = body.participant_email || null
       let participantFullName: string | null = body.participant_name || null
 
+      let participantPhone: string | null = body.participant_phone || null
+
       // If user_id is provided directly, look up their details
       if (participantUserId) {
         const { data: userAccount } = await supabase
           .from('user_accounts')
-          .select('id, first_name, last_name, full_name, email')
+          .select('id, first_name, last_name, full_name, email, phone')
           .eq('id', participantUserId)
           .single()
         if (userAccount) {
           if (!participantFullName) participantFullName = userAccount.full_name || null
           if (!participantEmail) participantEmail = userAccount.email || null
+          if (!participantPhone) participantPhone = userAccount.phone || null
         }
       } else if (participantEmail) {
         // Fall back to email lookup for backwards compatibility
@@ -148,7 +151,7 @@ export async function POST(request: NextRequest) {
         session_id: session.id,
         user_id: participantUserId,
         email: participantEmail,
-        phone: body.participant_phone || null,
+        phone: participantPhone,
         name: participantName,
         is_host: false,
       })

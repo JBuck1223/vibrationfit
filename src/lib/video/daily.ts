@@ -357,9 +357,9 @@ export function verifyWebhookSignature(
 // ============================================================================
 
 /**
- * Ensure a Daily.co room exists for a session.
- * If the session already has a room, returns it as-is.
- * Otherwise creates one based on session_type and returns the new room details.
+ * Ensure a Daily.co room exists and is joinable for a session.
+ * Verifies the room hasn't expired or been deleted before trusting it.
+ * Creates a fresh room on demand if needed.
  */
 export async function ensureDailyRoom(session: {
   daily_room_name?: string | null
@@ -369,10 +369,25 @@ export async function ensureDailyRoom(session: {
   scheduled_duration_minutes?: number
 }): Promise<{ name: string; url: string; created: boolean }> {
   if (session.daily_room_name && session.daily_room_url) {
-    return { name: session.daily_room_name, url: session.daily_room_url, created: false }
+    try {
+      const existing = await getRoom(session.daily_room_name)
+      const exp = existing.config?.exp
+      const nowSec = Math.floor(Date.now() / 1000)
+      if (exp && exp < nowSec) {
+        console.warn(`[ensureDailyRoom] Room "${session.daily_room_name}" expired — creating fresh one`)
+        deleteRoom(session.daily_room_name).catch(() => {})
+      } else {
+        return { name: session.daily_room_name, url: session.daily_room_url, created: false }
+      }
+    } catch {
+      console.warn(`[ensureDailyRoom] Room "${session.daily_room_name}" not found — creating fresh one`)
+    }
   }
 
-  const scheduledAt = new Date(session.scheduled_at)
+  // Use whichever is later: now or scheduled time, so rooms never expire immediately
+  const now = new Date()
+  const scheduled = new Date(session.scheduled_at)
+  const scheduledAt = scheduled > now ? scheduled : now
   const duration = session.scheduled_duration_minutes || 60
   let room: DailyRoom
 

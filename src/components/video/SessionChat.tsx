@@ -8,7 +8,7 @@
  * Host can highlight/pin a message to display it prominently.
  */
 
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, type MutableRefObject } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Send, X, Pin, PinOff } from 'lucide-react'
 import { Spinner } from '@/lib/design-system/components'
@@ -90,7 +90,13 @@ export function SessionChat({
     fetchMessages()
   }, [sessionId]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Subscribe to realtime updates
+  // Stable refs for callbacks so the Realtime channel isn't torn down on every render
+  const onHighlightChangeRef = useRef(onHighlightChange)
+  useEffect(() => { onHighlightChangeRef.current = onHighlightChange }, [onHighlightChange])
+  const highlightedIdRef = useRef(highlightedId)
+  useEffect(() => { highlightedIdRef.current = highlightedId }, [highlightedId])
+
+  // Subscribe to realtime updates (stable deps — only sessionId)
   useEffect(() => {
     const channel = supabase
       .channel(`session-chat-${sessionId}`)
@@ -123,14 +129,12 @@ export function SessionChat({
         (payload) => {
           const deletedId = (payload.old as { id: string }).id
           setMessages((prev) => prev.filter((m) => m.id !== deletedId))
-          // Clear highlight if deleted message was highlighted
-          if (deletedId === highlightedId) {
+          if (deletedId === highlightedIdRef.current) {
             setHighlightedId(null)
-            onHighlightChange?.(null)
+            onHighlightChangeRef.current?.(null)
           }
         }
       )
-      // Listen for highlight changes on the session itself
       .on(
         'postgres_changes',
         {
@@ -143,14 +147,13 @@ export function SessionChat({
           const updated = payload.new as { highlighted_message_id: string | null }
           setHighlightedId(updated.highlighted_message_id)
           if (updated.highlighted_message_id) {
-            // Find the message in our local state
             setMessages((prev) => {
               const msg = prev.find((m) => m.id === updated.highlighted_message_id)
-              if (msg) onHighlightChange?.(msg)
+              if (msg) onHighlightChangeRef.current?.(msg)
               return prev
             })
           } else {
-            onHighlightChange?.(null)
+            onHighlightChangeRef.current?.(null)
           }
         }
       )
@@ -159,7 +162,33 @@ export function SessionChat({
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [sessionId, supabase, highlightedId, onHighlightChange])
+  }, [sessionId, supabase])
+
+  // Poll for new messages as a fallback (compares latest ID, not count)
+  useEffect(() => {
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/video/sessions/${sessionId}/messages`)
+        if (!res.ok) return
+        const data = await res.json()
+        const incoming = (data.messages || []) as ChatMessage[]
+        setMessages(prev => {
+          const prevReal = prev.filter(m => !m.id.startsWith('optimistic-'))
+          const incomingIds = new Set(incoming.map(m => m.id))
+          const prevIds = new Set(prevReal.map(m => m.id))
+          const hasNew = incoming.some(m => !prevIds.has(m.id))
+          const hasRemoved = prevReal.some(m => !incomingIds.has(m.id))
+          if (!hasNew && !hasRemoved) return prev
+          const optimistic = prev.filter(m => m.id.startsWith('optimistic-'))
+          return [...incoming, ...optimistic]
+        })
+      } catch (err) {
+        console.warn('Chat poll error:', err)
+      }
+    }
+    const interval = setInterval(poll, 3000)
+    return () => clearInterval(interval)
+  }, [sessionId])
 
   // Auto-scroll when messages change
   useEffect(() => {

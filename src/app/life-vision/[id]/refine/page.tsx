@@ -26,8 +26,7 @@ import {
   Eye,
   Gem,
   CheckCircle,
-  X,
-  Plus
+  X
 } from 'lucide-react'
 import { 
    
@@ -59,7 +58,7 @@ import {
   getDraftCategories
 } from '@/lib/life-vision/draft-helpers'
 import { calculateVersionNumber } from '@/lib/life-vision/version-helpers'
-import { getRefinementHistory } from '@/lib/life-vision/refinement-helpers'
+import { RecordingTextarea } from '@/components/RecordingTextarea'
 
 interface VisionData {
   id: string
@@ -294,7 +293,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const [initializationStep, setInitializationStep] = useState<string>('')
   const chatEndRef = useRef<HTMLDivElement>(null)
   const previousCategoryRef = useRef<string | null>(null)
-  const selectedCategoryRef = useRef<string | null>(null)
+
   const [availableConversations, setAvailableConversations] = useState<any[]>([])
   const [showConversationSelector, setShowConversationSelector] = useState(false)
   const isLoadingConversationRef = useRef(false)
@@ -307,36 +306,9 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const [vivaRevision, setVivaRevision] = useState('')
   const [isVivaRefining, setIsVivaRefining] = useState(false)
   const [currentRefinementId, setCurrentRefinementId] = useState<string | null>(null)
-  // Add/Remove items per category so switching category shows the right list
-  const [addItemsByCategory, setAddItemsByCategory] = useState<Record<string, string[]>>({})
-  const [addInput, setAddInput] = useState('')
-  const [removeItemsByCategory, setRemoveItemsByCategory] = useState<Record<string, string[]>>({})
-  const [removeInput, setRemoveInput] = useState('')
-  const [weaveEnabled, setWeaveEnabled] = useState(false)
-  const [weaveStrength, setWeaveStrength] = useState<'light' | 'medium' | 'deep'>('light')
-  const [weaveStyle, setWeaveStyle] = useState<'inline' | 'addon'>('inline')
-  const [weaveNote, setWeaveNote] = useState('')
   const [refinementNotes, setRefinementNotes] = useState('')
   const [viewMode, setViewMode] = useState<'edit' | 'highlight'>('edit')
   const [originalVisionText, setOriginalVisionText] = useState('')
-
-  // Derived: current category's add/remove lists (so Add/Remove sections apply to the category you're on)
-  const addItems = selectedCategory ? (addItemsByCategory[selectedCategory] ?? []) : []
-  const removeItems = selectedCategory ? (removeItemsByCategory[selectedCategory] ?? []) : []
-  const setAddItemsForCategory = (updater: string[] | ((prev: string[]) => string[])) => {
-    if (!selectedCategory) return
-    setAddItemsByCategory(prev => ({
-      ...prev,
-      [selectedCategory]: typeof updater === 'function' ? updater(prev[selectedCategory] ?? []) : updater
-    }))
-  }
-  const setRemoveItemsForCategory = (updater: string[] | ((prev: string[]) => string[])) => {
-    if (!selectedCategory) return
-    setRemoveItemsByCategory(prev => ({
-      ...prev,
-      [selectedCategory]: typeof updater === 'function' ? updater(prev[selectedCategory] ?? []) : updater
-    }))
-  }
 
   const supabase = createClient()
 
@@ -592,28 +564,6 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     }
   }, [searchParams, draftVision, vision])
 
-  // Load Add/Remove lists from last saved refinement when selecting a category (so they show when you return)
-  useEffect(() => {
-    if (!draftVision?.id || !selectedCategory) return
-
-    selectedCategoryRef.current = selectedCategory
-    const categoryToLoad = selectedCategory
-    getRefinementHistory(draftVision.id, categoryToLoad)
-      .then((history) => {
-        const latest = history[0]
-        if (!latest?.refinement_inputs) return
-        const add = latest.refinement_inputs.add ?? []
-        const remove = latest.refinement_inputs.remove ?? []
-        if (add.length === 0 && remove.length === 0) return
-        // Only update if user is still on this category (avoid race when switching fast)
-        const stillSelected = selectedCategoryRef.current === categoryToLoad
-        if (stillSelected) {
-          setAddItemsByCategory((prev) => ({ ...prev, [categoryToLoad]: add }))
-          setRemoveItemsByCategory((prev) => ({ ...prev, [categoryToLoad]: remove }))
-        }
-      })
-      .catch((err) => console.error('Load refinement add/remove for category:', err))
-  }, [draftVision?.id, selectedCategory])
 
   // Reset chat when category changes AND look up existing conversation
   useEffect(() => {
@@ -1213,22 +1163,6 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     const activeVisionText = getCategoryValue(selectedCategory)
     if (!activeVisionText.trim()) return
     
-    // Auto-add any pending text in the input fields
-    let finalAddItems = [...addItems]
-    let finalRemoveItems = [...removeItems]
-
-    if (addInput.trim()) {
-      finalAddItems.push(addInput.trim())
-      setAddItemsForCategory(finalAddItems)
-      setAddInput('')
-    }
-
-    if (removeInput.trim()) {
-      finalRemoveItems.push(removeInput.trim())
-      setRemoveItemsForCategory(finalRemoveItems)
-      setRemoveInput('')
-    }
-    
     setIsVivaRefining(true)
     setOriginalVisionText(activeVisionText) // Store original active vision
     setCurrentRefinement('') // Clear refinement field to stream into it
@@ -1237,20 +1171,10 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     setViewMode('edit') // Reset to edit mode
     
     try {
-      // Build refinement inputs
       const refinement = {
-        add: finalAddItems.filter(item => item.trim()),
-        remove: finalRemoveItems.filter(item => item.trim()),
         notes: refinementNotes.trim() || undefined
       }
-      
-      // Build weave inputs
-      const weave = {
-        enabled: weaveEnabled,
-        strength: weaveStrength,
-        style: weaveStyle,
-        note: weaveNote.trim() || undefined
-      }
+      const weave = { enabled: false as const }
       
       // Get user perspective from profile
       const { data: profile } = await supabase
@@ -1695,239 +1619,21 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
 
             {showVivaRefine && (
               <div className="space-y-6">
-                {/* Section Divider */}
-                <div className="relative py-2">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t-2 border-neutral-700"></div>
-                  </div>
-                  <div className="relative flex justify-center">
-                    <span className="bg-[#1F1F1F] px-4 text-xs font-semibold text-neutral-400 tracking-widest">
-                      REFINEMENT
-                    </span>
-                  </div>
-                </div>
-
-                {/* Add Items */}
-                <div className="bg-neutral-800/50 rounded-lg border border-neutral-700 p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-sm font-semibold text-white">Add</h4>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (addInput.trim()) {
-                          setAddItemsForCategory([...addItems, addInput.trim()])
-                          setAddInput('')
-                        }
-                      }}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-[rgba(57,255,20,0.1)] text-[#39FF14] border-2 border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.2)] active:opacity-80 rounded-lg transition-colors text-sm font-medium"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Add
-                    </button>
-                  </div>
-                  
-                  <input
-                    value={addInput}
-                    onChange={(e) => setAddInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && addInput.trim()) {
-                        setAddItemsForCategory([...addItems, addInput.trim()])
-                        setAddInput('')
-                      }
-                    }}
-                    placeholder="Enter item to add..."
-                    className="w-full bg-neutral-800 border-2 border-neutral-700 rounded-lg px-4 py-2 text-white placeholder-neutral-500 focus:border-purple-500 focus:outline-none mb-3"
-                  />
-
-                  {addItems.length === 0 ? (
-                    <p className="text-sm text-neutral-400 text-center py-4">
-                      Click "Add" to add your first item
-                    </p>
-                  ) : (
-                    <div className="space-y-2">
-                      {addItems.map((item, index) => (
-                        <div key={index} className="flex items-center justify-between bg-neutral-900/50 border border-neutral-700 rounded-lg px-4 py-2">
-                          <span className="text-sm text-white">{item}</span>
-                          <button
-                            onClick={() => setAddItemsForCategory(addItems.filter((_, i) => i !== index))}
-                            className="text-red-400 hover:text-red-300 transition-colors"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Remove Items */}
-                <div className="bg-neutral-800/50 rounded-lg border border-neutral-700 p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-sm font-semibold text-white">Remove</h4>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (removeInput.trim()) {
-                          setRemoveItemsForCategory([...removeItems, removeInput.trim()])
-                          setRemoveInput('')
-                        }
-                      }}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-[rgba(208,55,57,0.1)] text-[#D03739] border-2 border-[rgba(208,55,57,0.2)] hover:bg-[rgba(208,55,57,0.2)] active:opacity-80 rounded-lg transition-colors text-sm font-medium"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Remove
-                    </button>
-                  </div>
-                  
-                  <input
-                    value={removeInput}
-                    onChange={(e) => setRemoveInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && removeInput.trim()) {
-                        setRemoveItemsForCategory([...removeItems, removeInput.trim()])
-                        setRemoveInput('')
-                      }
-                    }}
-                    placeholder="Enter item to remove..."
-                    className="w-full bg-neutral-800 border-2 border-neutral-700 rounded-lg px-4 py-2 text-white placeholder-neutral-500 focus:border-purple-500 focus:outline-none mb-3"
-                  />
-
-                  {removeItems.length === 0 ? (
-                    <p className="text-sm text-neutral-400 text-center py-4">
-                      Click "Remove" to add your first item
-                    </p>
-                  ) : (
-                    <div className="space-y-2">
-                      {removeItems.map((item, index) => (
-                        <div key={index} className="flex items-center justify-between bg-neutral-900/50 border border-neutral-700 rounded-lg px-4 py-2">
-                          <span className="text-sm text-white">{item}</span>
-                          <button
-                            onClick={() => setRemoveItemsForCategory(removeItems.filter((_, i) => i !== index))}
-                            className="text-red-400 hover:text-red-300 transition-colors"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Section Divider */}
-                <div className="relative py-4">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t-2 border-accent-500/30"></div>
-                  </div>
-                  <div className="relative flex justify-center">
-                    <span className="bg-[#1F1F1F] px-4 text-xs font-semibold text-accent-500 tracking-widest">
-                      WEAVE SECTION
-                    </span>
-                  </div>
-                </div>
-
-                {/* Weave */}
-                <div>
-                  <div className="text-center mb-3">
-                    <h4 className="text-base font-semibold text-accent-500 tracking-wide mb-2">
-                      Cross-Category Connections
-                    </h4>
-                    <p className="text-sm text-neutral-400">
-                      Connect this category with other life areas
-                    </p>
-                  </div>
-                  
-                  <div className="flex items-center justify-center mb-4">
-                    <div className="inline-flex rounded-lg border-2 border-accent-500 bg-neutral-800 p-1">
-                      <button
-                        onClick={() => setWeaveEnabled(false)}
-                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                          !weaveEnabled
-                            ? 'bg-neutral-700 text-white'
-                            : 'text-neutral-300 hover:text-white'
-                        }`}
-                      >
-                        <X className="w-4 h-4 inline mr-2" />
-                        No Weave
-                      </button>
-                      <button
-                        onClick={() => setWeaveEnabled(true)}
-                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                          weaveEnabled
-                            ? 'bg-accent-500 text-white'
-                            : 'text-neutral-300 hover:text-white'
-                        }`}
-                      >
-                        <Sparkles className="w-4 h-4 inline mr-2" />
-                        Enable Weave
-                      </button>
-                    </div>
-                  </div>
-
-                  {weaveEnabled && (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-neutral-300 mb-2">
-                            Weave Strength
-                          </label>
-                          <select
-                            value={weaveStrength}
-                            onChange={(e) => setWeaveStrength(e.target.value as 'light' | 'medium' | 'deep')}
-                            className="w-full bg-neutral-800 border-2 border-neutral-700 rounded-lg px-4 py-2 text-white focus:border-purple-500 focus:outline-none"
-                          >
-                            <option value="light">Light</option>
-                            <option value="medium">Medium</option>
-                            <option value="deep">Deep</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-neutral-300 mb-2">
-                            Weave Style
-                          </label>
-                          <select
-                            value={weaveStyle}
-                            onChange={(e) => setWeaveStyle(e.target.value as 'inline' | 'addon')}
-                            className="w-full bg-neutral-800 border-2 border-neutral-700 rounded-lg px-4 py-2 text-white focus:border-purple-500 focus:outline-none"
-                          >
-                            <option value="inline">Inline (blend into text)</option>
-                            <option value="addon">Add-on (separate section)</option>
-                          </select>
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-neutral-300 mb-2">
-                          Weave Note (optional)
-                        </label>
-                        <AutoResizeTextarea
-                          value={weaveNote}
-                          onChange={setWeaveNote}
-                          placeholder="Any specific guidance for weaving..."
-                          className="!bg-neutral-800 !border-neutral-700"
-                          minHeight={60}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Section Divider */}
-                <div className="relative py-4">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t-2 border-neutral-700"></div>
-                  </div>
-                </div>
-
-                {/* Freeform Notes */}
+                {/* VIVA Refinement Notes */}
                 <div>
                   <label className="block text-sm font-medium text-neutral-300 mb-2">
-                    Additional Notes
+                    VIVA Refinement Notes
                   </label>
-                  <AutoResizeTextarea
+                  <RecordingTextarea
                     value={refinementNotes}
                     onChange={setRefinementNotes}
-                    placeholder="Any other refinement instructions..."
-                    className="!bg-neutral-800 !border-neutral-700"
-                    minHeight={80}
+                    placeholder="Tell VIVA how to refine this category..."
+                    className="min-h-[100px] w-full"
+                    rows={4}
+                    storageFolder="lifeVision"
+                    recordingPurpose="quick"
+                    category={selectedCategory ? `refine-${selectedCategory}` : 'refine'}
+                    instanceId="refinement-notes"
                   />
                 </div>
 

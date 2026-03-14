@@ -62,6 +62,7 @@ export default function SessionPage() {
   const [userId, setUserId] = useState<string | undefined>(undefined)
   const [callSettings, setCallSettings] = useState<CallSettings | null>(null)
   const [callDuration, setCallDuration] = useState(0)
+  const [wasRecording, setWasRecording] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
   // Tracks whether this user is joining as a guest (no auth)
@@ -182,7 +183,21 @@ export default function SessionPage() {
     }
   }
 
-  const handleLeave = () => {
+  const handleLeave = async (stats?: { durationSeconds: number; wasRecording: boolean }) => {
+    if (stats) {
+      setCallDuration(stats.durationSeconds)
+      setWasRecording(stats.wasRecording)
+    }
+
+    // Re-fetch the session so post-call screen shows latest recording status
+    try {
+      const res = await fetch(`/api/video/sessions/${sessionId}`)
+      if (res.ok) {
+        const data = await res.json()
+        setSession(data.session)
+      }
+    } catch {}
+
     setPageState('post-call')
   }
 
@@ -347,6 +362,7 @@ export default function SessionPage() {
       <PostCallSummary
         session={session}
         duration={callDuration}
+        wasRecording={wasRecording}
         isHost={isHost}
         onClose={handlePostCallClose}
         onScheduleFollowUp={isHost ? handleScheduleFollowUp : undefined}
