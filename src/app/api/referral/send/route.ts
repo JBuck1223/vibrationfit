@@ -3,6 +3,10 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendAndLogEmail } from '@/lib/email/send'
 
+function titleCase(str: string): string {
+  return str.replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -95,8 +99,8 @@ export async function POST(request: NextRequest) {
     const referralLink = `${siteUrl}/offer/launch?ref=${participant.referral_code}`
 
     const vars: Record<string, string> = {
-      referrerName: referrerName.trim(),
-      firstName: referredName.trim(),
+      referrerName: titleCase(referrerName.trim()),
+      firstName: titleCase(referredName.trim()),
       personalization: personalization.trim(),
       referralLink,
     }
