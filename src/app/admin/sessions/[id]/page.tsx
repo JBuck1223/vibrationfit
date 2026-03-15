@@ -32,8 +32,10 @@ import {
   UserCheck,
   UserX,
   TrendingUp,
-  BarChart3
+  BarChart3,
+  RefreshCw
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { 
   Container, 
   Stack,
@@ -74,6 +76,7 @@ export default function AdminSessionDetailPage() {
   const [loadingEmail, setLoadingEmail] = useState(false)
   const [sendingEmail, setSendingEmail] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
+  const [syncingRecording, setSyncingRecording] = useState(false)
 
   // Fetch session
   const fetchSession = useCallback(async () => {
@@ -123,6 +126,38 @@ export default function AdminSessionDetailPage() {
       console.error('Error saving notes:', err)
     } finally {
       setSavingNotes(false)
+    }
+  }
+
+  const syncRecording = async () => {
+    setSyncingRecording(true)
+    const toastId = toast.loading('Syncing recording from Daily.co — downloading then uploading to S3. This may take a minute...')
+    try {
+      const res = await fetch('/api/admin/recordings/sync', { method: 'POST' })
+      const data = await res.json()
+
+      if (!res.ok) {
+        toast.error(data.error || 'Sync failed', { id: toastId })
+        return
+      }
+
+      if (data.synced > 0) {
+        toast.success(`Recording synced. Refreshing session...`, { id: toastId })
+        await fetchSession()
+      } else if (data.already_synced > 0) {
+        toast.success('Recording already in S3. Refreshing session...', { id: toastId })
+        await fetchSession()
+      } else {
+        const msg = data.results?.length
+          ? 'No ready recording found for this session in Daily.co yet. Try again in a few minutes.'
+          : 'No recordings to sync for this session.'
+        toast.info(msg, { id: toastId })
+      }
+    } catch (err) {
+      console.error('Error syncing recording:', err)
+      toast.error(err instanceof Error ? err.message : 'Sync failed', { id: toastId })
+    } finally {
+      setSyncingRecording(false)
     }
   }
 
@@ -384,22 +419,68 @@ export default function AdminSessionDetailPage() {
             </Card>
 
             {/* Recording */}
-            {session.recording_url && (
-              <Card className="p-4 md:p-6">
-                <h2 className="text-lg md:text-xl font-medium text-white mb-4 flex items-center gap-2">
-                  <Video className="w-5 h-5" />
-                  Recording
-                </h2>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open(session.recording_url!, '_blank')}
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download Recording
-                </Button>
-              </Card>
-            )}
+            <Card className="p-4 md:p-6">
+              <h2 className="text-lg md:text-xl font-medium text-white mb-4 flex items-center gap-2">
+                <Video className="w-5 h-5" />
+                Recording
+              </h2>
+              {session.recording_url ? (
+                <>
+                  <div className="aspect-video w-full max-w-2xl rounded-xl overflow-hidden bg-black border border-neutral-700 mb-4">
+                    <video
+                      src={session.recording_url}
+                      controls
+                      playsInline
+                      className="w-full h-full"
+                      preload="metadata"
+                    >
+                      Your browser does not support the video tag.
+                    </video>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(session.recording_url!, '_blank')}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download Recording
+                  </Button>
+                </>
+              ) : session.daily_room_name ? (
+                <div className="space-y-3">
+                  {syncingRecording ? (
+                    <div className="flex items-center gap-3 rounded-lg bg-primary-500/10 border border-primary-500/20 p-3">
+                      <Spinner size="sm" />
+                      <div>
+                        <p className="text-primary-400 font-medium">Syncing...</p>
+                        <p className="text-neutral-400 text-xs mt-0.5">
+                          Downloading from Daily.co and uploading to S3. Do not close this page.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-neutral-400 text-sm">
+                      No recording URL yet. If this session was recorded, the S3 push may not have run (e.g. webhook missed or failed). Sync from Daily.co to download and store it.
+                    </p>
+                  )}
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={syncRecording}
+                    disabled={syncingRecording}
+                  >
+                    {syncingRecording ? (
+                      <Spinner size="sm" className="mr-2" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                    )}
+                    {syncingRecording ? 'Syncing...' : 'Sync recording from Daily.co'}
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-neutral-500 text-sm">No recording for this session.</p>
+              )}
+            </Card>
           </div>
 
           {/* Right Column - Sidebar */}
