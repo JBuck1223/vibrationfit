@@ -2,26 +2,27 @@
 
 /**
  * Create New Session Page
- * 
+ *
  * Form for scheduling a new video session with:
+ * - User lookup for participant (or manual name/email/phone)
+ * - Session types including Calibration Call
  * - Admin selection (who hosts the meeting)
- * - Participant details (name, email, phone)
- * - Auto-populated title/description based on session type
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
-  Video, 
-  Users, 
-  Calendar,
-  Clock,
+import {
+  Video,
+  Users,
   User,
   Mail,
   Phone,
   CheckCircle,
   ChevronDown,
-  Dumbbell
+  Dumbbell,
+  Search,
+  X,
+  PhoneCall
 } from 'lucide-react'
 import { 
   PageHero, 
@@ -44,46 +45,65 @@ interface AdminUser {
   full_name: string
 }
 
+interface LookupUser {
+  id: string
+  email: string
+  first_name?: string
+  last_name?: string
+  full_name?: string
+  phone?: string
+}
+
+type SessionTypeKey = VideoSessionType | 'calibration_call'
+
 interface FormData {
   title: string
   description: string
-  session_type: VideoSessionType
+  session_type: SessionTypeKey
   scheduled_date: string
   scheduled_time: string
   duration_minutes: number
-  // Participant (left side)
+  participant_user_id: string
   participant_email: string
   participant_name: string
   participant_phone: string
-  // Host/Admin (right side)
   host_admin_id: string
   host_email: string
-  // Settings
   enable_recording: boolean
   enable_waiting_room: boolean
 }
 
-// Session type configurations for auto-populating title/description
-const SESSION_TYPE_DEFAULTS: Record<VideoSessionType, { title: string; description: string }> = {
+const SESSION_TYPE_DEFAULTS: Record<SessionTypeKey, { title: string; description: string; apiType: VideoSessionType; duration?: number }> = {
   one_on_one: {
     title: 'Discovery Session',
     description: 'A personalized 1:1 session to explore your goals and how VibrationFit can support your journey.',
+    apiType: 'one_on_one',
+  },
+  calibration_call: {
+    title: 'Calibration Call',
+    description: 'Your Activation Intensive calibration call to get aligned and set up for success.',
+    apiType: 'one_on_one',
+    duration: 45,
   },
   group: {
     title: 'Group Session',
     description: 'Join us for a collaborative group session focused on growth and alignment.',
+    apiType: 'group',
   },
   alignment_gym: {
     title: 'The Alignment Gym',
     description: 'Weekly live group coaching to keep you calibrated and moving toward your vision. Open to all members.',
+    apiType: 'alignment_gym',
   },
   workshop: {
     title: 'Activation Workshop',
     description: 'An intensive workshop session to activate your vision and accelerate your progress.',
+    apiType: 'workshop',
   },
   webinar: {
     title: 'Live Event',
     description: 'Join our live event to learn, connect, and elevate together.',
+    apiType: 'webinar',
   },
 }
 
@@ -106,6 +126,7 @@ function NewSessionContent() {
     scheduled_date: '',
     scheduled_time: '',
     duration_minutes: 60,
+    participant_user_id: '',
     participant_email: '',
     participant_name: '',
     participant_phone: '',
@@ -114,6 +135,12 @@ function NewSessionContent() {
     enable_recording: true,
     enable_waiting_room: true,
   })
+
+  const [userSearchQuery, setUserSearchQuery] = useState('')
+  const [userSearchResults, setUserSearchResults] = useState<LookupUser[]>([])
+  const [userSearchLoading, setUserSearchLoading] = useState(false)
+  const [showUserDropdown, setShowUserDropdown] = useState(false)
+  const [selectedLookupUser, setSelectedLookupUser] = useState<LookupUser | null>(null)
 
   // Fetch admin users
   useEffect(() => {
@@ -163,14 +190,67 @@ function NewSessionContent() {
     setError(null)
   }
 
-  // Handle session type change - auto-populate title/description
-  const handleSessionTypeChange = (type: VideoSessionType) => {
+  // User search (debounced)
+  useEffect(() => {
+    if (!userSearchQuery || userSearchQuery.length < 2) {
+      setUserSearchResults([])
+      setShowUserDropdown(false)
+      return
+    }
+    const t = setTimeout(async () => {
+      setUserSearchLoading(true)
+      try {
+        const res = await fetch(`/api/admin/users?search=${encodeURIComponent(userSearchQuery)}`)
+        const data = await res.json()
+        if (res.ok && Array.isArray(data.users)) {
+          setUserSearchResults(data.users)
+          setShowUserDropdown(true)
+        } else {
+          setUserSearchResults([])
+        }
+      } catch {
+        setUserSearchResults([])
+      } finally {
+        setUserSearchLoading(false)
+      }
+    }, 300)
+    return () => clearTimeout(t)
+  }, [userSearchQuery])
+
+  const handleSelectUser = useCallback((u: LookupUser) => {
+    const name = u.full_name || [u.first_name, u.last_name].filter(Boolean).join(' ') || u.email
+    setFormData(prev => ({
+      ...prev,
+      participant_user_id: u.id,
+      participant_name: name,
+      participant_email: u.email || '',
+      participant_phone: u.phone || '',
+    }))
+    setSelectedLookupUser(u)
+    setUserSearchQuery('')
+    setShowUserDropdown(false)
+    setUserSearchResults([])
+  }, [])
+
+  const handleClearUser = useCallback(() => {
+    setSelectedLookupUser(null)
+    setFormData(prev => ({
+      ...prev,
+      participant_user_id: '',
+      participant_name: '',
+      participant_email: '',
+      participant_phone: '',
+    }))
+  }, [])
+
+  const handleSessionTypeChange = (type: SessionTypeKey) => {
     const defaults = SESSION_TYPE_DEFAULTS[type]
     setFormData(prev => ({
       ...prev,
       session_type: type,
       title: defaults.title,
       description: defaults.description,
+      ...(defaults.duration != null && { duration_minutes: defaults.duration }),
     }))
   }
 
@@ -206,16 +286,19 @@ function NewSessionContent() {
         throw new Error('Please select a future date and time')
       }
 
-      // Create session
+      const sessionTypeConfig = SESSION_TYPE_DEFAULTS[formData.session_type]
+      const apiSessionType = sessionTypeConfig.apiType
+
       const response = await fetch('/api/video/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: formData.title.trim(),
           description: formData.description.trim() || undefined,
-          session_type: formData.session_type,
+          session_type: apiSessionType,
           scheduled_at: scheduledAt.toISOString(),
           scheduled_duration_minutes: formData.duration_minutes,
+          participant_user_id: formData.participant_user_id || undefined,
           participant_email: formData.participant_email.trim() || undefined,
           participant_name: formData.participant_name.trim() || undefined,
           participant_phone: formData.participant_phone.trim() || undefined,
@@ -291,7 +374,7 @@ function NewSessionContent() {
               <label className="block text-sm font-medium text-neutral-300 mb-3">
                 Session Type
               </label>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <button
                   type="button"
                   onClick={() => handleSessionTypeChange('one_on_one')}
@@ -308,6 +391,24 @@ function NewSessionContent() {
                     formData.session_type === 'one_on_one' ? 'text-white' : 'text-neutral-400'
                   }`}>
                     1:1 Session
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSessionTypeChange('calibration_call')}
+                  className={`p-4 rounded-xl border-2 transition-all ${
+                    formData.session_type === 'calibration_call'
+                      ? 'border-primary-500 bg-primary-500/10'
+                      : 'border-neutral-700 hover:border-neutral-600'
+                  }`}
+                >
+                  <PhoneCall className={`w-6 h-6 mx-auto mb-2 ${
+                    formData.session_type === 'calibration_call' ? 'text-primary-500' : 'text-neutral-400'
+                  }`} />
+                  <p className={`text-sm font-medium ${
+                    formData.session_type === 'calibration_call' ? 'text-white' : 'text-neutral-400'
+                  }`}>
+                    Calibration Call
                   </p>
                 </button>
                 <button
@@ -393,11 +494,69 @@ function NewSessionContent() {
                   <User className="w-4 h-4 text-secondary-500" />
                   Invite Participant
                 </h3>
-                
-                <div>
+
+                {/* User lookup */}
+                <div className="relative">
                   <label className="block text-xs text-neutral-500 mb-1">
-                    Name
+                    <Search className="w-3 h-3 inline mr-1" />
+                    Look up user (name or email)
                   </label>
+                  {selectedLookupUser ? (
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-neutral-800 border border-neutral-700">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white truncate">
+                          {selectedLookupUser.full_name || [selectedLookupUser.first_name, selectedLookupUser.last_name].filter(Boolean).join(' ') || selectedLookupUser.email}
+                        </p>
+                        <p className="text-xs text-neutral-400 truncate">{selectedLookupUser.email}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleClearUser}
+                        className="p-1.5 rounded-lg hover:bg-neutral-700 text-neutral-400 hover:text-white"
+                        title="Clear and enter manually"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <Input
+                        type="text"
+                        value={userSearchQuery}
+                        onChange={(e) => setUserSearchQuery(e.target.value)}
+                        onFocus={() => userSearchResults.length > 0 && setShowUserDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowUserDropdown(false), 200)}
+                        placeholder="Type to search..."
+                        className="bg-neutral-800 border-neutral-700"
+                      />
+                      {showUserDropdown && (userSearchResults.length > 0 || userSearchLoading) && (
+                        <div className="absolute top-full left-0 right-0 mt-1 rounded-lg border border-neutral-700 bg-neutral-900 shadow-xl z-10 max-h-48 overflow-y-auto">
+                          {userSearchLoading ? (
+                            <div className="p-3 text-center text-neutral-400 text-sm">Searching...</div>
+                          ) : (
+                            userSearchResults.map((u) => {
+                              const name = u.full_name || [u.first_name, u.last_name].filter(Boolean).join(' ') || u.email
+                              return (
+                                <button
+                                  key={u.id}
+                                  type="button"
+                                  onClick={() => handleSelectUser(u)}
+                                  className="w-full text-left px-3 py-2 hover:bg-neutral-800 flex flex-col"
+                                >
+                                  <span className="text-sm text-white truncate">{name}</span>
+                                  <span className="text-xs text-neutral-500 truncate">{u.email}</span>
+                                </button>
+                              )
+                            })
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs text-neutral-500 mb-1">Name</label>
                   <Input
                     type="text"
                     value={formData.participant_name}
@@ -406,7 +565,6 @@ function NewSessionContent() {
                     className="bg-neutral-800 border-neutral-700"
                   />
                 </div>
-                
                 <div>
                   <label className="block text-xs text-neutral-500 mb-1">
                     <Mail className="w-3 h-3 inline mr-1" />
@@ -420,7 +578,6 @@ function NewSessionContent() {
                     className="bg-neutral-800 border-neutral-700"
                   />
                 </div>
-                
                 <div>
                   <label className="block text-xs text-neutral-500 mb-1">
                     <Phone className="w-3 h-3 inline mr-1" />

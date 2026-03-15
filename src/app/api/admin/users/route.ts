@@ -69,21 +69,29 @@ export async function GET(request: NextRequest) {
     // Get query params
     const { searchParams } = new URL(request.url)
     const role = searchParams.get('role')
+    const search = searchParams.get('search')?.trim()
 
-    // Build query from user_accounts
+    // Build query from user_accounts (include phone for session participant lookup)
     let query = adminDb
       .from('user_accounts')
-      .select('id, email, first_name, last_name, full_name, role, profile_picture_url, timezone')
+      .select('id, email, first_name, last_name, full_name, role, profile_picture_url, timezone, phone')
       .order('full_name', { ascending: true })
 
     // Filter by role if specified
     if (role) {
       if (role === 'admin') {
-        // Include both admin and super_admin
         query = query.in('role', ['admin', 'super_admin'])
       } else {
         query = query.eq('role', role)
       }
+    }
+
+    // Optional search (for participant lookup: name or email)
+    if (search && search.length >= 2) {
+      const term = `%${search}%`
+      query = query.or(
+        `email.ilike.${term},full_name.ilike.${term},first_name.ilike.${term},last_name.ilike.${term}`
+      ).limit(25)
     }
 
     const { data: users, error } = await query
