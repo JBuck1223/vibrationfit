@@ -52,7 +52,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     const { data: existing } = await supabase
       .from('user_maps')
-      .select('id, status')
+      .select('id, is_draft, is_active')
       .eq('id', id)
       .eq('user_id', user.id)
       .single()
@@ -67,11 +67,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (body.title !== undefined) updates.title = body.title.trim()
     if (body.week_start_date !== undefined) updates.week_start_date = body.week_start_date
     if (body.timezone !== undefined) updates.timezone = body.timezone
-    if (body.status !== undefined) {
-      if (!['draft', 'archived'].includes(body.status)) {
-        return NextResponse.json({ error: 'Invalid status. Use activate endpoint to set active.' }, { status: 400 })
+    if (body.is_draft !== undefined) updates.is_draft = body.is_draft
+    if (body.is_active !== undefined) {
+      if (body.is_active) {
+        return NextResponse.json({ error: 'Use the activate endpoint to set a map as active.' }, { status: 400 })
       }
-      updates.status = body.status
+      updates.is_active = false
     }
 
     if (Object.keys(updates).length > 0) {
@@ -142,7 +143,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
 
     const { data: existing } = await supabase
       .from('user_maps')
-      .select('id, status')
+      .select('id, is_draft, is_active')
       .eq('id', id)
       .eq('user_id', user.id)
       .single()
@@ -151,7 +152,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Map not found' }, { status: 404 })
     }
 
-    if (existing.status !== 'draft') {
+    if (!existing.is_draft) {
       return NextResponse.json(
         { error: 'Only draft maps can be deleted. Archive it instead.' },
         { status: 400 }

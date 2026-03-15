@@ -1,12 +1,6 @@
 -- Weekly MAP Builder: user_maps + user_map_items
 -- Versioned weekly activation plans with SMS notification scheduling
-
--- Enum for map status
-DO $$ BEGIN
-  CREATE TYPE public.map_status AS ENUM ('draft', 'active', 'archived');
-EXCEPTION
-  WHEN duplicate_object THEN null;
-END $$;
+-- Uses is_active / is_draft boolean pattern (matches vision_versions / user_profiles)
 
 -- Enum for CACS categories
 DO $$ BEGIN
@@ -20,7 +14,8 @@ CREATE TABLE public.user_maps (
     id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
     user_id uuid NOT NULL REFERENCES public.user_accounts(id) ON DELETE CASCADE,
     title text NOT NULL,
-    status public.map_status DEFAULT 'draft'::public.map_status NOT NULL,
+    is_draft boolean DEFAULT true NOT NULL,
+    is_active boolean DEFAULT false NOT NULL,
     week_start_date date,
     version_number integer DEFAULT 1 NOT NULL,
     timezone text DEFAULT 'America/New_York' NOT NULL,
@@ -29,10 +24,12 @@ CREATE TABLE public.user_maps (
 );
 
 COMMENT ON TABLE public.user_maps IS 'Versioned weekly activation plans (MAPs) for users';
+COMMENT ON COLUMN public.user_maps.is_draft IS 'True while the MAP is being built, false once saved/activated';
+COMMENT ON COLUMN public.user_maps.is_active IS 'True for the current active MAP. Only one active per user.';
 COMMENT ON COLUMN public.user_maps.timezone IS 'IANA timezone for notification scheduling';
 
 CREATE INDEX idx_user_maps_user_id ON public.user_maps(user_id);
-CREATE INDEX idx_user_maps_status ON public.user_maps(user_id, status);
+CREATE INDEX idx_user_maps_active ON public.user_maps(user_id) WHERE (is_active = true AND is_draft = false);
 
 -- user_map_items: individual activities within a MAP
 CREATE TABLE public.user_map_items (

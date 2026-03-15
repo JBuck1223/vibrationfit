@@ -56,7 +56,7 @@ import {
   type BadgeWithProgress as BadgeWithProgressType,
 } from '@/lib/badges/types'
 import type { UserMap, UserMapItem, MapCategory } from '@/lib/map/types'
-import { DAY_LABELS, CATEGORY_LABELS, CATEGORY_ORDER } from '@/lib/map/types'
+import { DAY_LABELS, CATEGORY_LABELS, CATEGORY_ORDER, getMapDisplayStatus } from '@/lib/map/types'
 import { getActivityDefinition } from '@/lib/map/activities'
 
 const MAP_VIDEO =
@@ -168,10 +168,13 @@ export default function MAPPage() {
       const fromIntensive = searchParams.get('intensive') === 'true'
       const intensiveData = await getActiveIntensiveClient()
 
+      let isInIntensive = false
       if (intensiveData) {
         setIntensiveId(intensiveData.intensive_id)
         if (!intensiveData.unlock_completed || fromIntensive) {
           setIsIntensiveFlow(true)
+          setShowGuide(true)
+          isInIntensive = true
         }
         if (intensiveData.activation_protocol_completed) {
           setIsAlreadyCompleted(true)
@@ -183,7 +186,8 @@ export default function MAPPage() {
         .from('vision_versions')
         .select('id')
         .eq('user_id', user.id)
-        .eq('status', 'active')
+        .eq('is_active', true)
+        .eq('is_draft', false)
         .order('created_at', { ascending: false })
         .limit(1)
         .single()
@@ -192,17 +196,19 @@ export default function MAPPage() {
         setActiveVisionId(visionData.id)
       }
 
-      // Fetch user's MAPs
-      try {
-        const mapsRes = await fetch('/api/map')
-        if (mapsRes.ok) {
-          const mapsData = await mapsRes.json()
-          setMaps(mapsData.maps || [])
-          const active = (mapsData.maps || []).find((m: UserMap) => m.status === 'active')
-          if (active) setActiveMap(active)
+      // Only fetch MAPs after intensive graduation
+      if (!isInIntensive) {
+        try {
+          const mapsRes = await fetch('/api/map')
+          if (mapsRes.ok) {
+            const mapsData = await mapsRes.json()
+            setMaps(mapsData.maps || [])
+            const active = (mapsData.maps || []).find((m: UserMap) => m.is_active && !m.is_draft)
+            if (active) setActiveMap(active)
+          }
+        } catch {
+          // Maps table may not exist yet
         }
-      } catch {
-        // Maps table may not exist yet
       }
 
     } catch (error) {
@@ -254,7 +260,7 @@ export default function MAPPage() {
     )
   }
 
-  const pastMaps = maps.filter(m => m.status !== 'active')
+  const pastMaps = maps.filter(m => !(m.is_active && !m.is_draft))
 
   return (
     <Container size="xl">
@@ -345,7 +351,7 @@ export default function MAPPage() {
         {/* ============================================ */}
         {/* ACTIVE MAP PREVIEW */}
         {/* ============================================ */}
-        {activeMap && activeMap.items && (activeMap.items as UserMapItem[]).length > 0 && (
+        {!isIntensiveFlow && activeMap && activeMap.items && (activeMap.items as UserMapItem[]).length > 0 && (
           <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
             <Stack gap="md">
               <div className="flex items-center justify-between">
@@ -415,7 +421,7 @@ export default function MAPPage() {
         {/* ============================================ */}
         {/* PAST MAPS */}
         {/* ============================================ */}
-        {pastMaps.length > 0 && (
+        {!isIntensiveFlow && pastMaps.length > 0 && (
           <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
             <Stack gap="md">
               <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
@@ -434,7 +440,7 @@ export default function MAPPage() {
                       </Text>
                       <Text size="xs" className="text-neutral-500">
                         V{m.version_number} &middot; {(m.items as UserMapItem[] | undefined)?.length ?? 0} activities &middot;{' '}
-                        {m.status === 'draft' ? 'Draft' : 'Archived'}
+                        {getMapDisplayStatus(m) === 'draft' ? 'Draft' : 'Archived'}
                       </Text>
                     </div>
                     <ArrowRight className="w-4 h-4 text-neutral-600" />

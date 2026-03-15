@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Container, Card, Button, Badge, Input, Stack, PageHero } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
 import { createClient } from '@/lib/supabase/client'
-import { Search, UserPlus, Shield, Mail, Calendar, CheckCircle, Clock, RefreshCw, AlertCircle, Zap, Trash2, Eye, Globe } from 'lucide-react'
+import { Search, UserPlus, Shield, Mail, Calendar, CheckCircle, Clock, RefreshCw, AlertCircle, Zap, Trash2, Eye, Globe, FileText } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 
@@ -557,6 +557,15 @@ function UsersAdminContent() {
                     <Button
                       variant="outline"
                       size="sm"
+                      className="whitespace-nowrap text-primary-400 border-primary-500/50 hover:bg-primary-500/10"
+                      onClick={() => router.push(`/admin/users/${user.id}`)}
+                    >
+                      <FileText className="w-4 h-4 mr-1" />
+                      Full Profile
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className="whitespace-nowrap text-secondary-400 border-secondary-500/50 hover:bg-secondary-500/10"
                       onClick={() => viewAsUser(user.id)}
                     >
@@ -809,6 +818,15 @@ function UsersAdminContent() {
                   )}
 
                   <div className="flex items-center gap-2 flex-wrap">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="whitespace-nowrap text-primary-400 border-primary-500/50 hover:bg-primary-500/10"
+                      onClick={() => router.push(`/admin/users/${user.id}`)}
+                    >
+                      <FileText className="w-4 h-4 mr-1" />
+                      Full Profile
+                    </Button>
                     <div className="relative">
                       <Button
                         variant="outline"

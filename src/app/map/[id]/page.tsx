@@ -26,7 +26,7 @@ import {
   Copy,
 } from 'lucide-react'
 import type { UserMap, UserMapItem, MapCategory } from '@/lib/map/types'
-import { DAY_LABELS, DAY_LABELS_FULL, CATEGORY_LABELS, CATEGORY_ORDER } from '@/lib/map/types'
+import { DAY_LABELS, DAY_LABELS_FULL, CATEGORY_LABELS, CATEGORY_ORDER, getMapDisplayStatus } from '@/lib/map/types'
 import { getActivityDefinition } from '@/lib/map/activities'
 
 const CATEGORY_COLORS: Record<MapCategory, string> = {
@@ -102,7 +102,7 @@ export default function MapViewPage() {
       const res = await fetch(`/api/map/${mapId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'archived' }),
+        body: JSON.stringify({ is_active: false, is_draft: false }),
       })
       if (!res.ok) {
         const data = await res.json()
@@ -175,7 +175,8 @@ export default function MapViewPage() {
   if (!map) return null
 
   const items = (map.items ?? []) as UserMapItem[]
-  const statusStyle = STATUS_STYLES[map.status] || STATUS_STYLES.draft
+  const displayStatus = getMapDisplayStatus(map)
+  const statusStyle = STATUS_STYLES[displayStatus] || STATUS_STYLES.draft
 
   return (
     <Container size="xl">
@@ -208,7 +209,7 @@ export default function MapViewPage() {
             All MAPs
           </Button>
           <div className="flex-1" />
-          {map.status === 'draft' && (
+          {displayStatus === 'draft' && (
             <Button
               variant="primary"
               size="sm"
@@ -223,7 +224,7 @@ export default function MapViewPage() {
               Activate
             </Button>
           )}
-          {map.status === 'active' && (
+          {displayStatus === 'active' && (
             <>
               <Button
                 variant="outline"

@@ -31,7 +31,7 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Map not found' }, { status: 404 })
     }
 
-    if (map.status !== 'active') {
+    if (!map.is_active || map.is_draft) {
       return NextResponse.json(
         { error: 'Only active maps can have notifications scheduled' },
         { status: 400 }
