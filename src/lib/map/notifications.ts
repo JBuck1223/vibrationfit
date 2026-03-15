@@ -184,7 +184,8 @@ export async function refreshAllMapNotifications() {
   const { data: activeMaps, error } = await supabase
     .from('user_maps')
     .select('*, items:user_map_items(*)')
-    .eq('status', 'active')
+    .eq('is_active', true)
+    .eq('is_draft', false)
 
   if (error || !activeMaps) {
     console.error('Error fetching active maps for refresh:', error)

@@ -58,7 +58,8 @@ export async function POST(request: NextRequest) {
       .insert({
         user_id: user.id,
         title: body.title.trim(),
-        status: 'draft',
+        is_draft: true,
+        is_active: false,
         week_start_date: body.week_start_date || null,
         timezone: body.timezone || 'America/New_York',
       })

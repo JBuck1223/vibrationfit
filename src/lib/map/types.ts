@@ -1,11 +1,11 @@
-export type MapStatus = 'draft' | 'active' | 'archived'
 export type MapCategory = 'creations' | 'activations' | 'connections' | 'sessions'
 
 export interface UserMap {
   id: string
   user_id: string
   title: string
-  status: MapStatus
+  is_draft: boolean
+  is_active: boolean
   week_start_date: string | null
   version_number: number
   timezone: string
@@ -50,10 +50,23 @@ export interface CreateMapItemPayload {
 
 export interface UpdateMapPayload {
   title?: string
-  status?: 'draft' | 'archived'
+  is_draft?: boolean
+  is_active?: boolean
   week_start_date?: string | null
   timezone?: string
   items?: CreateMapItemPayload[]
+}
+
+/**
+ * Derive a display status from the is_draft / is_active booleans.
+ * - is_draft=true                → 'draft'
+ * - is_draft=false, is_active=true  → 'active'
+ * - is_draft=false, is_active=false → 'archived'
+ */
+export function getMapDisplayStatus(map: Pick<UserMap, 'is_draft' | 'is_active'>): 'draft' | 'active' | 'archived' {
+  if (map.is_draft) return 'draft'
+  if (map.is_active) return 'active'
+  return 'archived'
 }
 
 export const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const

@@ -34,17 +34,18 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Cannot activate an empty map' }, { status: 400 })
     }
 
-    // Archive current active map
+    // Deactivate current active map (is_active=false, is_draft stays false → archived)
     await supabase
       .from('user_maps')
-      .update({ status: 'archived' })
+      .update({ is_active: false })
       .eq('user_id', user.id)
-      .eq('status', 'active')
+      .eq('is_active', true)
+      .eq('is_draft', false)
 
     // Set this map as active
     const { error: activateError } = await supabase
       .from('user_maps')
-      .update({ status: 'active' })
+      .update({ is_active: true, is_draft: false })
       .eq('id', id)
 
     if (activateError) {
@@ -62,7 +63,7 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
     if (account?.phone && account?.sms_opt_in) {
       try {
         await scheduleMapNotifications({
-          map: { ...map, status: 'active' },
+          map: { ...map, is_active: true, is_draft: false },
           userId: user.id,
           phone: account.phone,
         })

@@ -47,7 +47,8 @@ export async function GET() {
         .from('user_maps')
         .select('id')
         .eq('user_id', user.id)
-        .eq('status', 'active')
+        .eq('is_active', true)
+        .eq('is_draft', false)
         .limit(1)
         .maybeSingle()
 
