@@ -79,25 +79,27 @@ export function ReferralBanner() {
 
   return (
     <div
-      className="fixed top-0 left-0 right-0 z-[9998] bg-gradient-to-r from-[#39FF14] to-[#00FFFF] px-4 flex items-center justify-center gap-3 shadow-lg"
+      className="fixed top-0 left-0 right-0 z-[9998] bg-gradient-to-r from-[#39FF14] to-[#00FFFF] px-2 sm:px-4 flex items-center justify-between gap-1 sm:gap-3 shadow-lg overflow-hidden"
       style={{ height: BANNER_HEIGHT }}
     >
       <a
         href={isOfferPage ? '#pricing' : `/offer/launch?ref=${refCode}`}
-        className="flex items-center gap-2 text-black text-xs sm:text-sm font-medium hover:opacity-80 transition-opacity min-w-0"
+        className="flex items-center gap-1.5 sm:gap-2 text-black text-xs sm:text-sm font-medium hover:opacity-80 transition-opacity min-w-0 flex-1 justify-center"
       >
-        <Gift className="w-4 h-4 flex-shrink-0" />
+        <Gift className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
         <span className="truncate">
-          Your friend{nameDisplay} unlocked the <strong>$1 Activation Intensive</strong> for you
+          <span className="hidden sm:inline">Your friend{nameDisplay} unlocked the </span>
+          <strong>$1 Activation Intensive</strong>
+          <span className="hidden sm:inline"> for you</span>
         </span>
-        {!isOfferPage && <ArrowRight className="w-4 h-4 flex-shrink-0" />}
+        {!isOfferPage && <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />}
       </a>
       <button
         onClick={handleDismiss}
-        className="flex items-center justify-center p-1 bg-black/10 hover:bg-black/20 rounded-full transition-colors flex-shrink-0"
+        className="flex items-center justify-center w-8 h-8 sm:w-7 sm:h-7 bg-black/10 hover:bg-black/20 rounded-full transition-colors flex-shrink-0"
         aria-label="Dismiss banner"
       >
-        <X className="w-3 h-3 text-black" />
+        <X className="w-3.5 h-3.5 text-black" />
       </button>
     </div>
   )
