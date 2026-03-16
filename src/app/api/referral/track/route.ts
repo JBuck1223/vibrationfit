@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({
       success: true,
       referrerCode: participant.referral_code,
+      referrerName: participant.display_name || null,
     })
 
     response.cookies.set('vf_ref', participant.referral_code, {
