@@ -66,10 +66,10 @@ export async function generateUniqueCode(
 export async function resolveReferralCode(
   supabase: SupabaseClient,
   code: string
-): Promise<{ id: string; email: string; referral_code: string; user_id: string | null } | null> {
+): Promise<{ id: string; email: string; referral_code: string; user_id: string | null; display_name: string | null } | null> {
   const { data: participant } = await supabase
     .from('referral_participants')
-    .select('id, email, referral_code, user_id')
+    .select('id, email, referral_code, user_id, display_name')
     .eq('referral_code', code)
     .eq('is_active', true)
     .maybeSingle()
@@ -86,7 +86,7 @@ export async function resolveReferralCode(
 
   const { data: fromHistory } = await supabase
     .from('referral_participants')
-    .select('id, email, referral_code, user_id')
+    .select('id, email, referral_code, user_id, display_name')
     .eq('id', history.participant_id)
     .eq('is_active', true)
     .maybeSingle()
