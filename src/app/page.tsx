@@ -86,6 +86,7 @@ export default function HomePage() {
   const [promoCode, setPromoCode] = useState<string | null>(null)
   const { byType, tokenGrant, storageQuota } = useMembershipTiers()
   const [referralSource, setReferralSource] = useState<string | null>(null)
+  const [referrerName, setReferrerName] = useState<string | null>(null)
   const [campaignName, setCampaignName] = useState<string | null>(null)
 
   // Read promo code and affiliate params from URL on mount
@@ -108,7 +109,12 @@ export default function HomePage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ referralCode: ref }),
-        }).catch(() => {})
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.referrerName) setReferrerName(data.referrerName)
+          })
+          .catch(() => {})
       }
       
       // Campaign name
@@ -383,6 +389,16 @@ export default function HomePage() {
   }
 
   return (
+      <>
+      {referralSource && (
+        <div
+          className="-mx-4 sm:-mx-6 lg:-mx-8 -mt-6 md:-mt-12 lg:-mt-8 mb-8 md:mb-12 bg-gradient-to-r from-[#39FF14] to-[#00FFFF] py-2.5 px-4 text-center"
+        >
+          <p className="text-black text-sm font-medium max-w-4xl mx-auto leading-snug">
+            Good news: your friend{referrerName ? ` ${referrerName.charAt(0).toUpperCase()}${referrerName.slice(1)}` : ''} unlocked friend-only launch pricing for you &rarr; join the Vision Intensive for <strong>$1</strong> (normally $499) when you use their code by March 31. This friends-only offer isn&apos;t available on our website.
+          </p>
+        </div>
+      )}
       <Stack gap="lg">
         
         {/* Hero Section */}
@@ -2814,5 +2830,6 @@ export default function HomePage() {
         </section>
 
       </Stack>
+      </>
   )
 }

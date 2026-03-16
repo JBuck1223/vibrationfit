@@ -32,7 +32,8 @@ import {
   MapPin,
   ExternalLink,
   Trash2,
-  Play
+  Play,
+  Ban
 } from 'lucide-react'
 
 // ============================================================================
@@ -124,6 +125,19 @@ export default function CalendarPage() {
     end_time: '10:00',
     all_day: false,
     blocks_availability: true
+  })
+
+  // Block range form
+  const [showBlockRangeForm, setShowBlockRangeForm] = useState(false)
+  const [savingBlockRange, setSavingBlockRange] = useState(false)
+  const [blockRange, setBlockRange] = useState({
+    title: 'Blocked',
+    description: '',
+    start_date: '',
+    end_date: '',
+    all_day: true,
+    start_time: '09:00',
+    end_time: '17:00',
   })
 
   // ============================================================================
@@ -345,6 +359,81 @@ export default function CalendarPage() {
     })
   }
 
+  const resetBlockRangeForm = () => {
+    setBlockRange({
+      title: 'Blocked',
+      description: '',
+      start_date: '',
+      end_date: '',
+      all_day: true,
+      start_time: '09:00',
+      end_time: '17:00',
+    })
+  }
+
+  const createBlockedRange = async () => {
+    if (!blockRange.start_date || !blockRange.end_date) {
+      toast.error('Please select both a start and end date')
+      return
+    }
+    if (blockRange.end_date < blockRange.start_date) {
+      toast.error('End date must be on or after start date')
+      return
+    }
+
+    setSavingBlockRange(true)
+    try {
+      const dates: string[] = []
+      const current = new Date(blockRange.start_date + 'T12:00:00')
+      const end = new Date(blockRange.end_date + 'T12:00:00')
+      while (current <= end) {
+        const y = current.getFullYear()
+        const m = String(current.getMonth() + 1).padStart(2, '0')
+        const d = String(current.getDate()).padStart(2, '0')
+        dates.push(`${y}-${m}-${d}`)
+        current.setDate(current.getDate() + 1)
+      }
+
+      const rows = allStaff.flatMap(staff =>
+        dates.map(date => ({
+          staff_id: staff.id,
+          title: blockRange.title || 'Blocked',
+          description: blockRange.description || null,
+          event_source: 'manual' as const,
+          event_category: 'blocked',
+          scheduled_at: blockRange.all_day
+            ? `${date}T00:00:00`
+            : `${date}T${blockRange.start_time}:00`,
+          end_at: blockRange.all_day
+            ? `${date}T23:59:59`
+            : `${date}T${blockRange.end_time}:00`,
+          all_day: blockRange.all_day,
+          blocks_availability: true,
+          status: 'confirmed' as const,
+        }))
+      )
+
+      const { error } = await supabase
+        .from('calendar_events')
+        .insert(rows)
+
+      if (error) throw error
+
+      toast.success(
+        `Blocked ${dates.length} day${dates.length > 1 ? 's' : ''} for ${allStaff.length} staff member${allStaff.length > 1 ? 's' : ''}`
+      )
+      setShowBlockRangeForm(false)
+      resetBlockRangeForm()
+      await loadEvents()
+
+    } catch (error) {
+      console.error('Error creating blocked range:', error)
+      toast.error('Failed to block date range')
+    } finally {
+      setSavingBlockRange(false)
+    }
+  }
+
   // ============================================================================
   // CALENDAR NAVIGATION
   // ============================================================================
@@ -391,10 +480,11 @@ export default function CalendarPage() {
   }
 
   const getEventsForDay = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0]
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
     return events.filter(event => {
-      const eventDate = event.scheduled_at.split('T')[0]
-      return eventDate === dateStr
+      const startDate = event.scheduled_at.split('T')[0]
+      const endDate = event.end_at.split('T')[0]
+      return dateStr >= startDate && dateStr <= endDate
     })
   }
 
@@ -494,11 +584,22 @@ export default function CalendarPage() {
               </button>
             </div>
 
-            {/* Add Event */}
-            <Button variant="outline" size="sm" onClick={() => setShowNewEventForm(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Event
-            </Button>
+            {/* Add Event / Block Range */}
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setShowNewEventForm(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Event
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowBlockRangeForm(true)}
+                className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+              >
+                <Ban className="w-4 h-4 mr-2" />
+                Block Range
+              </Button>
+            </div>
           </div>
         </Card>
 
@@ -602,6 +703,126 @@ export default function CalendarPage() {
                     Add Event
                   </Button>
                   <Button variant="ghost" onClick={() => setShowNewEventForm(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* Block Range Modal */}
+        {showBlockRangeForm && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-md">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-lg font-bold">Block Date Range</h3>
+                  <p className="text-sm text-neutral-400 mt-1">
+                    Blocks availability for all {allStaff.length} staff member{allStaff.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setShowBlockRangeForm(false)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Title</label>
+                  <Input
+                    placeholder="e.g. Holiday, Team Retreat"
+                    value={blockRange.title}
+                    onChange={(e) => setBlockRange({ ...blockRange, title: e.target.value })}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Start Date</label>
+                    <DatePicker
+                      value={blockRange.start_date || undefined}
+                      onChange={(date) => setBlockRange({ 
+                        ...blockRange, 
+                        start_date: date || '',
+                        end_date: blockRange.end_date && date && blockRange.end_date < date 
+                          ? date 
+                          : blockRange.end_date
+                      })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">End Date</label>
+                    <DatePicker
+                      value={blockRange.end_date || undefined}
+                      onChange={(date) => setBlockRange({ ...blockRange, end_date: date || '' })}
+                      minDate={blockRange.start_date || undefined}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    checked={blockRange.all_day}
+                    onCheckedChange={(checked) => setBlockRange({ ...blockRange, all_day: checked as boolean })}
+                  />
+                  <label className="text-sm">All day</label>
+                </div>
+
+                {!blockRange.all_day && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Start Time</label>
+                      <TimePicker
+                        value={blockRange.start_time}
+                        onChange={(val) => setBlockRange({ ...blockRange, start_time: val })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">End Time</label>
+                      <TimePicker
+                        value={blockRange.end_time}
+                        onChange={(val) => setBlockRange({ ...blockRange, end_time: val })}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Description (optional)</label>
+                  <Input
+                    placeholder="Reason for blocking"
+                    value={blockRange.description}
+                    onChange={(e) => setBlockRange({ ...blockRange, description: e.target.value })}
+                  />
+                </div>
+
+                {blockRange.start_date && blockRange.end_date && (
+                  <div className="bg-red-500/10 border border-red-500/30 p-3 rounded-xl text-sm">
+                    <p className="text-red-400 font-medium">
+                      This will create blocked events for{' '}
+                      {(() => {
+                        const start = new Date(blockRange.start_date + 'T12:00:00')
+                        const end = new Date(blockRange.end_date + 'T12:00:00')
+                        const days = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
+                        return `${days} day${days !== 1 ? 's' : ''}`
+                      })()}{' '}
+                      across {allStaff.length} staff member{allStaff.length !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-4">
+                  <Button
+                    variant="danger"
+                    onClick={createBlockedRange}
+                    disabled={savingBlockRange || !blockRange.start_date || !blockRange.end_date}
+                    className="flex-1"
+                  >
+                    {savingBlockRange ? <Spinner size="sm" className="mr-2" /> : <Ban className="w-4 h-4 mr-2" />}
+                    Block Range
+                  </Button>
+                  <Button variant="ghost" onClick={() => setShowBlockRangeForm(false)}>
                     Cancel
                   </Button>
                 </div>
