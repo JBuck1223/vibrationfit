@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
-import { Gift, ArrowRight, X } from 'lucide-react'
+import { ArrowRight, X } from 'lucide-react'
 
 const BANNER_HEIGHT = '48px'
 const DISMISSED_KEY = 'vf_ref_banner_dismissed'
@@ -86,11 +86,9 @@ export function ReferralBanner() {
         href={isOfferPage ? '#pricing' : `/offer/launch?ref=${refCode}`}
         className="flex items-center gap-1.5 sm:gap-2 text-black text-xs sm:text-sm font-medium hover:opacity-80 transition-opacity min-w-0 flex-1 justify-center"
       >
-        <Gift className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-        <span className="truncate">
-          <span className="hidden sm:inline">Your friend{nameDisplay} unlocked the </span>
-          <strong>$1 Activation Intensive</strong>
-          <span className="hidden sm:inline"> for you</span>
+        <span className="truncate leading-snug">
+          <span className="hidden sm:inline">Good news: your friend{nameDisplay} unlocked friend-only launch pricing for you &rarr; join the Vision Intensive for <strong>$1</strong> (normally $499) when you use their code by March 31. This friends-only offer isn&apos;t available on our website.</span>
+          <span className="sm:hidden">Friend-only pricing unlocked &rarr; Vision Intensive for <strong>$1</strong> (normally $499)</span>
         </span>
         {!isOfferPage && <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />}
       </a>
