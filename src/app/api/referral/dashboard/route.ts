@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       participant,
-      referralLink: `${siteUrl}/?ref=${participant.referral_code}`,
+      referralLink: `${siteUrl}/offer/launch?ref=${participant.referral_code}`,
       stats: {
         totalClicks: participant.total_clicks,
         emailSignups: participant.email_signups,

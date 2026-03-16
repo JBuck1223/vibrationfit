@@ -686,6 +686,217 @@ export default function AssemblyPage() {
     }
   }
 
+  const retryFailed = async (specificCategory?: VisionCategoryKey) => {
+    if (isProcessingRef.current) return
+    isProcessingRef.current = true
+    setIsProcessing(true)
+    setError(null)
+
+    abortControllerRef.current = new AbortController()
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Unauthorized')
+
+      const failedKeys = specificCategory
+        ? [specificCategory]
+        : categories.filter(c => c.status === 'error').map(c => c.key)
+
+      if (failedKeys.length === 0) return
+
+      // Re-use existing batch or create new one
+      let currentBatchId = batchId
+      if (!currentBatchId) {
+        const { data: newBatch, error: batchError } = await supabase
+          .from('vision_generation_batches')
+          .insert({
+            user_id: user.id,
+            status: 'retrying',
+            started_at: new Date().toISOString()
+          })
+          .select()
+          .single()
+        if (batchError) throw batchError
+        currentBatchId = newBatch.id
+        setBatchId(currentBatchId)
+      } else {
+        await supabase
+          .from('vision_generation_batches')
+          .update({ status: 'retrying', started_at: new Date().toISOString() })
+          .eq('id', currentBatchId)
+      }
+
+      const { data: categoryStates } = await supabase
+        .from('vision_new_category_state')
+        .select('*')
+        .eq('user_id', user.id)
+        .in('category', failedKeys)
+
+      const stillFailed: VisionCategoryKey[] = []
+
+      for (const categoryKey of failedKeys) {
+        if (abortControllerRef.current?.signal.aborted) break
+
+        const i = categoryKeys.indexOf(categoryKey)
+        const state = categoryStates?.find(cs => cs.category === categoryKey)
+
+        setCurrentIndex(i)
+        setCategories(prev => prev.map((c, idx) =>
+          idx === i ? { ...c, status: 'waiting', error: undefined, text: '' } : c
+        ))
+        setWaitingStartTime(Date.now())
+        setVivaProgress(0)
+
+        await supabase
+          .from('vision_generation_batches')
+          .update({ current_category: categoryKey })
+          .eq('id', currentBatchId)
+
+        try {
+          const response = await fetch('/api/viva/category-vision', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              categoryKey,
+              getMeStartedText: state?.get_me_started_text || '',
+              imaginationText: state?.imagination_text || '',
+              currentStateText: state?.clarity_keys?.[0] || '',
+              perspective
+            }),
+            signal: abortControllerRef.current?.signal
+          })
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}))
+            throw new Error(errorData.error || `HTTP ${response.status}`)
+          }
+
+          setCategories(prev => prev.map((c, idx) =>
+            idx === i ? { ...c, status: 'streaming' } : c
+          ))
+          setWaitingStartTime(null)
+          setVivaProgress(100)
+
+          const reader = response.body?.getReader()
+          const decoder = new TextDecoder()
+          let fullText = ''
+
+          if (reader) {
+            try {
+              while (true) {
+                const { done, value } = await reader.read()
+                if (done) break
+                fullText += decoder.decode(value, { stream: true })
+                setCategories(prev => prev.map((c, idx) =>
+                  idx === i ? { ...c, text: fullText } : c
+                ))
+              }
+            } catch (e) {
+              console.log(`[Assembly] Retry stream interrupted for ${categoryKey}`)
+            }
+          }
+
+          if (fullText && fullText.trim().length > 50) {
+            setCategories(prev => prev.map((c, idx) =>
+              idx === i ? { ...c, status: 'complete', text: fullText } : c
+            ))
+          } else {
+            await new Promise(resolve => setTimeout(resolve, 2000))
+            const { data: checkState } = await supabase
+              .from('vision_new_category_state')
+              .select('category_vision_text')
+              .eq('user_id', user.id)
+              .eq('category', categoryKey)
+              .maybeSingle()
+
+            if (checkState?.category_vision_text && checkState.category_vision_text.length > 50) {
+              setCategories(prev => prev.map((c, idx) =>
+                idx === i ? { ...c, status: 'complete', text: checkState.category_vision_text } : c
+              ))
+            } else {
+              throw new Error('Generated text too short')
+            }
+          }
+        } catch (err: any) {
+          if (err.name === 'AbortError') break
+          console.error(`Retry failed for ${categoryKey}:`, err)
+          stillFailed.push(categoryKey)
+          setWaitingStartTime(null)
+          setCategories(prev => prev.map((c, idx) =>
+            idx === i ? { ...c, status: 'error', error: err instanceof Error ? err.message : 'Unknown error' } : c
+          ))
+        }
+      }
+
+      // If all 12 are now complete, auto-assemble
+      const updatedCategories = categories.map(c => {
+        const retried = failedKeys.includes(c.key) && !stillFailed.includes(c.key)
+        if (retried) return { ...c, status: 'complete' as const }
+        return c
+      })
+      const nowAllComplete = updatedCategories.every(c => c.status === 'complete')
+
+      if (nowAllComplete && !abortControllerRef.current?.signal.aborted) {
+        setIsAssembling(true)
+        setCurrentIndex(-1)
+        setWaitingStartTime(null)
+
+        const response = await fetch('/api/viva/assemble-vision-from-queue', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ perspective })
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
+          throw new Error(errorData.error || 'Failed to assemble vision')
+        }
+
+        const data = await response.json()
+        if (data.visionId) {
+          setVisionId(data.visionId)
+          await supabase
+            .from('vision_generation_batches')
+            .update({
+              status: stillFailed.length > 0 ? 'partial_success' : 'completed',
+              vision_id: data.visionId,
+              completed_at: new Date().toISOString()
+            })
+            .eq('id', currentBatchId)
+
+          if (isIntensiveMode) {
+            const { markIntensiveStep } = await import('@/lib/intensive/checklist')
+            const success = await markIntensiveStep('vision_built')
+            if (success) setShowStepCompleteModal(true)
+          }
+        }
+      } else if (stillFailed.length > 0) {
+        await supabase
+          .from('vision_generation_batches')
+          .update({ categories_failed: stillFailed, current_category: null })
+          .eq('id', currentBatchId)
+      }
+    } catch (err: any) {
+      const isAborted = err?.name === 'AbortError' || abortControllerRef.current?.signal.aborted
+      if (isAborted) {
+        setCategories(prev => prev.map(cat =>
+          cat.status === 'streaming' || cat.status === 'waiting'
+            ? { ...cat, status: 'pending', text: '', error: undefined }
+            : cat
+        ))
+      } else {
+        console.error('Retry error:', err)
+        setError(err instanceof Error ? err.message : 'Retry failed')
+      }
+    } finally {
+      setIsProcessing(false)
+      setIsAssembling(false)
+      setCurrentIndex(-1)
+      setWaitingStartTime(null)
+      isProcessingRef.current = false
+    }
+  }
+
   const handlePerspectiveChange = (newPerspective: 'singular' | 'plural') => {
     setPerspective(newPerspective)
     // Perspective will be saved to vision_versions when assembly completes
@@ -760,15 +971,10 @@ export default function AssemblyPage() {
           </Card>
         )}
 
-        {/* Start / Cancel Buttons */}
-        {!allComplete && categories.length === 12 && !hasErrors && !visionId && (
+        {/* Start / Cancel / Retry Buttons */}
+        {!allComplete && categories.length === 12 && !visionId && (
           <div className="flex justify-center gap-4">
-            {!isProcessing ? (
-              <Button variant="primary" size="lg" onClick={processQueue}>
-                <Sparkles className="w-5 h-5 mr-2" />
-                {completedCount > 0 ? 'Continue Generation' : 'Start Vision Generation'}
-              </Button>
-            ) : (
+            {isProcessing ? (
               <Button 
                 variant="outline" 
                 size="lg" 
@@ -776,6 +982,16 @@ export default function AssemblyPage() {
               >
                 <AlertCircle className="w-5 h-5 mr-2" />
                 Cancel Generation
+              </Button>
+            ) : hasErrors ? (
+              <Button variant="primary" size="lg" onClick={() => retryFailed()}>
+                <RefreshCw className="w-5 h-5 mr-2" />
+                Retry {categories.filter(c => c.status === 'error').length} Failed
+              </Button>
+            ) : (
+              <Button variant="primary" size="lg" onClick={processQueue}>
+                <Sparkles className="w-5 h-5 mr-2" />
+                {completedCount > 0 ? 'Continue Generation' : 'Start Vision Generation'}
               </Button>
             )}
           </div>
@@ -874,7 +1090,17 @@ export default function AssemblyPage() {
                       {cat.status === 'error' && (
                         <div className="text-center py-8">
                           <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-2" />
-                          <div className="text-red-400 text-sm">{cat.error || 'Failed - will retry'}</div>
+                          <div className="text-red-400 text-sm mb-3">{cat.error || 'Generation failed'}</div>
+                          {!isProcessing && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => retryFailed(cat.key)}
+                            >
+                              <RefreshCw className="w-4 h-4 mr-1.5" />
+                              Retry This Category
+                            </Button>
+                          )}
                         </div>
                       )}
                     </div>
@@ -908,10 +1134,19 @@ export default function AssemblyPage() {
                     </div>
                   </div>
                   <h2 className="text-2xl font-bold text-white mb-3">Generation Interrupted</h2>
-                  <p className="text-neutral-300 mb-8">Some categories failed. Reset and try again.</p>
+                  <p className="text-neutral-300 mb-8">
+                    {categories.filter(c => c.status === 'error').length} of 12 categories failed. 
+                    Retry just the failed ones, or reset everything.
+                  </p>
                 </>
               )}
               <div className="flex justify-center gap-4 flex-wrap">
+                {hasErrors && !visionId && (
+                  <Button variant="primary" size="lg" onClick={() => retryFailed()}>
+                    <RefreshCw className="w-5 h-5 mr-2" />
+                    Retry {categories.filter(c => c.status === 'error').length} Failed
+                  </Button>
+                )}
                 <Button variant="outline" size="lg" onClick={clearAndRegenerate} disabled={isLoading}>
                   <RefreshCw className={`w-5 h-5 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                   {isLoading ? 'Clearing...' : 'Reset & Start Fresh'}

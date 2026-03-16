@@ -9,6 +9,7 @@ import { ASSETS } from '@/lib/storage/s3-storage-presigned'
 import { PixelScripts } from '@/components/PixelScripts'
 import { Toaster } from 'sonner'
 import { ImpersonationBanner } from '@/components/ImpersonationBanner'
+import { ReferralBanner } from '@/components/ReferralBanner'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -63,6 +64,7 @@ export default function RootLayout({
       >
         <PixelScripts />
         <ImpersonationBanner />
+        <ReferralBanner />
         <AuthProvider>
           <TrackingProvider>
           <AppErrorHandling>
