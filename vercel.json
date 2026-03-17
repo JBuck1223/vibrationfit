@@ -31,6 +31,14 @@
     "src/app/api/transcribe/route.ts": {
       "maxDuration": 300,
       "memory": 1024
+    },
+    "src/app/api/pdf/vision-board/route.ts": {
+      "maxDuration": 120,
+      "memory": 3008
+    },
+    "src/app/api/pdf/vision/route.ts": {
+      "maxDuration": 60,
+      "memory": 1024
     }
   }
 }

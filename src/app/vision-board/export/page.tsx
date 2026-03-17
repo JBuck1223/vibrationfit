@@ -191,7 +191,10 @@ function ExportPageContent() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-        throw new Error(errorData.error || `Failed to generate ${outputFormat.toUpperCase()}`)
+        const message = errorData.details
+          ? `${errorData.error}: ${errorData.details}`
+          : errorData.error || `Failed to generate ${outputFormat.toUpperCase()}`
+        throw new Error(message)
       }
 
       const blob = await response.blob()
