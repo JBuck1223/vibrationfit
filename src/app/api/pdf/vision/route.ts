@@ -5,8 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
-import puppeteer from 'puppeteer'
-import os from 'os'
+import { launchBrowser } from '@/lib/pdf/browser'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60 // Allow 60 seconds for PDF generation
@@ -123,7 +122,7 @@ export async function GET(req: NextRequest) {
     let userName = 'User'
     let title = 'The Life I Choose'
 
-    // Fetch household members if it's a household vision
+    // Fetch names from user_accounts (name lives on user_accounts, not user_profiles)
     if (isHouseholdVision) {
       title = 'The Life We Choose'
       
@@ -137,15 +136,14 @@ export async function GET(req: NextRequest) {
       if (members && members.length > 0) {
         const userIds = members.map(m => m.user_id)
         
-        const { data: profiles, error: profilesError } = await serviceSupabase
-          .from('user_profiles')
-          .select('user_id, first_name, last_name')
-          .in('user_id', userIds)
-          .eq('is_active', true)
+        const { data: accounts } = await serviceSupabase
+          .from('user_accounts')
+          .select('id, first_name, last_name, full_name')
+          .in('id', userIds)
         
-        if (profiles && profiles.length > 0) {
-          const names = profiles
-            .map(p => p.first_name || '')
+        if (accounts && accounts.length > 0) {
+          const names = accounts
+            .map(a => a.first_name || '')
             .filter(Boolean)
           
           if (names.length === 1) {
@@ -160,20 +158,19 @@ export async function GET(req: NextRequest) {
         }
       }
     } else {
-      // Personal vision - get creator's profile
-      const { data: profile } = await serviceSupabase
-        .from('user_profiles')
-        .select('first_name, last_name')
-        .eq('user_id', vision.user_id)
-        .eq('is_active', true)
+      // Personal vision - get creator's account
+      const { data: account } = await serviceSupabase
+        .from('user_accounts')
+        .select('first_name, last_name, full_name')
+        .eq('id', vision.user_id)
         .single()
       
-      if (profile?.first_name && profile?.last_name) {
-        userName = `${profile.first_name} ${profile.last_name}`
-      } else if (profile?.first_name) {
-        userName = profile.first_name
-      } else if (profile?.last_name) {
-        userName = profile.last_name
+      if (account?.full_name) {
+        userName = account.full_name
+      } else if (account?.first_name) {
+        userName = account.first_name
+      } else if (account?.last_name) {
+        userName = account.last_name
       }
     }
     
@@ -491,29 +488,15 @@ ${paragraphs.map(paragraph => `<p>${escapeHtml(paragraph)}</p>`).join('')}
       })
     }
 
-    // Launch Puppeteer with better error handling
-    console.log('[PDF] Attempting to launch Puppeteer browser...')
-    console.log('[PDF] Platform:', os.platform(), 'Arch:', os.arch())
+    // Launch browser for PDF generation
+    console.log('[PDF] Launching browser...')
     
     let browser
     try {
-      browser = await puppeteer.launch({
-        headless: true,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-accelerated-2d-canvas',
-          '--no-first-run',
-          '--no-zygote',
-          '--disable-gpu',
-          '--disable-web-security'
-        ],
-        timeout: 30000
-      })
+      browser = await launchBrowser()
       console.log('[PDF] Browser launched successfully')
     } catch (launchError) {
-      console.error('[PDF] Failed to launch Puppeteer:', launchError)
+      console.error('[PDF] Failed to launch browser:', launchError)
       throw new Error(`Failed to launch PDF browser: ${launchError instanceof Error ? launchError.message : 'Unknown error'}`)
     }
 

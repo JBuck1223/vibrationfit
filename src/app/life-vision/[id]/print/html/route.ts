@@ -88,9 +88,8 @@ async function getVisionById(id: string): Promise<{ vision: VisionData; userProf
     let userProfile: UserProfile | undefined
     let householdMembers: HouseholdMember[] | undefined
 
-    // If this is a household vision, get all household members
+    // Get names from user_accounts (name lives on user_accounts, not user_profiles)
     if (vision.household_id) {
-      // First get household members
       const { data: members } = await supabase
         .from('household_members')
         .select('user_id')
@@ -98,28 +97,24 @@ async function getVisionById(id: string): Promise<{ vision: VisionData; userProf
         .eq('status', 'active')
       
       if (members && members.length > 0) {
-        // Then get their profiles
         const userIds = members.map((m: any) => m.user_id)
-        const { data: profiles } = await supabase
-          .from('user_profiles')
+        const { data: accounts } = await supabase
+          .from('user_accounts')
           .select('first_name, last_name, full_name')
-          .in('user_id', userIds)
-          .eq('is_active', true)
+          .in('id', userIds)
         
-        if (profiles) {
-          householdMembers = profiles
+        if (accounts) {
+          householdMembers = accounts
         }
       }
     } else if (vision.user_id) {
-      // Personal vision - get just the creator's profile
-      const { data: profile } = await supabase
-        .from('user_profiles')
+      const { data: account } = await supabase
+        .from('user_accounts')
         .select('first_name, full_name, email')
-        .eq('user_id', vision.user_id)
-        .eq('is_active', true)
+        .eq('id', vision.user_id)
         .single()
       
-      userProfile = profile || undefined
+      userProfile = account || undefined
     }
 
     return { vision: vision as VisionData, userProfile, householdMembers }
