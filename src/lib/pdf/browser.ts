@@ -28,8 +28,8 @@ export async function launchBrowser(): Promise<Browser> {
 
   return puppeteerCore.launch({
     args: chromium.args,
-    defaultViewport: chromium.defaultViewport,
+    defaultViewport: { width: 1280, height: 720 },
     executablePath: await chromium.executablePath(),
-    headless: chromium.headless,
+    headless: chromium.headless as boolean,
   })
 }
