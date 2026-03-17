@@ -3,7 +3,7 @@
 
 'use client'
 
-import { useEffect, useState, useMemo, Suspense } from 'react'
+import { useEffect, useState, useMemo, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Download, Loader2, FileText, Columns3, Eye, Filter, Image, FileImage, ArrowLeft } from 'lucide-react'
 import { Button, Card, Container, Stack, PageHero, Spinner, CategoryCard, Toggle } from '@/lib/design-system'
@@ -24,6 +24,20 @@ const IMAGE_RATIOS = [
   { value: '1:1', label: '1:1', desc: 'Square' },
   { value: '9:16', label: '9:16', desc: 'Portrait' },
 ]
+
+const PDF_DIMS: Record<string, { widthPx: number; heightPx: number; orientation: 'landscape' | 'portrait'; format: 'letter' | 'a4' }> = {
+  'letter-landscape': { widthPx: 1056, heightPx: 816, orientation: 'landscape', format: 'letter' },
+  'letter-portrait':  { widthPx: 816,  heightPx: 1056, orientation: 'portrait',  format: 'letter' },
+  'a4-landscape':     { widthPx: 1123, heightPx: 794,  orientation: 'landscape', format: 'a4' },
+  'a4-portrait':      { widthPx: 794,  heightPx: 1123, orientation: 'portrait',  format: 'a4' },
+}
+
+const IMG_DIMS: Record<string, { width: number; height: number }> = {
+  '16:9': { width: 1920, height: 1080 },
+  '4:3':  { width: 1920, height: 1440 },
+  '1:1':  { width: 1920, height: 1920 },
+  '9:16': { width: 1080, height: 1920 },
+}
 
 const COLUMN_OPTIONS = [
   { value: 2, label: '2' },
@@ -156,70 +170,157 @@ function ExportPageContent() {
     setIframeKey(prev => prev + 1)
   }, [previewUrl])
 
-  const buildDownloadParams = () => {
-    const params = new URLSearchParams({
-      paperSize: outputFormat === 'pdf' ? paperSize : 'letter-landscape',
-      imageRatio,
-      columns: columns.toString(),
-      showDescriptions: showDescriptions.toString(),
-      showCategories: showCategories.toString(),
-      groupByStatus: groupByStatus.toString(),
-      showHeader: showHeader.toString(),
-      showItemNames: showItemNames.toString(),
-      roundedCorners: roundedCorners.toString(),
-      showBadges: showBadges.toString(),
-      format: outputFormat,
-    })
-
-    if (!selectedCategories.includes('all') && selectedCategories.length > 0) {
-      params.set('categories', selectedCategories.join(','))
-    }
-
-    if (!selectedStatuses.includes('all') && selectedStatuses.length > 0) {
-      params.set('statuses', selectedStatuses.join(','))
-    }
-
-    return params
-  }
-
-  const handleDownload = async () => {
+  const handleDownload = useCallback(async () => {
     setIsGenerating(true)
     try {
-      const params = buildDownloadParams()
+      // Fetch the same preview HTML the iframe is showing
+      const response = await fetch(previewUrl)
+      if (!response.ok) throw new Error('Failed to load preview')
+      const htmlText = await response.text()
 
-      const response = await fetch(`/api/pdf/vision-board?${params.toString()}`)
+      // Parse the HTML and extract styles + body content
+      const parser = new DOMParser()
+      const parsed = parser.parseFromString(htmlText, 'text/html')
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-        const message = errorData.details
-          ? `${errorData.error}: ${errorData.details}`
-          : errorData.error || `Failed to generate ${outputFormat.toUpperCase()}`
-        throw new Error(message)
+      const isPdf = outputFormat === 'pdf'
+      const dims = isPdf ? (PDF_DIMS[paperSize] || PDF_DIMS['letter-landscape']) : null
+      const imgDims = !isPdf ? (IMG_DIMS[imageRatio] || IMG_DIMS['16:9']) : null
+      const renderWidth = isPdf ? dims!.widthPx : imgDims!.width
+
+      // Build an off-screen container at the exact render dimensions
+      const container = document.createElement('div')
+      container.style.position = 'absolute'
+      container.style.left = '-9999px'
+      container.style.top = '0'
+      container.style.width = `${renderWidth}px`
+      container.style.backgroundColor = '#FFFFFF'
+
+      // Copy <style> tags from the parsed HTML
+      const styleEl = document.createElement('style')
+      parsed.querySelectorAll('style').forEach(s => {
+        styleEl.textContent += s.textContent
+      })
+      container.appendChild(styleEl)
+
+      // Copy <link> tags (Google Fonts) so they're available in the main document
+      const fontLinks: HTMLLinkElement[] = []
+      parsed.querySelectorAll('link[href*="fonts"]').forEach(link => {
+        const clone = link.cloneNode(true) as HTMLLinkElement
+        document.head.appendChild(clone)
+        fontLinks.push(clone)
+      })
+
+      // Inject the body content inside a wrapper that inherits the base styles
+      const wrapper = document.createElement('div')
+      wrapper.style.fontFamily = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+      wrapper.style.fontSize = '10pt'
+      wrapper.style.lineHeight = '1.4'
+      wrapper.style.color = '#1F1F1F'
+      wrapper.style.backgroundColor = '#FFFFFF'
+      wrapper.innerHTML = parsed.body.innerHTML
+      container.appendChild(wrapper)
+
+      document.body.appendChild(container)
+
+      // Wait for all images to finish loading
+      const images = container.querySelectorAll('img')
+      await Promise.all(
+        Array.from(images).map(img => {
+          if (img.complete) return Promise.resolve()
+          return new Promise<void>(resolve => {
+            img.onload = img.onerror = () => resolve()
+          })
+        })
+      )
+      await document.fonts.ready
+      // Let layout + paint settle
+      await new Promise(r => setTimeout(r, 500))
+
+      const html2canvas = (await import('html2canvas')).default
+
+      if (!isPdf) {
+        // --- IMAGE output ---
+        const canvas = await html2canvas(wrapper, {
+          scale: 1,
+          useCORS: true,
+          allowTaint: true,
+          logging: false,
+          backgroundColor: '#FFFFFF',
+          width: imgDims!.width,
+          height: imgDims!.height,
+        })
+
+        canvas.toBlob(blob => {
+          if (!blob) return
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = `Vision-Board-${imageRatio.replace(':', 'x')}-${new Date().toISOString().split('T')[0]}.png`
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+          URL.revokeObjectURL(url)
+        }, 'image/png')
+      } else {
+        // --- PDF output (client-side, multi-page) ---
+        const scale = 2
+        const canvas = await html2canvas(wrapper, {
+          scale,
+          useCORS: true,
+          allowTaint: true,
+          logging: false,
+          backgroundColor: '#FFFFFF',
+          width: dims!.widthPx,
+        })
+
+        const { jsPDF } = await import('jspdf')
+        const pdf = new jsPDF({
+          orientation: dims!.orientation,
+          unit: 'mm',
+          format: dims!.format,
+          compress: true,
+        })
+
+        const pdfW = pdf.internal.pageSize.getWidth()
+        const pdfH = pdf.internal.pageSize.getHeight()
+
+        const scaledPageH = dims!.heightPx * scale
+        const totalPages = Math.max(1, Math.ceil(canvas.height / scaledPageH))
+
+        for (let i = 0; i < totalPages; i++) {
+          if (i > 0) pdf.addPage()
+
+          // Slice canvas for this page
+          const sliceH = Math.min(scaledPageH, canvas.height - i * scaledPageH)
+          const pageCanvas = document.createElement('canvas')
+          pageCanvas.width = canvas.width
+          pageCanvas.height = scaledPageH
+          const ctx = pageCanvas.getContext('2d')!
+          ctx.fillStyle = '#FFFFFF'
+          ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height)
+          ctx.drawImage(
+            canvas,
+            0, i * scaledPageH, canvas.width, sliceH,
+            0, 0, canvas.width, sliceH
+          )
+
+          const imgData = pageCanvas.toDataURL('image/jpeg', 0.92)
+          pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, pdfH)
+        }
+
+        pdf.save(`Vision-Board-${new Date().toISOString().split('T')[0]}.pdf`)
       }
 
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      
-      const contentDisposition = response.headers.get('Content-Disposition')
-      const defaultExt = outputFormat === 'pdf' ? 'pdf' : 'png'
-      const filename = contentDisposition
-        ? contentDisposition.split('filename=')[1]?.replace(/"/g, '') || `vision-board.${defaultExt}`
-        : `vision-board.${defaultExt}`
-      
-      link.download = filename
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
+      // Clean up
+      document.body.removeChild(container)
+      fontLinks.forEach(link => link.remove())
     } catch (error) {
       console.error('Download error:', error)
       alert(`Failed to download: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setIsGenerating(false)
     }
-  }
+  }, [previewUrl, outputFormat, paperSize, imageRatio])
 
   const toggleCategory = (categoryKey: string) => {
     if (categoryKey === 'all') {

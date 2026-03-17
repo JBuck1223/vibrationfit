@@ -98,7 +98,7 @@ export function ReferralBanner() {
   return (
     <div
       ref={bannerRef}
-      className="fixed top-0 left-0 right-0 z-[9998] bg-gradient-to-r from-[#39FF14] to-[#00FFFF] px-10 sm:px-4 py-2 sm:py-2.5 shadow-lg"
+      className="fixed top-0 left-0 right-0 z-[9998] bg-gradient-to-r from-[#39FF14] to-[#00FFFF] px-10 sm:px-4 py-2 shadow-lg flex items-center justify-center"
       style={{ minHeight: BANNER_MIN_HEIGHT }}
     >
       <button
@@ -111,9 +111,10 @@ export function ReferralBanner() {
 
       <a
         href={isOfferPage ? '#pricing' : `/offer/launch?ref=${refCode}`}
+        onClick={handleDismiss}
         className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-black text-xs sm:text-sm font-medium hover:opacity-80 transition-opacity text-center sm:text-left justify-center"
       >
-        <Gift className="w-4 h-4 sm:w-4 sm:h-4 flex-shrink-0" />
+        <Gift className="w-4 h-4 flex-shrink-0" />
         <span className="leading-snug">
           {nameDisplay ? `${nameDisplay} unlocked` : 'A friend unlocked'} <strong>$498 off</strong> for you &mdash; start the Activation Intensive for just <strong>$1</strong>. Claim before March 31{!isOfferPage && ' \u2192'}
         </span>

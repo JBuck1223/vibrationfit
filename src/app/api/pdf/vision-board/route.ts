@@ -694,26 +694,34 @@ export async function GET(req: NextRequest) {
         })
       }
 
-      // Generate PDF
-      const pdfFormat = paperSize.includes('a4') ? 'a4' : 'letter'
-      console.log('[Vision Board PDF] Generating PDF...', { pdfFormat, isLandscape })
-      const pdfBuffer = await page.pdf({
-        format: pdfFormat,
+      // Generate PDF via CDP directly with ReturnAsBase64 to avoid IO.read stream failures
+      const isA4 = paperSize.includes('a4')
+      const baseDims = isA4
+        ? { width: 8.27, height: 11.69 }
+        : { width: 8.5, height: 11 }
+      const paperWidth = isLandscape ? baseDims.height : baseDims.width
+      const paperHeight = isLandscape ? baseDims.width : baseDims.height
+
+      console.log('[Vision Board PDF] Generating PDF...', { paperWidth, paperHeight, isLandscape })
+      const client = await page.createCDPSession()
+      const result = await client.send('Page.printToPDF', {
+        transferMode: 'ReturnAsBase64',
         landscape: isLandscape,
         printBackground: true,
-        margin: {
-          top: '0.4in',
-          right: '0.4in',
-          bottom: '0.4in',
-          left: '0.4in'
-        }
+        paperWidth,
+        paperHeight,
+        marginTop: 0.4,
+        marginRight: 0.4,
+        marginBottom: 0.4,
+        marginLeft: 0.4,
       })
+      const pdfBuffer = Buffer.from(result.data, 'base64')
       console.log('[Vision Board PDF] PDF generated, size:', pdfBuffer.length, 'bytes')
 
       await browser.close()
 
       const filename = `Vision-Board-${new Date().toISOString().split('T')[0]}.pdf`
-      return new NextResponse(Buffer.from(pdfBuffer), {
+      return new NextResponse(pdfBuffer, {
         headers: {
           'Content-Type': 'application/pdf',
           'Content-Disposition': `attachment; filename="${filename}"`,
