@@ -30,7 +30,7 @@ export async function launchBrowser(): Promise<Browser> {
   // Do NOT add --disable-gpu: it disables the compositor that printToPDF needs.
   return puppeteerCore.launch({
     args: [...chromium.args, '--disable-dev-shm-usage'],
-    defaultViewport: chromium.defaultViewport,
+    defaultViewport: { width: 1280, height: 720 },
     executablePath: await chromium.executablePath(),
     headless: 'shell',
   })
