@@ -27,9 +27,15 @@ export async function launchBrowser(): Promise<Browser> {
   const puppeteerCore = (await import('puppeteer-core')).default
 
   return puppeteerCore.launch({
-    args: chromium.args,
+    args: [
+      ...chromium.args,
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+    ],
     defaultViewport: { width: 1280, height: 720 },
     executablePath: await chromium.executablePath(),
-    headless: true,
+    headless: 'shell',
   })
 }
