@@ -617,35 +617,36 @@ export async function GET(req: NextRequest) {
     let page
     try {
       page = await browser.newPage()
+      console.log('[Vision Board PDF] Page created')
 
       // Set viewport based on format
       await page.setViewport({ width: viewportWidth, height: viewportHeight })
 
-      // Set content and wait for images to load
-      await page.setContent(html, { 
-        waitUntil: 'networkidle0',
-        timeout: 90000 
+      // Load content - use networkidle2 (allows 2 pending connections) since
+      // networkidle0 can hang when loading many external images
+      console.log('[Vision Board PDF] Loading HTML with', filteredItems.length, 'items...')
+      await page.setContent(html, {
+        waitUntil: 'networkidle2',
+        timeout: 60000
       })
       console.log('[Vision Board PDF] HTML content loaded')
 
       // Generate output based on format
       if (outputFormat === 'image') {
-        // Generate PNG image with exact dimensions
         console.log('[Vision Board] Generating image...', { viewportWidth, viewportHeight, imageRatio })
-        
-        // Set exact viewport for the image
-        await page.setViewport({ 
-          width: viewportWidth, 
+
+        await page.setViewport({
+          width: viewportWidth,
           height: viewportHeight,
           deviceScaleFactor: 1
         })
-        
+
         // Re-set content after viewport change
-        await page.setContent(html, { 
-          waitUntil: 'networkidle0',
-          timeout: 90000 
+        await page.setContent(html, {
+          waitUntil: 'networkidle2',
+          timeout: 60000
         })
-        
+
         const imageBuffer = await page.screenshot({
           type: 'png',
           clip: {
@@ -672,7 +673,8 @@ export async function GET(req: NextRequest) {
       }
 
       // Generate PDF
-      const pdfFormat = paperSize.includes('a4') ? 'A4' : 'Letter'
+      const pdfFormat = paperSize.includes('a4') ? 'a4' : 'letter'
+      console.log('[Vision Board PDF] Generating PDF...', { pdfFormat, isLandscape })
       const pdfBuffer = await page.pdf({
         format: pdfFormat,
         landscape: isLandscape,
@@ -688,7 +690,6 @@ export async function GET(req: NextRequest) {
 
       await browser.close()
 
-      // Return PDF
       const filename = `Vision-Board-${new Date().toISOString().split('T')[0]}.pdf`
       return new NextResponse(Buffer.from(pdfBuffer), {
         headers: {
