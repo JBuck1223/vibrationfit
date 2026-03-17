@@ -10,11 +10,7 @@ export async function downloadVisionPDF(id: string): Promise<void> {
   console.log('[PDF] Starting download for vision:', id)
   
   try {
-    const res = await fetch('/api/pdf/vision', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
-    })
+    const res = await fetch(`/api/pdf/vision?id=${encodeURIComponent(id)}`)
     
     console.log('[PDF] Response status:', res.status, res.statusText)
     

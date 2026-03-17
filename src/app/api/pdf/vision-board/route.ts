@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
-import puppeteer from 'puppeteer'
+import { launchBrowser } from '@/lib/pdf/browser'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120 // Allow 2 minutes for PDF with many images
@@ -121,16 +121,14 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    // Get user profile for name
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('first_name, last_name')
-      .eq('user_id', user.id)
+    // Get user account for name (name lives on user_accounts, not user_profiles)
+    const { data: account } = await supabase
+      .from('user_accounts')
+      .select('first_name, last_name, full_name')
+      .eq('id', user.id)
       .single()
 
-    const userName = profile?.first_name 
-      ? `${profile.first_name}${profile.last_name ? ' ' + profile.last_name : ''}`
-      : 'User'
+    const userName = account?.full_name || account?.first_name || 'User'
 
     // Calculate stats
     const totalItems = filteredItems.length
@@ -605,27 +603,14 @@ export async function GET(req: NextRequest) {
     }
 
     // Launch Puppeteer for PDF generation
-    console.log('[Vision Board PDF] Launching Puppeteer...')
+    console.log('[Vision Board PDF] Launching browser...')
     
     let browser
     try {
-      browser = await puppeteer.launch({
-        headless: true,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-accelerated-2d-canvas',
-          '--no-first-run',
-          '--no-zygote',
-          '--disable-gpu',
-          '--disable-web-security'
-        ],
-        timeout: 60000
-      })
+      browser = await launchBrowser()
       console.log('[Vision Board PDF] Browser launched')
     } catch (launchError) {
-      console.error('[Vision Board PDF] Failed to launch Puppeteer:', launchError)
+      console.error('[Vision Board PDF] Failed to launch browser:', launchError)
       throw new Error(`Failed to launch PDF browser: ${launchError instanceof Error ? launchError.message : 'Unknown error'}`)
     }
 
