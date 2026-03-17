@@ -622,14 +622,26 @@ export async function GET(req: NextRequest) {
       // Set viewport based on format
       await page.setViewport({ width: viewportWidth, height: viewportHeight })
 
-      // Load content - use networkidle2 (allows 2 pending connections) since
-      // networkidle0 can hang when loading many external images
       console.log('[Vision Board PDF] Loading HTML with', filteredItems.length, 'items...')
       await page.setContent(html, {
         waitUntil: 'networkidle2',
         timeout: 60000
       })
       console.log('[Vision Board PDF] HTML content loaded')
+
+      // Wait for all images to finish rendering in the compositor
+      await page.evaluate(() =>
+        Promise.all(
+          Array.from(document.images)
+            .filter(img => !img.complete)
+            .map(img => new Promise<void>((resolve) => {
+              img.onload = img.onerror = () => resolve()
+            }))
+        )
+      )
+      // Let the compositor settle after image decode
+      await new Promise(r => setTimeout(r, 1000))
+      console.log('[Vision Board PDF] Images loaded and rendered')
 
       // Generate output based on format
       if (outputFormat === 'image') {
@@ -641,11 +653,21 @@ export async function GET(req: NextRequest) {
           deviceScaleFactor: 1
         })
 
-        // Re-set content after viewport change
         await page.setContent(html, {
           waitUntil: 'networkidle2',
           timeout: 60000
         })
+
+        await page.evaluate(() =>
+          Promise.all(
+            Array.from(document.images)
+              .filter(img => !img.complete)
+              .map(img => new Promise<void>((resolve) => {
+                img.onload = img.onerror = () => resolve()
+              }))
+          )
+        )
+        await new Promise(r => setTimeout(r, 1000))
 
         const imageBuffer = await page.screenshot({
           type: 'png',

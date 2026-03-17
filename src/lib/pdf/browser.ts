@@ -18,7 +18,6 @@ export async function launchBrowser(): Promise<Browser> {
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
-        '--disable-gpu',
       ],
     }) as unknown as Browser
   }
@@ -26,10 +25,13 @@ export async function launchBrowser(): Promise<Browser> {
   const chromium = (await import('@sparticuz/chromium')).default
   const puppeteerCore = (await import('puppeteer-core')).default
 
+  // chromium.args already includes --no-sandbox, --no-zygote,
+  // --use-gl=swiftshader, --in-process-gpu, etc.
+  // Do NOT add --disable-gpu: it disables the compositor that printToPDF needs.
   return puppeteerCore.launch({
-    args: chromium.args,
-    defaultViewport: { width: 1280, height: 720 },
+    args: [...chromium.args, '--disable-dev-shm-usage'],
+    defaultViewport: chromium.defaultViewport,
     executablePath: await chromium.executablePath(),
-    headless: true,
+    headless: 'shell',
   })
 }
