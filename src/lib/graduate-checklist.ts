@@ -5,9 +5,9 @@ export type GraduateChecklistProgress = {
   firstDailyActivation: boolean
   calibrationCallAttended: boolean
   firstVibeTribePost: boolean
+  vibeTribesAboutInfo: boolean
   firstAlignmentGymSession: boolean
   firstAdvancedAudioMix: boolean
-  dailyPaperAndJournal: boolean
   earningBadges: boolean
 }
 
@@ -39,26 +39,17 @@ export async function getGraduateChecklist(
 
   const [
     vibePostsCount,
-    dailyPapersCount,
-    journalCount,
     alignmentGymSessions,
     audioTracksWithMix,
     badgeProgress,
     activationBadgesCount,
+    userAboutMe,
   ] = await Promise.all([
     supabase
       .from('vibe_posts')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('is_deleted', false),
-    supabase
-      .from('daily_papers')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId),
-    supabase
-      .from('journal_entries')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId),
     supabase
       .from('video_session_participants')
       .select('session_id')
@@ -75,6 +66,11 @@ export async function getGraduateChecklist(
       .select('id', { count: 'exact', head: true })
       .eq('user_id', userId)
       .like('badge_type', 'activated_%'),
+    supabase
+      .from('user_accounts')
+      .select('about_me')
+      .eq('id', userId)
+      .maybeSingle(),
   ])
 
   let alignmentGymCount = 0
@@ -92,10 +88,9 @@ export async function getGraduateChecklist(
     firstDailyActivation: (badgeProgress?.activationDays ?? 0) >= 1,
     calibrationCallAttended: completedChecklist.calibration_call_completed === true,
     firstVibeTribePost: (vibePostsCount.count ?? 0) >= 1,
+    vibeTribesAboutInfo: !!(userAboutMe.data?.about_me),
     firstAlignmentGymSession: alignmentGymCount >= 1,
     firstAdvancedAudioMix: (audioTracksWithMix.data?.length ?? 0) >= 1,
-    dailyPaperAndJournal:
-      (dailyPapersCount.count ?? 0) >= 1 && (journalCount.count ?? 0) >= 1,
     earningBadges: (activationBadgesCount.count ?? 0) >= 1,
   }
 

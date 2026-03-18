@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 /**
  * PATCH /api/vibe-tribe/comments/[id]
@@ -25,7 +26,9 @@ export async function PATCH(
       return NextResponse.json({ error: 'Comment content is required' }, { status: 400 })
     }
 
-    const { data: comment, error: fetchError } = await supabase
+    const adminClient = createAdminClient()
+
+    const { data: comment, error: fetchError } = await adminClient
       .from('vibe_comments')
       .select('id, user_id')
       .eq('id', id)
@@ -40,7 +43,11 @@ export async function PATCH(
       return NextResponse.json({ error: 'Only the author can edit a comment' }, { status: 403 })
     }
 
-    const { data: updated, error: updateError } = await supabase
+    // Try updating with edited_at; fall back to content-only if column doesn't exist yet
+    let updated;
+    let updateError;
+
+    ({ data: updated, error: updateError } = await adminClient
       .from('vibe_comments')
       .update({
         content: content.trim(),
@@ -48,14 +55,24 @@ export async function PATCH(
       })
       .eq('id', id)
       .select('*')
-      .single()
+      .single())
+
+    if (updateError?.code === 'PGRST204') {
+      // edited_at column doesn't exist yet - update content only
+      ({ data: updated, error: updateError } = await adminClient
+        .from('vibe_comments')
+        .update({ content: content.trim() })
+        .eq('id', id)
+        .select('*')
+        .single())
+    }
 
     if (updateError) {
       console.error('Error updating comment:', updateError)
       return NextResponse.json({ error: 'Failed to update comment' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, comment: updated })
+    return NextResponse.json({ success: true, comment: { ...updated, edited_at: updated?.edited_at || new Date().toISOString() } })
   } catch (error: any) {
     console.error('VIBE TRIBE COMMENT PATCH ERROR:', error)
     return NextResponse.json(
@@ -82,8 +99,10 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const adminClient = createAdminClient()
+
     // Get the comment to check ownership
-    const { data: comment, error: fetchError } = await supabase
+    const { data: comment, error: fetchError } = await adminClient
       .from('vibe_comments')
       .select('id, user_id, post_id')
       .eq('id', id)
@@ -95,7 +114,7 @@ export async function DELETE(
     }
 
     // Check if user is owner or admin
-    const { data: userAccount } = await supabase
+    const { data: userAccount } = await adminClient
       .from('user_accounts')
       .select('role')
       .eq('id', user.id)
@@ -109,7 +128,7 @@ export async function DELETE(
     }
 
     // Soft delete the comment
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await adminClient
       .from('vibe_comments')
       .update({
         is_deleted: true,

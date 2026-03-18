@@ -31,7 +31,8 @@ import {
   Settings,
   FileText,
   Unlock,
-  HelpCircle
+  HelpCircle,
+  Share2
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -1117,21 +1118,39 @@ function IntensiveDashboardContent() {
           })}
         </div>
 
-        {/* Support Card */}
-        <Card className="p-4 md:p-6 border-secondary-500/20">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-secondary-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-              <HelpCircle className="w-5 h-5 text-secondary-500" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Support Card */}
+          <Card className="p-4 md:p-6 border-secondary-500/20">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-secondary-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                <HelpCircle className="w-5 h-5 text-secondary-500" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-white">Found a Bug?</h3>
+                <p className="text-xs text-neutral-400">Help us improve by reporting any issues you find.</p>
+              </div>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/support">Report</Link>
+              </Button>
             </div>
-            <div className="flex-1">
-              <h3 className="text-sm font-semibold text-white">Found a Bug?</h3>
-              <p className="text-xs text-neutral-400">Help us improve by reporting any issues you find.</p>
+          </Card>
+
+          {/* Referral Card */}
+          <Card className="p-4 md:p-6 border-primary-500/20">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-primary-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Share2 className="w-5 h-5 text-primary-500" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-white">Share Vibration Fit</h3>
+                <p className="text-xs text-neutral-400">Invite friends through your referral link.</p>
+              </div>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/referral">Refer</Link>
+              </Button>
             </div>
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/support">Report</Link>
-            </Button>
-          </div>
-        </Card>
+          </Card>
+        </div>
       </Stack>
     </Container>
   )

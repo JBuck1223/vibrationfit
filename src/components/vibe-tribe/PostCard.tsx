@@ -47,6 +47,7 @@ export function PostCard({
   const canDelete = currentUserId === post.user_id || isAdmin
   const canEdit = currentUserId === post.user_id
   const canPin = isAdmin
+  const isGuide = post.user?.role === 'admin' || post.user?.role === 'super_admin'
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -239,6 +240,11 @@ export function PostCard({
                 >
                   {post.user?.full_name || 'Anonymous'}
                 </Link>
+                {isGuide && (
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#BF00FF]/15 text-[10px] font-bold text-[#BF00FF] tracking-wide uppercase">
+                Guide
+              </span>
+                )}
                 <UserBadgeIndicator userId={post.user_id} size="xs" />
                 <VibeTagBadge tag={post.vibe_tag} size="sm" showLabel={false} />
               </div>
@@ -302,6 +308,11 @@ export function PostCard({
             >
               {post.user?.full_name || 'Anonymous'}
             </Link>
+            {isGuide && (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#BF00FF]/15 text-[10px] font-bold text-[#BF00FF] tracking-wide uppercase">
+                Guide
+              </span>
+            )}
             {/* Tag + Time - hidden on mobile, shown on desktop */}
             <div className="hidden md:flex items-center gap-2">
               <VibeTagBadge tag={post.vibe_tag} size="sm" />

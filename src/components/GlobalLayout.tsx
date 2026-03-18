@@ -29,6 +29,7 @@ function isPathAccessibleForIntensive(
     '/intensive/start',
     '/viva',
     '/support',
+    '/referral',
   ]
   
   if (alwaysAllowed.some(path => pathname.startsWith(path))) {
