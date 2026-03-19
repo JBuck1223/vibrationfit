@@ -497,6 +497,20 @@ export const COMPONENT_PROPS: Record<string, PropDefinition[]> = {
     'color-palette': [
       { name: 'N/A', type: 'Reference Only', required: false, description: 'This is a documentation reference showing all available colors, gradients, and semantic meanings from the design tokens. Access colors via the tokens file: import { colors, gradients } from "@/lib/design-system/tokens"' },
     ],
+
+    'testimonials-carousel': [
+      { name: 'testimonials', type: 'Testimonial[]', required: true, description: 'Array of testimonial objects with id, name, quote, and optional role/avatar/rating/accentColor' },
+      { name: 'title', type: 'string', required: false, description: 'Section heading above the carousel' },
+      { name: 'subtitle', type: 'string', required: false, description: 'Supporting text below the heading' },
+      { name: 'autoPlay', type: 'boolean', required: false, defaultValue: 'true', description: 'Auto-advance testimonials on a timer' },
+      { name: 'autoPlayInterval', type: 'number', required: false, defaultValue: '5000', description: 'Interval between auto-advances in milliseconds' },
+      { name: 'pauseOnHover', type: 'boolean', required: false, defaultValue: 'true', description: 'Pause auto-play when the cursor is over the carousel' },
+      { name: 'showArrows', type: 'boolean', required: false, defaultValue: 'true', description: 'Show left/right navigation arrows on desktop' },
+      { name: 'showDots', type: 'boolean', required: false, defaultValue: 'true', description: 'Show dot indicators below the carousel' },
+      { name: 'showRating', type: 'boolean', required: false, defaultValue: 'true', description: 'Display star ratings when a testimonial has a rating value' },
+      { name: 'accentColor', type: 'string', required: false, defaultValue: "'#BF00FF'", description: 'Default neon accent color (hex). Individual testimonials can override via accentColor.' },
+      { name: 'className', type: 'string', required: false, description: 'Additional CSS classes' },
+    ],
 }
 
 export function getComponentProps(componentId: string): PropDefinition[] {

@@ -118,6 +118,23 @@ export async function POST(request: NextRequest, context: RouteContext) {
       }))
     }
 
+    // Pre-fetch referral codes so {{referralLink}} can be populated per recipient
+    const recipientEmails = recipients.map(r => r.email).filter(Boolean) as string[]
+    const referralMap = new Map<string, string>()
+
+    if (recipientEmails.length > 0) {
+      const { data: referralRows } = await admin
+        .from('referral_participants')
+        .select('email, referral_code')
+        .in('email', recipientEmails)
+        .eq('is_active', true)
+
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vibrationfit.com'
+      for (const row of referralRows || []) {
+        referralMap.set(row.email, `${siteUrl}/offer/launch?ref=${row.referral_code}`)
+      }
+    }
+
     // Queue messages
     let sentCount = 0
     let failedCount = 0
@@ -129,6 +146,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
           name: recipient.full_name || recipient.first_name || '',
           firstName: recipient.first_name || '',
           email: recipient.email || '',
+          referralLink: (recipient.email && referralMap.get(recipient.email)) || '',
         }
 
         await admin.from('scheduled_messages').insert({

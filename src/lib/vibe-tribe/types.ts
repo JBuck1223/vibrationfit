@@ -29,6 +29,7 @@ export interface VibePost {
     id: string
     full_name: string | null
     profile_picture_url: string | null
+    role?: string | null
   }
   has_hearted?: boolean
 }
@@ -50,6 +51,7 @@ export interface VibeComment {
     id: string
     full_name: string | null
     profile_picture_url: string | null
+    role?: string | null
   }
   has_hearted?: boolean
   replies?: VibeComment[]  // Nested replies for threading

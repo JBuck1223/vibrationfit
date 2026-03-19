@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Card, Button, Badge } from '@/lib/design-system'
-import { CheckCircle, Circle, MapPin, Video, MessageCircle, Dumbbell, Music, FileText, BookOpen, Award, GraduationCap, Unlock, Compass } from 'lucide-react'
+import { CheckCircle, Circle, MapPin, Video, MessageCircle, Dumbbell, Music, BookOpen, Award, GraduationCap, Unlock, Compass, UserCircle, DollarSign, FileText, Gift } from 'lucide-react'
 import type { GraduateChecklistProgress } from '@/lib/graduate-checklist'
 
 interface GraduateChecklistCardProps {
@@ -29,29 +29,12 @@ const ITEMS: Array<{
     icon: MapPin,
   },
   {
-    key: 'calibrationCallAttended',
-    title: 'Attend Your Calibration Call',
-    description: 'Show up live, review your journey, and dial in your 28-Day MAP.',
-    ctaLabel: 'View / Join Call',
-    ctaHref: '/intensive/call-prep',
-    icon: Video,
-    graduateUnlock: true,
-  },
-  {
     key: 'firstVibeTribePost',
     title: 'Make Your First Post in Vibe Tribe',
     description: 'Introduce yourself and share your vision with the community.',
     ctaLabel: 'Post in Vibe Tribe',
     ctaHref: '/vibe-tribe',
     icon: MessageCircle,
-  },
-  {
-    key: 'firstAlignmentGymSession',
-    title: 'Attend Your First Alignment Gym Session',
-    description: 'Join live or watch a replay and take notes on your main takeaways.',
-    ctaLabel: 'Go to Alignment Gym',
-    ctaHref: '/alignment-gym',
-    icon: Dumbbell,
     graduateUnlock: true,
   },
   {
@@ -64,14 +47,29 @@ const ITEMS: Array<{
     graduateUnlock: true,
   },
   {
-    key: 'dailyPaperAndJournal',
-    title: 'Complete a Daily Paper + Second Journal Entry',
-    description: 'Fill out your first Daily Paper and capture one new Journal entry as evidence.',
-    ctaLabel: 'Open Daily Paper',
-    ctaHref: '/daily-paper',
-    ctaLabel2: 'Open Journal',
-    ctaHref2: '/journal',
-    icon: FileText,
+    key: 'firstAlignmentGymSession',
+    title: 'Attend Your First Alignment Gym Session',
+    description: 'Join live or watch a replay and take notes on your main takeaways.',
+    ctaLabel: 'Go to Alignment Gym',
+    ctaHref: '/alignment-gym',
+    icon: Dumbbell,
+    graduateUnlock: true,
+  },
+  {
+    key: 'calibrationCallAttended',
+    title: 'Attend Your Calibration Call',
+    description: 'Show up live, review your journey, and dial in your 28-Day MAP.',
+    ctaLabel: 'View / Join Call',
+    ctaHref: '/intensive/call-prep',
+    icon: Video,
+  },
+  {
+    key: 'vibeTribesAboutInfo',
+    title: 'Add About Info to Your Vibe Tribe Profile',
+    description: 'Let the Tribe know who you are by filling out your About section on your profile.',
+    ctaLabel: 'Go to My Profile',
+    ctaHref: '/snapshot/me',
+    icon: UserCircle,
   },
   {
     key: 'earningBadges',
@@ -83,10 +81,28 @@ const ITEMS: Array<{
   },
 ]
 
+const BONUS_UNLOCKS = [
+  {
+    title: 'Abundance Tracker',
+    description: 'Track moments of abundance in your life — money, gifts, synchronicities, and more. Watch your evidence grow.',
+    ctaLabel: 'Open Abundance Tracker',
+    ctaHref: '/abundance-tracker',
+    icon: DollarSign,
+  },
+  {
+    title: 'Daily Paper',
+    description: 'A magical daily process that helps you establish a positive vibe while intentionally moving in the direction of your desires.',
+    ctaLabel: 'Open Daily Paper',
+    ctaHref: '/daily-paper',
+    icon: FileText,
+  },
+]
+
 export function GraduateChecklistCard({ progress }: GraduateChecklistCardProps) {
   const completedCount = ITEMS.filter(item => progress[item.key]).length
 
   return (
+    <div className="space-y-6">
     <Card className="relative overflow-hidden p-4 md:p-6 lg:p-8 border-2 border-[#39FF14]/30 bg-[#0A0F0A]">
       <div className="absolute inset-0 opacity-[0.03] bg-[#39FF14]" aria-hidden />
       <div className="relative z-10 space-y-4">
@@ -200,5 +216,49 @@ export function GraduateChecklistCard({ progress }: GraduateChecklistCardProps) 
       </div>
       </div>
     </Card>
+
+    {/* Bonus Graduate Unlocks */}
+    <Card className="relative overflow-hidden p-4 md:p-6 lg:p-8 border-2 border-[#BF00FF]/30 bg-[#0A0F0A]">
+      <div className="absolute inset-0 opacity-[0.03] bg-[#BF00FF]" aria-hidden />
+      <div className="relative z-10 space-y-4">
+        <div className="flex flex-col items-center text-center">
+          <Gift className="w-10 h-10 text-[#BF00FF] mb-3" aria-hidden />
+          <h2 className="text-xl font-bold text-white mb-1">Bonus Graduate Unlocks</h2>
+          <p className="text-neutral-400 text-sm max-w-md">
+            These tools are now available to you as a graduate. Explore them anytime.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {BONUS_UNLOCKS.map((item) => {
+            const Icon = item.icon
+            return (
+              <Card
+                key={item.title}
+                variant="outlined"
+                className="!p-5 bg-[#141414] border-neutral-600/50 hover:-translate-y-0.5 transition-all duration-300"
+              >
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#BF00FF]/10 flex items-center justify-center flex-shrink-0">
+                      <Icon className="w-5 h-5 text-[#BF00FF]" />
+                    </div>
+                    <h3 className="text-base font-semibold text-white">{item.title}</h3>
+                  </div>
+                  <p className="text-sm text-neutral-400">{item.description}</p>
+                  <Button variant="outline" size="sm" asChild className="w-full justify-center mt-1">
+                    <Link href={item.ctaHref} className="inline-flex items-center gap-2">
+                      <Icon className="w-4 h-4 flex-shrink-0" />
+                      {item.ctaLabel}
+                    </Link>
+                  </Button>
+                </div>
+              </Card>
+            )
+          })}
+        </div>
+      </div>
+    </Card>
+    </div>
   )
 }

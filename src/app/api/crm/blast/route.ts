@@ -8,11 +8,13 @@ import { getSenderById, DEFAULT_CRM_SENDER } from '@/lib/crm/senders'
 import { applyVariables } from '@/lib/messaging/templates'
 import type { BlastRecipient } from '@/lib/crm/blast-filters'
 
-function recipientVars(r: BlastRecipient): Record<string, string> {
+function recipientVars(r: BlastRecipient, referralLink?: string): Record<string, string> {
   return {
     first_name: r.firstName || r.name.split(' ')[0] || '',
+    firstName: r.firstName || r.name.split(' ')[0] || '',
     name: r.name,
     email: r.email,
+    referralLink: referralLink || '',
   }
 }
 
@@ -61,6 +63,21 @@ export async function POST(request: NextRequest) {
     const admin = createAdminClient()
     const now = new Date().toISOString()
 
+    // Pre-fetch referral codes so {{referralLink}} can be populated per recipient
+    const emails = recipients.map(r => r.email).filter(Boolean)
+    const referralMap = new Map<string, string>()
+    if (emails.length > 0) {
+      const { data: referralRows } = await admin
+        .from('referral_participants')
+        .select('email, referral_code')
+        .in('email', emails)
+        .eq('is_active', true)
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vibrationfit.com'
+      for (const row of referralRows || []) {
+        referralMap.set(row.email, `${siteUrl}/offer/launch?ref=${row.referral_code}`)
+      }
+    }
+
     const { data: campaign, error: campaignError } = await admin
       .from('messaging_campaigns')
       .insert({
@@ -89,11 +106,11 @@ export async function POST(request: NextRequest) {
 
     // Small sends: fire immediately, no queue delay
     if (recipients.length <= SYNC_THRESHOLD) {
-      return await sendSync(admin, campaign.id, recipients, { subject, textBody, sender })
+      return await sendSync(admin, campaign.id, recipients, { subject, textBody, sender, referralMap })
     }
 
     // Large sends: queue for background processing by the cron
-    return await sendQueued(admin, campaign.id, recipients, { subject, textBody, userId: user.id })
+    return await sendQueued(admin, campaign.id, recipients, { subject, textBody, userId: user.id, referralMap })
   } catch (error: unknown) {
     console.error('Error creating blast:', error)
     const msg = error instanceof Error ? error.message : 'Failed to create blast'
@@ -107,7 +124,7 @@ async function sendSync(
   admin: ReturnType<typeof createAdminClient>,
   campaignId: string,
   recipients: Awaited<ReturnType<typeof queryRecipients>>,
-  opts: { subject: string; textBody: string; sender: ReturnType<typeof getSenderById> }
+  opts: { subject: string; textBody: string; sender: ReturnType<typeof getSenderById>; referralMap: Map<string, string> }
 ) {
   const BATCH = 10
   let sent = 0
@@ -118,7 +135,7 @@ async function sendSync(
 
     const settled = await Promise.allSettled(
       batch.map((r) => {
-        const vars = recipientVars(r)
+        const vars = recipientVars(r, opts.referralMap.get(r.email))
         return sendAndLogEmail({
           to: r.email,
           subject: applyVariables(opts.subject, vars),
@@ -163,10 +180,10 @@ async function sendQueued(
   admin: ReturnType<typeof createAdminClient>,
   campaignId: string,
   recipients: Awaited<ReturnType<typeof queryRecipients>>,
-  opts: { subject: string; textBody: string; userId: string }
+  opts: { subject: string; textBody: string; userId: string; referralMap: Map<string, string> }
 ) {
   const scheduledRows = recipients.map((r) => {
-    const vars = recipientVars(r)
+    const vars = recipientVars(r, opts.referralMap.get(r.email))
     return {
       message_type: 'email',
       recipient_email: r.email,

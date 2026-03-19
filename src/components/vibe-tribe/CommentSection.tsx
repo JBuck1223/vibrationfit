@@ -212,6 +212,21 @@ export function CommentSection({
     }
   }
 
+  // Build user name → userId map from all comments for @ mention linking
+  const userNameMap = (() => {
+    const map = new Map<string, string>()
+    const traverse = (items: VibeComment[]) => {
+      for (const c of items) {
+        if (c.user?.full_name) {
+          map.set(c.user.full_name, c.user_id)
+        }
+        if (c.replies) traverse(c.replies)
+      }
+    }
+    traverse(comments)
+    return map
+  })()
+
   if (loading) {
     return (
       <div className="flex justify-center py-4 mt-4 border-t border-neutral-800">
@@ -225,13 +240,23 @@ export function CommentSection({
       {/* Top-level Comment Input - hidden when replying to someone */}
       {!replyingToId && (
         <form onSubmit={handleSubmitTopLevel} className="mb-4">
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
+          <div className="flex items-end gap-2">
+            <textarea
               value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
+              onChange={(e) => {
+                setNewComment(e.target.value)
+                e.target.style.height = 'auto'
+                e.target.style.height = `${Math.min(e.target.scrollHeight, 150)}px`
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey && newComment.trim() && !submitting) {
+                  e.preventDefault()
+                  handleSubmitTopLevel(e)
+                }
+              }}
               placeholder="Add a comment..."
-              className="flex-1 bg-neutral-800 border border-neutral-700 rounded-full px-4 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500"
+              className="flex-1 bg-neutral-800 border border-neutral-700 rounded-2xl px-4 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500 resize-none overflow-hidden min-h-[36px]"
+              rows={1}
             />
             <button
               type="submit"
@@ -271,6 +296,7 @@ export function CommentSection({
               onDeleteComment={handleDeleteComment}
               onHeartComment={handleHeartComment}
               onEditComment={handleEditComment}
+              userNameMap={userNameMap}
             />
           ))
         )}
@@ -300,6 +326,7 @@ interface CommentItemProps {
   isReply?: boolean
   replyToAuthor?: { name: string; userId: string }
   nestingLevel?: number
+  userNameMap: Map<string, string>
 }
 
 function CommentItem({ 
@@ -323,12 +350,15 @@ function CommentItem({
   isReply = false,
   replyToAuthor,
   nestingLevel = 0,
+  userNameMap,
 }: CommentItemProps) {
   const [deleting, setDeleting] = useState(false)
   const [editing, setEditing] = useState(false)
   const [editText, setEditText] = useState(comment.content)
+  const [originalText, setOriginalText] = useState(comment.content)
   const [saving, setSaving] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [editError, setEditError] = useState(false)
+  const replyInputRef = useRef<HTMLTextAreaElement>(null)
   const editInputRef = useRef<HTMLTextAreaElement>(null)
   
   // Format time: show time for today, "Yesterday" for yesterday, or date for older
@@ -342,8 +372,8 @@ function CommentItem({
   const isReplying = replyingToId === comment.id
 
   useEffect(() => {
-    if (isReplying && inputRef.current) {
-      inputRef.current.focus()
+    if (isReplying && replyInputRef.current) {
+      replyInputRef.current.focus()
     }
   }, [isReplying])
 
@@ -358,16 +388,30 @@ function CommentItem({
 
   const handleSaveEdit = async () => {
     const trimmed = editText.trim()
-    if (!trimmed || trimmed === comment.content || saving) return
+    if (!trimmed || trimmed === originalText || saving) return
+    setEditError(false)
     setSaving(true)
-    const success = await onEdit(comment.id, trimmed)
-    setSaving(false)
-    if (success) setEditing(false)
+    try {
+      const success = await onEdit(comment.id, trimmed)
+      if (success) {
+        setOriginalText(trimmed)
+        setEditing(false)
+      } else {
+        setEditError(true)
+      }
+    } catch (error) {
+      console.error('Error saving edit:', error)
+      setEditError(true)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleCancelEdit = () => {
     setEditing(false)
     setEditText(comment.content)
+    setOriginalText(comment.content)
+    setEditError(false)
   }
 
   const handleDelete = async () => {
@@ -390,41 +434,59 @@ function CommentItem({
 
   const indentClass = nestingLevel === 0 ? '' : nestingLevel === 1 ? 'ml-6 md:ml-10' : 'ml-4 md:ml-8'
 
-  // Render content with @ mentions as clickable links
-  const renderContentWithMention = (content: string) => {
-    // Check if content starts with an @ mention
-    const mentionMatch = content.match(/^@([^\s]+(?:\s+[^\s]+)?)\s/)
-    
-    if (mentionMatch) {
-      const mentionName = mentionMatch[1]
-      const restOfContent = content.slice(mentionMatch[0].length)
-      
-      // If we have the replyToAuthor info, use it for the link
-      // Otherwise just show the mention without a link
-      if (replyToAuthor && mentionName === replyToAuthor.name) {
-        return (
-          <>
-            <Link 
-              href={`/snapshot/${replyToAuthor.userId}`}
-              className="text-[#39FF14] font-medium hover:underline"
-            >
-              @{mentionName}
-            </Link>
-            {' '}{restOfContent}
-          </>
+  const renderContentWithMentions = (content: string) => {
+    if (userNameMap.size === 0) return content
+
+    const nameEntries = Array.from(userNameMap.entries())
+      .sort((a, b) => b[0].length - a[0].length)
+
+    const escapedNames = nameEntries.map(([name]) =>
+      name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    )
+    const mentionRegex = new RegExp(`@(${escapedNames.join('|')})`, 'gi')
+
+    const parts: (string | React.ReactElement)[] = []
+    let lastIndex = 0
+    let match: RegExpExecArray | null
+
+    while ((match = mentionRegex.exec(content)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(content.slice(lastIndex, match.index))
+      }
+
+      const mentionedName = match[1]
+      const userId =
+        userNameMap.get(mentionedName) ||
+        Array.from(userNameMap.entries()).find(
+          ([name]) => name.toLowerCase() === mentionedName.toLowerCase()
+        )?.[1]
+
+      if (userId) {
+        parts.push(
+          <Link
+            key={match.index}
+            href={`/snapshot/${userId}`}
+            className="text-[#39FF14] font-medium hover:underline"
+          >
+            {mentionedName}
+          </Link>
+        )
+      } else {
+        parts.push(
+          <span key={match.index} className="text-[#39FF14] font-medium">
+            {mentionedName}
+          </span>
         )
       }
-      
-      // Fallback: show mention without link (for older comments or mismatches)
-      return (
-        <>
-          <span className="text-[#39FF14] font-medium">@{mentionName}</span>
-          {' '}{restOfContent}
-        </>
-      )
+
+      lastIndex = match.index + match[0].length
     }
-    
-    return content
+
+    if (lastIndex < content.length) {
+      parts.push(content.slice(lastIndex))
+    }
+
+    return parts.length > 0 ? <>{parts}</> : content
   }
 
 
@@ -460,6 +522,11 @@ function CommentItem({
             >
               {comment.user?.full_name || 'Anonymous'}
             </Link>
+            {(comment.user?.role === 'admin' || comment.user?.role === 'super_admin') && (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#BF00FF]/15 text-[10px] font-bold text-[#BF00FF] tracking-wide uppercase">
+                Guide
+              </span>
+            )}
             <span className="text-xs text-neutral-500">{timeDisplay}</span>
           </div>
           {/* Comment content or edit input */}
@@ -486,7 +553,7 @@ function CommentItem({
               <div className="flex items-center gap-2 mt-2">
                 <button
                   onClick={handleSaveEdit}
-                  disabled={saving || !editText.trim() || editText.trim() === comment.content}
+                  disabled={saving || !editText.trim() || editText.trim() === originalText}
                   className="px-3 py-1.5 rounded-full text-xs font-medium bg-[#39FF14] text-black hover:bg-[rgba(57,255,20,0.9)] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                   {saving ? 'Saving...' : 'Save'}
@@ -497,11 +564,14 @@ function CommentItem({
                 >
                   Cancel
                 </button>
+                {editError && (
+                  <span className="text-xs text-red-400">Failed to save. Try again.</span>
+                )}
               </div>
             </div>
           ) : (
             <p className="text-sm text-neutral-200 whitespace-pre-wrap">
-              {renderContentWithMention(comment.content)}
+              {renderContentWithMentions(comment.content)}
               {comment.edited_at && (
                 <span className="text-xs text-neutral-500 ml-2">(edited)</span>
               )}
@@ -542,7 +612,7 @@ function CommentItem({
 
               {canEdit && (
                 <button
-                  onClick={() => { setEditing(true); setEditText(comment.content) }}
+                  onClick={() => { setEditing(true); setEditText(comment.content); setOriginalText(comment.content); setEditError(false) }}
                   className="flex items-center gap-1 text-xs text-neutral-500 hover:text-white transition-colors"
                 >
                   <Pencil className="w-3 h-3" />
@@ -565,20 +635,24 @@ function CommentItem({
           {/* Inline Reply Input */}
           {isReplying && (
             <div className="mt-3">
-              <div className="flex items-center gap-2">
-                <input
-                  ref={inputRef}
-                  type="text"
+              <div className="flex items-end gap-2">
+                <textarea
+                  ref={replyInputRef}
                   value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
+                  onChange={(e) => {
+                    setReplyText(e.target.value)
+                    e.target.style.height = 'auto'
+                    e.target.style.height = `${Math.min(e.target.scrollHeight, 150)}px`
+                  }}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && replyText.trim() && !submitting) {
+                    if (e.key === 'Enter' && !e.shiftKey && replyText.trim() && !submitting) {
                       e.preventDefault()
                       onSubmitReply(comment.id)
                     }
                   }}
                   placeholder={`Reply to ${comment.user?.full_name || 'Anonymous'}...`}
-                  className="flex-1 bg-neutral-800 border border-neutral-700 rounded-full px-4 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#39FF14]"
+                  className="flex-1 bg-neutral-800 border border-neutral-700 rounded-2xl px-4 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#39FF14] resize-none overflow-hidden min-h-[36px]"
+                  rows={1}
                 />
                 <button
                   type="button"
@@ -623,6 +697,7 @@ function CommentItem({
                 userId: comment.user_id 
               }}
               nestingLevel={nestingLevel + 1}
+              userNameMap={userNameMap}
             />
           ))}
         </div>

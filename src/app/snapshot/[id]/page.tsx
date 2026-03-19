@@ -6,7 +6,7 @@ import { Container, Stack, PageHero, Card, Spinner, Button } from '@/lib/design-
 import { RetentionDashboard } from '@/components/retention'
 import { BadgeDisplay } from '@/components/badges'
 import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
-import { User, Calendar, ArrowLeft, Award, Pencil, Check, X } from 'lucide-react'
+import { User, Calendar, ArrowLeft, Award, Pencil, Check, X, Quote } from 'lucide-react'
 import Link from 'next/link'
 
 interface MemberProfile {
@@ -16,6 +16,8 @@ interface MemberProfile {
   profile_picture_url: string | null
   created_at: string
   about_me: string | null
+  favorite_quote: string | null
+  role: string | null
   isOwner: boolean
 }
 
@@ -29,7 +31,11 @@ export default function SnapshotPage() {
   const [editingAbout, setEditingAbout] = useState(false)
   const [aboutDraft, setAboutDraft] = useState('')
   const [savingAbout, setSavingAbout] = useState(false)
+  const [editingQuote, setEditingQuote] = useState(false)
+  const [quoteDraft, setQuoteDraft] = useState('')
+  const [savingQuote, setSavingQuote] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const quoteInputRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     async function fetchMemberProfile() {
@@ -68,6 +74,14 @@ export default function SnapshotPage() {
       textareaRef.current.setSelectionRange(len, len)
     }
   }, [editingAbout])
+
+  useEffect(() => {
+    if (editingQuote && quoteInputRef.current) {
+      quoteInputRef.current.focus()
+      const len = quoteInputRef.current.value.length
+      quoteInputRef.current.setSelectionRange(len, len)
+    }
+  }, [editingQuote])
 
   const formatMemberSince = (dateString: string) => {
     const date = new Date(dateString)
@@ -109,6 +123,38 @@ export default function SnapshotPage() {
     }
   }
 
+  const handleEditQuote = () => {
+    setQuoteDraft(member?.favorite_quote || '')
+    setEditingQuote(true)
+  }
+
+  const handleCancelQuote = () => {
+    setEditingQuote(false)
+    setQuoteDraft('')
+  }
+
+  const handleSaveQuote = async () => {
+    if (!member) return
+    setSavingQuote(true)
+    try {
+      const response = await fetch(`/api/snapshot/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ favorite_quote: quoteDraft }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setMember(prev => prev ? { ...prev, favorite_quote: data.favorite_quote } : prev)
+        setEditingQuote(false)
+      }
+    } catch (err) {
+      console.error('Error saving favorite quote:', err)
+    } finally {
+      setSavingQuote(false)
+    }
+  }
+
   if (loading) {
     return (
       <Container size="xl">
@@ -147,6 +193,7 @@ export default function SnapshotPage() {
   }
 
   const displayName = member.full_name || member.first_name || 'Community Member'
+  const isMemberGuide = member.role === 'admin' || member.role === 'super_admin'
 
   return (
     <Container size="xl">
@@ -155,8 +202,16 @@ export default function SnapshotPage() {
         <PageHero
           eyebrow="VIBE TRIBE"
           title={displayName}
-          subtitle={`Member since ${formatMemberSince(member.created_at)}`}
+          subtitle={isMemberGuide ? undefined : `Member since ${formatMemberSince(member.created_at)}`}
         >
+          {isMemberGuide && (
+            <div className="flex flex-col items-center gap-1 -mt-2">
+              <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#BF00FF]/15 text-[#BF00FF] text-sm font-bold tracking-wide uppercase">
+                Guide
+              </span>
+              <span className="text-sm text-neutral-400">Member since {formatMemberSince(member.created_at)}</span>
+            </div>
+          )}
           {/* Profile picture */}
           <div className="flex flex-col items-center gap-4">
             <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-neutral-700">
@@ -205,9 +260,9 @@ export default function SnapshotPage() {
                 ref={textareaRef}
                 value={aboutDraft}
                 onChange={(e) => setAboutDraft(e.target.value.slice(0, 500))}
-                placeholder="Tell the Tribe a little about yourself..."
+                placeholder={"Tell the Tribe a little about yourself...\n\n📍 Living in Sarasota, FL (raised in TX)\n🥰 Wife and mom of 3\n💻 Working at Vibration Fit"}
                 className="w-full bg-neutral-800 border border-neutral-600 rounded-xl px-4 py-3 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#39FF14]/50 resize-none transition-colors"
-                rows={4}
+                rows={6}
               />
               <div className="flex items-center justify-between">
                 <span className="text-xs text-neutral-500">{aboutDraft.length}/500</span>
@@ -241,7 +296,76 @@ export default function SnapshotPage() {
             <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap">{member.about_me}</p>
           ) : (
             <p className="text-sm text-neutral-500 italic">
-              {member.isOwner ? 'Tell the Tribe a little about yourself...' : 'This member hasn\'t added a bio yet.'}
+              {member.isOwner ? 'Tell the Tribe a little about yourself...' : 'This member hasn\u0027t added a bio yet.'}
+            </p>
+          )}
+        </Card>
+
+        {/* Favorite Quote Section */}
+        <Card className="p-4 md:p-6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Quote className="w-5 h-5 text-[#00FFFF]" />
+              <h2 className="text-lg font-semibold text-white">Favorite Quote</h2>
+            </div>
+            {member.isOwner && !editingQuote && (
+              <button
+                onClick={handleEditQuote}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                {member.favorite_quote ? 'Edit' : 'Add'}
+              </button>
+            )}
+          </div>
+
+          {editingQuote ? (
+            <div className="space-y-3">
+              <textarea
+                ref={quoteInputRef}
+                value={quoteDraft}
+                onChange={(e) => setQuoteDraft(e.target.value.slice(0, 300))}
+                placeholder="Share a quote that inspires you..."
+                className="w-full bg-neutral-800 border border-neutral-600 rounded-xl px-4 py-3 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#00FFFF]/50 resize-none transition-colors"
+                rows={3}
+              />
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-neutral-500">{quoteDraft.length}/300</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleCancelQuote}
+                    disabled={savingQuote}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveQuote}
+                    disabled={savingQuote}
+                    className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold bg-[#39FF14] text-black hover:bg-[#39FF14]/90 transition-colors disabled:opacity-50"
+                  >
+                    {savingQuote ? (
+                      <Spinner size="sm" />
+                    ) : (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        Save
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : member.favorite_quote ? (
+            <blockquote className="border-l-2 border-[#00FFFF]/40 pl-4 py-1">
+              <p className="text-sm text-neutral-300 leading-relaxed italic whitespace-pre-wrap">
+                &ldquo;{member.favorite_quote}&rdquo;
+              </p>
+            </blockquote>
+          ) : (
+            <p className="text-sm text-neutral-500 italic">
+              {member.isOwner ? 'Share a quote that inspires you...' : 'No favorite quote added yet.'}
             </p>
           )}
         </Card>

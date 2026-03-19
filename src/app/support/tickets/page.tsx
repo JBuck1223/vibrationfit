@@ -6,7 +6,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Container, Card, Badge, type BadgeProps, Button, Spinner, Stack, PageHero } from '@/lib/design-system/components'
-import { Plus, MessageSquare } from 'lucide-react'
+import { Plus, MessageSquare, User, Mail } from 'lucide-react'
 
 interface Ticket {
   id: string
@@ -16,6 +16,8 @@ interface Ticket {
   status: string
   priority: string
   category: string
+  guest_email: string | null
+  user_accounts: { full_name: string | null; email: string } | null
   created_at: string
   updated_at: string
 }
@@ -133,6 +135,19 @@ export default function MyTicketsPage() {
                       </Badge>
                     )}
                   </div>
+                </div>
+
+                <div className="flex items-center gap-4 text-sm text-neutral-400 mb-4">
+                  {(ticket.user_accounts?.full_name) && (
+                    <span className="flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 text-neutral-500" />
+                      {ticket.user_accounts.full_name}
+                    </span>
+                  )}
+                  <span className="flex items-center gap-1.5">
+                    <Mail className="w-3.5 h-3.5 text-neutral-500" />
+                    {ticket.user_accounts?.email || ticket.guest_email || 'No email'}
+                  </span>
                 </div>
 
                 <p className="text-neutral-400 text-sm line-clamp-2 mb-4">

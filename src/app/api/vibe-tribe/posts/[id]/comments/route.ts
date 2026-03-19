@@ -35,13 +35,13 @@ export async function GET(
 
     // Fetch user data for all comments (using admin client to bypass RLS)
     const userIds = [...new Set((comments || []).map(c => c.user_id))]
-    let usersMap: Record<string, { id: string; full_name: string | null; profile_picture_url: string | null }> = {}
+    let usersMap: Record<string, { id: string; full_name: string | null; profile_picture_url: string | null; role: string | null }> = {}
     
     if (userIds.length > 0) {
       const adminClient = createAdminClient()
       const { data: users } = await adminClient
         .from('user_accounts')
-        .select('id, full_name, profile_picture_url')
+        .select('id, full_name, profile_picture_url, role')
         .in('id', userIds)
       
       if (users) {
@@ -195,7 +195,7 @@ export async function POST(
     const adminClient = createAdminClient()
     const { data: userData } = await adminClient
       .from('user_accounts')
-      .select('id, full_name, profile_picture_url')
+      .select('id, full_name, profile_picture_url, role')
       .eq('id', user.id)
       .single()
 
