@@ -6,7 +6,7 @@ import {
   Activity, Play, Monitor, CreditCard, List, CheckCircle, 
   Sparkles, Smartphone, PanelTop, FileText, Music, Type, 
   Users, Eye, Trash2, Zap, HardDrive, Headphones, Palette,
-  ArrowRight, Image, Maximize2, Mic
+  ArrowRight, Image, Maximize2, Mic, MessageCircle
 } from 'lucide-react'
 
 export interface ComponentMetadata {
@@ -364,6 +364,15 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
     icon: Edit,
     exportName: 'Toggle',
     path: '/design-system/component/toggle'
+  },
+  {
+    id: 'testimonials-carousel',
+    name: 'Testimonials Carousel',
+    description: 'Auto-rotating testimonials carousel with touch swipe, navigation arrows, dot indicators, and per-testimonial accent colors',
+    category: 'Patterns',
+    icon: MessageCircle,
+    exportName: 'TestimonialsCarousel',
+    path: '/design-system/component/testimonials-carousel'
   },
 
   // Feedback Components

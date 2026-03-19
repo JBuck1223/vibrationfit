@@ -55,6 +55,7 @@ import {
   InsufficientStorageDialog,
   Toggle,
   CreatedDateBadge,
+  TestimonialsCarousel,
 } from '@/lib/design-system/components'
 import { Copy, Check } from 'lucide-react'
 import {
@@ -3137,6 +3138,102 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
         )
       }
       return <ColorPaletteDemo />
+
+    case 'testimonials-carousel':
+      return (
+        <Stack gap="lg">
+          <Card className="p-4 md:p-6">
+            <Stack gap="sm">
+              <h4 className="text-sm font-semibold text-white">Default (Neon Purple Accent)</h4>
+              <TestimonialsCarousel
+                testimonials={[
+                  {
+                    id: '1',
+                    name: 'Vanessa B.',
+                    role: 'Founder, VibrationFit',
+                    quote: 'Once we locked in the system, abundance flowed. VibrationFit transformed how we approach every area of life.',
+                    rating: 5,
+                  },
+                  {
+                    id: '2',
+                    name: 'Marcus T.',
+                    role: 'Alignment Coach',
+                    quote: 'The Life Vision process changed everything. I went from scattered goals to a crystal-clear actualization path.',
+                    rating: 5,
+                  },
+                  {
+                    id: '3',
+                    name: 'Aria L.',
+                    role: 'Community Member',
+                    quote: 'I have never felt more above the Green Line. Every category of my life is finally getting the attention it deserves.',
+                    rating: 4,
+                  },
+                ]}
+                title="What Our Community Says"
+                subtitle="Real stories from members who are actualizing their vision"
+              />
+            </Stack>
+          </Card>
+
+          <Card className="p-4 md:p-6">
+            <Stack gap="sm">
+              <h4 className="text-sm font-semibold text-white">Per-Testimonial Accent Colors</h4>
+              <TestimonialsCarousel
+                testimonials={[
+                  {
+                    id: 'a',
+                    name: 'Jordan K.',
+                    role: 'Vision Architect',
+                    quote: 'My Actualization Blueprint kept me on track every single day. This is the real deal.',
+                    rating: 5,
+                    accentColor: '#39FF14',
+                  },
+                  {
+                    id: 'b',
+                    name: 'Sasha M.',
+                    role: 'Wellness Creator',
+                    quote: 'VIVA understood what I needed before I could even articulate it. Truly next level.',
+                    rating: 5,
+                    accentColor: '#00FFFF',
+                  },
+                  {
+                    id: 'c',
+                    name: 'Kai N.',
+                    role: 'Conscious Entrepreneur',
+                    quote: 'From below the Green Line to thriving in every life category. The Frequency Flip was the key.',
+                    rating: 5,
+                    accentColor: '#BF00FF',
+                  },
+                ]}
+                autoPlayInterval={4000}
+              />
+            </Stack>
+          </Card>
+
+          <Card className="p-4 md:p-6">
+            <Stack gap="sm">
+              <h4 className="text-sm font-semibold text-white">Minimal (No Arrows, No Rating)</h4>
+              <TestimonialsCarousel
+                testimonials={[
+                  {
+                    id: 'x1',
+                    name: 'River A.',
+                    quote: 'Simple, powerful, transformative.',
+                  },
+                  {
+                    id: 'x2',
+                    name: 'Phoenix D.',
+                    quote: 'The design is stunning and the experience is effortless.',
+                  },
+                ]}
+                showArrows={false}
+                showRating={false}
+                accentColor="#39FF14"
+              />
+            </Stack>
+          </Card>
+        </Stack>
+      )
 
     default:
       return (
