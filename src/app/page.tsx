@@ -387,57 +387,94 @@ export default function HomePage() {
         <section>
           <Cover minHeight="500px" className="!p-0">
             <Container size="xl" className="w-full">
-              <Stack gap="md" className="items-center">
+              <Stack gap="sm" className="items-center">
                 {/* Headline at top */}
                 <div className="text-center">
-                  <Heading level={1} className="text-white leading-tight !mb-0.5 md:!mb-3">
+                  <Heading level={2} className="text-white leading-tight !mb-0">
                     Thoughts become things…<br />so why isn't it working?
                   </Heading>
                 </div>
                 
                 {/* Two column layout for desktop */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center w-full">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-8 items-start w-full">
                   {/* Left column - Content */}
-                  <div className="space-y-6 text-center lg:text-left flex flex-col justify-center">
-                    <Heading level={3} className="text-neutral-200 text-center md:text-center">
-                      Bridge the woo-woo with the how-to.
-                    </Heading>
-                    
+                  <div className="space-y-3 text-center lg:text-left flex flex-col justify-center">
                     <Heading level={4} className="text-[#39FF14] text-center md:text-center">
                       Activate your Life Vision in <span className="font-bold text-[#39FF14]">72 hours</span>
                       <br />
                       with the Activation Intensive.
                     </Heading>
                     
-                    <BulletedList className="leading-relaxed lg:text-left lg:ml-6">
+                    {/* Mobile bullets */}
+                    <BulletedList className="leading-relaxed md:hidden">
                       <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                        Simple 4-part system + MAP: Creations, Activations, Connections, and Sessions, all guided by your My Activation Plan so you always know your next move.
+                        <strong>4‑Part Path + MAP</strong> so you always know your next move.
                       </ListItem>
                       <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                        <strong>Plus Graduate Unlocks:</strong> Advanced audio suite, The Alignment Gym (weekly live coaching), and Vibe Tribe community when you complete your 72‑Hour Activation
+                        <strong>Graduate Unlocks:</strong> audios, live coaching, and community.
                       </ListItem>
                       <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                        VIVA AI turns contrast into clarity—even if you don't know what you want
+                        <strong>VIVA AI</strong> turns contrast into clarity.
                       </ListItem>
                       <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                        Powered by the 4‑Layer Conscious Creation Writing Architecture inside VIVA Vision
+                        <strong>4‑Layer Writing Architecture</strong> makes conscious creation step‑by‑step.
+                      </ListItem>
+                    </BulletedList>
+
+                    {/* Desktop bullets */}
+                    <BulletedList className="leading-relaxed lg:text-left lg:ml-6 hidden md:block">
+                      <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
+                        <strong>4‑Part Path + MAP</strong> – Creations, Activations, Connections, and Sessions, all guided by your My Activation Plan so you always know your next move.
+                      </ListItem>
+                      <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
+                        <strong>Graduate Unlocks:</strong> Advanced audio suite, The Alignment Gym (weekly live coaching), and Vibe Tribe community when you complete your 72‑Hour Activation
+                      </ListItem>
+                      <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
+                        <strong>VIVA AI</strong> turns contrast into clarity—even if you don&apos;t know what you want
+                      </ListItem>
+                      <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
+                        Powered by the <strong>4‑Layer Writing Architecture</strong> inside VIVA Vision
                       </ListItem>
                     </BulletedList>
                     
                     <div className="flex flex-col items-center md:items-center">
-                      <Button variant="primary" size="xl" className="mt-1 mb-2 md:mt-2" asChild>
-                        <a href="#pricing">
-                          Start the Activation Intensive
-                        </a>
-                      </Button>
-                      <Text size="xs" className="text-neutral-400 text-center">
+                      {/* Decision block: button + proof strip */}
+                      <div className="flex flex-col items-center">
+                        <Button variant="primary" size="xl" className="mt-1 md:mt-2" asChild>
+                          <a href="#pricing">
+                            Start the Activation Intensive
+                          </a>
+                        </Button>
+
+                        {/* Micro-Proof Strip — tight to button */}
+                        <div className="text-center mt-1.5">
+                          <span className="block text-[11px] text-[#39FF14]/70 mb-0.5 tracking-wide">What members are saying:</span>
+                          {/* Mobile: inline with dots */}
+                          <p className="md:hidden text-[11px] italic text-neutral-400 leading-snug">
+                            &ldquo;Easiest thing I&rsquo;ve ever seen to uncover your desires and make them real.&rdquo;
+                            {' '}&bull;{' '}
+                            &ldquo;Most comprehensive, easy and exciting program I&rsquo;ve ever done.&rdquo;
+                            {' '}&bull;{' '}
+                            &ldquo;If there was ever a doubt this is divinely inspired and actually works, I have proof.&rdquo;
+                          </p>
+                          {/* Desktop: one per line, no dots */}
+                          <div className="hidden md:flex flex-col gap-0.5 text-xs italic text-neutral-400 leading-snug">
+                            <span>&ldquo;Easiest thing I&rsquo;ve ever seen to uncover your desires and make them real.&rdquo;</span>
+                            <span>&ldquo;Most comprehensive, easy and exciting program I&rsquo;ve ever done.&rdquo;</span>
+                            <span>&ldquo;If there was ever a doubt this is divinely inspired and actually works, I have proof.&rdquo;</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Price detail — separated from decision block */}
+                      <Text size="xs" className="text-neutral-400 text-center mt-4">
                         ${getIntensiveTotal()} today. Includes 8 weeks of Vision Pro. Day 56: auto‑continue at your selected plan.
                       </Text>
                     </div>
                   </div>
                   
                   {/* Right column - Video */}
-                  <div className="relative bg-black rounded-xl overflow-hidden shadow-2xl max-w-3xl mx-auto w-full order-first lg:order-last lg:mt-4">
+                  <div className="relative bg-black rounded-xl overflow-hidden shadow-2xl max-w-3xl mx-auto w-full lg:order-last">
                     <Video
                       src="https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-3-6-26-new-1080p.mp4"
                       poster="https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-3-6-26-new-thumb.0000000.jpg"
@@ -1264,8 +1301,11 @@ export default function HomePage() {
               <Stack gap="lg" className="md:gap-10">
                 <div className="text-center">
                   <Heading level={2} className="text-white">
-                    Why This Works (Even If You've Tried Before)
+                    Bridge the Woo-Woo With the How-To
                   </Heading>
+                  <Text size="lg" className="text-neutral-300 mt-2">
+                    Why This Works (Even If You&apos;ve Tried Before)
+                  </Text>
                 </div>
                 
                 <Grid responsiveCols={{ mobile: 1, tablet: 2, desktop: 4 }} gap="lg">
