@@ -33,18 +33,44 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid email address format' }, { status: 400 })
     }
 
+    // Look up referral link for this recipient
+    const adminClient = createAdminClient()
+    const { data: referralRow } = await adminClient
+      .from('referral_participants')
+      .select('referral_code')
+      .eq('email', to)
+      .eq('is_active', true)
+      .maybeSingle()
+
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vibrationfit.com'
+    const extraVars: Record<string, string> = {}
+    if (referralRow?.referral_code) {
+      extraVars.referralLink = `${siteUrl}/offer/launch?ref=${referralRow.referral_code}`
+    }
+
+    function applyVars(text: string): string {
+      let result = text
+      for (const [key, value] of Object.entries(extraVars)) {
+        result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value)
+      }
+      return result
+    }
+
+    const finalSubject = applyVars(subject)
+    const finalTextBody = applyVars(textBody || htmlBody?.replace(/<[^>]*>/g, '') || '')
+    const finalHtmlBody = htmlBody ? applyVars(htmlBody) : undefined
+
     await sendAndLogEmail({
       to,
-      subject,
+      subject: finalSubject,
       from: sender.from,
-      ...(htmlBody ? { htmlBody } : {}),
-      textBody: textBody || htmlBody?.replace(/<[^>]*>/g, '') || '',
+      ...(finalHtmlBody ? { htmlBody: finalHtmlBody } : {}),
+      textBody: finalTextBody,
       replyTo: sender.email,
       context: { guestEmail: to },
     })
 
     // Update lead status to 'contacted' if currently 'new'
-    const adminClient = createAdminClient()
     const { data: lead } = await adminClient
       .from('leads')
       .select('status')
