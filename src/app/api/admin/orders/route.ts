@@ -57,6 +57,34 @@ export async function GET(request: NextRequest) {
       (accounts || []).map(a => [a.id, a])
     )
 
+    // Batch-fetch active subscriptions for all order users
+    const { data: subscriptions } = await adminDb
+      .from('customer_subscriptions')
+      .select('id, user_id, stripe_subscription_id, status, cancel_at_period_end, current_period_end, membership_tiers(name, tier_type)')
+      .in('user_id', userIds)
+      .in('status', ['active', 'trialing', 'past_due'])
+
+    const subscriptionMap = new Map<string, typeof subscriptions>()
+    for (const sub of subscriptions || []) {
+      const existing = subscriptionMap.get(sub.user_id) || []
+      existing.push(sub)
+      subscriptionMap.set(sub.user_id, existing)
+    }
+
+    // Batch-fetch order items with product names
+    const orderIds = orders.map(o => o.id)
+    const { data: orderItems } = await adminDb
+      .from('order_items')
+      .select('id, order_id, product_id, quantity, amount, currency, completion_status, refunded_at, metadata, products(name, key)')
+      .in('order_id', orderIds)
+
+    const orderItemsMap = new Map<string, typeof orderItems>()
+    for (const item of orderItems || []) {
+      const existing = orderItemsMap.get(item.order_id) || []
+      existing.push(item)
+      orderItemsMap.set(item.order_id, existing)
+    }
+
     // Merge account data onto each order
     const enrichedOrders = orders.map(order => ({
       ...order,
@@ -67,6 +95,8 @@ export async function GET(request: NextRequest) {
         full_name: null,
         phone: null,
       },
+      subscriptions: subscriptionMap.get(order.user_id) || [],
+      order_items: orderItemsMap.get(order.id) || [],
     }))
 
     // Scheduled messages for these users
