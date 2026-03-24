@@ -56,6 +56,8 @@ import {
   Toggle,
   CreatedDateBadge,
   TestimonialsCarousel,
+  StatsBar,
+  PracticeCard,
 } from '@/lib/design-system/components'
 import { Copy, Check } from 'lucide-react'
 import {
@@ -105,6 +107,10 @@ import {
   VolumeX,
   RefreshCcw,
   Gem,
+  Users,
+  UsersRound,
+  DollarSign,
+  Video as VideoIcon,
 } from 'lucide-react'
 import { type AudioTrack } from '@/lib/design-system/components'
 import type { ComponentMetadata } from '../../components'
@@ -3230,6 +3236,349 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                 showRating={false}
                 accentColor="#39FF14"
               />
+            </Stack>
+          </Card>
+        </Stack>
+      )
+
+    case 'practice-card':
+      return (
+        <Stack gap="md">
+          <Card variant="default" className="p-4 md:p-6">
+            <Stack gap="md">
+              <h4 className="text-base md:text-lg font-semibold text-white">Practice Card</h4>
+              <p className="text-xs md:text-sm text-neutral-400 mb-2">
+                Compact habit tracking card. Row 1: title + today status + streak. Row 2: week/month/all-time. Row 3: CTA.
+              </p>
+
+              {/* All areas stacked */}
+              <div className="bg-neutral-900 rounded-lg p-4 md:p-6 border border-neutral-700 space-y-4">
+                <h5 className="text-sm font-semibold text-white mb-2">All Areas (various states)</h5>
+
+                <PracticeCard
+                  title="Vision Audio"
+                  icon={Headphones}
+                  theme="green"
+                  todayCompleted={true}
+                  currentStreak={7}
+                  countLast7={5}
+                  countLast30={18}
+                  countAllTime={143}
+                  streakFreezeAvailable={true}
+                  ctaHref="/audio"
+                  ctaLabel="Listen to Vision Audio"
+                  ctaDoneLabel="Listen again"
+                  ctaHelperText="Every listen is another vote for the future you."
+                  ctaDoneHelperText="Done for today. Extra listens deepen the groove."
+                />
+
+                <PracticeCard
+                  title="Journal"
+                  icon={BookOpen}
+                  theme="yellow"
+                  todayCompleted={false}
+                  currentStreak={13}
+                  countLast7={6}
+                  countLast30={22}
+                  countAllTime={89}
+                  streakFreezeAvailable={true}
+                  ctaHref="/journal/new"
+                  ctaLabel="Open Journal"
+                  ctaDoneLabel="Write again"
+                  ctaHelperText="One entry. That's all it takes to stay conscious."
+                  ctaDoneHelperText="Done for today. Every word is evidence of your awareness."
+                />
+
+                <PracticeCard
+                  title="Daily Paper"
+                  icon={FileText}
+                  theme="yellow"
+                  todayCompleted={false}
+                  currentStreak={21}
+                  countLast7={5}
+                  countLast30={26}
+                  countAllTime={134}
+                  streakFreezeUsedThisWeek={true}
+                  ctaHref="/daily-paper"
+                  ctaLabel="Open Daily Paper"
+                  ctaDoneLabel="Review today's paper"
+                  ctaHelperText="Start your day above the Green Line."
+                  ctaDoneHelperText="Done for today. Your intentions are set."
+                />
+
+                <PracticeCard
+                  title="Alignment Gym"
+                  icon={VideoIcon}
+                  theme="teal"
+                  todayCompleted={true}
+                  currentStreak={4}
+                  streakUnit="weeks"
+                  countLast7={1}
+                  countLast30={4}
+                  countAllTime={18}
+                  ctaHref="/alignment-gym"
+                  ctaLabel="Join Next Session"
+                  ctaDoneLabel="Watch Replay"
+                  ctaHelperText="One session a week keeps you calibrated."
+                  ctaDoneHelperText="You showed up this week. Replays are always here."
+                />
+
+                <PracticeCard
+                  title="Vibe Tribe"
+                  icon={UsersRound}
+                  theme="purple"
+                  todayCompleted={false}
+                  currentStreak={9}
+                  countLast7={5}
+                  countLast30={18}
+                  countAllTime={52}
+                  ctaHref="/vibe-tribe"
+                  ctaLabel="Share with Vibe Tribe"
+                  ctaDoneLabel="Back to Vibe Tribe"
+                  ctaHelperText="Your community rises when you share."
+                  ctaDoneHelperText="Done for today. Your presence matters."
+                />
+
+                <PracticeCard
+                  title="Vision Audio"
+                  icon={Headphones}
+                  theme="green"
+                  todayCompleted={false}
+                  currentStreak={0}
+                  countLast7={3}
+                  countLast30={17}
+                  countAllTime={143}
+                  ctaHref="/audio"
+                  ctaLabel="Listen to Vision Audio"
+                  ctaDoneLabel="Listen again"
+                  ctaHelperText="Every listen is another vote for the future you."
+                />
+
+                <PracticeCard
+                  title="Abundance Tracker"
+                  icon={DollarSign}
+                  theme="green"
+                  todayCompleted={false}
+                  currentStreak={0}
+                  countLast7={0}
+                  countLast30={0}
+                  countAllTime={0}
+                  ctaHref="/abundance-tracker"
+                  ctaLabel="Log Abundance"
+                  ctaDoneLabel="Log another"
+                  ctaHelperText="What you notice, you attract more of."
+                />
+
+                <PracticeCard
+                  title="Vision Board"
+                  icon={Image}
+                  theme="green"
+                  todayCompleted={true}
+                  currentStreak={5}
+                  countLast7={4}
+                  countLast30={16}
+                  countAllTime={61}
+                  ctaHref="/vision-board"
+                  ctaLabel="Open Vision Board"
+                  ctaDoneLabel="View Vision Board"
+                  ctaHelperText="See it. Feel it. Become it."
+                  ctaDoneHelperText="Your vision is activated for today."
+                />
+              </div>
+
+              {/* Dashboard grid */}
+              <div className="bg-neutral-900 rounded-lg p-4 md:p-6 border border-neutral-700 space-y-4">
+                <h5 className="text-sm font-semibold text-white mb-2">Dashboard Grid (side by side)</h5>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <PracticeCard
+                    title="Vision Audio"
+                    icon={Headphones}
+                    theme="green"
+                    todayCompleted={true}
+                    currentStreak={7}
+                    countLast7={5}
+                    countLast30={18}
+                    countAllTime={143}
+                    streakFreezeAvailable={true}
+                    ctaHref="/audio"
+                    ctaLabel="Listen"
+                    ctaDoneLabel="Listen again"
+                  />
+                  <PracticeCard
+                    title="Journal"
+                    icon={BookOpen}
+                    theme="yellow"
+                    todayCompleted={false}
+                    currentStreak={13}
+                    countLast7={6}
+                    countLast30={22}
+                    countAllTime={89}
+                    ctaHref="/journal/new"
+                    ctaLabel="Open Journal"
+                    ctaDoneLabel="Write again"
+                  />
+                  <PracticeCard
+                    title="Daily Paper"
+                    icon={FileText}
+                    theme="yellow"
+                    todayCompleted={false}
+                    currentStreak={21}
+                    countLast7={5}
+                    countLast30={26}
+                    countAllTime={134}
+                    streakFreezeUsedThisWeek={true}
+                    ctaHref="/daily-paper"
+                    ctaLabel="Open Daily Paper"
+                    ctaDoneLabel="Review today's paper"
+                  />
+                  <PracticeCard
+                    title="Alignment Gym"
+                    icon={VideoIcon}
+                    theme="teal"
+                    todayCompleted={true}
+                    currentStreak={4}
+                    streakUnit="weeks"
+                    countLast7={1}
+                    countLast30={4}
+                    countAllTime={18}
+                    ctaHref="/alignment-gym"
+                    ctaLabel="Join Session"
+                    ctaDoneLabel="Watch Replay"
+                  />
+                  <PracticeCard
+                    title="Vibe Tribe"
+                    icon={UsersRound}
+                    theme="purple"
+                    todayCompleted={false}
+                    currentStreak={9}
+                    countLast7={5}
+                    countLast30={18}
+                    countAllTime={52}
+                    ctaHref="/vibe-tribe"
+                    ctaLabel="Share"
+                    ctaDoneLabel="Back to Tribe"
+                  />
+                  <PracticeCard
+                    title="Abundance Tracker"
+                    icon={DollarSign}
+                    theme="green"
+                    todayCompleted={true}
+                    currentStreak={3}
+                    countLast7={5}
+                    countLast30={19}
+                    countAllTime={47}
+                    ctaHref="/abundance-tracker"
+                    ctaLabel="Log Abundance"
+                    ctaDoneLabel="Log another"
+                  />
+                  <PracticeCard
+                    title="Vision Board"
+                    icon={Image}
+                    theme="green"
+                    todayCompleted={true}
+                    currentStreak={5}
+                    countLast7={4}
+                    countLast30={16}
+                    countAllTime={61}
+                    ctaHref="/vision-board"
+                    ctaLabel="Open Vision Board"
+                    ctaDoneLabel="View Vision Board"
+                  />
+                </div>
+              </div>
+            </Stack>
+          </Card>
+        </Stack>
+      )
+
+    case 'stats-bar':
+      return (
+        <Stack gap="md">
+          <Card variant="default" className="p-4 md:p-6">
+            <Stack gap="md">
+              <h4 className="text-base md:text-lg font-semibold text-white">Stats Bar</h4>
+              <p className="text-xs md:text-sm text-neutral-400 mb-4">
+                Compact horizontal stats strip for area pages. Shows 7-day, 30-day, all-time, and streak metrics in a single row on desktop, 2x2 grid on mobile.
+              </p>
+
+              <div className="bg-neutral-900 rounded-lg p-6 border border-neutral-700 space-y-6">
+                <div>
+                  <h5 className="text-sm font-semibold text-white mb-3">Green (Activations / Audio Plays)</h5>
+                  <StatsBar
+                    theme="green"
+                    stats={[
+                      { label: '7-Day', value: 12 },
+                      { label: '30-Day', value: 42 },
+                      { label: 'All-Time', value: 156 },
+                      { label: 'Streak', value: '5 days' },
+                    ]}
+                  />
+                </div>
+
+                <div>
+                  <h5 className="text-sm font-semibold text-white mb-3">Yellow (Creations / Journal / Daily Paper)</h5>
+                  <StatsBar
+                    theme="yellow"
+                    stats={[
+                      { label: '7-Day', value: 6 },
+                      { label: '30-Day', value: 22 },
+                      { label: 'All-Time', value: 89 },
+                      { label: 'Streak', value: '13 days' },
+                    ]}
+                  />
+                </div>
+
+                <div>
+                  <h5 className="text-sm font-semibold text-white mb-3">Purple (Connections / Vibe Tribe)</h5>
+                  <StatsBar
+                    theme="purple"
+                    stats={[
+                      { label: '7-Day', value: 5 },
+                      { label: '30-Day', value: 18 },
+                      { label: 'All-Time', value: 52 },
+                      { label: 'Streak', value: '9 days' },
+                    ]}
+                  />
+                </div>
+
+                <div>
+                  <h5 className="text-sm font-semibold text-white mb-3">Teal (Sessions / Alignment Gym)</h5>
+                  <StatsBar
+                    theme="teal"
+                    stats={[
+                      { label: '7-Day', value: 1 },
+                      { label: '30-Day', value: 4 },
+                      { label: 'All-Time', value: 18 },
+                      { label: 'Streak', value: '4 weeks' },
+                    ]}
+                  />
+                </div>
+
+                <div>
+                  <h5 className="text-sm font-semibold text-white mb-3">Neutral</h5>
+                  <StatsBar
+                    theme="neutral"
+                    stats={[
+                      { label: '7-Day', value: 3 },
+                      { label: '30-Day', value: 15 },
+                      { label: 'All-Time', value: 41 },
+                      { label: 'Streak', value: '7 days' },
+                    ]}
+                  />
+                </div>
+              </div>
+
+              <div className="bg-neutral-900 rounded-lg p-6 border border-neutral-700 space-y-6">
+                <h5 className="text-sm font-semibold text-white mb-3">Fewer Stats (3 columns)</h5>
+                <StatsBar
+                  theme="green"
+                  stats={[
+                    { label: '7-Day', value: 8 },
+                    { label: 'All-Time', value: 234 },
+                    { label: 'Streak', value: '21 days' },
+                  ]}
+                />
+              </div>
             </Stack>
           </Card>
         </Stack>

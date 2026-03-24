@@ -3,11 +3,12 @@
 import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
-import { Card, Button, Badge, CategoryCard, DeleteConfirmationDialog, ActionButtons, Icon, TrackingMilestoneCard, PageHero, Container, Stack, Spinner, Input, FileUpload } from '@/lib/design-system'
+import { Card, Button, Badge, CategoryCard, DeleteConfirmationDialog, ActionButtons, Icon, PracticeCard, PageHero, Container, Stack, Spinner, Input, FileUpload } from '@/lib/design-system'
+import { useAreaStats } from '@/hooks/useAreaStats'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Calendar, CheckCircle, XCircle, Filter, Grid3X3, X, ChevronLeft, ChevronRight, Eye, List, Grid, Lightbulb, Download, Edit3, Save, ChevronUp, Trash2, BookOpen, Upload, Sparkles, CheckSquare, Square, ListChecks } from 'lucide-react'
+import { Plus, Calendar, CheckCircle, XCircle, Filter, Grid3X3, X, ChevronLeft, ChevronRight, Eye, List, Grid, Lightbulb, Download, Edit3, Save, ChevronUp, Trash2, BookOpen, Upload, Sparkles, CheckSquare, Square, ListChecks, Image as ImageIcon } from 'lucide-react'
 import { useDeleteItem } from '@/hooks/useDeleteItem'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { colors } from '@/lib/design-system/tokens'
@@ -41,6 +42,7 @@ const STATUS_OPTIONS = [
 
 export default function VisionBoardPage() {
   const router = useRouter()
+  const { stats: practiceStats } = useAreaStats('vision-board')
   const columnCount = useColumnCount()
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -101,7 +103,18 @@ export default function VisionBoardPage() {
     fetchItems()
   }, [])
 
-
+  useEffect(() => {
+    const recordActivation = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      await supabase.from('area_activations').insert({
+        user_id: user.id,
+        area: 'vision_board',
+      })
+    }
+    recordActivation()
+  }, [])
 
   const fetchItems = async () => {
     try {
@@ -1104,24 +1117,24 @@ export default function VisionBoardPage() {
           </div>
         </PageHero>
 
-        {/* Stats - Responsive Grid */}
-        <div id="stats" className="grid grid-cols-3 gap-3 md:gap-6">
-            <TrackingMilestoneCard
-              label="Total"
-              value={totalItems}
-              theme="primary"
-            />
-            <TrackingMilestoneCard
-              label="Active"
-              value={activeItems}
-              theme="secondary"
-            />
-            <TrackingMilestoneCard
-              label="Actualized"
-              value={actualizedItems}
-              theme="accent"
-            />
-          </div>
+        {/* Practice Stats */}
+        <PracticeCard
+          title="Vision Board"
+          icon={ImageIcon}
+          theme="green"
+          todayCompleted={practiceStats?.todayCompleted ?? false}
+          currentStreak={practiceStats?.currentStreak ?? 0}
+          countLast7={practiceStats?.countLast7 ?? 0}
+          countLast30={practiceStats?.countLast30 ?? 0}
+          countAllTime={practiceStats?.countAllTime ?? 0}
+          streakFreezeAvailable={practiceStats?.streakFreezeAvailable ?? false}
+          streakFreezeUsedThisWeek={practiceStats?.streakFreezeUsedThisWeek ?? false}
+          ctaHref="/vision-board"
+          ctaLabel="Open Vision Board"
+          ctaDoneLabel="View Vision Board"
+          ctaHelperText="See it. Feel it. Become it."
+          ctaDoneHelperText="Your vision is activated for today."
+        />
 
         {/* Filter Toggle Button and View Toggle */}
         <div className="flex items-center justify-between">
@@ -1157,48 +1170,25 @@ export default function VisionBoardPage() {
           <div className="flex-1 flex justify-end">
             <div className="flex items-center gap-1">
               {/* Board Mode Toggle */}
-              <div className="flex bg-[#1F1F1F] rounded-full p-0.5 mr-2">
-                <button
-                  onClick={() => { setBoardMode('clean'); setExpandedItemId(null); cancelEditing() }}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                    boardMode === 'clean'
-                      ? 'bg-[#39FF14] text-black shadow-lg'
-                      : 'text-neutral-400 hover:text-white'
-                  }`}
-                >
-                  Clean
-                </button>
-                <button
-                  onClick={() => setBoardMode('detail')}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                    boardMode === 'detail'
-                      ? 'bg-[#39FF14] text-black shadow-lg'
-                      : 'text-neutral-400 hover:text-white'
-                  }`}
-                >
-                  Detail
-                </button>
-              </div>
-              {/* View Toggle */}
               <button
-                onClick={() => setViewMode('grid')}
+                onClick={() => { setBoardMode('clean'); setExpandedItemId(null); cancelEditing() }}
                 className={`p-2.5 rounded-full transition-all ${
-                  viewMode === 'grid'
+                  boardMode === 'clean'
                     ? 'bg-[#39FF14] text-black shadow-lg'
                     : 'bg-[#1F1F1F] text-neutral-400 hover:text-white hover:bg-[#2A2A2A]'
                 }`}
-                aria-label="Grid view"
+                aria-label="Clean view"
               >
                 <Grid className="w-4 h-4" />
               </button>
               <button
-                onClick={() => setViewMode('list')}
+                onClick={() => setBoardMode('detail')}
                 className={`p-2.5 rounded-full transition-all ${
-                  viewMode === 'list'
+                  boardMode === 'detail'
                     ? 'bg-[#39FF14] text-black shadow-lg'
                     : 'bg-[#1F1F1F] text-neutral-400 hover:text-white hover:bg-[#2A2A2A]'
                 }`}
-                aria-label="List view"
+                aria-label="Detail view"
               >
                 <List className="w-4 h-4" />
               </button>
@@ -2011,63 +2001,36 @@ export default function VisionBoardPage() {
 
         {/* Floating Bulk Action Bar */}
         {bulkMode && (
-          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 animate-in slide-in-from-bottom duration-300">
-            <div className="bg-[#1A1A1A] border-2 border-[#333] rounded-2xl shadow-2xl shadow-black/60 px-5 py-3 flex items-center gap-3 backdrop-blur-sm">
-              <span className="text-sm font-medium text-neutral-300 whitespace-nowrap">
-                {selectedItemIds.size} selected
-              </span>
+          <div className="fixed bottom-6 left-1/2 md:left-[calc(50%+8rem)] -translate-x-1/2 z-40 animate-in slide-in-from-bottom duration-300">
+            <div className="bg-[#1A1A1A] border-2 border-[#333] rounded-2xl shadow-2xl shadow-black/60 px-4 sm:px-5 py-3 backdrop-blur-sm">
+              <div className="flex items-center justify-center gap-2 sm:gap-3">
+                <span className="text-sm font-medium text-neutral-300 whitespace-nowrap">
+                  {selectedItemIds.size} selected
+                </span>
 
-              <div className="w-px h-6 bg-neutral-700" />
+                <div className="w-px h-6 bg-neutral-700" />
 
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={selectedItemIds.size === filteredItems.length ? deselectAll : selectAllFiltered}
-                className="whitespace-nowrap"
-              >
-                {selectedItemIds.size === filteredItems.length ? 'Deselect All' : 'Select All'}
-              </Button>
-
-              <div className="w-px h-6 bg-neutral-700" />
-
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => bulkUpdateStatus('active')}
-                  disabled={selectedItemIds.size === 0 || bulkStatusChanging}
-                  className="px-3 py-1.5 rounded-full text-xs font-medium transition-all bg-green-600/20 text-green-400 border border-green-600/30 hover:bg-green-600 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={selectedItemIds.size === filteredItems.length ? deselectAll : selectAllFiltered}
+                  className="whitespace-nowrap"
                 >
-                  <div className="w-1.5 h-1.5 bg-current rounded-full" />
-                  Active
-                </button>
-                <button
-                  onClick={() => bulkUpdateStatus('actualized')}
-                  disabled={selectedItemIds.size === 0 || bulkStatusChanging}
-                  className="px-3 py-1.5 rounded-full text-xs font-medium transition-all bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+                  {selectedItemIds.size === filteredItems.length ? 'Deselect All' : 'Select All'}
+                </Button>
+
+                <div className="w-px h-6 bg-neutral-700" />
+
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => setShowBulkDeleteConfirm(true)}
+                  disabled={selectedItemIds.size === 0}
                 >
-                  <CheckCircle className="w-3 h-3" />
-                  Actualized
-                </button>
-                <button
-                  onClick={() => bulkUpdateStatus('inactive')}
-                  disabled={selectedItemIds.size === 0 || bulkStatusChanging}
-                  className="px-3 py-1.5 rounded-full text-xs font-medium transition-all bg-gray-600/20 text-gray-400 border border-gray-600/30 hover:bg-gray-600 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
-                >
-                  <XCircle className="w-3 h-3" />
-                  Inactive
-                </button>
+                  <Trash2 className="w-4 h-4 mr-1.5" />
+                  Delete
+                </Button>
               </div>
-
-              <div className="w-px h-6 bg-neutral-700" />
-
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={() => setShowBulkDeleteConfirm(true)}
-                disabled={selectedItemIds.size === 0}
-              >
-                <Trash2 className="w-4 h-4 mr-1.5" />
-                Delete
-              </Button>
             </div>
           </div>
         )}

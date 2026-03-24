@@ -6,4 +6,6 @@ export { CategoryCard } from './CategoryCard'
 export { ItemListCard } from './ItemListCard'
 export { FlowCards } from './FlowCards'
 export { TrackingMilestoneCard } from './TrackingMilestoneCard'
+export { PracticeCard } from './PracticeCard'
+export type { PracticeCardProps } from './PracticeCard'
 // Note: CategoryCard, CategoryGrid, TrackingMilestoneCard, ItemListCard, FlowCards remain in backup

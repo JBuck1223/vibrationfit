@@ -25,6 +25,7 @@ export {
   CategoryCard,
   CategoryGrid,
   TrackingMilestoneCard,
+  PracticeCard,
   Button,
   SaveButton,
   VIVAButton,

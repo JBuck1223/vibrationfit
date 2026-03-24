@@ -281,7 +281,7 @@ export default function MAPPage() {
           title="My Activation Plan"
           subtitle={activeMap
             ? `Your active MAP: ${activeMap.title}`
-            : "Build your personal weekly roadmap to make The Life I Choose your new normal."
+            : "Build your personal roadmap to make The Life I Choose your new normal."
           }
         >
           <Inline gap="sm" className="justify-center flex-wrap">
@@ -723,7 +723,7 @@ export default function MAPPage() {
               <p className="text-neutral-300 mb-4">
                 {activeMap
                   ? 'Build a new MAP to update your weekly practice.'
-                  : 'Ready to plan your week? Build your first MAP.'
+                  : 'Ready to plan your routine? Build your first MAP.'
                 }
               </p>
               <Inline gap="sm" className="justify-center">

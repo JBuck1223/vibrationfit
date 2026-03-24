@@ -33,8 +33,9 @@ import {
   Stack,
   PageHero,
   Button,
-  TrackingMilestoneCard,
+  PracticeCard,
 } from '@/lib/design-system/components'
+import { useAreaStats } from '@/hooks/useAreaStats'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { ENTRY_LABELS, ABUNDANCE_ENTRY_CATEGORIES, getEntryCategoryDisplay } from '@/lib/abundance/entry-categories'
 
@@ -83,6 +84,7 @@ function getVisionLabel(key: string): string {
 
 export default function AbundanceDashboardPage() {
   const router = useRouter()
+  const { stats: practiceStats } = useAreaStats('abundance-tracker')
   const [data, setData] = useState<AbundanceData | null>(null)
   const [loading, setLoading] = useState(true)
   const [showFilters, setShowFilters] = useState(false)
@@ -256,37 +258,24 @@ export default function AbundanceDashboardPage() {
               </p>
             </div>
 
-            {/* Tracking cards: Money Events, Value Events, This Week, This Month */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-              <TrackingMilestoneCard
-                label="Money Events"
-                mobileLabel="Money"
-                value={String(data.summary.moneyCount)}
-                theme="accent"
-                icon={<Banknote className="w-5 h-5" />}
-              />
-              <TrackingMilestoneCard
-                label="Value Events"
-                mobileLabel="Value"
-                value={String(data.summary.valueCount)}
-                theme="neutral"
-                icon={<Heart className="w-5 h-5" />}
-              />
-              <TrackingMilestoneCard
-                label="This Week"
-                mobileLabel="Week"
-                value={formatCurrency(data.timePeriods.week.amount)}
-                theme="primary"
-                icon={<CalendarClock className="w-5 h-5" />}
-              />
-              <TrackingMilestoneCard
-                label="This Month"
-                mobileLabel="Month"
-                value={formatCurrency(data.timePeriods.month.amount)}
-                theme="secondary"
-                icon={<CalendarRange className="w-5 h-5" />}
-              />
-            </div>
+            {/* Practice Stats */}
+            <PracticeCard
+              title="Abundance Tracker"
+              icon={DollarSign}
+              theme="green"
+              todayCompleted={practiceStats?.todayCompleted ?? false}
+              currentStreak={practiceStats?.currentStreak ?? 0}
+              countLast7={practiceStats?.countLast7 ?? 0}
+              countLast30={practiceStats?.countLast30 ?? 0}
+              countAllTime={practiceStats?.countAllTime ?? 0}
+              streakFreezeAvailable={practiceStats?.streakFreezeAvailable ?? false}
+              streakFreezeUsedThisWeek={practiceStats?.streakFreezeUsedThisWeek ?? false}
+              ctaHref="/abundance-tracker/new"
+              ctaLabel="Log Abundance"
+              ctaDoneLabel="Log another"
+              ctaHelperText="What you notice, you attract more of."
+              ctaDoneHelperText="Done for today. Keep noticing the abundance around you."
+            />
 
             {/* Action Bar - same layout as daily-paper / journal */}
             <div className="flex items-center justify-between">
