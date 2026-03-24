@@ -263,6 +263,7 @@ export default function AbundanceDashboardPage() {
               title="Abundance Tracker"
               icon={DollarSign}
               theme="green"
+              inline
               todayCompleted={practiceStats?.todayCompleted ?? false}
               currentStreak={practiceStats?.currentStreak ?? 0}
               countLast7={practiceStats?.countLast7 ?? 0}

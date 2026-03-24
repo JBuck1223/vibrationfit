@@ -347,6 +347,7 @@ export default function JournalPage() {
           title="Journal"
           icon={BookOpen}
           theme="yellow"
+          inline
           todayCompleted={practiceStats?.todayCompleted ?? false}
           currentStreak={practiceStats?.currentStreak ?? 0}
           countLast7={practiceStats?.countLast7 ?? 0}

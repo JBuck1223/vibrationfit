@@ -153,6 +153,7 @@ export default function DailyPaperIndexPage() {
           title="Daily Paper"
           icon={FileText}
           theme="yellow"
+          inline
           todayCompleted={practiceStats?.todayCompleted ?? false}
           currentStreak={practiceStats?.currentStreak ?? 0}
           countLast7={practiceStats?.countLast7 ?? 0}

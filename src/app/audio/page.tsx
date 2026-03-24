@@ -456,6 +456,8 @@ export default function AudioHubPage() {
           title="Vision Audio"
           icon={Headphones}
           theme="green"
+          inline
+          hideCta
           todayCompleted={practiceStats?.todayCompleted ?? false}
           currentStreak={practiceStats?.currentStreak ?? 0}
           countLast7={practiceStats?.countLast7 ?? 0}
@@ -466,8 +468,6 @@ export default function AudioHubPage() {
           ctaHref="/audio"
           ctaLabel="Listen to Vision Audio"
           ctaDoneLabel="Listen again"
-          ctaHelperText="Every listen is another vote for the future you."
-          ctaDoneHelperText="Done for today. Extra listens deepen the groove."
         />
 
         {/* Area Selector */}

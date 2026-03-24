@@ -559,6 +559,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
                   title={title}
                   icon={icon}
                   theme={theme}
+                  compact
                   todayCompleted={s?.todayCompleted ?? false}
                   currentStreak={s?.currentStreak ?? 0}
                   streakUnit={streakUnit}
