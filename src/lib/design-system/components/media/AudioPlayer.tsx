@@ -69,6 +69,13 @@ export const AudioPlayer = React.forwardRef<HTMLAudioElement, AudioPlayerProps>(
         await supabase.rpc('increment_audio_play', {
           p_track_id: trackId
         })
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          await supabase.from('area_activations').insert({
+            user_id: user.id,
+            area: 'vision_audio',
+          })
+        }
         hasTrackedCurrentPlay.current = true
       } catch (error) {
         console.error('Failed to track audio play:', error)

@@ -30,8 +30,9 @@ import {
   Card,
   Spinner,
   Badge,
-  TrackingMilestoneCard
+  PracticeCard
 } from '@/lib/design-system/components'
+import { useAreaStats } from '@/hooks/useAreaStats'
 import { createClient } from '@/lib/supabase/client'
 import type { VideoSession, VideoSessionParticipant } from '@/lib/video/types'
 import { isSessionJoinable, formatDuration } from '@/lib/video/types'
@@ -49,6 +50,7 @@ interface AttendanceStats {
 export default function AlignmentGymPage() {
   const router = useRouter()
   const supabase = createClient()
+  const { stats: practiceStats } = useAreaStats('alignment-gym')
   
   const [sessions, setSessions] = useState<SessionWithParticipants[]>([])
   const [loading, setLoading] = useState(true)
@@ -218,27 +220,25 @@ export default function AlignmentGymPage() {
           subtitle="Weekly live group coaching to keep you calibrated and moving toward your vision"
         />
 
-        {/* Stats Row - Design system TrackingMilestoneCard (no custom icons) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <TrackingMilestoneCard
-            label="Sessions Attended"
-            mobileLabel="Attended"
-            value={attendanceStats.totalAttended}
-            theme="primary"
-          />
-          <TrackingMilestoneCard
-            label="Week Streak"
-            mobileLabel="Streak"
-            value={attendanceStats.currentStreak}
-            theme="secondary"
-          />
-          <TrackingMilestoneCard
-            label="Replays Available"
-            mobileLabel="Replays"
-            value={pastSessions.length}
-            theme="accent"
-          />
-        </div>
+        {/* Practice Stats */}
+        <PracticeCard
+          title="Alignment Gym"
+          icon={Video}
+          theme="teal"
+          todayCompleted={practiceStats?.todayCompleted ?? false}
+          currentStreak={practiceStats?.currentStreak ?? 0}
+          streakUnit="weeks"
+          countLast7={practiceStats?.countLast7 ?? 0}
+          countLast30={practiceStats?.countLast30 ?? 0}
+          countAllTime={practiceStats?.countAllTime ?? 0}
+          streakFreezeAvailable={practiceStats?.streakFreezeAvailable ?? false}
+          streakFreezeUsedThisWeek={practiceStats?.streakFreezeUsedThisWeek ?? false}
+          ctaHref="/alignment-gym"
+          ctaLabel="Join Next Session"
+          ctaDoneLabel="Watch Replay"
+          ctaHelperText="One session a week keeps you calibrated."
+          ctaDoneHelperText="You showed up this week. Replays are always here."
+        />
 
         {/* What is Alignment Gym - parent card with heading + 3 point cards inside */}
         <Card className="p-6 md:p-8">

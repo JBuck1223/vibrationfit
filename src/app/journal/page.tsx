@@ -2,12 +2,13 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import {  Card, Button, Video, CategoryCard, PageHero, Container, Stack, Spinner, TrackingMilestoneCard } from '@/lib/design-system'
+import {  Card, Button, Video, CategoryCard, PageHero, Container, Stack, Spinner, PracticeCard } from '@/lib/design-system'
+import { useAreaStats } from '@/hooks/useAreaStats'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Plus, Calendar, FileText, Play, Volume2, ChevronLeft, ChevronRight, X, Eye, Grid, List, Filter, ImageOff } from 'lucide-react'
+import { Plus, Calendar, FileText, Play, Volume2, ChevronLeft, ChevronRight, X, Eye, Grid, List, Filter, ImageOff, BookOpen } from 'lucide-react'
 import { useEffect, useState, useCallback } from 'react'
 
 function JournalImage({ src, alt, className, onClick, loading }: {
@@ -55,6 +56,7 @@ interface JournalEntry {
 
 export default function JournalPage() {
   const router = useRouter()
+  const { stats: practiceStats } = useAreaStats('journal')
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -340,24 +342,24 @@ export default function JournalPage() {
           </div>
         </PageHero>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <TrackingMilestoneCard
-            label="Total Entries"
-            value={entryCount}
-            theme="primary"
-          />
-          <TrackingMilestoneCard
-            label="This Week"
-            value={thisWeekCount}
-            theme="secondary"
-          />
-          <TrackingMilestoneCard
-            label="Current Streak"
-            value={`${currentStreak} ${currentStreak === 1 ? 'day' : 'days'}`}
-            theme="accent"
-          />
-        </div>
+        {/* Practice Stats */}
+        <PracticeCard
+          title="Journal"
+          icon={BookOpen}
+          theme="yellow"
+          todayCompleted={practiceStats?.todayCompleted ?? false}
+          currentStreak={practiceStats?.currentStreak ?? 0}
+          countLast7={practiceStats?.countLast7 ?? 0}
+          countLast30={practiceStats?.countLast30 ?? 0}
+          countAllTime={practiceStats?.countAllTime ?? 0}
+          streakFreezeAvailable={practiceStats?.streakFreezeAvailable ?? false}
+          streakFreezeUsedThisWeek={practiceStats?.streakFreezeUsedThisWeek ?? false}
+          ctaHref="/journal/new"
+          ctaLabel="Open Journal"
+          ctaDoneLabel="Write again"
+          ctaHelperText="One entry. That's all it takes to stay conscious."
+          ctaDoneHelperText="Done for today. Every word is evidence of your awareness."
+        />
 
         {/* Action Bar */}
         <div className="flex items-center justify-between">

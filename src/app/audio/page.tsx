@@ -1,7 +1,8 @@
 "use client"
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Container, Stack, Spinner, Toggle, DeleteConfirmationDialog, PageHero, TrackingMilestoneCard } from '@/lib/design-system/components'
+import { Button, Card, Container, Stack, Spinner, Toggle, DeleteConfirmationDialog, PageHero, PracticeCard } from '@/lib/design-system/components'
+import { useAreaStats } from '@/hooks/useAreaStats'
 import { PlaylistPlayer, type AudioTrack as BaseAudioTrack } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { Play, Clock, Moon, Zap, Sparkles, Headphones, Trash2, Music, Mic, BookOpen, Eye, Target } from 'lucide-react'
@@ -45,6 +46,7 @@ interface AudioSetItem {
 
 export default function AudioHubPage() {
   const router = useRouter()
+  const { stats: practiceStats } = useAreaStats('vision-audio')
   const [loading, setLoading] = useState(true)
   const [allSets, setAllSets] = useState<AudioSetItem[]>([])
   const [selectedArea, setSelectedArea] = useState<AreaKey>('story')
@@ -449,12 +451,24 @@ export default function AudioHubPage() {
           subtitle="Listen to all your audio sets across Life Vision, Story, and Vision Board."
         />
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
-          <TrackingMilestoneCard label="Story" value={storySetsCount} theme="accent" />
-          <TrackingMilestoneCard label="Life Vision" value={lvSetsCount} theme="primary" />
-          <TrackingMilestoneCard label="Vision Board" value={vbSetsCount} theme="secondary" />
-        </div>
+        {/* Practice Stats */}
+        <PracticeCard
+          title="Vision Audio"
+          icon={Headphones}
+          theme="green"
+          todayCompleted={practiceStats?.todayCompleted ?? false}
+          currentStreak={practiceStats?.currentStreak ?? 0}
+          countLast7={practiceStats?.countLast7 ?? 0}
+          countLast30={practiceStats?.countLast30 ?? 0}
+          countAllTime={practiceStats?.countAllTime ?? 0}
+          streakFreezeAvailable={practiceStats?.streakFreezeAvailable ?? false}
+          streakFreezeUsedThisWeek={practiceStats?.streakFreezeUsedThisWeek ?? false}
+          ctaHref="/audio"
+          ctaLabel="Listen to Vision Audio"
+          ctaDoneLabel="Listen again"
+          ctaHelperText="Every listen is another vote for the future you."
+          ctaDoneHelperText="Done for today. Extra listens deepen the groove."
+        />
 
         {/* Area Selector */}
         <div className="flex justify-center">

@@ -6,7 +6,7 @@ import {
   Activity, Play, Monitor, CreditCard, List, CheckCircle, 
   Sparkles, Smartphone, PanelTop, FileText, Music, Type, 
   Users, Eye, Trash2, Zap, HardDrive, Headphones, Palette,
-  ArrowRight, Image, Maximize2, Mic, MessageCircle
+  ArrowRight, Image, Maximize2, Mic, MessageCircle, BarChart3
 } from 'lucide-react'
 
 export interface ComponentMetadata {
@@ -402,6 +402,24 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
     icon: Sparkles,
     exportName: 'VIVALoadingOverlay',
     path: '/design-system/component/viva-loading-overlay'
+  },
+  {
+    id: 'stats-bar',
+    name: 'Stats Bar',
+    description: 'Compact horizontal stats strip for area pages showing 7-day, 30-day, all-time, and streak metrics in a single row',
+    category: 'Feedback',
+    icon: BarChart3,
+    exportName: 'StatsBar',
+    path: '/design-system/component/stats-bar'
+  },
+  {
+    id: 'practice-card',
+    name: 'Practice Card',
+    description: 'Rich habit/practice tracking card with today-status, streak + microcopy, 7d/30d progress, CTA, Streak Freeze, and identity-reinforcing all-time footer',
+    category: 'UI',
+    icon: Activity,
+    exportName: 'PracticeCard',
+    path: '/design-system/component/practice-card'
   },
 
   // Media Components

@@ -11,11 +11,12 @@ import {
   Inline,
   Badge,
   Text,
-  TrackingMilestoneCard,
+  PracticeCard,
   PageHero,
   EmptyState,
   CategoryCard,
 } from '@/lib/design-system/components'
+import { useAreaStats } from '@/hooks/useAreaStats'
 import { OptimizedImage } from '@/components/OptimizedImage'
 import { FileText, Sparkles, Plus, Filter, Grid, List, HelpCircle, Eye } from 'lucide-react'
 import { DailyPaperEntry, useDailyPaperEntries } from '@/hooks/useDailyPaper'
@@ -80,6 +81,7 @@ type DateFilter = 'all' | '7' | '30'
 
 export default function DailyPaperIndexPage() {
   const router = useRouter()
+  const { stats: practiceStats } = useAreaStats('daily-paper')
   const { entries, isLoading, isRefreshing, error, refresh } = useDailyPaperEntries()
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
   const [showFilters, setShowFilters] = useState(false)
@@ -147,23 +149,23 @@ export default function DailyPaperIndexPage() {
           </div>
         </PageHero>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <TrackingMilestoneCard
-            label="Total entries"
-            value={metrics.total}
-            theme="primary"
-          />
-          <TrackingMilestoneCard
-            label="This week"
-            value={metrics.thisWeek}
-            theme="secondary"
-          />
-          <TrackingMilestoneCard
-            label="Current streak"
-            value={`${metrics.streak} ${metrics.streak === 1 ? 'day' : 'days'}`}
-            theme="accent"
-          />
-        </div>
+        <PracticeCard
+          title="Daily Paper"
+          icon={FileText}
+          theme="yellow"
+          todayCompleted={practiceStats?.todayCompleted ?? false}
+          currentStreak={practiceStats?.currentStreak ?? 0}
+          countLast7={practiceStats?.countLast7 ?? 0}
+          countLast30={practiceStats?.countLast30 ?? 0}
+          countAllTime={practiceStats?.countAllTime ?? 0}
+          streakFreezeAvailable={practiceStats?.streakFreezeAvailable ?? false}
+          streakFreezeUsedThisWeek={practiceStats?.streakFreezeUsedThisWeek ?? false}
+          ctaHref="/daily-paper/new"
+          ctaLabel="Open Daily Paper"
+          ctaDoneLabel="Review today's paper"
+          ctaHelperText="Start your day above the Green Line."
+          ctaDoneHelperText="Done for today. Your intentions are set."
+        />
 
         {/* Action Bar - same layout as journal */}
         <div className="flex items-center justify-between">

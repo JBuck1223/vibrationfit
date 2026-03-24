@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Card, Button, Badge, ProgressBar, Container, Stack, PageHero, AIButton, TrackingMilestoneCard, VersionBadge, StatusBadge, Video } from '@/lib/design-system'
+import { Card, Button, Badge, ProgressBar, Container, Stack, PageHero, AIButton, PracticeCard, VersionBadge, StatusBadge, Video } from '@/lib/design-system'
+import { useAllAreaStats, type AreaSlug } from '@/hooks/useAreaStats'
 import { VISION_CATEGORIES } from '@/lib/design-system'
 import Link from 'next/link'
 import confetti from 'canvas-confetti'
@@ -53,6 +54,7 @@ import {
   Calendar,
   Music,
   Dumbbell,
+  Headphones,
 } from 'lucide-react'
 
 interface DashboardContentProps {
@@ -74,6 +76,7 @@ interface DashboardContentProps {
 }
 
 export default function DashboardContent({ user, profileData, visionData, visionBoardData, journalData, assessmentData = [], profileCount, audioSetsCount, refinementsCount, storageQuotaGB, initialCalibrationCall = null, graduateChecklist = null, userTimezone = null }: DashboardContentProps) {
+  const { allStats } = useAllAreaStats()
   const [storageUsed, setStorageUsed] = useState(0)
   const [mounted, setMounted] = useState(false)
   const [showCelebration, setShowCelebration] = useState(false)
@@ -536,48 +539,42 @@ export default function DashboardContent({ user, profileData, visionData, vision
             </div>
           </Card>
 
-        {/* What's New Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Alignment Gym - Next Session */}
-          <Card className="p-6">
-            <div className="flex items-start gap-4 mb-4">
-              <div className="w-12 h-12 bg-[#BF00FF]/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                <VideoIcon className="w-6 h-6 text-[#BF00FF]" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-bold text-white mb-1">Alignment Gym</h3>
-                <p className="text-sm text-neutral-400">Weekly live group coaching</p>
-              </div>
-            </div>
-            <div className="bg-neutral-800/50 rounded-lg p-4 mb-4">
-              <p className="text-sm text-neutral-300 mb-2">Next session coming soon</p>
-              <p className="text-xs text-neutral-500">Check back for upcoming schedule</p>
-            </div>
-            <Button variant="outline" size="sm" asChild className="w-full">
-              <Link href="/alignment-gym">View Schedule</Link>
-            </Button>
-          </Card>
-
-          {/* Vibe Tribe - Latest Activity */}
-          <Card className="p-6">
-            <div className="flex items-start gap-4 mb-4">
-              <div className="w-12 h-12 bg-[#00FFFF]/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                <UsersRound className="w-6 h-6 text-[#00FFFF]" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-bold text-white mb-1">Vibe Tribe</h3>
-                <p className="text-sm text-neutral-400">Community connection</p>
-              </div>
-            </div>
-            <div className="bg-neutral-800/50 rounded-lg p-4 mb-4">
-              <p className="text-sm text-neutral-300 mb-2">Connect with the community</p>
-              <p className="text-xs text-neutral-500">Share your journey and support others</p>
-            </div>
-            <Button variant="outline" size="sm" asChild className="w-full">
-              <Link href="/vibe-tribe">Visit Vibe Tribe</Link>
-            </Button>
-          </Card>
-        </div>
+        {/* Daily Practice Overview */}
+        <Card className="p-4 md:p-6">
+          <h3 className="text-lg font-bold text-white mb-4">Daily Practice</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {([
+              { area: 'vision-audio' as AreaSlug, title: 'Vision Audio', icon: Headphones, theme: 'green' as const, href: '/audio', cta: 'Listen', ctaDone: 'Listen again' },
+              { area: 'journal' as AreaSlug, title: 'Journal', icon: BookOpen, theme: 'yellow' as const, href: '/journal/new', cta: 'Open Journal', ctaDone: 'Write again' },
+              { area: 'daily-paper' as AreaSlug, title: 'Daily Paper', icon: FileText, theme: 'yellow' as const, href: '/daily-paper/new', cta: 'Open Daily Paper', ctaDone: 'Review' },
+              { area: 'alignment-gym' as AreaSlug, title: 'Alignment Gym', icon: VideoIcon, theme: 'teal' as const, href: '/alignment-gym', cta: 'Join Session', ctaDone: 'Watch Replay', streakUnit: 'weeks' as const },
+              { area: 'abundance-tracker' as AreaSlug, title: 'Abundance', icon: DollarSign, theme: 'green' as const, href: '/abundance-tracker/new', cta: 'Log Abundance', ctaDone: 'Log another' },
+              { area: 'vibe-tribe' as AreaSlug, title: 'Vibe Tribe', icon: UsersRound, theme: 'purple' as const, href: '/vibe-tribe', cta: 'Share', ctaDone: 'Back to Tribe' },
+              { area: 'vision-board' as AreaSlug, title: 'Vision Board', icon: Image, theme: 'green' as const, href: '/vision-board', cta: 'Open Vision Board', ctaDone: 'View Board' },
+            ]).map(({ area, title, icon, theme, href, cta, ctaDone, streakUnit }) => {
+              const s = allStats[area]
+              return (
+                <PracticeCard
+                  key={area}
+                  title={title}
+                  icon={icon}
+                  theme={theme}
+                  todayCompleted={s?.todayCompleted ?? false}
+                  currentStreak={s?.currentStreak ?? 0}
+                  streakUnit={streakUnit}
+                  countLast7={s?.countLast7 ?? 0}
+                  countLast30={s?.countLast30 ?? 0}
+                  countAllTime={s?.countAllTime ?? 0}
+                  streakFreezeAvailable={s?.streakFreezeAvailable ?? false}
+                  streakFreezeUsedThisWeek={s?.streakFreezeUsedThisWeek ?? false}
+                  ctaHref={href}
+                  ctaLabel={cta}
+                  ctaDoneLabel={ctaDone}
+                />
+              )
+            })}
+          </div>
+        </Card>
 
         {/* Quick Stats - Link to Tracking */}
         <Card className="p-6 bg-gradient-to-r from-[#39FF14]/10 to-[#00FFFF]/10 border-[#39FF14]/30">
