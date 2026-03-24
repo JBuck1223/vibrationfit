@@ -2,10 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Spinner, PracticeCard, Container } from '@/lib/design-system'
-import { UsersRound } from 'lucide-react'
+import { Spinner, Container } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
-import { useAreaStats } from '@/hooks/useAreaStats'
 import { VibeTribeFeedLayout } from '@/components/vibe-tribe/VibeTribeFeedLayout'
 import { VibeTag, VIBE_TAGS } from '@/lib/vibe-tribe/types'
 
@@ -18,7 +16,6 @@ interface UserProfile {
 export default function VibeTribePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { stats: practiceStats } = useAreaStats('vibe-tribe')
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<{ id: string } | null>(null)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
@@ -91,25 +88,6 @@ export default function VibeTribePage() {
 
   return (
     <>
-      <Container size="xl" className="pt-4 pb-2">
-        <PracticeCard
-          title="Vibe Tribe"
-          icon={UsersRound}
-          theme="purple"
-          todayCompleted={practiceStats?.todayCompleted ?? false}
-          currentStreak={practiceStats?.currentStreak ?? 0}
-          countLast7={practiceStats?.countLast7 ?? 0}
-          countLast30={practiceStats?.countLast30 ?? 0}
-          countAllTime={practiceStats?.countAllTime ?? 0}
-          streakFreezeAvailable={practiceStats?.streakFreezeAvailable ?? false}
-          streakFreezeUsedThisWeek={practiceStats?.streakFreezeUsedThisWeek ?? false}
-          ctaHref="/vibe-tribe"
-          ctaLabel="Share with Vibe Tribe"
-          ctaDoneLabel="Back to Vibe Tribe"
-          ctaHelperText="Your community rises when you share."
-          ctaDoneHelperText="Done for today. Your presence matters."
-        />
-      </Container>
       <VibeTribeFeedLayout 
         userId={user.id} 
         isAdmin={isAdmin} 

@@ -1,9 +1,10 @@
 "use client"
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Container, Stack, Badge, Spinner, VersionBadge, StatusBadge, TrackingMilestoneCard, DeleteConfirmationDialog, Input, PageHero, Toggle, Icon } from '@/lib/design-system/components'
+import { Button, Card, Container, Stack, Badge, Spinner, VersionBadge, StatusBadge, TrackingMilestoneCard, DeleteConfirmationDialog, Input, PageHero, Toggle, Icon, PracticeCard } from '@/lib/design-system/components'
 import { PlaylistPlayer, type AudioTrack as BaseAudioTrack } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
+import { useAreaStats } from '@/hooks/useAreaStats'
 import { assessmentToVisionKey } from '@/lib/design-system/vision-categories'
 import { Play, Clock, CalendarDays, Moon, Zap, Sparkles, Headphones, Plus, ArrowRight, Trash2, Music, Mic, Edit2, Check, X, AudioLines, Eye } from 'lucide-react'
 import Link from 'next/link'
@@ -32,6 +33,7 @@ interface AudioSet {
 
 export default function AudioSetsPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
+  const { stats: practiceStats } = useAreaStats('vision-audio')
   const [visionId, setVisionId] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [audioSets, setAudioSets] = useState<AudioSet[]>([])
@@ -597,6 +599,25 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
             </Button>
           </div>
         </PageHero>
+
+        {/* Practice Stats */}
+        <PracticeCard
+          title="Vision Audio"
+          icon={Headphones}
+          theme="green"
+          inline
+          hideCta
+          todayCompleted={practiceStats?.todayCompleted ?? false}
+          currentStreak={practiceStats?.currentStreak ?? 0}
+          countLast7={practiceStats?.countLast7 ?? 0}
+          countLast30={practiceStats?.countLast30 ?? 0}
+          countAllTime={practiceStats?.countAllTime ?? 0}
+          streakFreezeAvailable={practiceStats?.streakFreezeAvailable ?? false}
+          streakFreezeUsedThisWeek={practiceStats?.streakFreezeUsedThisWeek ?? false}
+          ctaHref="/audio"
+          ctaLabel="Listen to Vision Audio"
+          ctaDoneLabel="Listen again"
+        />
 
         {/* Stats Overview */}
         <div className="grid grid-cols-2 gap-4 md:gap-6">

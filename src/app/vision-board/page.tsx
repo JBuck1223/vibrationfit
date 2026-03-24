@@ -1122,6 +1122,8 @@ export default function VisionBoardPage() {
           title="Vision Board"
           icon={ImageIcon}
           theme="green"
+          inline
+          hideCta
           todayCompleted={practiceStats?.todayCompleted ?? false}
           currentStreak={practiceStats?.currentStreak ?? 0}
           countLast7={practiceStats?.countLast7 ?? 0}
@@ -1132,8 +1134,6 @@ export default function VisionBoardPage() {
           ctaHref="/vision-board"
           ctaLabel="Open Vision Board"
           ctaDoneLabel="View Vision Board"
-          ctaHelperText="See it. Feel it. Become it."
-          ctaDoneHelperText="Your vision is activated for today."
         />
 
         {/* Filter Toggle Button and View Toggle */}

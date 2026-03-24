@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
-import { Container, Stack, PageHero, Card, Spinner, Button } from '@/lib/design-system/components'
+import { Container, Stack, PageHero, Card, Spinner, Button, PracticeCard } from '@/lib/design-system/components'
 import { RetentionDashboard } from '@/components/retention'
 import { BadgeDisplay } from '@/components/badges'
+import { useAreaStats } from '@/hooks/useAreaStats'
 import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
-import { User, Calendar, ArrowLeft, Award, Pencil, Check, X, Quote } from 'lucide-react'
+import { User, Calendar, ArrowLeft, Award, Pencil, Check, X, Quote, UsersRound } from 'lucide-react'
 import Link from 'next/link'
 
 interface MemberProfile {
@@ -25,6 +26,7 @@ export default function SnapshotPage() {
   const params = useParams()
   const userId = params.id as string
   
+  const { stats: practiceStats } = useAreaStats('vibe-tribe')
   const [member, setMember] = useState<MemberProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -222,19 +224,40 @@ export default function SnapshotPage() {
               />
             </div>
             
-            {/* Back button */}
             <Button 
               variant="outline"
               size="sm"
               asChild
             >
               <Link href="/vibe-tribe">
-                <ArrowLeft className="w-3 h-3 mr-1" />
-                Back to Hub
+                <UsersRound className="w-3 h-3 mr-1" />
+                Vibe Tribe
               </Link>
             </Button>
           </div>
         </PageHero>
+
+        {/* Practice Tracking (own profile only) */}
+        {member.isOwner && (
+          <PracticeCard
+            title="Vibe Tribe"
+            icon={UsersRound}
+            theme="purple"
+            inline
+            todayCompleted={practiceStats?.todayCompleted ?? false}
+            currentStreak={practiceStats?.currentStreak ?? 0}
+            countLast7={practiceStats?.countLast7 ?? 0}
+            countLast30={practiceStats?.countLast30 ?? 0}
+            countAllTime={practiceStats?.countAllTime ?? 0}
+            streakFreezeAvailable={practiceStats?.streakFreezeAvailable ?? false}
+            streakFreezeUsedThisWeek={practiceStats?.streakFreezeUsedThisWeek ?? false}
+            ctaHref="/vibe-tribe"
+            ctaLabel="Share with Vibe Tribe"
+            ctaDoneLabel="Back to Vibe Tribe"
+            ctaHelperText="Your community rises when you share."
+            ctaDoneHelperText="Done for today. Your presence matters."
+          />
+        )}
 
         {/* About Me Section */}
         <Card className="p-4 md:p-6">

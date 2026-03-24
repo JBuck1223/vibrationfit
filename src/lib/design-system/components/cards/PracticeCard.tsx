@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { CheckCircle, Circle, Shield, Flame, type LucideIcon } from 'lucide-react'
 
@@ -33,6 +33,8 @@ export interface PracticeCardProps {
   allTimeIdentityMessage?: string
 
   compact?: boolean
+  inline?: boolean
+  hideCta?: boolean
   className?: string
 }
 
@@ -121,7 +123,7 @@ function getStreakMicrocopy(
   }
 
   if (streak >= 7) return 'Keep it alive.'
-  if (streak >= 3) return 'Don\'t break the chain.'
+  if (streak >= 3) return 'Keep building momentum.'
   return 'Show up today.'
 }
 
@@ -148,6 +150,8 @@ export const PracticeCard: React.FC<PracticeCardProps> = ({
   allTimeLabel = 'total',
   allTimeIdentityMessage,
   compact = false,
+  inline = false,
+  hideCta = false,
   className = '',
 }) => {
   const c = themeConfig[theme]
@@ -159,48 +163,60 @@ export const PracticeCard: React.FC<PracticeCardProps> = ({
   const streakMicro = getStreakMicrocopy(currentStreak, todayCompleted, streakFreezeUsedThisWeek)
   const showFreeze = streakFreezeAvailable || streakFreezeUsedThisWeek
   const helperText = todayCompleted ? ctaDoneHelperText : ctaHelperText
+  const [freezeOpen, setFreezeOpen] = useState(false)
+  const freezeRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!freezeOpen) return
+    function handleOutside(e: MouseEvent | TouchEvent) {
+      if (freezeRef.current && !freezeRef.current.contains(e.target as Node)) {
+        setFreezeOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutside)
+    document.addEventListener('touchstart', handleOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleOutside)
+      document.removeEventListener('touchstart', handleOutside)
+    }
+  }, [freezeOpen])
 
   return (
     <div className={`rounded-2xl border-2 ${c.container} px-4 py-3 ${className}`}>
-      {/* Row 1: Icon + Title ... Today status ... Streak */}
-      <div className="flex items-center gap-2 min-w-0">
-        <Icon className={`w-4 h-4 ${c.accent} flex-shrink-0`} />
-        <span className="text-sm font-semibold text-white truncate">{title}</span>
+      <div className={inline ? 'md:flex md:items-center md:gap-4' : ''}>
+        {/* Title - centered on mobile */}
+        <div className={`flex items-center justify-center md:justify-start gap-2 flex-shrink-0 ${inline ? 'mb-2 md:mb-0' : 'mb-2'}`}>
+          <Icon className={`w-5 h-5 ${c.accent} flex-shrink-0`} />
+          <span className="text-lg md:text-base font-semibold text-white">{title}</span>
+        </div>
 
-        <div className="ml-auto flex items-center gap-3 flex-shrink-0">
-          {/* Today */}
-          <div className="flex items-center gap-1">
-            {todayCompleted ? (
-              <CheckCircle className={`w-3.5 h-3.5 ${c.todayDone}`} />
-            ) : (
-              <Circle className="w-3.5 h-3.5 text-neutral-600" />
-            )}
-            <span className={`text-xs font-medium ${todayCompleted ? c.todayDone : 'text-neutral-500'}`}>
-              {todayCompleted ? 'Done' : 'Today'}
-            </span>
-          </div>
-
-          {/* Streak */}
-          <div className="flex items-center gap-1">
-            {currentStreak >= 2 && (
-              <Flame className={`w-3.5 h-3.5 ${c.streakFire}`} />
-            )}
-            <span className={`text-xs font-semibold ${currentStreak > 0 ? c.accent : 'text-neutral-600'}`}>
-              {streakText}
-            </span>
-          </div>
-
-          {/* Streak Freeze icon + tooltip */}
+        {/* Streak */}
+        <div className={`flex items-center justify-center md:justify-start gap-3 md:mt-0 flex-shrink-0 ${inline ? 'md:border-l md:border-neutral-700 md:pl-4' : ''}`}>
+          {currentStreak >= 1 && (
+            <Flame className={`w-4 h-4 ${c.streakFire}`} />
+          )}
+          <span className={`text-sm font-semibold ${currentStreak > 0 ? c.accent : 'text-neutral-600'}`}>
+            {streakText}
+          </span>
+          {streakMicro && (
+            <span className="hidden md:inline text-xs text-neutral-500 italic">{streakMicro}</span>
+          )}
           {showFreeze && (
-            <div className="relative group">
-              <Shield
-                className={`w-3.5 h-3.5 cursor-help ${streakFreezeUsedThisWeek ? 'text-blue-500/40' : c.freezeColor}`}
-              />
-              <div className="absolute right-0 top-full mt-2 w-56 rounded-xl bg-neutral-900 border border-blue-500/20 p-3 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <p className="text-xs font-semibold text-blue-400 mb-1">
+            <div className="relative group" ref={freezeRef}>
+              <button
+                type="button"
+                onClick={() => setFreezeOpen(prev => !prev)}
+                className="flex items-center"
+              >
+                <Shield
+                  className={`w-4 h-4 cursor-help ${streakFreezeUsedThisWeek ? 'text-blue-500/40' : c.freezeColor}`}
+                />
+              </button>
+              <div className={`absolute top-full mt-2 right-1/2 translate-x-1/2 md:translate-x-0 md:right-0 w-64 md:w-56 rounded-xl bg-neutral-900 border border-blue-500/20 p-4 md:p-3 shadow-xl transition-all duration-200 z-50 ${freezeOpen ? 'opacity-100 visible' : 'opacity-0 invisible md:group-hover:opacity-100 md:group-hover:visible'}`}>
+                <p className="text-sm font-semibold text-blue-400 mb-1">
                   {streakFreezeUsedThisWeek ? 'Streak Freeze Used' : 'Streak Freeze'}
                 </p>
-                <p className="text-[11px] text-neutral-400 leading-relaxed">
+                <p className="text-xs text-neutral-400 leading-relaxed">
                   {streakFreezeUsedThisWeek
                     ? 'Your streak was saved this week. You get 1 free grace day per week for each habit.'
                     : 'You get 1 free grace day per week. If you miss a day, your streak stays alive so one off-day doesn\'t wipe out your progress.'}
@@ -209,40 +225,56 @@ export const PracticeCard: React.FC<PracticeCardProps> = ({
             </div>
           )}
         </div>
+
+        {/* Week / Month / All-time stats */}
+        {compact ? (
+          <div className="grid grid-cols-3 mt-1.5 text-sm">
+            <div className="text-center md:text-left">
+              <span className="text-neutral-500 block text-xs">Week:</span>
+              <span className="text-white font-medium">{countLast7}/{periodMax7}</span>
+            </div>
+            <div className="border-l border-neutral-700 pl-3 text-center md:text-left">
+              <span className="text-neutral-500 block text-xs">Month:</span>
+              <span className="text-white font-medium">{countLast30}/{periodMax30}</span>
+            </div>
+            <div className="border-l border-neutral-700 pl-3 text-center md:text-left">
+              <span className="text-neutral-500 block text-xs">All-time:</span>
+              <span className="text-white font-medium">{countAllTime.toLocaleString()}</span>
+            </div>
+          </div>
+        ) : (
+          <div className={`flex items-center justify-center md:justify-start gap-3 text-sm ${inline ? 'mt-1.5 md:mt-0 md:border-l md:border-neutral-700 md:pl-4' : 'mt-1.5'}`}>
+            <span className="text-neutral-500">
+              Week: <span className="text-white font-medium">{countLast7}/{periodMax7}</span>
+            </span>
+            <span className="border-l border-neutral-700 pl-3 text-neutral-500">
+              Month: <span className="text-white font-medium">{countLast30}/{periodMax30}</span>
+            </span>
+            <span className="border-l border-neutral-700 pl-3 text-neutral-500">
+              All-time: <span className="text-white font-medium">{countAllTime.toLocaleString()}</span>
+            </span>
+          </div>
+        )}
+
+        {/* CTA */}
+        {!hideCta && (
+          <div className={`${inline ? 'mt-2.5 md:mt-0 md:ml-auto' : 'mt-2.5'} flex-shrink-0`}>
+            <Link
+              href={ctaHref}
+              className={`
+                block text-center rounded-full text-sm font-medium
+                transition-all duration-200 py-2 px-5 ${inline ? 'whitespace-nowrap' : 'w-full'}
+                ${todayCompleted ? c.ctaDoneBg : c.ctaBg}
+              `}
+            >
+              {todayCompleted ? ctaDoneLabel : ctaLabel}
+            </Link>
+            {helperText && (
+              <p className={`text-xs text-neutral-600 text-center mt-1 ${inline ? 'md:hidden' : ''}`}>{helperText}</p>
+            )}
+          </div>
+        )}
       </div>
-
-      {/* Row 1.5: Streak microcopy (tiny, right-aligned) */}
-      {streakMicro && (
-        <p className="text-[11px] text-neutral-500 italic text-right mt-0.5">{streakMicro}</p>
-      )}
-
-      {/* Row 2: Week / Month / All-time stats */}
-      <div className="flex items-center gap-3 mt-1.5 text-[11px]">
-        <span className="text-neutral-500">
-          Week <span className="text-neutral-400 font-medium">{countLast7}/{periodMax7}</span>
-        </span>
-        <span className={`${c.divider} border-l pl-3 text-neutral-500`}>
-          Month <span className="text-neutral-400 font-medium">{countLast30}/{periodMax30}</span>
-        </span>
-        <span className={`${c.divider} border-l pl-3 text-neutral-500`}>
-          All-time <span className="text-neutral-400 font-medium">{countAllTime.toLocaleString()}</span>
-        </span>
-      </div>
-
-      {/* Row 3: CTA + helper text */}
-      <Link
-        href={ctaHref}
-        className={`
-          block w-full text-center rounded-full text-xs font-medium
-          transition-all duration-200 mt-2 py-1.5 px-3
-          ${todayCompleted ? c.ctaDoneBg : c.ctaBg}
-        `}
-      >
-        {todayCompleted ? ctaDoneLabel : ctaLabel}
-      </Link>
-      {helperText && (
-        <p className="text-[10px] text-neutral-600 text-center mt-1">{helperText}</p>
-      )}
     </div>
   )
 }

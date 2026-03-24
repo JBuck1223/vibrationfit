@@ -225,6 +225,8 @@ export default function AlignmentGymPage() {
           title="Alignment Gym"
           icon={Video}
           theme="teal"
+          inline
+          hideCta
           todayCompleted={practiceStats?.todayCompleted ?? false}
           currentStreak={practiceStats?.currentStreak ?? 0}
           streakUnit="weeks"
@@ -236,8 +238,6 @@ export default function AlignmentGymPage() {
           ctaHref="/alignment-gym"
           ctaLabel="Join Next Session"
           ctaDoneLabel="Watch Replay"
-          ctaHelperText="One session a week keeps you calibrated."
-          ctaDoneHelperText="You showed up this week. Replays are always here."
         />
 
         {/* What is Alignment Gym - parent card with heading + 3 point cards inside */}
