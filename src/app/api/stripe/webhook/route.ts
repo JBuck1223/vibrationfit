@@ -2352,6 +2352,86 @@ export async function POST(request: NextRequest) {
       }
 
       // ========================================================================
+      // CHARGE REFUNDED (keep DB in sync when refunds happen in Stripe)
+      // ========================================================================
+      case 'charge.refunded': {
+        const charge = event.data.object as Stripe.Charge
+        const paymentIntentId = charge.payment_intent as string | null
+
+        if (paymentIntentId) {
+          const { data: order } = await supabaseAdmin
+            .from('orders')
+            .select('id, user_id, total_amount, status, metadata')
+            .eq('stripe_payment_intent_id', paymentIntentId)
+            .maybeSingle()
+
+          if (order && order.status !== 'refunded') {
+            const isFullRefund = charge.amount_refunded >= (order.total_amount || 0)
+
+            if (isFullRefund) {
+              await supabaseAdmin
+                .from('orders')
+                .update({
+                  status: 'refunded',
+                  metadata: {
+                    ...(order.metadata || {}),
+                    refunded_at: new Date().toISOString(),
+                    refund_source: 'stripe_webhook',
+                    amount_refunded: charge.amount_refunded,
+                  },
+                })
+                .eq('id', order.id)
+
+              await supabaseAdmin
+                .from('order_items')
+                .update({
+                  completion_status: 'refunded',
+                  refunded_at: new Date().toISOString(),
+                })
+                .eq('order_id', order.id)
+            } else {
+              await supabaseAdmin
+                .from('orders')
+                .update({
+                  metadata: {
+                    ...(order.metadata || {}),
+                    partial_refund_at: new Date().toISOString(),
+                    refund_source: 'stripe_webhook',
+                    amount_refunded: charge.amount_refunded,
+                  },
+                })
+                .eq('id', order.id)
+            }
+
+            const { data: account } = await supabaseAdmin
+              .from('user_accounts')
+              .select('email, full_name')
+              .eq('id', order.user_id)
+              .maybeSingle()
+
+            const refundAmountStr = `$${(charge.amount_refunded / 100).toFixed(2)}`
+            const customerName = account?.full_name || account?.email || 'Unknown'
+
+            createAdminNotification({
+              type: 'refund',
+              title: `Stripe Refund: ${customerName}`,
+              body: `${isFullRefund ? 'Full' : 'Partial'} refund of ${refundAmountStr}`,
+              metadata: {
+                orderId: order.id,
+                userId: order.user_id,
+                amountRefunded: charge.amount_refunded,
+                source: 'stripe_webhook',
+              },
+              link: '/admin/orders',
+            }).catch(err => console.error('charge.refunded notification error:', err))
+
+            console.log(`✅ Charge refunded (${isFullRefund ? 'full' : 'partial'}):`, paymentIntentId)
+          }
+        }
+        break
+      }
+
+      // ========================================================================
       // SUBSCRIPTION CREATED (when trial starts or immediate activation)
       // ========================================================================
       case 'customer.subscription.created': {
