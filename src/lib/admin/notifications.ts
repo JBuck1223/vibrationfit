@@ -3,6 +3,8 @@ import { sendSMS } from '@/lib/messaging/twilio'
 
 export type AdminNotificationType =
   | 'purchase'
+  | 'refund'
+  | 'subscription_canceled'
   | 'intensive_completed'
   | 'lead_created'
   | 'support_ticket'

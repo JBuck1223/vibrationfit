@@ -284,35 +284,35 @@ export default function MAPPage() {
             : "Build your personal weekly roadmap to make The Life I Choose your new normal."
           }
         >
-          <Inline gap="sm" className="justify-center flex-wrap">
+          <div className="flex flex-row flex-wrap justify-center lg:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
             {isIntensiveFlow ? (
               isAlreadyCompleted ? (
                 <Button
                   variant="primary"
-                  size="lg"
+                  size="sm"
                   onClick={() => router.push('/dashboard')}
-                  className="px-8"
+                  className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
                 >
-                  <ArrowRight className="w-5 h-5 mr-2" />
-                  Go to Dashboard
+                  <ArrowRight className="w-4 h-4 shrink-0" />
+                  <span>Go to Dashboard</span>
                 </Button>
               ) : (
                 <Button
                   variant="primary"
-                  size="lg"
+                  size="sm"
                   onClick={handleContinueToUnlock}
                   disabled={completing}
-                  className="px-8"
+                  className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
                 >
                   {completing ? (
                     <>
-                      <Spinner size="sm" className="mr-2" />
-                      Continuing...
+                      <Spinner size="sm" />
+                      <span>Continuing...</span>
                     </>
                   ) : (
                     <>
-                      <Unlock className="w-5 h-5 mr-2" />
-                      Continue to Unlock Platform
+                      <Unlock className="w-4 h-4 shrink-0" />
+                      <span>Continue to Unlock Platform</span>
                     </>
                   )}
                 </Button>
@@ -322,30 +322,30 @@ export default function MAPPage() {
                 {activeMap ? (
                   <Button
                     variant="primary"
-                    size="lg"
+                    size="sm"
                     asChild
-                    className="px-8"
+                    className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
                   >
                     <Link href={`/map/${activeMap.id}`}>
-                      <MapIcon className="w-5 h-5 mr-2" />
-                      View Active MAP
+                      <MapIcon className="w-4 h-4 shrink-0" />
+                      <span>View Active MAP</span>
                     </Link>
                   </Button>
                 ) : null}
                 <Button
                   variant={activeMap ? 'outline' : 'primary'}
-                  size="lg"
+                  size="sm"
                   asChild
-                  className="px-8"
+                  className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
                 >
                   <Link href="/map/new">
-                    <Plus className="w-5 h-5 mr-2" />
-                    Build New MAP
+                    <Plus className="w-4 h-4 shrink-0" />
+                    <span>Build New MAP</span>
                   </Link>
                 </Button>
               </>
             )}
-          </Inline>
+          </div>
         </PageHero>
 
         {/* ============================================ */}
@@ -487,23 +487,112 @@ export default function MAPPage() {
                   You&apos;ve completed your first Creations. Your profile, assessment, Life Vision, audios, Vision Board, and journal entry are complete.
                 </p>
                 <p className="text-sm text-neutral-300 leading-relaxed">
-                  Now your daily MAP shows you exactly how to run your Daily Activations, Connections and Sessions so The Life I Choose becomes your new normal.
+                  Now your MAP shows you exactly how to keep creating, activate what you&apos;ve built, connect with your community, and attend your sessions so The Life I Choose becomes your new normal.
                 </p>
               </div>
 
-              {/* Daily Activations */}
+              {/* Creations */}
               <div>
-                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333] mb-4">
-                  Daily Activations
+                <Text size="sm" className="text-[#FFFF00] uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#FFFF00]/30 mb-4">
+                  Creations
                 </Text>
-                <p className="text-sm text-neutral-500 mt-2 mb-4">Your 10-20 Minute Ritual</p>
+                <p className="text-sm text-neutral-500 mt-2 mb-4">Make and add to the tools that power your practice</p>
 
-                {/* Step 1 */}
                 <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800 mb-3">
                   <Inline gap="sm" className="items-start mb-3">
                     <Sun className="h-5 w-5 text-amber-400" />
                     <div>
-                      <Text size="sm" className="text-white font-semibold">Step 1: Morning Vision + Daily Paper</Text>
+                      <Text size="sm" className="text-white font-semibold">Daily Paper</Text>
+                      <Text size="xs" className="text-neutral-500">Each morning</Text>
+                    </div>
+                  </Inline>
+                  <div className="space-y-2 text-sm text-neutral-300">
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-[#FFFF00] flex-shrink-0 mt-0.5" />
+                      <span>Complete your <strong>Daily Paper</strong> to set your intention for the day.</span>
+                    </div>
+                  </div>
+                  <div className="pt-3">
+                    <Button variant="outline" size="sm" className="w-full" asChild>
+                      <Link href="/daily-paper">
+                        <FileText className="w-4 h-4 mr-2" />
+                        Daily Paper
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800 mb-3">
+                  <Inline gap="sm" className="items-start mb-3">
+                    <Moon className="h-5 w-5 text-purple-400" />
+                    <div>
+                      <Text size="sm" className="text-white font-semibold">Evidence Journal</Text>
+                      <Text size="xs" className="text-neutral-500">Each evening</Text>
+                    </div>
+                  </Inline>
+                  <div className="space-y-2 text-sm text-neutral-300">
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-[#FFFF00] flex-shrink-0 mt-0.5" />
+                      <span>Open your <strong>Journal</strong> and record evidence of alignment from the day.</span>
+                    </div>
+                  </div>
+                  <div className="pt-3">
+                    <Button variant="outline" size="sm" className="w-full" asChild>
+                      <Link href="/journal">
+                        <BookOpen className="w-4 h-4 mr-2" />
+                        Journal
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
+                  <Inline gap="sm" className="items-start mb-3">
+                    <ImageIcon className="h-5 w-5 text-[#FFFF00]" />
+                    <div>
+                      <Text size="sm" className="text-white font-semibold">Vision Board + Audios</Text>
+                      <Text size="xs" className="text-neutral-500">As your vision evolves</Text>
+                    </div>
+                  </Inline>
+                  <div className="space-y-2 text-sm text-neutral-300">
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-[#FFFF00] flex-shrink-0 mt-0.5" />
+                      <span>Refresh your <strong>Vision Board</strong> tiles as new images resonate.</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-[#FFFF00] flex-shrink-0 mt-0.5" />
+                      <span>Record fresh <strong>Vision Audios</strong> when you refine your Life Vision.</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 pt-3">
+                    <Button variant="outline" size="sm" className="w-full" asChild>
+                      <Link href="/vision-board">
+                        <ImageIcon className="w-4 h-4 mr-2" />
+                        Vision Board
+                      </Link>
+                    </Button>
+                    <Button variant="outline" size="sm" className="w-full" asChild>
+                      <Link href={getVisionLink('/audio')}>
+                        <Headphones className="w-4 h-4 mr-2" />
+                        Vision Audios
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Activations */}
+              <div>
+                <Text size="sm" className="text-[#39FF14] uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#39FF14]/30 mb-4">
+                  Activations
+                </Text>
+                <p className="text-sm text-neutral-500 mt-2 mb-4">Engage the tools you&apos;ve created to stay in alignment</p>
+
+                <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800 mb-3">
+                  <Inline gap="sm" className="items-start mb-3">
+                    <Sun className="h-5 w-5 text-amber-400" />
+                    <div>
+                      <Text size="sm" className="text-white font-semibold">Morning Vision Activation</Text>
                       <Text size="xs" className="text-neutral-500">Approximately 10-15 minutes</Text>
                     </div>
                   </Inline>
@@ -516,10 +605,6 @@ export default function MAPPage() {
                       <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
                       <span>Open your <strong>Vision Board</strong> and quickly scan your tiles.</span>
                     </div>
-                    <div className="flex items-start gap-2">
-                      <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
-                      <span>Complete your <strong>Daily Paper</strong> for the day.</span>
-                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2 pt-3">
                     <Button variant="outline" size="sm" className="w-full" asChild>
@@ -529,20 +614,19 @@ export default function MAPPage() {
                       </Link>
                     </Button>
                     <Button variant="outline" size="sm" className="w-full" asChild>
-                      <Link href="/daily-paper">
-                        <FileText className="w-4 h-4 mr-2" />
-                        Daily Paper
+                      <Link href="/vision-board">
+                        <ImageIcon className="w-4 h-4 mr-2" />
+                        Vision Board
                       </Link>
                     </Button>
                   </div>
                 </div>
 
-                {/* Step 2 */}
                 <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800 mb-3">
                   <Inline gap="sm" className="items-start mb-3">
                     <Zap className="h-5 w-5 text-primary-400" />
                     <div>
-                      <Text size="sm" className="text-white font-semibold">Step 2: Real-Time Category Activation</Text>
+                      <Text size="sm" className="text-white font-semibold">Real-Time Category Activation</Text>
                       <Text size="xs" className="text-neutral-500">1+ time per day</Text>
                     </div>
                   </Inline>
@@ -556,29 +640,22 @@ export default function MAPPage() {
                       <span>Make one micro decision from that place.</span>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 pt-3">
+                  <div className="pt-3">
                     <Button variant="outline" size="sm" className="w-full" asChild>
                       <Link href={getVisionLink('/audio')}>
                         <Headphones className="w-4 h-4 mr-2" />
                         Vision Audios
                       </Link>
                     </Button>
-                    <Button variant="outline" size="sm" className="w-full" asChild>
-                      <Link href="/journal">
-                        <BookOpen className="w-4 h-4 mr-2" />
-                        Journal
-                      </Link>
-                    </Button>
                   </div>
                 </div>
 
-                {/* Step 3 */}
                 <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
                   <Inline gap="sm" className="items-start mb-3">
                     <Moon className="h-5 w-5 text-purple-400" />
                     <div>
-                      <Text size="sm" className="text-white font-semibold">Step 3: Night Sleep Immersion + Evidence Journal</Text>
-                      <Text size="xs" className="text-neutral-500">Approximately 10-15 minutes</Text>
+                      <Text size="sm" className="text-white font-semibold">Night Sleep Immersion</Text>
+                      <Text size="xs" className="text-neutral-500">Approximately 5-10 minutes</Text>
                     </div>
                   </Inline>
                   <div className="space-y-2 text-sm text-neutral-300">
@@ -588,62 +665,61 @@ export default function MAPPage() {
                     </div>
                     <div className="flex items-start gap-2">
                       <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
-                      <span>Open your <strong>Journal</strong> and record evidence of alignment.</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
                       <span>Press play on your <strong>Sleep Immersion</strong> track and let it loop.</span>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 pt-3">
+                  <div className="pt-3">
                     <Button variant="outline" size="sm" className="w-full" asChild>
-                      <Link href="/journal">
-                        <BookOpen className="w-4 h-4 mr-2" />
-                        Journal
-                      </Link>
-                    </Button>
-                    <Button variant="outline" size="sm" className="w-full" asChild>
-                      <Link href="/vision-board">
-                        <ImageIcon className="w-4 h-4 mr-2" />
-                        Vision Board
+                      <Link href={getVisionLink('/audio')}>
+                        <Headphones className="w-4 h-4 mr-2" />
+                        Vision Audios
                       </Link>
                     </Button>
                   </div>
                 </div>
               </div>
 
-              {/* Weekly Alignment */}
+              {/* Connections */}
               <div>
-                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333] mb-4">
-                  Weekly Alignment
+                <Text size="sm" className="text-[#BF00FF] uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#BF00FF]/30 mb-4">
+                  Connections
                 </Text>
-                <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800 mb-3">
-                  <Inline gap="sm" className="items-start mb-2">
-                    <Video className="h-5 w-5 text-teal-400" />
-                    <Text size="sm" className="text-white font-semibold">Sessions: Alignment Gym</Text>
-                  </Inline>
-                  <p className="text-sm text-neutral-300">Attend live or watch the replay. Take session notes.</p>
-                </div>
                 <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
                   <Inline gap="sm" className="items-start mb-2">
                     <UsersRound className="h-5 w-5 text-purple-400" />
-                    <Text size="sm" className="text-white font-semibold">Connections: Vibe Tribe</Text>
+                    <Text size="sm" className="text-white font-semibold">Vibe Tribe</Text>
                   </Inline>
                   <p className="text-sm text-neutral-300">Share a short post or clip with your key takeaway from Alignment Gym.</p>
+                  <div className="pt-3">
+                    <Button variant="outline" size="sm" className="w-full" asChild>
+                      <Link href="/vibe-tribe">
+                        <UsersRound className="w-4 h-4 mr-2" />
+                        Vibe Tribe
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2 mt-3">
-                  <Button variant="outline" size="sm" className="w-full" asChild>
-                    <Link href="/alignment-gym">
-                      <Video className="w-4 h-4 mr-2" />
-                      Alignment Gym
-                    </Link>
-                  </Button>
-                  <Button variant="outline" size="sm" className="w-full" asChild>
-                    <Link href="/vibe-tribe">
-                      <UsersRound className="w-4 h-4 mr-2" />
-                      Vibe Tribe
-                    </Link>
-                  </Button>
+              </div>
+
+              {/* Sessions */}
+              <div>
+                <Text size="sm" className="text-[#00FFFF] uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#00FFFF]/30 mb-4">
+                  Sessions
+                </Text>
+                <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
+                  <Inline gap="sm" className="items-start mb-2">
+                    <Video className="h-5 w-5 text-teal-400" />
+                    <Text size="sm" className="text-white font-semibold">Alignment Gym</Text>
+                  </Inline>
+                  <p className="text-sm text-neutral-300">Attend live or watch the replay. Take session notes.</p>
+                  <div className="pt-3">
+                    <Button variant="outline" size="sm" className="w-full" asChild>
+                      <Link href="/alignment-gym">
+                        <Video className="w-4 h-4 mr-2" />
+                        Alignment Gym
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -726,21 +802,32 @@ export default function MAPPage() {
                   : 'Ready to plan your week? Build your first MAP.'
                 }
               </p>
-              <Inline gap="sm" className="justify-center">
+              <div className="flex flex-row flex-wrap justify-center gap-2 md:gap-4">
                 {activeMap && (
-                  <Button variant="outline" asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                  >
                     <Link href={`/map/${activeMap.id}`}>
-                      View Active MAP
+                      <MapIcon className="w-4 h-4 shrink-0" />
+                      <span>View Active MAP</span>
                     </Link>
                   </Button>
                 )}
-                <Button variant="primary" asChild>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  asChild
+                  className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                >
                   <Link href="/map/new">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Build New MAP
+                    <Plus className="w-4 h-4 shrink-0" />
+                    <span>Build New MAP</span>
                   </Link>
                 </Button>
-              </Inline>
+              </div>
             </div>
           </Card>
         )}

@@ -18,6 +18,12 @@ import {
   DollarSign,
   User,
   Tag,
+  Undo2,
+  XCircle,
+  AlertTriangle,
+  CreditCard,
+  CheckCircle,
+  Package,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
@@ -27,6 +33,32 @@ interface OrderAccount {
   last_name: string | null
   full_name: string | null
   phone: string | null
+}
+
+interface Subscription {
+  id: string
+  user_id: string
+  stripe_subscription_id: string
+  status: string
+  cancel_at_period_end: boolean
+  current_period_end: string
+  membership_tiers: {
+    name: string
+    tier_type: string
+  }
+}
+
+interface OrderItem {
+  id: string
+  order_id: string
+  product_id: string
+  quantity: number
+  amount: number
+  currency: string
+  completion_status: string | null
+  refunded_at: string | null
+  metadata: Record<string, any>
+  products: { name: string; key: string } | null
 }
 
 interface Order {
@@ -44,6 +76,8 @@ interface Order {
   stripe_payment_intent_id: string | null
   stripe_checkout_session_id: string | null
   user_accounts: OrderAccount
+  subscriptions: Subscription[]
+  order_items: OrderItem[]
 }
 
 interface ScheduledMsg {
@@ -130,6 +164,18 @@ export default function AdminOrdersPage() {
   const [resending, setResending] = useState<string | null>(null)
   const [resendResults, setResendResults] = useState<Record<string, string>>({})
 
+  // Refund state
+  const [refunding, setRefunding] = useState<string | null>(null)
+  const [refundConfirm, setRefundConfirm] = useState<string | null>(null)
+  const [selectedRefundItems, setSelectedRefundItems] = useState<Set<string>>(new Set())
+  const [refundResults, setRefundResults] = useState<Record<string, { success: boolean; message: string }>>({})
+
+  // Cancel subscription state
+  const [canceling, setCanceling] = useState<string | null>(null)
+  const [cancelConfirm, setCancelConfirm] = useState<{ subId: string; orderId: string } | null>(null)
+  const [cancelImmediate, setCancelImmediate] = useState(false)
+  const [cancelResults, setCancelResults] = useState<Record<string, { success: boolean; message: string }>>({})
+
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true)
@@ -162,7 +208,6 @@ export default function AdminOrdersPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Resend failed')
       setResendResults(prev => ({ ...prev, [orderId]: data.message }))
-      // Refresh to show updated status
       setTimeout(fetchOrders, 2000)
     } catch (err) {
       setResendResults(prev => ({
@@ -174,9 +219,69 @@ export default function AdminOrdersPage() {
     }
   }
 
+  async function handleRefund(orderId: string, itemIds: string[]) {
+    setRefunding(orderId)
+    setRefundResults(prev => ({ ...prev, [orderId]: { success: false, message: '' } }))
+    try {
+      const res = await fetch('/api/admin/refund', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, itemIds }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Refund failed')
+      setRefundResults(prev => ({
+        ...prev,
+        [orderId]: { success: true, message: `${data.type} refund of ${formatCurrency(data.amount)} processed` },
+      }))
+      setRefundConfirm(null)
+      setSelectedRefundItems(new Set())
+      setTimeout(fetchOrders, 2000)
+    } catch (err) {
+      setRefundResults(prev => ({
+        ...prev,
+        [orderId]: { success: false, message: err instanceof Error ? err.message : 'Unknown error' },
+      }))
+    } finally {
+      setRefunding(null)
+    }
+  }
+
+  async function handleCancelSubscription(subscriptionId: string, orderId: string) {
+    setCanceling(subscriptionId)
+    setCancelResults(prev => ({ ...prev, [orderId]: { success: false, message: '' } }))
+    try {
+      const res = await fetch('/api/admin/cancel-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscriptionId, immediate: cancelImmediate }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Cancel failed')
+      setCancelResults(prev => ({
+        ...prev,
+        [orderId]: {
+          success: true,
+          message: `Subscription ${data.cancelType === 'immediate' ? 'canceled immediately' : 'set to cancel at period end'}`,
+        },
+      }))
+      setCancelConfirm(null)
+      setCancelImmediate(false)
+      setTimeout(fetchOrders, 2000)
+    } catch (err) {
+      setCancelResults(prev => ({
+        ...prev,
+        [orderId]: { success: false, message: err instanceof Error ? err.message : 'Unknown error' },
+      }))
+    } finally {
+      setCanceling(null)
+    }
+  }
+
   const stats = {
     total: orders.length,
     paid: orders.filter(o => o.status === 'paid').length,
+    refunded: orders.filter(o => o.status === 'refunded').length,
     emailsSent: Object.values(emailStatuses).filter(s => getEmailVerdict(s).color === 'green').length,
     emailsMissing: Object.values(emailStatuses).filter(s => getEmailVerdict(s).color === 'red').length,
   }
@@ -198,10 +303,10 @@ export default function AdminOrdersPage() {
               <div>
                 <h1 className="text-2xl font-bold text-white flex items-center gap-3">
                   <ShoppingBag className="w-7 h-7 text-primary-500" />
-                  Orders & Email Status
+                  Orders & Billing Management
                 </h1>
                 <p className="text-neutral-400 mt-1">
-                  Monitor purchase emails and resend if needed
+                  Manage orders, process refunds, and cancel subscriptions
                 </p>
               </div>
               <Button variant="outline" onClick={fetchOrders} disabled={loading}>
@@ -212,7 +317,7 @@ export default function AdminOrdersPage() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <Card className="p-4 text-center">
               <div className="text-2xl font-bold text-white">{stats.total}</div>
               <div className="text-xs text-neutral-400 mt-1">Total Orders</div>
@@ -220,6 +325,10 @@ export default function AdminOrdersPage() {
             <Card className="p-4 text-center">
               <div className="text-2xl font-bold text-green-400">{stats.paid}</div>
               <div className="text-xs text-neutral-400 mt-1">Paid</div>
+            </Card>
+            <Card className="p-4 text-center">
+              <div className="text-2xl font-bold text-blue-400">{stats.refunded}</div>
+              <div className="text-xs text-neutral-400 mt-1">Refunded</div>
             </Card>
             <Card className="p-4 text-center">
               <div className="text-2xl font-bold text-green-400">{stats.emailsSent}</div>
@@ -260,6 +369,7 @@ export default function AdminOrdersPage() {
               const VerdictIcon = verdict.icon
               const isExpanded = expandedOrder === order.id
               const productKey = order.metadata?.product_key || order.metadata?.source || '—'
+              const subs = order.subscriptions || []
 
               return (
                 <Card key={order.id} className="overflow-hidden">
@@ -295,6 +405,12 @@ export default function AdminOrdersPage() {
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${emailBadgeColor[verdict.color]}`}>
                           {verdict.label}
                         </span>
+                        {subs.length > 0 && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border bg-purple-500/20 text-purple-400 border-purple-500/30">
+                            <CreditCard className="w-3 h-3 mr-1" />
+                            {subs.length} sub{subs.length > 1 ? 's' : ''}
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-3 text-xs text-neutral-500 mt-1">
                         <span className="flex items-center gap-1">
@@ -352,6 +468,93 @@ export default function AdminOrdersPage() {
                           </div>
                         )}
                       </div>
+
+                      {/* Active Subscriptions */}
+                      {subs.length > 0 && (
+                        <div>
+                          <h4 className="text-xs font-medium text-neutral-400 uppercase tracking-wider mb-2">
+                            Active Subscriptions
+                          </h4>
+                          <div className="space-y-2">
+                            {subs.map(sub => (
+                              <div key={sub.id} className="bg-neutral-800 rounded-lg p-3 flex items-center justify-between">
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <CreditCard className="w-4 h-4 text-purple-400" />
+                                    <span className="text-neutral-200 text-sm font-medium">
+                                      {sub.membership_tiers?.name || sub.membership_tiers?.tier_type || 'Subscription'}
+                                    </span>
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${
+                                      sub.status === 'active' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+                                      sub.status === 'trialing' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
+                                      'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                                    }`}>
+                                      {sub.status}
+                                    </span>
+                                    {sub.cancel_at_period_end && (
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border bg-orange-500/20 text-orange-400 border-orange-500/30">
+                                        cancels at period end
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-xs text-neutral-500 mt-1">
+                                    Period ends: {formatDate(sub.current_period_end)}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {cancelConfirm?.subId === sub.id ? (
+                                    <div className="flex items-center gap-2">
+                                      <label className="flex items-center gap-1 text-xs text-neutral-400 cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={cancelImmediate}
+                                          onChange={e => setCancelImmediate(e.target.checked)}
+                                          className="rounded border-neutral-600"
+                                        />
+                                        Immediate
+                                      </label>
+                                      <Button
+                                        variant="danger"
+                                        className="text-xs"
+                                        onClick={() => handleCancelSubscription(sub.id, order.id)}
+                                        disabled={canceling === sub.id}
+                                      >
+                                        {canceling === sub.id ? (
+                                          <RefreshCw className="w-3 h-3 animate-spin" />
+                                        ) : (
+                                          'Confirm Cancel'
+                                        )}
+                                      </Button>
+                                      <button
+                                        onClick={() => { setCancelConfirm(null); setCancelImmediate(false) }}
+                                        className="text-xs text-neutral-500 hover:text-neutral-300"
+                                      >
+                                        Back
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <Button
+                                      variant="outline"
+                                      className="text-xs"
+                                      onClick={() => setCancelConfirm({ subId: sub.id, orderId: order.id })}
+                                      disabled={sub.cancel_at_period_end}
+                                    >
+                                      <XCircle className="w-3 h-3 mr-1" />
+                                      {sub.cancel_at_period_end ? 'Pending Cancel' : 'Cancel Sub'}
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          {cancelResults[order.id] && (
+                            <p className={`text-xs mt-2 ${cancelResults[order.id].success ? 'text-green-400' : 'text-red-400'}`}>
+                              {cancelResults[order.id].success && <CheckCircle className="w-3 h-3 inline mr-1" />}
+                              {cancelResults[order.id].message}
+                            </p>
+                          )}
+                        </div>
+                      )}
 
                       {/* Scheduled messages */}
                       <div>
@@ -414,8 +617,9 @@ export default function AdminOrdersPage() {
                         </div>
                       )}
 
-                      {/* Resend button */}
-                      <div className="flex items-center gap-3 pt-2 border-t border-neutral-800">
+                      {/* Action buttons */}
+                      <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-neutral-800">
+                        {/* Resend emails */}
                         <Button
                           variant={verdict.color === 'red' ? 'primary' : 'outline'}
                           onClick={() => handleResend(order.id)}
@@ -434,6 +638,31 @@ export default function AdminOrdersPage() {
                             </>
                           )}
                         </Button>
+
+                        {/* Refund button */}
+                        {order.status === 'paid' && order.total_amount > 0 && (
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setRefundConfirm(order.id)
+                              setSelectedRefundItems(new Set())
+                            }}
+                            className="text-sm"
+                            disabled={refundConfirm === order.id}
+                          >
+                            <Undo2 className="w-4 h-4 mr-2" />
+                            Refund
+                          </Button>
+                        )}
+
+                        {order.status === 'refunded' && (
+                          <span className="inline-flex items-center gap-1 text-xs text-blue-400">
+                            <CheckCircle className="w-3 h-3" />
+                            Refunded
+                          </span>
+                        )}
+
+                        {/* Results */}
                         {resendResults[order.id] && (
                           <span className={`text-xs ${
                             resendResults[order.id].startsWith('Error') ? 'text-red-400' : 'text-green-400'
@@ -441,7 +670,129 @@ export default function AdminOrdersPage() {
                             {resendResults[order.id]}
                           </span>
                         )}
+                        {refundResults[order.id]?.message && (
+                          <span className={`text-xs ${refundResults[order.id].success ? 'text-green-400' : 'text-red-400'}`}>
+                            {refundResults[order.id].success && <CheckCircle className="w-3 h-3 inline mr-1" />}
+                            {refundResults[order.id].message}
+                          </span>
+                        )}
                       </div>
+
+                      {/* Refund item picker */}
+                      {refundConfirm === order.id && order.order_items && order.order_items.length > 0 && (() => {
+                        const refundableItems = order.order_items.filter(i => i.completion_status !== 'refunded')
+                        const selectedTotal = order.order_items
+                          .filter(i => selectedRefundItems.has(i.id))
+                          .reduce((sum, i) => sum + i.amount, 0)
+                        const allSelected = refundableItems.length > 0 && refundableItems.every(i => selectedRefundItems.has(i.id))
+
+                        return (
+                          <div className="border border-yellow-500/30 bg-yellow-500/5 rounded-xl p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-sm font-medium text-yellow-400 flex items-center gap-2">
+                                <AlertTriangle className="w-4 h-4" />
+                                Select items to refund
+                              </h4>
+                              <button
+                                onClick={() => { setRefundConfirm(null); setSelectedRefundItems(new Set()) }}
+                                className="text-xs text-neutral-500 hover:text-neutral-300"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+
+                            {refundableItems.length > 1 && (
+                              <label className="flex items-center gap-2 text-xs text-neutral-400 cursor-pointer pb-1 border-b border-neutral-800">
+                                <input
+                                  type="checkbox"
+                                  checked={allSelected}
+                                  onChange={() => {
+                                    if (allSelected) {
+                                      setSelectedRefundItems(new Set())
+                                    } else {
+                                      setSelectedRefundItems(new Set(refundableItems.map(i => i.id)))
+                                    }
+                                  }}
+                                  className="rounded border-neutral-600 accent-yellow-500"
+                                />
+                                Select all
+                              </label>
+                            )}
+
+                            <div className="space-y-1">
+                              {order.order_items.map(item => {
+                                const itemName = item.products?.name || item.products?.key || 'Unknown Product'
+                                const isItemRefunded = item.completion_status === 'refunded'
+                                const isChecked = selectedRefundItems.has(item.id)
+
+                                return (
+                                  <label
+                                    key={item.id}
+                                    className={`flex items-center gap-3 rounded-lg p-2.5 transition-colors ${
+                                      isItemRefunded
+                                        ? 'opacity-50 cursor-default'
+                                        : 'cursor-pointer hover:bg-neutral-800/50'
+                                    } ${isChecked ? 'bg-neutral-800' : ''}`}
+                                  >
+                                    {isItemRefunded ? (
+                                      <CheckCircle className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                                    ) : (
+                                      <input
+                                        type="checkbox"
+                                        checked={isChecked}
+                                        onChange={() => {
+                                          setSelectedRefundItems(prev => {
+                                            const next = new Set(prev)
+                                            if (next.has(item.id)) {
+                                              next.delete(item.id)
+                                            } else {
+                                              next.add(item.id)
+                                            }
+                                            return next
+                                          })
+                                        }}
+                                        className="rounded border-neutral-600 accent-yellow-500 flex-shrink-0"
+                                      />
+                                    )}
+                                    <Package className="w-4 h-4 text-neutral-500 flex-shrink-0" />
+                                    <span className="text-sm text-neutral-200 flex-1">{itemName}</span>
+                                    <span className={`text-sm font-medium ${isItemRefunded ? 'text-blue-400 line-through' : 'text-neutral-300'}`}>
+                                      {formatCurrency(item.amount, item.currency)}
+                                    </span>
+                                    {isItemRefunded && (
+                                      <span className="text-[10px] text-blue-400">refunded</span>
+                                    )}
+                                  </label>
+                                )
+                              })}
+                            </div>
+
+                            {selectedRefundItems.size > 0 && (
+                              <div className="flex items-center justify-between pt-3 border-t border-neutral-800">
+                                <div className="text-sm text-neutral-300">
+                                  Refund total: <span className="font-bold text-white">{formatCurrency(selectedTotal, order.currency)}</span>
+                                  <span className="text-neutral-500 ml-1">
+                                    ({selectedRefundItems.size} item{selectedRefundItems.size > 1 ? 's' : ''})
+                                  </span>
+                                </div>
+                                <Button
+                                  variant="danger"
+                                  className="text-sm"
+                                  onClick={() => handleRefund(order.id, Array.from(selectedRefundItems))}
+                                  disabled={refunding === order.id}
+                                >
+                                  {refunding === order.id ? (
+                                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                                  ) : (
+                                    <Undo2 className="w-4 h-4 mr-2" />
+                                  )}
+                                  Refund {formatCurrency(selectedTotal, order.currency)}
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })()}
                     </div>
                   )}
                 </Card>

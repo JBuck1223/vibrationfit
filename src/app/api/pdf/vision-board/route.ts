@@ -88,6 +88,20 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const totalStart = Date.now()
+
+    // Start browser launch early so it warms up in parallel with DB queries + image pre-fetching.
+    // On Vercel serverless this takes 5-15s — running it concurrently is the single biggest speedup.
+    let browserPromise: Promise<Awaited<ReturnType<typeof launchBrowser>>> | null = null
+    if (!preview) {
+      const bt = Date.now()
+      browserPromise = launchBrowser().then(b => {
+        console.log(`[Vision Board PDF] Browser ready (${Date.now() - bt}ms, parallel)`)
+        return b
+      })
+      browserPromise.catch(() => {}) // prevent unhandled rejection; real error caught when awaited
+    }
+
     // Fetch vision board items
     let query = supabase
       .from('vision_board_items')
@@ -347,9 +361,11 @@ export async function GET(req: NextRequest) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Vision Board - ${escapeHtml(userName)}</title>
+  ${preview ? `
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  ` : ''}
   <style>
     ${preview ? '' : pageCSS}
 
@@ -639,13 +655,13 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    // Launch Puppeteer for PDF generation
-    console.log('[Vision Board PDF] Launching browser...')
+    // Await the browser that was launched in parallel with DB queries + image pre-fetching
+    console.log('[Vision Board PDF] Awaiting browser...')
     
     let browser
     try {
-      browser = await launchBrowser()
-      console.log('[Vision Board PDF] Browser launched')
+      browser = await browserPromise!
+      console.log('[Vision Board PDF] Browser acquired')
     } catch (launchError) {
       console.error('[Vision Board PDF] Failed to launch browser:', launchError)
       throw new Error(`Failed to launch PDF browser: ${launchError instanceof Error ? launchError.message : 'Unknown error'}`)
@@ -682,13 +698,12 @@ export async function GET(req: NextRequest) {
       })
 
       console.log(`[Vision Board PDF] Loading HTML with ${filteredItems.length} items...`)
+      const contentStart = Date.now()
       await page.setContent(html, {
-        waitUntil: 'networkidle0',
+        waitUntil: 'load',
         timeout: 30000,
       })
-
-      await new Promise(r => setTimeout(r, 300))
-      console.log('[Vision Board PDF] Content rendered')
+      console.log(`[Vision Board PDF] Content rendered (${Date.now() - contentStart}ms)`)
 
       // Generate output based on format
       if (outputFormat === 'image') {
@@ -704,7 +719,7 @@ export async function GET(req: NextRequest) {
           },
           omitBackground: false,
         })
-        console.log('[Vision Board] Image generated, size:', imageBuffer.length, 'bytes')
+        console.log(`[Vision Board] Image generated, size: ${imageBuffer.length} bytes, total: ${Date.now() - totalStart}ms`)
 
         await browser.close()
 
@@ -741,7 +756,7 @@ export async function GET(req: NextRequest) {
         marginLeft: 0.4,
       })
       const pdfBuffer = Buffer.from(result.data, 'base64')
-      console.log('[Vision Board PDF] PDF generated, size:', pdfBuffer.length, 'bytes')
+      console.log(`[Vision Board PDF] PDF generated, size: ${pdfBuffer.length} bytes, total: ${Date.now() - totalStart}ms`)
 
       await browser.close()
 

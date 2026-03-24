@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { sendNotification } from '@/lib/notifications/config'
 import { VibeComment } from '@/lib/vibe-tribe/types'
 
 /**
@@ -147,7 +148,7 @@ export async function POST(
     // Check if post exists
     const { data: post, error: postError } = await supabase
       .from('vibe_posts')
-      .select('id')
+      .select('id, content')
       .eq('id', postId)
       .eq('is_deleted', false)
       .single()
@@ -198,6 +199,19 @@ export async function POST(
       .select('id, full_name, profile_picture_url')
       .eq('id', user.id)
       .single()
+
+    const userName = userData?.full_name || user.email?.split('@')[0] || 'Someone'
+    const postPreview = (post.content || '').slice(0, 40) + ((post.content || '').length > 40 ? '...' : '')
+    const commentPreview = content.trim().slice(0, 60) + (content.trim().length > 60 ? '...' : '')
+
+    sendNotification({
+      slug: 'vibe_tribe_new_comment',
+      variables: {
+        userName,
+        postTitle: postPreview,
+        commentPreview,
+      },
+    }).catch(err => console.error('Vibe Tribe comment notification error:', err))
 
     return NextResponse.json({
       success: true,
