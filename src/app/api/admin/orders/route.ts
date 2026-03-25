@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
                 stripe_subscription_id: ss.id,
                 status: ss.status,
                 cancel_at_period_end: ss.cancel_at_period_end,
-                current_period_end: new Date(ss.current_period_end * 1000).toISOString(),
+                current_period_end: new Date(((ss as unknown as Record<string, unknown>).current_period_end as number) * 1000).toISOString(),
                 membership_tier_id: null,
                 membership_tiers: { name: productName, tier_type: tierType || 'stripe' },
                 source: 'stripe',
