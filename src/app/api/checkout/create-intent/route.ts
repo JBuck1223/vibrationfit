@@ -6,6 +6,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import Stripe from 'stripe'
 import { toTitleCase } from '@/lib/utils'
+import { ensureCustomerWithAttribution } from '@/lib/tracking/customer-attribution'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -248,47 +249,12 @@ export async function POST(request: NextRequest) {
       stripeCustomerId = customer.id
     }
 
-    let customerRowId: string | null = null
-    const { data: existingCustomerRow } = await supabaseAdmin.from('customers').select('id').eq('user_id', userId).maybeSingle()
-    if (existingCustomerRow) {
-      customerRowId = existingCustomerRow.id
-      await supabaseAdmin.from('customers').update({
-        stripe_customer_id: stripeCustomerId,
-        last_active_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }).eq('id', customerRowId)
-    } else {
-      let visitorData: Record<string, unknown> | null = null
-      if (visitorId) {
-        const { data } = await supabaseAdmin.from('visitors').select('*').eq('id', visitorId).single()
-        visitorData = data
-        if (visitorData && !(visitorData as any).user_id) {
-          await supabaseAdmin.from('visitors').update({ user_id: userId }).eq('id', visitorId)
-        }
-      }
-      const { data: newCustomerRow } = await supabaseAdmin.from('customers').insert({
-        user_id: userId,
-        visitor_id: visitorId || null,
-        stripe_customer_id: stripeCustomerId,
-        first_utm_source: (visitorData as any)?.first_utm_source || null,
-        first_utm_medium: (visitorData as any)?.first_utm_medium || null,
-        first_utm_campaign: (visitorData as any)?.first_utm_campaign || null,
-        first_utm_content: (visitorData as any)?.first_utm_content || null,
-        first_utm_term: (visitorData as any)?.first_utm_term || null,
-        first_gclid: (visitorData as any)?.first_gclid || null,
-        first_fbclid: (visitorData as any)?.first_fbclid || null,
-        first_landing_page: (visitorData as any)?.first_landing_page || null,
-        first_referrer: (visitorData as any)?.first_referrer || null,
-        first_url_params: (visitorData as any)?.first_url_params || {},
-        first_seen_at: (visitorData as any)?.first_seen_at || new Date().toISOString(),
-        email_captured_at: new Date().toISOString(),
-        first_purchase_at: new Date().toISOString(),
-        last_purchase_at: new Date().toISOString(),
-        last_active_at: new Date().toISOString(),
-        status: 'customer',
-      }).select('id').single()
-      customerRowId = newCustomerRow?.id || null
-    }
+    const customerRowId = await ensureCustomerWithAttribution(supabaseAdmin, {
+      userId,
+      visitorId,
+      stripeCustomerId,
+      isPurchase: true,
+    })
 
     if (promoCode) {
       couponResult = await validateCouponCode(promoCode, {

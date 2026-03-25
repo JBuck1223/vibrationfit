@@ -17,6 +17,7 @@ import { sendServerConversion } from '@/lib/tracking/server-conversions'
 import { sendSMS } from '@/lib/messaging/twilio'
 import { createAdminNotification } from '@/lib/admin/notifications'
 import { resolveReferralCode, checkAndGrantRewards } from '@/lib/referral/helpers'
+import { ensureCustomerWithAttribution } from '@/lib/tracking/customer-attribution'
 
 async function notifyAdminPurchase(details: {
   customerName?: string
@@ -1947,26 +1948,12 @@ export async function POST(request: NextRequest) {
           await stripe.customers.update(customerId, { metadata: { supabase_user_id: userId } }).catch(() => {})
         }
 
-        let customerRowId: string | null = null
-        const { data: existingCust } = await supabaseAdmin.from('customers').select('id').eq('user_id', userId).maybeSingle()
-        if (existingCust) {
-          customerRowId = existingCust.id
-        } else {
-          const { data: newCust } = await supabaseAdmin
-            .from('customers')
-            .insert({
-              user_id: userId,
-              visitor_id: visitorId || null,
-              stripe_customer_id: customerId || '',
-              status: 'customer',
-              first_purchase_at: new Date().toISOString(),
-              last_purchase_at: new Date().toISOString(),
-              last_active_at: new Date().toISOString(),
-            })
-            .select('id')
-            .single()
-          customerRowId = newCust?.id || null
-        }
+        const customerRowId = await ensureCustomerWithAttribution(supabaseAdmin, {
+          userId,
+          visitorId,
+          stripeCustomerId: customerId || null,
+          isPurchase: true,
+        })
 
         const totalAmount = pi.amount_received || 0
         const { data: order, error: orderErr } = await supabaseAdmin

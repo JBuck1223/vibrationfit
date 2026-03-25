@@ -133,7 +133,11 @@ export default function AdminSessionDetailPage() {
     setSyncingRecording(true)
     const toastId = toast.loading('Syncing recording from Daily.co — downloading then uploading to S3. This may take a minute...')
     try {
-      const res = await fetch('/api/admin/recordings/sync', { method: 'POST' })
+      const res = await fetch('/api/admin/recordings/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId }),
+      })
       const data = await res.json()
 
       if (!res.ok) {

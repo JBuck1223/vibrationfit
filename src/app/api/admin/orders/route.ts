@@ -11,6 +11,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { checkIsAdmin } from '@/middleware/admin'
 import { triggerEvent } from '@/lib/messaging/events'
 import { getPaymentPlanLabel } from '@/lib/intensive/utils'
+import { stripe } from '@/lib/stripe/config'
+import type Stripe from 'stripe'
 
 // ─── GET: list orders + email status ────────────────────────────────────────
 export async function GET(request: NextRequest) {
@@ -57,32 +59,98 @@ export async function GET(request: NextRequest) {
       (accounts || []).map(a => [a.id, a])
     )
 
-    // Batch-fetch active subscriptions for all order users
-    const { data: subscriptions } = await adminDb
+    // Batch-fetch subscriptions for all order users (exclude only fully canceled)
+    const { data: subscriptions, error: subsError } = await adminDb
       .from('customer_subscriptions')
-      .select('id, user_id, stripe_subscription_id, status, cancel_at_period_end, current_period_end, membership_tiers(name, tier_type)')
+      .select('id, user_id, stripe_subscription_id, status, cancel_at_period_end, current_period_end, membership_tier_id')
       .in('user_id', userIds)
-      .in('status', ['active', 'trialing', 'past_due'])
+      .neq('status', 'canceled')
 
-    const subscriptionMap = new Map<string, typeof subscriptions>()
+    if (subsError) {
+      console.error('Error fetching subscriptions:', subsError)
+    }
+
+    // Fetch tier names separately to avoid FK join issues
+    const tierIds = [...new Set((subscriptions || []).map(s => s.membership_tier_id).filter(Boolean))]
+    let tierMap = new Map<string, { name: string; tier_type: string }>()
+    if (tierIds.length > 0) {
+      const { data: tiers } = await adminDb
+        .from('membership_tiers')
+        .select('id, name, tier_type')
+        .in('id', tierIds)
+      for (const t of tiers || []) {
+        tierMap.set(t.id, { name: t.name, tier_type: t.tier_type })
+      }
+    }
+
+    const subscriptionMap = new Map<string, any[]>()
     for (const sub of subscriptions || []) {
+      const tier = tierMap.get(sub.membership_tier_id) || null
+      const enrichedSub = { ...sub, membership_tiers: tier }
       const existing = subscriptionMap.get(sub.user_id) || []
-      existing.push(sub)
+      existing.push(enrichedSub)
       subscriptionMap.set(sub.user_id, existing)
     }
 
-    // Batch-fetch order items with product names
-    const orderIds = orders.map(o => o.id)
-    const { data: orderItems } = await adminDb
-      .from('order_items')
-      .select('id, order_id, product_id, quantity, amount, currency, completion_status, refunded_at, metadata, products(name, key)')
-      .in('order_id', orderIds)
+    // Stripe fallback: for users with no DB subscriptions, check Stripe directly
+    // by looking up the Stripe customer via payment intent on their orders
+    if (stripe) {
+      const usersWithoutSubs = userIds.filter(uid => !subscriptionMap.has(uid))
+      if (usersWithoutSubs.length > 0) {
+        const stripeCustomerIds = new Set<string>()
+        const customerToUser = new Map<string, string>()
 
-    const orderItemsMap = new Map<string, typeof orderItems>()
-    for (const item of orderItems || []) {
-      const existing = orderItemsMap.get(item.order_id) || []
-      existing.push(item)
-      orderItemsMap.set(item.order_id, existing)
+        for (const order of orders) {
+          if (!usersWithoutSubs.includes(order.user_id)) continue
+          if (customerToUser.has(order.user_id)) continue
+          if (!order.stripe_payment_intent_id) continue
+
+          try {
+            const pi = await stripe.paymentIntents.retrieve(order.stripe_payment_intent_id)
+            const custId = typeof pi.customer === 'string' ? pi.customer : (pi.customer as Stripe.Customer)?.id
+            if (custId) {
+              stripeCustomerIds.add(custId)
+              customerToUser.set(custId, order.user_id)
+            }
+          } catch {
+            // payment intent may no longer exist
+          }
+        }
+
+        for (const custId of stripeCustomerIds) {
+          try {
+            const stripeSubs = await stripe.subscriptions.list({
+              customer: custId,
+              status: 'all',
+              limit: 10,
+            })
+            const userId = customerToUser.get(custId)!
+            for (const ss of stripeSubs.data) {
+              if (ss.status === 'canceled') continue
+              const tierType = ss.metadata?.tier_type || ''
+              const productName = ss.items.data[0]?.price?.nickname
+                || ss.items.data[0]?.price?.product
+                || tierType
+                || 'Stripe Subscription'
+              const existing = subscriptionMap.get(userId) || []
+              existing.push({
+                id: ss.id,
+                user_id: userId,
+                stripe_subscription_id: ss.id,
+                status: ss.status,
+                cancel_at_period_end: ss.cancel_at_period_end,
+                current_period_end: new Date(((ss as unknown as Record<string, unknown>).current_period_end as number) * 1000).toISOString(),
+                membership_tier_id: null,
+                membership_tiers: { name: productName, tier_type: tierType || 'stripe' },
+                source: 'stripe',
+              })
+              subscriptionMap.set(userId, existing)
+            }
+          } catch (err) {
+            console.error(`Failed to fetch Stripe subs for customer ${custId}:`, err)
+          }
+        }
+      }
     }
 
     // Merge account data onto each order
@@ -96,7 +164,6 @@ export async function GET(request: NextRequest) {
         phone: null,
       },
       subscriptions: subscriptionMap.get(order.user_id) || [],
-      order_items: orderItemsMap.get(order.id) || [],
     }))
 
     // Scheduled messages for these users
