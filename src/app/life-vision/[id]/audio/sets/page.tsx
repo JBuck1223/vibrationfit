@@ -666,18 +666,18 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
                 </div>
               </div>
               <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-3">
-                <p className="text-neutral-500 text-[11px] leading-tight mb-1.5">Activated this Week</p>
+                <p className="text-neutral-500 text-[11px] leading-tight mb-1.5">Reps this Week</p>
                 <p className="text-white font-semibold text-lg leading-none">{practiceStats?.countLast7 ?? 0}<span className="font-normal text-neutral-500">/7</span></p>
               </div>
 
               {/* Remaining stats: always visible on sm+, toggled on mobile */}
               {[
                 {
-                  label: 'Activated this Month',
+                  label: 'Reps this Month',
                   value: <>{practiceStats?.countLast30 ?? 0}<span className="font-normal text-neutral-500">/30</span></>,
                 },
                 {
-                  label: 'Activated All Time',
+                  label: 'Total Rep Days',
                   value: (practiceStats?.countAllTime ?? 0).toLocaleString(),
                 },
                 { label: 'Sets Generated', value: totalSets.toLocaleString() },

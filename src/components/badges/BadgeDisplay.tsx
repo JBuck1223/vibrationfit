@@ -145,7 +145,7 @@ export default function BadgeDisplay({
             </div>
 
             {/* Badge grid */}
-            <div className={`grid ${compact ? 'grid-cols-4' : 'grid-cols-4 md:grid-cols-7'} gap-4 justify-items-center`}>
+            <div className={`grid ${compact ? 'grid-cols-4' : 'grid-cols-3 sm:grid-cols-4 md:grid-cols-7'} gap-4 justify-items-center`}>
               {badges.map(badge => (
                 <BadgeWithProgress
                   key={badge.definition.type}
