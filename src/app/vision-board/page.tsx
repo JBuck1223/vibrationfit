@@ -1,14 +1,14 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
-import { Card, Button, Badge, CategoryCard, DeleteConfirmationDialog, ActionButtons, Icon, PracticeCard, PageHero, Container, Stack, Spinner, Input, FileUpload } from '@/lib/design-system'
+import { Card, Button, Badge, CategoryCard, DeleteConfirmationDialog, ActionButtons, Icon, PageHero, Container, Stack, Spinner, Input, FileUpload } from '@/lib/design-system'
 import { useAreaStats } from '@/hooks/useAreaStats'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Calendar, CheckCircle, XCircle, Filter, Grid3X3, X, ChevronLeft, ChevronRight, Eye, List, Grid, Lightbulb, Download, Edit3, Save, ChevronUp, Trash2, BookOpen, Upload, Sparkles, CheckSquare, Square, ListChecks, Image as ImageIcon } from 'lucide-react'
+import { Plus, Calendar, CheckCircle, XCircle, Filter, Grid3X3, X, ChevronLeft, ChevronRight, Eye, List, Grid, Lightbulb, Download, Edit3, Save, ChevronUp, Trash2, BookOpen, Upload, Sparkles, CheckSquare, Square, ListChecks, Image as ImageIcon, Flame, Shield, ChevronDown } from 'lucide-react'
 import { useDeleteItem } from '@/hooks/useDeleteItem'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { colors } from '@/lib/design-system/tokens'
@@ -72,6 +72,25 @@ export default function VisionBoardPage() {
   const [editActualizedAiImageUrl, setEditActualizedAiImageUrl] = useState<string | null>(null)
   const [showImageEditor, setShowImageEditor] = useState(false)
   const [showActualizedImageEditor, setShowActualizedImageEditor] = useState(false)
+
+  const [statsExpanded, setStatsExpanded] = useState(false)
+  const [freezeOpen, setFreezeOpen] = useState(false)
+  const freezeRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!freezeOpen) return
+    function handleOutside(e: MouseEvent | TouchEvent) {
+      if (freezeRef.current && !freezeRef.current.contains(e.target as Node)) {
+        setFreezeOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutside)
+    document.addEventListener('touchstart', handleOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleOutside)
+      document.removeEventListener('touchstart', handleOutside)
+    }
+  }, [freezeOpen])
 
   // Bulk selection mode
   const [bulkMode, setBulkMode] = useState(false)
@@ -1117,24 +1136,83 @@ export default function VisionBoardPage() {
           </div>
         </PageHero>
 
-        {/* Practice Stats */}
-        <PracticeCard
-          title="Vision Board"
-          icon={ImageIcon}
-          theme="green"
-          inline
-          hideCta
-          todayCompleted={practiceStats?.todayCompleted ?? false}
-          currentStreak={practiceStats?.currentStreak ?? 0}
-          countLast7={practiceStats?.countLast7 ?? 0}
-          countLast30={practiceStats?.countLast30 ?? 0}
-          countAllTime={practiceStats?.countAllTime ?? 0}
-          streakFreezeAvailable={practiceStats?.streakFreezeAvailable ?? false}
-          streakFreezeUsedThisWeek={practiceStats?.streakFreezeUsedThisWeek ?? false}
-          ctaHref="/vision-board"
-          ctaLabel="Open Vision Board"
-          ctaDoneLabel="View Vision Board"
-        />
+        {/* Vision Board Stats */}
+        <div className="relative rounded-2xl border border-white/[0.06] bg-gradient-to-br from-[#39FF14]/[0.04] via-[#111] to-[#111]">
+          <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(ellipse_at_top_left,_rgba(57,255,20,0.08)_0%,_transparent_50%)] pointer-events-none" />
+          <div className="relative p-5 md:p-6">
+            <div className="flex items-center justify-center gap-2.5 mb-4">
+              <ImageIcon className="w-4 h-4 text-[#39FF14]" />
+              <h3 className="text-neutral-300 font-medium text-sm tracking-wide uppercase">Vision Board</h3>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+              {/* Current Streak */}
+              <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-3">
+                <p className="text-neutral-500 text-[11px] leading-tight mb-1.5">Current Streak</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-white font-semibold text-lg leading-none flex items-center gap-1.5">
+                    {(practiceStats?.currentStreak ?? 0) >= 1 && <Flame className="w-4 h-4 text-orange-400" />}
+                    {practiceStats?.currentStreak ?? 0}
+                    <span className="font-normal text-neutral-500">{(practiceStats?.currentStreak ?? 0) === 1 ? 'day' : 'days'}</span>
+                  </p>
+                  {(practiceStats?.streakFreezeAvailable || practiceStats?.streakFreezeUsedThisWeek) && (
+                    <div className="relative ml-auto flex items-center" ref={freezeRef}>
+                      <button type="button" className="flex items-center" onClick={() => setFreezeOpen(prev => !prev)}>
+                        <Shield className={`w-3.5 h-3.5 cursor-help ${practiceStats?.streakFreezeUsedThisWeek ? 'text-blue-500/40' : 'text-blue-400'}`} />
+                      </button>
+                      <div className={`absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-56 rounded-xl bg-neutral-900 border border-blue-500/20 p-3 shadow-xl transition-all duration-200 z-[100] ${freezeOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
+                        <p className="text-sm font-semibold text-blue-400 mb-1">
+                          Streak Freeze <span className="font-normal text-blue-400/70">({practiceStats?.streakFreezeUsedThisWeek ? 'Used this week' : 'Available'})</span>
+                        </p>
+                        <p className="text-xs text-neutral-400 leading-relaxed">
+                          {practiceStats?.streakFreezeUsedThisWeek
+                            ? 'Your streak was saved this week. You get 1 free grace day per week for each habit.'
+                            : 'You get 1 free grace day per week. If you miss a day, your streak stays alive so one off-day doesn\'t wipe out your progress.'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Reps this Week - always visible */}
+              <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-3">
+                <p className="text-neutral-500 text-[11px] leading-tight mb-1.5">Reps this Week</p>
+                <p className="text-white font-semibold text-lg leading-none">{practiceStats?.countLast7 ?? 0}<span className="font-normal text-neutral-500">/7</span></p>
+              </div>
+
+              {/* Remaining stats: always visible on sm+, toggled on mobile */}
+              {[
+                {
+                  label: 'Reps this Month',
+                  value: <>{practiceStats?.countLast30 ?? 0}<span className="font-normal text-neutral-500">/30</span></>,
+                },
+                {
+                  label: 'Total Rep Days',
+                  value: (practiceStats?.countAllTime ?? 0).toLocaleString(),
+                },
+                { label: 'Active', value: activeItems.toLocaleString() },
+                { label: 'Actualized', value: actualizedItems.toLocaleString() },
+                { label: 'Total Items', value: items.length.toLocaleString() },
+              ].map((stat) => (
+                <div key={stat.label} className={`rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-3 ${statsExpanded ? '' : 'hidden'} sm:block`}>
+                  <p className="text-neutral-500 text-[11px] leading-tight mb-1.5">{stat.label}</p>
+                  <p className="text-white font-semibold text-lg leading-none">{stat.value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Mobile toggle */}
+            <button
+              type="button"
+              onClick={() => setStatsExpanded(prev => !prev)}
+              className="flex items-center justify-center gap-1.5 w-full mt-3 py-1.5 text-xs text-neutral-400 hover:text-neutral-300 transition-colors sm:hidden"
+            >
+              {statsExpanded ? 'Show less' : 'View all stats'}
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${statsExpanded ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
+        </div>
 
         {/* Filter Toggle Button and View Toggle */}
         <div className="flex items-center justify-between">

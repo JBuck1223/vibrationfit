@@ -31,8 +31,8 @@ const SIZE_CONFIG = {
     strokeWidth: 4,
     iconSize: 'w-7 h-7',
     iconContainer: 'w-14 h-14',
-    labelSize: 'text-xs',
-    labelHeight: 32,  // Fixed height for 2 lines
+    labelSize: 'text-[11px]',
+    labelHeight: 42,  // Fixed height for 2-3 lines of longer names
     progressSize: 'text-xs',
   },
   lg: {
@@ -79,7 +79,7 @@ export default function BadgeWithProgress({
 
   return (
     <div
-      className={`flex flex-col items-center gap-1 ${config.container} ${onClick ? 'cursor-pointer' : ''}`}
+      className={`flex flex-col items-center gap-1.5 ${config.container} ${onClick ? 'cursor-pointer' : ''}`}
       onClick={onClick}
     >
       {/* Badge with progress ring - fixed height container for alignment */}
@@ -208,7 +208,7 @@ export default function BadgeWithProgress({
         </div>
       </div>
 
-      {/* Badge label - same color for all badges, forced 2 lines */}
+      {/* Badge label */}
       {showLabel && (
         <span
           className={`
@@ -217,29 +217,17 @@ export default function BadgeWithProgress({
             transition-colors duration-300
           `}
           style={{
-            color: '#a3a3a3',  // Same gray for all badges (complete and incomplete)
-            height: config.labelHeight,  // Fixed height for 2 lines
+            color: '#a3a3a3',
+            minHeight: config.labelHeight,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
+            width: '100%',
+            wordBreak: 'break-word',
           }}
         >
-          {/* Split label into two lines - split at midpoint for even distribution */}
-          {(() => {
-            const words = label.split(' ')
-            if (words.length === 1) return label
-            // Split at midpoint (rounded up) so first line has equal or more words
-            const midpoint = Math.ceil(words.length / 2)
-            const line1 = words.slice(0, midpoint).join(' ')
-            const line2 = words.slice(midpoint).join(' ')
-            return (
-              <>
-                <span>{line1}</span>
-                <span>{line2}</span>
-              </>
-            )
-          })()}
+          {label}
         </span>
       )}
 

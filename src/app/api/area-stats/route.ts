@@ -126,9 +126,10 @@ async function getActiveDatesForArea(
     case 'alignment-gym': {
       const { data } = await supabase
         .from('video_session_participants')
-        .select('joined_at, video_sessions!inner(scheduled_at)')
+        .select('joined_at, video_sessions!inner(scheduled_at, session_type, title)')
         .eq('user_id', userId)
         .eq('attended', true)
+        .or('session_type.eq.alignment_gym,session_type.eq.group,title.ilike.%alignment gym%', { referencedTable: 'video_sessions' })
         .order('joined_at', { ascending: false })
       const dateSet = new Set<string>()
       for (const row of data ?? []) {
