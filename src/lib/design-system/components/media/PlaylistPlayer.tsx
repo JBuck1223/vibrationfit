@@ -49,13 +49,11 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
   
   const audioRef = useRef<HTMLAudioElement>(null)
   const lastRepeatClickRef = useRef<number>(0)
-  const hasTrackedCurrentPlay = useRef<boolean>(false)
+  const hasTrackedThisListen = useRef<boolean>(false)
 
   const currentTrack = tracks[currentTrackIndex]
   
-  const handleTrackComplete = useCallback(async (trackId: string) => {
-    if (hasTrackedCurrentPlay.current) return
-    
+  const recordPlay = useCallback(async (trackId: string) => {
     try {
       const { createClient } = await import('@/lib/supabase/client')
       const supabase = createClient()
@@ -69,24 +67,23 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
           area: 'vision_audio',
         })
       }
-      hasTrackedCurrentPlay.current = true
     } catch (error) {
       console.error('Failed to track audio play:', error)
     }
   }, [])
 
-  const checkAndTrackCompletion = useCallback(() => {
+  const checkAndTrackPlay = useCallback(() => {
     const audio = audioRef.current
-    if (!audio || !audio.duration || hasTrackedCurrentPlay.current) return
+    if (!audio || hasTrackedThisListen.current) return
     
-    const completionPercentage = (audio.currentTime / audio.duration) * 100
-    if (completionPercentage >= 80) {
+    if (audio.currentTime >= 5) {
       const track = tracks[currentTrackIndex]
       if (track?.id) {
-        handleTrackComplete(track.id)
+        hasTrackedThisListen.current = true
+        recordPlay(track.id)
       }
     }
-  }, [currentTrackIndex, tracks, handleTrackComplete])
+  }, [currentTrackIndex, tracks, recordPlay])
   
   useEffect(() => {
     tracks.forEach(track => {
@@ -144,9 +141,12 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
       }
     }
 
-    const setAudioTime = () => setCurrentTime(audio.currentTime)
+    const setAudioTime = () => {
+      setCurrentTime(audio.currentTime)
+      checkAndTrackPlay()
+    }
     const handleEnded = () => {
-      checkAndTrackCompletion()
+      hasTrackedThisListen.current = false
       handleNext()
     }
 
@@ -159,14 +159,13 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
       audio.removeEventListener('timeupdate', setAudioTime)
       audio.removeEventListener('ended', handleEnded)
     }
-  }, [handleNext, currentTrack, checkAndTrackCompletion])
+  }, [handleNext, currentTrack, checkAndTrackPlay])
 
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
     
-    checkAndTrackCompletion()
-    hasTrackedCurrentPlay.current = false
+    hasTrackedThisListen.current = false
     audio.src = currentTrack?.url || ''
     
     // Wait for audio to be ready before playing to prevent cutting off the beginning
@@ -184,7 +183,7 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
         audio.addEventListener('canplaythrough', playWhenReady, { once: true })
       }
     }
-  }, [currentTrackIndex, currentTrack?.url, isPlaying, checkAndTrackCompletion])
+  }, [currentTrackIndex, currentTrack?.url, isPlaying])
 
   const togglePlayPause = () => {
     const audio = audioRef.current
@@ -199,7 +198,7 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
   }
 
   const handlePrevious = () => {
-    checkAndTrackCompletion()
+    hasTrackedThisListen.current = false
     
     // Add a small gap before transitioning to previous track
     const wasPlaying = isPlaying
@@ -416,7 +415,7 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
             <button
               key={track.id}
               onClick={() => {
-                checkAndTrackCompletion()
+                hasTrackedThisListen.current = false
                 
                 // Add a small gap before transitioning when clicking a track
                 const wasPlaying = isPlaying

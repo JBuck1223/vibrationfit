@@ -56,13 +56,11 @@ export const AudioPlayer = React.forwardRef<HTMLAudioElement, AudioPlayerProps>(
     const [volume, setVolume] = useState(1)
     const [isMuted, setIsMuted] = useState(false)
     const audioRef = useRef<HTMLAudioElement>(null)
-    const hasTrackedCurrentPlay = useRef<boolean>(false)
+    const hasTrackedThisListen = useRef<boolean>(false)
     const lastSaveTimeRef = useRef<number>(0)
     const trackIdRef = useRef<string>(track.id)
 
-    const handleTrackComplete = useCallback(async (trackId: string) => {
-      if (hasTrackedCurrentPlay.current) return
-      
+    const recordPlay = useCallback(async (trackId: string) => {
       try {
         const { createClient } = await import('@/lib/supabase/client')
         const supabase = createClient()
@@ -76,21 +74,20 @@ export const AudioPlayer = React.forwardRef<HTMLAudioElement, AudioPlayerProps>(
             area: 'vision_audio',
           })
         }
-        hasTrackedCurrentPlay.current = true
       } catch (error) {
         console.error('Failed to track audio play:', error)
       }
     }, [])
 
-    const checkAndTrackCompletion = useCallback(() => {
+    const checkAndTrackPlay = useCallback(() => {
       const audio = audioRef.current
-      if (!audio || !audio.duration || hasTrackedCurrentPlay.current) return
+      if (!audio || hasTrackedThisListen.current) return
       
-      const completionPercentage = (audio.currentTime / audio.duration) * 100
-      if (completionPercentage >= 80 && track?.id) {
-        handleTrackComplete(track.id)
+      if (audio.currentTime >= 5 && track?.id) {
+        hasTrackedThisListen.current = true
+        recordPlay(track.id)
       }
-    }, [track?.id, handleTrackComplete])
+    }, [track?.id, recordPlay])
 
     useEffect(() => {
       trackIdRef.current = track.id
@@ -110,6 +107,7 @@ export const AudioPlayer = React.forwardRef<HTMLAudioElement, AudioPlayerProps>(
       }
       const setAudioTime = () => {
         setCurrentTime(audio.currentTime)
+        checkAndTrackPlay()
         const now = Date.now()
         if (now - lastSaveTimeRef.current >= SAVE_THROTTLE_MS) {
           lastSaveTimeRef.current = now
@@ -120,10 +118,10 @@ export const AudioPlayer = React.forwardRef<HTMLAudioElement, AudioPlayerProps>(
         saveProgress(trackIdRef.current, audio.currentTime)
       }
       const handleEnded = () => {
-        checkAndTrackCompletion()
         setIsPlaying(false)
         setCurrentTime(0)
         clearProgress(trackIdRef.current)
+        hasTrackedThisListen.current = false
         onTrackEnd?.()
       }
 
@@ -138,21 +136,20 @@ export const AudioPlayer = React.forwardRef<HTMLAudioElement, AudioPlayerProps>(
         audio.removeEventListener('pause', handlePause)
         audio.removeEventListener('ended', handleEnded)
       }
-    }, [track, onTrackEnd, checkAndTrackCompletion])
+    }, [track, onTrackEnd, checkAndTrackPlay])
 
     useEffect(() => {
       const id = track.id
       return () => {
-        checkAndTrackCompletion()
         const audio = audioRef.current
         if (audio && audio.currentTime > 0) {
           saveProgress(id, audio.currentTime)
         }
       }
-    }, [track?.id, checkAndTrackCompletion])
+    }, [track?.id])
 
     useEffect(() => {
-      hasTrackedCurrentPlay.current = false
+      hasTrackedThisListen.current = false
     }, [track?.id])
 
     const togglePlayPause = () => {

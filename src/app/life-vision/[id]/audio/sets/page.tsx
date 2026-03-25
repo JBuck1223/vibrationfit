@@ -1,12 +1,12 @@
 "use client"
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Container, Stack, Badge, Spinner, VersionBadge, StatusBadge, TrackingMilestoneCard, DeleteConfirmationDialog, Input, PageHero, Toggle, Icon, PracticeCard } from '@/lib/design-system/components'
+import { Button, Card, Container, Stack, Badge, Spinner, VersionBadge, StatusBadge, DeleteConfirmationDialog, Input, PageHero, Toggle, Icon } from '@/lib/design-system/components'
 import { PlaylistPlayer, type AudioTrack as BaseAudioTrack } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { useAreaStats } from '@/hooks/useAreaStats'
 import { assessmentToVisionKey } from '@/lib/design-system/vision-categories'
-import { Play, Clock, CalendarDays, Moon, Zap, Sparkles, Headphones, Plus, ArrowRight, Trash2, Music, Mic, Edit2, Check, X, AudioLines, Eye } from 'lucide-react'
+import { Play, Clock, CalendarDays, Moon, Zap, Sparkles, Headphones, Plus, ArrowRight, Trash2, Music, Mic, Edit2, Check, X, AudioLines, Eye, Flame, Shield, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 
 // Extend AudioTrack with sectionKey for Life Vision audio
@@ -48,6 +48,25 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
   const [editingName, setEditingName] = useState('')
   const [playMode, setPlayMode] = useState<'sections' | 'full'>('sections')
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [totalPlays, setTotalPlays] = useState(0)
+  const [freezeOpen, setFreezeOpen] = useState(false)
+  const [statsExpanded, setStatsExpanded] = useState(false)
+  const freezeRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!freezeOpen) return
+    function handleOutside(e: MouseEvent | TouchEvent) {
+      if (freezeRef.current && !freezeRef.current.contains(e.target as Node)) {
+        setFreezeOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutside)
+    document.addEventListener('touchstart', handleOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleOutside)
+      document.removeEventListener('touchstart', handleOutside)
+    }
+  }, [freezeOpen])
 
   useEffect(() => {
     ;(async () => {
@@ -63,6 +82,7 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
 
   async function loadData() {
     const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
     // Load vision
     const { data: v } = await supabase
@@ -162,6 +182,14 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
     }))
 
     setAudioSets(setsWithStatus)
+
+    // Fetch total plays across all user's audio tracks
+    if (user) {
+      const { data: playsData } = await supabase.rpc('get_user_total_audio_plays', {
+        p_user_id: user.id
+      })
+      setTotalPlays(playsData ?? 0)
+    }
     
     // Check for saved selection in localStorage
     const savedSelectionKey = `audioSetSelection_${visionId}`
@@ -600,37 +628,79 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
           </div>
         </PageHero>
 
-        {/* Practice Stats */}
-        <PracticeCard
-          title="Vision Audio"
-          icon={Headphones}
-          theme="green"
-          inline
-          hideCta
-          todayCompleted={practiceStats?.todayCompleted ?? false}
-          currentStreak={practiceStats?.currentStreak ?? 0}
-          countLast7={practiceStats?.countLast7 ?? 0}
-          countLast30={practiceStats?.countLast30 ?? 0}
-          countAllTime={practiceStats?.countAllTime ?? 0}
-          streakFreezeAvailable={practiceStats?.streakFreezeAvailable ?? false}
-          streakFreezeUsedThisWeek={practiceStats?.streakFreezeUsedThisWeek ?? false}
-          ctaHref="/audio"
-          ctaLabel="Listen to Vision Audio"
-          ctaDoneLabel="Listen again"
-        />
+        {/* Vision Audio Stats */}
+        <div className="relative rounded-2xl border border-white/[0.06] bg-gradient-to-br from-[#39FF14]/[0.04] via-[#111] to-[#111]">
+          <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(ellipse_at_top_left,_rgba(57,255,20,0.08)_0%,_transparent_50%)] pointer-events-none" />
+          <div className="relative p-5 md:p-6">
+            <div className="flex items-center justify-center gap-2.5 mb-4">
+              <Headphones className="w-4 h-4 text-[#39FF14]" />
+              <h3 className="text-neutral-300 font-medium text-sm tracking-wide uppercase">Vision Audio</h3>
+            </div>
+            {/* Always visible: Current Streak + Activated this Week */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+              <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-3">
+                <p className="text-neutral-500 text-[11px] leading-tight mb-1.5">Current Streak</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-white font-semibold text-lg leading-none flex items-center gap-1.5">
+                    {(practiceStats?.currentStreak ?? 0) >= 1 && <Flame className="w-4 h-4 text-orange-400" />}
+                    {practiceStats?.currentStreak ?? 0}
+                    <span className="font-normal text-neutral-500">{(practiceStats?.currentStreak ?? 0) === 1 ? 'day' : 'days'}</span>
+                  </p>
+                  {(practiceStats?.streakFreezeAvailable || practiceStats?.streakFreezeUsedThisWeek) && (
+                    <div className="relative ml-auto flex items-center" ref={freezeRef}>
+                      <button type="button" className="flex items-center" onClick={() => setFreezeOpen(prev => !prev)}>
+                        <Shield className={`w-3.5 h-3.5 cursor-help ${practiceStats?.streakFreezeUsedThisWeek ? 'text-blue-500/40' : 'text-blue-400'}`} />
+                      </button>
+                      <div className={`absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-56 rounded-xl bg-neutral-900 border border-blue-500/20 p-3 shadow-xl transition-all duration-200 z-[100] ${freezeOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
+                        <p className="text-sm font-semibold text-blue-400 mb-1">
+                          Streak Freeze <span className="font-normal text-blue-400/70">({practiceStats?.streakFreezeUsedThisWeek ? 'Used this week' : 'Available'})</span>
+                        </p>
+                        <p className="text-xs text-neutral-400 leading-relaxed">
+                          {practiceStats?.streakFreezeUsedThisWeek
+                            ? 'Your streak was saved this week. You get 1 free grace day per week for each habit.'
+                            : 'You get 1 free grace day per week. If you miss a day, your streak stays alive so one off-day doesn\'t wipe out your progress.'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-3">
+                <p className="text-neutral-500 text-[11px] leading-tight mb-1.5">Activated this Week</p>
+                <p className="text-white font-semibold text-lg leading-none">{practiceStats?.countLast7 ?? 0}<span className="font-normal text-neutral-500">/7</span></p>
+              </div>
 
-        {/* Stats Overview */}
-        <div className="grid grid-cols-2 gap-4 md:gap-6">
-          <TrackingMilestoneCard
-            label="Audio Sets"
-            value={totalSets}
-            theme="accent"
-          />
-          <TrackingMilestoneCard
-            label="Total Tracks"
-            value={totalTracks}
-            theme="secondary"
-          />
+              {/* Remaining stats: always visible on sm+, toggled on mobile */}
+              {[
+                {
+                  label: 'Activated this Month',
+                  value: <>{practiceStats?.countLast30 ?? 0}<span className="font-normal text-neutral-500">/30</span></>,
+                },
+                {
+                  label: 'Activated All Time',
+                  value: (practiceStats?.countAllTime ?? 0).toLocaleString(),
+                },
+                { label: 'Sets Generated', value: totalSets.toLocaleString() },
+                { label: 'Tracks Generated', value: totalTracks.toLocaleString() },
+                { label: 'All-Time Plays', value: totalPlays.toLocaleString() },
+              ].map((stat) => (
+                <div key={stat.label} className={`rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-3 ${statsExpanded ? '' : 'hidden'} sm:block`}>
+                  <p className="text-neutral-500 text-[11px] leading-tight mb-1.5">{stat.label}</p>
+                  <p className="text-white font-semibold text-lg leading-none">{stat.value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Mobile toggle */}
+            <button
+              type="button"
+              onClick={() => setStatsExpanded(prev => !prev)}
+              className="flex items-center justify-center gap-1.5 w-full mt-3 py-1.5 text-xs text-neutral-400 hover:text-neutral-300 transition-colors sm:hidden"
+            >
+              {statsExpanded ? 'Show less' : 'View all stats'}
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${statsExpanded ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
         </div>
 
         {/* Action Cards */}

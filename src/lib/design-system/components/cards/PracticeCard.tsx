@@ -35,6 +35,7 @@ export interface PracticeCardProps {
   compact?: boolean
   inline?: boolean
   hideCta?: boolean
+  extraStats?: { label: string; value: number | string }[]
   className?: string
 }
 
@@ -152,6 +153,7 @@ export const PracticeCard: React.FC<PracticeCardProps> = ({
   compact = false,
   inline = false,
   hideCta = false,
+  extraStats,
   className = '',
 }) => {
   const c = themeConfig[theme]
@@ -228,7 +230,9 @@ export const PracticeCard: React.FC<PracticeCardProps> = ({
 
         {/* Week / Month / All-time stats */}
         {compact ? (
-          <div className="grid grid-cols-3 mt-1.5 text-sm">
+          <div className={`grid mt-1.5 text-sm ${extraStats?.length ? `grid-cols-${3 + extraStats.length}` : 'grid-cols-3'}`}
+            style={extraStats?.length ? { gridTemplateColumns: `repeat(${3 + extraStats.length}, minmax(0, 1fr))` } : undefined}
+          >
             <div className="text-center md:text-left">
               <span className="text-neutral-500 block text-xs">Week:</span>
               <span className="text-white font-medium">{countLast7}/{periodMax7}</span>
@@ -241,9 +245,15 @@ export const PracticeCard: React.FC<PracticeCardProps> = ({
               <span className="text-neutral-500 block text-xs">All-time:</span>
               <span className="text-white font-medium">{countAllTime.toLocaleString()}</span>
             </div>
+            {extraStats?.map((stat) => (
+              <div key={stat.label} className="border-l border-neutral-700 pl-3 text-center md:text-left">
+                <span className="text-neutral-500 block text-xs">{stat.label}:</span>
+                <span className="text-white font-medium">{typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}</span>
+              </div>
+            ))}
           </div>
         ) : (
-          <div className={`flex items-center justify-center md:justify-start gap-3 text-sm ${inline ? 'mt-1.5 md:mt-0 md:border-l md:border-neutral-700 md:pl-4' : 'mt-1.5'}`}>
+          <div className={`flex items-center justify-center md:justify-start gap-3 text-sm flex-wrap ${inline ? 'mt-1.5 md:mt-0 md:border-l md:border-neutral-700 md:pl-4' : 'mt-1.5'}`}>
             <span className="text-neutral-500">
               Week: <span className="text-white font-medium">{countLast7}/{periodMax7}</span>
             </span>
@@ -253,6 +263,11 @@ export const PracticeCard: React.FC<PracticeCardProps> = ({
             <span className="border-l border-neutral-700 pl-3 text-neutral-500">
               All-time: <span className="text-white font-medium">{countAllTime.toLocaleString()}</span>
             </span>
+            {extraStats?.map((stat) => (
+              <span key={stat.label} className="border-l border-neutral-700 pl-3 text-neutral-500">
+                {stat.label}: <span className="text-white font-medium">{typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}</span>
+              </span>
+            ))}
           </div>
         )}
 
