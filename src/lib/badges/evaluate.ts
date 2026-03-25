@@ -15,7 +15,6 @@ import {
   UserBadgeStatus,
   BADGE_DEFINITIONS,
   getAllBadgeTypes,
-  getBadgesByCategory,
 } from './types'
 
 // Progress data for each badge type
@@ -23,12 +22,51 @@ interface BadgeProgressData {
   sessions: number
   interactions: number
   posts: number
+  comments: number
+  hearts: number
   visionVersions: number
   audioSets: number
   boardTiles: number
   checklist72h: boolean
   /** Total distinct calendar days with at least one Activation event */
   activationDays: number
+  /** Longest consecutive-day streaks per activity */
+  audioLongestStreak: number
+  paperLongestStreak: number
+  journalLongestStreak: number
+  abundanceLongestStreak: number
+  tribeLongestStreak: number
+}
+
+/**
+ * Compute the longest run of consecutive calendar days from a list of date strings.
+ * Accepts YYYY-MM-DD or ISO timestamps (only the first 10 chars are used).
+ * Returns 0 for an empty input.
+ */
+function computeLongestStreak(dates: string[]): number {
+  if (dates.length === 0) return 0
+
+  const unique = [...new Set(dates.map(d => d.substring(0, 10)))].sort()
+  if (unique.length === 0) return 0
+
+  let longest = 1
+  let current = 1
+
+  for (let i = 1; i < unique.length; i++) {
+    const prev = new Date(unique[i - 1] + 'T00:00:00')
+    const curr = new Date(unique[i] + 'T00:00:00')
+    const diffMs = curr.getTime() - prev.getTime()
+    const diffDays = diffMs / (1000 * 60 * 60 * 24)
+
+    if (diffDays === 1) {
+      current++
+      if (current > longest) longest = current
+    } else {
+      current = 1
+    }
+  }
+
+  return longest
 }
 
 /**
@@ -38,7 +76,6 @@ export async function getUserBadgeProgress(
   supabase: SupabaseClient,
   userId: string
 ): Promise<BadgeProgressData> {
-  // Execute all queries in parallel for performance
   const [
     sessionsResult,
     postsResult,
@@ -48,6 +85,13 @@ export async function getUserBadgeProgress(
     audioSetsResult,
     boardTilesResult,
     activationDays,
+    audioActiveDates,
+    paperDates,
+    journalDates,
+    abundanceDates,
+    tribePostDates,
+    tribeCommentDates,
+    tribeHeartDates,
   ] = await Promise.all([
     // Sessions attended (Alignment Gym)
     supabase
@@ -56,21 +100,21 @@ export async function getUserBadgeProgress(
       .eq('user_id', userId)
       .eq('attended', true),
 
-    // Vibe Tribe posts
+    // Vibe Tribe posts (count)
     supabase
       .from('vibe_posts')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('is_deleted', false),
 
-    // Vibe Tribe comments
+    // Vibe Tribe comments (count)
     supabase
       .from('vibe_comments')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('is_deleted', false),
 
-    // Vibe Tribe hearts given
+    // Vibe Tribe hearts given (count)
     supabase
       .from('vibe_hearts')
       .select('*', { count: 'exact', head: true })
@@ -94,23 +138,86 @@ export async function getUserBadgeProgress(
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId),
 
-    // Distinct activation days (counts unique calendar days with any qualifying activity)
+    // Distinct activation days (total across all activities)
     getDistinctActivationDays(supabase, userId),
+
+    // --- Per-activity dates for streak calculation ---
+
+    // Audio listening dates from area_activations
+    supabase
+      .from('area_activations')
+      .select('activation_date')
+      .eq('user_id', userId)
+      .eq('area', 'vision_audio')
+      .then(r => r.data?.map(d => d.activation_date) || []),
+
+    // Daily Paper dates
+    supabase
+      .from('daily_papers')
+      .select('entry_date')
+      .eq('user_id', userId)
+      .then(r => r.data?.map(d => d.entry_date) || []),
+
+    // Journal entry dates
+    supabase
+      .from('journal_entries')
+      .select('date')
+      .eq('user_id', userId)
+      .then(r => r.data?.map(d => d.date) || []),
+
+    // Abundance tracker dates
+    supabase
+      .from('abundance_events')
+      .select('date')
+      .eq('user_id', userId)
+      .then(r => r.data?.map(d => d.date) || []),
+
+    // Tribe dates: posts
+    supabase
+      .from('vibe_posts')
+      .select('created_at')
+      .eq('user_id', userId)
+      .eq('is_deleted', false)
+      .then(r => r.data?.map(d => d.created_at) || []),
+
+    // Tribe dates: comments
+    supabase
+      .from('vibe_comments')
+      .select('created_at')
+      .eq('user_id', userId)
+      .eq('is_deleted', false)
+      .then(r => r.data?.map(d => d.created_at) || []),
+
+    // Tribe dates: hearts
+    supabase
+      .from('vibe_hearts')
+      .select('created_at')
+      .eq('user_id', userId)
+      .then(r => r.data?.map(d => d.created_at) || []),
   ])
 
   const posts = postsResult.count || 0
   const comments = commentsResult.count || 0
   const hearts = heartsResult.count || 0
 
+  const allTribeDates = [...tribePostDates, ...tribeCommentDates, ...tribeHeartDates]
+
   return {
     sessions: sessionsResult.count || 0,
     interactions: posts + comments + hearts,
     posts,
+    comments,
+    hearts,
     visionVersions: visionVersionsResult.count || 0,
     audioSets: audioSetsResult.count || 0,
     boardTiles: boardTilesResult.count || 0,
     checklist72h: false,
     activationDays,
+    audioLongestStreak: computeLongestStreak(audioActiveDates),
+    paperLongestStreak: computeLongestStreak(paperDates),
+    journalLongestStreak: computeLongestStreak(journalDates),
+    abundanceLongestStreak: computeLongestStreak(abundanceDates),
+    tribeLongestStreak: computeLongestStreak(allTribeDates),
   }
 }
 
@@ -228,7 +335,7 @@ export function checkBadgeQualification(
   badge: BadgeDefinition,
   progress: BadgeProgressData
 ): { qualifies: boolean; current: number; target: number } {
-  const { type, threshold, activationDays, special } = badge
+  const { type, threshold, activationDays, streakDays, streakActivity, special } = badge
 
   // Handle special badges
   if (special) {
@@ -236,9 +343,24 @@ export function checkBadgeQualification(
       case 'checklist_72h':
         return { qualifies: progress.checklist72h, current: progress.checklist72h ? 1 : 0, target: 1 }
       case 'full_12_vision':
-        // Check if user has a vision with all 12 categories
-        // For now, use vision versions as proxy (needs refinement)
         return { qualifies: progress.visionVersions >= 1, current: progress.visionVersions >= 1 ? 1 : 0, target: 1 }
+    }
+  }
+
+  // Handle consecutive-day streak badges
+  if (streakDays && streakActivity) {
+    const streakMap: Record<string, number> = {
+      audio: progress.audioLongestStreak,
+      paper: progress.paperLongestStreak,
+      journal: progress.journalLongestStreak,
+      abundance: progress.abundanceLongestStreak,
+      tribe: progress.tribeLongestStreak,
+    }
+    const current = streakMap[streakActivity] || 0
+    return {
+      qualifies: current >= streakDays,
+      current,
+      target: streakDays,
     }
   }
 
@@ -265,11 +387,16 @@ export function checkBadgeQualification(
       
       // Connections badges
       case 'first_signal':
+      case 'voice_activated':
+      case 'signal_amplifier':
         current = progress.posts
         break
-      case 'vibe_contributor':
-      case 'vibe_anchor':
-        current = progress.interactions
+      case 'conversation_starter':
+        current = progress.comments
+        break
+      case 'heart_giver':
+      case 'heart_overflow':
+        current = progress.hearts
         break
       
       // Creations badges

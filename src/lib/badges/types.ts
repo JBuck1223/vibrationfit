@@ -14,7 +14,7 @@ import {
   Crown,
   MessageCircle,
   Heart,
-  Anchor,
+  HeartHandshake,
   GraduationCap,
   BookOpen,
   Layers,
@@ -25,6 +25,15 @@ import {
   Target,
   Star,
   Award,
+  Megaphone,
+  Radio,
+  MessageSquare,
+  Flame,
+  CalendarCheck,
+  Music,
+  FileText,
+  PenTool,
+  TrendingUp,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -39,8 +48,13 @@ export type BadgeType =
   | 'gym_og'
   // Connections
   | 'first_signal'
-  | 'vibe_contributor'
-  | 'vibe_anchor'
+  | 'voice_activated'
+  | 'signal_amplifier'
+  | 'conversation_starter'
+  | 'heart_giver'
+  | 'heart_overflow'
+  | 'tribe_streak_7d'
+  | 'tribe_streak_30d'
   // Activations
   | 'graduate_72h'
   | 'activated_3d'
@@ -48,6 +62,14 @@ export type BadgeType =
   | 'activated_14d'
   | 'activated_21d'
   | 'activated_28d'
+  | 'audio_streak_7d'
+  | 'audio_streak_30d'
+  | 'paper_streak_7d'
+  | 'paper_streak_30d'
+  | 'journal_streak_7d'
+  | 'journal_streak_30d'
+  | 'abundance_streak_7d'
+  | 'abundance_streak_30d'
   // Creations
   | 'life_author'
   | 'vision_weaver'
@@ -64,6 +86,10 @@ export interface BadgeDefinition {
   threshold?: number
   /** Number of distinct calendar days with at least one Activation event */
   activationDays?: number
+  /** Consecutive-day streak required (longest streak ever achieved) */
+  streakDays?: number
+  /** Which activity the streak tracks: 'audio' | 'paper' | 'journal' | 'abundance' | 'tribe' */
+  streakActivity?: 'audio' | 'paper' | 'journal' | 'abundance' | 'tribe'
   special?: 'checklist_72h' | 'full_12_vision'
   /** If true, shows next to user name in Vibe Tribe */
   showInline?: boolean
@@ -153,27 +179,79 @@ export const BADGE_DEFINITIONS: Record<BadgeType, BadgeDefinition> = {
     icon: MessageCircle,
     threshold: 1,
     meaning: 'You put yourself out there. Your first signal to the tribe says you are willing to be seen on this journey.',
-    nextBadge: 'Reach 25 interactions (posts, comments, hearts) to become a Conscious Connector.',
+    nextBadge: 'Create 5 posts to earn the Voice Activated badge.',
   },
-  vibe_contributor: {
-    type: 'vibe_contributor',
+  voice_activated: {
+    type: 'voice_activated',
     category: 'connections',
-    label: 'Conscious Connector',
-    description: '25 Vibe Tribe interactions',
+    label: 'Voice Activated',
+    description: '5 Vibe Tribe posts',
+    icon: Megaphone,
+    threshold: 5,
+    meaning: 'Five posts shared with the tribe. Your voice is activated -- you are no longer watching from the sidelines.',
+    nextBadge: 'Keep posting to reach 25 posts and become a Signal Amplifier.',
+  },
+  signal_amplifier: {
+    type: 'signal_amplifier',
+    category: 'connections',
+    label: 'Signal Amplifier',
+    description: '25 Vibe Tribe posts',
+    icon: Radio,
+    threshold: 25,
+    meaning: 'Twenty-five posts. You are amplifying your signal and raising the frequency of the entire tribe.',
+    nextBadge: null,
+  },
+  conversation_starter: {
+    type: 'conversation_starter',
+    category: 'connections',
+    label: 'Conversation Starter',
+    description: '10 comments in the Vibe Tribe',
+    icon: MessageSquare,
+    threshold: 10,
+    meaning: 'Ten comments. You are not just broadcasting -- you are in conversation. That is where real connection lives.',
+    nextBadge: null,
+  },
+  heart_giver: {
+    type: 'heart_giver',
+    category: 'connections',
+    label: 'Heart Giver',
+    description: '25 hearts given to the tribe',
     icon: Heart,
     threshold: 25,
-    meaning: 'Twenty-five interactions. You are not just observing -- you are actively lifting the vibration of the community.',
-    nextBadge: 'Hit 100 interactions to earn the Vibe Anchor badge and a special icon next to your name.',
+    meaning: 'Twenty-five hearts shared. Every heart you give is a moment of seeing someone else. That energy comes back.',
+    nextBadge: 'Give 100 hearts to earn the Heart Overflow badge.',
   },
-  vibe_anchor: {
-    type: 'vibe_anchor',
+  heart_overflow: {
+    type: 'heart_overflow',
     category: 'connections',
-    label: 'Vibe Anchor',
-    description: '100+ Vibe Tribe interactions',
-    icon: Anchor,
+    label: 'Heart Overflow',
+    description: '100 hearts given to the tribe',
+    icon: HeartHandshake,
     threshold: 100,
-    showInline: true, // Show next to name in Vibe Tribe
-    meaning: 'One hundred interactions. You are an anchor for this community -- people feel your presence and are lifted by it.',
+    showInline: true,
+    meaning: 'One hundred hearts. Your generosity of attention is overflowing. The tribe feels your presence.',
+    nextBadge: null,
+  },
+  tribe_streak_7d: {
+    type: 'tribe_streak_7d',
+    category: 'connections',
+    label: '7-Day Tribe Streak',
+    description: 'Engaged with the Vibe Tribe 7 days in a row',
+    icon: Flame,
+    streakDays: 7,
+    streakActivity: 'tribe',
+    meaning: 'Seven consecutive days in the tribe. You are building a daily habit of connection. Community is now part of your rhythm.',
+    nextBadge: 'Keep your tribe streak alive for 30 days to earn the ultimate connection badge.',
+  },
+  tribe_streak_30d: {
+    type: 'tribe_streak_30d',
+    category: 'connections',
+    label: '30-Day Tribe Streak',
+    description: 'Engaged with the Vibe Tribe 30 days in a row',
+    icon: CalendarCheck,
+    streakDays: 30,
+    streakActivity: 'tribe',
+    meaning: 'Thirty consecutive days of tribe engagement. You are proof that showing up for your community transforms everything.',
     nextBadge: null,
   },
 
@@ -238,6 +316,96 @@ export const BADGE_DEFINITIONS: Record<BadgeType, BadgeDefinition> = {
     icon: Award,
     activationDays: 28,
     meaning: 'Twenty-eight days activated. You have proof: you are a conscious creator in action. This is who you are now.',
+    nextBadge: null,
+  },
+
+  // --- Per-Activity Streak Badges ---
+  audio_streak_7d: {
+    type: 'audio_streak_7d',
+    category: 'activations',
+    label: '7-Day Audio Streak',
+    description: 'Listened to your vision audio 7 days in a row',
+    icon: Music,
+    streakDays: 7,
+    streakActivity: 'audio',
+    meaning: 'Seven consecutive days of listening. Your vision is being wired into your nervous system, one session at a time.',
+    nextBadge: 'Keep listening daily to reach a 30-day audio streak.',
+  },
+  audio_streak_30d: {
+    type: 'audio_streak_30d',
+    category: 'activations',
+    label: '30-Day Audio Streak',
+    description: 'Listened to your vision audio 30 days in a row',
+    icon: Headphones,
+    streakDays: 30,
+    streakActivity: 'audio',
+    meaning: 'Thirty consecutive days of vision audio. The Life I Choose is no longer words on a page -- it lives in your body.',
+    nextBadge: null,
+  },
+  paper_streak_7d: {
+    type: 'paper_streak_7d',
+    category: 'activations',
+    label: '7-Day Paper Streak',
+    description: 'Completed your Daily Paper 7 days in a row',
+    icon: FileText,
+    streakDays: 7,
+    streakActivity: 'paper',
+    meaning: 'Seven consecutive days of your Daily Paper. You are setting your intention and designing each day with purpose.',
+    nextBadge: 'Keep your Daily Paper going for 30 days straight.',
+  },
+  paper_streak_30d: {
+    type: 'paper_streak_30d',
+    category: 'activations',
+    label: '30-Day Paper Streak',
+    description: 'Completed your Daily Paper 30 days in a row',
+    icon: FileText,
+    streakDays: 30,
+    streakActivity: 'paper',
+    meaning: 'Thirty consecutive days of Daily Paper. Conscious creation is now your morning default. The compound effect is real.',
+    nextBadge: null,
+  },
+  journal_streak_7d: {
+    type: 'journal_streak_7d',
+    category: 'activations',
+    label: '7-Day Journal Streak',
+    description: 'Journaled 7 days in a row',
+    icon: PenTool,
+    streakDays: 7,
+    streakActivity: 'journal',
+    meaning: 'Seven consecutive days of journaling. You are building awareness by putting thoughts on the page, day after day.',
+    nextBadge: 'Keep journaling daily for 30 days to earn the ultimate journaling badge.',
+  },
+  journal_streak_30d: {
+    type: 'journal_streak_30d',
+    category: 'activations',
+    label: '30-Day Journal Streak',
+    description: 'Journaled 30 days in a row',
+    icon: PenTool,
+    streakDays: 30,
+    streakActivity: 'journal',
+    meaning: 'Thirty consecutive days of journaling. You have created a practice of self-reflection that most people only talk about.',
+    nextBadge: null,
+  },
+  abundance_streak_7d: {
+    type: 'abundance_streak_7d',
+    category: 'activations',
+    label: '7-Day Abundance Streak',
+    description: 'Tracked abundance 7 days in a row',
+    icon: TrendingUp,
+    streakDays: 7,
+    streakActivity: 'abundance',
+    meaning: 'Seven consecutive days of tracking abundance. What you measure grows. You are training your brain to see more of what is working.',
+    nextBadge: 'Keep tracking for 30 days straight to prove abundance is your frequency.',
+  },
+  abundance_streak_30d: {
+    type: 'abundance_streak_30d',
+    category: 'activations',
+    label: '30-Day Abundance Streak',
+    description: 'Tracked abundance 30 days in a row',
+    icon: TrendingUp,
+    streakDays: 30,
+    streakActivity: 'abundance',
+    meaning: 'Thirty consecutive days of abundance tracking. You have proof: abundance is not something you chase -- it is something you notice.',
     nextBadge: null,
   },
 

@@ -20,13 +20,13 @@ const badgeCache = new Map<string, BadgeType[]>()
 
 /**
  * Shows earned badges next to a user's name.
- * Primarily used to show vibe_anchor badge in Vibe Tribe.
+ * Primarily used to show heart_overflow badge in Vibe Tribe.
  * 
  * Caches badge data to minimize API calls.
  */
 export default function UserBadgeIndicator({
   userId,
-  showOnly = ['vibe_anchor'], // Default to showing vibe_anchor (leader badge)
+  showOnly = ['heart_overflow'],
   size = 'xs',
   className = '',
 }: UserBadgeIndicatorProps) {
