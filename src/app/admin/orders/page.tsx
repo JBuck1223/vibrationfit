@@ -15,7 +15,6 @@ import {
   ChevronUp,
   ArrowLeft,
   Clock,
-  DollarSign,
   User,
   Tag,
   Undo2,
@@ -23,7 +22,7 @@ import {
   AlertTriangle,
   CreditCard,
   CheckCircle,
-  Package,
+  Ban,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
@@ -48,19 +47,6 @@ interface Subscription {
   }
 }
 
-interface OrderItem {
-  id: string
-  order_id: string
-  product_id: string
-  quantity: number
-  amount: number
-  currency: string
-  completion_status: string | null
-  refunded_at: string | null
-  metadata: Record<string, any>
-  products: { name: string; key: string } | null
-}
-
 interface Order {
   id: string
   user_id: string
@@ -77,7 +63,6 @@ interface Order {
   stripe_checkout_session_id: string | null
   user_accounts: OrderAccount
   subscriptions: Subscription[]
-  order_items: OrderItem[]
 }
 
 interface ScheduledMsg {
@@ -167,7 +152,6 @@ export default function AdminOrdersPage() {
   // Refund state
   const [refunding, setRefunding] = useState<string | null>(null)
   const [refundConfirm, setRefundConfirm] = useState<string | null>(null)
-  const [selectedRefundItems, setSelectedRefundItems] = useState<Set<string>>(new Set())
   const [refundResults, setRefundResults] = useState<Record<string, { success: boolean; message: string }>>({})
 
   // Cancel subscription state
@@ -175,6 +159,10 @@ export default function AdminOrdersPage() {
   const [cancelConfirm, setCancelConfirm] = useState<{ subId: string; orderId: string } | null>(null)
   const [cancelImmediate, setCancelImmediate] = useState(false)
   const [cancelResults, setCancelResults] = useState<Record<string, { success: boolean; message: string }>>({})
+
+  // Cancel ALL subscriptions state
+  const [cancelAllConfirm, setCancelAllConfirm] = useState<string | null>(null)
+  const [cancelingAll, setCancelingAll] = useState<string | null>(null)
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -219,14 +207,14 @@ export default function AdminOrdersPage() {
     }
   }
 
-  async function handleRefund(orderId: string, itemIds: string[]) {
+  async function handleRefund(orderId: string) {
     setRefunding(orderId)
     setRefundResults(prev => ({ ...prev, [orderId]: { success: false, message: '' } }))
     try {
       const res = await fetch('/api/admin/refund', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId, itemIds }),
+        body: JSON.stringify({ orderId }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Refund failed')
@@ -235,7 +223,6 @@ export default function AdminOrdersPage() {
         [orderId]: { success: true, message: `${data.type} refund of ${formatCurrency(data.amount)} processed` },
       }))
       setRefundConfirm(null)
-      setSelectedRefundItems(new Set())
       setTimeout(fetchOrders, 2000)
     } catch (err) {
       setRefundResults(prev => ({
@@ -275,6 +262,37 @@ export default function AdminOrdersPage() {
       }))
     } finally {
       setCanceling(null)
+    }
+  }
+
+  async function handleCancelAll(userId: string, orderId: string) {
+    setCancelingAll(userId)
+    setCancelResults(prev => ({ ...prev, [orderId]: { success: false, message: '' } }))
+    try {
+      const res = await fetch('/api/admin/cancel-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, immediate: true }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Cancel failed')
+      const clearedMsg = data.membershipTierCleared ? ' Membership tier cleared.' : ''
+      setCancelResults(prev => ({
+        ...prev,
+        [orderId]: {
+          success: true,
+          message: `${data.canceled} subscription(s) canceled immediately.${clearedMsg}`,
+        },
+      }))
+      setCancelAllConfirm(null)
+      setTimeout(fetchOrders, 2000)
+    } catch (err) {
+      setCancelResults(prev => ({
+        ...prev,
+        [orderId]: { success: false, message: err instanceof Error ? err.message : 'Unknown error' },
+      }))
+    } finally {
+      setCancelingAll(null)
     }
   }
 
@@ -547,6 +565,49 @@ export default function AdminOrdersPage() {
                               </div>
                             ))}
                           </div>
+                          {/* Cancel All button */}
+                          {subs.filter(s => !s.cancel_at_period_end).length > 0 && (
+                            <div className="mt-3 pt-3 border-t border-neutral-700">
+                              {cancelAllConfirm === order.user_id ? (
+                                <div className="flex items-center gap-3">
+                                  <div className="flex items-center gap-1 text-xs text-red-400">
+                                    <AlertTriangle className="w-3 h-3" />
+                                    Cancel all {subs.length} subscription(s) immediately? This also removes their membership tier and storage add-ons.
+                                  </div>
+                                  <Button
+                                    variant="danger"
+                                    className="text-xs whitespace-nowrap"
+                                    onClick={() => handleCancelAll(order.user_id, order.id)}
+                                    disabled={cancelingAll === order.user_id}
+                                  >
+                                    {cancelingAll === order.user_id ? (
+                                      <RefreshCw className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                      <>
+                                        <Ban className="w-3 h-3 mr-1" />
+                                        Confirm Cancel All
+                                      </>
+                                    )}
+                                  </Button>
+                                  <button
+                                    onClick={() => setCancelAllConfirm(null)}
+                                    className="text-xs text-neutral-500 hover:text-neutral-300"
+                                  >
+                                    Back
+                                  </button>
+                                </div>
+                              ) : (
+                                <Button
+                                  variant="outline"
+                                  className="text-xs border-red-500/30 text-red-400 hover:bg-red-500/10"
+                                  onClick={() => setCancelAllConfirm(order.user_id)}
+                                >
+                                  <Ban className="w-3 h-3 mr-1" />
+                                  Cancel All Subscriptions
+                                </Button>
+                              )}
+                            </div>
+                          )}
                           {cancelResults[order.id] && (
                             <p className={`text-xs mt-2 ${cancelResults[order.id].success ? 'text-green-400' : 'text-red-400'}`}>
                               {cancelResults[order.id].success && <CheckCircle className="w-3 h-3 inline mr-1" />}
@@ -641,18 +702,43 @@ export default function AdminOrdersPage() {
 
                         {/* Refund button */}
                         {order.status === 'paid' && order.total_amount > 0 && (
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              setRefundConfirm(order.id)
-                              setSelectedRefundItems(new Set())
-                            }}
-                            className="text-sm"
-                            disabled={refundConfirm === order.id}
-                          >
-                            <Undo2 className="w-4 h-4 mr-2" />
-                            Refund
-                          </Button>
+                          <>
+                            {refundConfirm === order.id ? (
+                              <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1 text-xs text-yellow-400">
+                                  <AlertTriangle className="w-3 h-3" />
+                                  Refund {formatCurrency(order.total_amount, order.currency)}?
+                                </div>
+                                <Button
+                                  variant="danger"
+                                  className="text-sm"
+                                  onClick={() => handleRefund(order.id)}
+                                  disabled={refunding === order.id}
+                                >
+                                  {refunding === order.id ? (
+                                    <RefreshCw className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    'Confirm Refund'
+                                  )}
+                                </Button>
+                                <button
+                                  onClick={() => setRefundConfirm(null)}
+                                  className="text-xs text-neutral-500 hover:text-neutral-300"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                onClick={() => setRefundConfirm(order.id)}
+                                className="text-sm"
+                              >
+                                <Undo2 className="w-4 h-4 mr-2" />
+                                Refund
+                              </Button>
+                            )}
+                          </>
                         )}
 
                         {order.status === 'refunded' && (
@@ -678,121 +764,6 @@ export default function AdminOrdersPage() {
                         )}
                       </div>
 
-                      {/* Refund item picker */}
-                      {refundConfirm === order.id && order.order_items && order.order_items.length > 0 && (() => {
-                        const refundableItems = order.order_items.filter(i => i.completion_status !== 'refunded')
-                        const selectedTotal = order.order_items
-                          .filter(i => selectedRefundItems.has(i.id))
-                          .reduce((sum, i) => sum + i.amount, 0)
-                        const allSelected = refundableItems.length > 0 && refundableItems.every(i => selectedRefundItems.has(i.id))
-
-                        return (
-                          <div className="border border-yellow-500/30 bg-yellow-500/5 rounded-xl p-4 space-y-3">
-                            <div className="flex items-center justify-between">
-                              <h4 className="text-sm font-medium text-yellow-400 flex items-center gap-2">
-                                <AlertTriangle className="w-4 h-4" />
-                                Select items to refund
-                              </h4>
-                              <button
-                                onClick={() => { setRefundConfirm(null); setSelectedRefundItems(new Set()) }}
-                                className="text-xs text-neutral-500 hover:text-neutral-300"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-
-                            {refundableItems.length > 1 && (
-                              <label className="flex items-center gap-2 text-xs text-neutral-400 cursor-pointer pb-1 border-b border-neutral-800">
-                                <input
-                                  type="checkbox"
-                                  checked={allSelected}
-                                  onChange={() => {
-                                    if (allSelected) {
-                                      setSelectedRefundItems(new Set())
-                                    } else {
-                                      setSelectedRefundItems(new Set(refundableItems.map(i => i.id)))
-                                    }
-                                  }}
-                                  className="rounded border-neutral-600 accent-yellow-500"
-                                />
-                                Select all
-                              </label>
-                            )}
-
-                            <div className="space-y-1">
-                              {order.order_items.map(item => {
-                                const itemName = item.products?.name || item.products?.key || 'Unknown Product'
-                                const isItemRefunded = item.completion_status === 'refunded'
-                                const isChecked = selectedRefundItems.has(item.id)
-
-                                return (
-                                  <label
-                                    key={item.id}
-                                    className={`flex items-center gap-3 rounded-lg p-2.5 transition-colors ${
-                                      isItemRefunded
-                                        ? 'opacity-50 cursor-default'
-                                        : 'cursor-pointer hover:bg-neutral-800/50'
-                                    } ${isChecked ? 'bg-neutral-800' : ''}`}
-                                  >
-                                    {isItemRefunded ? (
-                                      <CheckCircle className="w-4 h-4 text-blue-400 flex-shrink-0" />
-                                    ) : (
-                                      <input
-                                        type="checkbox"
-                                        checked={isChecked}
-                                        onChange={() => {
-                                          setSelectedRefundItems(prev => {
-                                            const next = new Set(prev)
-                                            if (next.has(item.id)) {
-                                              next.delete(item.id)
-                                            } else {
-                                              next.add(item.id)
-                                            }
-                                            return next
-                                          })
-                                        }}
-                                        className="rounded border-neutral-600 accent-yellow-500 flex-shrink-0"
-                                      />
-                                    )}
-                                    <Package className="w-4 h-4 text-neutral-500 flex-shrink-0" />
-                                    <span className="text-sm text-neutral-200 flex-1">{itemName}</span>
-                                    <span className={`text-sm font-medium ${isItemRefunded ? 'text-blue-400 line-through' : 'text-neutral-300'}`}>
-                                      {formatCurrency(item.amount, item.currency)}
-                                    </span>
-                                    {isItemRefunded && (
-                                      <span className="text-[10px] text-blue-400">refunded</span>
-                                    )}
-                                  </label>
-                                )
-                              })}
-                            </div>
-
-                            {selectedRefundItems.size > 0 && (
-                              <div className="flex items-center justify-between pt-3 border-t border-neutral-800">
-                                <div className="text-sm text-neutral-300">
-                                  Refund total: <span className="font-bold text-white">{formatCurrency(selectedTotal, order.currency)}</span>
-                                  <span className="text-neutral-500 ml-1">
-                                    ({selectedRefundItems.size} item{selectedRefundItems.size > 1 ? 's' : ''})
-                                  </span>
-                                </div>
-                                <Button
-                                  variant="danger"
-                                  className="text-sm"
-                                  onClick={() => handleRefund(order.id, Array.from(selectedRefundItems))}
-                                  disabled={refunding === order.id}
-                                >
-                                  {refunding === order.id ? (
-                                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                                  ) : (
-                                    <Undo2 className="w-4 h-4 mr-2" />
-                                  )}
-                                  Refund {formatCurrency(selectedTotal, order.currency)}
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })()}
                     </div>
                   )}
                 </Card>

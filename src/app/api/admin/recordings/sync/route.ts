@@ -36,16 +36,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
+    const body = await request.json().catch(() => ({}))
+    const targetSessionId = body.session_id as string | undefined
+
     const supabase = createServiceClient()
 
-    // Find sessions that have recordings in progress, missing, or failed (retry)
-    const { data: pendingSessions, error: dbError } = await supabase
+    let query = supabase
       .from('video_sessions')
       .select('id, daily_room_name, daily_recording_id, recording_status, recording_url, title')
-      .in('recording_status', ['recording', 'processing', 'none', 'failed'])
       .not('daily_room_name', 'is', null)
-      .order('created_at', { ascending: false })
-      .limit(50)
+
+    if (targetSessionId) {
+      query = query.eq('id', targetSessionId)
+    } else {
+      query = query
+        .in('recording_status', ['recording', 'processing', 'none', 'failed'])
+        .order('created_at', { ascending: false })
+        .limit(50)
+    }
+
+    const { data: pendingSessions, error: dbError } = await query
 
     if (dbError) {
       return NextResponse.json({ error: dbError.message }, { status: 500 })

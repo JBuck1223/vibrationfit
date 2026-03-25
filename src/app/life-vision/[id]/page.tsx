@@ -176,62 +176,63 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   // Load audio tracks for vision
   const loadAudioTracks = async (visionId: string) => {
     try {
-      // Get the standard (voice-only) audio set for this vision
+      // Get ALL standard (voice-only) audio sets for this vision
       const { data: audioSets } = await supabase
         .from('audio_sets')
         .select('id, variant')
         .eq('vision_id', visionId)
         .eq('variant', 'standard')
         .order('created_at', { ascending: false })
-        .limit(1)
 
       if (!audioSets || audioSets.length === 0) return
 
-      // Get audio tracks for the standard audio set
+      const audioSetIds = audioSets.map(s => s.id)
+
+      // Get completed audio tracks from ALL standard audio sets
       const { data: tracks } = await supabase
         .from('audio_tracks')
-        .select('id, section_key, audio_url')
-        .eq('audio_set_id', audioSets[0].id)
+        .select('id, section_key, audio_url, audio_set_id, created_at')
+        .in('audio_set_id', audioSetIds)
         .eq('status', 'completed')
+        .not('audio_url', 'is', null)
+        .order('created_at', { ascending: false })
 
       if (!tracks) return
 
-      // Map tracks by section_key
-      // Map audio section_keys to vision category keys (handles both old and new keys)
       const sectionToCategory: Record<string, string> = {
-        'meta_intro': 'forward',  // Legacy mapping
-        'meta_outro': 'conclusion',  // Legacy mapping
-        'forward': 'forward',  // Direct mapping for new tracks
-        'conclusion': 'conclusion',  // Direct mapping for new tracks
-        // Map all other keys 1:1, with legacy assessment key support
+        'meta_intro': 'forward',
+        'meta_outro': 'conclusion',
+        'forward': 'forward',
+        'conclusion': 'conclusion',
         health: 'health',
         family: 'family',
         love: 'love',
-        romance: 'love', // Legacy support: map romance to love
+        romance: 'love',
         social: 'social',
         fun: 'fun',
         travel: 'travel',
         home: 'home',
         money: 'money',
         work: 'work',
-        business: 'work', // Legacy support: map business to work
+        business: 'work',
         stuff: 'stuff',
-        possessions: 'stuff', // Legacy support: map possessions to stuff
+        possessions: 'stuff',
         giving: 'giving',
         spirituality: 'spirituality',
       }
       
+      // Use the most recent track per category across all standard sets
       const trackMap: Record<string, { id: string; url: string; title: string }> = {}
       tracks.forEach(track => {
-        // Always use voice-only audio_url for standard version
         const url = track.audio_url
         if (url) {
-          // Map section_key (meta_intro) to category key (forward)
           const categoryKey = sectionToCategory[track.section_key] || track.section_key
-          trackMap[categoryKey] = {
-            id: track.id,
-            url,
-            title: VISION_SECTIONS.find(cat => cat.key === categoryKey)?.label || categoryKey
+          if (!trackMap[categoryKey]) {
+            trackMap[categoryKey] = {
+              id: track.id,
+              url,
+              title: VISION_SECTIONS.find(cat => cat.key === categoryKey)?.label || categoryKey
+            }
           }
         }
       })

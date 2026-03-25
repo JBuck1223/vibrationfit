@@ -8,56 +8,112 @@
  * - recording.started: Recording started
  * - recording.error: Recording failed
  * 
- * Setup: Configure this URL in Daily.co dashboard → Developers → Webhooks
- * URL: https://vibrationfit.com/api/webhooks/daily
+ * Setup: Register via Daily REST API:
+ *   POST https://api.daily.co/v1/webhooks
+ *   { "url": "https://vibrationfit.com/api/webhooks/daily", "eventTypes": [...] }
+ * 
+ * Signature verification: Daily sends X-Webhook-Signature and X-Webhook-Timestamp
+ * headers. The hmac secret is BASE-64 encoded. Signature = HMAC-SHA256(
+ *   base64decode(secret), timestamp + "." + body
+ * )
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import crypto from 'crypto'
 import { createServiceClient } from '@/lib/supabase/service'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300 // 5 min — large recordings take time to transfer
 
-// Verify the webhook is from Daily.co using their signing secret
-function verifyWebhookSignature(body: string, signature: string | null): boolean {
+function verifyWebhookSignature(
+  body: string,
+  signature: string | null,
+  timestamp: string | null
+): 'valid' | 'skipped' | 'invalid' {
   const secret = process.env.DAILY_WEBHOOK_SECRET
   if (!secret) {
-    // If no secret configured, log warning but allow (for initial setup)
-    console.warn('⚠️ DAILY_WEBHOOK_SECRET not set — skipping signature verification')
-    return true
+    console.warn('[daily-webhook] DAILY_WEBHOOK_SECRET not set — skipping verification')
+    return 'skipped'
   }
-  if (!signature) return false
+  if (!signature) return 'invalid'
 
   try {
-    const crypto = require('crypto')
-    const hmac = crypto.createHmac('sha256', secret)
-    hmac.update(body)
-    const expectedSignature = hmac.digest('hex')
-    return crypto.timingSafeEqual(
+    const decodedSecret = Buffer.from(secret, 'base64')
+    const signPayload = timestamp ? `${timestamp}.${body}` : body
+
+    const hmac = crypto.createHmac('sha256', decodedSecret)
+    hmac.update(signPayload)
+    const expected = hmac.digest('hex')
+
+    const isValid = crypto.timingSafeEqual(
       Buffer.from(signature),
-      Buffer.from(expectedSignature)
+      Buffer.from(expected)
     )
+    if (isValid) return 'valid'
+
+    // Fallback: try without timestamp in case format differs
+    if (timestamp) {
+      const hmac2 = crypto.createHmac('sha256', decodedSecret)
+      hmac2.update(body)
+      const expected2 = hmac2.digest('hex')
+      if (
+        expected2.length === signature.length &&
+        crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected2))
+      ) {
+        return 'valid'
+      }
+    }
+
+    // Fallback: try raw secret (not base64-decoded) for backwards compat
+    const hmac3 = crypto.createHmac('sha256', secret)
+    hmac3.update(body)
+    const expected3 = hmac3.digest('hex')
+    if (
+      expected3.length === signature.length &&
+      crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected3))
+    ) {
+      return 'valid'
+    }
+
+    return 'invalid'
   } catch {
-    return false
+    return 'invalid'
   }
 }
 
 export async function POST(request: NextRequest) {
+  const rawBody = await request.text()
+
+  // Return 200 quickly — Daily requires fast responses and will FAIL the webhook
+  // after 3 slow/non-200 responses. Parse and verify first, process after responding
+  // only for the test/verification ping.
+  let event: Record<string, unknown>
   try {
-    const rawBody = await request.text()
-    const signature = request.headers.get('x-webhook-signature')
+    event = JSON.parse(rawBody)
+  } catch {
+    return NextResponse.json({ received: true })
+  }
 
-    // Verify signature
-    if (!verifyWebhookSignature(rawBody, signature)) {
-      console.error('Invalid webhook signature')
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
-    }
+  const eventType = (event.type || event.event) as string | undefined
 
-    const event = JSON.parse(rawBody)
-    const eventType = event.type || event.event
+  // Daily sends a test POST when creating/reactivating a webhook — return 200 fast
+  if (!eventType) {
+    console.log('[daily-webhook] Received verification ping — responding 200')
+    return NextResponse.json({ received: true })
+  }
 
-    console.log(`📡 Daily.co webhook: ${eventType}`)
+  const signature = request.headers.get('x-webhook-signature')
+  const timestamp = request.headers.get('x-webhook-timestamp')
 
+  const verifyResult = verifyWebhookSignature(rawBody, signature, timestamp)
+  if (verifyResult === 'invalid') {
+    console.error(`[daily-webhook] Invalid signature for ${eventType}`)
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+  }
+
+  console.log(`[daily-webhook] ${eventType} (sig: ${verifyResult})`)
+
+  try {
     switch (eventType) {
       case 'recording.started':
         await handleRecordingStarted(event)
@@ -72,14 +128,13 @@ export async function POST(request: NextRequest) {
         break
 
       default:
-        console.log(`Unhandled Daily.co event: ${eventType}`)
+        console.log(`[daily-webhook] Unhandled event: ${eventType}`)
     }
-
-    return NextResponse.json({ received: true })
   } catch (error) {
-    console.error('Webhook processing error:', error)
-    return NextResponse.json({ error: 'Processing failed' }, { status: 500 })
+    console.error(`[daily-webhook] Processing error for ${eventType}:`, error)
   }
+
+  return NextResponse.json({ received: true })
 }
 
 /**
