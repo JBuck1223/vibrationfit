@@ -109,7 +109,7 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
   }, [currentTrack, cachedTrackIds, getPlaybackUrl])
 
   const handleTrackComplete = useCallback(async (trackId: string) => {
-    if (hasTrackedCurrentPlay.current) return
+    if (hasTrackedThisListen.current) return
     
     try {
       const { createClient } = await import('@/lib/supabase/client')
@@ -137,10 +137,10 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
       const track = tracks[currentTrackIndex]
       if (track?.id) {
         hasTrackedThisListen.current = true
-        recordPlay(track.id)
+        handleTrackComplete(track.id)
       }
     }
-  }, [currentTrackIndex, tracks, recordPlay])
+  }, [currentTrackIndex, tracks, handleTrackComplete])
   
   useEffect(() => {
     tracks.forEach(track => {
@@ -222,8 +222,8 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
     const audio = audioRef.current
     if (!audio || !resolvedUrl) return
     
-    checkAndTrackCompletion()
-    hasTrackedCurrentPlay.current = false
+    checkAndTrackPlay()
+    hasTrackedThisListen.current = false
     audio.src = resolvedUrl
     
     if (isPlaying && resolvedUrl) {
@@ -238,7 +238,7 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
         audio.addEventListener('canplaythrough', playWhenReady, { once: true })
       }
     }
-  }, [currentTrackIndex, resolvedUrl, isPlaying, checkAndTrackCompletion])
+  }, [currentTrackIndex, resolvedUrl, isPlaying, checkAndTrackPlay])
 
   const togglePlayPause = () => {
     const audio = audioRef.current
@@ -498,7 +498,7 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
               <div key={track.id} className="flex items-center gap-1">
                 <button
                   onClick={() => {
-                    checkAndTrackCompletion()
+                    checkAndTrackPlay()
                     const wasPlaying = isPlaying
                     setIsPlaying(false)
                     setTimeout(() => {

@@ -96,7 +96,7 @@ export const AudioPlayer = React.forwardRef<HTMLAudioElement, AudioPlayerProps>(
     }, [track, isCached, getPlaybackUrl])
 
     const handleTrackComplete = useCallback(async (trackId: string) => {
-      if (hasTrackedCurrentPlay.current) return
+      if (hasTrackedThisListen.current) return
       
       try {
         const { createClient } = await import('@/lib/supabase/client')
@@ -122,9 +122,9 @@ export const AudioPlayer = React.forwardRef<HTMLAudioElement, AudioPlayerProps>(
       
       if (audio.currentTime >= 5 && track?.id) {
         hasTrackedThisListen.current = true
-        recordPlay(track.id)
+        handleTrackComplete(track.id)
       }
-    }, [track?.id, recordPlay])
+    }, [track?.id, handleTrackComplete])
 
     useEffect(() => {
       trackIdRef.current = track.id

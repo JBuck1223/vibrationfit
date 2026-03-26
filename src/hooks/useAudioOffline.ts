@@ -90,7 +90,7 @@ export function useAudioOffline(tracks: AudioTrack[]): UseAudioOfflineReturn {
           }
         }
 
-        const blob = new Blob(chunks, { type: 'audio/mpeg' })
+        const blob = new Blob(chunks as BlobPart[], { type: 'audio/mpeg' })
         await cacheAudioTrack(track.id, blob, {
           title: track.title,
           duration: track.duration,
