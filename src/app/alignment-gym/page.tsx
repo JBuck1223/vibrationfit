@@ -23,7 +23,8 @@ import {
   Zap,
   Flame,
   Shield,
-  ChevronDown
+  ChevronDown,
+  Apple,
 } from 'lucide-react'
 import { 
   PageHero, 
@@ -219,6 +220,46 @@ export default function AlignmentGymPage() {
     return `In ${diffDays} days`
   }
 
+  // Add to Calendar helpers
+  const formatICSDate = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+
+  const handleAddToAppleCalendar = (session: SessionWithParticipants) => {
+    const start = new Date(session.scheduled_at)
+    const end = new Date(start.getTime() + (session.scheduled_duration_minutes || 60) * 60 * 1000)
+    const title = session.title || 'The Alignment Gym'
+    const joinLink = `${window.location.origin}/session/${session.id}`
+    const desc = `Weekly group coaching session. Join: ${joinLink}`
+    const ics = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//VibrationFit//Alignment Gym//EN',
+      'BEGIN:VEVENT',
+      `DTSTART:${formatICSDate(start)}`,
+      `DTEND:${formatICSDate(end)}`,
+      `SUMMARY:${title.replace(/,/g, '\\,').replace(/;/g, '\\;')}`,
+      `DESCRIPTION:${desc.replace(/,/g, '\\,').replace(/;/g, '\\;').replace(/\n/g, '\\n')}`,
+      `URL:${joinLink}`,
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n')
+    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'Alignment-Gym.ics'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const getGoogleCalendarUrl = (session: SessionWithParticipants) => {
+    const start = new Date(session.scheduled_at)
+    const end = new Date(start.getTime() + (session.scheduled_duration_minutes || 60) * 60 * 1000)
+    const title = encodeURIComponent(session.title || 'The Alignment Gym')
+    const joinLink = `${window.location.origin}/session/${session.id}`
+    const details = encodeURIComponent(`Weekly group coaching session. Join: ${joinLink}`)
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${formatICSDate(start)}/${formatICSDate(end)}&details=${details}`
+  }
+
   // Loading state
   if (loading) {
     return (
@@ -367,8 +408,8 @@ export default function AlignmentGymPage() {
             }`}
             onClick={() => router.push(`/session/${nextSession.id}`)}
           >
-            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
-              <div>
+            <div className="flex flex-col items-center text-center md:flex-row md:items-center md:text-left gap-4">
+              <div className="flex-1 min-w-0">
                 <Badge variant={isLive ? 'success' : 'premium'} className={`mb-2 ${isLive ? 'animate-pulse' : ''}`}>
                   {isLive ? (
                     <><span className="w-2 h-2 rounded-full bg-green-400 mr-2 animate-pulse" />Live Now</>
@@ -384,58 +425,82 @@ export default function AlignmentGymPage() {
                     {nextSession.description}
                   </p>
                 )}
-              </div>
-              <Button
-                variant="primary"
-                size="lg"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  router.push(`/session/${nextSession.id}`)
-                }}
-                className={isLive ? 'animate-pulse' : ''}
-              >
-                <Play className="w-5 h-5 mr-2" />
-                {isLive ? 'Join Live Session' : canJoin ? 'Join Session' : 'View Session'}
-              </Button>
-            </div>
 
-            <div className="flex flex-wrap gap-4 text-sm">
-              <div className="flex items-center gap-2 text-neutral-300">
-                <Calendar className="w-4 h-4 text-primary-500" />
-                <span>
-                  {new Date(nextSession.scheduled_at).toLocaleDateString(undefined, {
-                    weekday: 'long',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-neutral-300">
-                <Clock className="w-4 h-4 text-primary-500" />
-                <span>
-                  {new Date(nextSession.scheduled_at).toLocaleTimeString(undefined, {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-neutral-300">
-                <Video className="w-4 h-4 text-primary-500" />
-                <span>{nextSession.scheduled_duration_minutes} minutes</span>
-              </div>
-              {nextSession.participant_count && nextSession.participant_count > 0 && (
-                <div className="flex items-center gap-2 text-neutral-300">
-                  <Users className="w-4 h-4 text-primary-500" />
-                  <span>{nextSession.participant_count} attending</span>
+                <div className="flex flex-wrap justify-center md:justify-start gap-4 text-sm mt-4">
+                  <div className="flex items-center gap-2 text-neutral-300">
+                    <Calendar className="w-4 h-4 text-primary-500" />
+                    <span>
+                      {new Date(nextSession.scheduled_at).toLocaleDateString(undefined, {
+                        weekday: 'long',
+                        month: 'long',
+                        day: 'numeric',
+                      })}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-neutral-300">
+                    <Clock className="w-4 h-4 text-primary-500" />
+                    <span>
+                      {new Date(nextSession.scheduled_at).toLocaleTimeString(undefined, {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-neutral-300">
+                    <Video className="w-4 h-4 text-primary-500" />
+                    <span>{nextSession.scheduled_duration_minutes} minutes</span>
+                  </div>
+                  {(nextSession.participant_count ?? 0) > 0 && (
+                    <div className="flex items-center gap-2 text-neutral-300">
+                      <Users className="w-4 h-4 text-primary-500" />
+                      <span>{nextSession.participant_count} attending</span>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            {!canJoin && !isLive && (
-              <p className="mt-4 text-sm text-neutral-500">
-                Session opens 10 minutes before start time. Click to view details.
-              </p>
-            )}
+                {!canJoin && !isLive && (
+                  <p className="mt-4 text-sm text-neutral-500">
+                    Session opens 10 minutes before start time. Click to view details.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-col items-center gap-2 flex-shrink-0">
+                <Button
+                  variant="primary"
+                  size="lg"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    router.push(`/session/${nextSession.id}`)
+                  }}
+                  className={isLive ? 'animate-pulse' : ''}
+                >
+                  <Play className="w-5 h-5 mr-2" />
+                  {isLive ? 'Join Live Session' : canJoin ? 'Join Session' : 'View Session'}
+                </Button>
+                <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm">
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); handleAddToAppleCalendar(nextSession) }}
+                    className="inline-flex items-center gap-1.5 text-[#00FFFF] hover:text-[#00FFFF]/80 underline underline-offset-2"
+                  >
+                    <Apple className="w-4 h-4 flex-shrink-0" />
+                    Apple
+                  </button>
+                  <span className="text-neutral-500">or</span>
+                  <a
+                    href={getGoogleCalendarUrl(nextSession)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center gap-1.5 text-[#00FFFF] hover:text-[#00FFFF]/80 underline underline-offset-2"
+                  >
+                    <Calendar className="w-4 h-4 flex-shrink-0" />
+                    Google
+                  </a>
+                </div>
+              </div>
+            </div>
           </Card>
         ) : (
           <Card className="p-6 md:p-8 text-center">
