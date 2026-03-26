@@ -111,7 +111,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [editingCategory, setEditingCategory] = useState<string | null>(null)
   const [editingContent, setEditingContent] = useState('')
-  const [audioTracks, setAudioTracks] = useState<Record<string, { id: string; url: string; title: string }>>({})
+  const [audioTracks, setAudioTracks] = useState<Record<string, { id: string; url: string; title: string; setName?: string; voiceName?: string }>>({})
   const [availableAudioSets, setAvailableAudioSets] = useState<AudioSetOption[]>([])
   const [selectedAudioSetId, setSelectedAudioSetId] = useState<string | null>(null) // null = "best per section"
   const [isAudioDropdownOpen, setIsAudioDropdownOpen] = useState(false)
@@ -283,10 +283,12 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         // Load from a specific audio set - query the set's variant directly
         const { data: setData } = await supabase
           .from('audio_sets')
-          .select('variant')
+          .select('variant, name, voice_id')
           .eq('id', audioSetId)
           .single()
         const useDirectAudio = !setData || setData.variant === 'standard' || setData.variant === 'personal'
+        const setName = setData?.name || 'Audio Set'
+        const voiceName = setData?.variant === 'personal' ? 'Personal Recording' : (VOICE_DISPLAY_NAMES[setData?.voice_id || ''] || setData?.voice_id || '')
 
         const { data } = await supabase
           .from('audio_tracks')
@@ -302,13 +304,15 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
             resolved_url: !useDirectAudio && t.mixed_audio_url && t.mix_status === 'completed'
               ? t.mixed_audio_url
               : t.audio_url,
+            set_name: setName,
+            voice_name: voiceName,
           }))
         }
       } else {
         // Best-per-section across all standard sets
         const { data: audioSets } = await supabase
           .from('audio_sets')
-          .select('id')
+          .select('id, name, voice_id')
           .eq('vision_id', visionId)
           .eq('variant', 'standard')
           .order('created_at', { ascending: false })
@@ -318,16 +322,26 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
           return
         }
 
+        const setLookup = new Map(audioSets.map(s => [s.id, s]))
+
         const { data } = await supabase
           .from('audio_tracks')
-          .select('id, section_key, audio_url, created_at')
+          .select('id, section_key, audio_url, audio_set_id, created_at')
           .in('audio_set_id', audioSets.map(s => s.id))
           .eq('status', 'completed')
           .not('audio_url', 'is', null)
           .order('created_at', { ascending: false })
 
         if (data) {
-          tracks = data.map(t => ({ ...t, resolved_url: t.audio_url }))
+          tracks = data.map(t => {
+            const parentSet = setLookup.get(t.audio_set_id)
+            return {
+              ...t,
+              resolved_url: t.audio_url,
+              set_name: parentSet?.name || 'Audio Set',
+              voice_name: VOICE_DISPLAY_NAMES[parentSet?.voice_id || ''] || parentSet?.voice_id || '',
+            }
+          })
         }
       }
 
@@ -336,7 +350,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         return
       }
 
-      const trackMap: Record<string, { id: string; url: string; title: string }> = {}
+      const trackMap: Record<string, { id: string; url: string; title: string; setName?: string; voiceName?: string }> = {}
       tracks.forEach(track => {
         const url = track.resolved_url
         if (url) {
@@ -345,7 +359,9 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
             trackMap[categoryKey] = {
               id: track.id,
               url,
-              title: VISION_SECTIONS.find(cat => cat.key === categoryKey)?.label || categoryKey
+              title: VISION_SECTIONS.find(cat => cat.key === categoryKey)?.label || categoryKey,
+              setName: track.set_name,
+              voiceName: track.voice_name,
             }
           }
         }
@@ -1082,13 +1098,11 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
 
         {/* Compact Category Selection */}
         <Card className="p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
+                <div className="text-center mb-4">
                     <h3 className="text-lg font-semibold text-white">Select Life Areas</h3>
                     <p className="text-sm text-neutral-400">
                       Showing {selectedCategories.length} of {VISION_SECTIONS.length}
                     </p>
-                  </div>
                 </div>
 
                 {/* Category Grid */}
@@ -1108,13 +1122,12 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         {/* Audio Set Selector */}
         {availableAudioSets.length > 0 && (
           <Card className="p-4">
-            <div className="flex items-center gap-3 mb-3">
-              <Music className="w-5 h-5 text-primary-500" />
+            <div className="text-center mb-3">
               <h3 className="text-lg font-semibold text-white">Attached Audio</h3>
-              <span className="text-xs text-neutral-500">{availableAudioSets.length} {availableAudioSets.length === 1 ? 'set' : 'sets'} available</span>
+              <p className="text-sm text-neutral-400">{availableAudioSets.length} {availableAudioSets.length === 1 ? 'set' : 'sets'} available</p>
             </div>
 
-            <div className="relative max-w-xl">
+            <div className="relative max-w-xl mx-auto">
               <button
                 type="button"
                 onClick={() => setIsAudioDropdownOpen(!isAudioDropdownOpen)}
@@ -1127,7 +1140,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                         <Music className="w-4 h-4" />
                       </div>
                       <div className="text-left flex-1 min-w-0">
-                        <div className="font-medium text-sm truncate">Best Per Section</div>
+                        <div className="font-medium text-sm truncate">Newest Per Section</div>
                         <div className="text-xs text-neutral-500">Most recent track for each category</div>
                       </div>
                     </>
@@ -1168,7 +1181,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                           <Music className="w-4 h-4" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm text-white">Best Per Section</div>
+                          <div className="font-medium text-sm text-white">Newest Per Section</div>
                           <div className="text-xs text-neutral-500">Most recent track for each category across all voice sets</div>
                         </div>
                         {selectedAudioSetId === null && (

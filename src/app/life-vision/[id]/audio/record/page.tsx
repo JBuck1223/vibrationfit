@@ -6,7 +6,7 @@ import { Button, Card, Container, StatusBadge, Icon, Spinner, Stack, PageHero, I
 import { CategoryGrid } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { MediaRecorderComponent } from '@/components/MediaRecorder'
-import { CheckCircle, Headphones, Mic, Wand2, Clock, AudioLines, ListMusic, Eye } from 'lucide-react'
+import { CheckCircle, Headphones, Mic, Wand2, Clock, AudioLines, ListMusic, Eye, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
@@ -36,6 +36,7 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
   const [hasFullTrack, setHasFullTrack] = useState(false)
   const [intensiveId, setIntensiveId] = useState<string | null>(null)
   const [showStepCompleteModal, setShowStepCompleteModal] = useState(false)
+  const [refinedCategories, setRefinedCategories] = useState<string[]>([])
 
   useEffect(() => {
     ;(async () => {
@@ -87,6 +88,12 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
     
     setVision(v)
 
+    // Extract refined categories (sections whose text changed from parent version)
+    let refined: string[] = Array.isArray(v?.refined_categories)
+      ? v.refined_categories
+      : []
+    setRefinedCategories(refined)
+
     // Check for existing "Personal Recording" audio set
     const { data: existingSet } = await supabase
       .from('audio_sets')
@@ -125,12 +132,125 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
         setHasFullTrack(fullTrackExists)
       }
     }
+
+    // Recovery: if no personal recordings on this vision, look for them on previous versions
+    if (recordingMap.size === 0 && user && v) {
+      try {
+        const { data: previousSet } = await supabase
+          .from('audio_sets')
+          .select('id, vision_id')
+          .eq('user_id', user.id)
+          .eq('variant', 'personal')
+          .neq('vision_id', visionId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (previousSet) {
+          const { data: oldTracks } = await supabase
+            .from('audio_tracks')
+            .select('*')
+            .eq('audio_set_id', previousSet.id)
+            .eq('status', 'completed')
+
+          if (oldTracks && oldTracks.length > 0) {
+            // Pre-scan: only recover tracks whose text still matches the current vision
+            const recoverable = oldTracks.filter(track => {
+              if (track.section_key === 'full') return false
+              const currentText = (v[track.section_key] || '').trim()
+              const trackText = (track.text_content || '').trim()
+              return currentText.length > 0 && currentText === trackText
+            })
+
+            if (recoverable.length > 0) {
+              // Reuse existing empty set or create a new one
+              let setId = existingSet?.id
+              if (!setId) {
+                const { data: newSet } = await supabase
+                  .from('audio_sets')
+                  .insert({
+                    vision_id: visionId,
+                    user_id: user.id,
+                    name: 'Personal Recording',
+                    description: 'Your own voice reading your vision',
+                    variant: 'personal',
+                    voice_id: 'user_voice',
+                    is_active: true
+                  })
+                  .select()
+                  .single()
+                if (newSet) setId = newSet.id
+              }
+
+              if (setId) {
+                setAudioSetId(setId)
+                const changedSections: string[] = []
+
+                for (const track of recoverable) {
+                  const { error: insertErr } = await supabase
+                    .from('audio_tracks')
+                    .insert({
+                      user_id: user.id,
+                      vision_id: visionId,
+                      audio_set_id: setId,
+                      section_key: track.section_key,
+                      content_hash: track.content_hash,
+                      text_content: track.text_content,
+                      voice_id: track.voice_id,
+                      s3_bucket: track.s3_bucket,
+                      s3_key: track.s3_key,
+                      audio_url: track.audio_url,
+                      duration_seconds: track.duration_seconds,
+                      status: 'completed',
+                      mix_status: track.mix_status,
+                      mixed_audio_url: track.mixed_audio_url,
+                      mixed_s3_key: track.mixed_s3_key,
+                      play_count: 0,
+                      content_type: track.content_type
+                    })
+
+                  if (!insertErr) {
+                    recordingMap.set(track.section_key, {
+                      url: track.audio_url,
+                      duration: track.duration_seconds || 0
+                    })
+                  }
+                }
+
+                // Determine which sections changed (had old recordings but text no longer matches)
+                const allOldSectionKeys = oldTracks
+                  .filter(t => t.section_key !== 'full')
+                  .map(t => t.section_key)
+                const recoveredKeys = new Set(recoverable.map(t => t.section_key))
+                for (const key of allOldSectionKeys) {
+                  if (!recoveredKeys.has(key)) changedSections.push(key)
+                }
+
+                // If we detected changed sections, surface them as needing re-recording
+                if (changedSections.length > 0 && refined.length === 0) {
+                  refined = changedSections
+                  setRefinedCategories(changedSections)
+                }
+
+                setRecordings(new Map(recordingMap))
+                console.log(`Recovered ${recordingMap.size} personal recordings from previous vision, ${changedSections.length} sections need re-recording`)
+              }
+            }
+          }
+        }
+      } catch (recoveryErr) {
+        console.warn('Personal recording recovery failed (non-blocking):', recoveryErr)
+      }
+    }
     
-    // Auto-select first incomplete section (works for both first-time and returning users)
-    const firstIncompleteSection = VISION_SECTIONS.find(section => !recordingMap.has(section.key))
-    if (firstIncompleteSection) {
-      setActiveSection(firstIncompleteSection.key)
-      console.log('📍 Auto-selected first incomplete section:', firstIncompleteSection.key)
+    // Auto-select: prioritize sections needing re-recording, then first incomplete
+    const firstNeedsReRecord = refined.length > 0
+      ? VISION_SECTIONS.find(s => refined.includes(s.key) && !recordingMap.has(s.key))
+      : null
+    const firstIncomplete = VISION_SECTIONS.find(section => !recordingMap.has(section.key))
+    const autoSelect = firstNeedsReRecord || firstIncomplete
+    if (autoSelect) {
+      setActiveSection(autoSelect.key)
     }
 
     setLoading(false)
@@ -295,6 +415,10 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
   const allSectionsRecorded = completedCount === totalCount
   const canCreateFullTrack = allSectionsRecorded && audioSetId && !hasFullTrack
 
+  const sectionsNeedingReRecord = refinedCategories.filter(key => !recordings.has(key))
+  const activeNeedsReRecord = refinedCategories.includes(activeSection) && !isRecorded
+  const hasCarriedOverRecordings = refinedCategories.length > 0 && completedCount > 0
+
   async function handleCreateFullTrack() {
     if (!audioSetId || !visionId || creatingFullTrack) return
 
@@ -373,6 +497,12 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
                   <Mic className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1" />
                   {completedCount} of {totalCount} recorded
                 </span>
+                {sectionsNeedingReRecord.length > 0 && (
+                  <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs md:text-sm font-semibold border bg-[#FFFF00]/15 text-[#FFFF00] border-[#FFFF00]/30">
+                    <RefreshCw className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1" />
+                    {sectionsNeedingReRecord.length} updated
+                  </span>
+                )}
               </div>
             </div>
           )}
@@ -455,6 +585,23 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
         </PageHero>
       </div>
 
+      {/* Re-recording banner */}
+      {sectionsNeedingReRecord.length > 0 && (
+        <Card className="mb-6 p-4 border-[#FFFF00]/30 bg-[#FFFF00]/5">
+          <div className="flex items-start gap-3">
+            <RefreshCw className="w-5 h-5 text-[#FFFF00] shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-[#FFFF00]">
+                {sectionsNeedingReRecord.length} section{sectionsNeedingReRecord.length > 1 ? 's' : ''} updated since your last recording
+              </p>
+              <p className="text-xs text-neutral-400 mt-1">
+                Your unchanged recordings were carried over. Record the updated sections below.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Category Selection Bar */}
       <div className="mb-6">
         <div className="mb-4 text-center">
@@ -473,9 +620,10 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
           categories={VISION_SECTIONS}
           activeCategory={activeSection}
           completedCategories={Array.from(recordings.keys())}
+          refinedCategories={refinedCategories}
           onCategoryClick={(key) => setActiveSection(key)}
           layout="14-column"
-          mode="completion"
+          mode={refinedCategories.length > 0 ? 'record' : 'completion'}
           variant="outlined"
           withCard={true}
         />
@@ -509,7 +657,22 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
                   </div>
                 </div>
               )}
+              {activeNeedsReRecord && (
+                <div className="ml-4">
+                  <div className="w-12 h-12 rounded-full bg-[#FFFF00]/20 border-2 border-[#FFFF00]/40 flex items-center justify-center">
+                    <RefreshCw className="w-6 h-6 text-[#FFFF00]" />
+                  </div>
+                </div>
+              )}
             </div>
+
+            {activeNeedsReRecord && (
+              <div className="mt-4 p-3 rounded-lg bg-[#FFFF00]/5 border border-[#FFFF00]/20">
+                <p className="text-xs text-[#FFFF00]/80">
+                  This section was updated during your last refinement. Record the new version below.
+                </p>
+              </div>
+            )}
 
             {!hasText ? (
               <div className="mt-6 p-8 bg-neutral-800/30 border border-neutral-700 border-dashed rounded-lg text-center">

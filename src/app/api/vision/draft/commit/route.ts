@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     // Verify draft exists and user has access to it
     const { data: draft, error: draftError } = await supabase
       .from('vision_versions')
-      .select('id, user_id, household_id, is_draft')
+      .select('id, user_id, household_id, is_draft, parent_id')
       .eq('id', draftId)
       .single()
 
@@ -67,6 +67,24 @@ export async function POST(request: NextRequest) {
     }
     
     console.log('Commit result:', commitResult)
+
+    // Carry over audio sets/tracks from parent vision (non-blocking)
+    if (draft.parent_id) {
+      try {
+        const { data: carryOverResult, error: carryOverError } = await supabase.rpc(
+          'carry_over_audio_to_new_vision',
+          { p_new_vision_id: draftId, p_parent_vision_id: draft.parent_id }
+        )
+
+        if (carryOverError) {
+          console.error('Audio carry-over failed (non-blocking):', carryOverError)
+        } else {
+          console.log('Audio carry-over result:', carryOverResult)
+        }
+      } catch (carryOverErr) {
+        console.error('Audio carry-over exception (non-blocking):', carryOverErr)
+      }
+    }
 
     // Fetch the newly committed vision
     const { data: newActive, error: fetchError } = await supabase
