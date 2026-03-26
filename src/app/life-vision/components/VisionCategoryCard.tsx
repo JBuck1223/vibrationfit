@@ -26,6 +26,8 @@ interface VisionCategoryCardProps {
     id: string
     url: string
     title: string
+    setName?: string
+    voiceName?: string
   }
   editable?: boolean
   isRefined?: boolean
@@ -126,6 +128,13 @@ export function VisionCategoryCard({
             {/* Audio Player */}
             {audioTrack && audioTrack.url && audioTrack.id && (
               <div className="mb-4">
+                {(audioTrack.setName || audioTrack.voiceName) && (
+                  <div className="flex items-center gap-2 mb-1.5 px-1">
+                    <span className="text-xs text-neutral-500 truncate">
+                      {audioTrack.setName}{audioTrack.voiceName ? ` · ${audioTrack.voiceName}` : ''}
+                    </span>
+                  </div>
+                )}
                 <AudioPlayer
                   track={{
                     id: audioTrack.id,

@@ -81,7 +81,8 @@ export async function POST(request: NextRequest) {
         is_active: false,
         is_draft: true,
         
-        // Tracking
+        // Lineage tracking
+        parent_id: activeVision.id,
         refined_categories: [],
         
         // Timestamps

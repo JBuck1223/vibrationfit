@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Check } from 'lucide-react'
+import { Check, RefreshCw } from 'lucide-react'
 import { cn } from '../shared-utils'
 import { Button } from '../forms/Button'
 import { Badge } from '../badges/Badge'
@@ -22,7 +22,7 @@ interface CategoryGridProps extends React.HTMLAttributes<HTMLDivElement> {
   activeCategory?: string
   onCategoryClick?: (categoryKey: string) => void
   layout?: '14-column' | '12-column'
-  mode?: 'selection' | 'completion' | 'draft'
+  mode?: 'selection' | 'completion' | 'draft' | 'record'
   showSelectAll?: boolean
   onSelectAll?: () => void
   selectAllLabel?: string
@@ -83,11 +83,18 @@ export const CategoryGrid = React.forwardRef<HTMLDivElement, CategoryGridProps>(
             const isCompleted = completedCategories.includes(category.key)
             const isRefined = refinedCategories.includes(category.key)
             
+            // In 'record' mode: green check for completed, amber icon for refined-but-not-completed
+            const needsReRecord = mode === 'record' && isRefined && !isCompleted
             const showBadge = 
               (mode === 'completion' && isCompleted) || 
-              (mode === 'draft' && isRefined)
+              (mode === 'draft' && isRefined) ||
+              (mode === 'record' && (isCompleted || needsReRecord))
             
-            const badgeColor = mode === 'draft' ? refinementBadgeColor : completionBadgeColor
+            const badgeColor = needsReRecord 
+              ? refinementBadgeColor 
+              : mode === 'draft' 
+                ? refinementBadgeColor 
+                : completionBadgeColor
 
             return (
               <div key={category.key} className="relative">
@@ -96,7 +103,11 @@ export const CategoryGrid = React.forwardRef<HTMLDivElement, CategoryGridProps>(
                     className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#333] border-2 flex items-center justify-center z-10"
                     style={{ borderColor: badgeColor }}
                   >
-                    <Check className="w-3 h-3" style={{ color: badgeColor }} strokeWidth={3} />
+                    {needsReRecord ? (
+                      <RefreshCw className="w-3 h-3" style={{ color: badgeColor }} strokeWidth={3} />
+                    ) : (
+                      <Check className="w-3 h-3" style={{ color: badgeColor }} strokeWidth={3} />
+                    )}
                   </div>
                 )}
 
