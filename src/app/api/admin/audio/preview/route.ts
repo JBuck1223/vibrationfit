@@ -84,7 +84,7 @@ async function synthesizeElevenLabs(
   }
 
   const { audio } = await generateSpeech({
-    model: elevenlabs.speech('eleven_multilingual_v2'),
+    model: elevenlabs.speech('eleven_multilingual_v2') as unknown as Parameters<typeof generateSpeech>[0]['model'],
     text,
     voice,
     providerOptions: {
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
         )
     }
 
-    return new NextResponse(audioBuffer, {
+    return new NextResponse(new Uint8Array(audioBuffer), {
       headers: {
         'Content-Type': 'audio/mpeg',
         'Content-Length': String(audioBuffer.length),

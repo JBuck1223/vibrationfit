@@ -383,7 +383,7 @@ export default function AudioAuditionPage() {
       <Container size="xl" className="py-8">
         <PageHero
           title="Voice Audition Studio"
-          description="Compare TTS providers and find the perfect voice for meditative tracks"
+          subtitle="Compare TTS providers and find the perfect voice for meditative tracks"
         />
 
         {/* Provider tabs */}
