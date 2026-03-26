@@ -1,8 +1,10 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Play, Pause, Volume2, VolumeX } from 'lucide-react'
+import { Play, Pause, Volume2, VolumeX, Download, CheckCircle, Loader2 } from 'lucide-react'
 import { cn } from '../shared-utils'
+import { useMediaSession } from '@/hooks/useMediaSession'
+import { useAudioOffline } from '@/hooks/useAudioOffline'
 import type { AudioTrack } from './types'
 
 const PROGRESS_STORAGE_PREFIX = 'vf_audio_progress_'
@@ -60,7 +62,42 @@ export const AudioPlayer = React.forwardRef<HTMLAudioElement, AudioPlayerProps>(
     const lastSaveTimeRef = useRef<number>(0)
     const trackIdRef = useRef<string>(track.id)
 
-    const recordPlay = useCallback(async (trackId: string) => {
+    const handlePlay = useCallback(() => {
+      const audio = audioRef.current
+      if (audio) { audio.play(); setIsPlaying(true) }
+    }, [])
+
+    const handlePause = useCallback(() => {
+      const audio = audioRef.current
+      if (audio) { audio.pause(); setIsPlaying(false) }
+    }, [])
+
+    useMediaSession({
+      track,
+      isPlaying,
+      onPlay: handlePlay,
+      onPause: handlePause,
+      audioRef,
+    })
+
+    const tracksArray = React.useMemo(() => [track], [track])
+    const { cachedTrackIds, downloadingTrackIds, downloadTrack, removeTrack, getPlaybackUrl } = useAudioOffline(tracksArray)
+    const [resolvedUrl, setResolvedUrl] = useState<string>(track.url)
+    const isCached = cachedTrackIds.has(track.id)
+    const downloadProgress = downloadingTrackIds.get(track.id)
+    const isDownloading = downloadProgress !== undefined
+
+    useEffect(() => {
+      let cancelled = false
+      getPlaybackUrl(track).then(url => {
+        if (!cancelled) setResolvedUrl(url)
+      })
+      return () => { cancelled = true }
+    }, [track, isCached, getPlaybackUrl])
+
+    const handleTrackComplete = useCallback(async (trackId: string) => {
+      if (hasTrackedCurrentPlay.current) return
+      
       try {
         const { createClient } = await import('@/lib/supabase/client')
         const supabase = createClient()
@@ -208,7 +245,7 @@ export const AudioPlayer = React.forwardRef<HTMLAudioElement, AudioPlayerProps>(
       <div className={cn('bg-[#1F1F1F] border-2 border-[#333] rounded-2xl p-4 md:p-6', className)}>
         <audio
           ref={audioRef}
-          src={track.url}
+          src={resolvedUrl}
           autoPlay={autoPlay}
           preload="metadata"
         />
@@ -261,6 +298,25 @@ export const AudioPlayer = React.forwardRef<HTMLAudioElement, AudioPlayerProps>(
               className="w-20 h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer"
             />
           </div>
+
+          <button
+            onClick={() => isCached ? removeTrack(track.id) : downloadTrack(track)}
+            disabled={isDownloading}
+            title={isCached ? 'Remove offline copy' : isDownloading ? 'Downloading...' : 'Download for offline'}
+            className={cn(
+              'p-2 rounded-lg transition-colors flex-shrink-0',
+              isCached ? 'text-[#39FF14] hover:text-[#39FF14]/70' : 'text-neutral-400 hover:text-white',
+              isDownloading && 'cursor-wait'
+            )}
+          >
+            {isDownloading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : isCached ? (
+              <CheckCircle className="w-5 h-5" />
+            ) : (
+              <Download className="w-5 h-5" />
+            )}
+          </button>
         </div>
       </div>
     )

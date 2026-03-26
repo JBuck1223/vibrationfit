@@ -23,6 +23,7 @@ import {
   CreditCard,
   CheckCircle,
   Ban,
+  CloudDownload,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
@@ -164,6 +165,10 @@ export default function AdminOrdersPage() {
   const [cancelAllConfirm, setCancelAllConfirm] = useState<string | null>(null)
   const [cancelingAll, setCancelingAll] = useState<string | null>(null)
 
+  // Sync from Stripe state
+  const [syncing, setSyncing] = useState<string | null>(null)
+  const [syncResults, setSyncResults] = useState<Record<string, { success: boolean; message: string }>>({})
+
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true)
@@ -293,6 +298,37 @@ export default function AdminOrdersPage() {
       }))
     } finally {
       setCancelingAll(null)
+    }
+  }
+
+  async function handleSyncFromStripe(userId: string, orderId: string) {
+    setSyncing(orderId)
+    setSyncResults(prev => ({ ...prev, [orderId]: { success: false, message: '' } }))
+    try {
+      const res = await fetch('/api/admin/sync-subscriptions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Sync failed')
+      const msg = data.synced > 0
+        ? `Synced ${data.synced} subscription(s) from Stripe (${data.total} total in Stripe)`
+        : `No new subscriptions to sync (${data.total} in Stripe, all already tracked)`
+      setSyncResults(prev => ({
+        ...prev,
+        [orderId]: { success: true, message: msg },
+      }))
+      if (data.synced > 0) {
+        setTimeout(fetchOrders, 1500)
+      }
+    } catch (err) {
+      setSyncResults(prev => ({
+        ...prev,
+        [orderId]: { success: false, message: err instanceof Error ? err.message : 'Unknown error' },
+      }))
+    } finally {
+      setSyncing(null)
     }
   }
 
@@ -486,6 +522,41 @@ export default function AdminOrdersPage() {
                           </div>
                         )}
                       </div>
+
+                      {/* Sync from Stripe (when no subscriptions found) */}
+                      {subs.length === 0 && (
+                        <div className="bg-neutral-800/50 rounded-lg p-3">
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm text-neutral-400">
+                              No subscriptions tracked in database for this user.
+                            </div>
+                            <Button
+                              variant="outline"
+                              className="text-xs"
+                              onClick={() => handleSyncFromStripe(order.user_id, order.id)}
+                              disabled={syncing === order.id}
+                            >
+                              {syncing === order.id ? (
+                                <>
+                                  <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                                  Syncing...
+                                </>
+                              ) : (
+                                <>
+                                  <CloudDownload className="w-3 h-3 mr-1" />
+                                  Sync from Stripe
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                          {syncResults[order.id]?.message && (
+                            <p className={`text-xs mt-2 ${syncResults[order.id].success ? 'text-green-400' : 'text-red-400'}`}>
+                              {syncResults[order.id].success && <CheckCircle className="w-3 h-3 inline mr-1" />}
+                              {syncResults[order.id].message}
+                            </p>
+                          )}
+                        </div>
+                      )}
 
                       {/* Active Subscriptions */}
                       {subs.length > 0 && (

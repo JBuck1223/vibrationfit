@@ -767,10 +767,14 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
       ],
     },
     vibeTribe: {
-      maxSize: 50 * 1024 * 1024, // 50MB for vibe tribe media
+      maxSize: 500 * 1024 * 1024, // 500MB for vibe tribe media
       types: [
-        'image/jpeg', 'image/png', 'image/webp', 'image/gif',
-        'video/mp4', 'video/quicktime', 'video/webm',
+        // Images
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif',
+        // Videos - standard
+        'video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi',
+        // Videos - iPhone/mobile specific
+        'video/3gpp', 'video/3gpp2', 'video/x-m4v', 'video/hevc',
       ],
     },
     abundance: {

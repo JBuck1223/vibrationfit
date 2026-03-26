@@ -11,8 +11,6 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { checkIsAdmin } from '@/middleware/admin'
 import { triggerEvent } from '@/lib/messaging/events'
 import { getPaymentPlanLabel } from '@/lib/intensive/utils'
-import { stripe } from '@/lib/stripe/config'
-import type Stripe from 'stripe'
 
 // ─── GET: list orders + email status ────────────────────────────────────────
 export async function GET(request: NextRequest) {
@@ -90,67 +88,6 @@ export async function GET(request: NextRequest) {
       const existing = subscriptionMap.get(sub.user_id) || []
       existing.push(enrichedSub)
       subscriptionMap.set(sub.user_id, existing)
-    }
-
-    // Stripe fallback: for users with no DB subscriptions, check Stripe directly
-    // by looking up the Stripe customer via payment intent on their orders
-    if (stripe) {
-      const usersWithoutSubs = userIds.filter(uid => !subscriptionMap.has(uid))
-      if (usersWithoutSubs.length > 0) {
-        const stripeCustomerIds = new Set<string>()
-        const customerToUser = new Map<string, string>()
-
-        for (const order of orders) {
-          if (!usersWithoutSubs.includes(order.user_id)) continue
-          if (customerToUser.has(order.user_id)) continue
-          if (!order.stripe_payment_intent_id) continue
-
-          try {
-            const pi = await stripe.paymentIntents.retrieve(order.stripe_payment_intent_id)
-            const custId = typeof pi.customer === 'string' ? pi.customer : (pi.customer as Stripe.Customer)?.id
-            if (custId) {
-              stripeCustomerIds.add(custId)
-              customerToUser.set(custId, order.user_id)
-            }
-          } catch {
-            // payment intent may no longer exist
-          }
-        }
-
-        for (const custId of stripeCustomerIds) {
-          try {
-            const stripeSubs = await stripe.subscriptions.list({
-              customer: custId,
-              status: 'all',
-              limit: 10,
-            })
-            const userId = customerToUser.get(custId)!
-            for (const ss of stripeSubs.data) {
-              if (ss.status === 'canceled') continue
-              const tierType = ss.metadata?.tier_type || ''
-              const productName = ss.items.data[0]?.price?.nickname
-                || ss.items.data[0]?.price?.product
-                || tierType
-                || 'Stripe Subscription'
-              const existing = subscriptionMap.get(userId) || []
-              existing.push({
-                id: ss.id,
-                user_id: userId,
-                stripe_subscription_id: ss.id,
-                status: ss.status,
-                cancel_at_period_end: ss.cancel_at_period_end,
-                current_period_end: new Date(((ss as unknown as Record<string, unknown>).current_period_end as number) * 1000).toISOString(),
-                membership_tier_id: null,
-                membership_tiers: { name: productName, tier_type: tierType || 'stripe' },
-                source: 'stripe',
-              })
-              subscriptionMap.set(userId, existing)
-            }
-          } catch (err) {
-            console.error(`Failed to fetch Stripe subs for customer ${custId}:`, err)
-          }
-        }
-      }
     }
 
     // Merge account data onto each order
