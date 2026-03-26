@@ -385,22 +385,20 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
                   className="bg-[#2A2A2A] text-white px-3 py-1 rounded-lg text-base md:text-lg font-semibold text-center focus:outline-none focus:ring-2 focus:ring-primary-500 max-w-md w-full"
                 />
               ) : (
-                <div
-                  className="group/title flex items-center justify-center gap-2"
+                <h3
+                  className={`group/title text-white font-semibold text-lg text-center${onRename ? ' cursor-pointer' : ''}`}
                   onClick={onRename ? handleStartEdit : undefined}
                   role={onRename ? 'button' : undefined}
                   tabIndex={onRename ? 0 : undefined}
                 >
-                  <h3 className={`text-white font-semibold text-lg text-center${onRename ? ' cursor-pointer' : ''}`}>
-                    {setName}
-                  </h3>
+                  {setName}
                   {onRename && (
                     <Edit2
-                      className="w-4 h-4 text-neutral-400 hover:text-white cursor-pointer opacity-100 md:opacity-0 md:group-hover/title:opacity-100 transition-opacity flex-shrink-0"
+                      className="inline-block w-3 h-3 ml-1 -translate-y-1 text-neutral-400 hover:text-white cursor-pointer opacity-100 md:opacity-0 md:group-hover/title:opacity-100 transition-opacity"
                       onClick={handleStartEdit}
                     />
                   )}
-                </div>
+                </h3>
               )}
             </div>
           )}

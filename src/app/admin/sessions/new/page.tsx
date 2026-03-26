@@ -22,7 +22,11 @@ import {
   Dumbbell,
   Search,
   X,
-  PhoneCall
+  PhoneCall,
+  Repeat,
+  Calendar,
+  Minus,
+  Plus,
 } from 'lucide-react'
 import { 
   PageHero, 
@@ -114,6 +118,10 @@ function NewSessionContent() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [createdSessionId, setCreatedSessionId] = useState<string | null>(null)
+  const [createdCount, setCreatedCount] = useState(1)
+  
+  const [repeatWeekly, setRepeatWeekly] = useState(false)
+  const [repeatWeeks, setRepeatWeeks] = useState(8)
   
   // Admin users list
   const [admins, setAdmins] = useState<AdminUser[]>([])
@@ -152,10 +160,11 @@ function NewSessionContent() {
           setAdmins(data.users || [])
           // Set default to first admin
           if (data.users?.length > 0) {
+            const defaultHost = data.users.find((a: AdminUser) => a.email === 'jordan@vibrationfit.com') || data.users[0]
             setFormData(prev => ({
               ...prev,
-              host_admin_id: data.users[0].id,
-              host_email: data.users[0].email,
+              host_admin_id: defaultHost.id,
+              host_email: defaultHost.email,
             }))
           }
         }
@@ -305,6 +314,7 @@ function NewSessionContent() {
           host_admin_id: formData.host_admin_id || undefined,
           enable_recording: formData.enable_recording,
           enable_waiting_room: formData.enable_waiting_room,
+          ...(repeatWeekly && repeatWeeks > 1 && { repeat_weekly_count: repeatWeeks }),
         }),
       })
 
@@ -315,6 +325,7 @@ function NewSessionContent() {
       }
 
       setCreatedSessionId(data.session.id)
+      setCreatedCount(data.sessions ? data.sessions.length : 1)
       setSuccess(true)
     } catch (err) {
       console.error('Error creating session:', err)
@@ -326,6 +337,7 @@ function NewSessionContent() {
 
   // Success state
   if (success && createdSessionId) {
+    const isMultiple = createdCount > 1
     return (
       <Container size="xl">
         <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
@@ -333,23 +345,29 @@ function NewSessionContent() {
             <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-6">
               <CheckCircle className="w-8 h-8 text-green-500" />
             </div>
-            <h2 className="text-xl md:text-2xl font-bold text-white mb-2">Session Created!</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-white mb-2">
+              {isMultiple ? `${createdCount} Sessions Created!` : 'Session Created!'}
+            </h2>
             <p className="text-neutral-400 mb-6">
-              Your video session has been scheduled and invitation sent.
+              {isMultiple
+                ? `${createdCount} weekly sessions have been scheduled. Graduates have been notified.`
+                : 'Your video session has been scheduled and invitation sent.'}
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button 
                 variant="outline" 
-                onClick={() => router.push(`/admin/sessions/${createdSessionId}`)}
+                onClick={() => router.push('/admin/sessions')}
               >
-                View Session
+                {isMultiple ? 'View All Sessions' : 'View Session'}
               </Button>
-              <Button
-                variant="primary"
-                onClick={() => router.push(`/session/${createdSessionId}`)}
-              >
-                Join Now
-              </Button>
+              {!isMultiple && (
+                <Button
+                  variant="primary"
+                  onClick={() => router.push(`/session/${createdSessionId}`)}
+                >
+                  Join Now
+                </Button>
+              )}
             </div>
           </Card>
         </div>
@@ -672,19 +690,90 @@ function NewSessionContent() {
             </div>
 
             {/* Date & Time */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <DatePicker
-                label="Date *"
-                value={formData.scheduled_date}
-                onChange={(date) => handleChange('scheduled_date', date)}
-                minDate={new Date().toISOString().split('T')[0]}
-              />
-              <TimePicker
-                label="Time *"
-                value={formData.scheduled_time}
-                onChange={(time) => handleChange('scheduled_time', time)}
-                step={15}
-              />
+            <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <DatePicker
+                  label="Date *"
+                  value={formData.scheduled_date}
+                  onChange={(date) => handleChange('scheduled_date', date)}
+                  minDate={new Date().toISOString().split('T')[0]}
+                />
+                <TimePicker
+                  label="Time (ET) *"
+                  value={formData.scheduled_time}
+                  onChange={(time) => handleChange('scheduled_time', time)}
+                  step={15}
+                />
+              </div>
+              <p className="text-xs text-neutral-500 mt-1.5">All times are in Eastern Time (ET)</p>
+            </div>
+
+            {/* Repeat Weekly */}
+            <div className="space-y-3">
+              <label className="flex items-center gap-3 p-3 bg-neutral-800/50 rounded-lg cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={repeatWeekly}
+                  onChange={(e) => setRepeatWeekly(e.target.checked)}
+                  className="w-4 h-4 rounded border-neutral-600 bg-neutral-700 text-primary-500 focus:ring-primary-500"
+                />
+                <div className="flex-1">
+                  <p className="text-sm text-white flex items-center gap-2">
+                    <Repeat className="w-4 h-4 text-secondary-500" />
+                    Repeat Weekly
+                  </p>
+                  <p className="text-xs text-neutral-500">Create multiple sessions on the same day and time each week</p>
+                </div>
+              </label>
+
+              {repeatWeekly && (
+                <div className="ml-7 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-neutral-300">Number of weeks:</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setRepeatWeeks(w => Math.max(2, w - 1))}
+                        className="w-8 h-8 rounded-lg bg-neutral-800 border border-neutral-700 flex items-center justify-center text-neutral-300 hover:bg-neutral-700 hover:text-white transition-colors"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="w-10 text-center text-lg font-semibold text-white">{repeatWeeks}</span>
+                      <button
+                        type="button"
+                        onClick={() => setRepeatWeeks(w => Math.min(52, w + 1))}
+                        className="w-8 h-8 rounded-lg bg-neutral-800 border border-neutral-700 flex items-center justify-center text-neutral-300 hover:bg-neutral-700 hover:text-white transition-colors"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {formData.scheduled_date && formData.scheduled_time && (
+                    <div className="p-3 bg-neutral-900 rounded-lg border border-neutral-700">
+                      <p className="text-xs font-medium text-neutral-400 mb-2 flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5" />
+                        {repeatWeeks} sessions will be created (ET):
+                      </p>
+                      <div className="max-h-40 overflow-y-auto space-y-0.5 pr-1">
+                        {Array.from({ length: repeatWeeks }, (_, i) => {
+                          const d = new Date(`${formData.scheduled_date}T${formData.scheduled_time}`)
+                          d.setDate(d.getDate() + i * 7)
+                          return (
+                            <p key={i} className="text-xs text-neutral-300 py-0.5">
+                              <span className="text-neutral-500 mr-1.5">{i + 1}.</span>
+                              {d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'America/New_York' })}
+                              {' at '}
+                              {d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' })}
+                              {' ET'}
+                            </p>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Duration */}
@@ -767,12 +856,21 @@ function NewSessionContent() {
                 {loading ? (
                   <>
                     <Spinner size="sm" className="mr-2" />
-                    Creating...
+                    {repeatWeekly && repeatWeeks > 1 ? `Creating ${repeatWeeks} Sessions...` : 'Creating...'}
                   </>
                 ) : (
                   <>
-                    <Video className="w-4 h-4 mr-2" />
-                    Create Session
+                    {repeatWeekly && repeatWeeks > 1 ? (
+                      <>
+                        <Repeat className="w-4 h-4 mr-2" />
+                        Create {repeatWeeks} Weekly Sessions
+                      </>
+                    ) : (
+                      <>
+                        <Video className="w-4 h-4 mr-2" />
+                        Create Session
+                      </>
+                    )}
                   </>
                 )}
               </Button>

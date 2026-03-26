@@ -703,37 +703,6 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
           </div>
         </div>
 
-        {/* Action Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Generate Card */}
-          <Link href={`/life-vision/${visionId}/audio/generate`}>
-            <Card variant="elevated" hover className="bg-gradient-to-br from-[#199D67]/20 via-[#14B8A6]/10 to-[#8B5CF6]/20 border-[#39FF14]/30 cursor-pointer">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#39FF14]/20 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Plus className="w-6 h-6 text-[#39FF14]" />
-                </div>
-                <div>
-                  <p className="text-white text-lg">Generate more audio sets</p>
-                </div>
-              </div>
-            </Card>
-          </Link>
-
-          {/* Record Card */}
-          <Link href={`/life-vision/${visionId}/audio/record`}>
-            <Card variant="elevated" hover className="bg-gradient-to-br from-[#D03739]/20 via-[#8B5CF6]/10 to-[#14B8A6]/20 border-[#D03739]/30 cursor-pointer">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#D03739]/20 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Mic className="w-6 h-6 text-[#D03739]" />
-                </div>
-                <div>
-                  <p className="text-white text-lg">Record life vision in your voice</p>
-                </div>
-              </div>
-            </Card>
-          </Link>
-        </div>
-
         {/* Audio Sets Grid */}
         {audioSets.length === 0 ? (
           <Card variant="elevated" className="p-8 md:p-12 text-center">
@@ -1025,6 +994,33 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
             )}
           </Card>
         )}
+        {/* Action Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Link href={`/life-vision/${visionId}/audio/generate`}>
+            <Card variant="elevated" hover className="bg-gradient-to-br from-[#199D67]/20 via-[#14B8A6]/10 to-[#8B5CF6]/20 border-[#39FF14]/30 cursor-pointer">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-[#39FF14]/20 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Plus className="w-6 h-6 text-[#39FF14]" />
+                </div>
+                <div>
+                  <p className="text-white text-lg">Generate more audio sets</p>
+                </div>
+              </div>
+            </Card>
+          </Link>
+          <Link href={`/life-vision/${visionId}/audio/record`}>
+            <Card variant="elevated" hover className="bg-gradient-to-br from-[#D03739]/20 via-[#8B5CF6]/10 to-[#14B8A6]/20 border-[#D03739]/30 cursor-pointer">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-[#D03739]/20 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Mic className="w-6 h-6 text-[#D03739]" />
+                </div>
+                <div>
+                  <p className="text-white text-lg">Record life vision in your voice</p>
+                </div>
+              </div>
+            </Card>
+          </Link>
+        </div>
       </Stack>
 
       {/* Delete Confirmation Dialog */}
