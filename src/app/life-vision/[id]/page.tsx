@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Save, CheckCircle, Circle, Edit3, History, Sparkles, Trash2, Download, VolumeX, Gem, Check, Eye, FileText, ArrowUp, CalendarDays } from 'lucide-react'
+import { Save, CheckCircle, Circle, Edit3, History, Sparkles, Trash2, Download, VolumeX, Gem, Check, Eye, FileText, ArrowUp, CalendarDays, Headphones, Moon, Zap, Music, Mic } from 'lucide-react'
 import { commitDraft, getRefinedCategories } from '@/lib/life-vision/draft-helpers'
 import { 
   Button, 
@@ -65,6 +65,29 @@ interface VisionData {
   updated_at: string
 }
 
+interface AudioSetOption {
+  id: string
+  name: string
+  variant: string
+  voice_id: string
+  track_count: number
+  created_at: string
+  mixRatio?: string
+  backgroundTrack?: string
+}
+
+const VOICE_DISPLAY_NAMES: Record<string, string> = {
+  alloy: 'Clear & Professional',
+  shimmer: 'Gentle & Soothing',
+  ash: 'Warm & Friendly',
+  coral: 'Bright & Energetic',
+  echo: 'Deep & Authoritative',
+  fable: 'Storytelling & Expressive',
+  onyx: 'Strong & Confident',
+  nova: 'Fresh & Modern',
+  sage: 'Excited & Firm',
+}
+
 // Use centralized vision categories
 const VISION_SECTIONS = VISION_CATEGORIES
 
@@ -89,6 +112,9 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   const [editingCategory, setEditingCategory] = useState<string | null>(null)
   const [editingContent, setEditingContent] = useState('')
   const [audioTracks, setAudioTracks] = useState<Record<string, { id: string; url: string; title: string }>>({})
+  const [availableAudioSets, setAvailableAudioSets] = useState<AudioSetOption[]>([])
+  const [selectedAudioSetId, setSelectedAudioSetId] = useState<string | null>(null) // null = "best per section"
+  const [isAudioDropdownOpen, setIsAudioDropdownOpen] = useState(false)
   const [userProfile, setUserProfile] = useState<{ first_name?: string; full_name?: string } | null>(null)
   const [isCommitting, setIsCommitting] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -173,58 +199,146 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     return completed
   }, [])
 
-  // Load audio tracks for vision
-  const loadAudioTracks = async (visionId: string) => {
+  const sectionToCategory: Record<string, string> = {
+    'meta_intro': 'forward',
+    'meta_outro': 'conclusion',
+    'forward': 'forward',
+    'conclusion': 'conclusion',
+    health: 'health',
+    family: 'family',
+    love: 'love',
+    romance: 'love',
+    social: 'social',
+    fun: 'fun',
+    travel: 'travel',
+    home: 'home',
+    money: 'money',
+    work: 'work',
+    business: 'work',
+    stuff: 'stuff',
+    possessions: 'stuff',
+    giving: 'giving',
+    spirituality: 'spirituality',
+  }
+
+  // Load available audio sets for the dropdown
+  const loadAvailableAudioSets = async (visionId: string) => {
     try {
-      // Get ALL standard (voice-only) audio sets for this vision
-      const { data: audioSets } = await supabase
+      const { data: sets } = await supabase
         .from('audio_sets')
-        .select('id, variant')
+        .select(`*, audio_tracks(count)`)
         .eq('vision_id', visionId)
-        .eq('variant', 'standard')
         .order('created_at', { ascending: false })
 
-      if (!audioSets || audioSets.length === 0) return
-
-      const audioSetIds = audioSets.map(s => s.id)
-
-      // Get completed audio tracks from ALL standard audio sets
-      const { data: tracks } = await supabase
-        .from('audio_tracks')
-        .select('id, section_key, audio_url, audio_set_id, created_at')
-        .in('audio_set_id', audioSetIds)
-        .eq('status', 'completed')
-        .not('audio_url', 'is', null)
-        .order('created_at', { ascending: false })
-
-      if (!tracks) return
-
-      const sectionToCategory: Record<string, string> = {
-        'meta_intro': 'forward',
-        'meta_outro': 'conclusion',
-        'forward': 'forward',
-        'conclusion': 'conclusion',
-        health: 'health',
-        family: 'family',
-        love: 'love',
-        romance: 'love',
-        social: 'social',
-        fun: 'fun',
-        travel: 'travel',
-        home: 'home',
-        money: 'money',
-        work: 'work',
-        business: 'work',
-        stuff: 'stuff',
-        possessions: 'stuff',
-        giving: 'giving',
-        spirituality: 'spirituality',
+      if (!sets || sets.length === 0) {
+        setAvailableAudioSets([])
+        return
       }
-      
-      // Use the most recent track per category across all standard sets
+
+      // Check which sets have completed tracks
+      const setsWithCounts = await Promise.all(sets.map(async (set: any) => {
+        const { count } = await supabase
+          .from('audio_tracks')
+          .select('*', { count: 'exact', head: true })
+          .eq('audio_set_id', set.id)
+          .eq('status', 'completed')
+          .not('audio_url', 'is', null)
+
+        let mixRatio: string | undefined
+        let backgroundTrack: string | undefined
+        if (set.metadata) {
+          const md = set.metadata
+          const voiceVol = md.voice_volume
+          const bgVol = md.bg_volume
+          if (voiceVol !== undefined && bgVol !== undefined) {
+            mixRatio = `${voiceVol}% / ${bgVol}%`
+          }
+          backgroundTrack = md.background_track_name
+        }
+
+        return {
+          id: set.id,
+          name: set.name,
+          variant: set.variant || 'standard',
+          voice_id: set.voice_id,
+          track_count: count || 0,
+          created_at: set.created_at,
+          mixRatio,
+          backgroundTrack,
+        } as AudioSetOption
+      }))
+
+      setAvailableAudioSets(setsWithCounts.filter(s => s.track_count > 0))
+    } catch (error) {
+      console.error('Error loading audio sets:', error)
+    }
+  }
+
+  // Load audio tracks - either from a specific set or best-per-section across all standard sets
+  const loadAudioTracks = async (visionId: string, audioSetId?: string | null) => {
+    try {
+      let tracks: any[] | null = null
+
+      if (audioSetId) {
+        // Load from a specific audio set - query the set's variant directly
+        const { data: setData } = await supabase
+          .from('audio_sets')
+          .select('variant')
+          .eq('id', audioSetId)
+          .single()
+        const useDirectAudio = !setData || setData.variant === 'standard' || setData.variant === 'personal'
+
+        const { data } = await supabase
+          .from('audio_tracks')
+          .select('id, section_key, audio_url, mixed_audio_url, mix_status, created_at')
+          .eq('audio_set_id', audioSetId)
+          .eq('status', 'completed')
+          .not('audio_url', 'is', null)
+          .order('created_at', { ascending: false })
+
+        if (data) {
+          tracks = data.map(t => ({
+            ...t,
+            resolved_url: !useDirectAudio && t.mixed_audio_url && t.mix_status === 'completed'
+              ? t.mixed_audio_url
+              : t.audio_url,
+          }))
+        }
+      } else {
+        // Best-per-section across all standard sets
+        const { data: audioSets } = await supabase
+          .from('audio_sets')
+          .select('id')
+          .eq('vision_id', visionId)
+          .eq('variant', 'standard')
+          .order('created_at', { ascending: false })
+
+        if (!audioSets || audioSets.length === 0) {
+          setAudioTracks({})
+          return
+        }
+
+        const { data } = await supabase
+          .from('audio_tracks')
+          .select('id, section_key, audio_url, created_at')
+          .in('audio_set_id', audioSets.map(s => s.id))
+          .eq('status', 'completed')
+          .not('audio_url', 'is', null)
+          .order('created_at', { ascending: false })
+
+        if (data) {
+          tracks = data.map(t => ({ ...t, resolved_url: t.audio_url }))
+        }
+      }
+
+      if (!tracks) {
+        setAudioTracks({})
+        return
+      }
+
       const trackMap: Record<string, { id: string; url: string; title: string }> = {}
       tracks.forEach(track => {
-        const url = track.audio_url
+        const url = track.resolved_url
         if (url) {
           const categoryKey = sectionToCategory[track.section_key] || track.section_key
           if (!trackMap[categoryKey]) {
@@ -241,6 +355,46 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     } catch (error) {
       console.error('Error loading audio tracks:', error)
     }
+  }
+
+  const handleAudioSetChange = async (audioSetId: string | null) => {
+    setSelectedAudioSetId(audioSetId)
+    setIsAudioDropdownOpen(false)
+    if (vision) {
+      await loadAudioTracks(vision.id, audioSetId)
+    }
+  }
+
+  const getSetIcon = (set: AudioSetOption) => {
+    if (set.variant === 'personal') return <Mic className="w-5 h-5" />
+
+    let voiceVolume = 100
+    let bgVolume = 0
+    if (set.mixRatio) {
+      const m = set.mixRatio.match(/(\d+)%\s*\/\s*(\d+)%/)
+      if (m) { voiceVolume = parseInt(m[1]); bgVolume = parseInt(m[2]) }
+    }
+
+    if (bgVolume === 0 || set.variant === 'standard') return <Headphones className="w-5 h-5" />
+    if (voiceVolume <= 30) return <Moon className="w-5 h-5" />
+    if (voiceVolume >= 40 && voiceVolume <= 60) return <Sparkles className="w-5 h-5" />
+    return <Zap className="w-5 h-5" />
+  }
+
+  const getSetColor = (set: AudioSetOption) => {
+    if (set.variant === 'personal') return 'bg-secondary-500/20 text-secondary-500'
+
+    let voiceVolume = 100
+    let bgVolume = 0
+    if (set.mixRatio) {
+      const m = set.mixRatio.match(/(\d+)%\s*\/\s*(\d+)%/)
+      if (m) { voiceVolume = parseInt(m[1]); bgVolume = parseInt(m[2]) }
+    }
+
+    if (bgVolume === 0 || set.variant === 'standard') return 'bg-primary-500/20 text-primary-500'
+    if (voiceVolume <= 30) return 'bg-blue-500/20 text-blue-400'
+    if (voiceVolume >= 40 && voiceVolume <= 60) return 'bg-purple-500/20 text-purple-400'
+    return 'bg-yellow-500/20 text-yellow-400'
   }
 
   // Load vision data
@@ -333,7 +487,8 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         // Initialize with all categories selected
         setSelectedCategories(VISION_SECTIONS.map(cat => cat.key))
         
-        // Load audio tracks for this vision
+        // Load audio sets and tracks for this vision
+        await loadAvailableAudioSets(vision.id)
         await loadAudioTracks(vision.id)
       } catch (error) {
         console.error('Error loading vision:', error)
@@ -949,6 +1104,135 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                   withCard={false}
                 />
         </Card>
+
+        {/* Audio Set Selector */}
+        {availableAudioSets.length > 0 && (
+          <Card className="p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <Music className="w-5 h-5 text-primary-500" />
+              <h3 className="text-lg font-semibold text-white">Attached Audio</h3>
+              <span className="text-xs text-neutral-500">{availableAudioSets.length} {availableAudioSets.length === 1 ? 'set' : 'sets'} available</span>
+            </div>
+
+            <div className="relative max-w-xl">
+              <button
+                type="button"
+                onClick={() => setIsAudioDropdownOpen(!isAudioDropdownOpen)}
+                className="w-full px-4 py-2.5 rounded-full bg-[#1F1F1F] text-white border-2 border-[#333] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  {selectedAudioSetId === null ? (
+                    <>
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary-500/20 text-primary-500">
+                        <Music className="w-4 h-4" />
+                      </div>
+                      <div className="text-left flex-1 min-w-0">
+                        <div className="font-medium text-sm truncate">Best Per Section</div>
+                        <div className="text-xs text-neutral-500">Most recent track for each category</div>
+                      </div>
+                    </>
+                  ) : (
+                    (() => {
+                      const set = availableAudioSets.find(s => s.id === selectedAudioSetId)
+                      if (!set) return <span className="text-neutral-400">Select audio set...</span>
+                      return (
+                        <>
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${getSetColor(set)}`}>
+                            {getSetIcon(set)}
+                          </div>
+                          <div className="text-left flex-1 min-w-0">
+                            <div className="font-medium text-sm truncate">{set.name}</div>
+                            <div className="text-xs text-neutral-500">{set.track_count} tracks</div>
+                          </div>
+                        </>
+                      )
+                    })()
+                  )}
+                </div>
+                <svg className={`w-4 h-4 text-neutral-400 transition-transform flex-shrink-0 ml-2 ${isAudioDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {isAudioDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setIsAudioDropdownOpen(false)} />
+                  <div className="absolute z-20 w-full mt-2 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-[50vh] overflow-y-auto">
+                    {/* Best Per Section option */}
+                    <div
+                      onClick={() => handleAudioSetChange(null)}
+                      className={`px-4 py-3 hover:bg-[#2A2A2A] cursor-pointer transition-colors border-b border-[#333] ${selectedAudioSetId === null ? 'bg-primary-500/10' : ''}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary-500/20 text-primary-500">
+                          <Music className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm text-white">Best Per Section</div>
+                          <div className="text-xs text-neutral-500">Most recent track for each category across all voice sets</div>
+                        </div>
+                        {selectedAudioSetId === null && (
+                          <Check className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Individual audio sets */}
+                    {availableAudioSets.map((set) => (
+                      <div
+                        key={set.id}
+                        onClick={() => handleAudioSetChange(set.id)}
+                        className={`px-4 py-3 hover:bg-[#2A2A2A] cursor-pointer transition-colors border-b border-[#333] last:border-b-0 ${selectedAudioSetId === set.id ? 'bg-primary-500/10' : ''}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${getSetColor(set)}`}>
+                            {getSetIcon(set)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm text-white truncate">{set.name}</div>
+                            <div className="text-xs text-neutral-500 space-x-2">
+                              <span>{set.track_count} tracks</span>
+                              <span>·</span>
+                              <span>{set.variant === 'personal' ? 'Personal Recording' : VOICE_DISPLAY_NAMES[set.voice_id] || set.voice_id}</span>
+                              {set.backgroundTrack && (
+                                <>
+                                  <span>·</span>
+                                  <span>{set.backgroundTrack}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          {selectedAudioSetId === set.id && (
+                            <Check className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                          )}
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* No audio link */}
+                    <div
+                      onClick={() => { setAudioTracks({}); setSelectedAudioSetId('none'); setIsAudioDropdownOpen(false) }}
+                      className={`px-4 py-3 hover:bg-[#2A2A2A] cursor-pointer transition-colors ${selectedAudioSetId === 'none' ? 'bg-primary-500/10' : ''}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-neutral-700/50 text-neutral-500">
+                          <VolumeX className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm text-neutral-400">No Audio</div>
+                          <div className="text-xs text-neutral-600">Hide audio players from categories</div>
+                        </div>
+                        {selectedAudioSetId === 'none' && (
+                          <Check className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </Card>
+        )}
 
         {/* Vision Cards */}
         {selectedCategories.length > 0 ? (

@@ -1,8 +1,10 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Play, Pause, SkipBack, SkipForward, Repeat, Shuffle, Edit2 } from 'lucide-react'
+import { Play, Pause, SkipBack, SkipForward, Repeat, Shuffle, Edit2, Download, CheckCircle, Loader2 } from 'lucide-react'
 import { cn } from '../shared-utils'
+import { useMediaSession } from '@/hooks/useMediaSession'
+import { useAudioOffline } from '@/hooks/useAudioOffline'
 import type { AudioTrack } from './types'
 
 interface PlaylistPlayerProps {
@@ -52,7 +54,60 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
   const hasTrackedCurrentPlay = useRef<boolean>(false)
 
   const currentTrack = tracks[currentTrackIndex]
-  
+
+  const handleMediaPlay = useCallback(() => {
+    const audio = audioRef.current
+    if (audio) { audio.play().catch(() => setIsPlaying(false)); setIsPlaying(true) }
+  }, [])
+
+  const handleMediaPause = useCallback(() => {
+    const audio = audioRef.current
+    if (audio) { audio.pause(); setIsPlaying(false) }
+  }, [])
+
+  const handleMediaNext = useCallback(() => {
+    setCurrentTrackIndex((currentIndex) => {
+      const newIndex = currentIndex + 1 >= tracks.length ? 0 : currentIndex + 1
+      setCurrentTime(0)
+      setIsPlaying(true)
+      return newIndex
+    })
+  }, [tracks.length])
+
+  const handleMediaPrevious = useCallback(() => {
+    setCurrentTrackIndex((currentIndex) => {
+      const newIndex = currentIndex - 1 < 0 ? tracks.length - 1 : currentIndex - 1
+      setCurrentTime(0)
+      setIsPlaying(true)
+      return newIndex
+    })
+  }, [tracks.length])
+
+  useMediaSession({
+    track: currentTrack,
+    isPlaying,
+    onPlay: handleMediaPlay,
+    onPause: handleMediaPause,
+    onNext: handleMediaNext,
+    onPrevious: handleMediaPrevious,
+    audioRef,
+  })
+
+  const { cachedTrackIds, downloadingTrackIds, downloadTrack, downloadAllTracks, removeTrack, getPlaybackUrl } = useAudioOffline(tracks)
+  const [resolvedUrl, setResolvedUrl] = useState<string>('')
+  const allCached = tracks.length > 0 && tracks.every(t => cachedTrackIds.has(t.id))
+  const anyDownloading = downloadingTrackIds.size > 0
+
+  useEffect(() => {
+    let cancelled = false
+    if (currentTrack) {
+      getPlaybackUrl(currentTrack).then(url => {
+        if (!cancelled) setResolvedUrl(url)
+      })
+    }
+    return () => { cancelled = true }
+  }, [currentTrack, cachedTrackIds, getPlaybackUrl])
+
   const handleTrackComplete = useCallback(async (trackId: string) => {
     if (hasTrackedCurrentPlay.current) return
     
@@ -163,28 +218,25 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
 
   useEffect(() => {
     const audio = audioRef.current
-    if (!audio) return
+    if (!audio || !resolvedUrl) return
     
     checkAndTrackCompletion()
     hasTrackedCurrentPlay.current = false
-    audio.src = currentTrack?.url || ''
+    audio.src = resolvedUrl
     
-    // Wait for audio to be ready before playing to prevent cutting off the beginning
-    if (isPlaying && currentTrack?.url) {
+    if (isPlaying && resolvedUrl) {
       const playWhenReady = () => {
         audio.play().catch(() => setIsPlaying(false))
         audio.removeEventListener('canplaythrough', playWhenReady)
       }
       
-      // If already loaded, play immediately
       if (audio.readyState >= 3) {
         audio.play().catch(() => setIsPlaying(false))
       } else {
-        // Otherwise wait for it to be ready
         audio.addEventListener('canplaythrough', playWhenReady, { once: true })
       }
     }
-  }, [currentTrackIndex, currentTrack?.url, isPlaying, checkAndTrackCompletion])
+  }, [currentTrackIndex, resolvedUrl, isPlaying, checkAndTrackCompletion])
 
   const togglePlayPause = () => {
     const audio = audioRef.current
@@ -361,6 +413,31 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
               {totalDuration > 0 && <span>{formatTime(totalDuration)}</span>}
             </div>
           )}
+
+          {/* Download All for offline */}
+          <div className="flex justify-center mt-3">
+            <button
+              onClick={() => allCached ? tracks.forEach(t => removeTrack(t.id)) : downloadAllTracks(tracks)}
+              disabled={anyDownloading}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
+                allCached
+                  ? 'text-[#39FF14] bg-[#39FF14]/10 hover:bg-[#39FF14]/20'
+                  : anyDownloading
+                    ? 'text-neutral-500 bg-neutral-800 cursor-wait'
+                    : 'text-neutral-300 bg-neutral-800 hover:bg-neutral-700'
+              )}
+            >
+              {anyDownloading ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : allCached ? (
+                <CheckCircle className="w-3.5 h-3.5" />
+              ) : (
+                <Download className="w-3.5 h-3.5" />
+              )}
+              {allCached ? 'Available Offline' : anyDownloading ? 'Downloading...' : 'Download for Offline'}
+            </button>
+          </div>
         </div>
       )}
 
@@ -412,34 +489,57 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
         </div>
 
         <div className="space-y-1 max-h-48 overflow-y-auto mt-4">
-          {tracks.map((track, index) => (
-            <button
-              key={track.id}
-              onClick={() => {
-                checkAndTrackCompletion()
-                
-                // Add a small gap before transitioning when clicking a track
-                const wasPlaying = isPlaying
-                setIsPlaying(false)
-                
-                setTimeout(() => {
-                  setCurrentTrackIndex(index)
-                  if (wasPlaying) {
-                    setIsPlaying(true)
-                  }
-                }, 300) // Short gap for direct selection
-              }}
-              className={cn(
-                'w-full text-left px-3 py-2 rounded-lg transition-colors',
-                index === currentTrackIndex ? 'bg-[#39FF14]/20 text-[#39FF14]' : 'text-neutral-300 hover:bg-[#333]'
-              )}
-            >
-              <div className="flex justify-between items-center">
-                <span className="truncate">{track.title}</span>
-                <span className="text-xs text-neutral-500 ml-2">{formatTime(trackDurations.get(track.id) || track.duration || 0)}</span>
+          {tracks.map((track, index) => {
+            const trackCached = cachedTrackIds.has(track.id)
+            const trackDownloading = downloadingTrackIds.has(track.id)
+            return (
+              <div key={track.id} className="flex items-center gap-1">
+                <button
+                  onClick={() => {
+                    checkAndTrackCompletion()
+                    const wasPlaying = isPlaying
+                    setIsPlaying(false)
+                    setTimeout(() => {
+                      setCurrentTrackIndex(index)
+                      if (wasPlaying) {
+                        setIsPlaying(true)
+                      }
+                    }, 300)
+                  }}
+                  className={cn(
+                    'flex-1 text-left px-3 py-2 rounded-lg transition-colors min-w-0',
+                    index === currentTrackIndex ? 'bg-[#39FF14]/20 text-[#39FF14]' : 'text-neutral-300 hover:bg-[#333]'
+                  )}
+                >
+                  <div className="flex justify-between items-center">
+                    <span className="truncate">{track.title}</span>
+                    <span className="text-xs text-neutral-500 ml-2 flex-shrink-0">{formatTime(trackDurations.get(track.id) || track.duration || 0)}</span>
+                  </div>
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    trackCached ? removeTrack(track.id) : downloadTrack(track)
+                  }}
+                  disabled={trackDownloading}
+                  title={trackCached ? 'Remove offline copy' : trackDownloading ? 'Downloading...' : 'Download for offline'}
+                  className={cn(
+                    'p-1.5 rounded-lg transition-colors flex-shrink-0',
+                    trackCached ? 'text-[#39FF14]/70 hover:text-[#39FF14]' : 'text-neutral-500 hover:text-neutral-300',
+                    trackDownloading && 'cursor-wait'
+                  )}
+                >
+                  {trackDownloading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : trackCached ? (
+                    <CheckCircle className="w-3.5 h-3.5" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5" />
+                  )}
+                </button>
               </div>
-            </button>
-          ))}
+            )
+          })}
         </div>
       </div>
     </div>

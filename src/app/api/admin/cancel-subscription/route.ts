@@ -127,73 +127,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch subscriptions' }, { status: 500 })
     }
 
-    const results: CancelResult[] = []
+    if (!subs || subs.length === 0) {
+      return NextResponse.json(
+        { error: 'No active subscriptions found in database. Use "Sync from Stripe" first if subscriptions exist in Stripe.' },
+        { status: 404 },
+      )
+    }
 
-    // Cancel DB-tracked subscriptions
-    for (const sub of subs || []) {
+    const results: CancelResult[] = []
+    for (const sub of subs) {
       const result = await cancelSingleSubscription(adminDb, sub as any, cancelImmediate)
       results.push(result)
-    }
-
-    // Also check Stripe directly for subs not in DB
-    // Look up Stripe customer ID from orders for this user
-    const { data: userOrders } = await adminDb
-      .from('orders')
-      .select('stripe_payment_intent_id')
-      .eq('user_id', userId)
-      .not('stripe_payment_intent_id', 'is', null)
-      .limit(5)
-
-    const dbStripeSubIds = new Set((subs || []).map(s => s.stripe_subscription_id))
-    let stripeCustomerId: string | null = null
-
-    for (const order of userOrders || []) {
-      if (stripeCustomerId) break
-      try {
-        const pi = await stripe.paymentIntents.retrieve(order.stripe_payment_intent_id!)
-        stripeCustomerId = typeof pi.customer === 'string' ? pi.customer : null
-      } catch {
-        // skip
-      }
-    }
-
-    if (stripeCustomerId) {
-      try {
-        const stripeSubs = await stripe.subscriptions.list({
-          customer: stripeCustomerId,
-          limit: 20,
-        })
-        for (const ss of stripeSubs.data) {
-          if (ss.status === 'canceled' || dbStripeSubIds.has(ss.id)) continue
-          try {
-            if (cancelImmediate) {
-              await stripe.subscriptions.cancel(ss.id)
-            } else {
-              await stripe.subscriptions.update(ss.id, { cancel_at_period_end: true })
-            }
-            results.push({
-              subscriptionId: ss.id,
-              stripeSubscriptionId: ss.id,
-              tierName: ss.metadata?.tier_type || 'Stripe subscription',
-              status: 'canceled',
-            })
-          } catch (err: any) {
-            results.push({
-              subscriptionId: ss.id,
-              stripeSubscriptionId: ss.id,
-              tierName: ss.metadata?.tier_type || 'Stripe subscription',
-              status: 'error',
-              error: err?.message,
-            })
-          }
-        }
-      } catch (err) {
-        console.error('Failed to list Stripe subs for cancel-all:', err)
-      }
-    }
-
-    if (results.length === 0) {
-      return NextResponse.json({ error: 'No active subscriptions found for this user' }, { status: 404 })
     }
 
     const allSucceeded = results.every(r => r.status !== 'error')
@@ -316,62 +260,8 @@ export async function POST(request: NextRequest) {
     })
   }
 
-  // Not found in DB - try Stripe directly (handles subs that exist in Stripe but not in customer_subscriptions)
-  if (isStripeId) {
-    try {
-      let stripeResult
-      if (cancelImmediate) {
-        stripeResult = await stripe.subscriptions.cancel(subscriptionId)
-      } else {
-        stripeResult = await stripe.subscriptions.update(subscriptionId, {
-          cancel_at_period_end: true,
-        })
-      }
-
-      const cancelType = cancelImmediate ? 'immediately' : 'at period end'
-
-      // Try to clear membership tier if we can find the user via the Stripe customer
-      if (cancelImmediate && stripeResult.customer) {
-        const custId = typeof stripeResult.customer === 'string' ? stripeResult.customer : stripeResult.customer
-        const { data: userAccount } = await adminDb
-          .from('user_accounts')
-          .select('id')
-          .eq('id', body.userId || '')
-          .maybeSingle()
-        if (userAccount) {
-          await adminDb
-            .from('user_accounts')
-            .update({ membership_tier_id: null })
-            .eq('id', userAccount.id)
-        }
-      }
-
-      createAdminNotification({
-        type: 'subscription_canceled',
-        title: `Stripe Subscription Canceled`,
-        body: `${subscriptionId} canceled ${cancelType} (Stripe-only, no DB record)`,
-        metadata: { stripeSubscriptionId: subscriptionId, immediate: cancelImmediate },
-        link: '/admin/orders',
-      }).catch(err => console.error('Cancel Stripe-only sub notification error:', err))
-
-      notifyAdminSMS(
-        `Stripe sub canceled: ${subscriptionId} (${cancelType})`,
-      ).catch(err => console.error('Cancel Stripe-only sub SMS error:', err))
-
-      return NextResponse.json({
-        success: true,
-        cancelType: cancelImmediate ? 'immediate' : 'at_period_end',
-        stripeStatus: stripeResult.status,
-        source: 'stripe_direct',
-      })
-    } catch (err: any) {
-      console.error('Stripe direct cancel error:', err)
-      return NextResponse.json(
-        { error: err?.message || 'Failed to cancel Stripe subscription' },
-        { status: 500 },
-      )
-    }
-  }
-
-  return NextResponse.json({ error: 'Subscription not found' }, { status: 404 })
+  return NextResponse.json(
+    { error: 'Subscription not found in database. Use "Sync from Stripe" first if it exists in Stripe.' },
+    { status: 404 },
+  )
 }

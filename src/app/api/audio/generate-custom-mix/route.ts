@@ -41,6 +41,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const isValidMediaUrl = (url: string) =>
+      url.startsWith('https://media.vibrationfit.com/') ||
+      url.startsWith('https://vibration-fit-client-storage.s3.amazonaws.com/')
+
+    if (!isValidMediaUrl(backgroundTrackUrl)) {
+      console.error(`[CUSTOM MIX] Invalid backgroundTrackUrl: "${backgroundTrackUrl}"`)
+      return NextResponse.json(
+        { error: `Invalid background track URL format: "${backgroundTrackUrl}". Expected a full media.vibrationfit.com or S3 URL.` },
+        { status: 400 }
+      )
+    }
+
+    if (binauralTrackUrl && binauralTrackUrl !== 'none' && !isValidMediaUrl(binauralTrackUrl)) {
+      console.error(`[CUSTOM MIX] Invalid binauralTrackUrl: "${binauralTrackUrl}"`)
+      return NextResponse.json(
+        { error: `Invalid binaural track URL format: "${binauralTrackUrl}". Expected a full media.vibrationfit.com or S3 URL.` },
+        { status: 400 }
+      )
+    }
+
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 

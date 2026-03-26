@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 
+const VALID_AUDIO_URL_PREFIXES = [
+  'https://media.vibrationfit.com/',
+  'https://vibration-fit-client-storage.s3.amazonaws.com/',
+]
+
+function isValidAudioTrackUrl(url: string): boolean {
+  return VALID_AUDIO_URL_PREFIXES.some(prefix => url.startsWith(prefix))
+}
+
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
@@ -10,6 +19,13 @@ export async function PUT(request: NextRequest) {
     if (!id) {
       return NextResponse.json(
         { error: 'Track ID is required' },
+        { status: 400 }
+      )
+    }
+
+    if (trackData.file_url && !isValidAudioTrackUrl(trackData.file_url)) {
+      return NextResponse.json(
+        { error: `Invalid file_url: must start with ${VALID_AUDIO_URL_PREFIXES.join(' or ')}. Received: "${trackData.file_url}"` },
         { status: 400 }
       )
     }
@@ -60,6 +76,13 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const trackData = body
+
+    if (trackData.file_url && !isValidAudioTrackUrl(trackData.file_url)) {
+      return NextResponse.json(
+        { error: `Invalid file_url: must start with ${VALID_AUDIO_URL_PREFIXES.join(' or ')}. Received: "${trackData.file_url}"` },
+        { status: 400 }
+      )
+    }
 
     // Verify user is authenticated
     const supabase = await createClient()
