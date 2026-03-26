@@ -255,12 +255,12 @@ export function PostComposer({
             accept="image/*,video/*"
             multiple
             maxFiles={4}
-            maxSize={100}
+            maxSize={500}
             value={files}
             onChange={setFiles}
             onUpload={setFiles}
             dragDropText="Click to upload or drag and drop"
-            dragDropSubtext="Images or videos (max 4 files, 100MB each)"
+            dragDropSubtext="Images or videos (max 4 files, 500MB each)"
             previewSize="md"
           />
         </div>

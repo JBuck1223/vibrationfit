@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import Link from 'next/link'
 import { Spinner } from '@/lib/design-system'
 import { Heart, Trash2, Send, Reply, X, Pencil } from 'lucide-react'
@@ -212,8 +212,7 @@ export function CommentSection({
     }
   }
 
-  // Build user name → userId map from all comments for @ mention linking
-  const userNameMap = (() => {
+  const userNameMap = useMemo(() => {
     const map = new Map<string, string>()
     const traverse = (items: VibeComment[]) => {
       for (const c of items) {
@@ -225,7 +224,7 @@ export function CommentSection({
     }
     traverse(comments)
     return map
-  })()
+  }, [comments])
 
   if (loading) {
     return (
@@ -448,8 +447,11 @@ function CommentItem({
     const parts: (string | React.ReactElement)[] = []
     let lastIndex = 0
     let match: RegExpExecArray | null
+    let prevIndex = -1
 
     while ((match = mentionRegex.exec(content)) !== null) {
+      if (match.index === prevIndex) break
+      prevIndex = match.index
       if (match.index > lastIndex) {
         parts.push(content.slice(lastIndex, match.index))
       }

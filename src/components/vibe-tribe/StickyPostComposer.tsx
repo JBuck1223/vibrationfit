@@ -106,11 +106,24 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
     )
   }
 
+  const MAX_FILE_SIZE_MB = 500
+  const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const newFiles = Array.from(e.target.files).slice(0, 4 - files.length)
+      const incoming = Array.from(e.target.files)
+
+      const oversized = incoming.filter(f => f.size > MAX_FILE_SIZE_BYTES)
+      if (oversized.length > 0) {
+        const names = oversized.map(f => f.name).join(', ')
+        alert(`These files exceed ${MAX_FILE_SIZE_MB}MB and can't be uploaded: ${names}`)
+      }
+
+      const valid = incoming.filter(f => f.size <= MAX_FILE_SIZE_BYTES)
+      const newFiles = valid.slice(0, 4 - files.length)
       setFiles(prev => [...prev, ...newFiles].slice(0, 4))
     }
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const removeFile = (index: number) => {
@@ -288,7 +301,7 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
           {/* Modal — flexes vertically so the scrollable middle fills available space */}
           <div 
             ref={modalRef}
-            className="relative w-full max-w-2xl bg-neutral-900 border border-neutral-700 md:rounded-2xl shadow-2xl flex flex-col"
+            className="relative w-full max-w-2xl bg-neutral-900 border border-neutral-700 rounded-t-2xl md:rounded-2xl shadow-2xl flex flex-col"
             style={{ maxHeight: viewportHeight ? `${viewportHeight}px` : '100dvh' }}
           >
             {/* Header — pinned */}

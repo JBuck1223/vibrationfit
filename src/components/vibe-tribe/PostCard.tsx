@@ -3,14 +3,21 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Card, Button, DeleteConfirmationDialog } from '@/lib/design-system'
-import { Heart, MessageCircle, Trash2, MoreHorizontal, Play, Pencil, Pin, X } from 'lucide-react'
-import { VibePost, VIBE_TAG_CONFIG } from '@/lib/vibe-tribe/types'
+import { Card, Button, DeleteConfirmationDialog, CategoryCard } from '@/lib/design-system'
+import { Heart, MessageCircle, Trash2, MoreHorizontal, Play, Pencil, Pin, X, Trophy, Sparkles, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react'
+import { VibePost, VibeTag, VIBE_TAG_CONFIG, VIBE_TAGS } from '@/lib/vibe-tribe/types'
 import { UserBadgeIndicator } from '@/components/badges'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { VibeTagBadge } from './VibeTagBadge'
 import { CommentSection } from './CommentSection'
 import { format, isToday, isYesterday } from 'date-fns'
+
+const EDIT_ICON_MAP: Record<VibeTag, any> = {
+  win: Trophy,
+  wobble: Heart,
+  vision: Sparkles,
+  collaboration: Lightbulb,
+}
 
 interface PostCardProps {
   post: VibePost
@@ -37,6 +44,9 @@ export function PostCard({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState(post.content || '')
+  const [editTag, setEditTag] = useState<VibeTag>(post.vibe_tag)
+  const [editCategories, setEditCategories] = useState<string[]>(post.life_categories || [])
+  const [showEditCategories, setShowEditCategories] = useState(false)
   const [isSavingEdit, setIsSavingEdit] = useState(false)
   const [isPinned, setIsPinned] = useState(post.is_pinned ?? false)
   const [isPinning, setIsPinning] = useState(false)
@@ -48,6 +58,14 @@ export function PostCard({
   const canEdit = currentUserId === post.user_id
   const canPin = isAdmin
   const isGuide = post.user?.role === 'admin' || post.user?.role === 'super_admin'
+
+  // Lock body scroll when lightbox is open
+  useEffect(() => {
+    if (lightboxOpen) {
+      document.body.style.overflow = 'hidden'
+      return () => { document.body.style.overflow = '' }
+    }
+  }, [lightboxOpen])
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -106,29 +124,50 @@ export function PostCard({
   const handleEditClick = () => {
     setShowMenu(false)
     setEditContent(post.content || '')
+    setEditTag(post.vibe_tag)
+    setEditCategories(post.life_categories || [])
+    setShowEditCategories(false)
     setIsEditing(true)
   }
 
   const handleCancelEdit = () => {
     setIsEditing(false)
     setEditContent(post.content || '')
+    setEditTag(post.vibe_tag)
+    setEditCategories(post.life_categories || [])
+    setShowEditCategories(false)
+  }
+
+  const handleEditCategoryToggle = (categoryKey: string) => {
+    setEditCategories(prev =>
+      prev.includes(categoryKey)
+        ? prev.filter(c => c !== categoryKey)
+        : [...prev, categoryKey]
+    )
   }
 
   const handleSaveEdit = async () => {
-    if (isSavingEdit || !editContent.trim()) return
+    const hasMedia = post.media_urls && post.media_urls.length > 0
+    if (isSavingEdit || (!editContent.trim() && !hasMedia)) return
     
     setIsSavingEdit(true)
     try {
       const response = await fetch(`/api/vibe-tribe/posts/${post.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: editContent.trim() }),
+        body: JSON.stringify({
+          content: editContent.trim(),
+          vibe_tag: editTag,
+          life_categories: editCategories,
+        }),
       })
       
       if (response.ok) {
-        // Update the local post content
         post.content = editContent.trim()
+        post.vibe_tag = editTag
+        post.life_categories = editCategories
         setIsEditing(false)
+        setShowEditCategories(false)
       } else {
         console.error('Edit failed:', await response.text())
       }
@@ -384,7 +423,7 @@ export function PostCard({
           </div>
           {/* Content - directly under name line */}
           {isEditing ? (
-            <div className="mt-2">
+            <div className="mt-2 space-y-3">
               <textarea
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
@@ -392,10 +431,76 @@ export function PostCard({
                 rows={3}
                 autoFocus
               />
-              <div className="flex items-center gap-2 mt-2">
+
+              {/* Vibe Tag Selector */}
+              <div>
+                <p className="text-xs text-neutral-500 mb-1.5">Vibe tag:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {VIBE_TAGS.map((tag) => {
+                    const config = VIBE_TAG_CONFIG[tag]
+                    const Icon = EDIT_ICON_MAP[tag]
+                    const isSelected = editTag === tag
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => setEditTag(tag)}
+                        className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border transition-all duration-200"
+                        style={{
+                          borderColor: config.color,
+                          backgroundColor: isSelected ? config.color : 'transparent',
+                          color: isSelected ? '#000' : config.color,
+                        }}
+                      >
+                        <Icon className="w-3 h-3" />
+                        {config.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Life Categories */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowEditCategories(!showEditCategories)}
+                  className="flex items-center gap-1.5 text-xs text-neutral-400 hover:text-white transition-colors"
+                >
+                  {showEditCategories ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  Life categories
+                  {editCategories.length > 0 && (
+                    <span className="bg-[#39FF14]/20 text-[#39FF14] px-1.5 py-0.5 rounded-full text-xs">
+                      {editCategories.length}
+                    </span>
+                  )}
+                </button>
+                {showEditCategories && (
+                  <div className="mt-2 grid grid-cols-4 md:grid-cols-6 gap-1.5">
+                    {VISION_CATEGORIES.filter(cat => cat.key !== 'forward' && cat.key !== 'conclusion').map((category) => {
+                      const isCatSelected = editCategories.includes(category.key)
+                      return (
+                        <CategoryCard
+                          key={category.key}
+                          category={category}
+                          selected={isCatSelected}
+                          onClick={() => handleEditCategoryToggle(category.key)}
+                          variant="outlined"
+                          selectionStyle="border"
+                          iconColor={isCatSelected ? "#39FF14" : "#FFFFFF"}
+                          selectedIconColor="#39FF14"
+                          className={`!p-2 ${isCatSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.5)]' : '!bg-transparent !border-[#333]'}`}
+                        />
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
                 <button
                   onClick={handleSaveEdit}
-                  disabled={isSavingEdit || !editContent.trim()}
+                  disabled={isSavingEdit || (!editContent.trim() && !(post.media_urls && post.media_urls.length > 0))}
                   className="px-4 py-1.5 bg-[#39FF14] text-black rounded-full text-sm font-medium hover:bg-[rgba(57,255,20,0.9)] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                   {isSavingEdit ? 'Saving...' : 'Save'}
@@ -425,35 +530,48 @@ export function PostCard({
               ${post.media_urls.length === 2 ? 'grid-cols-2' : ''}
               ${post.media_urls.length >= 3 ? 'grid-cols-2' : ''}
             `}>
-              {post.media_urls.slice(0, 4).map((url, index) => (
-                <div 
-                  key={index} 
-                  className="relative aspect-square bg-neutral-800 cursor-pointer"
-                  onClick={() => !isVideo(url) && openLightbox(index)}
-                >
-                  {isVideo(url) ? (
-                    <video
-                      src={url}
-                      className="w-full h-full object-cover"
-                      controls
-                    />
-                  ) : (
-                    <Image
-                      src={url}
-                      alt="Post media"
-                      fill
-                      className="object-cover hover:opacity-90 transition-opacity"
-                    />
-                  )}
-                  {index === 3 && post.media_urls.length > 4 && (
-                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center pointer-events-none">
-                      <span className="text-white text-lg font-semibold">
-                        +{post.media_urls.length - 4}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              ))}
+              {post.media_urls.slice(0, 4).map((url, index) => {
+                const isSingle = post.media_urls.length === 1
+                return (
+                  <div 
+                    key={index} 
+                    className={`relative cursor-pointer overflow-hidden ${
+                      isSingle ? '' : 'aspect-[4/3]'
+                    }`}
+                    onClick={() => !isVideo(url) && openLightbox(index)}
+                  >
+                    {isVideo(url) ? (
+                      <video
+                        src={url}
+                        className="w-full h-full object-cover"
+                        controls
+                      />
+                    ) : isSingle ? (
+                      <Image
+                        src={url}
+                        alt="Post media"
+                        width={800}
+                        height={600}
+                        className="max-w-full max-h-[600px] w-auto h-auto rounded-lg hover:opacity-90 transition-opacity"
+                      />
+                    ) : (
+                      <Image
+                        src={url}
+                        alt="Post media"
+                        fill
+                        className="object-cover hover:opacity-90 transition-opacity"
+                      />
+                    )}
+                    {index === 3 && post.media_urls.length > 4 && (
+                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center pointer-events-none">
+                        <span className="text-white text-lg font-semibold">
+                          +{post.media_urls.length - 4}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           )}
 
@@ -518,87 +636,20 @@ export function PostCard({
             <X className="w-6 h-6 text-white" />
           </button>
 
-          {/* Main content area */}
+          {/* Image */}
           <div 
-            className="flex flex-col md:flex-row w-full h-full max-w-7xl mx-auto"
+            className="relative w-full h-full flex items-center justify-center p-4"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Image area */}
-            <div className="flex-1 flex items-center justify-center p-4 min-h-0">
-              <div className="relative w-full h-full max-h-[70vh] md:max-h-full flex items-center justify-center">
-                <Image
-                  src={post.media_urls[lightboxImageIndex]}
-                  alt="Full size image"
-                  fill
-                  className="object-contain"
-                  sizes="(max-width: 768px) 100vw, 70vw"
-                />
-              </div>
-            </div>
-
-            {/* Sidebar with engagement */}
-            <div className="w-full md:w-96 bg-neutral-900 border-t md:border-t-0 md:border-l border-neutral-800 flex flex-col max-h-[40vh] md:max-h-full overflow-hidden">
-              {/* Post info header */}
-              <div className="p-4 border-b border-neutral-800">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-neutral-700 overflow-hidden flex-shrink-0">
-                    {post.user?.profile_picture_url ? (
-                      <img
-                        src={post.user.profile_picture_url}
-                        alt={post.user.full_name || 'User'}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-neutral-400 text-sm font-medium">
-                        {post.user?.full_name?.[0] || '?'}
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <p className="font-bold text-white">{post.user?.full_name || 'Anonymous'}</p>
-                    <p className="text-sm text-neutral-500">{timeDisplay}</p>
-                  </div>
-                </div>
-                {post.content && (
-                  <p className="text-white mt-3 text-sm whitespace-pre-wrap">
-                    {post.content}
-                  </p>
-                )}
-              </div>
-
-              {/* Engagement buttons */}
-              <div className="p-4 border-b border-neutral-800">
-                <div className="flex items-center gap-6">
-                  <button
-                    onClick={handleHeartToggle}
-                    disabled={isHeartLoading}
-                    className={`flex items-center gap-2 transition-colors ${
-                      hearted ? 'text-[#39FF14]' : 'text-neutral-400 hover:text-white'
-                    }`}
-                  >
-                    <Heart className="w-6 h-6" fill={hearted ? 'currentColor' : 'none'} />
-                    <span className="font-medium">{heartsCount}</span>
-                  </button>
-                  
-                  <button
-                    onClick={() => setShowComments(true)}
-                    className="flex items-center gap-2 text-neutral-400 hover:text-white transition-colors"
-                  >
-                    <MessageCircle className="w-6 h-6" />
-                    <span className="font-medium">{commentsCount}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Comments section */}
-              <div className="flex-1 overflow-y-auto p-4">
-                <CommentSection 
-                  postId={post.id} 
-                  onCommentAdded={handleCommentAdded}
-                  currentUserId={currentUserId}
-                  isAdmin={isAdmin}
-                />
-              </div>
+            <div className="relative max-w-full max-h-full flex items-center justify-center" style={{ width: '100%', height: '100%' }}>
+              <Image
+                src={post.media_urls[lightboxImageIndex]}
+                alt="Full size image"
+                fill
+                className="object-contain"
+                sizes="100vw"
+                onClick={closeLightbox}
+              />
             </div>
           </div>
 
@@ -612,7 +663,7 @@ export function PostCard({
                     prev === 0 ? post.media_urls.length - 1 : prev - 1
                   )
                 }}
-                className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-neutral-800/80 hover:bg-neutral-700 transition-colors"
+                className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-neutral-800/80 hover:bg-neutral-700 transition-colors z-10"
               >
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -625,7 +676,7 @@ export function PostCard({
                     prev === post.media_urls.length - 1 ? 0 : prev + 1
                   )
                 }}
-                className="absolute right-4 md:right-[400px] top-1/2 -translate-y-1/2 p-3 rounded-full bg-neutral-800/80 hover:bg-neutral-700 transition-colors"
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-neutral-800/80 hover:bg-neutral-700 transition-colors z-10"
               >
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

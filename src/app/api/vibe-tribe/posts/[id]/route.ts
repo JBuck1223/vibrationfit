@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { VIBE_TAGS } from '@/lib/vibe-tribe/types'
 
 /**
  * GET /api/vibe-tribe/posts/[id]
@@ -82,16 +83,12 @@ export async function PATCH(
     }
 
     const body = await request.json()
-    const { content } = body
+    const { content, vibe_tag, life_categories } = body
 
-    if (!content || content.trim() === '') {
-      return NextResponse.json({ error: 'Content is required' }, { status: 400 })
-    }
-
-    // Get the post to check ownership
+    // Get the post to check ownership (include media_urls for content validation)
     const { data: post, error: fetchError } = await supabase
       .from('vibe_posts')
-      .select('id, user_id')
+      .select('id, user_id, media_urls')
       .eq('id', id)
       .eq('is_deleted', false)
       .single()
@@ -105,14 +102,31 @@ export async function PATCH(
       return NextResponse.json({ error: 'Not authorized to edit this post' }, { status: 403 })
     }
 
+    const hasMedia = post.media_urls && post.media_urls.length > 0
+    const hasContent = content && content.trim() !== ''
+    if (!hasContent && !hasMedia) {
+      return NextResponse.json({ error: 'Post must have content or media' }, { status: 400 })
+    }
+
+    if (vibe_tag !== undefined && !VIBE_TAGS.includes(vibe_tag)) {
+      return NextResponse.json(
+        { error: 'Valid vibe_tag is required (win, wobble, vision, collaboration)' },
+        { status: 400 }
+      )
+    }
+
+    const updatePayload: Record<string, any> = {
+      updated_at: new Date().toISOString(),
+    }
+    if (content !== undefined) updatePayload.content = content.trim() || null
+    if (vibe_tag !== undefined) updatePayload.vibe_tag = vibe_tag
+    if (life_categories !== undefined) updatePayload.life_categories = life_categories
+
     // Update the post using admin client to bypass RLS
     const adminClient = createAdminClient()
     const { data: updatedPost, error: updateError } = await adminClient
       .from('vibe_posts')
-      .update({
-        content: content.trim(),
-        updated_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq('id', id)
       .select()
       .single()
