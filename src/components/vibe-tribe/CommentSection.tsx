@@ -245,7 +245,10 @@ export function CommentSection({
               onChange={(e) => {
                 setNewComment(e.target.value)
                 e.target.style.height = 'auto'
-                e.target.style.height = `${Math.min(e.target.scrollHeight, 150)}px`
+                const maxH = Math.min(window.innerHeight * 0.4, 300)
+                const newH = Math.min(e.target.scrollHeight, maxH)
+                e.target.style.height = `${newH}px`
+                e.target.style.overflowY = e.target.scrollHeight > maxH ? 'auto' : 'hidden'
               }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey && newComment.trim() && !submitting) {
@@ -381,7 +384,10 @@ function CommentItem({
       editInputRef.current.focus()
       editInputRef.current.setSelectionRange(editText.length, editText.length)
       editInputRef.current.style.height = 'auto'
-      editInputRef.current.style.height = `${editInputRef.current.scrollHeight}px`
+      const maxH = Math.min(window.innerHeight * 0.4, 300)
+      const newH = Math.min(editInputRef.current.scrollHeight, maxH)
+      editInputRef.current.style.height = `${newH}px`
+      editInputRef.current.style.overflowY = editInputRef.current.scrollHeight > maxH ? 'auto' : 'hidden'
     }
   }, [editing])
 
@@ -540,7 +546,10 @@ function CommentItem({
                 onChange={(e) => {
                   setEditText(e.target.value)
                   e.target.style.height = 'auto'
-                  e.target.style.height = `${e.target.scrollHeight}px`
+                  const maxH = Math.min(window.innerHeight * 0.4, 300)
+                  const newH = Math.min(e.target.scrollHeight, maxH)
+                  e.target.style.height = `${newH}px`
+                  e.target.style.overflowY = e.target.scrollHeight > maxH ? 'auto' : 'hidden'
                 }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey && !saving) {
@@ -644,7 +653,10 @@ function CommentItem({
                   onChange={(e) => {
                     setReplyText(e.target.value)
                     e.target.style.height = 'auto'
-                    e.target.style.height = `${Math.min(e.target.scrollHeight, 150)}px`
+                    const maxH = Math.min(window.innerHeight * 0.4, 300)
+                    const newH = Math.min(e.target.scrollHeight, maxH)
+                    e.target.style.height = `${newH}px`
+                    e.target.style.overflowY = e.target.scrollHeight > maxH ? 'auto' : 'hidden'
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey && replyText.trim() && !submitting) {

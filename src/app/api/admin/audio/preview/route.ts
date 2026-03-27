@@ -2,8 +2,6 @@ export const runtime = 'nodejs'
 export const maxDuration = 60
 
 import { NextRequest, NextResponse } from 'next/server'
-import { experimental_generateSpeech as generateSpeech } from 'ai'
-import { elevenlabs } from '@ai-sdk/elevenlabs'
 
 // ── OpenAI TTS (direct REST, same pattern as audioService) ──────────────────
 
@@ -71,31 +69,45 @@ async function synthesizeGoogle(
   return Buffer.from(data.audioContent, 'base64')
 }
 
-// ── ElevenLabs TTS (via Vercel AI SDK) ──────────────────────────────────────
+// ── ElevenLabs TTS (direct REST) ────────────────────────────────────────────
 
 async function synthesizeElevenLabs(
   text: string,
-  voice: string,
+  voiceId: string,
   stability: number = 0.5,
   similarityBoost: number = 0.75
 ): Promise<Buffer> {
-  if (!process.env.ELEVENLABS_API_KEY) {
+  const apiKey = process.env.ELEVENLABS_API_KEY
+  if (!apiKey) {
     throw new Error('Add ELEVENLABS_API_KEY to .env.local — get one at elevenlabs.io/app/settings/api-keys')
   }
 
-  const { audio } = await generateSpeech({
-    model: elevenlabs.speech('eleven_multilingual_v2') as unknown as Parameters<typeof generateSpeech>[0]['model'],
-    text,
-    voice,
-    providerOptions: {
-      elevenlabs: {
-        stability,
-        similarity_boost: similarityBoost,
+  const res = await fetch(
+    `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+    {
+      method: 'POST',
+      headers: {
+        'xi-api-key': apiKey,
+        'Content-Type': 'application/json',
+        'Accept': 'audio/mpeg',
       },
-    },
-  })
+      body: JSON.stringify({
+        text,
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: {
+          stability,
+          similarity_boost: similarityBoost,
+        },
+      }),
+    }
+  )
 
-  return Buffer.from(audio.uint8Array)
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '')
+    throw new Error(`ElevenLabs TTS failed: ${res.status} ${errText}`)
+  }
+
+  return Buffer.from(await res.arrayBuffer())
 }
 
 // ── Route handler ───────────────────────────────────────────────────────────
