@@ -18,10 +18,11 @@ interface ExistingVoiceSet {
   id: string
   voice_id: string
   voice_name: string
+  variant: string
   created_at: string
   track_count: number
-  available_sections: string[] // Track which sections have voice-only tracks
-  sample_audio_url?: string // Sample track for preview
+  available_sections: string[]
+  sample_audio_url?: string
 }
 
 interface BackgroundTrack {
@@ -239,33 +240,36 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
       setVoices(voiceList)
     } catch {}
 
-    // Load existing voice-only (standard) sets with their actual tracks
+    // Load existing voice-only (standard + personal) sets with their actual tracks
     const { data: sets } = await supabase
       .from('audio_sets')
       .select(`
         id,
         voice_id,
+        variant,
         created_at,
         audio_tracks(section_key, status, audio_url)
       `)
       .eq('vision_id', visionId)
-      .eq('variant', 'standard')
+      .in('variant', ['standard', 'personal'])
       .order('created_at', { ascending: false })
 
     const voiceSets: ExistingVoiceSet[] = (sets || []).map((set: any) => {
-      // Get only completed tracks with audio URLs (exclude 'full' section)
       const completedTracks = (set.audio_tracks || []).filter(
         (t: any) => t.status === 'completed' && t.audio_url && t.section_key !== 'full'
       )
       const availableSections = completedTracks.map((t: any) => t.section_key)
-      
-      // Get first track's URL for preview
       const sampleUrl = completedTracks.length > 0 ? completedTracks[0].audio_url : undefined
+      
+      const isPersonal = set.variant === 'personal'
       
       return {
         id: set.id,
         voice_id: set.voice_id,
-        voice_name: voiceList.find((v: Voice) => v.id === set.voice_id)?.name || set.voice_id,
+        voice_name: isPersonal
+          ? 'Your Voice (Personal Recording)'
+          : voiceList.find((v: Voice) => v.id === set.voice_id)?.name || set.voice_id,
+        variant: set.variant,
         created_at: set.created_at,
         track_count: completedTracks.length,
         available_sections: availableSections,
@@ -435,21 +439,27 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
         return
       }
 
+      const comboPayload: any = {
+        visionId,
+        batchId: batch.id,
+        voice: selectedBaseVoice,
+        sections: sectionsPayload,
+        backgroundTrackUrl: selectedTrack?.file_url,
+        voiceVolume: selectedRatio.voice_volume,
+        bgVolume: selectedRatio.bg_volume,
+        binauralTrackUrl: selectedBinaural?.file_url || null,
+        binauralVolume: combo.binaural_volume || 0,
+        outputFormat: 'both'
+      }
+
+      if (selectedVoiceSet.variant === 'personal') {
+        comboPayload.sourceAudioSetId = selectedVoiceSet.id
+      }
+
       fetch(`/api/audio/generate-custom-mix`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          visionId,
-          batchId: batch.id,
-          voice: selectedBaseVoice,
-          sections: sectionsPayload,
-          backgroundTrackUrl: selectedTrack?.file_url,
-          voiceVolume: selectedRatio.voice_volume,
-          bgVolume: selectedRatio.bg_volume,
-          binauralTrackUrl: selectedBinaural?.file_url || null,
-          binauralVolume: combo.binaural_volume || 0,
-          outputFormat: 'both'
-        })
+        body: JSON.stringify(comboPayload)
       }).then(res => {
         if (!res.ok) {
           console.error('Generation API error:', res.status)
@@ -647,6 +657,10 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
         outputFormat: effectiveOutputFormat
       }
       
+      if (selectedVoiceSet?.variant === 'personal') {
+        generatePayload.sourceAudioSetId = selectedVoiceSet.id
+      }
+
       if (selectedBinaural) {
         generatePayload.binauralTrackUrl = selectedBinaural.file_url
         generatePayload.binauralVolume = binauralVolume
@@ -785,11 +799,13 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
                   onClick={() => setSelectedBaseVoice(set.voice_id)}
                 >
                   <div className="flex items-center gap-3">
-                    {selectedBaseVoice === set.voice_id && (
+                    {selectedBaseVoice === set.voice_id ? (
                       <CheckCircle className="w-5 h-5 text-primary-500 flex-shrink-0" />
-                    )}
+                    ) : set.variant === 'personal' ? (
+                      <Mic className="w-5 h-5 text-[#BF00FF] flex-shrink-0" />
+                    ) : null}
                     <div className="flex-1 min-w-0">
-                      <p className="text-white font-medium">{voices.find(v => v.id === set.voice_id)?.name || set.voice_id}</p>
+                      <p className="text-white font-medium">{set.voice_name}</p>
                       <p className="text-xs text-neutral-400">
                         {set.track_count} section{set.track_count !== 1 ? 's' : ''} available
                         {set.track_count < 14 && <span className="text-yellow-400 ml-1">(partial)</span>}

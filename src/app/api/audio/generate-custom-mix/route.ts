@@ -24,7 +24,8 @@ export async function POST(request: NextRequest) {
       visionId, sections, voice, batchId,
       backgroundTrackUrl, voiceVolume, bgVolume,
       binauralTrackUrl, binauralVolume,
-      outputFormat
+      outputFormat,
+      sourceAudioSetId
     } = body
 
     if (!visionId || !sections || !voice || !batchId) {
@@ -125,7 +126,8 @@ export async function POST(request: NextRequest) {
       'fable': 'Smooth and Expressive (Male)',
       'onyx': 'Deep and Authoritative (Male)',
       'nova': 'Fresh and Modern (Female)',
-      'shimmer': 'Warm and Inviting (Female)'
+      'shimmer': 'Warm and Inviting (Female)',
+      'user_voice': 'Your Voice (Personal Recording)'
     }
     
     let audioSetName = voiceNames[voice] || voice
@@ -159,68 +161,150 @@ export async function POST(request: NextRequest) {
       .update({ status: 'processing' })
       .eq('id', batchId)
 
-    // Generate voice-only tracks first (or reuse existing ones)
     const uniqueVariant = `custom-${batchId.slice(0, 8)}`
-    
-    const results = await generateAudioTracks({
-      userId: user.id,
-      visionId,
-      sections,
-      voice,
-      format: 'mp3',
-      variant: uniqueVariant,
-      batchId,
-      audioSetName,
-      audioSetDescription,
-      force: false,
-      audioSetMetadata: {
-        voice_volume: adjustedVoiceVol,
-        bg_volume: adjustedBgVol,
-        frequency_volume: binauralVolume || 0,
-        background_track_name: bgTrack?.display_name,
-        frequency_track_name: frequencyTrackName || undefined,
-        frequency_type: frequencyType || undefined,
-      }
-    })
-
-    console.log('[CUSTOM MIX] Voice generation results:', results)
-
-    // Get the audio set ID
-    const { data: audioSetData } = await supabase
-      .from('audio_sets')
-      .select('id')
-      .eq('vision_id', visionId)
-      .eq('variant', uniqueVariant)
-      .eq('voice_id', voice)
-      .single()
-    
-    const audioSetId = audioSetData?.id
-    if (!audioSetId) {
-      console.error('[CUSTOM MIX] Could not find audio set for variant:', uniqueVariant)
-      return NextResponse.json({ error: 'Audio set not found' }, { status: 500 })
-    }
-
-    // Gather all completed voice tracks for Lambda batch-mix
+    let audioSetId: string
     const lambdaSections: { trackId: string; voiceUrl: string; outputKey: string }[] = []
 
-    for (const result of results) {
-      if (result.status === 'generated' || result.status === 'skipped' || result.status === 'reused') {
-        const { data: tracks } = await supabase
+    if (sourceAudioSetId) {
+      // Personal recordings: use existing tracks directly, create a new mix set
+      console.log('[CUSTOM MIX] Using source audio set (personal recording):', sourceAudioSetId)
+
+      const { data: newSet, error: setErr } = await supabase
+        .from('audio_sets')
+        .insert({
+          vision_id: visionId,
+          user_id: user.id,
+          name: audioSetName,
+          description: audioSetDescription,
+          variant: uniqueVariant,
+          voice_id: voice,
+          is_active: true,
+          metadata: {
+            source_audio_set_id: sourceAudioSetId,
+            voice_volume: adjustedVoiceVol,
+            bg_volume: adjustedBgVol,
+            frequency_volume: binauralVolume || 0,
+            background_track_name: bgTrack?.display_name,
+            frequency_track_name: frequencyTrackName || undefined,
+            frequency_type: frequencyType || undefined,
+          }
+        })
+        .select('id')
+        .single()
+
+      if (setErr || !newSet) {
+        console.error('[CUSTOM MIX] Failed to create mix set:', setErr)
+        return NextResponse.json({ error: 'Failed to create audio set' }, { status: 500 })
+      }
+
+      audioSetId = newSet.id
+
+      // Fetch completed tracks from the source personal recording set
+      const requestedKeys = sections.map((s: any) => s.sectionKey)
+      const { data: sourceTracks } = await supabase
+        .from('audio_tracks')
+        .select('id, section_key, audio_url, s3_key, s3_bucket, content_hash, text_content, duration_seconds, voice_id')
+        .eq('audio_set_id', sourceAudioSetId)
+        .eq('status', 'completed')
+        .in('section_key', requestedKeys)
+
+      if (!sourceTracks || sourceTracks.length === 0) {
+        console.error('[CUSTOM MIX] No completed tracks found in source set:', sourceAudioSetId)
+        return NextResponse.json({ error: 'No voice tracks found in personal recording' }, { status: 400 })
+      }
+
+      // Copy tracks into the new mix set and prepare for Lambda mixing
+      for (const track of sourceTracks) {
+        const { data: newTrack } = await supabase
           .from('audio_tracks')
-          .select('id, audio_url, s3_key')
-          .eq('audio_set_id', audioSetId)
-          .eq('section_key', result.sectionKey)
-          .order('created_at', { ascending: false })
-          .limit(1)
-        
-        const track = tracks?.[0]
-        if (track?.audio_url) {
-          const mixedKey = track.s3_key.replace('.mp3', `-mixed-${track.id.substring(0, 8)}.mp3`)
+          .insert({
+            user_id: user.id,
+            vision_id: visionId,
+            audio_set_id: audioSetId,
+            section_key: track.section_key,
+            content_hash: track.content_hash,
+            text_content: track.text_content,
+            voice_id: track.voice_id,
+            s3_bucket: track.s3_bucket,
+            s3_key: track.s3_key,
+            audio_url: track.audio_url,
+            duration_seconds: track.duration_seconds,
+            status: 'completed',
+            mix_status: 'pending'
+          })
+          .select('id')
+          .single()
+
+        if (newTrack) {
+          const mixedKey = track.s3_key.replace(/\.(mp3|wav|webm|m4a)$/, `-mixed-${newTrack.id.substring(0, 8)}.mp3`)
           lambdaSections.push({
-            trackId: track.id,
+            trackId: newTrack.id,
             voiceUrl: track.audio_url,
             outputKey: mixedKey
           })
+        }
+      }
+
+      console.log('[CUSTOM MIX] Prepared', lambdaSections.length, 'personal recording tracks for mixing')
+    } else {
+      // Standard TTS flow: generate voice-only tracks first (or reuse existing ones)
+      const results = await generateAudioTracks({
+        userId: user.id,
+        visionId,
+        sections,
+        voice,
+        format: 'mp3',
+        variant: uniqueVariant,
+        batchId,
+        audioSetName,
+        audioSetDescription,
+        force: false,
+        audioSetMetadata: {
+          voice_volume: adjustedVoiceVol,
+          bg_volume: adjustedBgVol,
+          frequency_volume: binauralVolume || 0,
+          background_track_name: bgTrack?.display_name,
+          frequency_track_name: frequencyTrackName || undefined,
+          frequency_type: frequencyType || undefined,
+        }
+      })
+
+      console.log('[CUSTOM MIX] Voice generation results:', results)
+
+      const { data: audioSetData } = await supabase
+        .from('audio_sets')
+        .select('id')
+        .eq('vision_id', visionId)
+        .eq('variant', uniqueVariant)
+        .eq('voice_id', voice)
+        .single()
+
+      if (!audioSetData?.id) {
+        console.error('[CUSTOM MIX] Could not find audio set for variant:', uniqueVariant)
+        return NextResponse.json({ error: 'Audio set not found' }, { status: 500 })
+      }
+
+      audioSetId = audioSetData.id
+
+      for (const result of results) {
+        if (result.status === 'generated' || result.status === 'skipped' || result.status === 'reused') {
+          const { data: tracks } = await supabase
+            .from('audio_tracks')
+            .select('id, audio_url, s3_key')
+            .eq('audio_set_id', audioSetId)
+            .eq('section_key', result.sectionKey)
+            .order('created_at', { ascending: false })
+            .limit(1)
+
+          const track = tracks?.[0]
+          if (track?.audio_url) {
+            const mixedKey = track.s3_key.replace('.mp3', `-mixed-${track.id.substring(0, 8)}.mp3`)
+            lambdaSections.push({
+              trackId: track.id,
+              voiceUrl: track.audio_url,
+              outputKey: mixedKey
+            })
+          }
         }
       }
     }
