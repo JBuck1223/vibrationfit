@@ -250,14 +250,9 @@ export function CommentSection({
                 e.target.style.height = `${newH}px`
                 e.target.style.overflowY = e.target.scrollHeight > maxH ? 'auto' : 'hidden'
               }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey && newComment.trim() && !submitting) {
-                  e.preventDefault()
-                  handleSubmitTopLevel(e)
-                }
-              }}
               placeholder="Add a comment..."
-              className="flex-1 bg-neutral-800 border border-neutral-700 rounded-2xl px-4 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500 resize-none overflow-hidden min-h-[36px]"
+              className="flex-1 bg-neutral-800 border border-neutral-700 rounded-2xl px-4 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500 resize-none min-h-[36px]"
+              style={{ overflowY: 'hidden' }}
               rows={1}
             />
             <button
@@ -552,13 +547,10 @@ function CommentItem({
                   e.target.style.overflowY = e.target.scrollHeight > maxH ? 'auto' : 'hidden'
                 }}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey && !saving) {
-                    e.preventDefault()
-                    handleSaveEdit()
-                  }
                   if (e.key === 'Escape') handleCancelEdit()
                 }}
-                className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#39FF14] resize-none overflow-hidden"
+                className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#39FF14] resize-none"
+                style={{ overflowY: 'hidden' }}
                 rows={1}
               />
               <div className="flex items-center gap-2 mt-2">
@@ -658,14 +650,9 @@ function CommentItem({
                     e.target.style.height = `${newH}px`
                     e.target.style.overflowY = e.target.scrollHeight > maxH ? 'auto' : 'hidden'
                   }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey && replyText.trim() && !submitting) {
-                      e.preventDefault()
-                      onSubmitReply(comment.id)
-                    }
-                  }}
                   placeholder={`Reply to ${comment.user?.full_name || 'Anonymous'}...`}
-                  className="flex-1 bg-neutral-800 border border-neutral-700 rounded-2xl px-4 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#39FF14] resize-none overflow-hidden min-h-[36px]"
+                  className="flex-1 bg-neutral-800 border border-neutral-700 rounded-2xl px-4 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#39FF14] resize-none min-h-[36px]"
+                  style={{ overflowY: 'hidden' }}
                   rows={1}
                 />
                 <button
