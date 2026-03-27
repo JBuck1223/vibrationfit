@@ -164,6 +164,7 @@ export async function POST(request: NextRequest) {
     const uniqueVariant = `custom-${batchId.slice(0, 8)}`
     let audioSetId: string
     const lambdaSections: { trackId: string; voiceUrl: string; outputKey: string }[] = []
+    let results: { sectionKey: string; status: string }[] = []
 
     if (sourceAudioSetId) {
       // Personal recordings: use existing tracks directly, create a new mix set
@@ -248,7 +249,7 @@ export async function POST(request: NextRequest) {
       console.log('[CUSTOM MIX] Prepared', lambdaSections.length, 'personal recording tracks for mixing')
     } else {
       // Standard TTS flow: generate voice-only tracks first (or reuse existing ones)
-      const results = await generateAudioTracks({
+      results = await generateAudioTracks({
         userId: user.id,
         visionId,
         sections,
