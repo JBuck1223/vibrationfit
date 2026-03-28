@@ -14,6 +14,7 @@ import {
   Stack,
   Textarea,
   Select,
+  Video,
 } from '@/lib/design-system/components'
 import { ArrowLeft, Send, MessageSquare, User, Calendar, Hash, Monitor, Pencil, X, Check, Trash2 } from 'lucide-react'
 import { MediaRecorderComponent } from '@/components/MediaRecorder'
@@ -399,11 +400,9 @@ export default function SupportTicketDetailPage() {
             {/* Attachment preview */}
             {attachmentUrl && (
               <div className="flex items-start gap-3 p-3 bg-neutral-900 rounded-xl border border-[#333]">
-                <video
-                  src={attachmentUrl}
-                  className="w-48 h-28 object-cover rounded-lg bg-black"
-                  controls
-                />
+                <div className="w-48 shrink-0">
+                  <Video src={attachmentUrl} variant="card" preload="metadata" />
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-neutral-300 truncate">Screen recording attached</p>
                   <Button
@@ -541,11 +540,9 @@ export default function SupportTicketDetailPage() {
                         {/* Existing video attachments in edit mode */}
                         {editAttachments.map((url, idx) => (
                           <div key={idx} className="flex items-start gap-3 p-3 bg-neutral-800 rounded-lg">
-                            <video
-                              src={url}
-                              className="w-48 h-28 object-cover rounded-lg bg-black"
-                              controls
-                            />
+                            <div className="w-48 shrink-0">
+                              <Video src={url} variant="card" preload="metadata" />
+                            </div>
                             <Button
                               variant="ghost"
                               size="sm"
@@ -618,20 +615,15 @@ export default function SupportTicketDetailPage() {
                         </div>
                       </div>
                     ) : (
-                      /* Display Mode - text left, video right */
-                      <div className={hasVideo ? 'flex gap-4' : ''}>
-                        <div className={hasVideo ? 'flex-1 min-w-0' : ''}>
+                      /* Display Mode - two column: text left, video right */
+                      <div className={hasVideo ? 'grid grid-cols-2 gap-6' : ''}>
+                        <div>
                           <p className="text-neutral-300 whitespace-pre-wrap">{reply.reply}</p>
                         </div>
                         {hasVideo && (
-                          <div className="shrink-0 w-72">
+                          <div>
                             {reply.attachments.map((url, idx) => (
-                              <video
-                                key={idx}
-                                src={url}
-                                className="w-full rounded-lg bg-black"
-                                controls
-                              />
+                              <Video key={idx} src={url} variant="card" preload="metadata" />
                             ))}
                           </div>
                         )}

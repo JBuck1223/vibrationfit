@@ -67,6 +67,7 @@ export default function EmailTemplateDetailPage() {
 
   // Test email state
   const [testEmail, setTestEmail] = useState('')
+  const [testName, setTestName] = useState('')
   const [sending, setSending] = useState(false)
   const [sendResult, setSendResult] = useState<{ success: boolean; message: string } | null>(null)
 
@@ -237,15 +238,29 @@ export default function EmailTemplateDetailPage() {
     setSending(true)
     setSendResult(null)
 
+    const vars: Record<string, string> = {
+      firstName: testName || 'there',
+      first_name: testName || 'there',
+      name: testName || '',
+      email: testEmail,
+    }
+    const replace = (text: string) => {
+      let result = text
+      for (const [key, value] of Object.entries(vars)) {
+        result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value)
+      }
+      return result
+    }
+
     try {
       const response = await fetch('/api/admin/emails/send-test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: testEmail,
-          subject: formData.subject,
-          ...(formData.text_body.trim() ? {} : { htmlBody: formData.html_body }),
-          textBody: formData.text_body || formData.html_body.replace(/<[^>]*>/g, ''),
+          subject: replace(formData.subject),
+          ...(formData.text_body.trim() ? {} : { htmlBody: replace(formData.html_body) }),
+          textBody: replace(formData.text_body || formData.html_body.replace(/<[^>]*>/g, '')),
         }),
       })
 
@@ -517,7 +532,14 @@ export default function EmailTemplateDetailPage() {
               <Card className="p-4 md:p-6">
                 <h2 className="text-lg font-medium text-white mb-4">Send Test Email</h2>
                 
-                <div className="flex gap-2">
+                <div className="flex gap-2 mb-2">
+                  <Input
+                    type="text"
+                    value={testName}
+                    onChange={(e) => setTestName(e.target.value)}
+                    placeholder="First name (for merge tags)"
+                    className="bg-neutral-800 border-neutral-700 w-48"
+                  />
                   <Input
                     type="email"
                     value={testEmail}
