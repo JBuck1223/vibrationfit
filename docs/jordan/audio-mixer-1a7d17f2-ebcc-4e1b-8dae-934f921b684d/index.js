@@ -203,6 +203,7 @@ async function handleBatchMix(eventData) {
     let mixFailCount = 0
 
     // ── INDIVIDUAL MIXES (for 'individual' and 'both') ──
+    const individualMixPaths = []
     if (outputFormat === 'individual' || outputFormat === 'both') {
       console.log(`[BatchMix] Mixing ${sections.length} individual sections...`)
       for (let i = 0; i < sections.length; i++) {
@@ -211,6 +212,7 @@ async function handleBatchMix(eventData) {
         try {
           const mixedPath = `/tmp/batch-mixed-${timestamp}-${i}.mp3`
           filesToClean.push(mixedPath)
+          individualMixPaths.push(mixedPath)
           await mixAudio(voicePaths[i], bgPath, binauralPath, mixedPath, voiceVolume || 0.7, bgVolume || 0.3, binauralVolume || 0.2)
 
           const mixedUrl = await uploadToS3(mixedPath, section.outputKey)
@@ -224,6 +226,12 @@ async function handleBatchMix(eventData) {
           mixResults.push({ trackId: section.trackId, status: 'failed', error: err.message })
           mixFailCount++
         }
+      }
+
+      // Free /tmp space: remove individual mix files (already uploaded to S3)
+      if (outputFormat === 'both') {
+        console.log(`[BatchMix] Cleaning up ${individualMixPaths.length} individual mix files to free /tmp space for combined track...`)
+        await Promise.all(individualMixPaths.map(removeFile))
       }
     }
 
@@ -280,10 +288,11 @@ async function handleBatchMix(eventData) {
 
         // Step 4: Update DB
         await updateTrackStatus(combinedTrackId, 'completed', combinedUrl, combinedOutputKey, combinedDuration)
+        mixSuccessCount++
 
         // For 'combined' only mode, mark individual section tracks as completed (no mixed URL)
         if (outputFormat === 'combined') {
-          mixSuccessCount = sections.length
+          mixSuccessCount = sections.length + 1
           for (const section of sections) {
             await updateMixStatus(section.trackId, 'completed', null, null)
             mixResults.push({ trackId: section.trackId, status: 'completed' })
@@ -292,9 +301,10 @@ async function handleBatchMix(eventData) {
       } catch (concatError) {
         console.error('[BatchMix] Combined track failed:', concatError.message)
         await updateTrackStatus(combinedTrackId, 'failed', null, null, 0, concatError.message)
+        mixFailCount++
 
         if (outputFormat === 'combined') {
-          mixFailCount = sections.length
+          mixFailCount = sections.length + 1
           for (const section of sections) {
             await updateMixStatus(section.trackId, 'failed', null, null, 'Combined track generation failed')
             mixResults.push({ trackId: section.trackId, status: 'failed' })
@@ -303,19 +313,15 @@ async function handleBatchMix(eventData) {
       }
     }
 
-    // For 'individual' only (no combined needed), mark as completed
-    if (outputFormat === 'individual') {
-      // Individual mixes already handled above
-    }
-
     // Cleanup
     await Promise.all(filesToClean.map(removeFile))
 
-    console.log(`[BatchMix] Complete: ${mixSuccessCount} succeeded, ${mixFailCount} failed, format=${outputFormat}`)
+    const totalExpected = needsCombined ? sections.length + 1 : sections.length
+    console.log(`[BatchMix] Complete: ${mixSuccessCount} succeeded, ${mixFailCount} failed, total=${totalExpected}, format=${outputFormat}`)
 
     // Update batch status
     if (batchId) {
-      const batchStatus = mixFailCount === sections.length ? 'failed'
+      const batchStatus = mixFailCount === totalExpected ? 'failed'
         : mixFailCount > 0 ? 'partial_success'
         : 'completed'
       await updateBatchStatus(batchId, batchStatus, mixSuccessCount, mixFailCount)

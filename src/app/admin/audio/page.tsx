@@ -732,7 +732,10 @@ export default function AudioAuditionPage() {
                       <input
                         type="text"
                         value={elSearch}
-                        onChange={(e) => setElSearch(e.target.value)}
+                        onChange={(e) => {
+                          setElSearch(e.target.value)
+                          if (e.target.value && elVoiceType === 'default') setElVoiceType('community')
+                        }}
                         placeholder="Search voices (e.g. meditation, calm, whisper...)"
                         className="w-full bg-neutral-900 border border-neutral-800 rounded-lg pl-9 pr-3 py-2 text-sm text-neutral-200
                           placeholder-neutral-500 focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20
@@ -741,7 +744,7 @@ export default function AudioAuditionPage() {
                     </div>
                     <div className="flex border border-neutral-800 rounded-lg overflow-hidden">
                       <button
-                        onClick={() => setElVoiceType('default')}
+                        onClick={() => { setElVoiceType('default'); setElSearch('') }}
                         className={`flex items-center gap-1.5 px-3 py-2 text-xs transition-colors ${
                           elVoiceType === 'default'
                             ? 'bg-purple-500/15 text-purple-400'
@@ -749,7 +752,7 @@ export default function AudioAuditionPage() {
                         }`}
                       >
                         <User className="w-3 h-3" />
-                        Default
+                        My Voices
                       </button>
                       <button
                         onClick={() => setElVoiceType('community')}
@@ -760,7 +763,7 @@ export default function AudioAuditionPage() {
                         }`}
                       >
                         <Globe className="w-3 h-3" />
-                        Community
+                        Community Library
                       </button>
                     </div>
                   </div>
@@ -769,7 +772,7 @@ export default function AudioAuditionPage() {
                       {ELEVENLABS_SEARCH_SUGGESTIONS.map((term) => (
                         <button
                           key={term}
-                          onClick={() => setElSearch(term)}
+                          onClick={() => { setElSearch(term); setElVoiceType('community') }}
                           className="px-2.5 py-1 rounded-md bg-neutral-800/60 text-[11px] text-neutral-400
                             hover:bg-neutral-700 hover:text-neutral-200 transition-colors border border-neutral-800"
                         >

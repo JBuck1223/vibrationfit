@@ -11,10 +11,14 @@ import { trackVideoMilestone } from '@/lib/tracking/pixels'
  *   Video:     {base}-1080p.mp4  (or -720p, -original)
  *   Thumbnail: {base}-thumb.0000000.jpg
  *
- * This strips the quality suffix and appends the standard thumb suffix.
- * Works with both media.vibrationfit.com and S3 direct URLs.
+ * Only works for site-assets processed by MediaConvert.
+ * Returns empty string for user-uploaded videos (no thumbnail available).
  */
 export function getVideoThumbnailUrl(videoUrl: string): string {
+  const isMediaConvertAsset = /site-assets\//.test(videoUrl) ||
+    /-(1080p|720p|original)\.(mp4|mov|webm)$/i.test(videoUrl)
+  if (!isMediaConvertAsset) return ''
+
   return videoUrl
     .replace(/-(1080p|720p|original)\.(mp4|mov|webm)$/i, '-thumb.0000000.jpg')
     .replace(/\.(mp4|mov|webm)$/i, '-thumb.0000000.jpg')
@@ -95,7 +99,6 @@ export const Video = React.forwardRef<HTMLVideoElement, VideoProps>(
       }
     }, [trackingId, saveProgress])
 
-    // Track progress and milestones
     const handleTimeUpdate = () => {
       if (!videoRef.current) return
       
@@ -103,7 +106,9 @@ export const Video = React.forwardRef<HTMLVideoElement, VideoProps>(
       const total = videoRef.current.duration
       
       setCurrentTime(time)
-      setDuration(total)
+      if (Number.isFinite(total) && total > 0) {
+        setDuration(total)
+      }
 
       // Save progress to localStorage
       if (saveProgress && trackingId) {
@@ -133,9 +138,29 @@ export const Video = React.forwardRef<HTMLVideoElement, VideoProps>(
     }
 
     const handleLoadedMetadata = () => {
-      if (videoRef.current) {
-        setDuration(videoRef.current.duration)
+      if (!videoRef.current) return
+      const reported = videoRef.current.duration
+
+      if (Number.isFinite(reported) && reported > 0) {
+        setDuration(reported)
+        return
       }
+
+      // WebM files from MediaRecorder often report Infinity for duration.
+      // Seek to a large value to force the browser to discover the real length.
+      const video = videoRef.current
+      const onSeeked = () => {
+        if (video) {
+          const realDuration = video.duration
+          if (Number.isFinite(realDuration)) {
+            setDuration(realDuration)
+          }
+          video.currentTime = 0
+        }
+        video?.removeEventListener('seeked', onSeeked)
+      }
+      video.addEventListener('seeked', onSeeked)
+      video.currentTime = 1e10
     }
 
     const handlePlay = () => {
@@ -153,7 +178,8 @@ export const Video = React.forwardRef<HTMLVideoElement, VideoProps>(
       onComplete?.()
     }
 
-    const resolvedPoster = poster || getVideoThumbnailUrl(src)
+    const derivedPoster = poster !== undefined ? poster : getVideoThumbnailUrl(src)
+    const resolvedPoster = derivedPoster || undefined
 
     const getOptimizedSrc = () => {
       return src

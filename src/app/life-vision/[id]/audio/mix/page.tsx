@@ -412,7 +412,7 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
           variant_ids: ['custom'],
           voice_id: selectedBaseVoice,
           sections_requested: sectionsPayload,
-          total_tracks_expected: sectionsPayload.length,
+          total_tracks_expected: sectionsPayload.length + (sectionsPayload.length > 1 ? 1 : 0),
           status: 'pending',
           metadata: {
             custom_mix: true,
@@ -598,6 +598,7 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
       
       // Force 'individual' format when only 1 section (no point in combined)
       const effectiveOutputFormat = sections.length === 1 ? 'individual' : mixOutputFormat
+      const includesCombinedTrack = (effectiveOutputFormat === 'both' || effectiveOutputFormat === 'combined') && sectionsPayload.length > 1
 
       const { data: batch, error: batchError } = await supabase
         .from('audio_generation_batches')
@@ -607,7 +608,7 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
           variant_ids: ['custom'],
           voice_id: selectedBaseVoice,
           sections_requested: sectionsPayload,
-          total_tracks_expected: sectionsPayload.length,
+          total_tracks_expected: sectionsPayload.length + (includesCombinedTrack ? 1 : 0),
           status: 'pending',
           metadata: {
             custom_mix: true,

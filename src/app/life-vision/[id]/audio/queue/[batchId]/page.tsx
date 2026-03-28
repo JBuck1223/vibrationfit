@@ -411,7 +411,7 @@ export default function AudioQueuePage({
   }
 
   function prettySectionTitle(sectionKey: string): string {
-    if (sectionKey === 'full') return 'Full Track (All Sections)'
+    if (sectionKey === 'full') return 'Full Life Vision'
     return getVisionCategoryLabel(sectionKey as any)
   }
 

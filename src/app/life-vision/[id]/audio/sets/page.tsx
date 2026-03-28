@@ -256,6 +256,7 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
     sectionMap.set('giving', 'Giving')
     sectionMap.set('spirituality', 'Spirituality')
     sectionMap.set('conclusion', 'Conclusion')
+    sectionMap.set('full', 'Full Life Vision')
 
     const canonicalOrder = [
       'forward',
@@ -907,7 +908,7 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
                                   onChange={setPlayMode}
                                   options={[
                                     { value: 'sections', label: `${sectionTracks.length} Sections` },
-                                    { value: 'full', label: `Full Track (${fullTrack.duration ? formatDuration(fullTrack.duration) : '~15 min'})` }
+                                    { value: 'full', label: `Full Life Vision (${fullTrack.duration ? formatDuration(fullTrack.duration) : '~15 min'})` }
                                   ]}
                                 />
                               </div>
