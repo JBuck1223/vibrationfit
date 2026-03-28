@@ -406,7 +406,7 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
           {/* Tracks/Date/Duration - Under title */}
           {(trackCount || createdDate || totalDuration > 0) && (
             <div className="flex items-center justify-center gap-2 text-xs text-neutral-400">
-              {trackCount && <span>{trackCount} tracks</span>}
+              {trackCount && <span>{trackCount} {trackCount === 1 ? 'track' : 'tracks'}</span>}
               {trackCount && (createdDate || totalDuration > 0) && <span>•</span>}
               {createdDate && <span>{createdDate}</span>}
               {createdDate && totalDuration > 0 && <span>•</span>}

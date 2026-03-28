@@ -856,7 +856,7 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
                                   </div>
                                 )}
                                 <div className="flex items-center gap-2 pt-1">
-                                  <span>{set.track_count} tracks</span>
+                                  <span>{set.track_count} {set.track_count === 1 ? 'track' : 'tracks'}</span>
                                   <span>•</span>
                                   <span>{new Date(set.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                                 </div>
@@ -886,7 +886,8 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
                         const sectionTracks = audioTracks.filter(t => t.sectionKey !== 'full')
                         const fullTrack = audioTracks.find(t => t.sectionKey === 'full')
                         const hasFullTrack = !!fullTrack
-                        const displayTracks = playMode === 'sections' ? sectionTracks : (fullTrack ? [fullTrack] : [])
+                        const effectivePlayMode = (playMode === 'sections' && sectionTracks.length === 0 && hasFullTrack) ? 'full' : playMode
+                        const displayTracks = effectivePlayMode === 'sections' ? sectionTracks : (fullTrack ? [fullTrack] : [])
 
                         const formatDuration = (seconds: number) => {
                           // Handle invalid values
@@ -900,8 +901,8 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
 
                         return (
                           <>
-                            {/* Play Mode Toggle */}
-                            {hasFullTrack && (
+                            {/* Play Mode Toggle - only show when both modes are available */}
+                            {hasFullTrack && sectionTracks.length > 0 && (
                               <div className="flex justify-center mb-6">
                                 <Toggle
                                   value={playMode}
