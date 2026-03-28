@@ -455,13 +455,28 @@ function UserDetailContent() {
               size="sm"
               className="text-secondary-400 border-secondary-500/50 hover:bg-secondary-500/10"
               onClick={async () => {
-                const res = await fetch('/api/admin/impersonate', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ userId: account.id }),
-                })
-                if (res.ok) router.push('/dashboard')
-                else alert('Failed to impersonate user')
+                try {
+                  const res = await fetch('/api/admin/impersonate-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: account.id }),
+                  })
+                  const data = await res.json()
+                  if (!res.ok) {
+                    alert(`Failed: ${data.error || 'Unknown error'}`)
+                    return
+                  }
+                  localStorage.setItem('vf-impersonation', JSON.stringify({
+                    returnToken: data.returnToken,
+                    targetName: data.targetName,
+                    targetEmail: data.targetEmail,
+                    adminName: data.adminName,
+                    startedAt: new Date().toISOString(),
+                  }))
+                  window.location.href = `/auth/impersonate-verify?token_hash=${encodeURIComponent(data.tokenHash)}`
+                } catch (err: any) {
+                  alert(`Error: ${err.message || 'Network error'}`)
+                }
               }}
             >
               <Eye className="w-4 h-4 mr-2" /> View as User
