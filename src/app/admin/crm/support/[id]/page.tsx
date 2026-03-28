@@ -15,8 +15,8 @@ import {
   Textarea,
   Select,
 } from '@/lib/design-system/components'
-import { ArrowLeft, Send, Mail, MessageSquare, User, Calendar, Hash, RefreshCw } from 'lucide-react'
-import { ConversationThread } from '@/components/crm/ConversationThread'
+import { ArrowLeft, Send, MessageSquare, User, Calendar, Hash, Monitor, Pencil, X, Check, Trash2 } from 'lucide-react'
+import { MediaRecorderComponent } from '@/components/MediaRecorder'
 import { toast } from 'sonner'
 
 interface Ticket {
@@ -39,6 +39,7 @@ interface Reply {
   admin_id: string | null
   reply: string
   is_internal: boolean
+  attachments: string[]
   created_at: string
   admin?: {
     email: string
@@ -53,18 +54,24 @@ export default function SupportTicketDetailPage() {
   const [loading, setLoading] = useState(true)
   const [ticket, setTicket] = useState<Ticket | null>(null)
   const [replies, setReplies] = useState<Reply[]>([])
-  const [conversation, setConversation] = useState<any[]>([])
-  const [loadingConversation, setLoadingConversation] = useState(false)
   const [replyText, setReplyText] = useState('')
   const [isInternal, setIsInternal] = useState(false)
   const [sending, setSending] = useState(false)
   const [updating, setUpdating] = useState(false)
+  const [showRecorder, setShowRecorder] = useState(false)
+  const [recorderKey, setRecorderKey] = useState(0)
+  const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null)
+  const [editingReplyId, setEditingReplyId] = useState<string | null>(null)
+  const [editText, setEditText] = useState('')
+  const [editAttachments, setEditAttachments] = useState<string[]>([])
+  const [showEditRecorder, setShowEditRecorder] = useState(false)
+  const [editRecorderKey, setEditRecorderKey] = useState(0)
+  const [savingEdit, setSavingEdit] = useState(false)
 
   useEffect(() => {
     if (ticketId) {
       fetchTicket()
       fetchReplies()
-      fetchConversation()
     }
   }, [ticketId])
 
@@ -95,32 +102,19 @@ export default function SupportTicketDetailPage() {
     }
   }
 
-  async function fetchConversation() {
-    setLoadingConversation(true)
-    try {
-      const response = await fetch(`/api/support/tickets/${ticketId}/conversation`)
-      if (!response.ok) throw new Error('Failed to fetch conversation')
-
-      const data = await response.json()
-      setConversation(data.conversation || [])
-    } catch (error) {
-      console.error('Error fetching conversation:', error)
-    } finally {
-      setLoadingConversation(false)
-    }
-  }
-
   async function handleSendReply() {
     if (!replyText.trim()) return
 
     setSending(true)
     try {
+      const attachments = attachmentUrl ? [attachmentUrl] : []
       const response = await fetch(`/api/support/tickets/${ticketId}/replies`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           reply: replyText,
           is_internal: isInternal,
+          attachments,
         }),
       })
 
@@ -128,13 +122,56 @@ export default function SupportTicketDetailPage() {
 
       setReplyText('')
       setIsInternal(false)
+      setAttachmentUrl(null)
+      setShowRecorder(false)
       await fetchReplies()
-      await fetchConversation() // Refresh conversation
     } catch (error) {
       console.error('Error sending reply:', error)
       toast.error('Failed to send reply')
     } finally {
       setSending(false)
+    }
+  }
+
+  function startEditReply(reply: Reply) {
+    setEditingReplyId(reply.id)
+    setEditText(reply.reply)
+    setEditAttachments(reply.attachments || [])
+    setShowEditRecorder(false)
+  }
+
+  function cancelEdit() {
+    setEditingReplyId(null)
+    setEditText('')
+    setEditAttachments([])
+    setShowEditRecorder(false)
+  }
+
+  async function handleSaveEdit() {
+    if (!editingReplyId || !editText.trim()) return
+
+    setSavingEdit(true)
+    try {
+      const response = await fetch(`/api/support/tickets/${ticketId}/replies`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          replyId: editingReplyId,
+          message: editText,
+          attachments: editAttachments,
+        }),
+      })
+
+      if (!response.ok) throw new Error('Failed to update reply')
+
+      cancelEdit()
+      await fetchReplies()
+      toast.success('Reply updated')
+    } catch (error) {
+      console.error('Error updating reply:', error)
+      toast.error('Failed to update reply')
+    } finally {
+      setSavingEdit(false)
     }
   }
 
@@ -343,30 +380,6 @@ export default function SupportTicketDetailPage() {
           </div>
         </Card>
 
-        {/* Conversation Thread (Email + SMS + Replies) */}
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <MessageSquare className="w-5 h-5 text-primary-500" />
-              Conversation ({conversation.length})
-            </h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={fetchConversation}
-              disabled={loadingConversation}
-              className="flex items-center gap-2"
-            >
-              <RefreshCw className={`w-4 h-4 ${loadingConversation ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
-          </div>
-          <ConversationThread 
-            messages={conversation} 
-            loading={loadingConversation}
-          />
-        </Card>
-
         {/* Reply Box */}
         <Card className="p-6">
           <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
@@ -383,16 +396,79 @@ export default function SupportTicketDetailPage() {
               className="w-full"
             />
 
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 text-sm text-neutral-300">
-                <input
-                  type="checkbox"
-                  checked={isInternal}
-                  onChange={(e) => setIsInternal(e.target.checked)}
-                  className="w-4 h-4 rounded border-neutral-600 text-primary-500 focus:ring-primary-500"
+            {/* Attachment preview */}
+            {attachmentUrl && (
+              <div className="flex items-start gap-3 p-3 bg-neutral-900 rounded-xl border border-[#333]">
+                <video
+                  src={attachmentUrl}
+                  className="w-48 h-28 object-cover rounded-lg bg-black"
+                  controls
                 />
-                Internal note (not visible to customer)
-              </label>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-neutral-300 truncate">Screen recording attached</p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setAttachmentUrl(null)}
+                    className="text-red-400 hover:text-red-300 mt-1 flex items-center gap-1"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    Remove
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Screen recorder */}
+            {showRecorder && !attachmentUrl && (
+              <div className="border border-[#333] rounded-xl p-4">
+                <MediaRecorderComponent
+                  key={`reply-recorder-${recorderKey}`}
+                  instanceId={`support-reply-${recorderKey}`}
+                  mode="screen"
+                  recordingPurpose="support"
+                  storageFolder="supportVideoRecordings"
+                  submitLabel="Attach to Reply"
+                  fullscreenVideo={false}
+                  maxDuration={300}
+                  showSaveOption={false}
+                  onRecordingComplete={(_blob, _transcript, _save, s3Url) => {
+                    if (s3Url) {
+                      setAttachmentUrl(s3Url)
+                      setShowRecorder(false)
+                    }
+                  }}
+                />
+              </div>
+            )}
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 text-sm text-neutral-300">
+                  <input
+                    type="checkbox"
+                    checked={isInternal}
+                    onChange={(e) => setIsInternal(e.target.checked)}
+                    className="w-4 h-4 rounded border-neutral-600 text-primary-500 focus:ring-primary-500"
+                  />
+                  Internal note
+                </label>
+
+                {!attachmentUrl && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      if (!showRecorder) setRecorderKey(k => k + 1)
+                      setShowRecorder(!showRecorder)
+                    }}
+                    className="flex items-center gap-2 text-neutral-400 hover:text-white"
+                  >
+                    <Monitor className="w-4 h-4" />
+                    {showRecorder ? 'Hide Recorder' : 'Record Screen'}
+                  </Button>
+                )}
+              </div>
 
               <Button
                 variant="primary"
@@ -415,6 +491,158 @@ export default function SupportTicketDetailPage() {
             </div>
           </div>
         </Card>
+
+        {/* Replies */}
+        {replies.length > 0 && (
+          <Card className="p-6">
+            <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-primary-500" />
+              Replies ({replies.length})
+            </h2>
+            <Stack gap="md">
+              {replies.map((reply) => {
+                const isEditing = editingReplyId === reply.id
+                const hasVideo = reply.attachments?.length > 0
+
+                return (
+                  <div key={reply.id} className="bg-neutral-900 p-4 rounded-xl">
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-semibold text-primary-500">
+                        {reply.admin_id ? 'Support Team' : 'Customer'}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-neutral-500">
+                          {formatDate(reply.created_at)}
+                        </span>
+                        {!isEditing && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => startEditReply(reply)}
+                            className="text-neutral-500 hover:text-white p-1"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    {isEditing ? (
+                      /* Edit Mode */
+                      <div className="space-y-3">
+                        <Textarea
+                          value={editText}
+                          onChange={(e) => setEditText(e.target.value)}
+                          rows={4}
+                          className="w-full"
+                        />
+
+                        {/* Existing video attachments in edit mode */}
+                        {editAttachments.map((url, idx) => (
+                          <div key={idx} className="flex items-start gap-3 p-3 bg-neutral-800 rounded-lg">
+                            <video
+                              src={url}
+                              className="w-48 h-28 object-cover rounded-lg bg-black"
+                              controls
+                            />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditAttachments(editAttachments.filter((_, i) => i !== idx))}
+                              className="text-red-400 hover:text-red-300 flex items-center gap-1"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              Remove
+                            </Button>
+                          </div>
+                        ))}
+
+                        {/* Add video in edit mode */}
+                        {showEditRecorder && (
+                          <div className="border border-[#333] rounded-xl p-4">
+                            <MediaRecorderComponent
+                              key={`edit-recorder-${editRecorderKey}`}
+                              instanceId={`support-edit-${editRecorderKey}`}
+                              mode="screen"
+                              recordingPurpose="support"
+                              storageFolder="supportVideoRecordings"
+                              submitLabel="Attach Video"
+                              fullscreenVideo={false}
+                              maxDuration={300}
+                              showSaveOption={false}
+                              onRecordingComplete={(_blob, _transcript, _save, s3Url) => {
+                                if (s3Url) {
+                                  setEditAttachments([...editAttachments, s3Url])
+                                  setShowEditRecorder(false)
+                                }
+                              }}
+                            />
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              if (!showEditRecorder) setEditRecorderKey(k => k + 1)
+                              setShowEditRecorder(!showEditRecorder)
+                            }}
+                            className="flex items-center gap-2 text-neutral-400 hover:text-white"
+                          >
+                            <Monitor className="w-4 h-4" />
+                            {showEditRecorder ? 'Hide Recorder' : 'Add Video'}
+                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={cancelEdit}
+                              className="flex items-center gap-1"
+                            >
+                              <X className="w-4 h-4" />
+                              Cancel
+                            </Button>
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              onClick={handleSaveEdit}
+                              disabled={savingEdit || !editText.trim()}
+                              className="flex items-center gap-1"
+                            >
+                              {savingEdit ? <Spinner size="sm" /> : <Check className="w-4 h-4" />}
+                              Save
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Display Mode - text left, video right */
+                      <div className={hasVideo ? 'flex gap-4' : ''}>
+                        <div className={hasVideo ? 'flex-1 min-w-0' : ''}>
+                          <p className="text-neutral-300 whitespace-pre-wrap">{reply.reply}</p>
+                        </div>
+                        {hasVideo && (
+                          <div className="shrink-0 w-72">
+                            {reply.attachments.map((url, idx) => (
+                              <video
+                                key={idx}
+                                src={url}
+                                className="w-full rounded-lg bg-black"
+                                controls
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </Stack>
+          </Card>
+        )}
       </Stack>
     </Container>
   )

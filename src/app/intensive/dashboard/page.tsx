@@ -47,7 +47,6 @@ import {
   PageHero
 } from '@/lib/design-system/components'
 import { fetchAssessments } from '@/lib/services/assessmentService'
-import { useImpersonation } from '@/hooks/useImpersonation'
 
 interface IntensivePurchase {
   id: string
@@ -141,16 +140,10 @@ function IntensiveDashboardContent() {
   const [isSuperAdminUser, setIsSuperAdminUser] = useState(false)
   const [activeVisionId, setActiveVisionId] = useState<string | null>(null)
   const toastShownRef = useRef(false)
-  const { initialized: impersonationReady, isImpersonating, targetUserId } = useImpersonation()
 
   useEffect(() => {
-    if (!impersonationReady) return
-    if (isImpersonating && targetUserId) {
-      loadImpersonatedIntensiveData()
-    } else {
-      loadIntensiveData()
-    }
-  }, [impersonationReady, isImpersonating, targetUserId])
+    loadIntensiveData()
+  }, [])
   
   // Show toast notification when redirected after starting or completing a step
   useEffect(() => {
@@ -216,57 +209,6 @@ function IntensiveDashboardContent() {
       return () => clearInterval(timer)
     }
   }, [checklist])
-
-  const loadImpersonatedIntensiveData = async () => {
-    try {
-      const res = await fetch('/api/admin/impersonate/intensive-data')
-      if (!res.ok) {
-        console.error('Failed to load impersonated intensive data')
-        setLoading(false)
-        return
-      }
-      const data = await res.json()
-
-      if (!data.checklistData) {
-        setLoading(false)
-        return
-      }
-
-      // Settings check
-      if (data.accountData) {
-        const { first_name, last_name, email, phone, updated_at } = data.accountData
-        const isComplete = !!first_name?.trim() && !!last_name?.trim() && !!email?.trim() && !!phone?.trim()
-        setSettingsComplete(isComplete)
-        if (isComplete && updated_at) setSettingsCompletedAt(updated_at)
-      }
-
-      setChecklist(data.checklistData)
-      setIntensive({
-        id: data.checklistData.intensive_id,
-        payment_plan: 'full',
-        started_at: data.checklistData.started_at,
-        completed_at: data.checklistData.completed_at,
-        created_at: data.checklistData.created_at,
-      })
-
-      if (data.activeVisionId) setActiveVisionId(data.activeVisionId)
-
-      // Assessments
-      const inProgress = data.assessments.find((a: { status: string }) => a.status === 'in_progress')
-      const completedList = data.assessments.filter((a: { status: string }) => a.status === 'completed')
-      const sorted = [...completedList].sort((a: any, b: any) => {
-        return new Date(b.completed_at || 0).getTime() - new Date(a.completed_at || 0).getTime()
-      })
-      setAssessmentInProgressId(inProgress?.id ?? null)
-      setAssessmentLatestCompletedId(sorted[0]?.id ?? null)
-
-      updateTimeRemaining(data.checklistData.started_at)
-    } catch (error) {
-      console.error('Error loading impersonated intensive data:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const loadIntensiveData = async () => {
     try {

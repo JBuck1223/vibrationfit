@@ -149,9 +149,9 @@ export async function GET(
       })
     })
 
-    // Sort by timestamp
+    // Sort by timestamp descending (newest first)
     allMessages.sort((a, b) => 
-      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     )
 
     return NextResponse.json({

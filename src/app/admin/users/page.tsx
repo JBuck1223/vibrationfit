@@ -164,17 +164,24 @@ function UsersAdminContent() {
 
   const viewAsUser = async (userId: string) => {
     try {
-      const res = await fetch('/api/admin/impersonate', {
+      const res = await fetch('/api/admin/impersonate-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId }),
       })
-      if (res.ok) {
-        router.push('/dashboard')
-      } else {
-        const data = await res.json()
+      const data = await res.json()
+      if (!res.ok) {
         alert(`Failed: ${data.error || 'Unknown error'}`)
+        return
       }
+      localStorage.setItem('vf-impersonation', JSON.stringify({
+        returnToken: data.returnToken,
+        targetName: data.targetName,
+        targetEmail: data.targetEmail,
+        adminName: data.adminName,
+        startedAt: new Date().toISOString(),
+      }))
+      window.location.href = `/auth/impersonate-verify?token_hash=${encodeURIComponent(data.tokenHash)}`
     } catch (err: any) {
       alert(`Error: ${err.message || 'Network error'}`)
     }

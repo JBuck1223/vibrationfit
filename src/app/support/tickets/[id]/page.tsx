@@ -35,6 +35,7 @@ interface Reply {
   admin_id: string | null
   reply: string
   is_internal: boolean
+  attachments: string[]
   created_at: string
 }
 
@@ -206,19 +207,38 @@ export default function TicketDetailPage() {
           <Card className="p-6">
             <h2 className="text-lg font-bold text-white mb-4">Conversation</h2>
             <Stack gap="md">
-              {replies.map((reply) => (
-                <div key={reply.id} className="bg-neutral-900 p-4 rounded-xl">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-semibold text-primary-500">
-                      {reply.admin_id ? 'Support Team' : 'You'}
-                    </span>
-                    <span className="text-xs text-neutral-500">
-                      {formatDate(reply.created_at)}
-                    </span>
+              {replies.map((reply) => {
+                const hasVideo = reply.attachments?.length > 0
+                return (
+                  <div key={reply.id} className="bg-neutral-900 p-4 rounded-xl">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-semibold text-primary-500">
+                        {reply.admin_id ? 'Support Team' : 'You'}
+                      </span>
+                      <span className="text-xs text-neutral-500">
+                        {formatDate(reply.created_at)}
+                      </span>
+                    </div>
+                    <div className={hasVideo ? 'flex gap-4' : ''}>
+                      <div className={hasVideo ? 'flex-1 min-w-0' : ''}>
+                        <p className="text-neutral-300 whitespace-pre-wrap">{reply.reply}</p>
+                      </div>
+                      {hasVideo && (
+                        <div className="shrink-0 w-72">
+                          {reply.attachments.map((url, idx) => (
+                            <video
+                              key={idx}
+                              src={url}
+                              className="w-full rounded-lg bg-black"
+                              controls
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-neutral-300 whitespace-pre-wrap">{reply.reply}</p>
-                </div>
-              ))}
+                )
+              })}
             </Stack>
           </Card>
         )}

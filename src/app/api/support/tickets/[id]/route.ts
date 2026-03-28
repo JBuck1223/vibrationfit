@@ -56,12 +56,12 @@ export async function GET(
       }
     }
 
-    // Get replies
+    // Get replies (newest first)
     const { data: replies } = await adminClient
       .from('support_ticket_replies')
       .select('*')
       .eq('ticket_id', id)
-      .order('created_at', { ascending: true })
+      .order('created_at', { ascending: false })
 
     const formattedReplies = (replies || []).map(reply => ({
       id: reply.id,
@@ -69,6 +69,7 @@ export async function GET(
       admin_id: reply.is_staff ? reply.user_id : null,
       reply: reply.message,
       is_internal: false,
+      attachments: reply.attachments || [],
       created_at: reply.created_at,
     }))
 
