@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { Container, Card, Button, Stack, PageHero, Spinner, Text } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
-import { Download, Play, Pause, Trash2, HardDrive, Clock, Mic, Video, AlertTriangle } from 'lucide-react'
+import { Upload, Download, Play, Pause, Trash2, HardDrive, Clock, Mic, Video, AlertTriangle, CheckCircle, Loader2, Copy, Check } from 'lucide-react'
+import { uploadUserFile, USER_FOLDERS } from '@/lib/storage/s3-storage-presigned'
 
 interface SavedRecording {
   id: string
@@ -90,10 +91,23 @@ function formatTimeAgo(timestamp: number): string {
   return `${days}d ago`
 }
 
+const CATEGORY_TO_FOLDER: Record<string, keyof typeof USER_FOLDERS> = {
+  journal: 'journalAudioRecordings',
+  visionBoard: 'visionBoardUploaded',
+  lifeVision: 'lifeVisionAudioRecordings',
+  alignmentPlan: 'alignmentPlanAudioRecordings',
+  profile: 'profileAudioRecordings',
+}
+
 function RecordingCard({ recording, onDelete }: { recording: SavedRecording; onDelete: () => void }) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [uploadState, setUploadState] = useState<'idle' | 'uploading' | 'done' | 'error'>('idle')
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [uploadUrl, setUploadUrl] = useState<string | null>(null)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const objectUrlRef = useRef<string | null>(null)
 
@@ -138,14 +152,59 @@ function RecordingCard({ recording, onDelete }: { recording: SavedRecording; onD
     setIsPlaying(!isPlaying)
   }
 
-  const handleDownload = () => {
-    const url = getObjectUrl()
-    const ext = recording.mode === 'video' ? 'webm' : 'webm'
+  const handleDownload = async () => {
+    const mimeType = recording.mode === 'video' ? 'video/webm' : 'audio/webm'
     const date = new Date(recording.timestamp).toISOString().slice(0, 10)
+    const fileName = `recording-${recording.category}-${date}.webm`
+
+    // iOS/mobile: use native Share sheet which lets you save to Files, AirDrop, etc.
+    if (navigator.share && navigator.canShare) {
+      try {
+        const file = new File([blob], fileName, { type: mimeType })
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: fileName })
+          return
+        }
+      } catch (err) {
+        if ((err as Error).name === 'AbortError') return
+      }
+    }
+
+    // Desktop fallback: standard blob download
+    const url = getObjectUrl()
     const a = document.createElement('a')
     a.href = url
-    a.download = `recording-${recording.category}-${date}.${ext}`
+    a.download = fileName
     a.click()
+  }
+
+  const handleUploadToS3 = async () => {
+    try {
+      setUploadState('uploading')
+      setUploadProgress(0)
+      setUploadError(null)
+
+      const mimeType = recording.mode === 'video' ? 'video/webm' : 'audio/webm'
+      const ext = 'webm'
+      const date = new Date(recording.timestamp).toISOString().slice(0, 10)
+      const fileName = `recovered-${recording.category}-${date}.${ext}`
+      const file = new File([blob], fileName, { type: mimeType })
+
+      const folder = CATEGORY_TO_FOLDER[recording.category] || 'journalAudioRecordings'
+
+      const result = await uploadUserFile(
+        folder,
+        file,
+        undefined,
+        (progress) => setUploadProgress(progress)
+      )
+
+      setUploadUrl(result.url)
+      setUploadState('done')
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Upload failed')
+      setUploadState('error')
+    }
   }
 
   const handleDelete = async () => {
@@ -225,12 +284,74 @@ function RecordingCard({ recording, onDelete }: { recording: SavedRecording; onD
               {formatDuration(currentTime)} / {formatDuration(recording.duration)}
             </Text>
           </div>
+
+          {uploadState === 'uploading' && uploadProgress > 0 && (
+            <div className="mt-2 h-1.5 bg-neutral-700 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-[#BF00FF] rounded-full transition-all duration-300"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+          )}
+
+          {uploadState === 'done' && uploadUrl && (
+            <div className="mt-2 p-2 bg-[#39FF14]/5 border border-[#39FF14]/20 rounded-lg flex items-start gap-2">
+              <Text size="xs" className="text-[#39FF14] break-all flex-1">{uploadUrl}</Text>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(uploadUrl)
+                  setCopied(true)
+                  setTimeout(() => setCopied(false), 2000)
+                }}
+                className="p-1.5 bg-[#39FF14]/10 hover:bg-[#39FF14]/20 rounded transition-colors flex-shrink-0"
+                title="Copy URL"
+              >
+                {copied ? (
+                  <Check className="w-3.5 h-3.5 text-[#39FF14]" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5 text-[#39FF14]" />
+                )}
+              </button>
+            </div>
+          )}
+
+          {uploadState === 'error' && uploadError && (
+            <div className="mt-2 p-2 bg-red-500/10 border border-red-500/20 rounded-lg">
+              <Text size="xs" className="text-red-400">{uploadError}</Text>
+            </div>
+          )}
         </div>
 
         {/* Actions */}
         <div className="flex flex-col gap-2 flex-shrink-0">
+          {uploadState === 'done' ? (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#39FF14] bg-[#39FF14]/10 border border-[#39FF14]/30 rounded-full">
+              <CheckCircle className="w-3.5 h-3.5" />
+              Uploaded
+            </div>
+          ) : (
+            <Button
+              variant="accent"
+              size="sm"
+              onClick={handleUploadToS3}
+              disabled={uploadState === 'uploading'}
+            >
+              {uploadState === 'uploading' ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  {uploadProgress > 0 ? `${uploadProgress}%` : 'Uploading'}
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-1" />
+                  Upload to S3
+                </>
+              )}
+            </Button>
+          )}
           <Button
-            variant="primary"
+            variant="ghost"
             size="sm"
             onClick={handleDownload}
           >
