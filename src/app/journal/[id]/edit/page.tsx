@@ -474,19 +474,10 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
                   value={formData.content}
                   onChange={(value) => setFormData({ ...formData, content: value })}
                   rows={10}
-                  placeholder="Write your journal entry here... Or click the microphone/video icon to record!"
-                  allowVideo={true}
+                  placeholder="Write your journal entry here... Or click the microphone to record and transcribe!"
                   storageFolder="journal"
-                  onRecordingSaved={handleRecordingSaved}
-                  onUploadProgress={(progress, status, fileName, fileSize) => {
-                    setUploadProgress({
-                      progress,
-                      status,
-                      fileName,
-                      fileSize,
-                      isVisible: true
-                    })
-                  }}
+                  recordingPurpose="quick"
+                  category="journal"
                 />
 
                 {audioRecordings.length > 0 && (
