@@ -27,6 +27,7 @@ const dailyPaperPayloadSchema = z.object({
     })
     .partial()
     .optional(),
+  audioRecordings: z.array(z.any()).optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
   taskOne: z.string().max(1000).optional(),
   taskTwo: z.string().max(1000).optional(),
@@ -34,7 +35,7 @@ const dailyPaperPayloadSchema = z.object({
 })
 
 const DAILY_PAPER_SELECT_COLUMNS =
-  'id, entry_date, gratitude, task_one, task_two, task_three, fun_plan, attachment_url, attachment_key, attachment_content_type, attachment_size, metadata, created_at, updated_at'
+  'id, entry_date, gratitude, task_one, task_two, task_three, fun_plan, attachment_url, attachment_key, attachment_content_type, attachment_size, metadata, audio_recordings, created_at, updated_at'
 
 const normalizeText = (value?: string | null) =>
   typeof value === 'string' ? value.trim() : ''
@@ -135,6 +136,7 @@ export async function POST(request: NextRequest) {
       taskTwo,
       taskThree,
       attachment,
+      audioRecordings,
       metadata,
     } = parseResult.data
 
@@ -192,6 +194,7 @@ export async function POST(request: NextRequest) {
       attachment_size:
         typeof attachment?.size === 'number' ? attachment.size : null,
       metadata: (metadata ?? {}) as Record<string, unknown>,
+      ...(audioRecordings ? { audio_recordings: audioRecordings } : {}),
     }
 
     const { data, error } = await supabase

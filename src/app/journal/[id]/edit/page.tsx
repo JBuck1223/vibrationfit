@@ -478,6 +478,15 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
                   storageFolder="journal"
                   recordingPurpose="quick"
                   category="journal"
+                  onAudioSaved={(audioUrl, transcript) => {
+                    setAudioRecordings(prev => [...prev, {
+                      url: audioUrl,
+                      transcript,
+                      type: 'audio' as const,
+                      category: 'journal',
+                      created_at: new Date().toISOString(),
+                    }])
+                  }}
                 />
 
                 {audioRecordings.length > 0 && (

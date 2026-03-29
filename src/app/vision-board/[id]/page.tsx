@@ -10,6 +10,7 @@ import { Calendar, CheckCircle, Circle, XCircle, ArrowLeft, Trash2, Upload, Spar
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
+import { SavedRecordings } from '@/components/SavedRecordings'
 import Link from 'next/link'
 import { colors } from '@/lib/design-system/tokens'
 
@@ -26,6 +27,7 @@ interface VisionBoardItem {
   image_url: string
   actualized_image_url: string | null
   actualization_story: string | null
+  audio_recordings: any[]
   status: string
   categories: string[]
   created_at: string
@@ -45,6 +47,7 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
   const [file, setFile] = useState<File | null>(null)
   const [actualizedFile, setActualizedFile] = useState<File | null>(null)
   const [isEditing, setIsEditing] = useState(false)
+  const [audioRecordings, setAudioRecordings] = useState<any[]>([])
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -80,6 +83,7 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
         status: data.status,
         categories: data.categories || []
       })
+      setAudioRecordings(data.audio_recordings || [])
       // Reset actualized image state when loading
       setActualizedFile(null)
       setActualizedAiGeneratedImageUrl(null)
@@ -204,7 +208,8 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
           categories: formData.categories,
           actualized_at: formData.status === 'actualized' && item.status !== 'actualized' 
             ? new Date().toISOString() 
-            : item.actualized_at
+            : item.actualized_at,
+          audio_recordings: audioRecordings,
         })
         .eq('id', resolvedParams.id)
 
@@ -401,6 +406,16 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                 rows={4}
                 storageFolder="visionBoard"
                 recordingPurpose="quick"
+                category="vision-board"
+                onAudioSaved={(audioUrl, transcript) => {
+                  setAudioRecordings(prev => [...prev, {
+                    url: audioUrl,
+                    transcript,
+                    type: 'audio' as const,
+                    category: 'vision-board',
+                    created_at: new Date().toISOString(),
+                  }])
+                }}
               />
 
               {/* Image Section */}
@@ -672,6 +687,23 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                   rows={6}
                   storageFolder="visionBoard"
                   recordingPurpose="quick"
+                  category="vision-board-actualization"
+                  onAudioSaved={(audioUrl, transcript) => {
+                    setAudioRecordings(prev => [...prev, {
+                      url: audioUrl,
+                      transcript,
+                      type: 'audio' as const,
+                      category: 'vision-board-actualization',
+                      created_at: new Date().toISOString(),
+                    }])
+                  }}
+                />
+              )}
+
+              {audioRecordings.length > 0 && (
+                <SavedRecordings
+                  recordings={audioRecordings}
+                  onDelete={(index) => setAudioRecordings(prev => prev.filter((_, i) => i !== index))}
                 />
               )}
 
@@ -813,6 +845,16 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                   <div className="p-6 bg-purple-500/10 border border-purple-500/30 rounded-lg">
                     <h3 className="text-lg font-semibold text-purple-400 mb-3">Actualization Story</h3>
                     <p className="text-neutral-200 whitespace-pre-wrap">{item.actualization_story}</p>
+                  </div>
+                )}
+
+                {item.audio_recordings && item.audio_recordings.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-medium text-neutral-400 uppercase tracking-[0.2em]">Recordings</h3>
+                    <SavedRecordings
+                      recordings={item.audio_recordings}
+                      onDelete={() => {}}
+                    />
                   </div>
                 )}
 

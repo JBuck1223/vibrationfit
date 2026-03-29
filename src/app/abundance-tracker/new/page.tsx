@@ -60,6 +60,7 @@ export default function AbundanceNewEntryPage() {
   const [visionCategories, setVisionCategories] = useState<string[]>([])
   const [entryCategory, setEntryCategory] = useState('')
   const [note, setNote] = useState('')
+  const [audioRecordings, setAudioRecordings] = useState<any[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -113,6 +114,7 @@ export default function AbundanceNewEntryPage() {
           entryCategory: entryCategory || undefined,
           note,
           imageUrl,
+          audioRecordings,
         }),
       })
 
@@ -277,7 +279,17 @@ export default function AbundanceNewEntryPage() {
                     storageFolder="profile"
                     instanceId="abundance-note"
                     recordingPurpose="quick"
+                    category="abundance"
                     className="!bg-[#404040] !border-[#333]"
+                    onAudioSaved={(audioUrl, transcript) => {
+                      setAudioRecordings(prev => [...prev, {
+                        url: audioUrl,
+                        transcript,
+                        type: 'audio' as const,
+                        category: 'abundance',
+                        created_at: new Date().toISOString(),
+                      }])
+                    }}
                   />
                 </section>
               </div>

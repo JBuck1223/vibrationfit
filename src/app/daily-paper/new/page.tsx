@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Container, Card, Button, Stack, Inline, Text, DatePicker, PageHero } from '@/lib/design-system/components'
 import { UploadCloud, Save, HelpCircle, Upload, Sparkles, Eye, X } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
+import { SavedRecordings } from '@/components/SavedRecordings'
 import { FileUpload } from '@/components/FileUpload'
 import { UploadProgress } from '@/components/UploadProgress'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
@@ -53,6 +54,7 @@ export default function NewDailyPaperPage() {
   const [imageSource, setImageSource] = useState<'upload' | 'ai' | null>(null)
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [aiGeneratedImageUrls, setAiGeneratedImageUrls] = useState<string[]>([])
+  const [audioRecordings, setAudioRecordings] = useState<any[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitSuccess, setSubmitSuccess] = useState(false)
@@ -240,6 +242,7 @@ export default function NewDailyPaperPage() {
               size: attachmentMetadata.size,
             }
           : undefined,
+        audioRecordings: audioRecordings.length > 0 ? audioRecordings : undefined,
         metadata: {
           source: 'daily-paper:new',
           attachmentOriginalName: attachmentMetadata?.originalName ?? null,
@@ -332,7 +335,14 @@ export default function NewDailyPaperPage() {
                   rows={5}
                   storageFolder="journal"
                   recordingPurpose="quick"
+                  category="daily-paper"
                   instanceId="dailyPaperGratitude"
+                  onAudioSaved={(audioUrl, transcript) => {
+                    setAudioRecordings(prev => [...prev, {
+                      url: audioUrl, transcript, type: 'audio' as const,
+                      category: 'daily-paper-gratitude', created_at: new Date().toISOString(),
+                    }])
+                  }}
                 />
               </section>
 
@@ -351,7 +361,14 @@ export default function NewDailyPaperPage() {
                       rows={3}
                       storageFolder="journal"
                       recordingPurpose="quick"
+                      category="daily-paper"
                       instanceId={`dailyPaperTask${index + 1}`}
+                      onAudioSaved={(audioUrl, transcript) => {
+                        setAudioRecordings(prev => [...prev, {
+                          url: audioUrl, transcript, type: 'audio' as const,
+                          category: `daily-paper-task-${index + 1}`, created_at: new Date().toISOString(),
+                        }])
+                      }}
                     />
                   ))}
                 </div>
@@ -369,9 +386,28 @@ export default function NewDailyPaperPage() {
                   rows={3}
                   storageFolder="journal"
                   recordingPurpose="quick"
+                  category="daily-paper"
                   instanceId="dailyPaperFun"
+                  onAudioSaved={(audioUrl, transcript) => {
+                    setAudioRecordings(prev => [...prev, {
+                      url: audioUrl, transcript, type: 'audio' as const,
+                      category: 'daily-paper-fun', created_at: new Date().toISOString(),
+                    }])
+                  }}
                 />
               </section>
+
+              {audioRecordings.length > 0 && (
+                <section className="space-y-4">
+                  <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                    Recordings
+                  </Text>
+                  <SavedRecordings
+                    recordings={audioRecordings}
+                    onDelete={(index) => setAudioRecordings(prev => prev.filter((_, i) => i !== index))}
+                  />
+                </section>
+              )}
 
               <section className="space-y-4">
                 <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">

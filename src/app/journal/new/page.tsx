@@ -421,6 +421,15 @@ export default function NewJournalEntryPage() {
                 storageFolder="journal"
                 recordingPurpose="quick"
                 category="journal"
+                onAudioSaved={(audioUrl, transcript) => {
+                  setAudioRecordings(prev => [...prev, {
+                    url: audioUrl,
+                    transcript,
+                    type: 'audio' as const,
+                    category: 'journal',
+                    created_at: new Date().toISOString(),
+                  }])
+                }}
               />
 
               {/* Display Saved Audio Recordings */}
