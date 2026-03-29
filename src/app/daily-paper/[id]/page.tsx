@@ -13,6 +13,7 @@ import {
   DeleteConfirmationDialog,
 } from '@/lib/design-system'
 import { OptimizedImage } from '@/components/OptimizedImage'
+import { SavedRecordings } from '@/components/SavedRecordings'
 import { Edit, Eye, FileText, Trash2, X, Download } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { DailyPaperEntry } from '@/hooks/useDailyPaper'
@@ -216,6 +217,21 @@ export default function DailyPaperViewPage({
                 {entry.fun_plan || '—'}
               </p>
             </section>
+
+            {(entry as any).audio_recordings && (entry as any).audio_recordings.length > 0 && (
+              <section className="space-y-4">
+                <Text
+                  size="sm"
+                  className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]"
+                >
+                  Recordings
+                </Text>
+                <SavedRecordings
+                  recordings={(entry as any).audio_recordings}
+                  onDelete={() => {}}
+                />
+              </section>
+            )}
 
             {entry.attachment_url && (
               <section className="space-y-4">

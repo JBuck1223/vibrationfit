@@ -35,6 +35,7 @@ export interface DailyPaperPayload {
   taskThree?: string
   funPlan: string
   attachment?: DailyPaperAttachmentInput
+  audioRecordings?: any[]
   metadata?: Record<string, unknown>
 }
 

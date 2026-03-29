@@ -6,6 +6,7 @@ import { Card, Input, Button, Badge, CategoryCard, PageHero, Container, Stack, M
 import { FileUpload } from '@/components/FileUpload'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
+import { SavedRecordings } from '@/components/SavedRecordings'
 import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
 import { Sparkles, Upload, CheckCircle, XCircle, Filter, ImageIcon } from 'lucide-react'
@@ -35,6 +36,7 @@ export default function NewVisionBoardItemPage() {
   const [actualizedFile, setActualizedFile] = useState<File | null>(null)
   const [actualizedAiGeneratedImageUrl, setActualizedAiGeneratedImageUrl] = useState<string | null>(null)
   const [actualizedImageSource, setActualizedImageSource] = useState<'upload' | 'ai' | null>(null)
+  const [audioRecordings, setAudioRecordings] = useState<any[]>([])
   const [showImageReminderModal, setShowImageReminderModal] = useState(false)
   const [imageReminderMessage, setImageReminderMessage] = useState('')
   const [formData, setFormData] = useState({
@@ -170,7 +172,8 @@ export default function NewVisionBoardItemPage() {
           actualization_story: formData.status === 'actualized' ? formData.actualization_story : null,
           status: formData.status,
           categories: formData.categories,
-          actualized_at: formData.status === 'actualized' ? new Date().toISOString() : null
+          actualized_at: formData.status === 'actualized' ? new Date().toISOString() : null,
+          audio_recordings: audioRecordings,
         })
 
       if (error) throw error
@@ -258,6 +261,16 @@ export default function NewVisionBoardItemPage() {
                 rows={4}
                 storageFolder="visionBoard"
                 recordingPurpose="quick"
+                category="vision-board"
+                onAudioSaved={(audioUrl, transcript) => {
+                  setAudioRecordings(prev => [...prev, {
+                    url: audioUrl,
+                    transcript,
+                    type: 'audio' as const,
+                    category: 'vision-board',
+                    created_at: new Date().toISOString(),
+                  }])
+                }}
               />
 
               {/* Image Source Toggle */}
@@ -495,6 +508,23 @@ export default function NewVisionBoardItemPage() {
                   rows={6}
                   storageFolder="visionBoard"
                   recordingPurpose="quick"
+                  category="vision-board-actualization"
+                  onAudioSaved={(audioUrl, transcript) => {
+                    setAudioRecordings(prev => [...prev, {
+                      url: audioUrl,
+                      transcript,
+                      type: 'audio' as const,
+                      category: 'vision-board-actualization',
+                      created_at: new Date().toISOString(),
+                    }])
+                  }}
+                />
+              )}
+
+              {audioRecordings.length > 0 && (
+                <SavedRecordings
+                  recordings={audioRecordings}
+                  onDelete={(index) => setAudioRecordings(prev => prev.filter((_, i) => i !== index))}
                 />
               )}
 

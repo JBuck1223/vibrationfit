@@ -16,6 +16,7 @@ import {
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { getEntryCategoryDisplay } from '@/lib/abundance/entry-categories'
 import { OptimizedImage } from '@/components/OptimizedImage'
+import { SavedRecordings } from '@/components/SavedRecordings'
 import {
   ArrowLeft,
   DollarSign,
@@ -36,6 +37,7 @@ interface AbundanceEvent {
   created_at: string
   updated_at?: string
   image_url?: string | null
+  audio_recordings?: any[]
 }
 
 function formatCurrency(value: number): string {
@@ -239,6 +241,19 @@ export default function AbundanceEventPage({ params }: { params: Promise<{ id: s
                 <p className="text-neutral-500">—</p>
               )}
             </section>
+
+            {/* Recordings */}
+            {event.audio_recordings && event.audio_recordings.length > 0 && (
+              <section className="space-y-2">
+                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                  Recordings
+                </Text>
+                <SavedRecordings
+                  recordings={event.audio_recordings}
+                  onDelete={() => {}}
+                />
+              </section>
+            )}
 
             {/* Image */}
             {event.image_url && (

@@ -15,6 +15,7 @@ import {
 } from '@/lib/design-system/components'
 import { UploadCloud, Save, FileText, Upload, Sparkles, X } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
+import { SavedRecordings } from '@/components/SavedRecordings'
 import { FileUpload } from '@/components/FileUpload'
 import { UploadProgress } from '@/components/UploadProgress'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
@@ -70,6 +71,7 @@ export default function EditDailyPaperPage({
   const [imageSource, setImageSource] = useState<'upload' | 'ai' | null>(null)
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [aiGeneratedImageUrls, setAiGeneratedImageUrls] = useState<string[]>([])
+  const [audioRecordings, setAudioRecordings] = useState<any[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitSuccess, setSubmitSuccess] = useState(false)
@@ -108,6 +110,7 @@ export default function EditDailyPaperPage({
         entryData.task_three || '',
       ])
       setFunPlan(entryData.fun_plan || '')
+      setAudioRecordings(entryData.audio_recordings || [])
       setLoading(false)
     }
 
@@ -314,6 +317,7 @@ export default function EditDailyPaperPage({
         tasks,
         funPlan,
         attachment: attachmentPayload,
+        audioRecordings: audioRecordings.length > 0 ? audioRecordings : undefined,
         metadata: {
           ...(typeof entry.metadata === 'object' && entry.metadata !== null ? entry.metadata : {}),
           source: 'daily-paper:edit',
@@ -403,7 +407,14 @@ export default function EditDailyPaperPage({
                   rows={5}
                   storageFolder="journal"
                   recordingPurpose="quick"
+                  category="daily-paper"
                   instanceId="dailyPaperEditGratitude"
+                  onAudioSaved={(audioUrl, transcript) => {
+                    setAudioRecordings(prev => [...prev, {
+                      url: audioUrl, transcript, type: 'audio' as const,
+                      category: 'daily-paper-gratitude', created_at: new Date().toISOString(),
+                    }])
+                  }}
                 />
               </section>
 
@@ -425,7 +436,14 @@ export default function EditDailyPaperPage({
                       rows={3}
                       storageFolder="journal"
                       recordingPurpose="quick"
+                      category="daily-paper"
                       instanceId={`dailyPaperEditTask${index + 1}`}
+                      onAudioSaved={(audioUrl, transcript) => {
+                        setAudioRecordings(prev => [...prev, {
+                          url: audioUrl, transcript, type: 'audio' as const,
+                          category: `daily-paper-task-${index + 1}`, created_at: new Date().toISOString(),
+                        }])
+                      }}
                     />
                   ))}
                 </div>
@@ -446,9 +464,31 @@ export default function EditDailyPaperPage({
                   rows={3}
                   storageFolder="journal"
                   recordingPurpose="quick"
+                  category="daily-paper"
                   instanceId="dailyPaperEditFun"
+                  onAudioSaved={(audioUrl, transcript) => {
+                    setAudioRecordings(prev => [...prev, {
+                      url: audioUrl, transcript, type: 'audio' as const,
+                      category: 'daily-paper-fun', created_at: new Date().toISOString(),
+                    }])
+                  }}
                 />
               </section>
+
+              {audioRecordings.length > 0 && (
+                <section className="space-y-4">
+                  <Text
+                    size="sm"
+                    className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]"
+                  >
+                    Recordings
+                  </Text>
+                  <SavedRecordings
+                    recordings={audioRecordings}
+                    onDelete={(index) => setAudioRecordings(prev => prev.filter((_, i) => i !== index))}
+                  />
+                </section>
+              )}
 
               <section className="space-y-4">
                 <Text

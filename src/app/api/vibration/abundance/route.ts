@@ -113,7 +113,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { date, valueType, amount, visionCategory, visionCategories, entryCategory, note, imageUrl } = body ?? {}
+    const { date, valueType, amount, visionCategory, visionCategories, entryCategory, note, imageUrl, audioRecordings } = body ?? {}
     const visionCategoryValue =
       Array.isArray(visionCategories) && visionCategories.length > 0
         ? visionCategories.join(',')
@@ -155,7 +155,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: insertError?.message || 'Failed to log abundance event.' }, { status: 500 })
     }
 
-    // If an image URL was provided, try to update the row (fails silently if image_url column doesn't exist).
+    if (Array.isArray(audioRecordings) && audioRecordings.length > 0) {
+      const { error: audioError } = await supabase
+        .from('abundance_events')
+        .update({ audio_recordings: audioRecordings })
+        .eq('id', abundanceEvent.id)
+      if (audioError) {
+        console.warn('abundance_events.audio_recordings update skipped:', audioError.message)
+      } else {
+        ;(abundanceEvent as Record<string, unknown>).audio_recordings = audioRecordings
+      }
+    }
+
     if (imageUrl != null && imageUrl !== '') {
       const { error: updateError } = await supabase
         .from('abundance_events')
