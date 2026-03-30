@@ -78,12 +78,37 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
     ...(CONFIGURATION_SET() && { ConfigurationSetName: CONFIGURATION_SET() }),
   })
 
-  const response = await sesClient.send(command)
+  const response = await withRetry(() => sesClient.send(command))
   const messageId = response.MessageId || ''
 
   console.log('[SES] sent', { messageId, to: recipients, subject })
 
   return { messageId, to: recipients }
+}
+
+const RETRYABLE_ERROR_CODES = new Set([
+  'Throttling',
+  'TooManyRequestsException',
+  'ServiceUnavailableException',
+  'RequestLimitExceeded',
+])
+
+async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn()
+    } catch (err: unknown) {
+      const code = (err as { name?: string })?.name || ''
+      if (attempt < maxRetries && RETRYABLE_ERROR_CODES.has(code)) {
+        const delay = Math.min(1000 * 2 ** attempt + Math.random() * 500, 8000)
+        console.warn(`[SES] Retryable error (${code}), attempt ${attempt + 1}/${maxRetries}, waiting ${Math.round(delay)}ms`)
+        await new Promise((r) => setTimeout(r, delay))
+        continue
+      }
+      throw err
+    }
+  }
+  throw new Error('withRetry: unreachable')
 }
 
 /**

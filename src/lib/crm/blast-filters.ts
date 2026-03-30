@@ -8,16 +8,29 @@ export interface BlastFilters {
   engagement_status?: string
   health_status?: string
   subscription_tier?: string
+  subscription_status?: string
+  intensive_status?: string
   custom_tags?: string[]
   days_since_last_login_gt?: number
   days_since_last_login_lt?: number
+  has_phone?: string
+  sms_opt_in?: string
+  email_opt_in?: string
+  has_vision?: string
+  has_journal_entry?: string
+  profile_completion_gte?: number
   // Lead filters
   lead_status?: string
   lead_type?: string
   utm_source?: string
+  utm_medium?: string
+  utm_campaign?: string
   // Shared
   created_after?: string
   created_before?: string
+  // Exclusions
+  exclude_leads?: boolean
+  exclude_segment_id?: string
 }
 
 export interface BlastRecipient {
@@ -26,6 +39,8 @@ export interface BlastRecipient {
   firstName: string
   type: 'member' | 'lead'
   userId?: string
+  phone?: string
+  smsOptIn?: boolean
 }
 
 export async function queryRecipients(
@@ -55,7 +70,41 @@ export async function queryRecipients(
     }
   }
 
-  return recipients
+  let result = recipients
+
+  if (filters.exclude_leads && (filters.audience === 'members' || filters.audience === 'both')) {
+    const { data: leadEmails } = await adminClient
+      .from('leads')
+      .select('email')
+    const leadSet = new Set((leadEmails || []).map((l) => l.email?.toLowerCase()).filter(Boolean))
+    result = result.filter((r) => r.type !== 'member' || !leadSet.has(r.email.toLowerCase()))
+  }
+
+  if (filters.exclude_segment_id) {
+    const excludeEmails = await resolveSegmentEmails(adminClient, filters.exclude_segment_id)
+    if (excludeEmails.size > 0) {
+      result = result.filter((r) => !excludeEmails.has(r.email.toLowerCase()))
+    }
+  }
+
+  return result
+}
+
+async function resolveSegmentEmails(
+  supabase: ReturnType<typeof createAdminClient>,
+  segmentId: string
+): Promise<Set<string>> {
+  const { data: segment } = await supabase
+    .from('blast_segments')
+    .select('filters')
+    .eq('id', segmentId)
+    .single()
+
+  if (!segment?.filters) return new Set()
+
+  const segFilters = segment.filters as BlastFilters
+  const recipients = await queryRecipients({ ...segFilters, exclude_segment_id: undefined })
+  return new Set(recipients.map((r) => r.email.toLowerCase()))
 }
 
 async function queryMembers(
@@ -77,27 +126,44 @@ async function queryMembers(
     filters.health_status ||
     filters.custom_tags?.length ||
     filters.days_since_last_login_gt !== undefined ||
-    filters.days_since_last_login_lt !== undefined
+    filters.days_since_last_login_lt !== undefined ||
+    filters.has_vision ||
+    filters.has_journal_entry ||
+    filters.profile_completion_gte !== undefined
 
   const needsTierFilter = !!filters.subscription_tier
+  const needsSubscriptionStatusFilter = !!filters.subscription_status
+  const needsIntensiveFilter = !!filters.intensive_status
+  const needsAccountFilter =
+    filters.has_phone || filters.sms_opt_in || filters.email_opt_in
 
-  const [activityResult, subscriptionResult, authResult] = await Promise.all([
+  const [activityResult, subscriptionResult, authResult, intensiveResult, accountResult] = await Promise.all([
     needsActivityFilter
       ? supabase
           .from('user_activity_metrics')
-          .select('user_id, engagement_status, health_status, custom_tags, days_since_last_login')
+          .select('user_id, engagement_status, health_status, custom_tags, days_since_last_login, vision_count, journal_entry_count, profile_completion_percent')
           .in('user_id', userIds)
       : Promise.resolve({ data: null }),
-    needsTierFilter
+    (needsTierFilter || needsSubscriptionStatusFilter)
       ? supabase
           .from('customer_subscriptions')
-          .select('user_id, membership_tiers(name)')
+          .select('user_id, status, membership_tiers(name)')
           .in('user_id', userIds)
-          .in('status', ['active', 'trialing'])
       : Promise.resolve({ data: null }),
     (filters.created_after || filters.created_before)
       ? supabase.auth.admin.listUsers({ perPage: 1000 })
       : Promise.resolve({ data: null }),
+    needsIntensiveFilter
+      ? supabase
+          .from('intensive_checklist')
+          .select('user_id, status, unlock_completed')
+          .in('user_id', userIds)
+      : Promise.resolve({ data: null }),
+    // Always fetch accounts for phone/sms data on recipients
+    supabase
+      .from('user_accounts')
+      .select('id, phone, sms_opt_in, email_opt_in')
+      .in('id', userIds),
   ])
 
   const activityMap = new Map<string, Record<string, unknown>>()
@@ -108,10 +174,16 @@ async function queryMembers(
   }
 
   const tierMap = new Map<string, string>()
+  const subStatusMap = new Map<string, string>()
   if (subscriptionResult.data) {
     for (const s of subscriptionResult.data) {
       const tier = s.membership_tiers as { name?: string } | null
       if (tier?.name) tierMap.set(s.user_id, tier.name)
+      if (s.status === 'active' || s.status === 'trialing') {
+        subStatusMap.set(s.user_id, s.status)
+      } else if (!subStatusMap.has(s.user_id)) {
+        subStatusMap.set(s.user_id, s.status)
+      }
     }
   }
 
@@ -120,6 +192,30 @@ async function queryMembers(
     const users = 'users' in authResult.data ? authResult.data.users : []
     for (const u of users) {
       authCreatedMap.set(u.id, u.created_at)
+    }
+  }
+
+  const intensiveMap = new Map<string, { status: string; unlock_completed: boolean }>()
+  if (intensiveResult.data) {
+    for (const row of intensiveResult.data) {
+      const existing = intensiveMap.get(row.user_id)
+      if (!existing || row.unlock_completed || row.status === 'completed') {
+        intensiveMap.set(row.user_id, {
+          status: row.status,
+          unlock_completed: row.unlock_completed ?? false,
+        })
+      }
+    }
+  }
+
+  const accountMap = new Map<string, { phone: string | null; sms_opt_in: boolean; email_opt_in: boolean }>()
+  if (accountResult.data) {
+    for (const a of accountResult.data) {
+      accountMap.set(a.id, {
+        phone: a.phone || null,
+        sms_opt_in: a.sms_opt_in ?? false,
+        email_opt_in: a.email_opt_in ?? true,
+      })
     }
   }
 
@@ -143,11 +239,75 @@ async function queryMembers(
           const days = (activity?.days_since_last_login as number) ?? null
           if (days === null || days >= filters.days_since_last_login_lt) return false
         }
+        if (filters.has_vision) {
+          const count = (activity?.vision_count as number) ?? 0
+          if (filters.has_vision === 'yes' && count <= 0) return false
+          if (filters.has_vision === 'no' && count > 0) return false
+        }
+        if (filters.has_journal_entry) {
+          const count = (activity?.journal_entry_count as number) ?? 0
+          if (filters.has_journal_entry === 'yes' && count <= 0) return false
+          if (filters.has_journal_entry === 'no' && count > 0) return false
+        }
+        if (filters.profile_completion_gte !== undefined) {
+          const pct = (activity?.profile_completion_percent as number) ?? 0
+          if (pct < filters.profile_completion_gte) return false
+        }
       }
 
       if (filters.subscription_tier) {
         const tier = tierMap.get(p.user_id) || 'Free'
         if (tier.toLowerCase() !== filters.subscription_tier.toLowerCase()) return false
+      }
+
+      if (filters.subscription_status) {
+        const status = subStatusMap.get(p.user_id) || 'free'
+        const target = filters.subscription_status.toLowerCase()
+        if (target === 'free') {
+          if (status !== 'free' && status !== 'canceled' && status !== 'incomplete_expired') return false
+        } else {
+          if (status !== target) return false
+        }
+      }
+
+      if (filters.intensive_status) {
+        const intensive = intensiveMap.get(p.user_id)
+        switch (filters.intensive_status) {
+          case 'no_intensive':
+            if (intensive) return false
+            break
+          case 'pending':
+            if (!intensive || intensive.status !== 'pending') return false
+            break
+          case 'in_progress':
+            if (!intensive || intensive.status !== 'in_progress') return false
+            break
+          case 'completed':
+            if (!intensive || intensive.status !== 'completed' || intensive.unlock_completed) return false
+            break
+          case 'unlocked':
+            if (!intensive || !intensive.unlock_completed) return false
+            break
+        }
+      }
+
+      if (needsAccountFilter) {
+        const account = accountMap.get(p.user_id)
+        if (filters.has_phone) {
+          const hasPhone = !!account?.phone
+          if (filters.has_phone === 'yes' && !hasPhone) return false
+          if (filters.has_phone === 'no' && hasPhone) return false
+        }
+        if (filters.sms_opt_in) {
+          const opted = account?.sms_opt_in ?? false
+          if (filters.sms_opt_in === 'yes' && !opted) return false
+          if (filters.sms_opt_in === 'no' && opted) return false
+        }
+        if (filters.email_opt_in) {
+          const opted = account?.email_opt_in ?? true
+          if (filters.email_opt_in === 'yes' && !opted) return false
+          if (filters.email_opt_in === 'no' && opted) return false
+        }
       }
 
       if (filters.created_after || filters.created_before) {
@@ -159,13 +319,18 @@ async function queryMembers(
 
       return true
     })
-    .map((p) => ({
-      email: p.email!,
-      name: [p.first_name, p.last_name].filter(Boolean).join(' ') || p.email!,
-      firstName: p.first_name || '',
-      type: 'member' as const,
-      userId: p.user_id,
-    }))
+    .map((p) => {
+      const account = accountMap.get(p.user_id)
+      return {
+        email: p.email!,
+        name: [p.first_name, p.last_name].filter(Boolean).join(' ') || p.email!,
+        firstName: p.first_name || '',
+        type: 'member' as const,
+        userId: p.user_id,
+        phone: account?.phone || undefined,
+        smsOptIn: account?.sms_opt_in ?? false,
+      }
+    })
 }
 
 async function queryLeads(
@@ -174,7 +339,7 @@ async function queryLeads(
 ): Promise<BlastRecipient[]> {
   let query = supabase
     .from('leads')
-    .select('id, first_name, last_name, email, status, type, utm_source, created_at')
+    .select('id, first_name, last_name, email, phone, sms_opt_in, status, type, utm_source, utm_medium, utm_campaign, created_at')
 
   if (filters.lead_status) {
     query = query.eq('status', filters.lead_status)
@@ -184,6 +349,12 @@ async function queryLeads(
   }
   if (filters.utm_source) {
     query = query.ilike('utm_source', `%${filters.utm_source}%`)
+  }
+  if (filters.utm_medium) {
+    query = query.ilike('utm_medium', `%${filters.utm_medium}%`)
+  }
+  if (filters.utm_campaign) {
+    query = query.ilike('utm_campaign', `%${filters.utm_campaign}%`)
   }
   if (filters.created_after) {
     query = query.gte('created_at', filters.created_after)
@@ -203,5 +374,7 @@ async function queryLeads(
       name: [l.first_name, l.last_name].filter(Boolean).join(' ') || l.email!,
       firstName: l.first_name || '',
       type: 'lead' as const,
+      phone: l.phone || undefined,
+      smsOptIn: l.sms_opt_in ?? false,
     }))
 }

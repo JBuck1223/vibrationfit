@@ -1,13 +1,18 @@
 /**
  * Database-driven notification config engine.
  *
- * Fetches notification_configs by slug, applies {{variable}} substitution,
+ * Fetches notification_configs by slug (channel toggles + template slug refs + segment ref),
+ * resolves actual template content from email_templates / sms_templates,
+ * resolves audience from blast_segments via queryRecipients,
  * and sends across all enabled channels (email, SMS, admin SMS).
  */
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendAndLogEmail, sendAndLogBulkEmail } from '@/lib/email/send'
 import { sendSMS } from '@/lib/messaging/twilio'
+import { renderEmailTemplate } from '@/lib/email/templates/db'
+import { fillTemplate } from '@/lib/messaging/templates'
+import { queryRecipients, type BlastFilters, type BlastRecipient } from '@/lib/crm/blast-filters'
 
 // ── Types ──
 
@@ -20,22 +25,18 @@ export interface NotificationConfig {
   email_enabled: boolean
   sms_enabled: boolean
   admin_sms_enabled: boolean
-  email_subject: string | null
-  email_body: string | null
-  email_text_body: string | null
-  sms_body: string | null
-  admin_sms_body: string | null
+  email_template_slug: string | null
+  sms_template_slug: string | null
+  admin_sms_template_slug: string | null
+  segment_id: string | null
   variables: string[]
 }
 
 export interface SendNotificationParams {
   slug: string
   variables: Record<string, string>
-  /** Email recipient (user). Skipped if blank or channel disabled. */
   recipientEmail?: string
-  /** SMS recipient (user). Skipped if blank or channel disabled. */
   recipientPhone?: string
-  /** Optional userId for email logging context */
   userId?: string
 }
 
@@ -43,14 +44,14 @@ export interface BulkRecipient {
   email?: string
   phone?: string
   userId?: string
-  /** Per-recipient variable overrides (merged with base variables) */
   variables?: Record<string, string>
 }
 
 export interface SendBulkNotificationParams {
   slug: string
   variables: Record<string, string>
-  recipients: BulkRecipient[]
+  /** If omitted, recipients are resolved from the config's segment_id */
+  recipients?: BulkRecipient[]
 }
 
 // ── Config cache (per-request lifetime in serverless, avoids duplicate DB reads) ──
@@ -59,14 +60,6 @@ const configCache = new Map<string, { config: NotificationConfig | null; ts: num
 const CACHE_TTL_MS = 30_000
 
 // ── Core ──
-
-function applyVariables(template: string, vars: Record<string, string>): string {
-  let result = template
-  for (const [key, value] of Object.entries(vars)) {
-    result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value ?? '')
-  }
-  return result
-}
 
 export async function getNotificationConfig(slug: string): Promise<NotificationConfig | null> {
   const cached = configCache.get(slug)
@@ -93,6 +86,83 @@ export async function getNotificationConfig(slug: string): Promise<NotificationC
 }
 
 /**
+ * Resolve the audience for a notification from its linked segment.
+ * Calls queryRecipients with the segment's filters to get a fresh audience.
+ * Returns BulkRecipient[] mapped from BlastRecipient[].
+ */
+export async function resolveNotificationRecipients(
+  slug: string
+): Promise<BulkRecipient[]> {
+  const config = await getNotificationConfig(slug)
+  if (!config) {
+    console.warn(`[notifications] No config found for slug: ${slug}`)
+    return []
+  }
+
+  if (!config.segment_id) {
+    console.warn(`[notifications] No segment linked to config: ${slug}`)
+    return []
+  }
+
+  const supabase = createAdminClient()
+  const { data: segment, error } = await supabase
+    .from('blast_segments')
+    .select('filters')
+    .eq('id', config.segment_id)
+    .single()
+
+  if (error || !segment?.filters) {
+    console.warn(`[notifications] Segment not found for config ${slug}: ${error?.message}`)
+    return []
+  }
+
+  const filters = segment.filters as BlastFilters
+  const blastRecipients = await queryRecipients(filters)
+
+  return blastRecipients.map(mapBlastToBulk)
+}
+
+function mapBlastToBulk(r: BlastRecipient): BulkRecipient {
+  return {
+    email: r.email || undefined,
+    phone: (r.smsOptIn && r.phone) ? r.phone : undefined,
+    userId: r.userId,
+  }
+}
+
+/**
+ * Resolve the email template for a notification config.
+ */
+async function resolveEmailTemplate(
+  config: NotificationConfig,
+  vars: Record<string, string>
+): Promise<{ subject: string; htmlBody: string; textBody: string } | null> {
+  if (!config.email_template_slug) return null
+  try {
+    return await renderEmailTemplate(config.email_template_slug, vars)
+  } catch {
+    console.warn(`[notifications] Email template not found: ${config.email_template_slug}`)
+    return null
+  }
+}
+
+/**
+ * Resolve an SMS template for a notification config.
+ */
+async function resolveSmsTemplate(
+  templateSlug: string | null,
+  vars: Record<string, string>
+): Promise<string | null> {
+  if (!templateSlug) return null
+  try {
+    return await fillTemplate(templateSlug, vars)
+  } catch {
+    console.warn(`[notifications] SMS template not found: ${templateSlug}`)
+    return null
+  }
+}
+
+/**
  * Send a notification to a single user + admins, using database config.
  * All channels that are disabled or missing templates are silently skipped.
  */
@@ -105,49 +175,53 @@ export async function sendNotification(params: SendNotificationParams): Promise<
 
   const vars = params.variables
 
-  // Email to user
-  if (config.email_enabled && params.recipientEmail && config.email_subject && config.email_body) {
+  if (config.email_enabled && params.recipientEmail && config.email_template_slug) {
     try {
-      await sendAndLogEmail({
-        to: params.recipientEmail,
-        subject: applyVariables(config.email_subject, vars),
-        htmlBody: applyVariables(config.email_body, vars),
-        textBody: config.email_text_body ? applyVariables(config.email_text_body, vars) : undefined,
-        context: { userId: params.userId },
-      })
+      const rendered = await resolveEmailTemplate(config, vars)
+      if (rendered) {
+        await sendAndLogEmail({
+          to: params.recipientEmail,
+          subject: rendered.subject,
+          htmlBody: rendered.htmlBody,
+          textBody: rendered.textBody || undefined,
+          context: { userId: params.userId },
+        })
+      }
     } catch (err) {
       console.error(`[notifications] Email failed for ${params.slug}:`, err)
     }
   }
 
-  // SMS to user
-  if (config.sms_enabled && params.recipientPhone && config.sms_body) {
+  if (config.sms_enabled && params.recipientPhone && config.sms_template_slug) {
     try {
-      await sendSMS({
-        to: params.recipientPhone,
-        body: applyVariables(config.sms_body, vars),
-      })
+      const body = await resolveSmsTemplate(config.sms_template_slug, vars)
+      if (body) {
+        await sendSMS({ to: params.recipientPhone, body })
+      }
     } catch (err) {
       console.error(`[notifications] SMS failed for ${params.slug}:`, err)
     }
   }
 
-  // Admin SMS
-  if (config.admin_sms_enabled && config.admin_sms_body) {
+  if (config.admin_sms_enabled && config.admin_sms_template_slug) {
     const phonesRaw = process.env.ADMIN_NOTIFICATION_PHONES
     if (phonesRaw) {
       const phones = phonesRaw.split(',').map(p => p.trim()).filter(Boolean)
-      const body = applyVariables(config.admin_sms_body, vars)
-      await Promise.allSettled(
-        phones.map(phone => sendSMS({ to: phone, body }))
-      ).catch(err => console.error(`[notifications] Admin SMS failed for ${params.slug}:`, err))
+      const body = await resolveSmsTemplate(config.admin_sms_template_slug, vars)
+      if (body) {
+        await Promise.allSettled(
+          phones.map(phone => sendSMS({ to: phone, body }))
+        ).catch(err => console.error(`[notifications] Admin SMS failed for ${params.slug}:`, err))
+      }
     }
   }
 }
 
 /**
  * Send a notification to many recipients (email + SMS) plus admin SMS.
- * Used for broadcast notifications like alignment gym announcements.
+ *
+ * If `recipients` is omitted, the audience is resolved dynamically from
+ * the config's linked blast_segment via queryRecipients().
  */
 export async function sendBulkNotification(params: SendBulkNotificationParams): Promise<void> {
   const config = await getNotificationConfig(params.slug)
@@ -158,21 +232,35 @@ export async function sendBulkNotification(params: SendBulkNotificationParams): 
 
   const vars = params.variables
 
+  // Resolve recipients: explicit list or from segment
+  let recipients = params.recipients
+  if (!recipients || recipients.length === 0) {
+    recipients = await resolveNotificationRecipients(params.slug)
+    if (recipients.length === 0) {
+      console.warn(`[notifications] No recipients resolved for ${params.slug}`)
+      return
+    }
+    console.log(`[notifications] Resolved ${recipients.length} recipients from segment for ${params.slug}`)
+  }
+
   // Bulk email
-  if (config.email_enabled && config.email_subject && config.email_body) {
-    const emailRecipients = params.recipients
+  if (config.email_enabled && config.email_template_slug) {
+    const emailRecipients = recipients
       .filter(r => r.email)
       .map(r => ({ email: r.email!, userId: r.userId }))
 
     if (emailRecipients.length > 0) {
       try {
-        await sendAndLogBulkEmail({
-          recipients: emailRecipients,
-          subject: applyVariables(config.email_subject, vars),
-          htmlBody: applyVariables(config.email_body, vars),
-          textBody: config.email_text_body ? applyVariables(config.email_text_body, vars) : undefined,
-        })
-        console.log(`[notifications] Bulk email sent to ${emailRecipients.length} for ${params.slug}`)
+        const rendered = await resolveEmailTemplate(config, vars)
+        if (rendered) {
+          await sendAndLogBulkEmail({
+            recipients: emailRecipients,
+            subject: rendered.subject,
+            htmlBody: rendered.htmlBody,
+            textBody: rendered.textBody || undefined,
+          })
+          console.log(`[notifications] Bulk email sent to ${emailRecipients.length} for ${params.slug}`)
+        }
       } catch (err) {
         console.error(`[notifications] Bulk email failed for ${params.slug}:`, err)
       }
@@ -180,26 +268,30 @@ export async function sendBulkNotification(params: SendBulkNotificationParams): 
   }
 
   // Bulk SMS
-  if (config.sms_enabled && config.sms_body) {
-    const smsRecipients = params.recipients.filter(r => r.phone)
+  if (config.sms_enabled && config.sms_template_slug) {
+    const smsRecipients = recipients.filter(r => r.phone)
     if (smsRecipients.length > 0) {
-      const body = applyVariables(config.sms_body, vars)
-      await Promise.allSettled(
-        smsRecipients.map(r => sendSMS({ to: r.phone!, body }))
-      ).catch(err => console.error(`[notifications] Bulk SMS failed for ${params.slug}:`, err))
-      console.log(`[notifications] Bulk SMS sent to ${smsRecipients.length} for ${params.slug}`)
+      const body = await resolveSmsTemplate(config.sms_template_slug, vars)
+      if (body) {
+        await Promise.allSettled(
+          smsRecipients.map(r => sendSMS({ to: r.phone!, body }))
+        ).catch(err => console.error(`[notifications] Bulk SMS failed for ${params.slug}:`, err))
+        console.log(`[notifications] Bulk SMS sent to ${smsRecipients.length} for ${params.slug}`)
+      }
     }
   }
 
   // Admin SMS
-  if (config.admin_sms_enabled && config.admin_sms_body) {
+  if (config.admin_sms_enabled && config.admin_sms_template_slug) {
     const phonesRaw = process.env.ADMIN_NOTIFICATION_PHONES
     if (phonesRaw) {
       const phones = phonesRaw.split(',').map(p => p.trim()).filter(Boolean)
-      const body = applyVariables(config.admin_sms_body, vars)
-      await Promise.allSettled(
-        phones.map(phone => sendSMS({ to: phone, body }))
-      ).catch(() => {})
+      const body = await resolveSmsTemplate(config.admin_sms_template_slug, vars)
+      if (body) {
+        await Promise.allSettled(
+          phones.map(phone => sendSMS({ to: phone, body }))
+        ).catch(() => {})
+      }
     }
   }
 }

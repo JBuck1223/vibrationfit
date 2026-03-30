@@ -12,7 +12,7 @@ import { sendAndLogEmail } from '@/lib/email/send'
 import { generateSessionInvitationEmail } from '@/lib/email/templates'
 import { formatDateInTimeZone, DEFAULT_DISPLAY_TIMEZONE } from '@/lib/format/timezone'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { sendBulkNotification, getNotificationConfig } from '@/lib/notifications/config'
+import { sendBulkNotification } from '@/lib/notifications/config'
 import type { CreateSessionRequest, CreateSessionResponse, VideoSession, VideoSessionType } from '@/lib/video/types'
 
 export async function POST(request: NextRequest) {
@@ -253,10 +253,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // --- Alignment Gym: notify all graduates ---
+    // --- Alignment Gym: notify all opted-in members ---
     if (sessionType === 'alignment_gym') {
-      notifyAlignmentGymGraduates(session, hostName, user.id).catch(err =>
-        console.error('Alignment gym graduate notification error:', err)
+      notifyAlignmentGymMembers(session, hostName, user.id).catch(err =>
+        console.error('Alignment gym member notification error:', err)
       )
     }
 
@@ -331,9 +331,9 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// ── Alignment Gym graduate notifications ──
+// ── Alignment Gym: segment-driven notifications ──
 
-async function notifyAlignmentGymGraduates(
+async function notifyAlignmentGymMembers(
   session: Record<string, any>,
   hostName: string,
   createdByUserId: string
@@ -349,40 +349,7 @@ async function notifyAlignmentGymGraduates(
   )
   const duration = session.scheduled_duration_minutes || 60
 
-  // Check if alignment gym notifications are configured
-  const config = await getNotificationConfig('alignment_gym_created')
-  if (!config) {
-    console.log('[alignment-gym] No notification config found, skipping')
-    return
-  }
-
-  // Find all graduates (completed intensive or unlock_completed)
-  const { data: graduates, error: gradError } = await admin
-    .from('intensive_checklist')
-    .select('user_id')
-    .or('status.eq.completed,unlock_completed.eq.true')
-
-  if (gradError || !graduates?.length) {
-    console.log('[alignment-gym] No graduates found or query error:', gradError)
-    return
-  }
-
-  const userIds = [...new Set(graduates.map(g => g.user_id))]
-
-  const { data: accounts } = await admin
-    .from('user_accounts')
-    .select('id, email, phone, first_name')
-    .in('id', userIds)
-
-  if (!accounts?.length) return
-
-  const recipients = accounts.map(a => ({
-    email: a.email || undefined,
-    phone: a.phone || undefined,
-    userId: a.id,
-  }))
-
-  // Send bulk email + SMS + admin SMS via config engine
+  // Immediate notification -- audience resolved from segment at send time
   await sendBulkNotification({
     slug: 'alignment_gym_created',
     variables: {
@@ -393,52 +360,56 @@ async function notifyAlignmentGymGraduates(
       duration: String(duration),
       hostName,
       joinLink,
-      graduateCount: String(recipients.length),
+      graduateCount: '',
     },
-    recipients,
   })
 
-  // Schedule reminders (1 hour email + 15 min SMS) — these are operational, not template-driven
+  // Schedule reminder notification jobs (segment resolved fresh when they fire)
   const oneHourBefore = new Date(scheduledAt.getTime() - 60 * 60 * 1000)
   const fifteenMinBefore = new Date(scheduledAt.getTime() - 15 * 60 * 1000)
   const now = new Date()
 
-  for (const account of accounts) {
-    const name = account.first_name || 'there'
+  const reminderVars = {
+    firstName: '',
+    sessionTitle: session.title || 'Alignment Gym Session',
+    hostName,
+    joinLink,
+  }
 
-    if (account.email && oneHourBefore > now) {
-      const { error: emailErr } = await admin.from('scheduled_messages').insert({
-        message_type: 'email',
-        recipient_email: account.email,
-        recipient_name: name,
-        recipient_user_id: account.id,
-        related_entity_type: 'video_session',
-        related_entity_id: session.id,
-        subject: `Alignment Gym starts in 1 hour - ${session.title || 'Join Us'}`,
-        body: `<p>Hi ${name},</p><p>The Alignment Gym session "<strong>${session.title}</strong>" with ${hostName} starts in 1 hour.</p><p><a href="${joinLink}" style="display:inline-block;padding:12px 24px;background:#39FF14;color:#000;text-decoration:none;border-radius:9999px;font-weight:700;">View Session</a></p>`,
-        text_body: `Hi ${name}, The Alignment Gym session "${session.title}" starts in 1 hour. Join: ${joinLink}`,
-        scheduled_for: oneHourBefore.toISOString(),
-        status: 'pending',
-        created_by: createdByUserId,
-      })
-      if (emailErr) console.error('[alignment-gym] 1hr email reminder error:', emailErr.message)
-    }
+  const jobs: Record<string, unknown>[] = []
 
-    if (account.phone && fifteenMinBefore > now) {
-      const { error: smsErr } = await admin.from('scheduled_messages').insert({
-        message_type: 'sms',
-        recipient_phone: account.phone,
-        recipient_name: name,
-        recipient_user_id: account.id,
-        related_entity_type: 'video_session',
-        related_entity_id: session.id,
-        body: `VibrationFit: Alignment Gym with ${hostName} starts in 15 min! Join: ${joinLink}`,
-        scheduled_for: fifteenMinBefore.toISOString(),
-        status: 'pending',
-        created_by: createdByUserId,
-      })
-      if (smsErr) console.error('[alignment-gym] 15min SMS reminder error:', smsErr.message)
-    }
+  if (oneHourBefore > now) {
+    jobs.push({
+      message_type: 'email',
+      notification_config_slug: 'alignment_gym_reminder_1hr',
+      notification_variables: reminderVars,
+      related_entity_type: 'video_session',
+      related_entity_id: session.id,
+      scheduled_for: oneHourBefore.toISOString(),
+      status: 'pending',
+      created_by: createdByUserId,
+      body: 'notification-job',
+    })
+  }
+
+  if (fifteenMinBefore > now) {
+    jobs.push({
+      message_type: 'sms',
+      notification_config_slug: 'alignment_gym_reminder_15min',
+      notification_variables: reminderVars,
+      related_entity_type: 'video_session',
+      related_entity_id: session.id,
+      scheduled_for: fifteenMinBefore.toISOString(),
+      status: 'pending',
+      created_by: createdByUserId,
+      body: 'notification-job',
+    })
+  }
+
+  if (jobs.length > 0) {
+    const { error } = await admin.from('scheduled_messages').insert(jobs)
+    if (error) console.error('[alignment-gym] reminder job insert error:', error.message)
+    else console.log(`[alignment-gym] Scheduled ${jobs.length} notification reminder jobs`)
   }
 }
 

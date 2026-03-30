@@ -7,12 +7,13 @@
  * email_messages with delivery status (delivered, bounced, opened, etc.).
  *
  * SNS sends two kinds of POST:
- *   1. SubscriptionConfirmation — auto-confirmed by fetching the SubscribeURL
- *   2. Notification — contains the SES event payload
+ *   1. SubscriptionConfirmation -- auto-confirmed by fetching the SubscribeURL
+ *   2. Notification -- contains the SES event payload
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { addSuppression } from '@/lib/messaging/suppressions'
 
 const EXPECTED_TOPIC_ARN = process.env.AWS_SES_SNS_TOPIC_ARN || ''
 
@@ -21,13 +22,11 @@ export async function POST(request: NextRequest) {
     const body = await request.text()
     const message = JSON.parse(body)
 
-    // Validate TopicArn if configured
     if (EXPECTED_TOPIC_ARN && message.TopicArn && message.TopicArn !== EXPECTED_TOPIC_ARN) {
       console.error('[ses/webhook] TopicArn mismatch:', message.TopicArn)
       return NextResponse.json({ error: 'Invalid topic' }, { status: 403 })
     }
 
-    // Handle SNS subscription confirmation
     if (message.Type === 'SubscriptionConfirmation') {
       const subscribeUrl = message.SubscribeURL
       if (subscribeUrl) {
@@ -38,7 +37,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ status: 'subscription_confirmed' })
     }
 
-    // Handle notification
     if (message.Type === 'Notification') {
       const sesEvent = JSON.parse(message.Message)
       await processSesEvent(sesEvent)
@@ -56,22 +54,15 @@ type SesEventType = 'Delivery' | 'Bounce' | 'Complaint' | 'Open' | 'Click' | 'Se
 
 interface SesEvent {
   eventType: SesEventType
-  mail: { messageId: string; timestamp: string }
+  mail: { messageId: string; timestamp: string; destination?: string[] }
   delivery?: { timestamp: string }
-  bounce?: { bounceType: string; timestamp: string }
-  complaint?: { timestamp: string }
+  bounce?: { bounceType: string; timestamp: string; bouncedRecipients?: { emailAddress: string }[] }
+  complaint?: { timestamp: string; complainedRecipients?: { emailAddress: string }[] }
   open?: { timestamp: string }
   click?: { timestamp: string }
 }
 
-const STATUS_RANK: Record<string, number> = {
-  sent: 1,
-  delivered: 2,
-  opened: 3,
-  clicked: 4,
-  bounced: 0,
-  failed: 0,
-}
+const TERMINAL_STATUSES = new Set(['bounced', 'complaint', 'failed'])
 
 async function processSesEvent(event: SesEvent) {
   const sesMessageId = event.mail?.messageId
@@ -81,7 +72,7 @@ async function processSesEvent(event: SesEvent) {
 
   const { data: existing } = await supabase
     .from('email_messages')
-    .select('id, status')
+    .select('id, status, to_email')
     .eq('ses_message_id', sesMessageId)
     .maybeSingle()
 
@@ -90,11 +81,11 @@ async function processSesEvent(event: SesEvent) {
     return
   }
 
-  const currentRank = STATUS_RANK[existing.status] ?? 0
+  const isTerminal = TERMINAL_STATUSES.has(existing.status)
 
   switch (event.eventType) {
     case 'Delivery': {
-      if (currentRank < STATUS_RANK.delivered) {
+      if (!isTerminal && existing.status !== 'delivered' && existing.status !== 'opened' && existing.status !== 'clicked') {
         await supabase
           .from('email_messages')
           .update({
@@ -108,14 +99,29 @@ async function processSesEvent(event: SesEvent) {
     }
 
     case 'Bounce': {
+      const bounceType = event.bounce?.bounceType || 'Undetermined'
       await supabase
         .from('email_messages')
         .update({
           status: 'bounced',
+          bounce_type: bounceType,
           updated_at: new Date().toISOString(),
         })
         .eq('id', existing.id)
-      console.log('[ses/webhook] Bounce recorded for', sesMessageId, event.bounce?.bounceType)
+
+      if (bounceType === 'Permanent') {
+        const recipients = event.bounce?.bouncedRecipients?.map((r) => r.emailAddress) || []
+        const email = recipients[0] || existing.to_email
+        if (email) {
+          await addSuppression({
+            email,
+            reason: 'hard_bounce',
+            sourceMessageId: existing.id,
+            notes: `Permanent bounce: ${bounceType}`,
+          })
+        }
+      }
+      console.log('[ses/webhook] Bounce recorded for', sesMessageId, bounceType)
       break
     }
 
@@ -123,16 +129,27 @@ async function processSesEvent(event: SesEvent) {
       await supabase
         .from('email_messages')
         .update({
-          status: 'bounced',
+          status: 'complaint',
           updated_at: new Date().toISOString(),
         })
         .eq('id', existing.id)
+
+      const recipients = event.complaint?.complainedRecipients?.map((r) => r.emailAddress) || []
+      const email = recipients[0] || existing.to_email
+      if (email) {
+        await addSuppression({
+          email,
+          reason: 'complaint',
+          sourceMessageId: existing.id,
+          notes: 'SES complaint feedback',
+        })
+      }
       console.log('[ses/webhook] Complaint recorded for', sesMessageId)
       break
     }
 
     case 'Open': {
-      if (currentRank < STATUS_RANK.opened) {
+      if (!isTerminal && existing.status !== 'opened' && existing.status !== 'clicked') {
         await supabase
           .from('email_messages')
           .update({
@@ -146,7 +163,7 @@ async function processSesEvent(event: SesEvent) {
     }
 
     case 'Click': {
-      if (currentRank < STATUS_RANK.clicked) {
+      if (!isTerminal && existing.status !== 'clicked') {
         await supabase
           .from('email_messages')
           .update({
