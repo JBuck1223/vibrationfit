@@ -1,7 +1,7 @@
 /**
  * Admin Notification Configs API
  *
- * GET  - List all notification configs
+ * GET  - List all notification configs (with segment name)
  * PUT  - Update a single config (by id in body)
  */
 
@@ -16,17 +16,40 @@ export async function GET() {
     }
 
     const supabase = createAdminClient()
-    const { data, error } = await supabase
+
+    const { data: configs, error: configsError } = await supabase
       .from('notification_configs')
       .select('*')
       .order('category')
       .order('name')
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    if (configsError) {
+      return NextResponse.json({ error: configsError.message }, { status: 500 })
     }
 
-    return NextResponse.json({ configs: data })
+    // Fetch segment names for configs that have segment_id
+    const segmentIds = (configs || [])
+      .map(c => c.segment_id)
+      .filter(Boolean) as string[]
+
+    let segmentMap: Record<string, string> = {}
+    if (segmentIds.length > 0) {
+      const { data: segments } = await supabase
+        .from('blast_segments')
+        .select('id, name')
+        .in('id', [...new Set(segmentIds)])
+
+      if (segments) {
+        segmentMap = Object.fromEntries(segments.map(s => [s.id, s.name]))
+      }
+    }
+
+    const enriched = (configs || []).map(c => ({
+      ...c,
+      segment_name: c.segment_id ? (segmentMap[c.segment_id] || null) : null,
+    }))
+
+    return NextResponse.json({ configs: enriched })
   } catch (err) {
     console.error('Error in GET notification-configs:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -50,8 +73,8 @@ export async function PUT(request: NextRequest) {
     const allowed = [
       'name', 'description',
       'email_enabled', 'sms_enabled', 'admin_sms_enabled',
-      'email_subject', 'email_body', 'email_text_body',
-      'sms_body', 'admin_sms_body',
+      'email_template_slug', 'sms_template_slug', 'admin_sms_template_slug',
+      'segment_id',
     ]
 
     const sanitized: Record<string, unknown> = {}

@@ -4,13 +4,14 @@
  * POST /api/video/sessions/[id]/host-joined
  *
  * Triggered when the host joins the video session.
- * Sends notification to participants that the session is starting.
- * Template and channel toggles driven by notification_configs (slug: host_joined_session).
+ * - For alignment_gym sessions: broadcasts "going live" to ALL opted-in members
+ * - For other sessions: notifies registered participants only
+ * Template and channel toggles driven by notification_configs.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { sendNotification, getNotificationConfig } from '@/lib/notifications/config'
+import { sendNotification, sendBulkNotification, getNotificationConfig, resolveNotificationRecipients } from '@/lib/notifications/config'
 
 export async function POST(
   request: NextRequest,
@@ -38,7 +39,6 @@ export async function POST(
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
 
-    // Allow actual host or super_admin to trigger
     let canTrigger = session.host_user_id === user.id
     if (!canTrigger) {
       const { data: account } = await supabase
@@ -70,67 +70,77 @@ export async function POST(
     const hostName = hostAccount?.full_name || hostAccount?.first_name || 'Your host'
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'
 
-    // Check if notifications are configured before looping
-    const config = await getNotificationConfig('host_joined_session')
-    if (!config) {
-      console.warn('[host-joined] No notification config found, skipping participant notifications')
-    }
-
-    const participants = session.participants?.filter((p: any) => !p.is_host) || []
-
     const results = {
       emailsSent: 0,
       smsSent: 0,
       errors: [] as string[],
     }
 
-    for (const participant of participants) {
-      // Resolve contact info: participant row may be sparse, so fall back to user_accounts
-      let email = participant.email as string | null
-      let phone = participant.phone as string | null
-      let name = participant.name || 'there'
-
-      if (participant.user_id && (!email || !phone)) {
-        const { data: account } = await supabase
-          .from('user_accounts')
-          .select('email, phone, first_name, full_name')
-          .eq('id', participant.user_id)
-          .single()
-        if (account) {
-          if (!email) email = account.email || null
-          if (!phone) phone = account.phone || null
-          if (name === 'there') name = account.full_name || account.first_name || name
-        }
+    // --- Alignment Gym: broadcast "going live" to ALL members ---
+    if (session.session_type === 'alignment_gym') {
+      const liveResults = await broadcastAlignmentGymLive(
+        sessionId,
+        session.title || 'Alignment Gym',
+        hostName,
+        baseUrl
+      )
+      results.emailsSent += liveResults.emailsSent
+      results.smsSent += liveResults.smsSent
+      results.errors.push(...liveResults.errors)
+    } else {
+      // --- Other sessions: notify registered participants only ---
+      const config = await getNotificationConfig('host_joined_session')
+      if (!config) {
+        console.warn('[host-joined] No notification config found, skipping participant notifications')
       }
 
-      const joinLink = email
-        ? `${baseUrl}/session/${sessionId}?email=${encodeURIComponent(email)}`
-        : `${baseUrl}/session/${sessionId}`
+      const participants = session.participants?.filter((p: any) => !p.is_host) || []
 
-      if (!config) continue
+      for (const participant of participants) {
+        let email = participant.email as string | null
+        let phone = participant.phone as string | null
+        let name = participant.name || 'there'
 
-      console.log(`[host-joined] Notifying participant: email=${email}, phone=${phone}, name=${name}`)
+        if (participant.user_id && (!email || !phone)) {
+          const { data: account } = await supabase
+            .from('user_accounts')
+            .select('email, phone, first_name, full_name')
+            .eq('id', participant.user_id)
+            .single()
+          if (account) {
+            if (!email) email = account.email || null
+            if (!phone) phone = account.phone || null
+            if (name === 'there') name = account.full_name || account.first_name || name
+          }
+        }
 
-      try {
-        await sendNotification({
-          slug: 'host_joined_session',
-          variables: {
-            hostName,
-            participantName: name,
-            sessionTitle: session.title || 'Your Session',
-            joinLink,
-          },
-          recipientEmail: email || undefined,
-          recipientPhone: phone || undefined,
-          userId: participant.user_id || undefined,
-        })
+        const joinLink = email
+          ? `${baseUrl}/session/${sessionId}?email=${encodeURIComponent(email)}`
+          : `${baseUrl}/session/${sessionId}`
 
-        if (email && config.email_enabled) results.emailsSent++
-        if (phone && config.sms_enabled) results.smsSent++
-      } catch (err) {
-        const error = `Participant ${email || phone}: ${err instanceof Error ? err.message : 'Failed'}`
-        results.errors.push(error)
-        console.error(`[host-joined] ${error}`)
+        if (!config) continue
+
+        try {
+          await sendNotification({
+            slug: 'host_joined_session',
+            variables: {
+              hostName,
+              participantName: name,
+              sessionTitle: session.title || 'Your Session',
+              joinLink,
+            },
+            recipientEmail: email || undefined,
+            recipientPhone: phone || undefined,
+            userId: participant.user_id || undefined,
+          })
+
+          if (email && config.email_enabled) results.emailsSent++
+          if (phone && config.sms_enabled) results.smsSent++
+        } catch (err) {
+          const error = `Participant ${email || phone}: ${err instanceof Error ? err.message : 'Failed'}`
+          results.errors.push(error)
+          console.error(`[host-joined] ${error}`)
+        }
       }
     }
 
@@ -153,4 +163,39 @@ export async function POST(
       { status: 500 }
     )
   }
+}
+
+async function broadcastAlignmentGymLive(
+  sessionId: string,
+  sessionTitle: string,
+  hostName: string,
+  baseUrl: string
+): Promise<{ emailsSent: number; smsSent: number; errors: string[] }> {
+  const joinLink = `${baseUrl}/alignment-gym`
+
+  const config = await getNotificationConfig('alignment_gym_going_live')
+  if (!config) {
+    console.warn('[host-joined:alignment-gym] No alignment_gym_going_live config')
+    return { emailsSent: 0, smsSent: 0, errors: ['No alignment_gym_going_live config found'] }
+  }
+
+  try {
+    // Audience resolved dynamically from the config's linked segment
+    await sendBulkNotification({
+      slug: 'alignment_gym_going_live',
+      variables: { hostName, sessionTitle, joinLink },
+    })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Bulk notification failed'
+    console.error('[host-joined:alignment-gym] Broadcast error:', msg)
+    return { emailsSent: 0, smsSent: 0, errors: [msg] }
+  }
+
+  // Estimate counts from resolved recipients for the response
+  const recipients = await resolveNotificationRecipients('alignment_gym_going_live')
+  const emailCount = recipients.filter(r => r.email).length
+  const smsCount = recipients.filter(r => r.phone).length
+
+  console.log(`[host-joined:alignment-gym] Broadcast sent: ~${emailCount} emails, ~${smsCount} SMS`)
+  return { emailsSent: emailCount, smsSent: smsCount, errors: [] }
 }

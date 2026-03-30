@@ -17,6 +17,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendAndLogEmail } from '@/lib/email/send'
 import { sendSMS } from '@/lib/messaging/twilio'
+import { sendBulkNotification } from '@/lib/notifications/config'
 import { processSequenceSteps } from '@/lib/messaging/sequence-processor'
 import { getSenderById, DEFAULT_CRM_SENDER } from '@/lib/crm/senders'
 
@@ -73,12 +74,68 @@ async function processMessages(request: NextRequest) {
 
     const supabase = createAdminClient()
     const now = new Date().toISOString()
-    
-    // ── 1. Regular (non-campaign) scheduled messages ──
+
+    // ── 0. Notification job rows (segment resolved fresh at fire time) ──
+    const { data: notifJobs, error: notifJobsError } = await supabase
+      .from('scheduled_messages')
+      .select('*')
+      .eq('status', 'pending')
+      .not('notification_config_slug', 'is', null)
+      .lte('scheduled_for', now)
+      .order('scheduled_for', { ascending: true })
+      .limit(20)
+
+    const notifJobResults = { processed: 0, sent: 0, failed: 0 }
+
+    if (!notifJobsError && notifJobs && notifJobs.length > 0) {
+      console.log(`[process-scheduled] Processing ${notifJobs.length} notification jobs...`)
+
+      for (const job of notifJobs) {
+        notifJobResults.processed++
+        try {
+          await supabase
+            .from('scheduled_messages')
+            .update({ status: 'processing' })
+            .eq('id', job.id)
+
+          const vars = (job.notification_variables as Record<string, string>) || {}
+          await sendBulkNotification({
+            slug: job.notification_config_slug as string,
+            variables: vars,
+          })
+
+          await supabase
+            .from('scheduled_messages')
+            .update({ status: 'sent', sent_at: new Date().toISOString() })
+            .eq('id', job.id)
+
+          notifJobResults.sent++
+          console.log(`[process-scheduled] Notification job ${job.id} (${job.notification_config_slug}) sent`)
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+          console.error(`[process-scheduled] Notification job ${job.id} failed:`, errorMessage)
+
+          const newRetryCount = (job.retry_count || 0) + 1
+          await supabase
+            .from('scheduled_messages')
+            .update({
+              status: newRetryCount >= 3 ? 'failed' : 'pending',
+              retry_count: newRetryCount,
+              error_message: errorMessage,
+            })
+            .eq('id', job.id)
+
+          notifJobResults.failed++
+        }
+      }
+    }
+
+    // ── 1. Regular (non-campaign, non-notification-job) scheduled messages ──
     const { data: pendingMessages, error: fetchError } = await supabase
       .from('scheduled_messages')
       .select('*')
       .eq('status', 'pending')
+      .is('notification_config_slug', null)
       .lte('scheduled_for', now)
       .or('related_entity_type.is.null,related_entity_type.neq.campaign')
       .order('scheduled_for', { ascending: true })
@@ -194,6 +251,7 @@ async function processMessages(request: NextRequest) {
     return NextResponse.json({
       message: 'Processing complete',
       ...results,
+      notificationJobs: notifJobResults,
       campaigns: campaignResults,
       sequences: sequenceResults,
     })
@@ -207,8 +265,8 @@ async function processMessages(request: NextRequest) {
   }
 }
 
-const CAMPAIGN_CONCURRENCY = 10
-const CAMPAIGN_BATCH_PAUSE_MS = 1000
+const CAMPAIGN_CONCURRENCY = 25
+const CAMPAIGN_BATCH_PAUSE_MS = 200
 const MAX_RETRIES = 3
 
 async function processCampaignMessages(
@@ -224,7 +282,7 @@ async function processCampaignMessages(
     .eq('related_entity_type', 'campaign')
     .lte('scheduled_for', now)
     .order('scheduled_for', { ascending: true })
-    .limit(200)
+    .limit(1000)
 
   if (error || !campaignMessages || campaignMessages.length === 0) {
     return totals
@@ -237,18 +295,34 @@ async function processCampaignMessages(
     byCampaign.get(cid)!.push(msg)
   }
 
+  const senderCache = new Map<string, ReturnType<typeof getSenderById>>()
+
   for (const [campaignId, messages] of byCampaign) {
     totals.campaigns++
 
-    const { data: campaign } = await supabase
+    let sender: ReturnType<typeof getSenderById>
+
+    if (senderCache.has(campaignId)) {
+      sender = senderCache.get(campaignId)!
+    } else {
+      const { data: campaign } = await supabase
+        .from('messaging_campaigns')
+        .select('sender_id, sent_count, failed_count')
+        .eq('id', campaignId)
+        .single()
+
+      sender = getSenderById(campaign?.sender_id || DEFAULT_CRM_SENDER.id)
+      senderCache.set(campaignId, sender)
+    }
+
+    const { data: campaignRow } = await supabase
       .from('messaging_campaigns')
-      .select('sender_id, sent_count, failed_count')
+      .select('sent_count, failed_count')
       .eq('id', campaignId)
       .single()
 
-    const sender = getSenderById(campaign?.sender_id || DEFAULT_CRM_SENDER.id)
-    let batchSent = campaign?.sent_count ?? 0
-    let batchFailed = campaign?.failed_count ?? 0
+    let batchSent = campaignRow?.sent_count ?? 0
+    let batchFailed = campaignRow?.failed_count ?? 0
 
     for (let i = 0; i < messages.length; i += CAMPAIGN_CONCURRENCY) {
       const batch = messages.slice(i, i + CAMPAIGN_CONCURRENCY)
@@ -261,12 +335,75 @@ async function processCampaignMessages(
 
       const settled = await Promise.allSettled(
         batch.map(async (msg) => {
+          const isSmsCampaignMsg = msg.message_type === 'sms'
+
+          if (isSmsCampaignMsg) {
+            if (!msg.recipient_phone) throw new Error('No recipient phone')
+
+            // Idempotency for SMS: check message_send_log
+            const { count } = await supabase
+              .from('message_send_log')
+              .select('id', { count: 'exact', head: true })
+              .eq('related_entity_id', campaignId)
+              .eq('recipient_phone', msg.recipient_phone)
+              .eq('message_type', 'sms')
+              .eq('status', 'sent')
+
+            if (count && count > 0) {
+              await supabase
+                .from('scheduled_messages')
+                .update({ status: 'sent', sent_at: new Date().toISOString() })
+                .eq('id', msg.id)
+              return 'skipped'
+            }
+
+            await sendSMS({
+              to: msg.recipient_phone,
+              body: msg.body,
+            })
+
+            await supabase
+              .from('scheduled_messages')
+              .update({ status: 'sent', sent_at: new Date().toISOString() })
+              .eq('id', msg.id)
+
+            await supabase.from('message_send_log').insert({
+              message_type: 'sms',
+              recipient_phone: msg.recipient_phone,
+              recipient_name: msg.recipient_name,
+              recipient_user_id: msg.recipient_user_id,
+              related_entity_type: 'campaign',
+              related_entity_id: campaignId,
+              status: 'sent',
+              sent_at: new Date().toISOString(),
+            })
+
+            return 'sent'
+          }
+
+          // Email campaign message
           if (!msg.recipient_email) throw new Error('No recipient email')
+
+          const { count } = await supabase
+            .from('email_messages')
+            .select('id', { count: 'exact', head: true })
+            .eq('campaign_id', campaignId)
+            .eq('to_email', msg.recipient_email)
+
+          if (count && count > 0) {
+            await supabase
+              .from('scheduled_messages')
+              .update({ status: 'sent', sent_at: new Date().toISOString() })
+              .eq('id', msg.id)
+            return 'skipped'
+          }
+
+          const fromEmail = msg.sender_email || sender.from
 
           await sendAndLogEmail({
             to: msg.recipient_email,
             subject: msg.subject || 'VibrationFit',
-            from: sender.from,
+            from: fromEmail,
             textBody: msg.text_body || msg.body.replace(/<[^>]*>/g, ''),
             ...(msg.text_body ? {} : { htmlBody: msg.body }),
             replyTo: sender.email,
@@ -281,6 +418,8 @@ async function processCampaignMessages(
             .from('scheduled_messages')
             .update({ status: 'sent', sent_at: new Date().toISOString() })
             .eq('id', msg.id)
+
+          return 'sent'
         })
       )
 

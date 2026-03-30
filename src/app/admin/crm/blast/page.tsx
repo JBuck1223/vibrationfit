@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback, type RefObject } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   Card,
   Badge,
@@ -20,25 +20,43 @@ import {
   Search,
   FileText,
   ChevronDown,
-  AlertTriangle,
   CheckCircle,
   ArrowLeft,
   X,
   Mail,
+  MessageSquare,
   User,
   ExternalLink,
   MousePointerClick,
   MailOpen,
   Ban,
+  ShieldOff,
+  Layers,
+  AlertCircle,
+  Smartphone,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { BlastFilters, Audience } from '@/lib/crm/blast-filters'
 import { CRM_SENDERS, DEFAULT_CRM_SENDER } from '@/lib/crm/senders'
+import {
+  getFilterOptions,
+  getValueOptions,
+  isDateField,
+  isNumberField,
+  isBooleanField,
+  isDynamicSelectField,
+  formatFilterValue,
+  type FilterField,
+} from '@/lib/crm/blast-constants'
+
+type BlastChannel = 'email' | 'sms' | 'both'
 
 interface Recipient {
   email: string
   name: string
   type: 'member' | 'lead'
+  phone?: string
+  smsOptIn?: boolean
 }
 
 interface EmailTemplate {
@@ -53,17 +71,13 @@ interface EmailTemplate {
   variables: string[]
 }
 
-type FilterField =
-  | 'engagement_status'
-  | 'health_status'
-  | 'subscription_tier'
-  | 'lead_status'
-  | 'lead_type'
-  | 'utm_source'
-  | 'days_since_last_login_gt'
-  | 'days_since_last_login_lt'
-  | 'created_after'
-  | 'created_before'
+interface SegmentOption {
+  id: string
+  name: string
+  filters: BlastFilters
+  exclude_segment_id: string | null
+  recipient_count: number | null
+}
 
 interface FilterRow {
   id: string
@@ -71,53 +85,38 @@ interface FilterRow {
   value: string
 }
 
-const MEMBER_FILTER_OPTIONS: { value: FilterField; label: string }[] = [
-  { value: 'engagement_status', label: 'Engagement Status' },
-  { value: 'health_status', label: 'Health Status' },
-  { value: 'subscription_tier', label: 'Subscription Tier' },
-  { value: 'days_since_last_login_gt', label: 'Days Since Login (more than)' },
-  { value: 'days_since_last_login_lt', label: 'Days Since Login (less than)' },
-]
-
-const LEAD_FILTER_OPTIONS: { value: FilterField; label: string }[] = [
-  { value: 'lead_status', label: 'Lead Status' },
-  { value: 'lead_type', label: 'Lead Type' },
-  { value: 'utm_source', label: 'UTM Source' },
-]
-
-const SHARED_FILTER_OPTIONS: { value: FilterField; label: string }[] = [
-  { value: 'created_after', label: 'Created After' },
-  { value: 'created_before', label: 'Created Before' },
-]
-
-const ENGAGEMENT_VALUES = ['active', 'at_risk', 'champion', 'inactive']
-const HEALTH_VALUES = ['healthy', 'needs_attention', 'churned']
-const LEAD_STATUS_VALUES = ['new', 'contacted', 'qualified', 'converted', 'lost']
-const LEAD_TYPE_VALUES = ['contact', 'demo', 'intensive_intake']
-
-function getFilterOptions(audience: Audience): { value: FilterField; label: string }[] {
-  const shared = [...SHARED_FILTER_OPTIONS]
-  if (audience === 'members') return [...MEMBER_FILTER_OPTIONS, ...shared]
-  if (audience === 'leads') return [...LEAD_FILTER_OPTIONS, ...shared]
-  return [...MEMBER_FILTER_OPTIONS, ...LEAD_FILTER_OPTIONS, ...shared]
+const FILTER_TO_KEY: Record<FilterField, keyof BlastFilters> = {
+  engagement_status: 'engagement_status',
+  health_status: 'health_status',
+  subscription_tier: 'subscription_tier',
+  subscription_status: 'subscription_status',
+  intensive_status: 'intensive_status',
+  days_since_last_login_gt: 'days_since_last_login_gt',
+  days_since_last_login_lt: 'days_since_last_login_lt',
+  has_phone: 'has_phone',
+  sms_opt_in: 'sms_opt_in',
+  email_opt_in: 'email_opt_in',
+  has_vision: 'has_vision',
+  has_journal_entry: 'has_journal_entry',
+  profile_completion_gte: 'profile_completion_gte',
+  lead_status: 'lead_status',
+  lead_type: 'lead_type',
+  utm_source: 'utm_source',
+  utm_medium: 'utm_medium',
+  utm_campaign: 'utm_campaign',
+  created_after: 'created_after',
+  created_before: 'created_before',
 }
 
-function getValueOptions(field: FilterField): string[] | null {
-  switch (field) {
-    case 'engagement_status': return ENGAGEMENT_VALUES
-    case 'health_status': return HEALTH_VALUES
-    case 'lead_status': return LEAD_STATUS_VALUES
-    case 'lead_type': return LEAD_TYPE_VALUES
-    default: return null
+function filtersToRows(filters: BlastFilters): FilterRow[] {
+  const rows: FilterRow[] = []
+  for (const [field, key] of Object.entries(FILTER_TO_KEY)) {
+    const val = filters[key as keyof BlastFilters]
+    if (val !== undefined && val !== null && val !== '') {
+      rows.push({ id: crypto.randomUUID(), field: field as FilterField, value: String(val) })
+    }
   }
-}
-
-function isDateField(field: FilterField) {
-  return field === 'created_after' || field === 'created_before'
-}
-
-function isNumberField(field: FilterField) {
-  return field === 'days_since_last_login_gt' || field === 'days_since_last_login_lt'
+  return rows
 }
 
 const MERGE_TAGS = [
@@ -161,14 +160,25 @@ const btnGhost =
 
 export default function BlastPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
 
+  const [channel, setChannel] = useState<BlastChannel>('email')
   const [audience, setAudience] = useState<Audience>('members')
   const [filterRows, setFilterRows] = useState<FilterRow[]>([])
+  const [excludeLeads, setExcludeLeads] = useState(false)
+  const [excludeSegmentId, setExcludeSegmentId] = useState('')
   const [previewCount, setPreviewCount] = useState<number | null>(null)
+  const [suppressedCount, setSuppressedCount] = useState(0)
+  const [emailCount, setEmailCount] = useState(0)
+  const [smsCount, setSmsCount] = useState(0)
   const [recipients, setRecipients] = useState<Recipient[]>([])
   const [loadingPreview, setLoadingPreview] = useState(false)
   const [showRecipients, setShowRecipients] = useState(false)
 
+  const [segments, setSegments] = useState<SegmentOption[]>([])
+  const [loadedSegmentId, setLoadedSegmentId] = useState('')
+
+  const [tierNames, setTierNames] = useState<string[]>([])
   const [templates, setTemplates] = useState<EmailTemplate[]>([])
   const [showTemplates, setShowTemplates] = useState(false)
   const [templateSearch, setTemplateSearch] = useState('')
@@ -176,6 +186,7 @@ export default function BlastPage() {
   const [senderId, setSenderId] = useState<string>(DEFAULT_CRM_SENDER.id)
   const [subject, setSubject] = useState('')
   const [textBody, setTextBody] = useState('')
+  const [smsBody, setSmsBody] = useState('')
 
   const [sending, setSending] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -188,19 +199,35 @@ export default function BlastPage() {
       failedCount: number
       status: string
       subject: string
+      channel: string
     }
-    stats: { total: number; delivered: number; bounced: number; opened: number; clicked: number; failed: number }
+    stats: { total: number; delivered: number; bounced: number; complaint: number; opened: number; clicked: number; failed: number }
+    smsStats: { total: number; sent: number; failed: number }
     pending: number
   } | null>(null)
 
   const subjectRef = useRef<HTMLInputElement | null>(null)
   const bodyRef = useRef<HTMLTextAreaElement | null>(null)
+  const smsBodyRef = useRef<HTMLTextAreaElement | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  const sendsEmail = channel === 'email' || channel === 'both'
+  const sendsSms = channel === 'sms' || channel === 'both'
+
   useEffect(() => {
     fetchTemplates()
+    fetchSegments()
+    fetchTierNames()
   }, [])
+
+  useEffect(() => {
+    const segId = searchParams.get('segmentId')
+    if (segId && segments.length > 0) {
+      loadSegment(segId)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, segments])
 
   const pollCampaign = useCallback(async (id: string) => {
     try {
@@ -228,6 +255,9 @@ export default function BlastPage() {
 
   useEffect(() => {
     setPreviewCount(null)
+    setSuppressedCount(0)
+    setEmailCount(0)
+    setSmsCount(0)
     setRecipients([])
     setShowRecipients(false)
 
@@ -240,23 +270,17 @@ export default function BlastPage() {
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [audience, filterRows])
+  }, [audience, filterRows, excludeLeads, excludeSegmentId])
 
   function buildFilters(): BlastFilters {
-    const f: BlastFilters = { audience }
+    const f: BlastFilters = { audience, exclude_leads: excludeLeads || undefined }
     for (const row of filterRows) {
       if (!row.value) continue
-      switch (row.field) {
-        case 'engagement_status': f.engagement_status = row.value; break
-        case 'health_status': f.health_status = row.value; break
-        case 'subscription_tier': f.subscription_tier = row.value; break
-        case 'days_since_last_login_gt': f.days_since_last_login_gt = parseInt(row.value); break
-        case 'days_since_last_login_lt': f.days_since_last_login_lt = parseInt(row.value); break
-        case 'lead_status': f.lead_status = row.value; break
-        case 'lead_type': f.lead_type = row.value; break
-        case 'utm_source': f.utm_source = row.value; break
-        case 'created_after': f.created_after = row.value; break
-        case 'created_before': f.created_before = row.value; break
+      const key = FILTER_TO_KEY[row.field]
+      if (isNumberField(row.field)) {
+        ;(f as unknown as Record<string, unknown>)[key] = parseInt(row.value)
+      } else {
+        ;(f as unknown as Record<string, unknown>)[key] = row.value
       }
     }
     return f
@@ -268,14 +292,24 @@ export default function BlastPage() {
       const res = await fetch('/api/crm/blast/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(buildFilters()),
+        body: JSON.stringify({
+          filters: buildFilters(),
+          excludeSegmentId: excludeSegmentId || undefined,
+          channel,
+        }),
       })
       if (!res.ok) throw new Error('Preview failed')
       const data = await res.json()
       setPreviewCount(data.count)
+      setSuppressedCount(data.suppressedCount || 0)
+      setEmailCount(data.emailCount || 0)
+      setSmsCount(data.smsCount || 0)
       setRecipients(data.recipients)
     } catch {
       setPreviewCount(null)
+      setSuppressedCount(0)
+      setEmailCount(0)
+      setSmsCount(0)
       setRecipients([])
     } finally {
       setLoadingPreview(false)
@@ -288,9 +322,36 @@ export default function BlastPage() {
       if (!res.ok) return
       const data = await res.json()
       setTemplates(data.templates || [])
-    } catch {
-      /* ignore */
-    }
+    } catch { /* ignore */ }
+  }
+
+  async function fetchSegments() {
+    try {
+      const res = await fetch('/api/crm/segments')
+      if (!res.ok) return
+      const data = await res.json()
+      setSegments(data.segments || [])
+    } catch { /* ignore */ }
+  }
+
+  async function fetchTierNames() {
+    try {
+      const res = await fetch('/api/crm/tier-names')
+      if (!res.ok) return
+      const data = await res.json()
+      setTierNames(data.tiers || [])
+    } catch { /* ignore */ }
+  }
+
+  function loadSegment(id: string) {
+    const seg = segments.find((s) => s.id === id)
+    if (!seg) return
+    setLoadedSegmentId(id)
+    setAudience(seg.filters.audience)
+    setFilterRows(filtersToRows(seg.filters))
+    setExcludeLeads(!!seg.filters.exclude_leads)
+    setExcludeSegmentId(seg.exclude_segment_id || '')
+    toast.success(`Loaded segment "${seg.name}"`)
   }
 
   function addFilter() {
@@ -340,7 +401,10 @@ export default function BlastPage() {
   })
 
   async function handleSend() {
-    if (!subject.trim() || !textBody.trim() || !previewCount) return
+    if (sendsEmail && (!subject.trim() || !textBody.trim())) return
+    if (sendsSms && !smsBody.trim()) return
+    if (!previewCount) return
+
     setSending(true)
     setCampaignId(null)
     setCampaignData(null)
@@ -350,15 +414,22 @@ export default function BlastPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           filters: buildFilters(),
-          subject: subject.trim(),
-          textBody: textBody.trim(),
+          channel,
+          subject: sendsEmail ? subject.trim() : undefined,
+          textBody: sendsEmail ? textBody.trim() : undefined,
+          smsBody: sendsSms ? smsBody.trim() : undefined,
           senderId,
+          excludeSegmentId: excludeSegmentId || undefined,
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Send failed')
       setCampaignId(data.campaignId)
-      toast.success(`Blast queued: ${data.recipientCount} recipients`)
+      const parts = []
+      if (data.emailCount) parts.push(`${data.emailCount} emails`)
+      if (data.smsCount) parts.push(`${data.smsCount} texts`)
+      const suppMsg = data.suppressedCount ? ` (${data.suppressedCount} suppressed)` : ''
+      toast.success(`Blast queued: ${parts.join(' + ') || data.recipientCount + ' recipients'}${suppMsg}`)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to send blast'
       toast.error(msg)
@@ -368,31 +439,191 @@ export default function BlastPage() {
     }
   }
 
-  const canSend = subject.trim() && textBody.trim() && previewCount && previewCount > 0
+  const canSend =
+    previewCount && previewCount > 0 &&
+    (!sendsEmail || (subject.trim() && textBody.trim())) &&
+    (!sendsSms || smsBody.trim())
+
+  function renderFilterValueInput(row: FilterRow) {
+    const valueOptions = getValueOptions(row.field)
+
+    if (isBooleanField(row.field)) {
+      return (
+        <div className="flex gap-2 flex-1">
+          {['yes', 'no'].map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => updateFilter(row.id, 'value', v)}
+              className={`px-4 py-2.5 text-sm font-semibold rounded-full border-2 transition-all duration-200 ${
+                row.value === v
+                  ? v === 'yes'
+                    ? 'bg-[#39FF14] text-black border-transparent'
+                    : 'bg-[#FF0040] text-white border-transparent'
+                  : 'bg-transparent border-[#555] text-neutral-400 hover:border-[#39FF14] hover:text-white'
+              }`}
+            >
+              {v === 'yes' ? 'Yes' : 'No'}
+            </button>
+          ))}
+        </div>
+      )
+    }
+
+    if (isDynamicSelectField(row.field)) {
+      return (
+        <select
+          value={row.value}
+          onChange={(e) => updateFilter(row.id, 'value', e.target.value)}
+          className={selectClass + ' flex-1'}
+        >
+          <option value="">Select...</option>
+          {tierNames.map((t) => (
+            <option key={t} value={t}>{t}</option>
+          ))}
+        </select>
+      )
+    }
+
+    if (valueOptions) {
+      return (
+        <select
+          value={row.value}
+          onChange={(e) => updateFilter(row.id, 'value', e.target.value)}
+          className={selectClass + ' flex-1'}
+        >
+          <option value="">Select...</option>
+          {valueOptions.map((v) => (
+            <option key={v} value={v}>{formatFilterValue(v)}</option>
+          ))}
+        </select>
+      )
+    }
+
+    if (isDateField(row.field)) {
+      return (
+        <input
+          type="date"
+          value={row.value}
+          onChange={(e) => updateFilter(row.id, 'value', e.target.value)}
+          className={inputClass + ' flex-1'}
+        />
+      )
+    }
+
+    if (isNumberField(row.field)) {
+      return (
+        <input
+          type="number"
+          value={row.value}
+          onChange={(e) => updateFilter(row.id, 'value', e.target.value)}
+          placeholder={row.field === 'profile_completion_gte' ? 'e.g. 50' : 'e.g. 30'}
+          min={0}
+          max={row.field === 'profile_completion_gte' ? 100 : undefined}
+          className={inputClass + ' flex-1'}
+        />
+      )
+    }
+
+    return (
+      <input
+        type="text"
+        value={row.value}
+        onChange={(e) => updateFilter(row.id, 'value', e.target.value)}
+        placeholder="Enter value..."
+        className={inputClass + ' flex-1'}
+      />
+    )
+  }
 
   return (
     <>
       <Container size="xl">
         <Stack gap="lg">
-          <PageHero title="Email Blast" subtitle="Send targeted emails to filtered audiences">
-            <button
-              type="button"
-              onClick={() => router.push('/admin/crm')}
-              className={btnGhost}
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to CRM
-            </button>
+          <PageHero title="Blast" subtitle="Send targeted emails and texts to your audience">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => router.push('/admin/crm')}
+                className={btnGhost}
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to CRM
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push('/admin/crm/segments')}
+                className={btnGhost}
+              >
+                <Layers className="w-4 h-4" />
+                Segments
+              </button>
+            </div>
           </PageHero>
 
-          {/* Section 1: Audience & Filters */}
+          {/* Channel Toggle */}
+          <Card className="p-6">
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-neutral-400 shrink-0">Channel:</span>
+              <div className="flex gap-2">
+                {([
+                  { value: 'email' as BlastChannel, label: 'Email', icon: Mail },
+                  { value: 'sms' as BlastChannel, label: 'SMS', icon: Smartphone },
+                  { value: 'both' as BlastChannel, label: 'Both', icon: MessageSquare },
+                ]).map(({ value, label, icon: Icon }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setChannel(value)}
+                    className={`inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold rounded-full border-2 transition-all duration-300 ${
+                      channel === value
+                        ? value === 'sms'
+                          ? 'bg-[#00FFFF] text-black border-transparent'
+                          : value === 'both'
+                            ? 'bg-[#BF00FF] text-white border-transparent'
+                            : 'bg-[#39FF14] text-black border-transparent'
+                        : 'bg-transparent border-[#333] text-neutral-400 hover:border-[#39FF14] hover:text-[#39FF14]'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </Card>
+
+          {/* Load Segment */}
+          {segments.length > 0 && (
+            <Card className="p-6">
+              <div className="flex items-center gap-3">
+                <Layers className="w-5 h-5 text-[#BF00FF]" />
+                <label className="text-sm text-neutral-400">Load Segment:</label>
+                <select
+                  value={loadedSegmentId}
+                  onChange={(e) => {
+                    if (e.target.value) loadSegment(e.target.value)
+                  }}
+                  className={selectClass + ' max-w-xs'}
+                >
+                  <option value="">Select a segment...</option>
+                  {segments.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} ({s.recipient_count ?? '?'} recipients)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </Card>
+          )}
+
+          {/* Audience & Filters */}
           <Card className="p-6 md:p-8">
             <div className="flex items-center gap-2 mb-6">
               <Filter className="w-5 h-5 text-[#39FF14]" />
               <h2 className="text-lg font-semibold text-white">Audience & Filters</h2>
             </div>
 
-            {/* Audience toggle */}
             <div className="mb-6">
               <label className="block text-sm text-neutral-400 mb-2">Audience</label>
               <div className="flex gap-2">
@@ -421,18 +652,16 @@ export default function BlastPage() {
               </div>
             </div>
 
-            {/* Filter rows */}
             <div className="space-y-3">
               {filterRows.map((row) => {
                 const options = getFilterOptions(audience)
-                const valueOptions = getValueOptions(row.field)
 
                 return (
                   <div key={row.id} className="flex items-center gap-3">
                     <select
                       value={row.field}
                       onChange={(e) => updateFilter(row.id, 'field', e.target.value)}
-                      className={selectClass + ' max-w-[220px]'}
+                      className={selectClass + ' max-w-[240px]'}
                     >
                       {options.map((o) => (
                         <option key={o.value} value={o.value}>
@@ -441,44 +670,7 @@ export default function BlastPage() {
                       ))}
                     </select>
 
-                    {valueOptions ? (
-                      <select
-                        value={row.value}
-                        onChange={(e) => updateFilter(row.id, 'value', e.target.value)}
-                        className={selectClass + ' flex-1'}
-                      >
-                        <option value="">Select...</option>
-                        {valueOptions.map((v) => (
-                          <option key={v} value={v}>
-                            {v.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
-                          </option>
-                        ))}
-                      </select>
-                    ) : isDateField(row.field) ? (
-                      <input
-                        type="date"
-                        value={row.value}
-                        onChange={(e) => updateFilter(row.id, 'value', e.target.value)}
-                        className={inputClass + ' flex-1'}
-                      />
-                    ) : isNumberField(row.field) ? (
-                      <input
-                        type="number"
-                        value={row.value}
-                        onChange={(e) => updateFilter(row.id, 'value', e.target.value)}
-                        placeholder="e.g. 30"
-                        min={0}
-                        className={inputClass + ' flex-1'}
-                      />
-                    ) : (
-                      <input
-                        type="text"
-                        value={row.value}
-                        onChange={(e) => updateFilter(row.id, 'value', e.target.value)}
-                        placeholder="Enter value..."
-                        className={inputClass + ' flex-1'}
-                      />
-                    )}
+                    {renderFilterValueInput(row)}
 
                     <button
                       type="button"
@@ -500,9 +692,45 @@ export default function BlastPage() {
               <Plus className="w-4 h-4" />
               Add Filter
             </button>
+
+            {/* Exclusions */}
+            <div className="mt-6 pt-6 border-t border-[#333]">
+              <div className="flex items-center gap-2 mb-4">
+                <ShieldOff className="w-4 h-4 text-[#FF0040]" />
+                <h3 className="text-sm font-semibold text-neutral-300">Exclusions</h3>
+              </div>
+              <div className="space-y-3">
+                {(audience === 'members' || audience === 'both') && (
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={excludeLeads}
+                      onChange={(e) => setExcludeLeads(e.target.checked)}
+                      className="w-4 h-4 rounded border-[#666] bg-[#404040] text-[#39FF14] focus:ring-[#39FF14]"
+                    />
+                    <span className="text-sm text-neutral-300">
+                      Exclude emails also found in leads
+                    </span>
+                  </label>
+                )}
+                <div className="flex items-center gap-3">
+                  <label className="text-sm text-neutral-400 shrink-0">Exclude segment:</label>
+                  <select
+                    value={excludeSegmentId}
+                    onChange={(e) => setExcludeSegmentId(e.target.value)}
+                    className={selectClass + ' max-w-xs'}
+                  >
+                    <option value="">None</option>
+                    {segments.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
           </Card>
 
-          {/* Section 2: Recipient Preview */}
+          {/* Recipients */}
           <Card className="p-6 md:p-8">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
@@ -512,9 +740,26 @@ export default function BlastPage() {
               {loadingPreview ? (
                 <Spinner size="sm" />
               ) : previewCount !== null ? (
-                <Badge className="bg-[#39FF14] text-black px-3 py-1 text-sm font-bold">
-                  {previewCount} recipient{previewCount !== 1 ? 's' : ''}
-                </Badge>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <Badge className="bg-[#39FF14] text-black px-3 py-1 text-sm font-bold">
+                    {previewCount.toLocaleString()} recipient{previewCount !== 1 ? 's' : ''}
+                  </Badge>
+                  {sendsEmail && emailCount > 0 && (
+                    <Badge className="bg-[#BF00FF]/20 text-[#BF00FF] px-3 py-1 text-sm font-bold">
+                      {emailCount.toLocaleString()} emails
+                    </Badge>
+                  )}
+                  {sendsSms && (
+                    <Badge className="bg-[#00FFFF]/20 text-[#00FFFF] px-3 py-1 text-sm font-bold">
+                      {smsCount.toLocaleString()} SMS
+                    </Badge>
+                  )}
+                  {suppressedCount > 0 && (
+                    <Badge className="bg-[#FF0040]/20 text-[#FF0040] px-3 py-1 text-sm font-bold">
+                      {suppressedCount} suppressed
+                    </Badge>
+                  )}
+                </div>
               ) : null}
             </div>
 
@@ -560,7 +805,7 @@ export default function BlastPage() {
                         {previewCount > recipients.length && (
                           <tr>
                             <td colSpan={3} className="py-2 px-4 text-neutral-500 text-center text-xs">
-                              + {previewCount - recipients.length} more not shown
+                              + {(previewCount - recipients.length).toLocaleString()} more not shown
                             </td>
                           </tr>
                         )}
@@ -576,153 +821,206 @@ export default function BlastPage() {
             )}
           </Card>
 
-          {/* Section 3: Compose & Send */}
+          {/* Compose & Send */}
           <Card className="p-6 md:p-8">
             <div className="flex items-center gap-2 mb-6">
-              <Mail className="w-5 h-5 text-[#BF00FF]" />
+              {sendsSms && !sendsEmail ? (
+                <Smartphone className="w-5 h-5 text-[#00FFFF]" />
+              ) : (
+                <Mail className="w-5 h-5 text-[#BF00FF]" />
+              )}
               <h2 className="text-lg font-semibold text-white">Compose</h2>
             </div>
 
-            {/* Template picker */}
-            <div className="mb-4 relative">
-              <button
-                type="button"
-                onClick={() => setShowTemplates(!showTemplates)}
-                className={btnGhost}
-              >
-                <FileText className="w-4 h-4" />
-                Load Template
-                <ChevronDown className={`w-3 h-3 transition-transform ${showTemplates ? 'rotate-180' : ''}`} />
-              </button>
+            {/* Email compose section */}
+            {sendsEmail && (
+              <>
+                {/* Template picker */}
+                <div className="mb-4 relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowTemplates(!showTemplates)}
+                    className={btnGhost}
+                  >
+                    <FileText className="w-4 h-4" />
+                    Load Template
+                    <ChevronDown className={`w-3 h-3 transition-transform ${showTemplates ? 'rotate-180' : ''}`} />
+                  </button>
 
-              {showTemplates && (
-                <div className="absolute z-50 top-full left-0 mt-2 w-full max-w-md bg-[#1A1A1A] border-2 border-[#333] rounded-xl shadow-2xl overflow-hidden">
-                  <div className="p-3 border-b border-[#333]">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
-                      <input
-                        type="text"
-                        value={templateSearch}
-                        onChange={(e) => setTemplateSearch(e.target.value)}
-                        placeholder="Search templates..."
-                        className="w-full pl-10 pr-4 py-2 text-sm bg-[#404040] border border-[#666] rounded-lg text-white placeholder-[#9CA3AF] focus:outline-none focus:border-[#39FF14]"
-                        autoFocus
-                      />
+                  {showTemplates && (
+                    <div className="absolute z-50 top-full left-0 mt-2 w-full max-w-md bg-[#1A1A1A] border-2 border-[#333] rounded-xl shadow-2xl overflow-hidden">
+                      <div className="p-3 border-b border-[#333]">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+                          <input
+                            type="text"
+                            value={templateSearch}
+                            onChange={(e) => setTemplateSearch(e.target.value)}
+                            placeholder="Search templates..."
+                            className="w-full pl-10 pr-4 py-2 text-sm bg-[#404040] border border-[#666] rounded-lg text-white placeholder-[#9CA3AF] focus:outline-none focus:border-[#39FF14]"
+                            autoFocus
+                          />
+                        </div>
+                      </div>
+                      <div className="max-h-64 overflow-y-auto">
+                        {filteredTemplates.length === 0 ? (
+                          <p className="text-sm text-neutral-500 p-4 text-center">No templates found</p>
+                        ) : (
+                          filteredTemplates.map((t) => (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => applyTemplate(t)}
+                              className="w-full text-left px-4 py-3 hover:bg-[#333] transition-colors border-b border-[#333] last:border-0"
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium text-white">{t.name}</span>
+                                {t.text_body ? (
+                                  <Badge className="bg-[#39FF14]/20 text-[#39FF14] text-xs px-2 py-0.5">
+                                    Plain Text
+                                  </Badge>
+                                ) : (
+                                  <Badge className="bg-[#FFB701]/20 text-[#FFB701] text-xs px-2 py-0.5">
+                                    HTML
+                                  </Badge>
+                                )}
+                              </div>
+                              {t.description && (
+                                <p className="text-xs text-neutral-500 mt-1 truncate">{t.description}</p>
+                              )}
+                              <p className="text-xs text-neutral-400 mt-0.5 truncate">
+                                Subject: {t.subject}
+                              </p>
+                            </button>
+                          ))
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div className="max-h-64 overflow-y-auto">
-                    {filteredTemplates.length === 0 ? (
-                      <p className="text-sm text-neutral-500 p-4 text-center">No templates found</p>
-                    ) : (
-                      filteredTemplates.map((t) => (
-                        <button
-                          key={t.id}
-                          type="button"
-                          onClick={() => applyTemplate(t)}
-                          className="w-full text-left px-4 py-3 hover:bg-[#333] transition-colors border-b border-[#333] last:border-0"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-white">{t.name}</span>
-                            {t.text_body ? (
-                              <Badge className="bg-[#39FF14]/20 text-[#39FF14] text-xs px-2 py-0.5">
-                                Plain Text
-                              </Badge>
-                            ) : (
-                              <Badge className="bg-[#FFB701]/20 text-[#FFB701] text-xs px-2 py-0.5">
-                                HTML
-                              </Badge>
-                            )}
-                          </div>
-                          {t.description && (
-                            <p className="text-xs text-neutral-500 mt-1 truncate">{t.description}</p>
-                          )}
-                          <p className="text-xs text-neutral-400 mt-0.5 truncate">
-                            Subject: {t.subject}
-                          </p>
-                        </button>
-                      ))
-                    )}
+                  )}
+                </div>
+
+                {/* Sender */}
+                <div className="mb-4">
+                  <label className="block text-sm text-neutral-400 mb-1">From</label>
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-neutral-500 shrink-0" />
+                    <select
+                      value={senderId}
+                      onChange={(e) => setSenderId(e.target.value as typeof senderId)}
+                      disabled={sending}
+                      className={inputClass}
+                    >
+                      {CRM_SENDERS.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.label} ({s.email})
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
-              )}
-            </div>
 
-            {/* Sender */}
-            <div className="mb-4">
-              <label className="block text-sm text-neutral-400 mb-1">From</label>
-              <div className="flex items-center gap-2">
-                <User className="w-4 h-4 text-neutral-500 shrink-0" />
-                <select
-                  value={senderId}
-                  onChange={(e) => setSenderId(e.target.value as typeof senderId)}
-                  disabled={sending}
-                  className={inputClass}
-                >
-                  {CRM_SENDERS.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.label} ({s.email})
-                    </option>
+                {/* Subject */}
+                <div className="mb-4">
+                  <label className="block text-sm text-neutral-400 mb-1">Subject</label>
+                  <input
+                    ref={subjectRef}
+                    type="text"
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    placeholder="Email subject line..."
+                    className={inputClass}
+                  />
+                  <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                    <span className="text-xs text-neutral-500">Merge tags:</span>
+                    {MERGE_TAGS.map((m) => (
+                      <button
+                        key={m.tag}
+                        type="button"
+                        onClick={() => insertAtCursor(subjectRef, subject, m.tag, setSubject)}
+                        className="px-2 py-0.5 text-xs rounded-full border border-[#555] text-neutral-300 hover:border-[#39FF14] hover:text-[#39FF14] transition-all duration-200"
+                      >
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Email Body */}
+                <div className={sendsSms ? 'mb-6 pb-6 border-b border-[#333]' : 'mb-6'}>
+                  <label className="block text-sm text-neutral-400 mb-1">
+                    Plain Text Body
+                  </label>
+                  <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                    <span className="text-xs text-neutral-500">Merge tags:</span>
+                    {MERGE_TAGS.map((m) => (
+                      <button
+                        key={m.tag}
+                        type="button"
+                        onClick={() => insertAtCursor(bodyRef, textBody, m.tag, setTextBody)}
+                        className="px-2 py-0.5 text-xs rounded-full border border-[#555] text-neutral-300 hover:border-[#39FF14] hover:text-[#39FF14] transition-all duration-200"
+                      >
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+                  <textarea
+                    ref={bodyRef}
+                    value={textBody}
+                    onChange={(e) => setTextBody(e.target.value)}
+                    placeholder="Write your message... Use merge tags like {{first_name}} for personalization."
+                    rows={10}
+                    className={inputClass + ' resize-none font-mono'}
+                  />
+                  <p className="text-xs text-neutral-500 mt-1">
+                    Plain text sends land in the Primary inbox. Merge tags are replaced per recipient.
+                  </p>
+                </div>
+              </>
+            )}
+
+            {/* SMS compose section */}
+            {sendsSms && (
+              <div className="mb-6">
+                {sendsEmail && (
+                  <div className="flex items-center gap-2 mb-4">
+                    <Smartphone className="w-4 h-4 text-[#00FFFF]" />
+                    <h3 className="text-sm font-semibold text-[#00FFFF]">SMS Message</h3>
+                  </div>
+                )}
+                <label className="block text-sm text-neutral-400 mb-1">
+                  SMS Body
+                </label>
+                <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                  <span className="text-xs text-neutral-500">Merge tags:</span>
+                  {MERGE_TAGS.map((m) => (
+                    <button
+                      key={m.tag}
+                      type="button"
+                      onClick={() => insertAtCursor(smsBodyRef, smsBody, m.tag, setSmsBody)}
+                      className="px-2 py-0.5 text-xs rounded-full border border-[#555] text-neutral-300 hover:border-[#00FFFF] hover:text-[#00FFFF] transition-all duration-200"
+                    >
+                      {m.label}
+                    </button>
                   ))}
-                </select>
+                </div>
+                <textarea
+                  ref={smsBodyRef}
+                  value={smsBody}
+                  onChange={(e) => setSmsBody(e.target.value)}
+                  placeholder="Write your SMS... Keep under 160 chars for a single segment."
+                  rows={4}
+                  className={inputClass + ' resize-none'}
+                />
+                <div className="flex items-center justify-between mt-1">
+                  <p className="text-xs text-neutral-500">
+                    Only sent to members with phone + SMS opt-in.
+                  </p>
+                  <span className={`text-xs font-mono ${smsBody.length > 160 ? 'text-[#FF0040]' : 'text-neutral-500'}`}>
+                    {smsBody.length}/160
+                  </span>
+                </div>
               </div>
-            </div>
-
-            {/* Subject */}
-            <div className="mb-4">
-              <label className="block text-sm text-neutral-400 mb-1">Subject</label>
-              <input
-                ref={subjectRef}
-                type="text"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                placeholder="Email subject line..."
-                className={inputClass}
-              />
-              <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                <span className="text-xs text-neutral-500">Merge tags:</span>
-                {MERGE_TAGS.map((m) => (
-                  <button
-                    key={m.tag}
-                    type="button"
-                    onClick={() => insertAtCursor(subjectRef, subject, m.tag, setSubject)}
-                    className="px-2 py-0.5 text-xs rounded-full border border-[#555] text-neutral-300 hover:border-[#39FF14] hover:text-[#39FF14] transition-all duration-200"
-                  >
-                    {m.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Body */}
-            <div className="mb-6">
-              <label className="block text-sm text-neutral-400 mb-1">
-                Plain Text Body
-              </label>
-              <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
-                <span className="text-xs text-neutral-500">Merge tags:</span>
-                {MERGE_TAGS.map((m) => (
-                  <button
-                    key={m.tag}
-                    type="button"
-                    onClick={() => insertAtCursor(bodyRef, textBody, m.tag, setTextBody)}
-                    className="px-2 py-0.5 text-xs rounded-full border border-[#555] text-neutral-300 hover:border-[#39FF14] hover:text-[#39FF14] transition-all duration-200"
-                  >
-                    {m.label}
-                  </button>
-                ))}
-              </div>
-              <textarea
-                ref={bodyRef}
-                value={textBody}
-                onChange={(e) => setTextBody(e.target.value)}
-                placeholder="Write your message... Use merge tags like {{first_name}} for personalization."
-                rows={10}
-                className={inputClass + ' resize-none font-mono'}
-              />
-              <p className="text-xs text-neutral-500 mt-1">
-                Plain text sends land in the Primary inbox. Merge tags are replaced per recipient.
-              </p>
-            </div>
+            )}
 
             {/* Send */}
             <div className="flex items-center gap-4">
@@ -735,13 +1033,17 @@ export default function BlastPage() {
                 <Send className="w-4 h-4" />
                 {sending
                   ? 'Sending...'
-                  : `Send to ${previewCount ?? 0} Recipient${previewCount !== 1 ? 's' : ''}`}
+                  : channel === 'both'
+                    ? `Send ${emailCount.toLocaleString()} Emails + ${smsCount.toLocaleString()} Texts`
+                    : channel === 'sms'
+                      ? `Send to ${smsCount.toLocaleString()} Phone${smsCount !== 1 ? 's' : ''}`
+                      : `Send to ${(previewCount ?? 0).toLocaleString()} Recipient${previewCount !== 1 ? 's' : ''}`}
               </button>
 
-              {previewCount !== null && previewCount > 500 && (
-                <p className="text-sm text-red-400 flex items-center gap-1">
-                  <AlertTriangle className="w-4 h-4" />
-                  Max 500 recipients per blast
+              {previewCount !== null && previewCount > 1000 && (
+                <p className="text-sm text-[#00FFFF] flex items-center gap-1">
+                  <AlertCircle className="w-4 h-4" />
+                  Large blast -- will be queued and sent in background
                 </p>
               )}
             </div>
@@ -772,7 +1074,6 @@ export default function BlastPage() {
                   </button>
                 </div>
 
-                {/* Progress bar */}
                 <div className="w-full h-2 bg-[#333] rounded-full overflow-hidden">
                   <div
                     className="h-full bg-[#39FF14] rounded-full transition-all duration-500"
@@ -784,43 +1085,40 @@ export default function BlastPage() {
                   />
                 </div>
 
-                {/* Stats badges */}
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                  <StatBadge
-                    icon={<Send className="w-4 h-4" />}
-                    label="Sent"
-                    value={campaignData.stats.total}
-                    color="#39FF14"
-                  />
-                  <StatBadge
-                    icon={<CheckCircle className="w-4 h-4" />}
-                    label="Delivered"
-                    value={campaignData.stats.delivered}
-                    total={campaignData.stats.total}
-                    color="#00FFFF"
-                  />
-                  <StatBadge
-                    icon={<MailOpen className="w-4 h-4" />}
-                    label="Opened"
-                    value={campaignData.stats.opened}
-                    total={campaignData.stats.total}
-                    color="#BF00FF"
-                  />
-                  <StatBadge
-                    icon={<MousePointerClick className="w-4 h-4" />}
-                    label="Clicked"
-                    value={campaignData.stats.clicked}
-                    total={campaignData.stats.total}
-                    color="#FFFF00"
-                  />
-                  <StatBadge
-                    icon={<Ban className="w-4 h-4" />}
-                    label="Bounced"
-                    value={campaignData.stats.bounced}
-                    total={campaignData.stats.total}
-                    color="#FF0040"
-                  />
-                </div>
+                {/* Email stats */}
+                {(campaignData.campaign.channel === 'email' || campaignData.campaign.channel === 'both') && (
+                  <div>
+                    {campaignData.campaign.channel === 'both' && (
+                      <p className="text-xs text-neutral-500 mb-2 flex items-center gap-1">
+                        <Mail className="w-3 h-3" /> Email Stats
+                      </p>
+                    )}
+                    <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
+                      <StatBadge icon={<Send className="w-4 h-4" />} label="Sent" value={campaignData.stats.total} color="#39FF14" />
+                      <StatBadge icon={<CheckCircle className="w-4 h-4" />} label="Delivered" value={campaignData.stats.delivered} total={campaignData.stats.total} color="#00FFFF" />
+                      <StatBadge icon={<MailOpen className="w-4 h-4" />} label="Opened" value={campaignData.stats.opened} total={campaignData.stats.total} color="#BF00FF" />
+                      <StatBadge icon={<MousePointerClick className="w-4 h-4" />} label="Clicked" value={campaignData.stats.clicked} total={campaignData.stats.total} color="#FFFF00" />
+                      <StatBadge icon={<Ban className="w-4 h-4" />} label="Bounced" value={campaignData.stats.bounced} total={campaignData.stats.total} color="#FF0040" />
+                      <StatBadge icon={<AlertCircle className="w-4 h-4" />} label="Complaint" value={campaignData.stats.complaint} total={campaignData.stats.total} color="#FF6B00" />
+                    </div>
+                  </div>
+                )}
+
+                {/* SMS stats */}
+                {(campaignData.campaign.channel === 'sms' || campaignData.campaign.channel === 'both') && campaignData.smsStats && (
+                  <div>
+                    {campaignData.campaign.channel === 'both' && (
+                      <p className="text-xs text-neutral-500 mb-2 flex items-center gap-1 mt-3">
+                        <Smartphone className="w-3 h-3" /> SMS Stats
+                      </p>
+                    )}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      <StatBadge icon={<Smartphone className="w-4 h-4" />} label="Total SMS" value={campaignData.smsStats.total} color="#00FFFF" />
+                      <StatBadge icon={<CheckCircle className="w-4 h-4" />} label="Sent" value={campaignData.smsStats.sent} total={campaignData.smsStats.total} color="#39FF14" />
+                      <StatBadge icon={<Ban className="w-4 h-4" />} label="Failed" value={campaignData.smsStats.failed} total={campaignData.smsStats.total} color="#FF0040" />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </Card>
@@ -848,19 +1146,53 @@ export default function BlastPage() {
 
             <div className="space-y-3 mb-6">
               <p className="text-neutral-300">
-                You are about to send an email to{' '}
-                <span className="font-bold text-[#39FF14]">{previewCount}</span> recipient
-                {previewCount !== 1 ? 's' : ''}.
+                {channel === 'both' ? (
+                  <>
+                    You are about to send{' '}
+                    <span className="font-bold text-[#39FF14]">{emailCount.toLocaleString()}</span> emails and{' '}
+                    <span className="font-bold text-[#00FFFF]">{smsCount.toLocaleString()}</span> text messages.
+                  </>
+                ) : channel === 'sms' ? (
+                  <>
+                    You are about to send a text to{' '}
+                    <span className="font-bold text-[#00FFFF]">{smsCount.toLocaleString()}</span> phone{smsCount !== 1 ? 's' : ''}.
+                  </>
+                ) : (
+                  <>
+                    You are about to send an email to{' '}
+                    <span className="font-bold text-[#39FF14]">{previewCount?.toLocaleString()}</span> recipient
+                    {previewCount !== 1 ? 's' : ''}.
+                  </>
+                )}
               </p>
+              {suppressedCount > 0 && (
+                <p className="text-sm text-[#FF0040]">
+                  {suppressedCount} address{suppressedCount !== 1 ? 'es' : ''} suppressed (bounced/complained).
+                </p>
+              )}
               <div className="bg-[#404040] rounded-xl p-4 space-y-2 text-sm">
                 <p>
-                  <span className="text-neutral-400">Subject:</span>{' '}
-                  <span className="text-white">{subject}</span>
+                  <span className="text-neutral-400">Channel:</span>{' '}
+                  <span className="text-white capitalize">{channel}</span>
                 </p>
-                <p>
-                  <span className="text-neutral-400">From:</span>{' '}
-                  <span className="text-white">{CRM_SENDERS.find((s) => s.id === senderId)?.email ?? DEFAULT_CRM_SENDER.email}</span>
-                </p>
+                {sendsEmail && (
+                  <>
+                    <p>
+                      <span className="text-neutral-400">Subject:</span>{' '}
+                      <span className="text-white">{subject}</span>
+                    </p>
+                    <p>
+                      <span className="text-neutral-400">From:</span>{' '}
+                      <span className="text-white">{CRM_SENDERS.find((s) => s.id === senderId)?.email ?? DEFAULT_CRM_SENDER.email}</span>
+                    </p>
+                  </>
+                )}
+                {sendsSms && (
+                  <p>
+                    <span className="text-neutral-400">SMS:</span>{' '}
+                    <span className="text-white">{smsBody.length > 60 ? smsBody.slice(0, 60) + '...' : smsBody}</span>
+                  </p>
+                )}
                 <p>
                   <span className="text-neutral-400">Audience:</span>{' '}
                   <span className="text-white capitalize">{audience}</span>
