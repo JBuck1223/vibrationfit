@@ -744,12 +744,12 @@ export default function BlastPage() {
                   <Badge className="bg-[#39FF14] text-black px-3 py-1 text-sm font-bold">
                     {previewCount.toLocaleString()} recipient{previewCount !== 1 ? 's' : ''}
                   </Badge>
-                  {(sendsEmail || channel === 'both') && emailCount > 0 && (
+                  {sendsEmail && emailCount > 0 && (
                     <Badge className="bg-[#BF00FF]/20 text-[#BF00FF] px-3 py-1 text-sm font-bold">
                       {emailCount.toLocaleString()} emails
                     </Badge>
                   )}
-                  {(sendsSms || channel === 'both') && (
+                  {sendsSms && (
                     <Badge className="bg-[#00FFFF]/20 text-[#00FFFF] px-3 py-1 text-sm font-bold">
                       {smsCount.toLocaleString()} SMS
                     </Badge>
