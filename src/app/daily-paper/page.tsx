@@ -17,7 +17,7 @@ import {
 } from '@/lib/design-system/components'
 import { useAreaStats } from '@/hooks/useAreaStats'
 import { OptimizedImage } from '@/components/OptimizedImage'
-import { FileText, Sparkles, Plus, Filter, Grid, List, HelpCircle, Eye, Flame, Shield, ChevronDown } from 'lucide-react'
+import { FileText, Sparkles, Plus, Filter, Grid, List, HelpCircle, Eye, Flame, Shield, ChevronDown, ImageIcon, Paperclip } from 'lucide-react'
 import { DailyPaperEntry, useDailyPaperEntries } from '@/hooks/useDailyPaper'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
@@ -39,11 +39,21 @@ function formatDateLabel(value: string) {
   })
 }
 
-/** True when attachment is from Evidence/Images (VIVA or upload), not Optional Attachment. */
-function isEvidenceImage(entry: DailyPaperEntry): boolean {
+function looksLikeImageUrl(url: string | null | undefined): boolean {
+  if (!url) return false
+  if (/\.(png|jpe?g|webp|gif)(\?|$)/i.test(url)) return true
+  if (url.includes('media.vibrationfit.com') && (url.includes('/generated/') || url.includes('/journal/'))) return true
+  return false
+}
+
+function isImageEntry(entry: DailyPaperEntry): boolean {
   if (!entry.attachment_url) return false
-  const section = (entry.metadata as { attachmentSection?: string } | null)?.attachmentSection
-  return section === 'evidence'
+  return entry.attachment_content_type?.startsWith('image/') === true || looksLikeImageUrl(entry.attachment_url)
+}
+
+function getAttachmentSection(entry: DailyPaperEntry): 'evidence' | 'optional' | null {
+  if (!entry.attachment_url) return null
+  return (entry.metadata as { attachmentSection?: string } | null)?.attachmentSection as 'evidence' | 'optional' | null ?? null
 }
 
 function calculateCurrentStreak(entries: DailyPaperEntry[]) {
@@ -422,6 +432,8 @@ export default function DailyPaperIndexPage() {
                 (t) => t && t.trim().length > 0,
               )
               const hasAttachment = Boolean(entry.attachment_url)
+              const showImage = isImageEntry(entry)
+              const section = getAttachmentSection(entry)
               return (
                 <Card
                   key={entry.id}
@@ -442,8 +454,8 @@ export default function DailyPaperIndexPage() {
                       </div>
                     </div>
 
-                    {/* Media Preview - Evidence/Images only (not Optional Attachment) */}
-                    {hasAttachment && entry.attachment_content_type?.startsWith('image/') && isEvidenceImage(entry) && (
+                    {/* Media Preview */}
+                    {showImage && (
                       <div className="relative w-full rounded-lg overflow-hidden border border-neutral-700">
                         <OptimizedImage
                           src={entry.attachment_url!}
@@ -465,7 +477,7 @@ export default function DailyPaperIndexPage() {
                       </p>
                     </div>
 
-                    {/* Info bar - Actions list only (attachment link is at bottom) */}
+                    {/* Info bar - Actions list only */}
                     {tasks.length > 0 && (
                       <div className="rounded-2xl border border-[#1F1F1F] bg-[#161616] p-4 md:p-5">
                         <div className="flex flex-col gap-3">
@@ -500,8 +512,17 @@ export default function DailyPaperIndexPage() {
                           href={`/daily-paper/${entry.id}`}
                           className="text-sm text-primary-500 hover:underline inline-flex items-center gap-1.5"
                         >
-                          <FileText className="w-3.5 h-3.5" />
-                          View 1 Attachment
+                          {section === 'evidence' ? (
+                            <>
+                              <ImageIcon className="w-3.5 h-3.5" />
+                              View Image
+                            </>
+                          ) : (
+                            <>
+                              <Paperclip className="w-3.5 h-3.5" />
+                              View Attachment
+                            </>
+                          )}
                         </Link>
                       </div>
                     )}
@@ -530,10 +551,8 @@ export default function DailyPaperIndexPage() {
           <div className="space-y-3 md:space-y-4">
             {filteredEntries.map((entry) => {
               const hasAttachment = Boolean(entry.attachment_url)
-              const isImageAttachment =
-                hasAttachment &&
-                entry.attachment_content_type?.startsWith('image/') &&
-                isEvidenceImage(entry)
+              const showImage = isImageEntry(entry)
+              const section = getAttachmentSection(entry)
               return (
                 <Card
                   key={entry.id}
@@ -542,9 +561,9 @@ export default function DailyPaperIndexPage() {
                   onClick={() => router.push(`/daily-paper/${entry.id}`)}
                 >
                   <div className="flex flex-col md:flex-row gap-3 md:gap-4 md:items-stretch">
-                    {/* Image column - hidden on mobile, same as journal */}
+                    {/* Image column - hidden on mobile */}
                     <div className="hidden md:block relative flex-shrink-0 w-full aspect-square max-w-[180px] md:w-[160px] md:max-w-none md:aspect-square md:h-auto min-h-0 rounded-lg overflow-hidden bg-neutral-800">
-                      {isImageAttachment ? (
+                      {showImage ? (
                         <div className="absolute inset-0">
                           <OptimizedImage
                             src={entry.attachment_url!}
@@ -562,7 +581,7 @@ export default function DailyPaperIndexPage() {
                       )}
                     </div>
 
-                    {/* Entry details - cards like journal list */}
+                    {/* Entry details */}
                     <div className="flex-1 min-w-0 space-y-3">
                       {/* Mobile: Date - right-aligned with banner */}
                       <div className="relative -mt-1 md:hidden">
@@ -588,7 +607,7 @@ export default function DailyPaperIndexPage() {
                         </div>
                       </div>
 
-                      {/* Gratitude + excerpt - one card (like journal Title + Entry) */}
+                      {/* Gratitude + excerpt */}
                       <div className="rounded-2xl border border-[#1F1F1F] bg-[#161616] p-4 md:p-5 space-y-3">
                         <p className="text-xs uppercase tracking-[0.2em] text-neutral-500">Gratitude</p>
                         <p className="text-sm text-neutral-400 line-clamp-3 md:line-clamp-none md:text-neutral-300 whitespace-pre-line">
@@ -601,14 +620,23 @@ export default function DailyPaperIndexPage() {
                             href={`/daily-paper/${entry.id}`}
                             className="text-sm text-primary-500 hover:underline inline-flex items-center gap-1.5"
                           >
-                            <FileText className="w-3.5 h-3.5 shrink-0" />
-                            View 1 Attachment
+                            {section === 'evidence' ? (
+                              <>
+                                <ImageIcon className="w-3.5 h-3.5 shrink-0" />
+                                View Image
+                              </>
+                            ) : (
+                              <>
+                                <Paperclip className="w-3.5 h-3.5 shrink-0" />
+                                View Attachment
+                              </>
+                            )}
                           </Link>
                         </div>
                       )}
                     </div>
 
-                    {/* View Entry - right side, same as journal */}
+                    {/* View Entry - right side */}
                     <div className="flex-shrink-0 w-full md:w-auto flex items-center" onClick={(e) => e.stopPropagation()}>
                       <Button asChild variant="ghost" size="sm" className="w-full md:w-auto">
                         <Link href={`/daily-paper/${entry.id}`}>

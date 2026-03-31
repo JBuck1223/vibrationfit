@@ -514,7 +514,7 @@ export default function EditDailyPaperPage({
                           className="inline-flex items-center gap-2 rounded-xl border border-[#333] bg-[#1F1F1F] px-4 py-2 text-sm text-primary-500"
                         >
                           <FileText className="w-4 h-4" />
-                          Current attachment
+                          Current file
                         </a>
                         <Button
                           type="button"
@@ -525,7 +525,7 @@ export default function EditDailyPaperPage({
                             setAttachmentFiles([])
                           }}
                         >
-                          Remove attachment
+                          Remove
                         </Button>
                       </div>
                     )}
@@ -536,7 +536,7 @@ export default function EditDailyPaperPage({
                         maxFiles={1}
                         maxSize={50}
                         label={
-                          hasNewAttachment ? 'Replace attachment' : 'Upload attachment'
+                          hasNewAttachment ? 'Replace file' : 'Upload Daily Paper scan'
                         }
                         variant="ghost"
                         onUpload={(files) => {
@@ -557,7 +557,7 @@ export default function EditDailyPaperPage({
                     )}
                     {!attachmentPreview && hasNewAttachment && (
                       <div className="rounded-xl border border-[#333] bg-[#1F1F1F] px-4 py-3 text-sm text-neutral-300">
-                        File attached: {attachmentFiles[0]?.name}
+                        Selected: {attachmentFiles[0]?.name}
                       </div>
                     )}
                   </Stack>

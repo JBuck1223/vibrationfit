@@ -14,7 +14,7 @@ import {
 } from '@/lib/design-system'
 import { OptimizedImage } from '@/components/OptimizedImage'
 import { SavedRecordings } from '@/components/SavedRecordings'
-import { Edit, Eye, FileText, Trash2, X, Download } from 'lucide-react'
+import { Edit, Eye, FileText, Trash2, X, Download, Paperclip } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { DailyPaperEntry } from '@/hooks/useDailyPaper'
 
@@ -233,44 +233,49 @@ export default function DailyPaperViewPage({
               </section>
             )}
 
-            {entry.attachment_url && (
-              <section className="space-y-4">
-                <Text
-                  size="sm"
-                  className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]"
-                >
-                  Attachment
-                </Text>
-                <div className="space-y-4">
-                  {isImageAttachment ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 gap-3 md:gap-4">
-                      <div className="relative group">
-                        <OptimizedImage
-                          src={entry.attachment_url}
-                          alt="Daily Paper"
-                          width={800}
-                          height={600}
-                          className="w-full h-auto object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
-                          onClick={() => setLightboxOpen(true)}
-                          quality={90}
-                          sizes="(max-width: 768px) 50vw, (max-width: 1200px) 50vw, 50vw"
-                        />
+            {entry.attachment_url && (() => {
+              const section = (entry.metadata as { attachmentSection?: string } | null)?.attachmentSection
+              const isEvidence = section === 'evidence'
+              const sectionLabel = isEvidence ? 'Evidence' : 'Attachment'
+              return (
+                <section className="space-y-4">
+                  <Text
+                    size="sm"
+                    className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]"
+                  >
+                    {sectionLabel}
+                  </Text>
+                  <div className="space-y-4">
+                    {isImageAttachment ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 gap-3 md:gap-4">
+                        <div className="relative group">
+                          <OptimizedImage
+                            src={entry.attachment_url!}
+                            alt={isEvidence ? 'Evidence image' : 'Daily Paper scan'}
+                            width={800}
+                            height={600}
+                            className="w-full h-auto object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
+                            onClick={() => setLightboxOpen(true)}
+                            quality={90}
+                            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 50vw, 50vw"
+                          />
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <a
-                      href={entry.attachment_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 rounded-xl border border-[#1F1F1F] bg-[#161616] px-4 py-3 text-sm text-primary-500 hover:border-[#199D67] transition-colors"
-                    >
-                      <FileText className="w-4 h-4" />
-                      Open attachment
-                    </a>
-                  )}
-                </div>
-              </section>
-            )}
+                    ) : (
+                      <a
+                        href={entry.attachment_url!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 rounded-xl border border-[#1F1F1F] bg-[#161616] px-4 py-3 text-sm text-primary-500 hover:border-[#199D67] transition-colors"
+                      >
+                        <Paperclip className="w-4 h-4" />
+                        Open {isEvidence ? 'file' : 'attachment'}
+                      </a>
+                    )}
+                  </div>
+                </section>
+              )
+            })()}
 
             {/* Actions - Delete and Edit at bottom (like journal) */}
             <div className="flex flex-row items-center gap-2 sm:gap-3 sm:justify-end pt-2">
