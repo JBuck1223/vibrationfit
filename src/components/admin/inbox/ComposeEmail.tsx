@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Send, X, ChevronDown } from 'lucide-react'
 import { Button, Spinner } from '@/lib/design-system/components'
-import { CRM_SENDERS, DEFAULT_CRM_SENDER } from '@/lib/crm/senders'
+import { CRM_SENDERS, DEFAULT_CRM_SENDER, type CrmSenderId } from '@/lib/crm/senders'
 
 interface ComposeEmailProps {
   onSend?: () => void
@@ -25,7 +25,7 @@ export default function ComposeEmail({
   const [to, setTo] = useState(defaultTo)
   const [subject, setSubject] = useState(defaultSubject)
   const [body, setBody] = useState('')
-  const [senderId, setSenderId] = useState(DEFAULT_CRM_SENDER.id)
+  const [senderId, setSenderId] = useState<CrmSenderId>(DEFAULT_CRM_SENDER.id)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showFromPicker, setShowFromPicker] = useState(false)
