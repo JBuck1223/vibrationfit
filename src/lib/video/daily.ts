@@ -149,8 +149,8 @@ export async function createRoom(config: DailyRoomConfig = {}): Promise<DailyRoo
       enable_prejoin_ui: true,      // Pre-call check
       enable_network_ui: true,      // Show connection quality
       enable_people_ui: true,       // Show participant list
-      enable_recording: 'cloud',    // Cloud recording
-      max_participants: 2,          // 1:1 calls
+      enable_recording: 'raw-tracks',
+      max_participants: 2,
       ...config.properties,
     },
   }
@@ -214,7 +214,7 @@ export async function createMeetingToken(
     user_name: config.user_name,
     is_owner: config.is_owner || false,
     enable_screenshare: config.enable_screenshare ?? true,
-    enable_recording: config.enable_recording ?? 'cloud',
+    enable_recording: config.enable_recording ?? 'raw-tracks',
     start_video_off: config.start_video_off ?? false,
     start_audio_off: config.start_audio_off ?? false,
     exp: config.exp || Math.floor(Date.now() / 1000) + 86400,
@@ -234,21 +234,29 @@ export async function createMeetingToken(
 }
 
 /**
- * Create a host token with full permissions
+ * Create a host token with full permissions.
+ * 
+ * 1:1 sessions use raw-tracks (individual files per participant, full resolution).
+ * Group/alignment_gym/webinar use cloud recording (composited active-speaker layout).
+ * For cloud sessions the client starts recording after join so we can set the layout.
  */
 export async function createHostToken(
   roomName: string,
   userId: string,
-  userName: string
+  userName: string,
+  sessionType?: string
 ): Promise<DailyMeetingToken> {
+  const isGroupSession = sessionType === 'group' || sessionType === 'workshop'
+    || sessionType === 'alignment_gym' || sessionType === 'webinar'
+
   return createMeetingToken({
     room_name: roomName,
     user_id: userId,
     user_name: userName,
     is_owner: true,
     enable_screenshare: true,
-    enable_recording: 'cloud',
-    start_cloud_recording: true,
+    enable_recording: isGroupSession ? 'cloud' : 'raw-tracks',
+    start_cloud_recording: !isGroupSession,
   })
 }
 
@@ -429,7 +437,7 @@ export async function createOneOnOneRoom(
       enable_knocking: true,        // Waiting room
       enable_screenshare: true,
       enable_chat: true,
-      enable_recording: 'cloud',
+      enable_recording: 'raw-tracks',
       enable_prejoin_ui: true,
       exp: Math.floor(expirationTime.getTime() / 1000),
     },
@@ -437,7 +445,7 @@ export async function createOneOnOneRoom(
 }
 
 /**
- * Create a group session room
+ * Create a group session room (cloud recording — active-speaker composite)
  */
 export async function createGroupRoom(
   scheduledAt: Date,
@@ -461,8 +469,8 @@ export async function createGroupRoom(
 }
 
 /**
- * Create an Alignment Gym room (unlimited participants, host-led)
- * Members join with camera/mic off by default; no waiting room.
+ * Create an Alignment Gym room (cloud recording — active-speaker composite).
+ * Unlimited participants, host-led. Members join with camera/mic off by default.
  */
 export async function createAlignmentGymRoom(
   scheduledAt: Date,
@@ -473,21 +481,20 @@ export async function createAlignmentGymRoom(
   
   return createRoom({
     properties: {
-      // No max_participants — Daily.co bills by minutes, no cap needed
-      enable_knocking: false,         // No waiting room — open to all members
+      enable_knocking: false,
       enable_screenshare: true,
       enable_chat: true,
       enable_recording: 'cloud',
       enable_prejoin_ui: true,
-      start_video_off: true,          // Members join with camera off
-      start_audio_off: true,          // Members join muted
+      start_video_off: true,
+      start_audio_off: true,
       exp: Math.floor(expirationTime.getTime() / 1000),
     },
   })
 }
 
 /**
- * Create a webinar/large event room
+ * Create a webinar/large event room (cloud recording — active-speaker composite)
  */
 export async function createWebinarRoom(
   scheduledAt: Date,
@@ -498,14 +505,13 @@ export async function createWebinarRoom(
   
   return createRoom({
     properties: {
-      // No max_participants — Daily.co bills by minutes, no cap needed
-      enable_knocking: false,       // No waiting room for webinars
+      enable_knocking: false,
       enable_screenshare: true,
       enable_chat: true,
       enable_recording: 'cloud',
       enable_prejoin_ui: true,
-      start_video_off: true,        // Participants join with camera off
-      start_audio_off: true,        // Participants join muted
+      start_video_off: true,
+      start_audio_off: true,
       exp: Math.floor(expirationTime.getTime() / 1000),
     },
   })

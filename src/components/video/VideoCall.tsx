@@ -14,6 +14,7 @@ import {
   useLocalParticipant,
   useParticipantIds,
   useParticipant,
+  useActiveSpeakerId,
   useMeetingState,
   useScreenShare,
   DailyVideo,
@@ -38,6 +39,7 @@ import {
   Sparkles,
   Clock,
   UserCircle,
+  VolumeX,
 } from 'lucide-react'
 import { Button, Badge, Card } from '@/lib/design-system/components'
 import { SessionChat } from '@/components/video/SessionChat'
@@ -135,8 +137,12 @@ function VideoCallUI({
   const daily = useDaily()
   const localParticipant = useLocalParticipant()
   const participantIds = useParticipantIds({ filter: 'remote' })
+  const activeSpeakerId = useActiveSpeakerId({ ignoreLocal: false })
   const meetingState = useMeetingState()
   const { isSharingScreen, screens, startScreenShare, stopScreenShare } = useScreenShare()
+
+  const isGroupSession = sessionType === 'group' || sessionType === 'workshop'
+    || sessionType === 'alignment_gym' || sessionType === 'webinar'
   
   // State
   const [cameraEnabled, setCameraEnabled] = useState(initialSettings?.camera ?? true)
@@ -192,6 +198,18 @@ function VideoCallUI({
             console.log('✅ Participant join tracked')
           } catch (trackErr) {
             console.error('Error tracking participant join:', trackErr)
+          }
+        }
+
+        // For group sessions, start cloud recording with active-speaker layout.
+        // (1:1 sessions auto-start raw-tracks recording via the host token.)
+        if (isHost && isGroupSession) {
+          try {
+            await daily.startRecording({
+              layout: { preset: 'active-participant' },
+            })
+          } catch (recErr) {
+            console.error('Failed to auto-start recording:', recErr)
           }
         }
 
@@ -319,6 +337,44 @@ function VideoCallUI({
     }
   }, [daily, isRecording, isHost, sessionType])
 
+  // Hard-mute all remote participants (host only).
+  // Revokes audio send permission so participants cannot unmute themselves.
+  const muteAll = useCallback(() => {
+    if (!daily || !isHost) return
+    const participants = daily.participants()
+    for (const [id] of Object.entries(participants)) {
+      if (id === 'local') continue
+      daily.updateParticipant(id, {
+        setAudio: false,
+        updatePermissions: {
+          canSend: new Set(['video', 'screenVideo', 'screenAudio']),
+        },
+      })
+    }
+  }, [daily, isHost])
+
+  // Allow a specific participant to speak (host only).
+  // Grants audio permission and unmutes them.
+  const allowToSpeak = useCallback((sessionId: string) => {
+    if (!daily || !isHost) return
+    daily.updateParticipant(sessionId, {
+      updatePermissions: {
+        canSend: new Set(['audio', 'video', 'screenVideo', 'screenAudio']),
+      },
+    })
+  }, [daily, isHost])
+
+  // Revoke a specific participant's ability to speak (host only).
+  const revokeSpeak = useCallback((sessionId: string) => {
+    if (!daily || !isHost) return
+    daily.updateParticipant(sessionId, {
+      setAudio: false,
+      updatePermissions: {
+        canSend: new Set(['video', 'screenVideo', 'screenAudio']),
+      },
+    })
+  }, [daily, isHost])
+
   // Leave call
   const handleLeave = useCallback(async () => {
     // Track participant leave for analytics
@@ -415,8 +471,12 @@ function VideoCallUI({
     }
   }, [participantIds.length])
 
-  // Get remote participant
-  const remoteParticipantId = participantIds[0]
+  // For group sessions: show the active speaker. For 1:1: show the one remote participant.
+  const featuredParticipantId = isGroupSession
+    ? (activeSpeakerId && activeSpeakerId !== localParticipant?.session_id
+        ? activeSpeakerId
+        : participantIds[0])
+    : participantIds[0]
 
   // Determine if anyone is sharing their screen (local or remote)
   const activeScreenShare = screens.length > 0 ? screens[0] : null
@@ -539,8 +599,8 @@ function VideoCallUI({
                 type="screenVideo"
                 className="w-full h-full bg-black"
               />
-            ) : remoteParticipantId ? (
-              <RemoteParticipantTile participantId={remoteParticipantId} />
+            ) : featuredParticipantId ? (
+              <RemoteParticipantTile participantId={featuredParticipantId} />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-neutral-900">
                 <div className="text-center max-w-sm">
@@ -583,9 +643,9 @@ function VideoCallUI({
           </div>
 
           {/* Remote participant PiP — shown when screen share is active so you still see them */}
-          {activeScreenShare && remoteParticipantId && (
+          {activeScreenShare && featuredParticipantId && (
             <div className="absolute top-4 right-4 w-36 md:w-48 aspect-video rounded-xl overflow-hidden shadow-2xl border-2 border-neutral-700 bg-neutral-800 z-10">
-              <RemoteParticipantTile participantId={remoteParticipantId} />
+              <RemoteParticipantTile participantId={featuredParticipantId} />
             </div>
           )}
 
@@ -628,6 +688,10 @@ function VideoCallUI({
                 cameraEnabled={cameraEnabled}
                 micEnabled={micEnabled}
                 participantIds={participantIds}
+                isHost={isHost}
+                isGroupSession={isGroupSession}
+                onAllowToSpeak={allowToSpeak}
+                onRevokeSpeak={revokeSpeak}
                 onClose={() => setShowParticipants(false)}
               />
             </div>
@@ -736,6 +800,17 @@ function VideoCallUI({
             </button>
           )}
 
+          {/* Mute All (host only, group sessions) */}
+          {isHost && isGroupSession && participantIds.length > 0 && (
+            <button
+              onClick={muteAll}
+              className="w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-200 bg-neutral-700 hover:bg-neutral-600 text-white"
+              title="Mute all participants"
+            >
+              <VolumeX className="w-5 h-5 md:w-6 md:h-6" />
+            </button>
+          )}
+
           {/* Participants */}
           <button
             onClick={() => setShowParticipants(!showParticipants)}
@@ -839,12 +914,20 @@ function ParticipantsPanel({
   cameraEnabled, 
   micEnabled, 
   participantIds,
-  onClose 
+  isHost,
+  isGroupSession,
+  onAllowToSpeak,
+  onRevokeSpeak,
+  onClose,
 }: { 
   localName: string
   cameraEnabled: boolean
   micEnabled: boolean
   participantIds: string[]
+  isHost: boolean
+  isGroupSession: boolean
+  onAllowToSpeak: (sessionId: string) => void
+  onRevokeSpeak: (sessionId: string) => void
   onClose: () => void
 }) {
   return (
@@ -889,17 +972,37 @@ function ParticipantsPanel({
 
         {/* Remote participants */}
         {participantIds.map(id => (
-          <RemoteParticipantRow key={id} participantId={id} />
+          <RemoteParticipantRow
+            key={id}
+            participantId={id}
+            showHostControls={isHost && isGroupSession}
+            onAllowToSpeak={onAllowToSpeak}
+            onRevokeSpeak={onRevokeSpeak}
+          />
         ))}
       </div>
     </div>
   )
 }
 
-function RemoteParticipantRow({ participantId }: { participantId: string }) {
+function RemoteParticipantRow({
+  participantId,
+  showHostControls,
+  onAllowToSpeak,
+  onRevokeSpeak,
+}: {
+  participantId: string
+  showHostControls: boolean
+  onAllowToSpeak: (sessionId: string) => void
+  onRevokeSpeak: (sessionId: string) => void
+}) {
   const participant = useParticipant(participantId)
   
   if (!participant) return null
+
+  const canSendAudio = participant.permissions?.canSend instanceof Set
+    ? participant.permissions.canSend.has('audio')
+    : participant.permissions?.canSend !== false
 
   return (
     <div className="flex items-center gap-3 p-2 rounded-lg bg-neutral-800">
@@ -917,10 +1020,31 @@ function RemoteParticipantRow({ participantId }: { participantId: string }) {
         ) : (
           <VideoOff className="w-3.5 h-3.5 text-neutral-500" />
         )}
-        {participant.audio ? (
-          <Mic className="w-3.5 h-3.5 text-green-400" />
+        {showHostControls ? (
+          <button
+            onClick={() => canSendAudio
+              ? onRevokeSpeak(participantId)
+              : onAllowToSpeak(participantId)
+            }
+            className={`p-1 rounded-full transition-colors ${
+              canSendAudio
+                ? 'bg-green-500/20 hover:bg-green-500/30'
+                : 'bg-neutral-700 hover:bg-neutral-600'
+            }`}
+            title={canSendAudio ? 'Revoke mic' : 'Allow to speak'}
+          >
+            {canSendAudio ? (
+              <Mic className="w-3.5 h-3.5 text-green-400" />
+            ) : (
+              <MicOff className="w-3.5 h-3.5 text-neutral-500" />
+            )}
+          </button>
         ) : (
-          <MicOff className="w-3.5 h-3.5 text-neutral-500" />
+          participant.audio ? (
+            <Mic className="w-3.5 h-3.5 text-green-400" />
+          ) : (
+            <MicOff className="w-3.5 h-3.5 text-neutral-500" />
+          )
         )}
       </div>
     </div>

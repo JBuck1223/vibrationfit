@@ -161,13 +161,17 @@ async function handleRecordingStarted(event: Record<string, unknown>) {
 }
 
 /**
- * Recording ready — download from Daily.co and upload to our S3
+ * Recording ready — handle both cloud and raw-tracks recordings.
+ * 
+ * Cloud: Downloads from Daily and re-uploads to our S3 (legacy flow).
+ * Raw-tracks: Files are already in our S3 bucket — just record the metadata.
  */
 async function handleRecordingReady(event: Record<string, unknown>) {
   const payload = event.payload as Record<string, unknown> || event
   const roomName = payload.room_name as string
   const recordingId = payload.recording_id as string || payload.id as string
   const duration = payload.duration as number
+  const recordingType = payload.type as string
 
   if (!roomName || !recordingId) {
     console.error('Missing room_name or recording_id in webhook payload')
@@ -176,14 +180,18 @@ async function handleRecordingReady(event: Record<string, unknown>) {
 
   const supabase = createServiceClient()
 
-  // Mark as processing
+  if (recordingType === 'raw-tracks') {
+    await handleRawTracksReady(supabase, { roomName, recordingId, duration, payload })
+    return
+  }
+
+  // Legacy cloud recording flow — download from Daily, upload to our S3
   await supabase
     .from('video_sessions')
     .update({ recording_status: 'processing' })
     .eq('daily_room_name', roomName)
 
   try {
-    // Trigger the S3 transfer in our processing endpoint
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'
     const response = await fetch(`${baseUrl}/api/video/recordings/process`, {
       method: 'POST',
@@ -203,7 +211,7 @@ async function handleRecordingReady(event: Record<string, unknown>) {
       throw new Error(`Processing failed: ${JSON.stringify(errorData)}`)
     }
 
-    console.log(`✅ Recording ${recordingId} queued for S3 transfer`)
+    console.log(`Recording ${recordingId} queued for S3 transfer`)
   } catch (error) {
     console.error(`Failed to process recording ${recordingId}:`, error)
     
@@ -212,6 +220,100 @@ async function handleRecordingReady(event: Record<string, unknown>) {
       .update({ recording_status: 'failed' })
       .eq('daily_room_name', roomName)
   }
+}
+
+const CDN_URL = 'https://media.vibrationfit.com'
+
+/**
+ * Raw-tracks recordings land directly in our S3 bucket.
+ * Parse the tracks array and insert one row per track file.
+ */
+async function handleRawTracksReady(
+  supabase: ReturnType<typeof createServiceClient>,
+  opts: {
+    roomName: string
+    recordingId: string
+    duration: number
+    payload: Record<string, unknown>
+  }
+) {
+  const { roomName, recordingId, duration, payload } = opts
+  const tracks = payload.tracks as Array<Record<string, unknown>> | undefined
+  const s3Key = payload.s3_key as string | undefined
+
+  // Look up the session
+  const { data: session } = await supabase
+    .from('video_sessions')
+    .select('id')
+    .eq('daily_room_name', roomName)
+    .single()
+
+  if (!session) {
+    console.error(`[raw-tracks] No session found for room ${roomName}`)
+    return
+  }
+
+  await supabase
+    .from('video_sessions')
+    .update({
+      recording_status: 'uploaded',
+      daily_recording_id: recordingId,
+      recording_duration_seconds: duration,
+      recording_s3_key: s3Key || null,
+      recording_url: s3Key ? `${CDN_URL}/${s3Key}` : null,
+    })
+    .eq('daily_room_name', roomName)
+
+  if (tracks && tracks.length > 0) {
+    const trackRows = tracks.map((track) => ({
+      session_id: session.id,
+      daily_recording_id: recordingId,
+      recording_type: 'raw-tracks',
+      track_type: track.type as string || null,
+      participant_session_id: track.participantId as string || track.participant_id as string || null,
+      s3_key: track.s3Key as string || track.s3_key as string || null,
+      s3_url: (track.s3Key || track.s3_key)
+        ? `${CDN_URL}/${track.s3Key || track.s3_key}`
+        : null,
+      s3_bucket: 'vibration-fit-client-storage',
+      format: 'webm',
+      duration_seconds: duration,
+      status: 'uploaded' as const,
+      recorded_at: new Date().toISOString(),
+      processed_at: new Date().toISOString(),
+    }))
+
+    const { error: insertError } = await supabase
+      .from('video_session_recordings')
+      .insert(trackRows)
+
+    if (insertError) {
+      console.error('[raw-tracks] Failed to insert track rows:', insertError)
+    } else {
+      console.log(`[raw-tracks] Saved ${trackRows.length} tracks for recording ${recordingId}`)
+    }
+  } else {
+    // No individual track info — still record the recording-level s3_key
+    if (s3Key) {
+      await supabase
+        .from('video_session_recordings')
+        .insert({
+          session_id: session.id,
+          daily_recording_id: recordingId,
+          recording_type: 'raw-tracks',
+          s3_key: s3Key,
+          s3_url: `${CDN_URL}/${s3Key}`,
+          s3_bucket: 'vibration-fit-client-storage',
+          format: 'webm',
+          duration_seconds: duration,
+          status: 'uploaded',
+          recorded_at: new Date().toISOString(),
+          processed_at: new Date().toISOString(),
+        })
+    }
+  }
+
+  console.log(`[raw-tracks] Recording ${recordingId} processed for room ${roomName}`)
 }
 
 /**

@@ -51,14 +51,13 @@ export async function GET() {
       }
     }
     if (sessionIds.length === 0) {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'
       return NextResponse.json({
         show: true,
         session: {
           id: null,
           title: 'Calibration Call',
           scheduled_at: checklist.call_scheduled_time,
-          join_link: `${appUrl}/intensive/call-prep`,
+          join_link: '/intensive/call-prep',
         },
       })
     }
@@ -72,7 +71,6 @@ export async function GET() {
       .limit(1)
       .maybeSingle()
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'
     if (!session) {
       return NextResponse.json({
         show: true,
@@ -80,12 +78,10 @@ export async function GET() {
           id: null,
           title: 'Calibration Call',
           scheduled_at: checklist.call_scheduled_time,
-          join_link: `${appUrl}/intensive/call-prep`,
+          join_link: '/intensive/call-prep',
         },
       })
     }
-
-    const joinLink = `${appUrl}/session/${session.id}${user.email ? `?email=${encodeURIComponent(user.email)}` : ''}`
 
     return NextResponse.json({
       show: true,
@@ -93,7 +89,7 @@ export async function GET() {
         id: session.id,
         title: session.title,
         scheduled_at: session.scheduled_at,
-        join_link: joinLink,
+        join_link: `/session/${session.id}`,
       },
     })
   } catch (e) {

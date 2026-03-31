@@ -134,7 +134,7 @@ export async function POST(
     // Create appropriate token
     let token
     if (isHost) {
-      token = await createHostToken(room.name, user.id, userName)
+      token = await createHostToken(room.name, user.id, userName, session.session_type)
     } else {
       token = await createParticipantToken(room.name, user.id, userName)
     }

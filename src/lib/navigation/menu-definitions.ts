@@ -38,6 +38,7 @@ import {
   Layers,
   Upload,
   Headphones,
+  Inbox,
   Mail,
   DollarSign,
   Database,
@@ -359,6 +360,17 @@ export const adminNavigation: NavItem[] = [
       { name: 'Notification Feed', href: '/admin/notifications', icon: Bell, description: 'Purchase alerts, lead notifications' },
       { name: 'Notification Settings', href: '/admin/notification-settings', icon: Settings, description: 'Configure notification templates & channels' },
     ]
+  },
+  
+  // ============================================================================
+  // INBOX
+  // ============================================================================
+  {
+    name: 'Inbox',
+    href: '/admin/inbox',
+    icon: Inbox,
+    requiresAdmin: true,
+    description: 'Unified email and SMS inbox',
   },
   
   // ============================================================================
@@ -751,8 +763,13 @@ export function isNavItemActive(
     }
     
     if (item.href === '/dashboard') {
-      // Dashboard is exact match only, don't match /dashboard/tokens etc.
       return false
+    }
+    
+    if (item.href === '/admin/inbox') {
+      if (pathname.startsWith('/admin/inbox')) {
+        return true
+      }
     }
     
     // Special handling for dynamic Audio link (mobile nav)

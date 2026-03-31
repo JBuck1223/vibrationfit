@@ -1,13 +1,22 @@
 // /src/app/api/messaging/webhook/twilio/route.ts
 // Webhook endpoint to receive inbound SMS from Twilio
 
+export const dynamic = 'force-dynamic'
+
 import { NextRequest, NextResponse } from 'next/server'
-import { storeInboundMessage, handleOptOut } from '@/lib/messaging'
-import { createClient } from '@/lib/supabase/server'
+import { handleOptOut } from '@/lib/messaging'
+import { createAdminClient } from '@/lib/supabase/admin'
+
+function normalizePhone(phone: string): string {
+  const digits = phone.replace(/\D/g, '')
+  if (digits.length === 10) return `+1${digits}`
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`
+  if (phone.startsWith('+')) return digits.startsWith('1') ? `+${digits}` : phone
+  return `+${digits}`
+}
 
 export async function POST(request: NextRequest) {
   try {
-    // Parse Twilio webhook data (application/x-www-form-urlencoded)
     const formData = await request.formData()
 
     const from = formData.get('From') as string
@@ -15,7 +24,7 @@ export async function POST(request: NextRequest) {
     const body = formData.get('Body') as string
     const messageSid = formData.get('MessageSid') as string
 
-    console.log('📨 Inbound SMS received:', {
+    console.log('Inbound SMS received:', {
       from,
       to,
       body: body?.substring(0, 50),
@@ -26,64 +35,92 @@ export async function POST(request: NextRequest) {
     const bodyLower = body?.toLowerCase().trim()
     if (bodyLower === 'stop' || bodyLower === 'unsubscribe' || bodyLower === 'cancel') {
       await handleOptOut(from)
-
-      // Twilio will automatically send their standard opt-out response
       return new NextResponse('', { status: 200 })
     }
 
-    // Try to find related lead or user
-    const supabase = await createClient()
+    const adminClient = createAdminClient()
+    const normalizedFrom = normalizePhone(from)
 
-    // Check if this phone number belongs to a lead
-    const { data: lead } = await supabase
-      .from('leads')
-      .select('id, converted_to_user_id')
-      .eq('phone', from)
-      .single()
+    // Find user by phone in user_profiles
+    let userId: string | null = null
+    let leadId: string | null = null
 
-    // Check if there's an open support ticket from this user
-    let ticketId: string | undefined
+    const { data: profiles } = await adminClient
+      .from('user_profiles')
+      .select('user_id, phone')
+      .not('phone', 'is', null)
 
-    if (lead?.converted_to_user_id) {
-      const { data: ticket } = await supabase
+    if (profiles) {
+      const matched = profiles.find(p => normalizePhone(p.phone || '') === normalizedFrom)
+      if (matched) userId = matched.user_id
+    }
+
+    // If no user found, try leads
+    if (!userId) {
+      const { data: leads } = await adminClient
+        .from('leads')
+        .select('id, phone, converted_to_user_id')
+        .not('phone', 'is', null)
+
+      if (leads) {
+        const matched = leads.find(l => normalizePhone(l.phone || '') === normalizedFrom)
+        if (matched) {
+          leadId = matched.id
+          if (matched.converted_to_user_id) userId = matched.converted_to_user_id
+        }
+      }
+    }
+
+    // Check for open support ticket
+    let ticketId: string | null = null
+    if (userId) {
+      const { data: ticket } = await adminClient
         .from('support_tickets')
         .select('id')
-        .eq('user_id', lead.converted_to_user_id)
+        .eq('user_id', userId)
         .in('status', ['open', 'in_progress', 'waiting_reply'])
         .order('created_at', { ascending: false })
         .limit(1)
         .single()
 
-      ticketId = ticket?.id
+      if (ticket) ticketId = ticket.id
     }
 
-    // Store the inbound message
-    await storeInboundMessage({
-      from,
-      to,
-      body,
-      twilioSid: messageSid,
-      leadId: lead?.id,
-      userId: lead?.converted_to_user_id,
-      ticketId,
-    })
+    // Check for duplicate by twilio_sid
+    const { data: existing } = await adminClient
+      .from('sms_messages')
+      .select('id')
+      .eq('twilio_sid', messageSid)
+      .single()
 
-    // TODO: Add logic to notify admin of new inbound message
-    // Could be email, push notification, or real-time update
+    if (!existing) {
+      const { error: insertError } = await adminClient
+        .from('sms_messages')
+        .insert({
+          user_id: userId,
+          lead_id: leadId,
+          ticket_id: ticketId,
+          direction: 'inbound',
+          from_number: from,
+          to_number: to,
+          body: body || '',
+          status: 'received',
+          twilio_sid: messageSid,
+        })
 
-    // Return empty 200 response to Twilio
+      if (insertError) {
+        console.error('Failed to insert inbound SMS:', insertError)
+      } else {
+        console.log('Inbound SMS stored:', { messageSid, userId, leadId })
+      }
+    }
+
     return new NextResponse('', { status: 200 })
   } catch (error: any) {
-    console.error('❌ Error processing Twilio webhook:', error)
-
-    // Still return 200 to Twilio to prevent retries
+    console.error('Error processing Twilio webhook:', error)
     return new NextResponse('', { status: 200 })
   }
 }
-
-// Verify this endpoint doesn't require authentication
-// Twilio will POST directly to this endpoint
-export const dynamic = 'force-dynamic'
 
 
 

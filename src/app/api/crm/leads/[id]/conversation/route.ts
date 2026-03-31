@@ -29,14 +29,21 @@ export async function GET(
       return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
     }
 
+    // Build SMS query — match by lead_id, and also by phone number as fallback
+    let smsQuery = adminClient
+      .from('sms_messages')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (lead.phone) {
+      smsQuery = smsQuery.or(`lead_id.eq.${id},from_number.eq.${lead.phone},to_number.eq.${lead.phone}`)
+    } else {
+      smsQuery = smsQuery.eq('lead_id', id)
+    }
+
     // Fetch SMS and emails in parallel
     const [{ data: smsMessages }, { data: emails }] = await Promise.all([
-      adminClient
-        .from('sms_messages')
-        .select('*')
-        .eq('lead_id', id)
-        .order('created_at', { ascending: false }),
-      // Use separate .eq() calls instead of string interpolation in .or() to prevent filter injection
+      smsQuery,
       lead.email
         ? adminClient
             .from('email_messages')

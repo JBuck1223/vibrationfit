@@ -76,17 +76,14 @@ function AdminSessionsContent() {
   }, [fetchSessions])
 
   // Filter sessions
+  const PAST_STATUSES: VideoSessionStatus[] = ['completed', 'cancelled', 'no_show']
+
   const filteredSessions = sessions.filter(session => {
-    // Status filter
     if (filter === 'upcoming') {
-      if (session.status === 'completed' || session.status === 'cancelled') {
-        return false
-      }
+      if (PAST_STATUSES.includes(session.status)) return false
     }
     if (filter === 'past') {
-      if (session.status !== 'completed' && session.status !== 'cancelled') {
-        return false
-      }
+      if (!PAST_STATUSES.includes(session.status)) return false
     }
 
     // Search filter

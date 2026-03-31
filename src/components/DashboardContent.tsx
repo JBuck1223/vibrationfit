@@ -300,7 +300,8 @@ export default function DashboardContent({ user, profileData, visionData, vision
     const end = new Date(start.getTime() + 45 * 60 * 1000)
     const formatICSDate = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
     const title = calibrationCall.session.title || 'Calibration Call'
-    const desc = `Your 1-on-1 vision calibration session. Join: ${calibrationCall.session.join_link}`
+    const absoluteJoinLink = `${window.location.origin}${calibrationCall.session.join_link}`
+    const desc = `Your 1-on-1 vision calibration session. Join: ${absoluteJoinLink}`
     const ics = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
@@ -310,7 +311,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
       `DTEND:${formatICSDate(end)}`,
       `SUMMARY:${title.replace(/,/g, '\\,').replace(/;/g, '\\;')}`,
       `DESCRIPTION:${desc.replace(/,/g, '\\,').replace(/;/g, '\\;').replace(/\n/g, '\\n')}`,
-      calibrationCall.session.join_link ? `URL:${calibrationCall.session.join_link}` : '',
+      `URL:${absoluteJoinLink}`,
       'END:VEVENT',
       'END:VCALENDAR',
     ].filter(Boolean).join('\r\n')
@@ -330,7 +331,8 @@ export default function DashboardContent({ user, profileData, visionData, vision
         const end = new Date(start.getTime() + 45 * 60 * 1000)
         const format = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
         const title = encodeURIComponent(calibrationCall.session.title || 'Calibration Call')
-        const details = encodeURIComponent(`Your 1-on-1 vision calibration session. Join: ${calibrationCall.session.join_link}`)
+        const absoluteJoinLink = `${window.location.origin}${calibrationCall.session.join_link}`
+        const details = encodeURIComponent(`Your 1-on-1 vision calibration session. Join: ${absoluteJoinLink}`)
         return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${format(start)}/${format(end)}&details=${details}`
       })()
     : null

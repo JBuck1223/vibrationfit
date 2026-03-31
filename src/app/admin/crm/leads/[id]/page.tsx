@@ -70,6 +70,7 @@ export default function LeadDetailPage() {
 
   useConversationRealtime({
     onUpdate: fetchConversation,
+    leadId: lead?.id,
     email: lead?.email,
     enabled: !!lead,
   })

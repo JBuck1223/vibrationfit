@@ -9,6 +9,8 @@ interface UseConversationRealtimeParams {
   onUpdate: () => void
   /** Filter by user_id (for members) */
   userId?: string | null
+  /** Filter by lead_id (for leads) */
+  leadId?: string | null
   /** Filter by email address (for leads/guests) */
   email?: string | null
   /** Disable the subscription (e.g. while data is still loading) */
@@ -23,6 +25,7 @@ interface UseConversationRealtimeParams {
 export function useConversationRealtime({
   onUpdate,
   userId,
+  leadId,
   email,
   enabled = true,
 }: UseConversationRealtimeParams) {
@@ -31,10 +34,10 @@ export function useConversationRealtime({
   onUpdateRef.current = onUpdate
 
   useEffect(() => {
-    if (!enabled || (!userId && !email)) return
+    if (!enabled || (!userId && !leadId && !email)) return
 
     const supabase = createClient()
-    const channelName = `crm-conv-${userId || email}`
+    const channelName = `crm-conv-${userId || leadId || email}`
 
     const channel = supabase.channel(channelName)
 
@@ -51,6 +54,16 @@ export function useConversationRealtime({
           schema: 'public',
           table: 'sms_messages',
           filter: `user_id=eq.${userId}`,
+        }, () => onUpdateRef.current())
+    }
+
+    if (leadId) {
+      channel
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'sms_messages',
+          filter: `lead_id=eq.${leadId}`,
         }, () => onUpdateRef.current())
     }
 
@@ -83,5 +96,5 @@ export function useConversationRealtime({
       supabase.removeChannel(channel)
       channelRef.current = null
     }
-  }, [userId, email, enabled])
+  }, [userId, leadId, email, enabled])
 }

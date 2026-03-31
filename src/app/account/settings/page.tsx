@@ -211,7 +211,7 @@ export default function AccountSettingsPage() {
         const detectedTz = Intl.DateTimeFormat().resolvedOptions().timeZone
         const userTz = accountData.timezone || detectedTz || 'America/New_York'
 
-        setOriginalAccount({ ...accountData, email_opt_in: true, sms_opt_in: true, timezone: userTz })
+        setOriginalAccount({ ...accountData, email_opt_in: emailOptInValue, timezone: userTz })
         setFirstName(accountData.first_name || '')
         setLastName(accountData.last_name || '')
         setEmail(accountData.email || user.email || '')

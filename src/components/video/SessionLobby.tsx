@@ -1,17 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Card, Button, Badge } from '@/lib/design-system/components'
+import { Card, Button, Badge, Input } from '@/lib/design-system/components'
 import {
   Clock,
   User,
   Sparkles,
-  CheckCircle,
   ArrowRight,
-  Headphones,
-  Wifi,
-  Sun,
-  MessageCircle,
+  Mail,
 } from 'lucide-react'
 
 interface SessionLobbyProps {
@@ -21,7 +17,10 @@ interface SessionLobbyProps {
   scheduledAt?: string
   durationMinutes?: number
   sessionType?: string
-  onReady: () => void
+  isGuest?: boolean
+  initialName?: string
+  initialEmail?: string
+  onReady: (guestInfo?: { name: string; email: string }) => void
   onCancel?: () => void
 }
 
@@ -53,29 +52,6 @@ function formatSessionTime(isoString: string): string {
   })
 }
 
-const PREP_ITEMS = [
-  {
-    icon: Wifi,
-    title: 'Check your connection',
-    detail: 'A stable internet connection ensures the best experience.',
-  },
-  {
-    icon: Headphones,
-    title: 'Use headphones',
-    detail: 'Reduces echo and helps you hear clearly.',
-  },
-  {
-    icon: Sun,
-    title: 'Find good lighting',
-    detail: 'Face a light source so your coach can see you.',
-  },
-  {
-    icon: MessageCircle,
-    title: 'Come with an open mind',
-    detail: 'Think about where you want your life to go. Your coach will help clarify.',
-  },
-]
-
 export function SessionLobby({
   title,
   description,
@@ -83,11 +59,16 @@ export function SessionLobby({
   scheduledAt,
   durationMinutes,
   sessionType,
+  isGuest,
+  initialName,
+  initialEmail,
   onReady,
   onCancel,
 }: SessionLobbyProps) {
   const [countdown, setCountdown] = useState<number | null>(null)
-  const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set())
+  const [guestName, setGuestName] = useState(initialName || '')
+  const [guestEmail, setGuestEmail] = useState(initialEmail || '')
+  const [emailError, setEmailError] = useState('')
 
   useEffect(() => {
     if (!scheduledAt) return
@@ -101,17 +82,26 @@ export function SessionLobby({
     return () => clearInterval(interval)
   }, [scheduledAt])
 
-  const toggleItem = (index: number) => {
-    setCheckedItems(prev => {
-      const next = new Set(prev)
-      if (next.has(index)) next.delete(index)
-      else next.add(index)
-      return next
-    })
-  }
-
   const isStartingSoon = countdown !== null && countdown <= 10 * 60 * 1000
   const hasStarted = countdown !== null && countdown <= 0
+
+  const handleReady = () => {
+    if (isGuest) {
+      const trimmedEmail = guestEmail.trim()
+      if (!trimmedEmail) {
+        setEmailError('Please enter your email so we know who joined')
+        return
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+        setEmailError('Please enter a valid email address')
+        return
+      }
+      setEmailError('')
+      onReady({ name: guestName.trim() || 'Guest', email: trimmedEmail })
+    } else {
+      onReady()
+    }
+  }
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4">
@@ -174,48 +164,59 @@ export function SessionLobby({
           </Card>
         )}
 
-        {/* Preparation Checklist */}
-        <Card className="p-5 bg-neutral-900 border-neutral-700">
-          <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-            <Clock className="w-4 h-4 text-teal-400" />
-            While you wait, prepare for your session
-          </h2>
+        {/* Guest Identification */}
+        {isGuest && (
+          <Card className="p-5 bg-neutral-900 border-neutral-700">
+            <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+              <Mail className="w-4 h-4 text-teal-400" />
+              How should we identify you?
+            </h2>
 
-          <div className="space-y-3">
-            {PREP_ITEMS.map((item, i) => {
-              const checked = checkedItems.has(i)
-              const Icon = item.icon
-              return (
-                <button
-                  key={i}
-                  onClick={() => toggleItem(i)}
-                  className={`w-full flex items-start gap-3 p-3 rounded-xl text-left transition-all duration-200 ${
-                    checked
-                      ? 'bg-green-500/10 border border-green-500/20'
-                      : 'bg-neutral-800/50 border border-transparent hover:bg-neutral-800'
-                  }`}
-                >
-                  <div className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
-                    checked
-                      ? 'border-green-500 bg-green-500'
-                      : 'border-neutral-600'
-                  }`}>
-                    {checked && <CheckCircle className="w-3 h-3 text-black" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${checked ? 'text-green-400' : 'text-neutral-500'}`} />
-                      <p className={`text-sm font-medium ${checked ? 'text-green-300' : 'text-neutral-200'}`}>
-                        {item.title}
-                      </p>
-                    </div>
-                    <p className="text-xs text-neutral-500 mt-0.5 ml-5.5">{item.detail}</p>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        </Card>
+            <div className="space-y-3">
+              <div>
+                <label htmlFor="guest-name" className="block text-xs text-neutral-400 mb-1.5">
+                  Your name
+                </label>
+                <Input
+                  id="guest-name"
+                  value={guestName}
+                  onChange={(e) => setGuestName(e.target.value)}
+                  placeholder="First name"
+                  autoComplete="name"
+                />
+              </div>
+              <div>
+                <label htmlFor="guest-email" className="block text-xs text-neutral-400 mb-1.5">
+                  Your email <span className="text-neutral-600">(required)</span>
+                </label>
+                <Input
+                  id="guest-email"
+                  type="email"
+                  value={guestEmail}
+                  onChange={(e) => { setGuestEmail(e.target.value); setEmailError('') }}
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                />
+                {emailError && (
+                  <p className="text-red-400 text-xs mt-1">{emailError}</p>
+                )}
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Quick Tips (compact, non-interactive) */}
+        <div className="flex flex-wrap gap-2 justify-center text-xs text-neutral-500">
+          <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-neutral-900 border border-neutral-800">
+            <Clock className="w-3 h-3" /> Stable connection
+          </span>
+          <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-neutral-900 border border-neutral-800">
+            Headphones recommended
+          </span>
+          <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-neutral-900 border border-neutral-800">
+            Good lighting
+          </span>
+        </div>
 
         {/* Action Buttons */}
         <div className="flex gap-3">
@@ -224,7 +225,7 @@ export function SessionLobby({
               Cancel
             </Button>
           )}
-          <Button variant="primary" onClick={onReady} className="flex-1">
+          <Button variant="primary" onClick={handleReady} className="flex-1">
             Set Up Camera & Mic
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>

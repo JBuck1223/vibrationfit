@@ -118,7 +118,7 @@ export async function sendMessage(
 
 /**
  * Store inbound SMS message
- * Called from webhook endpoint
+ * Called from webhook endpoint — uses admin client to bypass RLS
  */
 export async function storeInboundMessage(params: {
   from: string
@@ -130,9 +130,10 @@ export async function storeInboundMessage(params: {
   userId?: string
 }): Promise<{ success: boolean; messageId?: string }> {
   try {
-    const supabase = await createClient()
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const adminClient = createAdminClient()
 
-    const { data, error } = await supabase
+    const { data, error } = await adminClient
       .from('sms_messages')
       .insert({
         lead_id: params.leadId || null,
@@ -149,18 +150,18 @@ export async function storeInboundMessage(params: {
       .single()
 
     if (error) {
-      console.error('❌ Failed to store inbound SMS:', error)
+      console.error('Failed to store inbound SMS:', error)
       return { success: false }
     }
 
-    console.log('✅ Inbound SMS stored:', data.id)
+    console.log('Inbound SMS stored:', data.id)
 
     return {
       success: true,
       messageId: data.id,
     }
   } catch (error) {
-    console.error('❌ Error storing inbound SMS:', error)
+    console.error('Error storing inbound SMS:', error)
     return { success: false }
   }
 }
@@ -208,14 +209,14 @@ export async function getConversation(params: {
 
 /**
  * Handle SMS opt-out
- * Updates lead/user to mark as opted out
+ * Updates lead/user to mark as opted out — uses admin client to bypass RLS
  */
 export async function handleOptOut(phoneNumber: string): Promise<void> {
   try {
-    const supabase = await createClient()
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const adminClient = createAdminClient()
 
-    // Update leads with this phone number
-    await supabase
+    await adminClient
       .from('leads')
       .update({
         sms_opt_in: false,
@@ -223,9 +224,9 @@ export async function handleOptOut(phoneNumber: string): Promise<void> {
       })
       .eq('phone', phoneNumber)
 
-    console.log('✅ Opted out phone number:', phoneNumber)
+    console.log('Opted out phone number:', phoneNumber)
   } catch (error) {
-    console.error('❌ Error handling opt-out:', error)
+    console.error('Error handling opt-out:', error)
   }
 }
 

@@ -286,14 +286,47 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Housekeeping: auto-resolve stale sessions so the list stays accurate
+    const admin = createAdminClient()
+
+    // 1) "live" sessions where started_at > 4 hours ago -> mark completed
+    const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()
+    const { data: staleLive } = await admin
+      .from('video_sessions')
+      .select('id')
+      .eq('status', 'live')
+      .lt('started_at', fourHoursAgo)
+
+    if (staleLive && staleLive.length > 0) {
+      await admin
+        .from('video_sessions')
+        .update({ status: 'completed', ended_at: fourHoursAgo })
+        .in('id', staleLive.map(s => s.id))
+      console.log(`[video/sessions] Auto-completed ${staleLive.length} stale live session(s)`)
+    }
+
+    // 2) "scheduled"/"waiting" sessions whose time passed > 24h ago -> mark no_show
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const { data: staleScheduled } = await admin
+      .from('video_sessions')
+      .select('id')
+      .in('status', ['scheduled', 'waiting'])
+      .lt('scheduled_at', oneDayAgo)
+
+    if (staleScheduled && staleScheduled.length > 0) {
+      await admin
+        .from('video_sessions')
+        .update({ status: 'no_show' })
+        .in('id', staleScheduled.map(s => s.id))
+      console.log(`[video/sessions] Marked ${staleScheduled.length} stale scheduled session(s) as no_show`)
+    }
+
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
     const type = searchParams.get('type')
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = parseInt(searchParams.get('offset') || '0')
 
-    // Build query - RLS policies handle access control
-    // We fetch sessions where user is host, then separately check for participant sessions
     let query = supabase
       .from('video_sessions')
       .select(`
