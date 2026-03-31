@@ -6,7 +6,8 @@ import {
   Activity, Play, Monitor, CreditCard, List, CheckCircle, 
   Sparkles, Smartphone, PanelTop, FileText, Music, Type, 
   Users, Eye, Trash2, Zap, HardDrive, Headphones, Palette,
-  ArrowRight, Image, Maximize2, Mic, MessageCircle, BarChart3
+  ArrowRight, Image, Maximize2, Mic, MessageCircle, BarChart3,
+  Columns
 } from 'lucide-react'
 
 export interface ComponentMetadata {
@@ -373,6 +374,15 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
     icon: MessageCircle,
     exportName: 'TestimonialsCarousel',
     path: '/design-system/component/testimonials-carousel'
+  },
+  {
+    id: 'social-proof-section',
+    name: 'Social Proof Section',
+    description: 'Split layout with video carousel on the left and screenshot testimonials on the right (stacks on mobile). Includes lightbox for full-screen screenshot viewing.',
+    category: 'Patterns',
+    icon: Columns,
+    exportName: 'SocialProofSection',
+    path: '/design-system/component/social-proof-section'
   },
 
   // Feedback Components

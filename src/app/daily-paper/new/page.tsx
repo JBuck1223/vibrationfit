@@ -426,7 +426,7 @@ export default function NewDailyPaperPage() {
                       multiple={false}
                       maxFiles={1}
                       maxSize={50}
-                      label={hasAttachment ? 'Replace attachment' : 'Upload attachment'}
+                      label={hasAttachment ? 'Replace file' : 'Upload Daily Paper scan'}
                       variant="ghost"
                       onUpload={(files) => {
                         setAttachmentFiles(files.slice(0, 1))
@@ -444,7 +444,7 @@ export default function NewDailyPaperPage() {
                     )}
                     {!attachmentPreview && hasAttachment && (
                       <div className="rounded-xl border border-[#333] bg-[#1F1F1F] px-4 py-3 text-sm text-neutral-300">
-                        File attached: {attachmentFiles[0]?.name}
+                        Selected: {attachmentFiles[0]?.name}
                       </div>
                     )}
                   </Stack>

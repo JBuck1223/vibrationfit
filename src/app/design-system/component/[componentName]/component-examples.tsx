@@ -58,6 +58,7 @@ import {
   TestimonialsCarousel,
   StatsBar,
   PracticeCard,
+  SocialProofSection,
 } from '@/lib/design-system/components'
 import { Copy, Check } from 'lucide-react'
 import {
@@ -3579,6 +3580,163 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                   ]}
                 />
               </div>
+            </Stack>
+          </Card>
+        </Stack>
+      )
+
+    case 'social-proof-section':
+      return (
+        <Stack gap="lg">
+          <Card className="p-4 md:p-6">
+            <Stack gap="sm">
+              <h4 className="text-sm font-semibold text-white">Full Layout (Videos + Screenshots)</h4>
+              <SocialProofSection
+                title="Proof That It Works"
+                subtitle="Watch real stories and see real results from VibrationFit members"
+                videos={[
+                  {
+                    id: 'v1',
+                    src: 'https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-3-6-26-new-1080p.mp4',
+                    poster: 'https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-3-6-26-new-thumb.0000000.jpg',
+                    caption: 'Five minute overview',
+                    label: 'Overview',
+                  },
+                  {
+                    id: 'v2',
+                    src: 'https://media.vibrationfit.com/site-assets/video/membership/tracking-1080p.mp4',
+                    caption: 'How tracking works',
+                    label: 'Tracking',
+                  },
+                  {
+                    id: 'v3',
+                    src: 'https://media.vibrationfit.com/site-assets/video/membership/vibe-tribe-1080p.mp4',
+                    caption: 'The Vibe Tribe community',
+                    label: 'Community',
+                  },
+                ]}
+                screenshots={[
+                  {
+                    id: 's1',
+                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/gross-profit-actualized.jpg',
+                    alt: 'Gross profit vision actualized',
+                    name: 'Jordan B.',
+                    caption: '$1M Vision Actualized',
+                  },
+                  {
+                    id: 's2',
+                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/italy-actualized.jpg',
+                    alt: 'Italy trip actualized from vision board',
+                    name: 'Vanessa B.',
+                    caption: 'Dream Italy Trip',
+                  },
+                  {
+                    id: 's3',
+                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/house-actualized.jpg',
+                    alt: 'Dream house vision actualized',
+                    name: 'Jordan B.',
+                    caption: 'Dream Home Actualized',
+                  },
+                  {
+                    id: 's4',
+                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/beach-wedding-actualized.jpg',
+                    alt: 'Beach wedding vision actualized',
+                    caption: 'Beach Wedding Vision',
+                  },
+                ]}
+              />
+            </Stack>
+          </Card>
+
+          <Card className="p-4 md:p-6">
+            <Stack gap="sm">
+              <h4 className="text-sm font-semibold text-white">Custom Accent Color (Neon Cyan)</h4>
+              <SocialProofSection
+                videoTitle="Member Stories"
+                screenshotTitle="Screenshot Proof"
+                accentColor="#00FFFF"
+                videos={[
+                  {
+                    id: 'v1',
+                    src: 'https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-3-6-26-new-1080p.mp4',
+                    poster: 'https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-3-6-26-new-thumb.0000000.jpg',
+                    caption: 'Full overview video',
+                  },
+                ]}
+                screenshots={[
+                  {
+                    id: 's1',
+                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/boa-screenshot.jpg',
+                    alt: 'Bank of America screenshot',
+                    name: 'Jordan B.',
+                    caption: 'Financial Alignment',
+                  },
+                  {
+                    id: 's2',
+                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/van-actualized-2.jpg',
+                    alt: 'Van vision actualized',
+                    caption: 'Adventure Van',
+                  },
+                ]}
+              />
+            </Stack>
+          </Card>
+
+          <Card className="p-4 md:p-6">
+            <Stack gap="sm">
+              <h4 className="text-sm font-semibold text-white">Videos Only (No Screenshots)</h4>
+              <SocialProofSection
+                title="Watch the Transformation"
+                videoTitle="Video Walkthroughs"
+                videos={[
+                  {
+                    id: 'v1',
+                    src: 'https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-3-6-26-new-1080p.mp4',
+                    poster: 'https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-3-6-26-new-thumb.0000000.jpg',
+                    label: 'Overview',
+                  },
+                  {
+                    id: 'v2',
+                    src: 'https://media.vibrationfit.com/site-assets/video/membership/tracking-1080p.mp4',
+                    label: 'Tracking',
+                  },
+                ]}
+                screenshots={[]}
+              />
+            </Stack>
+          </Card>
+
+          <Card className="p-4 md:p-6">
+            <Stack gap="sm">
+              <h4 className="text-sm font-semibold text-white">Screenshots Only (No Videos)</h4>
+              <SocialProofSection
+                title="Real Results"
+                screenshotTitle="Vision to Reality"
+                accentColor="#BF00FF"
+                videos={[]}
+                screenshots={[
+                  {
+                    id: 's1',
+                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/japan-friends.jpg',
+                    alt: 'Japan trip actualized',
+                    name: 'Community Member',
+                    caption: 'Japan Trip Actualized',
+                  },
+                  {
+                    id: 's2',
+                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/australia-actualized.jpg',
+                    alt: 'Australia trip actualized',
+                    name: 'Community Member',
+                    caption: 'Australia Dream Trip',
+                  },
+                  {
+                    id: 's3',
+                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/mountain-lodge-actualized.jpg',
+                    alt: 'Mountain lodge vision actualized',
+                    caption: 'Mountain Lodge',
+                  },
+                ]}
+              />
             </Stack>
           </Card>
         </Stack>
