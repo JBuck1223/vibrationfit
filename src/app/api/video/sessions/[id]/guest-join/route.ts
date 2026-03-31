@@ -7,10 +7,13 @@
  * For 1:1 sessions, matches the existing non-host participant record.
  * For group sessions, creates a new participant record.
  * 
- * Body: { name?: string }
+ * Accepts { name?, email? }. If email is provided, the participant record
+ * is updated and we attempt to match to an existing user_accounts row
+ * so attendance can be tracked.
  * 
  * GET /api/video/sessions/[id]/guest-join
- * Returns public session info for the guest landing/pre-call page.
+ * Returns public session info for the guest lobby page, including the
+ * invited participant's name and email for pre-fill.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -35,6 +38,7 @@ export async function POST(
     const { id } = await context.params
     const body = await request.json().catch(() => ({}))
     const guestName = body.name || undefined
+    const guestEmail = body.email?.trim()?.toLowerCase() || undefined
 
     // Get session with participants
     const { data: session, error: sessionError } = await supabaseAdmin
@@ -64,10 +68,40 @@ export async function POST(
       )
     }
 
-    // Find or create the participant record
-    let participant = session.participants?.find(
+    // Try to match guest email to an existing user account
+    let matchedUserId: string | null = null
+    if (guestEmail) {
+      const { data: account } = await supabaseAdmin
+        .from('user_accounts')
+        .select('id, full_name, first_name')
+        .eq('email', guestEmail)
+        .single()
+      if (account) {
+        matchedUserId = account.id
+      }
+    }
+
+    // Find or create the participant record.
+    // For 1:1 sessions, prefer matching by email or user_id first,
+    // then fall back to the first non-host participant.
+    let participant = null as any
+    const nonHostParticipants = session.participants?.filter(
       (p: { is_host: boolean }) => !p.is_host
-    )
+    ) || []
+
+    if (guestEmail) {
+      participant = nonHostParticipants.find(
+        (p: { email?: string }) => p.email?.toLowerCase() === guestEmail
+      )
+    }
+    if (!participant && matchedUserId) {
+      participant = nonHostParticipants.find(
+        (p: { user_id?: string }) => p.user_id === matchedUserId
+      )
+    }
+    if (!participant && nonHostParticipants.length > 0) {
+      participant = nonHostParticipants[0]
+    }
 
     if (!participant) {
       // No existing participant — create one (group/open sessions)
@@ -76,6 +110,8 @@ export async function POST(
         .insert({
           session_id: id,
           name: guestName || 'Guest',
+          email: guestEmail || null,
+          user_id: matchedUserId,
           is_host: false,
         })
         .select()
@@ -94,11 +130,16 @@ export async function POST(
 
     const participantName = guestName || participant.name || participant.email || 'Guest'
 
-    // Update participant name if a new name was provided
-    if (guestName && guestName !== participant.name) {
+    // Update participant record with any new info from the guest
+    const updates: Record<string, unknown> = {}
+    if (guestName && guestName !== participant.name) updates.name = guestName
+    if (guestEmail && !participant.email) updates.email = guestEmail
+    if (matchedUserId && !participant.user_id) updates.user_id = matchedUserId
+
+    if (Object.keys(updates).length > 0) {
       await supabaseAdmin
         .from('video_session_participants')
-        .update({ name: guestName })
+        .update(updates)
         .eq('id', participant.id)
     }
 
@@ -113,7 +154,7 @@ export async function POST(
 
     const dailyToken = await createParticipantToken(
       room.name,
-      participant.user_id || participant.id,
+      matchedUserId || participant.user_id || participant.id,
       participantName
     )
 
@@ -167,7 +208,7 @@ export async function GET(
       .eq('is_host', true)
       .single()
 
-    // Get invited participant name (for 1:1 pre-fill)
+    // Get invited participant (for pre-fill in lobby)
     const { data: participant } = await supabaseAdmin
       .from('video_session_participants')
       .select('name, email')
@@ -189,6 +230,7 @@ export async function GET(
       },
       participant: participant ? {
         name: participant.name,
+        email: participant.email,
       } : null,
     })
   } catch (error) {

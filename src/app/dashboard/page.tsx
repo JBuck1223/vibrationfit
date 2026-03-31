@@ -164,7 +164,6 @@ export default async function DashboardPage() {
         if (byEmail?.length) sessionIds = byEmail.map((p: { session_id: string }) => p.session_id)
       }
 
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'
       // call_scheduled_time is stored as `timestamp without time zone` but the value
       // was originally UTC (via .toISOString()). Re-append "Z" so JS parses it correctly.
       const rawTime = checklist.call_scheduled_time as string | null
@@ -173,7 +172,7 @@ export default async function DashboardPage() {
         id: null,
         title: 'Calibration Call',
         scheduled_at: scheduledAtUtc,
-        join_link: `${appUrl}/intensive/call-prep`,
+        join_link: '/intensive/call-prep',
       }
 
       if (sessionIds.length === 0) {
@@ -191,14 +190,13 @@ export default async function DashboardPage() {
         if (!session) {
           calibrationCall = { show: true, session: fallbackSession }
         } else {
-          const joinLink = `${appUrl}/session/${session.id}${user.email ? `?email=${encodeURIComponent(user.email)}` : ''}`
           calibrationCall = {
             show: true,
             session: {
               id: session.id,
               title: session.title,
               scheduled_at: session.scheduled_at,
-              join_link: joinLink,
+              join_link: `/session/${session.id}`,
             },
           }
         }

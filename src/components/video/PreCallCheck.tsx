@@ -202,6 +202,14 @@ export function PreCallCheck({
     startStream()
   }, [cameraEnabled, micEnabled, selectedCamera, selectedMicrophone])
 
+  // Re-attach stream to video element after loading finishes (the element is
+  // always in the DOM but invisible during load, so srcObject may need refresh)
+  useEffect(() => {
+    if (!loading && cameraEnabled && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current
+    }
+  }, [loading, cameraEnabled])
+
   // Handle join
   const handleJoin = () => {
     // Stop preview stream
@@ -244,11 +252,25 @@ export function PreCallCheck({
 
           {/* Video Preview */}
           <div className="relative aspect-video bg-neutral-800 rounded-2xl overflow-hidden">
-            {loading ? (
+            {/* Always render the video element so the ref stays valid while the stream loads */}
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className={`absolute inset-0 w-full h-full object-cover ${
+                cameraEnabled && !loading && !error ? '' : 'invisible'
+              }`}
+              style={{ transform: 'scaleX(-1)' }}
+            />
+
+            {loading && (
               <div className="absolute inset-0 flex items-center justify-center">
                 <Spinner className="w-8 h-8" />
               </div>
-            ) : error ? (
+            )}
+
+            {!loading && error && (
               <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
                 <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
                 <p className="text-red-400 mb-4">{error}</p>
@@ -257,16 +279,9 @@ export function PreCallCheck({
                   Try Again
                 </Button>
               </div>
-            ) : cameraEnabled ? (
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover mirror"
-                style={{ transform: 'scaleX(-1)' }}
-              />
-            ) : (
+            )}
+
+            {!loading && !error && !cameraEnabled && (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-24 h-24 rounded-full bg-neutral-700 flex items-center justify-center">
                   <VideoOff className="w-10 h-10 text-neutral-400" />

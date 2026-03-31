@@ -2,21 +2,18 @@
 
 /**
  * Video Session Page
- * 
- * The main page for joining and participating in a video session.
- * 
- * Authenticated users (hosts): Full auth flow via /api/video/sessions/[id]/join
- * Everyone else (guests): No auth required. The session link is the credential.
- *   Uses /api/video/sessions/[id]/guest-join to fetch info and get a Daily token.
- * 
- * Flow: pre-call check → in-call → post-call
+ *
+ * Authenticated host:  pre-call → in-call → post-call
+ * Authenticated user:  pre-call → (waiting for host) → in-call → post-call
+ * Guest (no auth):     lobby (collect email) → pre-call → (waiting) → in-call → post-call
  */
 
 import { useEffect, useState, useCallback } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { SessionLobby } from '@/components/video/SessionLobby'
 import { PreCallCheck } from '@/components/video/PreCallCheck'
+import { WaitingRoom } from '@/components/video/WaitingRoom'
 import { VideoCall } from '@/components/video/VideoCall'
 import { PostCallSummary } from '@/components/video/PostCallSummary'
 import { 
@@ -32,7 +29,7 @@ import type { VideoSession, VideoSessionParticipant, CallSettings, JoinSessionRe
 
 type SessionWithParticipants = VideoSession & { participants?: VideoSessionParticipant[] }
 
-type PageState = 'loading' | 'error' | 'lobby' | 'pre-call' | 'in-call' | 'post-call'
+type PageState = 'loading' | 'error' | 'lobby' | 'pre-call' | 'waiting' | 'in-call' | 'post-call'
 
 interface GuestSessionInfo {
   id: string
@@ -48,6 +45,7 @@ interface GuestSessionInfo {
 export default function SessionPage() {
   const router = useRouter()
   const params = useParams()
+  const searchParams = useSearchParams()
   const sessionId = params?.id as string
   const supabase = createClient()
 
@@ -59,14 +57,20 @@ export default function SessionPage() {
   const [isHost, setIsHost] = useState(false)
   const [hostName, setHostName] = useState<string | null>(null)
   const [userName, setUserName] = useState<string>('Participant')
+  const [userEmail, setUserEmail] = useState<string>('')
   const [userId, setUserId] = useState<string | undefined>(undefined)
   const [callSettings, setCallSettings] = useState<CallSettings | null>(null)
   const [callDuration, setCallDuration] = useState(0)
   const [wasRecording, setWasRecording] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
-  // Tracks whether this user is joining as a guest (no auth)
   const [isGuestJoin, setIsGuestJoin] = useState(false)
+  const [initialGuestEmail, setInitialGuestEmail] = useState<string>('')
+
+  useEffect(() => {
+    const emailFromUrl = searchParams?.get('email') || ''
+    if (emailFromUrl) setInitialGuestEmail(emailFromUrl)
+  }, [searchParams])
 
   useEffect(() => {
     const init = async () => {
@@ -76,7 +80,6 @@ export default function SessionPage() {
         setUserId(user?.id)
 
         if (user) {
-          // Authenticated — try the normal session API first (works for hosts & known participants)
           const response = await fetch(`/api/video/sessions/${sessionId}`)
           const data = await response.json()
 
@@ -93,16 +96,13 @@ export default function SessionPage() {
               setUserName(profileData.full_name || profileData.email || 'Participant')
             }
 
-            // Hosts skip the lobby and go straight to pre-call
-            setPageState(data.is_host ? 'pre-call' : 'lobby')
+            setPageState('pre-call')
             return
           }
 
-          // If the authenticated endpoint fails (e.g. not an invited participant),
-          // fall through to guest flow so the link still works.
+          // Authenticated endpoint failed — fall through to guest flow
         }
 
-        // Guest flow — no auth needed, the link is the credential
         setIsGuestJoin(true)
         const guestRes = await fetch(`/api/video/sessions/${sessionId}/guest-join`)
         const guestData = await guestRes.json()
@@ -118,6 +118,9 @@ export default function SessionPage() {
         if (guestData.participant?.name) {
           setUserName(guestData.participant.name)
         }
+        if (guestData.participant?.email) {
+          setInitialGuestEmail(prev => prev || guestData.participant.email)
+        }
         setPageState('lobby')
       } catch (err) {
         console.error('Error:', err)
@@ -129,8 +132,7 @@ export default function SessionPage() {
     if (sessionId) init()
   }, [sessionId, supabase.auth])
 
-  // Join via the authenticated endpoint (hosts & known users)
-  const joinSessionAuthenticated = useCallback(async () => {
+  const joinSessionAuthenticated = useCallback(async (): Promise<JoinSessionResponse> => {
     const response = await fetch(`/api/video/sessions/${sessionId}/join`, {
       method: 'POST',
     })
@@ -145,14 +147,14 @@ export default function SessionPage() {
     setRoomUrl(joinData.room_url)
     setSession(joinData.session)
     setIsHost(joinData.is_host)
+    return joinData
   }, [sessionId])
 
-  // Join via the guest endpoint (no auth)
-  const joinSessionGuest = useCallback(async () => {
+  const joinSessionGuest = useCallback(async (): Promise<JoinSessionResponse> => {
     const response = await fetch(`/api/video/sessions/${sessionId}/guest-join`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: userName }),
+      body: JSON.stringify({ name: userName, email: userEmail }),
     })
     const data = await response.json()
 
@@ -165,17 +167,33 @@ export default function SessionPage() {
     setRoomUrl(joinData.room_url)
     setSession(joinData.session)
     setIsHost(false)
-  }, [sessionId, userName])
+    return joinData
+  }, [sessionId, userName, userEmail])
+
+  const handleLobbyReady = (guestInfo?: { name: string; email: string }) => {
+    if (guestInfo) {
+      setUserName(guestInfo.name)
+      setUserEmail(guestInfo.email)
+    }
+    setPageState('pre-call')
+  }
 
   const handlePreCallReady = async (settings: CallSettings) => {
     setCallSettings(settings)
     try {
+      let joinData: JoinSessionResponse
       if (isGuestJoin) {
-        await joinSessionGuest()
+        joinData = await joinSessionGuest()
       } else {
-        await joinSessionAuthenticated()
+        joinData = await joinSessionAuthenticated()
       }
-      setPageState('in-call')
+
+      // Non-host: if session isn't live yet, wait for the host to start
+      if (!joinData.is_host && joinData.session.status !== 'live') {
+        setPageState('waiting')
+      } else {
+        setPageState('in-call')
+      }
     } catch (err) {
       console.error('Error joining session:', err)
       setError(err instanceof Error ? err.message : 'Failed to join session')
@@ -183,13 +201,16 @@ export default function SessionPage() {
     }
   }
 
+  const handleSessionLive = useCallback(() => {
+    setPageState('in-call')
+  }, [])
+
   const handleLeave = async (stats?: { durationSeconds: number; wasRecording: boolean }) => {
     if (stats) {
       setCallDuration(stats.durationSeconds)
       setWasRecording(stats.wasRecording)
     }
 
-    // Re-fetch the session so post-call screen shows latest recording status
     try {
       const res = await fetch(`/api/video/sessions/${sessionId}`)
       if (res.ok) {
@@ -300,7 +321,7 @@ export default function SessionPage() {
     )
   }
 
-  // Lobby — session info, countdown, and preparation while waiting
+  // Lobby
   if (pageState === 'lobby') {
     const lobbySession = session || guestSession
     return (
@@ -311,13 +332,16 @@ export default function SessionPage() {
         scheduledAt={lobbySession?.scheduled_at}
         durationMinutes={lobbySession?.scheduled_duration_minutes}
         sessionType={session?.session_type || guestSession?.session_type}
-        onReady={() => setPageState('pre-call')}
+        isGuest={isGuestJoin}
+        initialName={userName !== 'Participant' ? userName : undefined}
+        initialEmail={initialGuestEmail || undefined}
+        onReady={handleLobbyReady}
         onCancel={handleCancel}
       />
     )
   }
 
-  // Pre-call check — works for both guests and authenticated users
+  // Pre-call check
   if (pageState === 'pre-call') {
     const title = session?.title || guestSession?.title
     const showHostName = !isHost ? hostName || undefined : undefined
@@ -327,6 +351,21 @@ export default function SessionPage() {
         sessionTitle={title}
         hostName={showHostName}
         onReady={handlePreCallReady}
+        onCancel={handleCancel}
+      />
+    )
+  }
+
+  // Waiting for host
+  if (pageState === 'waiting') {
+    const waitSession = session || guestSession
+    return (
+      <WaitingRoom
+        sessionId={sessionId}
+        sessionTitle={waitSession?.title}
+        hostName={!isHost ? hostName || undefined : undefined}
+        scheduledAt={waitSession?.scheduled_at}
+        onSessionLive={handleSessionLive}
         onCancel={handleCancel}
       />
     )

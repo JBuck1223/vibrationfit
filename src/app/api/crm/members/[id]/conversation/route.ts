@@ -30,14 +30,22 @@ export async function GET(
 
     const userEmail = authUser?.user?.email || member?.email
 
+    // Build SMS query — match by user_id, and also by phone number as fallback
+    const memberPhone = member?.phone
+    let smsQuery = adminClient
+      .from('sms_messages')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (memberPhone) {
+      smsQuery = smsQuery.or(`user_id.eq.${id},from_number.eq.${memberPhone},to_number.eq.${memberPhone}`)
+    } else {
+      smsQuery = smsQuery.eq('user_id', id)
+    }
+
     // Fetch SMS and emails in parallel
     const [{ data: smsMessages }, { data: emails }] = await Promise.all([
-      adminClient
-        .from('sms_messages')
-        .select('*')
-        .eq('user_id', id)
-        .order('created_at', { ascending: false }),
-      // Use quoted values in .or() to prevent filter injection
+      smsQuery,
       userEmail
         ? adminClient
             .from('email_messages')

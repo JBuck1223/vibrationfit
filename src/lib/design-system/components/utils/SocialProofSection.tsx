@@ -228,7 +228,7 @@ export const SocialProofSection = React.forwardRef<HTMLDivElement, SocialProofSe
                               )}
                               style={{
                                 borderColor: index === currentVideoIndex ? accentColor : 'transparent',
-                                ringColor: index === currentVideoIndex ? `${accentColor}40` : undefined,
+                                ['--tw-ring-color' as string]: index === currentVideoIndex ? `${accentColor}40` : undefined,
                               }}
                               aria-label={video.label || `Video ${index + 1}`}
                             >

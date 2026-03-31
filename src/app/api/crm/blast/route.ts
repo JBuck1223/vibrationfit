@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
     const { user } = auth
 
-    const { filters, subject, textBody, smsBody, senderId, excludeSegmentId, channel: rawChannel } = (await request.json()) as {
+    const { filters, subject, textBody, smsBody, senderId, excludeSegmentId, channel: rawChannel, scheduledFor } = (await request.json()) as {
       filters: BlastFilters
       subject?: string
       textBody?: string
@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
       senderId?: string
       excludeSegmentId?: string
       channel?: BlastChannel
+      scheduledFor?: string
     }
 
     const channel: BlastChannel = rawChannel || 'email'
@@ -101,6 +102,8 @@ export async function POST(request: NextRequest) {
 
     const admin = createAdminClient()
     const now = new Date().toISOString()
+    const sendAt = scheduledFor || now
+    const isScheduled = scheduledFor ? new Date(scheduledFor) > new Date() : false
 
     // Resolve referral links for email recipients
     const referralMap = new Map<string, string>()
@@ -137,7 +140,7 @@ export async function POST(request: NextRequest) {
         sender_id: sender.id,
         audience_filter: filters,
         audience_count: Math.max(emailRecipients.length, smsRecipients.length),
-        status: 'sending',
+        status: isScheduled ? 'scheduled' : 'sending',
         sent_count: 0,
         failed_count: 0,
         created_by: user.id,
@@ -166,7 +169,7 @@ export async function POST(request: NextRequest) {
           subject: applyVariables(subject!, vars),
           body: applyVariables(textBody!, vars),
           text_body: applyVariables(textBody!, vars),
-          scheduled_for: now,
+          scheduled_for: sendAt,
           status: 'pending',
           related_entity_type: 'campaign',
           related_entity_id: campaign.id,
@@ -186,7 +189,7 @@ export async function POST(request: NextRequest) {
           recipient_name: r.name,
           recipient_user_id: r.userId || null,
           body: applyVariables(smsBody!, vars),
-          scheduled_for: now,
+          scheduled_for: sendAt,
           status: 'pending',
           related_entity_type: 'campaign',
           related_entity_id: campaign.id,
@@ -230,6 +233,7 @@ export async function POST(request: NextRequest) {
       smsCount: sendsSms ? smsRecipients.length : 0,
       suppressedCount,
       channel,
+      ...(isScheduled && { scheduledFor: sendAt }),
     })
   } catch (error: unknown) {
     console.error('Error creating blast:', error)

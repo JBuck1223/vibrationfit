@@ -1,136 +1,118 @@
 'use client'
 
-/**
- * Waiting Room Component
- * 
- * Shown when a participant is waiting to be admitted to the call.
- * Features a calming, branded experience.
- */
-
-import { useState, useEffect } from 'react'
-import { Clock, User, Sparkles } from 'lucide-react'
-import { Card, Spinner } from '@/lib/design-system/components'
+import { useState, useEffect, useRef } from 'react'
+import { User } from 'lucide-react'
+import { Card } from '@/lib/design-system/components'
 
 interface WaitingRoomProps {
+  sessionId: string
   sessionTitle?: string
   hostName?: string
-  scheduledTime?: Date
+  scheduledAt?: string
+  onSessionLive: () => void
   onCancel?: () => void
 }
 
+const POLL_INTERVAL_MS = 5_000
+
+function formatCountdown(ms: number): string {
+  if (ms <= 0) return 'Starting now'
+  const totalSeconds = Math.floor(ms / 1000)
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`
+  if (minutes > 0) return `${minutes}m ${seconds}s`
+  return `${seconds}s`
+}
+
 export function WaitingRoom({
+  sessionId,
   sessionTitle,
   hostName,
-  scheduledTime,
-  onCancel,
+  scheduledAt,
+  onSessionLive,
 }: WaitingRoomProps) {
-  const [dots, setDots] = useState('')
+  const calledRef = useRef(false)
+  const [countdown, setCountdown] = useState<number | null>(null)
 
-  // Animate waiting dots
+  // Countdown timer
   useEffect(() => {
-    const interval = setInterval(() => {
-      setDots(prev => (prev.length >= 3 ? '' : prev + '.'))
-    }, 500)
+    if (!scheduledAt) return
+    const update = () => setCountdown(new Date(scheduledAt).getTime() - Date.now())
+    update()
+    const interval = setInterval(update, 1000)
     return () => clearInterval(interval)
-  }, [])
+  }, [scheduledAt])
+
+  // Poll session status
+  useEffect(() => {
+    let active = true
+
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/video/sessions/${sessionId}/public`)
+        if (!res.ok) return
+        const data = await res.json()
+        if (data.session?.status === 'live' && active && !calledRef.current) {
+          calledRef.current = true
+          onSessionLive()
+        }
+      } catch { /* ignore network blips */ }
+    }
+
+    poll()
+    const interval = setInterval(poll, POLL_INTERVAL_MS)
+    return () => { active = false; clearInterval(interval) }
+  }, [sessionId, onSessionLive])
+
+  const isPast = countdown !== null && countdown <= 0
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-neutral-900 to-black flex items-center justify-center p-4">
-      {/* Ambient background effects */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary-500/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-secondary-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-      </div>
+    <div className="min-h-screen bg-black flex items-center justify-center p-4">
+      <Card className="w-full max-w-md bg-neutral-900 border-neutral-700 p-8">
+        <div className="text-center space-y-5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="https://media.vibrationfit.com/site-assets/brand/logo/logo-icon.svg"
+            alt="VibrationFit"
+            className="h-12 w-12 mx-auto"
+            style={{
+              filter: 'brightness(0) saturate(100%) invert(58%) sepia(95%) saturate(1352%) hue-rotate(75deg) brightness(101%) contrast(101%)',
+            }}
+          />
 
-      <Card className="relative w-full max-w-lg bg-neutral-900/80 backdrop-blur border-neutral-700 p-8">
-        {/* Decorative top accent */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary-500 via-secondary-500 to-accent-500 rounded-t-2xl" />
-
-        <div className="text-center space-y-6">
-          {/* Animated icon */}
-          <div className="relative inline-flex">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-500/20 to-secondary-500/20 flex items-center justify-center">
-              <Sparkles className="w-10 h-10 text-primary-500 animate-pulse" />
-            </div>
-            <div className="absolute inset-0 rounded-full border-2 border-primary-500/30 animate-ping" />
-          </div>
-
-          {/* Title */}
-          <div>
-            <h1 className="text-2xl font-bold text-white mb-2">
-              Waiting Room
-            </h1>
-            <p className="text-neutral-400">
-              Waiting for host to let you in{dots}
-            </p>
-          </div>
-
-          {/* Session info */}
           {sessionTitle && (
-            <div className="bg-neutral-800/50 rounded-xl p-4 space-y-3">
-              <h2 className="text-lg font-medium text-white">
-                {sessionTitle}
-              </h2>
-              
-              {hostName && (
-                <div className="flex items-center justify-center gap-2 text-neutral-400">
-                  <User className="w-4 h-4" />
-                  <span>Hosted by {hostName}</span>
-                </div>
-              )}
-              
-              {scheduledTime && (
-                <div className="flex items-center justify-center gap-2 text-neutral-400">
-                  <Clock className="w-4 h-4" />
-                  <span>
-                    {scheduledTime.toLocaleTimeString([], { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    })}
-                  </span>
-                </div>
+            <h1 className="text-xl font-bold text-white">{sessionTitle}</h1>
+          )}
+
+          {hostName && (
+            <div className="flex items-center justify-center gap-2 text-neutral-400 text-sm">
+              <User className="w-4 h-4" />
+              <span>Hosted by <span className="text-white font-medium">{hostName}</span></span>
+            </div>
+          )}
+
+          {countdown !== null && (
+            <div className="pt-1">
+              {isPast ? (
+                <p className="text-primary-500 text-sm font-medium">Session time has started</p>
+              ) : (
+                <>
+                  <p className="text-primary-500 text-xs uppercase tracking-wide font-medium mb-1">Starts in</p>
+                  <p className="text-2xl font-bold text-white tabular-nums">{formatCountdown(countdown)}</p>
+                </>
               )}
             </div>
           )}
 
-          {/* Preparation tips */}
-          <div className="text-left bg-neutral-800/30 rounded-xl p-4">
-            <p className="text-sm font-medium text-neutral-300 mb-3">
-              While you wait:
-            </p>
-            <ul className="space-y-2 text-sm text-neutral-400">
-              <li className="flex items-start gap-2">
-                <span className="text-primary-500 mt-0.5">1.</span>
-                <span>Find a quiet, comfortable space</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary-500 mt-0.5">2.</span>
-                <span>Take a few deep breaths</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary-500 mt-0.5">3.</span>
-                <span>Set your intention for this session</span>
-              </li>
-            </ul>
-          </div>
+          <p className="text-neutral-400 text-sm">
+            Waiting for host to start the session
+          </p>
 
-          {/* Loading indicator */}
-          <div className="flex items-center justify-center gap-3">
-            <Spinner size="sm" />
-            <span className="text-sm text-neutral-500">
-              The host will let you in shortly
-            </span>
-          </div>
-
-          {/* Cancel button */}
-          {onCancel && (
-            <button
-              onClick={onCancel}
-              className="text-neutral-400 hover:text-white text-sm transition-colors"
-            >
-              Leave waiting room
-            </button>
-          )}
+          <p className="text-primary-500 text-xs">
+            You'll be connected automatically
+          </p>
         </div>
       </Card>
     </div>
@@ -138,4 +120,3 @@ export function WaitingRoom({
 }
 
 export default WaitingRoom
-

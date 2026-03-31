@@ -263,7 +263,9 @@ async function queryMembers(
       if (filters.subscription_status) {
         const status = subStatusMap.get(p.user_id) || 'free'
         const target = filters.subscription_status.toLowerCase()
-        if (target === 'free') {
+        if (target === 'not_canceled') {
+          if (status === 'canceled' || status === 'incomplete_expired') return false
+        } else if (target === 'free') {
           if (status !== 'free' && status !== 'canceled' && status !== 'incomplete_expired') return false
         } else {
           if (status !== target) return false
