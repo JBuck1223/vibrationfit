@@ -33,7 +33,10 @@ import {
   UserX,
   TrendingUp,
   BarChart3,
-  RefreshCw
+  RefreshCw,
+  Link2,
+  Sparkles,
+  ClipboardCopy
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { 
@@ -44,7 +47,8 @@ import {
   Card,
   Badge,
   Spinner,
-  Textarea
+  Textarea,
+  Input
 } from '@/lib/design-system/components'
 import type { VideoSession, VideoSessionParticipant } from '@/lib/video/types'
 import { getSessionTypeLabel, getSessionStatusLabel, isSessionJoinable, formatDuration } from '@/lib/video/types'
@@ -77,6 +81,14 @@ export default function AdminSessionDetailPage() {
   const [sendingEmail, setSendingEmail] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
   const [syncingRecording, setSyncingRecording] = useState(false)
+  const [importingRecording, setImportingRecording] = useState(false)
+  const [dailyUrl, setDailyUrl] = useState('')
+  const [importSteps, setImportSteps] = useState<string[]>([])
+  
+  // Transcription state
+  const [transcribing, setTranscribing] = useState(false)
+  const [transcriptCopied, setTranscriptCopied] = useState(false)
+  const [keyPointsCopied, setKeyPointsCopied] = useState(false)
 
   // Fetch session
   const fetchSession = useCallback(async () => {
@@ -162,6 +174,66 @@ export default function AdminSessionDetailPage() {
       toast.error(err instanceof Error ? err.message : 'Sync failed', { id: toastId })
     } finally {
       setSyncingRecording(false)
+    }
+  }
+
+  const importFromDaily = async () => {
+    if (!dailyUrl.trim()) {
+      toast.error('Please paste a Daily.co URL or recording ID')
+      return
+    }
+    setImportingRecording(true)
+    setImportSteps([])
+    const toastId = toast.loading('Importing recording from Daily.co...')
+    try {
+      const res = await fetch('/api/admin/recordings/import-from-daily', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ daily_url: dailyUrl.trim(), session_id: sessionId }),
+      })
+      const data = await res.json()
+      if (data.steps) setImportSteps(data.steps)
+
+      if (!res.ok) {
+        toast.error(data.error || 'Import failed', { id: toastId })
+        return
+      }
+
+      toast.success('Recording imported successfully!', { id: toastId })
+      setDailyUrl('')
+      setImportSteps([])
+      await fetchSession()
+    } catch (err) {
+      console.error('Error importing recording:', err)
+      toast.error(err instanceof Error ? err.message : 'Import failed', { id: toastId })
+    } finally {
+      setImportingRecording(false)
+    }
+  }
+
+  const transcribeSession = async () => {
+    setTranscribing(true)
+    const toastId = toast.loading('Transcribing session — this may take several minutes for long recordings...')
+    try {
+      const res = await fetch('/api/admin/recordings/transcribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        toast.error(data.error || 'Transcription failed', { id: toastId })
+        return
+      }
+
+      toast.success('Transcription complete!', { id: toastId })
+      await fetchSession()
+    } catch (err) {
+      console.error('Error transcribing:', err)
+      toast.error(err instanceof Error ? err.message : 'Transcription failed', { id: toastId })
+    } finally {
+      setTranscribing(false)
     }
   }
 
@@ -450,13 +522,15 @@ export default function AdminSessionDetailPage() {
                     Download Recording
                   </Button>
                 </>
-              ) : session.daily_room_name ? (
-                <div className="space-y-3">
-                  {syncingRecording ? (
+              ) : (
+                <div className="space-y-4">
+                  {(importingRecording || syncingRecording) ? (
                     <div className="flex items-center gap-3 rounded-lg bg-primary-500/10 border border-primary-500/20 p-3">
                       <Spinner size="sm" />
                       <div>
-                        <p className="text-primary-400 font-medium">Syncing...</p>
+                        <p className="text-primary-400 font-medium">
+                          {importingRecording ? 'Importing...' : 'Syncing...'}
+                        </p>
                         <p className="text-neutral-400 text-xs mt-0.5">
                           Downloading from Daily.co and uploading to S3. Do not close this page.
                         </p>
@@ -464,25 +538,195 @@ export default function AdminSessionDetailPage() {
                     </div>
                   ) : (
                     <p className="text-neutral-400 text-sm">
-                      No recording URL yet. If this session was recorded, the S3 push may not have run (e.g. webhook missed or failed). Sync from Daily.co to download and store it.
+                      No recording URL yet. Import from a Daily.co link, or try the auto-sync below.
                     </p>
                   )}
+
+                  {/* Import from Daily URL */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-neutral-300">
+                      Import from Daily.co
+                    </label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={dailyUrl}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDailyUrl(e.target.value)}
+                        placeholder="Paste Daily.co session URL or recording ID"
+                        className="flex-1 bg-neutral-800 border-neutral-700 text-sm"
+                        disabled={importingRecording}
+                      />
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={importFromDaily}
+                        disabled={importingRecording || !dailyUrl.trim()}
+                      >
+                        {importingRecording ? (
+                          <Spinner size="sm" className="mr-2" />
+                        ) : (
+                          <Link2 className="w-4 h-4 mr-2" />
+                        )}
+                        {importingRecording ? 'Importing...' : 'Import'}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-neutral-500">
+                      Supports: dashboard.daily.co/sessions/... or a recording UUID
+                    </p>
+                  </div>
+
+                  {/* Import step log */}
+                  {importSteps.length > 0 && (
+                    <div className="rounded-lg bg-neutral-800/50 border border-neutral-700 p-3 max-h-40 overflow-y-auto">
+                      <p className="text-xs font-medium text-neutral-400 mb-1">Import log:</p>
+                      {importSteps.map((s, i) => (
+                        <p key={i} className="text-xs text-neutral-500 font-mono">{s}</p>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Existing auto-sync */}
+                  {session.daily_room_name && (
+                    <div className="pt-3 border-t border-neutral-800">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={syncRecording}
+                        disabled={syncingRecording || importingRecording}
+                      >
+                        {syncingRecording ? (
+                          <Spinner size="sm" className="mr-2" />
+                        ) : (
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                        )}
+                        {syncingRecording ? 'Syncing...' : 'Auto-sync from room name'}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </Card>
+
+            {/* Transcription */}
+            <Card className="p-4 md:p-6">
+              <h2 className="text-lg md:text-xl font-medium text-white mb-4 flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                Transcription
+              </h2>
+              {session.transcript_text ? (
+                <div className="space-y-4">
+                  {/* Key Points */}
+                  {session.transcript_key_points && (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-sm font-medium text-white flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-accent-500" />
+                          Key Points
+                        </h3>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={async () => {
+                            const kp = session.transcript_key_points as { summary?: string; key_points?: string[]; themes?: string[] }
+                            const text = [
+                              kp.summary && `Summary: ${kp.summary}`,
+                              kp.key_points?.length && `\nKey Points:\n${kp.key_points.map((p: string) => `- ${p}`).join('\n')}`,
+                              kp.themes?.length && `\nThemes: ${kp.themes.join(', ')}`,
+                            ].filter(Boolean).join('\n')
+                            await navigator.clipboard.writeText(text)
+                            setKeyPointsCopied(true)
+                            setTimeout(() => setKeyPointsCopied(false), 2000)
+                          }}
+                        >
+                          {keyPointsCopied ? <Check className="w-3 h-3 mr-1" /> : <ClipboardCopy className="w-3 h-3 mr-1" />}
+                          {keyPointsCopied ? 'Copied' : 'Copy'}
+                        </Button>
+                      </div>
+                      {(() => {
+                        const kp = session.transcript_key_points as { summary?: string; key_points?: string[]; themes?: string[] }
+                        return (
+                          <div className="space-y-3 rounded-lg bg-neutral-800/50 border border-neutral-700 p-4">
+                            {kp.summary && (
+                              <p className="text-sm text-neutral-300">{kp.summary}</p>
+                            )}
+                            {kp.key_points && kp.key_points.length > 0 && (
+                              <ul className="space-y-1">
+                                {kp.key_points.map((point: string, i: number) => (
+                                  <li key={i} className="text-sm text-neutral-400 flex gap-2">
+                                    <span className="text-primary-500 mt-0.5 flex-shrink-0">-</span>
+                                    {point}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                            {kp.themes && kp.themes.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 pt-1">
+                                {kp.themes.map((theme: string, i: number) => (
+                                  <Badge key={i} variant="default" className="text-xs">{theme}</Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })()}
+                    </div>
+                  )}
+
+                  {/* Full Transcript */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-medium text-white">Full Transcript</h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={async () => {
+                          await navigator.clipboard.writeText(session.transcript_text || '')
+                          setTranscriptCopied(true)
+                          setTimeout(() => setTranscriptCopied(false), 2000)
+                        }}
+                      >
+                        {transcriptCopied ? <Check className="w-3 h-3 mr-1" /> : <ClipboardCopy className="w-3 h-3 mr-1" />}
+                        {transcriptCopied ? 'Copied' : 'Copy'}
+                      </Button>
+                    </div>
+                    <div className="rounded-lg bg-neutral-800/50 border border-neutral-700 p-4 max-h-80 overflow-y-auto">
+                      <p className="text-sm text-neutral-400 whitespace-pre-wrap">{session.transcript_text}</p>
+                    </div>
+                  </div>
+
+                  {session.transcribed_at && (
+                    <p className="text-xs text-neutral-500">
+                      Transcribed {new Date(session.transcribed_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  )}
+                </div>
+              ) : session.recording_url ? (
+                <div className="space-y-3">
+                  <p className="text-neutral-400 text-sm">
+                    Generate a full transcript with speaker diarization and extract key points from this recording.
+                  </p>
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={syncRecording}
-                    disabled={syncingRecording}
+                    onClick={transcribeSession}
+                    disabled={transcribing}
                   >
-                    {syncingRecording ? (
+                    {transcribing ? (
                       <Spinner size="sm" className="mr-2" />
                     ) : (
-                      <RefreshCw className="w-4 h-4 mr-2" />
+                      <Sparkles className="w-4 h-4 mr-2" />
                     )}
-                    {syncingRecording ? 'Syncing...' : 'Sync recording from Daily.co'}
+                    {transcribing ? 'Transcribing...' : 'Transcribe Session'}
                   </Button>
+                  {transcribing && (
+                    <p className="text-xs text-neutral-500">
+                      This can take several minutes for long recordings. Do not close this page.
+                    </p>
+                  )}
                 </div>
               ) : (
-                <p className="text-neutral-500 text-sm">No recording for this session.</p>
+                <p className="text-neutral-500 text-sm">
+                  Import or sync a recording first, then you can transcribe it.
+                </p>
               )}
             </Card>
           </div>

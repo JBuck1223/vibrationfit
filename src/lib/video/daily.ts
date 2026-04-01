@@ -256,7 +256,7 @@ export async function createHostToken(
     is_owner: true,
     enable_screenshare: true,
     enable_recording: isGroupSession ? 'cloud' : 'raw-tracks',
-    start_cloud_recording: !isGroupSession,
+    start_cloud_recording: isGroupSession,
   })
 }
 
@@ -276,6 +276,33 @@ export async function createParticipantToken(
     enable_screenshare: true,
     enable_recording: false,
   })
+}
+
+// ============================================================================
+// MEETINGS (session lookup)
+// ============================================================================
+
+export interface DailyMeeting {
+  id: string
+  room: string
+  start_time: number
+  duration: number
+  ongoing: boolean
+  max_participants: number
+  participants: Array<{
+    user_id?: string
+    user_name?: string
+    join_time: number
+    duration: number
+  }>
+}
+
+/**
+ * Get meeting details by meeting session ID.
+ * Resolves a Daily dashboard session URL to a room name + recording info.
+ */
+export async function getMeeting(meetingId: string): Promise<DailyMeeting> {
+  return dailyFetch<DailyMeeting>(`/meetings/${meetingId}`)
 }
 
 // ============================================================================

@@ -1,15 +1,14 @@
 'use client'
 
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
-import {  Card, Button, Video, CategoryCard, PageHero, Container, Stack, Spinner } from '@/lib/design-system'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Card, Button, CategoryCard, PageHero, Container, Stack, Spinner, DeleteConfirmationDialog, ImageLightbox } from '@/lib/design-system'
 import { useAreaStats } from '@/hooks/useAreaStats'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import Link from 'next/link'
-import Image from 'next/image'
-import { Plus, Calendar, FileText, Play, Volume2, ChevronLeft, ChevronRight, X, Eye, Grid, List, Filter, ImageOff, BookOpen, Flame, Shield, ChevronDown } from 'lucide-react'
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { Plus, FileText, ChevronDown, Filter, BookOpen, Flame, Shield, Search, X, Edit, Trash2, ImageOff, Play } from 'lucide-react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 
 function JournalImage({ src, alt, className, onClick, loading }: {
   src: string
@@ -54,8 +53,24 @@ interface JournalEntry {
   updated_at: string
 }
 
+function truncate(text: string, length = 140) {
+  if (!text) return ''
+  if (text.length <= length) return text
+  return `${text.slice(0, length - 1)}…`
+}
+
+const isVideo = (url: string) => {
+  return /\.(mp4|webm|quicktime)$/i.test(url) || url.includes('video/')
+}
+
+const isImageUrl = (url: string) => {
+  const ext = url.split('.').pop()?.toLowerCase()
+  return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')
+}
+
 export default function JournalPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { stats: practiceStats } = useAreaStats('journal')
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -63,19 +78,20 @@ export default function JournalPage() {
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [itemToDelete, setItemToDelete] = useState<JournalEntry | null>(null)
-  const [lightboxOpen, setLightboxOpen] = useState(false)
-  const [lightboxIndex, setLightboxIndex] = useState(0)
-  const [lightboxImages, setLightboxImages] = useState<string[]>([])
-  const [videoErrors, setVideoErrors] = useState<Record<string, boolean>>({})
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [showFilters, setShowFilters] = useState(false)
   const [selectedCategories, setSelectedCategories] = useState<string[]>(['all'])
   const [totalEntries, setTotalEntries] = useState(0)
   const [statsExpanded, setStatsExpanded] = useState(false)
   const [freezeOpen, setFreezeOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [lightboxImages, setLightboxImages] = useState<{ url: string; alt?: string }[]>([])
+  const [lightboxIndex, setLightboxIndex] = useState(0)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
   const freezeRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -147,157 +163,89 @@ export default function JournalPage() {
     fetchData()
   }, [router, page])
 
-  // Simplified: Trust what's in the database
-  // If image_urls contains a processed file, use it directly
-  // If thumbnail_urls exists, use it
-  // No S3 checking, no processing overlay
+  useEffect(() => {
+    const expandParam = searchParams.get('expand')
+    if (expandParam && entries.length > 0) {
+      setExpandedId(expandParam)
+      router.replace('/journal', { scroll: false })
+      setTimeout(() => {
+        document.getElementById(`entry-${expandParam}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 100)
+    }
+  }, [searchParams, entries.length, router])
 
-  const handleDeleteClick = (entry: JournalEntry) => {
-    setItemToDelete(entry)
-    setShowDeleteConfirm(true)
-  }
-
-  const confirmDelete = async () => {
-    if (!itemToDelete || !user) return
-
-    setDeletingId(itemToDelete.id)
+  const handleDelete = async (entryId: string) => {
+    if (!user) return
+    setDeleting(true)
+    const entry = entries.find(e => e.id === entryId)
     try {
-      // First, delete media files from S3 (including thumbnails)
-      const allMediaUrls = [
-        ...(itemToDelete.image_urls || []),
-        ...(itemToDelete.thumbnail_urls || [])
-      ]
-      
-      if (allMediaUrls.length > 0) {
-        try {
-          console.log('🗑️  Deleting media files:', allMediaUrls)
-          const deleteResponse = await fetch('/api/journal/delete-media', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ urls: allMediaUrls })
-          })
-          
-          if (!deleteResponse.ok) {
-            const errorText = await deleteResponse.text()
-            console.error('❌ Delete API error:', deleteResponse.status, errorText)
-          } else {
-            const result = await deleteResponse.json()
-            console.log(`✅ Deleted ${result.deleted || 0}/${result.total || 0} media files from S3`)
+      if (entry) {
+        const allMediaUrls = [...(entry.image_urls || []), ...(entry.thumbnail_urls || [])]
+        if (allMediaUrls.length > 0) {
+          try {
+            await fetch('/api/journal/delete-media', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ urls: allMediaUrls })
+            })
+          } catch (mediaError) {
+            console.error('Failed to delete media files:', mediaError)
           }
-        } catch (mediaError) {
-          console.error('❌ Failed to delete media files:', mediaError)
-          // Continue with database deletion even if media deletion fails
         }
       }
 
-      // Delete from database
       const supabase = createClient()
-      
       const { error } = await supabase
         .from('journal_entries')
         .delete()
-        .eq('id', itemToDelete.id)
+        .eq('id', entryId)
         .eq('user_id', user.id)
 
       if (error) {
-        console.error('Error deleting journal entry:', error)
-        alert('Failed to delete journal entry. Please try again.')
+        console.error('Delete failed:', error)
         return
       }
 
-      // Remove from local state
-      setEntries(prev => prev.filter(entry => entry.id !== itemToDelete.id))
-    } catch (error) {
-      console.error('Error deleting journal entry:', error)
-      alert('Failed to delete journal entry. Please try again.')
+      setEntries(prev => prev.filter(e => e.id !== entryId))
+      setExpandedId(null)
+    } catch (err) {
+      console.error('Delete failed:', err)
     } finally {
-      setDeletingId(null)
-      setShowDeleteConfirm(false)
-      setItemToDelete(null)
+      setDeleting(false)
+      setDeleteConfirmId(null)
     }
   }
 
-  const cancelDelete = () => {
-    setShowDeleteConfirm(false)
-    setItemToDelete(null)
+  const getEntryDate = (entry: JournalEntry) => {
+    if (entry.date) return entry.date
+    return entry.created_at.slice(0, 10)
   }
 
-  const openLightbox = (images: string[], index: number) => {
-    setLightboxImages(images)
+  const filteredEntries = useMemo(() => {
+    let result = entries
+
+    const categoryMatch = selectedCategories.includes('all')
+    if (!categoryMatch) {
+      result = result.filter(entry =>
+        selectedCategories.length > 0 && entry.categories && entry.categories.some((cat: string) => selectedCategories.includes(cat))
+      )
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      result = result.filter(entry =>
+        [entry.title, entry.content].filter(Boolean).some(text => text.toLowerCase().includes(q))
+      )
+    }
+
+    return result
+  }, [entries, selectedCategories, searchQuery])
+
+  const openLightbox = (urls: string[], index: number) => {
+    setLightboxImages(urls.map(url => ({ url, alt: 'Journal media' })))
     setLightboxIndex(index)
     setLightboxOpen(true)
   }
-
-  const closeLightbox = () => {
-    setLightboxOpen(false)
-  }
-
-  const nextMedia = () => {
-    if (lightboxImages.length > 0) {
-      setLightboxIndex((prev) => (prev + 1) % lightboxImages.length)
-    }
-  }
-
-  const prevMedia = () => {
-    if (lightboxImages.length > 0) {
-      setLightboxIndex((prev) => (prev - 1 + lightboxImages.length) % lightboxImages.length)
-    }
-  }
-
-  const isVideo = (url: string) => {
-    return /\.(mp4|webm|quicktime)$/i.test(url) || url.includes('video/')
-  }
-
-  // Get thumbnail URL for videos only (images are handled by Next.js Image optimization)
-  const getThumbnailUrl = (url: string) => {
-    // Videos have thumbnails
-    if (isVideo(url)) {
-      return url.replace(/\.(mp4|mov|webm|avi)$/i, '-thumb.jpg')
-    }
-    
-    // For images, return original (Next.js Image will optimize on-demand)
-    return url
-  }
-
-  // Keyboard navigation for lightbox
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!lightboxOpen) return
-      
-      switch (e.key) {
-        case 'Escape':
-          closeLightbox()
-          break
-        case 'ArrowLeft':
-          prevMedia()
-          break
-        case 'ArrowRight':
-          nextMedia()
-          break
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [lightboxOpen])
-
-  // Scroll to entry anchor when page loads with hash
-  useEffect(() => {
-    if (loading || entries.length === 0) return
-
-    const hash = window.location.hash
-    if (hash && hash.startsWith('#entry-')) {
-      const entryId = hash.replace('#entry-', '')
-      const element = document.getElementById(`entry-${entryId}`)
-      
-      if (element) {
-        // Small delay to ensure DOM is ready
-        setTimeout(() => {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        }, 100)
-      }
-    }
-  }, [loading, entries])
 
   if (loading) {
     return (
@@ -307,46 +255,9 @@ export default function JournalPage() {
     )
   }
 
-  const entryCount = entries.length
-
-  // Entry date for stats (prefer entry.date, else date part of created_at)
-  const getEntryDate = (entry: JournalEntry) => {
-    if (entry.date) return entry.date
-    return entry.created_at.slice(0, 10)
-  }
-
-  const thisWeekCount = entries.filter(entry => {
-    const d = new Date(getEntryDate(entry) + 'T00:00:00')
-    const now = new Date()
-    const weekAgo = new Date(now)
-    weekAgo.setDate(weekAgo.getDate() - 7)
-    return d >= weekAgo && d <= now
-  }).length
-
-  const currentStreak = (() => {
-    const recordedDays = new Set(entries.map(e => getEntryDate(e)))
-    let cursor = new Date()
-    let streak = 0
-    while (true) {
-      const key = cursor.toISOString().slice(0, 10)
-      if (!recordedDays.has(key)) break
-      streak += 1
-      cursor.setDate(cursor.getDate() - 1)
-    }
-    return streak
-  })()
-
-  // Filter entries by selected categories
-  const filteredEntries = entries.filter(entry => {
-    const categoryMatch = selectedCategories.includes('all') || 
-      (selectedCategories.length > 0 && entry.categories && entry.categories.some((cat: string) => selectedCategories.includes(cat)))
-    return categoryMatch
-  })
-
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {/* Header */}
         <PageHero
           title="Conscious Creation Journal"
           subtitle="Capture evidence of actualization in real time"
@@ -376,7 +287,6 @@ export default function JournalPage() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-              {/* Current Streak */}
               <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-3">
                 <p className="text-neutral-500 text-[11px] leading-tight mb-1.5">Current Streak</p>
                 <div className="flex items-center gap-1.5">
@@ -405,13 +315,11 @@ export default function JournalPage() {
                 </div>
               </div>
 
-              {/* Reps this Week - always visible */}
               <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-3">
                 <p className="text-neutral-500 text-[11px] leading-tight mb-1.5">Reps this Week</p>
                 <p className="text-white font-semibold text-lg leading-none">{practiceStats?.countLast7 ?? 0}<span className="font-normal text-neutral-500">/7</span></p>
               </div>
 
-              {/* Remaining stats: always visible on sm+, toggled on mobile */}
               {[
                 {
                   label: 'Reps this Month',
@@ -430,7 +338,6 @@ export default function JournalPage() {
               ))}
             </div>
 
-            {/* Mobile toggle */}
             <button
               type="button"
               onClick={() => setStatsExpanded(prev => !prev)}
@@ -443,57 +350,73 @@ export default function JournalPage() {
         </div>
 
         {/* Action Bar */}
-        <div className="flex items-center justify-between">
-          <div className="flex-1 flex justify-start">
-            <button
-              onClick={() => router.push('/journal/new')}
-              className="w-12 h-12 bg-[#39FF14]/20 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer hover:bg-[#39FF14]/30 transition-all duration-200"
-              aria-label="Add Entry"
-            >
-              <Plus className="w-6 h-6 text-[#39FF14]" />
-            </button>
-          </div>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2"
-          >
-            <Filter className="w-4 h-4" />
-            <span>Filter</span>
-          </Button>
-          <div className="flex-1 flex justify-end">
-            <div className="flex gap-2">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 flex justify-start gap-2">
               <button
-                onClick={() => setViewMode('grid')}
-                className={`p-3 rounded-full transition-all ${
-                  viewMode === 'grid'
-                    ? 'bg-[#39FF14] text-black shadow-lg'
-                    : 'bg-[#1F1F1F] text-neutral-400 hover:text-white hover:bg-[#2A2A2A]'
-                }`}
-                aria-label="Grid view"
+                onClick={() => router.push('/journal/new')}
+                className="w-12 h-12 bg-[#39FF14]/20 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer hover:bg-[#39FF14]/30 transition-all duration-200"
+                aria-label="Add Entry"
               >
-                <Grid className="w-5 h-5" />
+                <Plus className="w-6 h-6 text-[#39FF14]" />
               </button>
+            </div>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2"
+            >
+              <Filter className="w-4 h-4" />
+              <span>Filter</span>
+            </Button>
+            <div className="flex-1 flex justify-end">
               <button
-                onClick={() => setViewMode('list')}
+                onClick={() => {
+                  setSearchOpen((prev) => {
+                    if (!prev) setTimeout(() => searchInputRef.current?.focus(), 50)
+                    else setSearchQuery('')
+                    return !prev
+                  })
+                }}
                 className={`p-3 rounded-full transition-all ${
-                  viewMode === 'list'
+                  searchOpen
                     ? 'bg-[#39FF14] text-black shadow-lg'
                     : 'bg-[#1F1F1F] text-neutral-400 hover:text-white hover:bg-[#2A2A2A]'
                 }`}
-                aria-label="List view"
+                aria-label="Search entries"
               >
-                <List className="w-5 h-5" />
+                <Search className="w-5 h-5" />
               </button>
             </div>
           </div>
+
+          {searchOpen && (
+            <div className="relative animate-in slide-in-from-top-2 duration-200">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 pointer-events-none" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search entries..."
+                className="w-full rounded-xl bg-[#1A1A1A] border border-white/[0.08] pl-10 pr-10 py-2.5 text-sm text-neutral-200 placeholder:text-neutral-600 focus:outline-none focus:border-[#39FF14]/30 focus:ring-1 focus:ring-[#39FF14]/20 transition-colors"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Filters */}
         {showFilters && (
           <div id="filters" className="space-y-6 animate-in slide-in-from-top duration-300">
-            {/* Category Filter */}
             <Card variant="elevated" className="p-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-semibold text-white">Categories</h3>
@@ -502,10 +425,8 @@ export default function JournalPage() {
                   size="sm"
                   onClick={() => {
                     if (selectedCategories.includes('all')) {
-                      // Deselect all - set to empty array
                       setSelectedCategories([])
                     } else {
-                      // Select all
                       setSelectedCategories(['all'])
                     }
                   }}
@@ -513,22 +434,18 @@ export default function JournalPage() {
                   {selectedCategories.includes('all') ? 'Deselect All' : 'Select All'}
                 </Button>
               </div>
-
-              {/* Category Cards Grid */}
               <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
                 {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => {
                   const isSelected = selectedCategories.includes(category.key) || selectedCategories.includes('all')
                   return (
-                    <CategoryCard 
-                      key={category.key} 
-                      category={category} 
-                      selected={isSelected} 
+                    <CategoryCard
+                      key={category.key}
+                      category={category}
+                      selected={isSelected}
                       onClick={() => {
                         if (selectedCategories.includes(category.key)) {
-                          // Remove category from selection
                           setSelectedCategories(prev => prev.filter(cat => cat !== category.key))
                         } else {
-                          // Add category to selection (remove 'all' if it exists)
                           setSelectedCategories(prev => {
                             const filtered = prev.filter(cat => cat !== 'all')
                             return [...filtered, category.key]
@@ -548,386 +465,170 @@ export default function JournalPage() {
           </div>
         )}
 
-        {/* Entries List */}
+        {/* Entries */}
         {filteredEntries && filteredEntries.length > 0 ? (
-          viewMode === 'grid' ? (
-            /* Grid View - Masonry Layout */
-            <div className="columns-1 md:columns-2 lg:columns-3 gap-4">
-              {filteredEntries.map((entry) => (
-                <Card 
-                  key={entry.id} 
-                  id={`entry-${entry.id}`} 
-                  className="hover:border-primary-500/50 transition-all duration-200 hover:-translate-y-1 scroll-mt-8 cursor-pointer break-inside-avoid mb-4"
-                  onClick={() => router.push(`/journal/${entry.id}`)}
-                >
-                  <div className="space-y-2 md:space-y-3">
-                    {/* Date - Right Aligned with Banner */}
-                    <div className="relative -mt-1">
-                      <div className="flex justify-end">
-                        <div className="relative inline-block">
-                          <div className="absolute inset-y-0 left-0 right-0 bg-primary-500/10 rounded"></div>
-                          <div className="relative text-sm md:text-base text-primary-500/80 font-medium text-right uppercase tracking-wider px-2 py-1">
-                            {new Date(entry.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+          <div className="rounded-2xl border border-white/[0.06] bg-[#111] overflow-hidden divide-y divide-white/[0.06]">
+            {filteredEntries.map((entry) => {
+              const isExpanded = expandedId === entry.id
+              const dateStr = getEntryDate(entry)
+              const dateObj = new Date(dateStr + 'T00:00:00')
+              const dayNum = dateObj.getDate()
+              const monthStr = dateObj.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()
+              const weekday = dateObj.toLocaleDateString('en-US', { weekday: 'short' })
+              const imageUrls = (entry.image_urls || []).filter(url => isImageUrl(url))
+              const videoUrls = (entry.image_urls || []).filter(url => isVideo(url))
+              const hasMedia = imageUrls.length > 0 || videoUrls.length > 0
+              const firstThumb = imageUrls[0] || null
 
-                    {/* Media Preview - Single Image/Video Thumbnail */}
-                    {(() => {
-                      if (!entry.image_urls || entry.image_urls.length === 0) return null
-                      
-                      // Check for videos first
-                      const videoUrls = entry.image_urls.filter(url => {
-                        const ext = url.split('.').pop()?.toLowerCase()
-                        return ['mp4', 'mov', 'webm', 'avi'].includes(ext || '')
-                      })
-                      
-                      if (videoUrls.length > 0) {
-                        const videoUrl = videoUrls[0]
-                        const thumbnailUrl = entry.thumbnail_urls && entry.thumbnail_urls.length > 0
-                          ? entry.thumbnail_urls[0]
-                          : getThumbnailUrl(videoUrl)
-                        
-                        return (
-                          <div className="relative w-full rounded-lg overflow-hidden border border-neutral-700">
-                            <div className="w-full rounded-lg overflow-hidden">
-                              <OptimizedVideo
-                                url={videoUrl}
-                                thumbnailUrl={thumbnailUrl}
-                                context="list"
-                                lazy={true}
-                                className="w-full [&>div]:rounded-lg [&>div]:border-0 [&>div]:!border-0 [&_video]:object-contain [&_video]:w-full [&_video]:h-auto [&_video]:rounded-lg"
-                              />
-                            </div>
-                          </div>
-                        )
-                      }
-                      
-                      // Check for images
-                      const imageUrls = entry.image_urls.filter(url => {
-                        const ext = url.split('.').pop()?.toLowerCase()
-                        return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')
-                      })
-                      
-                      if (imageUrls.length > 0) {
-                        const imageCount = imageUrls.length
-                        
-                        // Show collage for multiple images
-                        if (imageCount > 1) {
-                          const imagesToShow = imageUrls.slice(0, 4) // Show up to 4 images
-                          return (
-                            <div 
-                              className="relative w-full rounded-lg overflow-hidden border border-neutral-700 cursor-pointer group"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                openLightbox(entry.image_urls, 0)
-                              }}
-                            >
-                              <div className={`grid ${imageCount === 2 ? 'grid-cols-2' : imageCount === 3 ? 'grid-cols-2' : 'grid-cols-2'} gap-0.5`}>
-                                {imagesToShow.map((imageUrl, idx) => (
-                                  <div key={idx} className="relative bg-neutral-800">
-                                    <JournalImage
-                                      src={imageUrl}
-                                      alt={`Entry preview ${idx + 1}`}
-                                      className="w-full h-full object-cover aspect-square"
-                                      loading="lazy"
-                                    />
-                                    {idx === 3 && imageCount > 4 && (
-                                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                        <span className="text-white text-sm font-semibold">+{imageCount - 4}</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )
-                        }
-                        
-                        // Single image
-                        return (
-                          <div className="relative w-full rounded-lg overflow-hidden border border-neutral-700 cursor-pointer group">
-                            <JournalImage
-                              src={imageUrls[0]}
-                              alt={`Entry preview`}
-                              className="w-full h-auto object-contain group-hover:scale-105 transition-transform duration-200 rounded-lg"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                openLightbox(entry.image_urls, 0)
-                              }}
-                              loading="lazy"
-                            />
-                          </div>
-                        )
-                      }
-                      
-                      return null
-                    })()}
-
-                    {/* Title + Entry - one card */}
-                    <div className="rounded-2xl border border-[#1F1F1F] bg-[#161616] p-4 md:p-5 space-y-3">
-                      <h3 className="text-base md:text-lg font-semibold text-white break-words line-clamp-2">
-                        {entry.title || 'Untitled Entry'}
-                      </h3>
-                      {entry.content && (
-                        <p className="text-sm text-neutral-400 line-clamp-3 whitespace-pre-line">
-                          {entry.content.length > 200 ? `${entry.content.substring(0, 200)}...` : entry.content}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Categories - same card style as daily-paper */}
-                    {entry.categories && entry.categories.length > 0 && (
-                      <div className="rounded-2xl border border-[#1F1F1F] bg-[#161616] p-4 md:p-5">
-                        <div className="flex flex-row flex-wrap gap-4 md:gap-6 items-center justify-start">
-                          <div className="flex flex-row items-center gap-2 flex-wrap">
-                            <span className="text-xs uppercase tracking-[0.3em] text-neutral-500">Categories:</span>
-                            <div className="flex flex-wrap gap-2 items-center">
-                              {entry.categories.map((categoryKey: string) => {
-                                const categoryInfo = VISION_CATEGORIES.find(c => c.key === categoryKey)
-                                return (
-                                  <span
-                                    key={categoryKey}
-                                    className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full"
-                                  >
-                                    {categoryInfo ? categoryInfo.label : categoryKey}
-                                  </span>
-                                )
-                              })}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Action Button - Compact */}
-                    <div className="pt-1" onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        asChild
-                        variant="ghost"
-                        size="sm"
-                        className="w-full"
-                      >
-                        <Link href={`/journal/${entry.id}`}>
-                          <Eye className="w-3 h-3 md:w-4 md:h-4 mr-1.5" />
-                          View Entry
-                        </Link>
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            /* List View - Mobile-First Design */
-            <div className="space-y-3 md:space-y-4">
-              {filteredEntries.map((entry) => (
-                <Card
+              return (
+                <div
                   key={entry.id}
                   id={`entry-${entry.id}`}
-                  className="hover:border-primary-500/50 transition-all duration-200 hover:-translate-y-1 scroll-mt-8 cursor-pointer"
-                  onClick={() => router.push(`/journal/${entry.id}`)}
+                  className="scroll-mt-8 cursor-pointer hover:bg-white/[0.03] transition-colors group"
+                  onClick={() => setExpandedId(isExpanded ? null : entry.id)}
                 >
-                  <div className="flex flex-col md:flex-row gap-3 md:gap-4 md:items-stretch">
-                    {/* Image - hidden on mobile, same height as content on desktop */}
-                    <div className="hidden md:block relative flex-shrink-0 w-full aspect-square max-w-[180px] md:w-[160px] md:max-w-none md:aspect-square md:h-auto min-h-0 rounded-lg overflow-hidden bg-neutral-800">
-                      {(() => {
-                        if (!entry.image_urls || entry.image_urls.length === 0) {
-                          return (
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <FileText className="w-8 h-8 md:w-6 md:h-6 text-neutral-600" />
-                            </div>
-                          )
-                        }
-                        
-                        // Check for videos first
-                        const videoUrls = entry.image_urls.filter(url => {
-                          const ext = url.split('.').pop()?.toLowerCase()
-                          return ['mp4', 'mov', 'webm', 'avi'].includes(ext || '')
-                        })
-                        
-                        if (videoUrls.length > 0) {
-                          const videoUrl = videoUrls[0]
-                          const thumbnailUrl = entry.thumbnail_urls && entry.thumbnail_urls.length > 0
-                            ? entry.thumbnail_urls[0]
-                            : getThumbnailUrl(videoUrl)
-                          
-                          return (
-                            <div className="absolute inset-0">
-                              <OptimizedVideo
-                                url={videoUrl}
-                                thumbnailUrl={thumbnailUrl}
-                                context="list"
-                                lazy={true}
-                                className="w-full h-full [&>div]:w-full [&>div]:h-full [&_video]:object-cover [&_video]:w-full [&_video]:h-full"
-                              />
-                            </div>
-                          )
-                        }
-                        
-                        // Check for images
-                        const imageUrls = entry.image_urls.filter(url => {
-                          const ext = url.split('.').pop()?.toLowerCase()
-                          return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')
-                        })
-                        
-                        if (imageUrls.length > 0) {
-                          const imageCount = imageUrls.length
-                          
-                          // Show collage for multiple images
-                          if (imageCount > 1) {
-                            const imagesToShow = imageUrls.slice(0, 4) // Show up to 4 images
-                            return (
-                              <div 
-                                className="absolute inset-0 rounded-lg"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  openLightbox(entry.image_urls, 0)
-                                }}
-                              >
-                                <div className={`grid h-full w-full ${imageCount === 2 ? 'grid-cols-2' : imageCount === 3 ? 'grid-cols-2' : 'grid-cols-2'} gap-0.5`}>
-                                  {imagesToShow.map((imageUrl, idx) => (
-                                    <div key={idx} className="relative bg-neutral-800 min-h-0">
-                                      <JournalImage
-                                        src={imageUrl}
-                                        alt={`Entry preview ${idx + 1}`}
-                                        className="w-full h-full object-cover min-h-0"
-                                        loading="lazy"
-                                      />
-                                      {idx === 3 && imageCount > 4 && (
-                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                          <span className="text-white text-sm font-semibold">+{imageCount - 4}</span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )
-                          }
-                          
-                          // Single image - fill container, cover
-                          return (
-                            <div className="absolute inset-0">
+                  <div className="px-4 py-3.5 md:px-5 md:py-4">
+                    {!isExpanded ? (
+                      <div className="flex items-center gap-4">
+                        <div className="flex-shrink-0 w-11 text-center">
+                          <p className="text-[10px] uppercase tracking-wider text-neutral-500 leading-none">{weekday}</p>
+                          <p className="text-xl font-semibold text-white leading-tight">{dayNum}</p>
+                          <p className="text-[10px] uppercase tracking-wider text-neutral-500 leading-none">{monthStr}</p>
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          {entry.title && (
+                            <p className="text-sm font-medium text-white truncate mb-0.5">{entry.title}</p>
+                          )}
+                          <p className="text-[13px] text-neutral-300 leading-relaxed whitespace-pre-line line-clamp-2 md:line-clamp-1">
+                            {truncate(entry.content, 140)}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2.5 flex-shrink-0">
+                          {firstThumb && (
+                            <div className="w-11 h-11 md:w-12 md:h-12 rounded-lg overflow-hidden bg-neutral-800">
                               <JournalImage
-                                src={imageUrls[0]}
-                                alt={entry.title || 'Entry preview'}
+                                src={firstThumb}
+                                alt=""
                                 className="w-full h-full object-cover"
                                 loading="lazy"
                               />
                             </div>
-                          )
-                        }
-                        
-                        return null
-                      })()}
-                    </div>
-
-                    {/* Entry Details - same card style as daily-paper list */}
-                    <div className="flex-1 min-w-0 space-y-3">
-                      {/* Mobile: Date - right-aligned with banner */}
-                      <div className="relative -mt-1 md:hidden">
-                        <div className="flex justify-end">
-                          <div className="relative inline-block">
-                            <div className="absolute inset-y-0 left-0 right-0 bg-primary-500/10 rounded" />
-                            <div className="relative text-sm text-primary-500/80 font-medium text-right uppercase tracking-wider px-2 py-1">
-                              {new Date(entry.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                            </div>
-                          </div>
+                          )}
+                          <ChevronDown className="w-4 h-4 text-neutral-600 flex-shrink-0 group-hover:text-neutral-400 transition-all duration-200" />
                         </div>
                       </div>
-
-                      {/* Desktop: Created date above Title + Entry (same as daily-paper list) */}
-                      <div className="hidden md:block">
-                        <div className="flex justify-end">
-                          <div className="relative inline-block">
-                            <div className="absolute inset-y-0 left-0 right-0 bg-primary-500/10 rounded" />
-                            <div className="relative text-sm text-primary-500/80 font-medium text-right uppercase tracking-wider px-2 py-1">
-                              {new Date(entry.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Title + Entry - one card */}
-                      <div className="rounded-2xl border border-[#1F1F1F] bg-[#161616] p-4 md:p-5 space-y-3">
-                        <h3 className="text-base md:text-lg font-semibold text-white break-words line-clamp-2">{entry.title || 'Untitled Entry'}</h3>
-                        {entry.content && (
-                          <p className="text-sm text-neutral-400 line-clamp-3 md:line-clamp-none md:text-neutral-300 whitespace-pre-line">
-                            {entry.content.length > 200 ? `${entry.content.substring(0, 200)}...` : entry.content}
+                    ) : (
+                      <div className="animate-in fade-in duration-200">
+                        <div className="flex items-center justify-between mb-4">
+                          <p className="text-sm font-medium text-white">
+                            {dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
                           </p>
-                        )}
-                      </div>
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={(e: React.MouseEvent) => { e.stopPropagation(); setDeleteConfirmId(entry.id) }}
+                              className="text-red-500 hover:text-red-400 transition-colors"
+                              aria-label="Delete entry"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={(e: React.MouseEvent) => { e.stopPropagation(); router.push(`/journal/${entry.id}/edit`) }}
+                              className="text-neutral-500 hover:text-white transition-colors"
+                              aria-label="Edit entry"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <ChevronDown className="w-4 h-4 text-neutral-600 group-hover:text-neutral-400 transition-all duration-200 rotate-180 flex-shrink-0" />
+                          </div>
+                        </div>
 
-                      {/* Categories - card (date is above Title+Entry on desktop) */}
-                      {entry.categories && entry.categories.length > 0 && (
-                        <div className="rounded-2xl border border-[#1F1F1F] bg-[#161616] p-4 md:p-5">
-                          <div className="flex flex-row flex-wrap gap-4 md:gap-6 items-center justify-start">
-                            <div className="flex flex-row items-center gap-2 flex-wrap">
-                              <span className="text-xs uppercase tracking-[0.3em] text-neutral-500">Categories:</span>
-                              <div className="flex flex-wrap gap-2 items-center">
+                        <div className="space-y-5">
+                          {entry.title && (
+                            <h3 className="text-base md:text-lg font-semibold text-white">{entry.title}</h3>
+                          )}
+
+                          <section className="space-y-2">
+                            <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500">Entry</p>
+                            <p className="text-[13px] text-neutral-300 leading-relaxed whitespace-pre-line">
+                              {entry.content || '\u2014'}
+                            </p>
+                          </section>
+
+                          {entry.categories && entry.categories.length > 0 && (
+                            <section className="space-y-2">
+                              <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500">Categories</p>
+                              <div className="flex flex-wrap gap-2">
                                 {entry.categories.map((categoryKey: string) => {
                                   const categoryInfo = VISION_CATEGORIES.find(c => c.key === categoryKey)
                                   return (
                                     <span
                                       key={categoryKey}
-                                      className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full"
+                                      className="text-xs bg-primary-500/20 text-primary-500 px-2.5 py-1 rounded-full"
                                     >
                                       {categoryInfo ? categoryInfo.label : categoryKey}
                                     </span>
                                   )
                                 })}
                               </div>
-                            </div>
-                          </div>
+                            </section>
+                          )}
+
+                          {imageUrls.length > 0 && (
+                            <section className="space-y-2">
+                              <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500">Images</p>
+                              <div className="flex gap-2 overflow-x-auto pb-1">
+                                {imageUrls.map((url, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="flex-shrink-0 w-20 h-20 md:w-24 md:h-24 rounded-lg overflow-hidden bg-neutral-800 cursor-pointer border border-neutral-700 hover:border-primary-500/50 transition-colors"
+                                    onClick={(e) => { e.stopPropagation(); openLightbox(imageUrls, idx) }}
+                                  >
+                                    <JournalImage
+                                      src={url}
+                                      alt={`Image ${idx + 1}`}
+                                      className="w-full h-full object-cover"
+                                      loading="lazy"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            </section>
+                          )}
+
+                          {videoUrls.length > 0 && (
+                            <section className="space-y-2">
+                              <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500">Videos</p>
+                              <div className="space-y-2">
+                                {videoUrls.map((url, idx) => (
+                                  <div key={idx} className="rounded-lg overflow-hidden border border-neutral-700 max-w-sm" onClick={(e) => e.stopPropagation()}>
+                                    <OptimizedVideo
+                                      url={url}
+                                      context="list"
+                                      lazy={true}
+                                      className="w-full [&>div]:rounded-lg [&>div]:border-0 [&_video]:object-contain [&_video]:w-full [&_video]:h-auto"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            </section>
+                          )}
                         </div>
-                      )}
-                    </div>
-
-                    {/* Action Buttons - Right side */}
-                    <div className="flex-shrink-0 md:flex-shrink-0 w-full md:w-auto flex items-center" onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        asChild
-                        variant="ghost"
-                        size="sm"
-                        className="w-full md:w-auto"
-                      >
-                        <Link href={`/journal/${entry.id}`}>
-                          <Eye className="w-4 h-4 mr-2" />
-                          View Entry
-                        </Link>
-                      </Button>
-                    </div>
+                      </div>
+                    )}
                   </div>
-              </Card>
-            ))}
-            </div>
-          )
-        ) : null}
-
-        {/* Load More Button */}
-        {filteredEntries && filteredEntries.length > 0 && hasMore && (
-          <div className="flex justify-center py-6 mt-6">
-            <Button
-              onClick={() => setPage(page + 1)}
-              variant="outline"
-              size="sm"
-              disabled={loadingMore}
-            >
-              {loadingMore ? 'Loading...' : 'Load More'}
-            </Button>
+                </div>
+              )
+            })}
           </div>
-        )}
-
-        {/* Empty States */}
-        {filteredEntries && filteredEntries.length === 0 && (
+        ) : (
           entries.length === 0 ? (
             <Card className="text-center py-16 max-w-2xl mx-auto">
               <FileText className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-white mb-2">No journal entries yet</h3>
               <p className="text-neutral-400 mb-6">
-                Start capturing evidence of your conscious creation journey. 
+                Start capturing evidence of your conscious creation journey.
                 Log your wins, insights, and moments of alignment.
               </p>
               <Button asChild>
@@ -945,7 +646,7 @@ export default function JournalPage() {
                 Try adjusting your category filters to see more entries.
               </p>
               <Button
-                onClick={() => setSelectedCategories(['all'])}
+                onClick={() => { setSelectedCategories(['all']); setSearchQuery('') }}
                 variant="primary"
               >
                 Clear Filters
@@ -954,104 +655,39 @@ export default function JournalPage() {
           )
         )}
 
-
-
-        {/* Lightbox */}
-        {lightboxOpen && lightboxImages.length > 0 && (
-          <div 
-            className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center"
-            onClick={closeLightbox}
-          >
-            <div 
-              className="relative w-full h-full flex items-center justify-center p-4"
-              onClick={(e) => e.stopPropagation()}
+        {/* Load More */}
+        {filteredEntries && filteredEntries.length > 0 && hasMore && (
+          <div className="flex justify-center py-6 mt-6">
+            <Button
+              onClick={() => setPage(page + 1)}
+              variant="outline"
+              size="sm"
+              disabled={loadingMore}
             >
-              {/* Close Button */}
-              <button
-                onClick={closeLightbox}
-                className="absolute top-4 right-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
-
-              {/* Navigation Buttons */}
-              {lightboxImages.length > 1 && (
-                <>
-                  <button
-                    onClick={prevMedia}
-                    className="absolute left-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
-                  >
-                    <ChevronLeft className="w-6 h-6" />
-                  </button>
-                  <button
-                    onClick={nextMedia}
-                    className="absolute right-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
-                  >
-                    <ChevronRight className="w-6 h-6" />
-                  </button>
-                </>
-              )}
-
-              {/* Media Content */}
-              <div className="max-w-4xl max-h-full w-full h-full flex items-center justify-center">
-                {isVideo(lightboxImages[lightboxIndex]) ? (
-                  <video
-                    src={lightboxImages[lightboxIndex]}
-                    controls
-                    autoPlay
-                    className="max-w-full max-h-full object-contain"
-                  />
-                ) : (
-                  <img
-                    src={lightboxImages[lightboxIndex]}
-                    alt={`Media ${lightboxIndex + 1}`}
-                    className="max-w-full max-h-full object-contain"
-                  />
-                )}
-              </div>
-
-              {/* Media Counter */}
-              {lightboxImages.length > 1 && (
-                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-                  {lightboxIndex + 1} of {lightboxImages.length}
-                </div>
-              )}
-
-              {/* Thumbnail Strip */}
-              {lightboxImages.length > 1 && (
-                <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 flex gap-2 max-w-full overflow-x-auto px-4">
-                  {lightboxImages.map((media, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setLightboxIndex(index)}
-                      className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
-                        index === lightboxIndex ? 'border-primary-500' : 'border-neutral-600'
-                      }`}
-                    >
-                      {isVideo(media) ? (
-                        <div className="relative w-full h-full">
-                          <video
-                            src={media}
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                            <Play className="w-4 h-4 text-white" />
-                          </div>
-                        </div>
-                      ) : (
-                        <img
-                          src={media}
-                          alt={`Thumbnail ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+              {loadingMore ? 'Loading...' : 'Load More'}
+            </Button>
           </div>
         )}
+
+        <DeleteConfirmationDialog
+          isOpen={deleteConfirmId !== null}
+          onClose={() => setDeleteConfirmId(null)}
+          onConfirm={() => { if (deleteConfirmId) void handleDelete(deleteConfirmId) }}
+          itemName="this journal entry"
+          itemType="Journal Entry"
+          isLoading={deleting}
+          loadingText="Deleting..."
+        />
+
+        <ImageLightbox
+          images={lightboxImages}
+          currentIndex={lightboxIndex}
+          isOpen={lightboxOpen}
+          onClose={() => setLightboxOpen(false)}
+          onNavigate={setLightboxIndex}
+          showCopyButton={false}
+          showCounter={true}
+        />
       </Stack>
     </Container>
   )

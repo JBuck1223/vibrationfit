@@ -53,6 +53,10 @@ export interface VideoSession {
   session_summary?: string
   highlighted_message_id?: string
   feedback_rating?: number
+  transcript_text?: string
+  transcript_segments?: unknown
+  transcript_key_points?: unknown
+  transcribed_at?: string
   created_at: string
   updated_at: string
 }

@@ -276,6 +276,7 @@ export default function AudioAuditionPage() {
   })
   const [text, setText] = useState(DEFAULT_TEXT)
   const [speakingRate, setSpeakingRate] = useState(0.85)
+  const [openaiSpeed, setOpenaiSpeed] = useState(1.0)
   const [stability, setStability] = useState(0.7)
   const [similarityBoost, setSimilarityBoost] = useState(0.75)
   const [playingKey, setPlayingKey] = useState<string | null>(null)
@@ -418,6 +419,7 @@ export default function AudioAuditionPage() {
             provider,
             voice: voiceId,
             text,
+            speed: provider === 'openai' ? openaiSpeed : undefined,
             speakingRate: provider === 'google' ? speakingRate : undefined,
             stability: provider === 'elevenlabs' ? stability : undefined,
             similarityBoost: provider === 'elevenlabs' ? similarityBoost : undefined,
@@ -455,7 +457,7 @@ export default function AudioAuditionPage() {
         setLoadingKey(null)
       }
     },
-    [text, speakingRate, stability, similarityBoost, playingKey, cleanup, stopPreview]
+    [text, openaiSpeed, speakingRate, stability, similarityBoost, playingKey, cleanup, stopPreview]
   )
 
   // Resolve current voices list based on provider
@@ -569,6 +571,50 @@ export default function AudioAuditionPage() {
             </Card>
 
             {/* Provider-specific controls */}
+            {activeProvider === 'openai' && (
+              <Card className="p-5">
+                <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                  <Gauge className="w-4 h-4 text-emerald-400" />
+                  OpenAI Controls
+                </h3>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs text-neutral-400">Speed</label>
+                    <span className="text-xs font-mono text-emerald-400">{openaiSpeed.toFixed(2)}x</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.25"
+                    max="2.0"
+                    step="0.05"
+                    value={openaiSpeed}
+                    onChange={(e) => setOpenaiSpeed(parseFloat(e.target.value))}
+                    className="w-full audio-slider"
+                  />
+                  <div className="flex justify-between mt-1">
+                    <span className="text-[10px] text-neutral-600">0.25x (slow)</span>
+                    <span className="text-[10px] text-neutral-600">1.0x</span>
+                    <span className="text-[10px] text-neutral-600">2.0x (fast)</span>
+                  </div>
+                  <div className="flex gap-2 mt-3">
+                    {[0.75, 0.85, 1.0, 1.25].map((rate) => (
+                      <button
+                        key={rate}
+                        onClick={() => setOpenaiSpeed(rate)}
+                        className={`px-2.5 py-1 rounded-lg text-xs transition-colors ${
+                          Math.abs(openaiSpeed - rate) < 0.01
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-neutral-800 text-neutral-400 border border-neutral-700 hover:bg-neutral-700'
+                        }`}
+                      >
+                        {rate === 0.75 ? 'Meditative' : rate === 0.85 ? 'Calm' : rate === 1.0 ? 'Normal' : 'Energetic'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </Card>
+            )}
+
             {activeProvider === 'google' && (
               <Card className="p-5">
                 <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
@@ -872,7 +918,7 @@ export default function AudioAuditionPage() {
               </h4>
               {activeProvider === 'openai' && (
                 <p className="text-xs text-neutral-500 leading-relaxed">
-                  Currently in production. 9 voices, $15/1M chars. No pace control. 
+                  Currently in production. 9 voices, $15/1M chars. Speed control 0.25x-2.0x. 
                   Good baseline quality with consistent output.
                 </p>
               )}

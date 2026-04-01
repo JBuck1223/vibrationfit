@@ -93,10 +93,10 @@ export function Header() {
             <Image
               src={ASSETS.brand.logoWhite}
               alt="Vibration Fit"
-              width={200}
-              height={40}
-              style={{ width: 'auto', height: '2rem' }}
+              width={363}
+              height={32}
               priority
+              loading="eager"
             />
           </Link>
 

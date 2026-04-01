@@ -329,7 +329,7 @@ export default function EditDailyPaperPage({
       resetUploadState()
 
       setTimeout(() => {
-        router.push(`/daily-paper/${entry.id}`)
+        router.push(`/daily-paper?expand=${entry.id}`)
       }, 900)
     } catch (error) {
       console.error('Daily Paper update failed:', error)
@@ -669,7 +669,7 @@ export default function EditDailyPaperPage({
                   type="button"
                   variant="danger"
                   size="sm"
-                  onClick={() => entry && router.push(`/daily-paper/${entry.id}`)}
+                  onClick={() => entry && router.push(`/daily-paper?expand=${entry.id}`)}
                   disabled={isSubmitting || isSaving}
                   className="flex-1 sm:flex-none sm:w-auto"
                 >

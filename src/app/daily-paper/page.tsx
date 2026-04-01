@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   Container,
   Card,
@@ -14,11 +14,14 @@ import {
   PageHero,
   EmptyState,
   CategoryCard,
+  DeleteConfirmationDialog,
+  ImageLightbox,
 } from '@/lib/design-system/components'
 import { useAreaStats } from '@/hooks/useAreaStats'
 import { OptimizedImage } from '@/components/OptimizedImage'
-import { FileText, Sparkles, Plus, Filter, Grid, List, HelpCircle, Eye, Flame, Shield, ChevronDown, ImageIcon, Paperclip } from 'lucide-react'
+import { FileText, Sparkles, Plus, Filter, HelpCircle, Flame, Shield, ChevronDown, ChevronRight, Search, X, Edit, Trash2, Paperclip } from 'lucide-react'
 import { DailyPaperEntry, useDailyPaperEntries } from '@/hooks/useDailyPaper'
+import { createClient } from '@/lib/supabase/client'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
 const PREVIEW_LENGTH = 200
@@ -49,11 +52,6 @@ function looksLikeImageUrl(url: string | null | undefined): boolean {
 function isImageEntry(entry: DailyPaperEntry): boolean {
   if (!entry.attachment_url) return false
   return entry.attachment_content_type?.startsWith('image/') === true || looksLikeImageUrl(entry.attachment_url)
-}
-
-function getAttachmentSection(entry: DailyPaperEntry): 'evidence' | 'optional' | null {
-  if (!entry.attachment_url) return null
-  return (entry.metadata as { attachmentSection?: string } | null)?.attachmentSection as 'evidence' | 'optional' | null ?? null
 }
 
 function calculateCurrentStreak(entries: DailyPaperEntry[]) {
@@ -90,14 +88,21 @@ type DateFilter = 'all' | '7' | '30'
 
 export default function DailyPaperIndexPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { stats: practiceStats } = useAreaStats('daily-paper')
   const { entries, isLoading, isRefreshing, error, refresh } = useDailyPaperEntries()
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
   const [showFilters, setShowFilters] = useState(false)
   const [dateFilter, setDateFilter] = useState<DateFilter>('all')
   const [selectedCategories, setSelectedCategories] = useState<string[]>(['all'])
   const [statsExpanded, setStatsExpanded] = useState(false)
   const [freezeOpen, setFreezeOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
   const freezeRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -115,6 +120,17 @@ export default function DailyPaperIndexPage() {
     }
   }, [freezeOpen])
 
+  useEffect(() => {
+    const expandParam = searchParams.get('expand')
+    if (expandParam && entries.length > 0) {
+      setExpandedId(expandParam)
+      router.replace('/daily-paper', { scroll: false })
+      setTimeout(() => {
+        document.getElementById(`entry-${expandParam}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 100)
+    }
+  }, [searchParams, entries.length, router])
+
   const metrics = useMemo(() => {
     const total = entries.length
     const thisWeek = countEntriesInLastDays(entries, 7)
@@ -127,16 +143,52 @@ export default function DailyPaperIndexPage() {
     void refresh()
   }
 
+  const handleDelete = async (entryId: string) => {
+    setDeleting(true)
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/auth/login'); return }
+      const { error: delError } = await supabase
+        .from('daily_papers')
+        .delete()
+        .eq('id', entryId)
+        .eq('user_id', user.id)
+      if (delError) { console.error('Delete failed:', delError); return }
+      setExpandedId(null)
+      void refresh()
+    } catch (err) {
+      console.error('Delete failed:', err)
+    } finally {
+      setDeleting(false)
+      setDeleteConfirmId(null)
+    }
+  }
+
   const filteredEntries = useMemo(() => {
-    if (dateFilter === 'all') return entries
-    const days = dateFilter === '7' ? 7 : 30
-    const threshold = new Date()
-    threshold.setDate(threshold.getDate() - days)
-    return entries.filter((entry) => {
-      const d = new Date(`${entry.entry_date}T00:00:00`)
-      return d >= threshold
-    })
-  }, [entries, dateFilter])
+    let result = entries
+
+    if (dateFilter !== 'all') {
+      const days = dateFilter === '7' ? 7 : 30
+      const threshold = new Date()
+      threshold.setDate(threshold.getDate() - days)
+      result = result.filter((entry) => {
+        const d = new Date(`${entry.entry_date}T00:00:00`)
+        return d >= threshold
+      })
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      result = result.filter((entry) =>
+        [entry.gratitude, entry.task_one, entry.task_two, entry.task_three, entry.fun_plan]
+          .filter(Boolean)
+          .some((text) => text.toLowerCase().includes(q))
+      )
+    }
+
+    return result
+  }, [entries, dateFilter, searchQuery])
 
   return (
     <Container size="xl">
@@ -252,52 +304,69 @@ export default function DailyPaperIndexPage() {
           </div>
         </div>
 
-        {/* Action Bar - same layout as journal */}
-        <div className="flex items-center justify-between">
-          <div className="flex-1 flex justify-start">
-            <button
-              onClick={() => router.push('/daily-paper/new')}
-              className="w-12 h-12 bg-[#39FF14]/20 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer hover:bg-[#39FF14]/30 transition-all duration-200"
-              aria-label="Add Entry"
-            >
-              <Plus className="w-6 h-6 text-[#39FF14]" />
-            </button>
-          </div>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2"
-          >
-            <Filter className="w-4 h-4" />
-            <span>Filter</span>
-          </Button>
-          <div className="flex-1 flex justify-end">
-            <div className="flex gap-2">
+        {/* Action Bar */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 flex justify-start gap-2">
               <button
-                onClick={() => setViewMode('grid')}
-                className={`p-3 rounded-full transition-all ${
-                  viewMode === 'grid'
-                    ? 'bg-[#39FF14] text-black shadow-lg'
-                    : 'bg-[#1F1F1F] text-neutral-400 hover:text-white hover:bg-[#2A2A2A]'
-                }`}
-                aria-label="Grid view"
+                onClick={() => router.push('/daily-paper/new')}
+                className="w-12 h-12 bg-[#39FF14]/20 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer hover:bg-[#39FF14]/30 transition-all duration-200"
+                aria-label="Add Entry"
               >
-                <Grid className="w-5 h-5" />
+                <Plus className="w-6 h-6 text-[#39FF14]" />
               </button>
+            </div>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2"
+            >
+              <Filter className="w-4 h-4" />
+              <span>Filter</span>
+            </Button>
+            <div className="flex-1 flex justify-end">
               <button
-                onClick={() => setViewMode('list')}
+                onClick={() => {
+                  setSearchOpen((prev) => {
+                    if (!prev) setTimeout(() => searchInputRef.current?.focus(), 50)
+                    else setSearchQuery('')
+                    return !prev
+                  })
+                }}
                 className={`p-3 rounded-full transition-all ${
-                  viewMode === 'list'
+                  searchOpen
                     ? 'bg-[#39FF14] text-black shadow-lg'
                     : 'bg-[#1F1F1F] text-neutral-400 hover:text-white hover:bg-[#2A2A2A]'
                 }`}
-                aria-label="List view"
+                aria-label="Search entries"
               >
-                <List className="w-5 h-5" />
+                <Search className="w-5 h-5" />
               </button>
             </div>
           </div>
+
+          {searchOpen && (
+            <div className="relative animate-in slide-in-from-top-2 duration-200">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 pointer-events-none" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search entries..."
+                className="w-full rounded-xl bg-[#1A1A1A] border border-white/[0.08] pl-10 pr-10 py-2.5 text-sm text-neutral-200 placeholder:text-neutral-600 focus:outline-none focus:border-[#39FF14]/30 focus:ring-1 focus:ring-[#39FF14]/20 transition-colors"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {showFilters && (
@@ -424,233 +493,184 @@ export default function DailyPaperIndexPage() {
               Show all
             </Button>
           </Card>
-        ) : viewMode === 'grid' ? (
-          /* Grid View - same layout as journal */
-          <div className="columns-1 md:columns-2 lg:columns-3 gap-4">
+        ) : (
+          /* List View */
+          <div className="rounded-2xl border border-white/[0.06] bg-[#111] overflow-hidden divide-y divide-white/[0.06]">
             {filteredEntries.map((entry) => {
+              const showImage = isImageEntry(entry)
+              const isExpanded = expandedId === entry.id
+              const dateObj = new Date(entry.entry_date + 'T00:00:00')
+              const dayNum = dateObj.getDate()
+              const monthStr = dateObj.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()
+              const weekday = dateObj.toLocaleDateString('en-US', { weekday: 'short' })
               const tasks = [entry.task_one, entry.task_two, entry.task_three].filter(
                 (t) => t && t.trim().length > 0,
               )
-              const hasAttachment = Boolean(entry.attachment_url)
-              const showImage = isImageEntry(entry)
-              const section = getAttachmentSection(entry)
+              const isImageAttachment =
+                entry.attachment_content_type?.startsWith('image/') || looksLikeImageUrl(entry.attachment_url)
+              const attachmentSection = (entry.metadata as { attachmentSection?: string } | null)?.attachmentSection
+              const isEvidence = attachmentSection === 'evidence'
+
               return (
-                <Card
+                <div
                   key={entry.id}
                   id={`entry-${entry.id}`}
-                  className="hover:border-primary-500/50 transition-all duration-200 hover:-translate-y-1 scroll-mt-8 cursor-pointer break-inside-avoid mb-4"
-                  onClick={() => router.push(`/daily-paper/${entry.id}`)}
+                  className="scroll-mt-8 cursor-pointer hover:bg-white/[0.03] transition-colors group"
+                  onClick={() => setExpandedId(isExpanded ? null : entry.id)}
                 >
-                  <div className="space-y-2 md:space-y-3">
-                    {/* Date - Right Aligned with Banner (like journal) */}
-                    <div className="relative -mt-1">
-                      <div className="flex justify-end">
-                        <div className="relative inline-block">
-                          <div className="absolute inset-y-0 left-0 right-0 bg-primary-500/10 rounded" />
-                          <div className="relative text-sm md:text-base text-primary-500/80 font-medium text-right uppercase tracking-wider px-2 py-1">
-                            {new Date(`${entry.entry_date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                          </div>
+                  <div className="px-4 py-3.5 md:px-5 md:py-4">
+                    {!isExpanded ? (
+                      /* Collapsed: date + preview text */
+                      <div className="flex items-center gap-4">
+                        <div className="flex-shrink-0 w-11 text-center">
+                          <p className="text-[10px] uppercase tracking-wider text-neutral-500 leading-none">{weekday}</p>
+                          <p className="text-xl font-semibold text-white leading-tight">{dayNum}</p>
+                          <p className="text-[10px] uppercase tracking-wider text-neutral-500 leading-none">{monthStr}</p>
                         </div>
-                      </div>
-                    </div>
 
-                    {/* Media Preview */}
-                    {showImage && (
-                      <div className="relative w-full rounded-lg overflow-hidden border border-neutral-700">
-                        <OptimizedImage
-                          src={entry.attachment_url!}
-                          alt="Daily Paper"
-                          width={800}
-                          height={600}
-                          className="w-full h-auto object-contain rounded-lg"
-                          quality={75}
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        />
-                      </div>
-                    )}
-
-                    {/* Gratitude - black card */}
-                    <div className="rounded-2xl border border-[#1F1F1F] bg-[#161616] p-4 md:p-5">
-                      <p className="text-xs uppercase tracking-[0.2em] text-neutral-500 mb-2">Gratitude</p>
-                      <p className="text-sm text-neutral-400 line-clamp-3 whitespace-pre-line">
-                        {truncate(entry.gratitude)}
-                      </p>
-                    </div>
-
-                    {/* Info bar - Actions list only */}
-                    {tasks.length > 0 && (
-                      <div className="rounded-2xl border border-[#1F1F1F] bg-[#161616] p-4 md:p-5">
-                        <div className="flex flex-col gap-3">
-                          <div>
-                            <p className="text-xs uppercase tracking-[0.3em] text-neutral-500 mb-2">Actions</p>
-                            <ul className="space-y-1.5 text-sm text-neutral-200">
-                              {tasks.map((task, index) => (
-                                <li key={index} className="flex gap-2">
-                                  <span className="text-neutral-500 shrink-0">{index + 1}.</span>
-                                  <span className="line-clamp-2">{task}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] text-neutral-300 leading-relaxed whitespace-pre-line line-clamp-2 md:line-clamp-1">
+                            {truncate(entry.gratitude, 140)}
+                          </p>
                         </div>
-                      </div>
-                    )}
 
-                    {/* Fun - black card */}
-                    {entry.fun_plan && entry.fun_plan.trim() && (
-                      <div className="rounded-2xl border border-[#1F1F1F] bg-[#161616] p-4 md:p-5">
-                        <p className="text-xs uppercase tracking-[0.2em] text-neutral-500 mb-2">Fun:</p>
-                        <p className="text-sm text-neutral-400 line-clamp-2 whitespace-pre-line">
-                          {truncate(entry.fun_plan, 100)}
-                        </p>
-                      </div>
-                    )}
-
-                    {hasAttachment && (
-                      <div className="pt-1" onClick={(e) => e.stopPropagation()}>
-                        <Link
-                          href={`/daily-paper/${entry.id}`}
-                          className="text-sm text-primary-500 hover:underline inline-flex items-center gap-1.5"
-                        >
-                          {section === 'evidence' ? (
-                            <>
-                              <ImageIcon className="w-3.5 h-3.5" />
-                              View Image
-                            </>
-                          ) : (
-                            <>
-                              <Paperclip className="w-3.5 h-3.5" />
-                              View Attachment
-                            </>
+                        <div className="flex items-center gap-2.5 flex-shrink-0">
+                          {showImage && (
+                            <div className="w-11 h-11 md:w-12 md:h-12 rounded-lg overflow-hidden bg-neutral-800">
+                              <OptimizedImage
+                                src={entry.attachment_url!}
+                                alt=""
+                                width={96}
+                                height={96}
+                                className="w-full h-full object-cover"
+                                sizes="48px"
+                              />
+                            </div>
                           )}
-                        </Link>
+                          <ChevronDown className="w-4 h-4 text-neutral-600 flex-shrink-0 group-hover:text-neutral-400 transition-all duration-200" />
+                        </div>
+                      </div>
+                    ) : (
+                      /* Expanded: inline date + full content below */
+                      <div className="animate-in fade-in duration-200">
+                        <div className="flex items-center justify-between mb-4">
+                          <p className="text-sm font-medium text-white">
+                            {dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
+                          </p>
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={(e: React.MouseEvent) => { e.stopPropagation(); setDeleteConfirmId(entry.id) }}
+                              className="text-red-500 hover:text-red-400 transition-colors"
+                              aria-label="Delete entry"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={(e: React.MouseEvent) => { e.stopPropagation(); router.push(`/daily-paper/${entry.id}/edit`) }}
+                              className="text-neutral-500 hover:text-white transition-colors"
+                              aria-label="Edit entry"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <ChevronDown className="w-4 h-4 text-neutral-600 group-hover:text-neutral-400 transition-all duration-200 rotate-180 flex-shrink-0" />
+                          </div>
+                        </div>
+
+                        <div className="space-y-5">
+                        <section className="space-y-2">
+                          <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500">Gratitude</p>
+                          <p className="text-[13px] text-neutral-300 leading-relaxed whitespace-pre-line">
+                            {entry.gratitude || '\u2014'}
+                          </p>
+                        </section>
+                        {tasks.length > 0 && (
+                          <section className="space-y-2">
+                            <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500">Aligned Actions</p>
+                            <div className="space-y-1.5">
+                              {tasks.map((task, index) => (
+                                <div key={index} className="flex gap-2 rounded-xl border border-[#1F1F1F] bg-[#161616] px-3 py-2.5 text-sm">
+                                  <span className="text-neutral-500 shrink-0">{index + 1}.</span>
+                                  <span className="text-neutral-200 whitespace-pre-line">{task}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </section>
+                        )}
+
+                        {entry.fun_plan && entry.fun_plan.trim() && (
+                          <section className="space-y-2">
+                            <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500">Fun Promise</p>
+                            <p className="text-sm text-neutral-200 leading-relaxed whitespace-pre-line">
+                              {entry.fun_plan}
+                            </p>
+                          </section>
+                        )}
+
+                        {entry.attachment_url && (
+                          <section className="space-y-2">
+                            <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500">
+                              {isEvidence ? 'Evidence' : 'Attachment'}
+                            </p>
+                            {isImageAttachment ? (
+                              <div
+                                className="w-40 md:w-56 cursor-pointer"
+                                onClick={(e) => { e.stopPropagation(); setLightboxUrl(entry.attachment_url) }}
+                              >
+                                <OptimizedImage
+                                  src={entry.attachment_url}
+                                  alt={isEvidence ? 'Evidence' : 'Attachment'}
+                                  width={400}
+                                  height={300}
+                                  className="w-full h-auto rounded-lg border border-neutral-700 hover:border-primary-500/50 object-cover transition-colors"
+                                  quality={80}
+                                  sizes="224px"
+                                />
+                              </div>
+                            ) : (
+                              <a
+                                href={entry.attachment_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 rounded-xl border border-[#1F1F1F] bg-[#161616] px-3 py-2.5 text-sm text-primary-500 hover:border-primary-500/30 transition-colors"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Paperclip className="w-4 h-4" />
+                                Open {isEvidence ? 'file' : 'attachment'}
+                              </a>
+                            )}
+                          </section>
+                        )}
+
+                      </div>
                       </div>
                     )}
-
-                    {/* View button - like journal */}
-                    <div className="pt-1" onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        asChild
-                        variant="ghost"
-                        size="sm"
-                        className="w-full"
-                      >
-                        <Link href={`/daily-paper/${entry.id}`}>
-                          <Eye className="w-3 h-3 md:w-4 md:h-4 mr-1.5" />
-                          View Entry
-                        </Link>
-                      </Button>
-                    </div>
                   </div>
-                </Card>
-              )
-            })}
-          </div>
-        ) : (
-          /* List View - same structure as journal list */
-          <div className="space-y-3 md:space-y-4">
-            {filteredEntries.map((entry) => {
-              const hasAttachment = Boolean(entry.attachment_url)
-              const showImage = isImageEntry(entry)
-              const section = getAttachmentSection(entry)
-              return (
-                <Card
-                  key={entry.id}
-                  id={`entry-${entry.id}`}
-                  className="hover:border-primary-500/50 transition-all duration-200 hover:-translate-y-1 scroll-mt-8 cursor-pointer"
-                  onClick={() => router.push(`/daily-paper/${entry.id}`)}
-                >
-                  <div className="flex flex-col md:flex-row gap-3 md:gap-4 md:items-stretch">
-                    {/* Image column - hidden on mobile */}
-                    <div className="hidden md:block relative flex-shrink-0 w-full aspect-square max-w-[180px] md:w-[160px] md:max-w-none md:aspect-square md:h-auto min-h-0 rounded-lg overflow-hidden bg-neutral-800">
-                      {showImage ? (
-                        <div className="absolute inset-0">
-                          <OptimizedImage
-                            src={entry.attachment_url!}
-                            alt="Daily Paper"
-                            width={320}
-                            height={320}
-                            className="w-full h-full object-cover"
-                            sizes="160px"
-                          />
-                        </div>
-                      ) : (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <FileText className="w-8 h-8 md:w-6 md:h-6 text-neutral-600" />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Entry details */}
-                    <div className="flex-1 min-w-0 space-y-3">
-                      {/* Mobile: Date - right-aligned with banner */}
-                      <div className="relative -mt-1 md:hidden">
-                        <div className="flex justify-end">
-                          <div className="relative inline-block">
-                            <div className="absolute inset-y-0 left-0 right-0 bg-primary-500/10 rounded" />
-                            <div className="relative text-sm text-primary-500/80 font-medium text-right uppercase tracking-wider px-2 py-1">
-                              {new Date(entry.entry_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Desktop: Entry date above Gratitude */}
-                      <div className="hidden md:block">
-                        <div className="flex justify-end">
-                          <div className="relative inline-block">
-                            <div className="absolute inset-y-0 left-0 right-0 bg-primary-500/10 rounded" />
-                            <div className="relative text-sm text-primary-500/80 font-medium text-right uppercase tracking-wider px-2 py-1">
-                              {new Date(entry.entry_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Gratitude + excerpt */}
-                      <div className="rounded-2xl border border-[#1F1F1F] bg-[#161616] p-4 md:p-5 space-y-3">
-                        <p className="text-xs uppercase tracking-[0.2em] text-neutral-500">Gratitude</p>
-                        <p className="text-sm text-neutral-400 line-clamp-3 md:line-clamp-none md:text-neutral-300 whitespace-pre-line">
-                          {truncate(entry.gratitude)}
-                        </p>
-                      </div>
-                      {hasAttachment && (
-                        <div onClick={(e) => e.stopPropagation()}>
-                          <Link
-                            href={`/daily-paper/${entry.id}`}
-                            className="text-sm text-primary-500 hover:underline inline-flex items-center gap-1.5"
-                          >
-                            {section === 'evidence' ? (
-                              <>
-                                <ImageIcon className="w-3.5 h-3.5 shrink-0" />
-                                View Image
-                              </>
-                            ) : (
-                              <>
-                                <Paperclip className="w-3.5 h-3.5 shrink-0" />
-                                View Attachment
-                              </>
-                            )}
-                          </Link>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* View Entry - right side */}
-                    <div className="flex-shrink-0 w-full md:w-auto flex items-center" onClick={(e) => e.stopPropagation()}>
-                      <Button asChild variant="ghost" size="sm" className="w-full md:w-auto">
-                        <Link href={`/daily-paper/${entry.id}`}>
-                          <Eye className="w-4 h-4 mr-2" />
-                          View Entry
-                        </Link>
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
+                </div>
               )
             })}
           </div>
         )}
+
+        <DeleteConfirmationDialog
+          isOpen={deleteConfirmId !== null}
+          onClose={() => setDeleteConfirmId(null)}
+          onConfirm={() => { if (deleteConfirmId) void handleDelete(deleteConfirmId) }}
+          itemName="this Daily Paper entry"
+          itemType="Daily Paper"
+          isLoading={deleting}
+          loadingText="Deleting..."
+        />
+
+        <ImageLightbox
+          images={lightboxUrl ? [{ url: lightboxUrl, alt: 'Daily Paper attachment' }] : []}
+          currentIndex={0}
+          isOpen={lightboxUrl !== null}
+          onClose={() => setLightboxUrl(null)}
+          showCopyButton={false}
+          showNavigation={false}
+          showThumbnails={false}
+          showCounter={false}
+        />
       </Stack>
     </Container>
   )

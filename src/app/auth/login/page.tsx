@@ -209,11 +209,11 @@ function LoginForm() {
           <Image
             src={ASSETS.brand.logoWhite}
             alt="Vibration Fit"
-            width={200}
+            width={453}
             height={40}
             className="mx-auto mb-4"
-            style={{ width: 'auto', height: '2.5rem' }}
             priority
+            loading="eager"
           />
         </div>
 

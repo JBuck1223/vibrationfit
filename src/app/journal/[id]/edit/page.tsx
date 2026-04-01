@@ -249,8 +249,7 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
       // Hide progress bar
       setUploadProgress(prev => ({ ...prev, isVisible: false }))
 
-      // Navigate back to the entry detail page
-      router.push(`/journal/${entry.id}`)
+      router.push(`/journal?expand=${entry.id}`)
     } catch (error) {
       console.error('Error updating journal entry:', error)
       alert('Failed to update journal entry. Please try again.')
@@ -513,7 +512,7 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
                   type="button"
                   variant="danger"
                   size="sm"
-                  onClick={() => router.push(`/journal/${entry.id}`)}
+                  onClick={() => router.push(`/journal?expand=${entry.id}`)}
                   disabled={saving}
                   className="flex-1 sm:flex-none sm:w-auto"
                 >

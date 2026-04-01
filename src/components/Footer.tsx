@@ -18,9 +18,9 @@ export function Footer({ className = '' }: FooterProps) {
             <Image
               src={ASSETS.brand.logoWhite}
               alt="Vibration Fit"
-              width={120}
+              width={272}
               height={24}
-              style={{ width: 'auto', height: '1.5rem' }}
+              loading="eager"
             />
           </Link>
           

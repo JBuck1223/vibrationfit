@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 // ── OpenAI TTS (direct REST, same pattern as audioService) ──────────────────
 
-async function synthesizeOpenAI(text: string, voice: string): Promise<Buffer> {
+async function synthesizeOpenAI(text: string, voice: string, speed: number = 1.0): Promise<Buffer> {
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) throw new Error('OPENAI_API_KEY not configured')
 
@@ -20,6 +20,7 @@ async function synthesizeOpenAI(text: string, voice: string): Promise<Buffer> {
       voice,
       input: text,
       format: 'mp3',
+      speed,
     }),
   })
 
@@ -119,6 +120,7 @@ export async function POST(request: NextRequest) {
       provider,
       voice,
       text,
+      speed,
       speakingRate,
       stability,
       similarityBoost,
@@ -142,7 +144,7 @@ export async function POST(request: NextRequest) {
 
     switch (provider) {
       case 'openai':
-        audioBuffer = await synthesizeOpenAI(text, voice)
+        audioBuffer = await synthesizeOpenAI(text, voice, speed ?? 1.0)
         break
       case 'google':
         audioBuffer = await synthesizeGoogle(text, voice, speakingRate ?? 1.0)
