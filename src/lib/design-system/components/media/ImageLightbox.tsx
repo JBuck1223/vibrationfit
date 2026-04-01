@@ -117,7 +117,7 @@ export const ImageLightbox = React.forwardRef<HTMLDivElement, ImageLightboxProps
       >
         <div
           className="relative w-full h-full flex flex-col items-center justify-center p-4"
-          onClick={(e) => e.stopPropagation()}
+          onClick={onClose}
         >
           {/* Close Button */}
           <button
@@ -166,12 +166,13 @@ export const ImageLightbox = React.forwardRef<HTMLDivElement, ImageLightboxProps
                   src={currentImage.url}
                   alt={currentImage.alt || `Image ${currentIndex + 1}`}
                   className="max-w-full max-h-full object-contain rounded-lg"
+                  onClick={(e) => e.stopPropagation()}
                 />
               </div>
             </div>
             
             {/* Bottom Section: Caption, Subtitle, Counter, Thumbnails, Actions */}
-            <div className="flex flex-col items-center w-full gap-2 px-4 pt-2">
+            <div className="flex flex-col items-center w-full gap-2 px-4 pt-2" onClick={(e) => e.stopPropagation()}>
               {/* Caption */}
               {currentImage.caption && (
                 <div className="text-center text-white text-sm max-w-2xl">

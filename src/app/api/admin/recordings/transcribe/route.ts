@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
           batch_size: 64,
         },
       })
-      whisperResult = result.data as WhisperResult
+      whisperResult = result.data as unknown as WhisperResult
     } catch (err) {
       console.error('[transcribe] fal.ai Whisper failed:', err)
       return NextResponse.json(

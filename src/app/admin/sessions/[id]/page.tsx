@@ -615,7 +615,7 @@ export default function AdminSessionDetailPage() {
               {session.transcript_text ? (
                 <div className="space-y-4">
                   {/* Key Points */}
-                  {session.transcript_key_points && (
+                  {session.transcript_key_points ? (
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="text-sm font-medium text-white flex items-center gap-2">
@@ -661,7 +661,7 @@ export default function AdminSessionDetailPage() {
                             {kp.themes && kp.themes.length > 0 && (
                               <div className="flex flex-wrap gap-1.5 pt-1">
                                 {kp.themes.map((theme: string, i: number) => (
-                                  <Badge key={i} variant="default" className="text-xs">{theme}</Badge>
+                                  <Badge key={i} variant="neutral" className="text-xs">{theme}</Badge>
                                 ))}
                               </div>
                             )}
@@ -669,7 +669,7 @@ export default function AdminSessionDetailPage() {
                         )
                       })()}
                     </div>
-                  )}
+                  ) : null}
 
                   {/* Full Transcript */}
                   <div>
