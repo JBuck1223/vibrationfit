@@ -1,8 +1,9 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { OUTBOUND_URL } from '@/lib/urls'
 import type { UserMap, UserMapItem } from './types'
 import { getActivityDefinition } from './activities'
 
-const APP_BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://app.vibrationfit.com'
+const APP_BASE_URL = OUTBOUND_URL
 
 interface ScheduleParams {
   map: UserMap & { items: UserMapItem[] }

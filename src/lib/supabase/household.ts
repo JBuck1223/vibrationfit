@@ -4,6 +4,7 @@ import { createServiceClient } from './service'
 import { SupabaseClient } from '@supabase/supabase-js'
 
 import { toTitleCase } from '@/lib/utils'
+import { OUTBOUND_URL } from '@/lib/urls'
 
 // =====================================================================
 // TYPES
@@ -750,7 +751,6 @@ export async function invitePartnerToHousehold(params: {
   } = params
 
   try {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://vibrationfit.com'
     const firstName = partnerFirstName ? toTitleCase(partnerFirstName) : ''
     const lastName = partnerLastName ? toTitleCase(partnerLastName) : ''
     const fullName = `${firstName} ${lastName}`.trim()
@@ -851,7 +851,7 @@ export async function invitePartnerToHousehold(params: {
     })
 
     // ── 4. Generate magic link → setup-password → dashboard ──
-    let invitationLink = `${appUrl}/auth/login`
+    let invitationLink = `${OUTBOUND_URL}/auth/login`
 
     const { data: magicLinkData, error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
@@ -862,7 +862,7 @@ export async function invitePartnerToHousehold(params: {
       console.error('Failed to generate magic link for partner:', magicLinkError)
     } else if (magicLinkData?.properties?.hashed_token) {
       const hashedToken = magicLinkData.properties.hashed_token
-      invitationLink = `${appUrl}/auth/callback?token_hash=${hashedToken}&type=magiclink`
+      invitationLink = `${OUTBOUND_URL}/auth/callback?token_hash=${hashedToken}&type=magiclink`
       console.log('Magic link generated for partner:', partnerEmail)
     }
 

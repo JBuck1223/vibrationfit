@@ -6,18 +6,12 @@ const dailyPaperPayloadSchema = z.object({
   entryDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'entryDate must be in YYYY-MM-DD format'),
-  gratitude: z
-    .string()
-    .min(1, 'gratitude is required')
-    .max(10000, 'gratitude is too long'),
+  gratitude: z.string().optional().default(''),
   tasks: z
-    .array(z.string().max(1000))
+    .array(z.string())
     .length(3, 'tasks must contain exactly 3 items')
     .optional(),
-  funPlan: z
-    .string()
-    .min(1, 'funPlan is required')
-    .max(1000, 'funPlan is too long'),
+  funPlan: z.string().optional().default(''),
   attachment: z
     .object({
       url: z.string().url(),
@@ -29,9 +23,9 @@ const dailyPaperPayloadSchema = z.object({
     .optional(),
   audioRecordings: z.array(z.any()).optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
-  taskOne: z.string().max(1000).optional(),
-  taskTwo: z.string().max(1000).optional(),
-  taskThree: z.string().max(1000).optional(),
+  taskOne: z.string().optional(),
+  taskTwo: z.string().optional(),
+  taskThree: z.string().optional(),
 })
 
 const DAILY_PAPER_SELECT_COLUMNS =
@@ -118,10 +112,19 @@ export async function POST(request: NextRequest) {
     const parseResult = dailyPaperPayloadSchema.safeParse(json)
 
     if (!parseResult.success) {
+      const flat = parseResult.error.flatten()
+      console.error('Daily Paper validation failed:', JSON.stringify(flat, null, 2))
+      console.error('Received payload keys:', Object.keys(json))
+
+      const fieldErrors = flat.fieldErrors
+      const summary = Object.entries(fieldErrors)
+        .map(([field, msgs]) => `${field}: ${(msgs as string[]).join(', ')}`)
+        .join('; ')
+
       return NextResponse.json(
         {
-          error: 'Invalid payload',
-          details: parseResult.error.flatten(),
+          error: summary || 'Invalid payload',
+          details: flat,
         },
         { status: 400 },
       )
@@ -142,20 +145,6 @@ export async function POST(request: NextRequest) {
 
     const normalizedGratitude = normalizeText(gratitude)
     const normalizedFunPlan = normalizeText(funPlan)
-
-    if (!normalizedGratitude) {
-      return NextResponse.json(
-        { error: 'gratitude cannot be empty' },
-        { status: 400 },
-      )
-    }
-
-    if (!normalizedFunPlan) {
-      return NextResponse.json(
-        { error: 'funPlan cannot be empty' },
-        { status: 400 },
-      )
-    }
 
     if (attachment) {
       if (!attachment.url || !attachment.key) {

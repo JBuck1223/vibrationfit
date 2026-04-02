@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminAccess } from '@/lib/supabase/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendNotification } from '@/lib/notifications/config'
+import { OUTBOUND_URL } from '@/lib/urls'
 
 const EVENT_TYPE = 'intensive_calibration'
 const SLOT_DURATION = 45
@@ -511,10 +512,9 @@ export async function PATCH(request: NextRequest) {
       const userName = [account?.first_name, account?.last_name].filter(Boolean).join(' ')
         || booking.contact_email || ''
 
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'
       const joinLink = booking.video_session_id
-        ? `${baseUrl}/session/${booking.video_session_id}`
-        : `${baseUrl}/intensive/call-prep`
+        ? `${OUTBOUND_URL}/session/${booking.video_session_id}`
+        : `${OUTBOUND_URL}/intensive/call-prep`
 
       sendNotification({
         slug: 'calibration_call_rescheduled',

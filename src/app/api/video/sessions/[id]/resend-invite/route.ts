@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { OUTBOUND_URL } from '@/lib/urls'
 import { sendAndLogEmail } from '@/lib/email/send'
 import { generateSessionInvitationEmail } from '@/lib/email/templates'
 import { formatDateInTimeZone, DEFAULT_DISPLAY_TIMEZONE } from '@/lib/format/timezone'
@@ -70,7 +71,7 @@ export async function POST(
     const hostName = host?.name || 'Your Host'
 
     const scheduledAt = new Date(session.scheduled_at)
-    const joinLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'}/session/${session.id}`
+    const joinLink = `${OUTBOUND_URL}/session/${session.id}`
 
     const { date: scheduledDate, time: scheduledTime } = formatDateInTimeZone(scheduledAt, timeZone)
 
@@ -167,7 +168,7 @@ export async function GET(
     const hostName = host?.name || 'Your Host'
 
     const scheduledAt = new Date(session.scheduled_at)
-    const joinLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'}/session/${session.id}`
+    const joinLink = `${OUTBOUND_URL}/session/${session.id}`
 
     const { date: scheduledDate, time: scheduledTime } = formatDateInTimeZone(scheduledAt, timeZone)
 

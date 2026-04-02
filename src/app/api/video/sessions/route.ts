@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { OUTBOUND_URL } from '@/lib/urls'
 import { getRoomUrl } from '@/lib/video/daily'
 import { sendAndLogEmail } from '@/lib/email/send'
 import { generateSessionInvitationEmail } from '@/lib/email/templates'
@@ -157,7 +158,7 @@ export async function POST(request: NextRequest) {
       })
 
       // Session link — no login required, the link is the credential
-      const joinLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'}/session/${session.id}`
+      const joinLink = `${OUTBOUND_URL}/session/${session.id}`
 
       // Resolve timezone for email: staff's timezone if provided, else default
       let timeZone = DEFAULT_DISPLAY_TIMEZONE
@@ -372,8 +373,7 @@ async function notifyAlignmentGymMembers(
   createdByUserId: string
 ) {
   const admin = createAdminClient()
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'
-  const joinLink = `${appUrl}/alignment-gym`
+  const joinLink = `${OUTBOUND_URL}/alignment-gym`
 
   const scheduledAt = new Date(session.scheduled_at)
   const { date: scheduledDate, time: scheduledTime } = formatDateInTimeZone(

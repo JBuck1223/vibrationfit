@@ -4,13 +4,14 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Container, Card, Badge, Button, Stack, PageHero } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
+import { RetentionDashboard } from '@/components/retention'
 import Image from 'next/image'
 import {
   ArrowLeft, User, Mail, Phone, Globe, Calendar, Clock, Shield,
   Zap, HardDrive, FileText, MessageSquare, Video, BookOpen,
   Award, Heart, Mic, Target, CreditCard, ChevronDown, ChevronUp,
   Eye, ListChecks, Sparkles, BarChart3, Send, Users, LayoutGrid,
-  ImageIcon, CheckCircle, AlertTriangle, MinusCircle, Play
+  ImageIcon, CheckCircle, AlertTriangle, MinusCircle, Play, Activity
 } from 'lucide-react'
 
 function formatDate(dateStr: string | null | undefined): string {
@@ -375,7 +376,7 @@ function UserDetailContent() {
     )
   }
 
-  const { account, profile, voiceProfile, activityMetrics, badges, communityStats,
+  const { account, profile, allProfiles, voiceProfile, activityMetrics, badges, communityStats,
     storage, intensive, visions, tokens, orders, conversations, videoSessions,
     bookings, assessments, journalEntries, sequenceEnrollments, communityPosts,
     visionBoard } = data
@@ -481,6 +482,45 @@ function UserDetailContent() {
             >
               <Eye className="w-4 h-4 mr-2" /> View as User
             </Button>
+          </div>
+        </Card>
+
+        {/* Tracking Overview */}
+        <Card className="p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <Activity className="w-5 h-5 text-primary-400" />
+            <h2 className="text-lg font-semibold text-white">Tracking Overview</h2>
+          </div>
+          <RetentionDashboard userId={userId} readonly />
+
+          {/* Compact tracking stats */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 mt-4 pt-4 border-t border-neutral-700/50">
+            <div className="bg-neutral-800 rounded-lg p-3 text-center">
+              <div className="text-lg font-bold text-white">{allProfiles?.length || 0}</div>
+              <div className="text-xs text-neutral-400">Profiles</div>
+            </div>
+            <div className="bg-neutral-800 rounded-lg p-3 text-center">
+              <div className="text-lg font-bold text-white">{activityMetrics?.profile_completion_percent || 0}%</div>
+              <div className="text-xs text-neutral-400">Profile Completion</div>
+            </div>
+            <div className="bg-neutral-800 rounded-lg p-3 text-center">
+              <div className="text-lg font-bold text-white">{visions.length}</div>
+              <div className="text-xs text-neutral-400">Vision Versions</div>
+            </div>
+            <div className="bg-neutral-800 rounded-lg p-3 text-center">
+              <div className="text-lg font-bold text-white">
+                {assessments.filter((a: any) => a.status === 'completed').length}
+              </div>
+              <div className="text-xs text-neutral-400">Assessments</div>
+            </div>
+            <div className="bg-neutral-800 rounded-lg p-3 text-center">
+              <div className="text-lg font-bold text-white">{visionBoard?.length || 0}</div>
+              <div className="text-xs text-neutral-400">Board Items</div>
+            </div>
+            <div className="bg-neutral-800 rounded-lg p-3 text-center">
+              <div className="text-lg font-bold text-white">{journalEntries.length}</div>
+              <div className="text-xs text-neutral-400">Journal Entries</div>
+            </div>
           </div>
         </Card>
 

@@ -44,6 +44,8 @@ export interface VideoSession {
   daily_recording_id?: string
   recording_s3_key?: string
   recording_url?: string
+  /** Seconds to skip at playback start (in-app only; does not modify S3 file). */
+  recording_playback_start_seconds?: number | null
   recording_duration_seconds?: number
   enable_recording: boolean
   enable_transcription: boolean
@@ -160,6 +162,7 @@ export interface UpdateSessionRequest {
   host_notes?: string
   session_summary?: string
   feedback_rating?: number
+  recording_playback_start_seconds?: number | null
 }
 
 // ============================================================================

@@ -35,6 +35,8 @@ export default function NewJournalEntryPage() {
   const [aiGeneratedImageUrls, setAiGeneratedImageUrls] = useState<string[]>([])
   const [imageSource, setImageSource] = useState<'upload' | 'ai' | null>(null)
   const [audioRecordings, setAudioRecordings] = useState<any[]>([])
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [formData, setFormData] = useState({
     date: '', // Will be set after mount to avoid hydration mismatch
     title: '',
@@ -141,13 +143,21 @@ export default function NewJournalEntryPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setSubmitError(null)
+    setFieldErrors({})
+
+    const hasAnything = formData.title.trim() || formData.content.trim() || formData.categories.length > 0 || audioRecordings.length > 0 || files.length > 0 || aiGeneratedImageUrls.length > 0
+    if (!hasAnything) {
+      setFieldErrors({ content: 'Add something before saving -- even just a title.' })
+      return
+    }
+
     setLoading(true)
 
     try {
-      // Get current user
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        alert('Please log in to create a journal entry')
+        setSubmitError('Please log in to create a journal entry.')
         return
       }
 
@@ -192,9 +202,8 @@ export default function NewJournalEntryPage() {
             getUploadErrorMessage(new Error(e.error || 'Unknown error'))
           )
           
-          // Show unique error messages (avoid duplicates)
           const uniqueMessages = [...new Set(errorMessages)]
-          alert(uniqueMessages.join('\n\n'))
+          setSubmitError(uniqueMessages.join(' '))
           return
         }
 
@@ -241,10 +250,8 @@ export default function NewJournalEntryPage() {
       }
     } catch (error) {
       console.error('Error creating journal entry:', error)
-      // Use user-friendly error message
       const friendlyMessage = getUploadErrorMessage(error)
-      alert(`Failed to save journal entry: ${friendlyMessage}`)
-      // Hide progress bar on error
+      setSubmitError(friendlyMessage)
       setUploadProgress(prev => ({ ...prev, isVisible: false }))
     } finally {
       setLoading(false)
@@ -409,8 +416,8 @@ export default function NewJournalEntryPage() {
 
               {/* Journal Content */}
               <section className="space-y-4">
-                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-                  Journal entry
+                <Text size="sm" className={`uppercase tracking-[0.3em] underline underline-offset-4 ${fieldErrors.content ? 'text-red-400 decoration-red-400/40' : 'text-neutral-400 decoration-[#333]'}`}>
+                  Journal entry {fieldErrors.content ? `-- ${fieldErrors.content}` : ''}
                 </Text>
               <RecordingTextarea
                 label=""
@@ -451,6 +458,12 @@ export default function NewJournalEntryPage() {
                 fileSize={uploadProgress.fileSize}
                 isVisible={uploadProgress.isVisible}
               />
+
+              {submitError && (
+                <div className="rounded-xl border border-[#D03739]/40 bg-[#D03739]/10 px-4 py-3 text-sm text-[#FFB4B4]">
+                  {submitError}
+                </div>
+              )}
 
               {/* Submit */}
               <div className="flex flex-row gap-2 sm:gap-3 justify-end pt-2">

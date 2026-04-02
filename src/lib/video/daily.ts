@@ -481,6 +481,7 @@ export async function createAlignmentGymRoom(
   
   return createRoom({
     properties: {
+      max_participants: 0,
       enable_knocking: false,
       enable_screenshare: true,
       enable_chat: true,
@@ -505,6 +506,7 @@ export async function createWebinarRoom(
   
   return createRoom({
     properties: {
+      max_participants: 0,
       enable_knocking: false,
       enable_screenshare: true,
       enable_chat: true,

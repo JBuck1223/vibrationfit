@@ -30,7 +30,6 @@ import {
   VIVAButton,
   Icon,
   Badge,
-  Video,
   OfferStack,
   SwipeableCards,
   Heading,
@@ -473,12 +472,12 @@ export default function HomePage() {
                     </div>
                   </div>
                   
-                  {/* Right column - Video */}
+                  {/* Right column - Video (OptimizedVideo: adaptive 720p/1080p/original + same player as profile/new) */}
                   <div className="relative bg-black rounded-xl overflow-hidden shadow-2xl max-w-3xl mx-auto w-full lg:order-last">
-                    <Video
-                      src="https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-3-6-26-new-1080p.mp4"
-                      poster="https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-3-6-26-new-thumb.0000000.jpg"
-                      variant="default"
+                    <OptimizedVideo
+                      url="https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-3-6-26-new-1080p.mp4"
+                      thumbnailUrl="https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-3-6-26-new-thumb.0000000.jpg"
+                      context="single"
                       caption="Five minute overview video"
                       trackingId="homepage-hero-video"
                       saveProgress={true}

@@ -628,7 +628,7 @@ export default function AlignmentGymPage() {
                   <div 
                     key={session.id} 
                     className="group p-4 rounded-xl bg-neutral-800/30 hover:bg-neutral-800/50 transition-all cursor-pointer border border-neutral-800 hover:border-neutral-700"
-                    onClick={() => window.open(session.recording_url!, '_blank')}
+                    onClick={() => router.push(`/alignment-gym/${session.id}`)}
                   >
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 rounded-lg bg-secondary-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-secondary-500/20 transition-colors">
@@ -665,7 +665,7 @@ export default function AlignmentGymPage() {
                         className="opacity-0 group-hover:opacity-100 transition-opacity"
                         onClick={(e) => {
                           e.stopPropagation()
-                          window.open(session.recording_url!, '_blank')
+                          router.push(`/alignment-gym/${session.id}`)
                         }}
                       >
                         <Play className="w-4 h-4" />

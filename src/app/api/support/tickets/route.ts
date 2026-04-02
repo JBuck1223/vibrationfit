@@ -11,6 +11,7 @@ import { generateSupportTicketCreatedEmail } from '@/lib/email/templates/support
 import { triggerEvent } from '@/lib/messaging/events'
 import { createAdminNotification } from '@/lib/admin/notifications'
 import { sendNotification } from '@/lib/notifications/config'
+import { OUTBOUND_URL } from '@/lib/urls'
 
 export async function POST(request: NextRequest) {
   try {
@@ -64,12 +65,7 @@ export async function POST(request: NextRequest) {
 
     // Send confirmation email using database template
     try {
-      const appUrl =
-        process.env.NEXT_PUBLIC_APP_URL ||
-        process.env.NEXT_PUBLIC_SITE_URL ||
-        'https://vibrationfit.com'
-
-      const ticketUrl = `${appUrl}/support/tickets/${ticket.id}`
+      const ticketUrl = `${OUTBOUND_URL}/support/tickets/${ticket.id}`
 
       const emailData = await generateSupportTicketCreatedEmail({
         ticketNumber: ticket.ticket_number,

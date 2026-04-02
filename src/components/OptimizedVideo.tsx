@@ -1,7 +1,58 @@
 'use client'
 
 import { Video } from '@/lib/design-system/components'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react'
+
+export type VideoQualityRendition = '720p' | '1080p' | 'original'
+
+function orderedQualities(preferred: VideoQualityRendition): VideoQualityRendition[] {
+  const all: VideoQualityRendition[] = ['720p', '1080p', 'original']
+  return [preferred, ...all.filter(q => q !== preferred)]
+}
+
+/**
+ * Build CDN URLs for MediaConvert-style outputs: {base}-720p.mp4, -1080p.mp4, -original.mp4
+ * Also supports /processed/... paths where the file is base.mp4 before renditions exist.
+ */
+export function buildAdaptiveVideoUrlCandidates(
+  url: string,
+  preferredQuality: VideoQualityRendition
+): string[] {
+  if (url.endsWith('.webm')) {
+    return [url]
+  }
+
+  const suffixed = url.match(/^(.*)-(720p|1080p|original)(\.(mp4|mov))$/i)
+  if (suffixed) {
+    const base = suffixed[1]
+    const ext = suffixed[3]
+    const seen = new Set<string>()
+    const out: string[] = []
+    for (const q of orderedQualities(preferredQuality)) {
+      const u = `${base}-${q}${ext}`
+      if (!seen.has(u)) {
+        seen.add(u)
+        out.push(u)
+      }
+    }
+    return out
+  }
+
+  if (url.includes('/processed/')) {
+    const seen = new Set<string>()
+    const out: string[] = []
+    for (const q of orderedQualities(preferredQuality)) {
+      const u = url.replace(/\.(mp4|mov)$/i, `-${q}.mp4`)
+      if (!seen.has(u)) {
+        seen.add(u)
+        out.push(u)
+      }
+    }
+    return out
+  }
+
+  return [url]
+}
 
 interface OptimizedVideoProps {
   url: string
@@ -14,6 +65,8 @@ interface OptimizedVideoProps {
   autoplay?: boolean
   muted?: boolean
   loop?: boolean
+  /** Shown under the player (same as design-system Video caption). */
+  caption?: string
   // Progress tracking
   trackingId?: string
   saveProgress?: boolean
@@ -49,6 +102,7 @@ export function OptimizedVideo({
   autoplay = false,
   muted = false,
   loop = false,
+  caption,
   trackingId,
   saveProgress = true,
   onMilestoneReached,
@@ -57,10 +111,21 @@ export function OptimizedVideo({
   onComplete
 }: OptimizedVideoProps) {
   const [isVisible, setIsVisible] = useState(!lazy)
-  const [quality, setQuality] = useState<'720p' | '1080p' | 'original'>('1080p')
-  const [connectionQuality, setConnectionQuality] = useState<'high' | 'medium' | 'low'>('high')
+  const [quality, setQuality] = useState<VideoQualityRendition>('1080p')
   const [mounted, setMounted] = useState(false)
+  const [candidateIndex, setCandidateIndex] = useState(0)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  const candidates = useMemo(
+    () => buildAdaptiveVideoUrlCandidates(url, quality),
+    [url, quality]
+  )
+
+  const activeSrc = candidates[Math.min(candidateIndex, candidates.length - 1)] ?? url
+
+  useEffect(() => {
+    setCandidateIndex(0)
+  }, [url, quality])
 
   // Prevent hydration mismatch - only run client-side logic after mount
   useEffect(() => {
@@ -115,50 +180,25 @@ export function OptimizedVideo({
     if (connection) {
       const updateConnectionQuality = () => {
         const effectiveType = connection.effectiveType
-        
-        if (effectiveType === '4g') {
-          setConnectionQuality('high')
-        } else if (effectiveType === '3g') {
-          setConnectionQuality('medium')
-          // Override to 720p on 3G
-          setQuality('720p')
-        } else {
-          setConnectionQuality('low')
-          // Force 720p on slow connections
+        if (effectiveType === '3g' || effectiveType === '2g' || effectiveType === 'slow-2g') {
           setQuality('720p')
         }
       }
 
       updateConnectionQuality()
       connection.addEventListener('change', updateConnectionQuality)
-      
+
       return () => {
         connection.removeEventListener('change', updateConnectionQuality)
       }
     }
   }, [mounted])
 
-  // Get optimized video URL based on quality and format
-  const getVideoUrl = () => {
-    // WebM files are already optimized - serve as-is
-    if (url.endsWith('.webm')) {
-      return url
+  const handleVideoError = useCallback(() => {
+    if (candidateIndex < candidates.length - 1) {
+      setCandidateIndex(i => i + 1)
     }
-
-    // If URL already has a quality suffix, use it as-is
-    if (url.match(/-(720p|1080p|original)\.(mp4|mov)$/i)) {
-      return url
-    }
-
-    // Only try to add quality suffix if this is a processed video URL
-    // Original uploads (not in /processed/) should play as-is until MediaConvert processes them
-    if (url.includes('/processed/')) {
-      return url.replace(/\.(mp4|mov)$/i, `-${quality}.mp4`)
-    }
-
-    // Return original URL as-is (original .mov/.mp4 before MediaConvert processing)
-    return url
-  }
+  }, [candidateIndex, candidates.length])
 
   // Smart preload strategy based on context
   const getPreload = (): 'none' | 'metadata' | 'auto' => {
@@ -203,8 +243,10 @@ export function OptimizedVideo({
     <div ref={containerRef} className={className}>
       {isVisible ? (
         <Video
-          src={getVideoUrl()}
+          key={activeSrc}
+          src={activeSrc}
           poster={thumbnailUrl}
+          caption={caption}
           variant={getVariant()}
           preload={getPreload()}
           controls={getControls()}
@@ -217,6 +259,7 @@ export function OptimizedVideo({
           onPlay={onPlay}
           onPause={onPause}
           onComplete={onComplete}
+          onError={handleVideoError}
           className="w-full"
         />
       ) : (
@@ -278,30 +321,16 @@ export function useVideoQuality() {
 /**
  * Helper function to get optimized video URL (for use outside components)
  */
-export function getOptimizedVideoUrl(url: string, preferredQuality?: '720p' | '1080p' | 'original'): string {
-  // WebM files are already optimized
-  if (url.endsWith('.webm')) {
-    return url
-  }
+export function getOptimizedVideoUrl(
+  url: string,
+  preferredQuality?: VideoQualityRendition
+): string {
+  const q: VideoQualityRendition =
+    preferredQuality ||
+    (typeof window !== 'undefined' && window.innerWidth < 768 ? '720p' :
+      typeof window !== 'undefined' && window.innerWidth < 1440 ? '1080p' :
+      'original')
 
-  // If URL already has quality suffix, return as-is
-  if (url.match(/-(720p|1080p|original)\.(mp4|mov)$/i)) {
-    return url
-  }
-
-  // Only add quality suffix if this is a processed video URL
-  // Original uploads should play as-is until MediaConvert processes them
-  if (!url.includes('/processed/')) {
-    return url
-  }
-
-  // Determine quality
-  const quality = preferredQuality || (
-    typeof window !== 'undefined' && window.innerWidth < 768 ? '720p' :
-    typeof window !== 'undefined' && window.innerWidth < 1440 ? '1080p' :
-    'original'
-  )
-
-  // Add quality suffix
-  return url.replace(/\.(mp4|mov)$/i, `-${quality}.mp4`)
+  const list = buildAdaptiveVideoUrlCandidates(url, q)
+  return list[0] ?? url
 }

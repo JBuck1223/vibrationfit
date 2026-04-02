@@ -337,42 +337,27 @@ function VideoCallUI({
     }
   }, [daily, isRecording, isHost, sessionType])
 
-  // Hard-mute all remote participants (host only).
-  // Revokes audio send permission so participants cannot unmute themselves.
+  // Mute all remote participants (host only).
+  // Uses setAudio only — no permission changes that could brick the call.
   const muteAll = useCallback(() => {
     if (!daily || !isHost) return
     const participants = daily.participants()
     for (const [id] of Object.entries(participants)) {
       if (id === 'local') continue
-      daily.updateParticipant(id, {
-        setAudio: false,
-        updatePermissions: {
-          canSend: new Set(['video', 'screenVideo', 'screenAudio']),
-        },
-      })
+      daily.updateParticipant(id, { setAudio: false })
     }
   }, [daily, isHost])
 
-  // Allow a specific participant to speak (host only).
-  // Grants audio permission and unmutes them.
+  // Unmute a specific participant (host only).
   const allowToSpeak = useCallback((sessionId: string) => {
     if (!daily || !isHost) return
-    daily.updateParticipant(sessionId, {
-      updatePermissions: {
-        canSend: new Set(['audio', 'video', 'screenVideo', 'screenAudio']),
-      },
-    })
+    daily.updateParticipant(sessionId, { setAudio: true })
   }, [daily, isHost])
 
-  // Revoke a specific participant's ability to speak (host only).
+  // Mute a specific participant (host only).
   const revokeSpeak = useCallback((sessionId: string) => {
     if (!daily || !isHost) return
-    daily.updateParticipant(sessionId, {
-      setAudio: false,
-      updatePermissions: {
-        canSend: new Set(['video', 'screenVideo', 'screenAudio']),
-      },
-    })
+    daily.updateParticipant(sessionId, { setAudio: false })
   }, [daily, isHost])
 
   // Leave call
@@ -1000,9 +985,7 @@ function RemoteParticipantRow({
   
   if (!participant) return null
 
-  const canSendAudio = participant.permissions?.canSend instanceof Set
-    ? participant.permissions.canSend.has('audio')
-    : participant.permissions?.canSend !== false
+  const hasAudio = !!participant.audio
 
   return (
     <div className="flex items-center gap-3 p-2 rounded-lg bg-neutral-800">
@@ -1022,25 +1005,25 @@ function RemoteParticipantRow({
         )}
         {showHostControls ? (
           <button
-            onClick={() => canSendAudio
+            onClick={() => hasAudio
               ? onRevokeSpeak(participantId)
               : onAllowToSpeak(participantId)
             }
             className={`p-1 rounded-full transition-colors ${
-              canSendAudio
+              hasAudio
                 ? 'bg-green-500/20 hover:bg-green-500/30'
                 : 'bg-neutral-700 hover:bg-neutral-600'
             }`}
-            title={canSendAudio ? 'Revoke mic' : 'Allow to speak'}
+            title={hasAudio ? 'Mute' : 'Unmute'}
           >
-            {canSendAudio ? (
+            {hasAudio ? (
               <Mic className="w-3.5 h-3.5 text-green-400" />
             ) : (
               <MicOff className="w-3.5 h-3.5 text-neutral-500" />
             )}
           </button>
         ) : (
-          participant.audio ? (
+          hasAudio ? (
             <Mic className="w-3.5 h-3.5 text-green-400" />
           ) : (
             <MicOff className="w-3.5 h-3.5 text-neutral-500" />

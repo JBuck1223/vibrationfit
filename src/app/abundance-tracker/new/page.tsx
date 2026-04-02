@@ -64,6 +64,7 @@ export default function AbundanceNewEntryPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [noteError, setNoteError] = useState<string | null>(null)
   const [helpOpen, setHelpOpen] = useState(false)
   const [visionCategoriesOpen, setVisionCategoriesOpen] = useState(false)
   const [imageSectionOpen, setImageSectionOpen] = useState(false)
@@ -77,8 +78,10 @@ export default function AbundanceNewEntryPage() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
-    if (!note.trim()) {
-      setErrorMessage('Note is required.')
+    setNoteError(null)
+    const hasAnything = note.trim() || amount.trim() || audioRecordings.length > 0 || file || aiGeneratedImageUrl
+    if (!hasAnything) {
+      setNoteError('Add something before saving -- a note, an amount, or a recording.')
       return
     }
     setIsSubmitting(true)
@@ -266,14 +269,14 @@ export default function AbundanceNewEntryPage() {
               </div>
 
               {/* Note - same layout, in card like others, with voice record/transcribe */}
-              <div className="rounded-xl border border-[#333] bg-[#161616] p-3 pl-4">
+              <div className={`rounded-xl border ${noteError ? 'border-red-500/40' : 'border-[#333]'} bg-[#161616] p-3 pl-4`}>
                 <section className="space-y-1.5">
-                  <Text size="sm" className="text-neutral-400 uppercase tracking-[0.25em] underline underline-offset-2 decoration-[#333]">
-                    Note
+                  <Text size="sm" className={`uppercase tracking-[0.25em] underline underline-offset-2 ${noteError ? 'text-red-400 decoration-red-400/40' : 'text-neutral-400 decoration-[#333]'}`}>
+                    Note {noteError ? `-- ${noteError}` : ''}
                   </Text>
                   <RecordingTextarea
                     value={note}
-                    onChange={(value) => setNote(value)}
+                    onChange={(value) => { setNote(value); if (noteError) setNoteError(null) }}
                     placeholder="Describe this abundance moment in present-tense appreciation. Type or use the microphone to turn your voice into text."
                     rows={3}
                     storageFolder="profile"

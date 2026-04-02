@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { OUTBOUND_URL } from '@/lib/urls'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendNotification } from '@/lib/notifications/config'
 import { formatDateInTimeZone, DEFAULT_DISPLAY_TIMEZONE } from '@/lib/format/timezone'
@@ -51,8 +52,7 @@ export async function POST(request: NextRequest) {
     const tz = booking.timezone || DEFAULT_DISPLAY_TIMEZONE
     const { date: scheduledDate, time: scheduledTime } = formatDateInTimeZone(scheduledAt, tz)
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'
-    const joinLink = `${appUrl}/intensive/call-prep`
+    const joinLink = `${OUTBOUND_URL}/intensive/call-prep`
 
     sendNotification({
       slug: 'calibration_call_requested',

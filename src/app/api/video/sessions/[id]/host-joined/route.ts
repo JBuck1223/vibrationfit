@@ -11,6 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { OUTBOUND_URL } from '@/lib/urls'
 import { sendNotification, sendBulkNotification, getNotificationConfig, resolveNotificationRecipients } from '@/lib/notifications/config'
 
 export async function POST(
@@ -68,7 +69,6 @@ export async function POST(
       .single()
 
     const hostName = hostAccount?.full_name || hostAccount?.first_name || 'Your host'
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vibrationfit.com'
 
     const results = {
       emailsSent: 0,
@@ -82,7 +82,7 @@ export async function POST(
         sessionId,
         session.title || 'Alignment Gym',
         hostName,
-        baseUrl
+        OUTBOUND_URL
       )
       results.emailsSent += liveResults.emailsSent
       results.smsSent += liveResults.smsSent
@@ -115,8 +115,8 @@ export async function POST(
         }
 
         const joinLink = email
-          ? `${baseUrl}/session/${sessionId}?email=${encodeURIComponent(email)}`
-          : `${baseUrl}/session/${sessionId}`
+          ? `${OUTBOUND_URL}/session/${sessionId}?email=${encodeURIComponent(email)}`
+          : `${OUTBOUND_URL}/session/${sessionId}`
 
         if (!config) continue
 
