@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -218,7 +219,7 @@ async function getConnectionsMetrics(
           .eq('user_id', userId)
           .eq('is_deleted', false)
           .gte('created_at', oneWeekAgo.toISOString())
-          .then(r => r.error ? 0 : (r.count || 0)),
+          .then((r: { error: unknown; count: number | null }) => r.error ? 0 : (r.count || 0)),
         
         // Posts lifetime
         supabase
@@ -226,7 +227,7 @@ async function getConnectionsMetrics(
           .select('*', { count: 'exact', head: true })
           .eq('user_id', userId)
           .eq('is_deleted', false)
-          .then(r => r.error ? 0 : (r.count || 0)),
+          .then((r: { error: unknown; count: number | null }) => r.error ? 0 : (r.count || 0)),
         
         // Comments this week
         supabase
@@ -235,7 +236,7 @@ async function getConnectionsMetrics(
           .eq('user_id', userId)
           .eq('is_deleted', false)
           .gte('created_at', oneWeekAgo.toISOString())
-          .then(r => r.error ? 0 : (r.count || 0)),
+          .then((r: { error: unknown; count: number | null }) => r.error ? 0 : (r.count || 0)),
         
         // Comments lifetime
         supabase
@@ -243,7 +244,7 @@ async function getConnectionsMetrics(
           .select('*', { count: 'exact', head: true })
           .eq('user_id', userId)
           .eq('is_deleted', false)
-          .then(r => r.error ? 0 : (r.count || 0)),
+          .then((r: { error: unknown; count: number | null }) => r.error ? 0 : (r.count || 0)),
         
         // Hearts given this week
         supabase
@@ -251,14 +252,14 @@ async function getConnectionsMetrics(
           .select('*', { count: 'exact', head: true })
           .eq('user_id', userId)
           .gte('created_at', oneWeekAgo.toISOString())
-          .then(r => r.error ? 0 : (r.count || 0)),
+          .then((r: { error: unknown; count: number | null }) => r.error ? 0 : (r.count || 0)),
         
         // Hearts given lifetime
         supabase
           .from('vibe_hearts')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', userId)
-          .then(r => r.error ? 0 : (r.count || 0)),
+          .then((r: { error: unknown; count: number | null }) => r.error ? 0 : (r.count || 0)),
         
         // Last post
         supabase
@@ -269,7 +270,7 @@ async function getConnectionsMetrics(
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle()
-          .then(r => r.error ? null : r.data),
+          .then((r: { error: unknown; data: { vibe_tag: string; content: string; created_at: string } | null }) => r.error ? null : r.data),
       ])
 
     const recent = postsRecent + commentsRecent + heartsRecent
@@ -340,12 +341,12 @@ async function getActivationsMetrics(
       .eq('user_id', userId)
       .gt('play_count', 0)
       .gte('updated_at', thirtyDaysAgo.toISOString())
-      .then(r => r.data?.reduce((sum, track) => sum + (track.play_count || 0), 0) || 0),
+      .then((r: any) => r.data?.reduce((sum: number, track: any) => sum + (track.play_count || 0), 0) || 0),
     
     // Audio plays lifetime
     supabase
       .rpc('get_user_total_audio_plays', { p_user_id: userId })
-      .then(r => r.data || 0),
+      .then((r: any) => r.data || 0),
     
     // Journal entries recent
     supabase
@@ -353,14 +354,14 @@ async function getActivationsMetrics(
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .gte('created_at', thirtyDaysAgo.toISOString())
-      .then(r => r.count || 0),
+      .then((r: any) => r.count || 0),
     
     // Journal entries lifetime
     supabase
       .from('journal_entries')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .then(r => r.count || 0),
+      .then((r: any) => r.count || 0),
     
     // Daily papers recent
     supabase
@@ -368,14 +369,14 @@ async function getActivationsMetrics(
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .gte('created_at', thirtyDaysAgo.toISOString())
-      .then(r => r.count || 0),
+      .then((r: any) => r.count || 0),
     
     // Daily papers lifetime
     supabase
       .from('daily_papers')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .then(r => r.count || 0),
+      .then((r: any) => r.count || 0),
     
     // Abundance events recent
     supabase
@@ -383,14 +384,14 @@ async function getActivationsMetrics(
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .gte('created_at', thirtyDaysAgo.toISOString())
-      .then(r => r.count || 0),
+      .then((r: any) => r.count || 0),
     
     // Abundance events lifetime
     supabase
       .from('abundance_events')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .then(r => r.count || 0),
+      .then((r: any) => r.count || 0),
     
     // Vision board items recent
     supabase
@@ -398,14 +399,14 @@ async function getActivationsMetrics(
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .gte('created_at', thirtyDaysAgo.toISOString())
-      .then(r => r.count || 0),
+      .then((r: any) => r.count || 0),
     
     // Vision board items lifetime
     supabase
       .from('vision_board_items')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .then(r => r.count || 0),
+      .then((r: any) => r.count || 0),
     
     // Alignment gym sessions recent
     supabase
@@ -414,7 +415,7 @@ async function getActivationsMetrics(
       .eq('user_id', userId)
       .eq('attended', true)
       .gte('joined_at', thirtyDaysAgo.toISOString())
-      .then(r => r.count || 0),
+      .then((r: any) => r.count || 0),
     
     // Alignment gym sessions lifetime
     supabase
@@ -422,7 +423,7 @@ async function getActivationsMetrics(
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('attended', true)
-      .then(r => r.count || 0),
+      .then((r: any) => r.count || 0),
     
     // Vibe Tribe posts recent
     supabase
@@ -431,7 +432,7 @@ async function getActivationsMetrics(
       .eq('user_id', userId)
       .eq('is_deleted', false)
       .gte('created_at', thirtyDaysAgo.toISOString())
-      .then(r => r.error ? 0 : (r.count || 0)),
+      .then((r: any) => r.error ? 0 : (r.count || 0)),
     
     // Vibe Tribe posts lifetime
     supabase
@@ -439,7 +440,7 @@ async function getActivationsMetrics(
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('is_deleted', false)
-      .then(r => r.error ? 0 : (r.count || 0)),
+      .then((r: any) => r.error ? 0 : (r.count || 0)),
   ])
 
   const recent = audioPlaysRecentData + journalRecent + dailyPaperRecent +
@@ -488,14 +489,14 @@ async function getCreationsMetrics(
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .gte('created_at', thirtyDaysAgo.toISOString())
-      .then(r => r.count || 0),
+      .then((r: any) => r.count || 0),
     
     // Visions lifetime
     supabase
       .from('vision_versions')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .then(r => r.count || 0),
+      .then((r: any) => r.count || 0),
     
     // Audio sets recent
     supabase
@@ -503,14 +504,14 @@ async function getCreationsMetrics(
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .gte('created_at', thirtyDaysAgo.toISOString())
-      .then(r => r.count || 0),
+      .then((r: any) => r.count || 0),
     
     // Audio sets lifetime
     supabase
       .from('audio_sets')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .then(r => r.count || 0),
+      .then((r: any) => r.count || 0),
     
     // Vision board items recent
     supabase
@@ -518,14 +519,14 @@ async function getCreationsMetrics(
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .gte('created_at', thirtyDaysAgo.toISOString())
-      .then(r => r.count || 0),
+      .then((r: any) => r.count || 0),
     
     // Vision board items lifetime
     supabase
       .from('vision_board_items')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .then(r => r.count || 0),
+      .then((r: any) => r.count || 0),
     
     // Journal entries recent
     supabase
@@ -533,14 +534,14 @@ async function getCreationsMetrics(
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .gte('created_at', thirtyDaysAgo.toISOString())
-      .then(r => r.count || 0),
+      .then((r: any) => r.count || 0),
     
     // Journal entries lifetime
     supabase
       .from('journal_entries')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .then(r => r.count || 0),
+      .then((r: any) => r.count || 0),
     
     // Daily Papers recent
     supabase
@@ -548,14 +549,14 @@ async function getCreationsMetrics(
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .gte('created_at', thirtyDaysAgo.toISOString())
-      .then(r => r.count || 0),
+      .then((r: any) => r.count || 0),
     
     // Daily Papers lifetime
     supabase
       .from('daily_papers')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .then(r => r.count || 0),
+      .then((r: any) => r.count || 0),
     
     // Abundance events recent
     supabase
@@ -563,14 +564,14 @@ async function getCreationsMetrics(
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .gte('created_at', thirtyDaysAgo.toISOString())
-      .then(r => r.count || 0),
+      .then((r: any) => r.count || 0),
     
     // Abundance events lifetime
     supabase
       .from('abundance_events')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .then(r => r.count || 0),
+      .then((r: any) => r.count || 0),
   ])
 
   const recent = visionsRecent + audiosRecent + boardRecent + journalRecent + dailyPapersRecent + abundanceRecent
@@ -585,7 +586,7 @@ async function getCreationsMetrics(
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
-      .then(r => r.data ? { type: 'vision' as const, title: r.data.title, createdAt: r.data.created_at } : null),
+      .then((r: any) => r.data ? { type: 'vision' as const, title: r.data.title, createdAt: r.data.created_at } : null),
     
     supabase
       .from('audio_sets')
@@ -594,7 +595,7 @@ async function getCreationsMetrics(
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
-      .then(r => r.data ? { type: 'audio' as const, title: r.data.name, createdAt: r.data.created_at } : null),
+      .then((r: any) => r.data ? { type: 'audio' as const, title: r.data.name, createdAt: r.data.created_at } : null),
     
     supabase
       .from('vision_board_items')
@@ -603,7 +604,7 @@ async function getCreationsMetrics(
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
-      .then(r => r.data ? { type: 'board' as const, title: r.data.name, createdAt: r.data.created_at } : null),
+      .then((r: any) => r.data ? { type: 'board' as const, title: r.data.name, createdAt: r.data.created_at } : null),
     
     supabase
       .from('journal_entries')
@@ -612,7 +613,7 @@ async function getCreationsMetrics(
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
-      .then(r => r.data ? { type: 'journal' as const, title: r.data.title || 'Journal Entry', createdAt: r.data.created_at } : null),
+      .then((r: any) => r.data ? { type: 'journal' as const, title: r.data.title || 'Journal Entry', createdAt: r.data.created_at } : null),
     
     supabase
       .from('daily_papers')
@@ -621,7 +622,7 @@ async function getCreationsMetrics(
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
-      .then(r => r.data ? { type: 'daily_paper' as const, title: `Daily Paper - ${r.data.entry_date}`, createdAt: r.data.created_at } : null),
+      .then((r: any) => r.data ? { type: 'daily_paper' as const, title: `Daily Paper - ${r.data.entry_date}`, createdAt: r.data.created_at } : null),
     
     supabase
       .from('abundance_events')
@@ -630,7 +631,7 @@ async function getCreationsMetrics(
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
-      .then(r => r.data ? { type: 'abundance' as const, title: r.data.note.substring(0, 50) + (r.data.note.length > 50 ? '...' : ''), createdAt: r.data.created_at } : null),
+      .then((r: any) => r.data ? { type: 'abundance' as const, title: r.data.note.substring(0, 50) + (r.data.note.length > 50 ? '...' : ''), createdAt: r.data.created_at } : null),
   ])
 
   // Find the most recent creation
