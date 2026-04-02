@@ -26,6 +26,7 @@ import {
 } from '@/lib/design-system/components'
 import { AlertCircle, ArrowLeft } from 'lucide-react'
 import type { VideoSession, VideoSessionParticipant, CallSettings, JoinSessionResponse } from '@/lib/video/types'
+import { isAlignmentGymDirectorySession } from '@/lib/video/alignment-gym-directory'
 
 type SessionWithParticipants = VideoSession & { participants?: VideoSessionParticipant[] }
 
@@ -238,9 +239,12 @@ export default function SessionPage() {
   }
 
   const handleViewRecording = () => {
-    if (session?.recording_url) {
-      window.open(session.recording_url, '_blank')
+    if (!session?.recording_url) return
+    if (isAlignmentGymDirectorySession(session)) {
+      router.push(`/alignment-gym/${sessionId}`)
+      return
     }
+    router.push(`/session/${sessionId}/recording`)
   }
 
   const handleSaveNotes = async (notes: string) => {

@@ -119,8 +119,8 @@ export async function POST(request: Request) {
         ? visionCategories.join(',')
         : visionCategory ?? null
 
-    if (!date || !valueType || !note) {
-      return NextResponse.json({ error: 'Date, type, and note are required.' }, { status: 400 })
+    if (!date || !valueType) {
+      return NextResponse.json({ error: 'Date and type are required.' }, { status: 400 })
     }
 
     if (!['money', 'value'].includes(valueType)) {

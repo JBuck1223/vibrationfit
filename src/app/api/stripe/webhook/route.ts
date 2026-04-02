@@ -18,6 +18,7 @@ import { sendSMS } from '@/lib/messaging/twilio'
 import { createAdminNotification } from '@/lib/admin/notifications'
 import { resolveReferralCode, checkAndGrantRewards } from '@/lib/referral/helpers'
 import { ensureCustomerWithAttribution } from '@/lib/tracking/customer-attribution'
+import { OUTBOUND_URL } from '@/lib/urls'
 
 async function notifyAdminPurchase(details: {
   customerName?: string
@@ -689,13 +690,11 @@ export async function POST(request: NextRequest) {
               userId = authData.user.id
               console.log('Created user account:', userId)
 
-              const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-              
               const { data: magicLinkData, error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
                 type: 'magiclink',
                 email: customerEmail,
                 options: {
-                  redirectTo: `${appUrl}/auth/setup-password`,
+                  redirectTo: `${OUTBOUND_URL}/auth/setup-password`,
                 },
               })
 
@@ -1111,11 +1110,10 @@ export async function POST(request: NextRequest) {
               userId = authData.user.id
               console.log('Created user account for combined checkout:', userId)
 
-              const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
               const { error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
                 type: 'magiclink',
                 email: customerEmail,
-                options: { redirectTo: `${appUrl}/auth/setup-password` },
+                options: { redirectTo: `${OUTBOUND_URL}/auth/setup-password` },
               })
 
               if (magicLinkError) {

@@ -48,8 +48,9 @@ import {
   Badge,
   Spinner,
   Textarea,
-  Input
+  Input,
 } from '@/lib/design-system/components'
+import { SessionRecordingVideo } from '@/components/video/SessionRecordingVideo'
 import type { VideoSession, VideoSessionParticipant } from '@/lib/video/types'
 import { getSessionTypeLabel, getSessionStatusLabel, isSessionJoinable, formatDuration } from '@/lib/video/types'
 
@@ -89,6 +90,8 @@ export default function AdminSessionDetailPage() {
   const [transcribing, setTranscribing] = useState(false)
   const [transcriptCopied, setTranscriptCopied] = useState(false)
   const [keyPointsCopied, setKeyPointsCopied] = useState(false)
+  const [playbackSkipSeconds, setPlaybackSkipSeconds] = useState('0')
+  const [savingPlaybackSkip, setSavingPlaybackSkip] = useState(false)
 
   // Fetch session
   const fetchSession = useCallback(async () => {
@@ -103,6 +106,10 @@ export default function AdminSessionDetailPage() {
 
       setSession(data.session)
       setNotes(data.session.host_notes || '')
+      const skip = data.session.recording_playback_start_seconds
+      setPlaybackSkipSeconds(
+        skip != null && skip > 0 ? String(skip) : '0'
+      )
     } catch (err) {
       console.error('Error fetching session:', err)
       setError(err instanceof Error ? err.message : 'Failed to load session')
@@ -138,6 +145,36 @@ export default function AdminSessionDetailPage() {
       console.error('Error saving notes:', err)
     } finally {
       setSavingNotes(false)
+    }
+  }
+
+  const savePlaybackSkip = async () => {
+    const n = parseInt(playbackSkipSeconds, 10)
+    if (!Number.isFinite(n) || n < 0) {
+      toast.error('Enter a valid number of seconds (0 or more).')
+      return
+    }
+    setSavingPlaybackSkip(true)
+    try {
+      const res = await fetch(`/api/video/sessions/${sessionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recording_playback_start_seconds: n === 0 ? null : n,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to save')
+        return
+      }
+      setSession(data.session)
+      toast.success(n === 0 ? 'Playback starts at the beginning.' : `Skipping first ${n}s in-app.`)
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to save')
+    } finally {
+      setSavingPlaybackSkip(false)
     }
   }
 
@@ -502,16 +539,57 @@ export default function AdminSessionDetailPage() {
               </h2>
               {session.recording_url ? (
                 <>
-                  <div className="aspect-video w-full max-w-2xl rounded-xl overflow-hidden bg-black border border-neutral-700 mb-4">
-                    <video
-                      src={session.recording_url}
-                      controls
-                      playsInline
-                      className="w-full h-full"
-                      preload="metadata"
+                  <p className="text-sm text-neutral-400 mb-3">
+                    Set how many seconds to skip at the start for in-app replay (S3 file is unchanged). Example: 300 skips five minutes of intro.
+                  </p>
+                  <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:items-end mb-4">
+                    <div className="flex-1 min-w-[140px]">
+                      <label htmlFor="playback-skip-seconds" className="text-xs text-neutral-500 block mb-1">
+                        Skip first (seconds)
+                      </label>
+                      <Input
+                        id="playback-skip-seconds"
+                        type="number"
+                        min={0}
+                        step={1}
+                        value={playbackSkipSeconds}
+                        onChange={e => setPlaybackSkipSeconds(e.target.value)}
+                        className="bg-neutral-800 border-neutral-700"
+                      />
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { label: 'None', v: 0 },
+                        { label: '1 min', v: 60 },
+                        { label: '5 min', v: 300 },
+                        { label: '10 min', v: 600 },
+                      ].map(({ label, v }) => (
+                        <Button
+                          key={label}
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setPlaybackSkipSeconds(String(v))}
+                        >
+                          {label}
+                        </Button>
+                      ))}
+                    </div>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={savePlaybackSkip}
+                      disabled={savingPlaybackSkip}
                     >
-                      Your browser does not support the video tag.
-                    </video>
+                      {savingPlaybackSkip ? 'Saving...' : 'Save trim'}
+                    </Button>
+                  </div>
+                  <div className="aspect-video w-full max-w-2xl rounded-xl overflow-hidden bg-black border border-neutral-700 mb-4">
+                    <SessionRecordingVideo
+                      src={session.recording_url}
+                      playbackStartSeconds={session.recording_playback_start_seconds ?? 0}
+                      className="w-full h-full"
+                    />
                   </div>
                   <Button
                     variant="outline"
@@ -519,7 +597,7 @@ export default function AdminSessionDetailPage() {
                     onClick={() => window.open(session.recording_url!, '_blank')}
                   >
                     <Download className="w-4 h-4 mr-2" />
-                    Download Recording
+                    Open full file (new tab)
                   </Button>
                 </>
               ) : (

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { invitePartnerToHousehold } from '@/lib/supabase/household'
+import { OUTBOUND_URL } from '@/lib/urls'
 
 export async function POST(request: NextRequest) {
   try {
@@ -140,11 +141,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://vibrationfit.com'
-
     return NextResponse.json({
       success: true,
-      invitation_url: `${appUrl}/household/invite/${result.invitationToken}`,
+      invitation_url: `${OUTBOUND_URL}/household/invite/${result.invitationToken}`,
       message: `Invitation sent to ${partnerEmail}`,
     })
   } catch (error) {

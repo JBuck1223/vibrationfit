@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { deleteRoom } from '@/lib/video/daily'
 import type { UpdateSessionRequest, VideoSession } from '@/lib/video/types'
+import { isAlignmentGymDirectorySession } from '@/lib/video/alignment-gym-directory'
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -53,7 +54,7 @@ export async function GET(
     const isParticipant = session.participants?.some(
       (p: { user_id: string }) => p.user_id === user.id
     )
-    const isOpenSession = session.session_type === 'alignment_gym'
+    const isOpenSession = isAlignmentGymDirectorySession(session)
 
     let isAdmin = false
     if (!isHost) {
@@ -140,6 +141,16 @@ export async function PATCH(
     if (body.host_notes !== undefined) updates.host_notes = body.host_notes
     if (body.session_summary !== undefined) updates.session_summary = body.session_summary
     if (body.feedback_rating !== undefined) updates.feedback_rating = body.feedback_rating
+    if (body.recording_playback_start_seconds !== undefined) {
+      const v = body.recording_playback_start_seconds
+      if (v !== null && (typeof v !== 'number' || !Number.isFinite(v) || v < 0)) {
+        return NextResponse.json(
+          { error: 'recording_playback_start_seconds must be null or a non-negative number' },
+          { status: 400 }
+        )
+      }
+      updates.recording_playback_start_seconds = v
+    }
 
     // Update session
     const { data: session, error: updateError } = await supabase

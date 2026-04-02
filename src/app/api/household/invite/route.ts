@@ -6,6 +6,7 @@ import {
   getUserHousehold,
   invitePartnerToHousehold,
 } from '@/lib/supabase/household'
+import { OUTBOUND_URL } from '@/lib/urls'
 
 // =====================================================================
 // POST /api/household/invite - Create invitation (admin only)
@@ -105,14 +106,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://vibrationfit.com'
-
     return NextResponse.json({
       invitation: {
         invited_email: email.trim().toLowerCase(),
         status: 'pending',
       },
-      invitation_url: `${appUrl}/household/invite/${result.invitationToken}`,
+      invitation_url: `${OUTBOUND_URL}/household/invite/${result.invitationToken}`,
     })
   } catch (error) {
     console.error('Error in POST /api/household/invite:', error)

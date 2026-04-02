@@ -49,6 +49,7 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
   const [audioRecordings, setAudioRecordings] = useState<any[]>([])
   const [fileToDelete, setFileToDelete] = useState<number | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const [uploadProgress, setUploadProgress] = useState({
     progress: 0,
     status: '',
@@ -149,12 +150,12 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
   const handleSave = async () => {
     if (!entry) return
     
+    setSubmitError(null)
     setSaving(true)
     try {
-      // Get current user
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        alert('Please log in to update a journal entry')
+        setSubmitError('Please log in to update a journal entry.')
         return
       }
 
@@ -201,16 +202,9 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
           )
           
           if (hasCorsError) {
-            alert(
-              `Upload failed: S3 CORS configuration issue detected.\n\n` +
-              `This usually happens with larger files. The system attempted automatic fallback but it also failed.\n\n` +
-              `Please try:\n` +
-              `1. Use smaller images (under 10MB)\n` +
-              `2. Contact support if the issue persists\n\n` +
-              `Technical details: ${errors.map((e: { error?: string }) => e.error).join(', ')}`
-            )
+            setSubmitError('Upload failed due to a configuration issue. Try smaller images (under 10MB) or contact support.')
           } else {
-            alert(`Upload failed: ${errors.map((e: { error?: string }) => e.error).join(', ')}`)
+            setSubmitError(`Upload failed: ${errors.map((e: { error?: string }) => e.error).join(', ')}`)
           }
           return
         }
@@ -241,7 +235,7 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
 
       if (error) {
         console.error('Error updating journal entry:', error)
-        alert('Failed to update journal entry. Please try again.')
+        setSubmitError('Failed to update journal entry. Please try again.')
         setUploadProgress(prev => ({ ...prev, isVisible: false }))
         return
       }
@@ -252,7 +246,7 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
       router.push(`/journal?expand=${entry.id}`)
     } catch (error) {
       console.error('Error updating journal entry:', error)
-      alert('Failed to update journal entry. Please try again.')
+      setSubmitError(error instanceof Error ? error.message : 'Failed to update journal entry. Please try again.')
       setUploadProgress(prev => ({ ...prev, isVisible: false }))
     } finally {
       setSaving(false)
@@ -506,7 +500,13 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
                 isVisible={uploadProgress.isVisible}
               />
 
-              {/* Submit - same as new (Cancel + Save) */}
+              {submitError && (
+                <div className="rounded-xl border border-[#D03739]/40 bg-[#D03739]/10 px-4 py-3 text-sm text-[#FFB4B4]">
+                  {submitError}
+                </div>
+              )}
+
+              {/* Submit */}
               <div className="flex flex-row gap-2 sm:gap-3 justify-end pt-2">
                 <Button
                   type="button"

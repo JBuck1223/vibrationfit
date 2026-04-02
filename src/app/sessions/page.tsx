@@ -29,6 +29,7 @@ import {
 } from '@/lib/design-system/components'
 import type { VideoSession, VideoSessionParticipant } from '@/lib/video/types'
 import { getSessionStatusLabel, isSessionJoinable, formatDuration } from '@/lib/video/types'
+import { isAlignmentGymDirectorySession } from '@/lib/video/alignment-gym-directory'
 
 type SessionWithParticipants = VideoSession & {
   participants?: VideoSessionParticipant[]
@@ -379,7 +380,13 @@ export default function MemberSessionsPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => window.open(session.recording_url!, '_blank')}
+                      onClick={() =>
+                        router.push(
+                          isAlignmentGymDirectorySession(session)
+                            ? `/alignment-gym/${session.id}`
+                            : `/session/${session.id}/recording`
+                        )
+                      }
                     >
                       <Video className="w-3 h-3 mr-1" />
                       Recording

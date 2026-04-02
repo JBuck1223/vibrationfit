@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { checkIsAdmin } from '@/middleware/admin'
 import { RetentionMetrics } from '@/lib/retention/types'
 
 /**
@@ -12,7 +14,7 @@ import { RetentionMetrics } from '@/lib/retention/types'
  * 4. Sessions - "How often am I showing up to live coaching?" (Alignment Gym attendance)
  * 
  * Query params:
- * - userId (optional): Fetch metrics for another user (requires authentication)
+ * - userId (optional): Fetch metrics for another user (admin-only, bypasses RLS)
  * 
  * All metrics are calculated real-time from existing tables.
  * 
@@ -36,6 +38,17 @@ export async function GET(request: NextRequest) {
     // Use the target user ID if provided, otherwise use the authenticated user
     // Resolve "me" alias to the authenticated user's own ID
     const userId = (!targetUserId || targetUserId === 'me') ? user.id : targetUserId
+
+    // When querying another user's data, use the admin client to bypass RLS
+    let db: any = supabase
+    if (userId !== user.id) {
+      const isAdmin = await checkIsAdmin(supabase, user)
+      if (!isAdmin) {
+        return NextResponse.json({ error: 'Admin access required to view other users' }, { status: 403 })
+      }
+      db = createAdminClient()
+    }
+
     const now = new Date()
     const fourWeeksAgo = new Date(now.getTime() - 28 * 24 * 60 * 60 * 1000)
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
@@ -51,22 +64,22 @@ export async function GET(request: NextRequest) {
       creationsData,
     ] = await Promise.all([
       // 1. Sessions - Recent (last 4 weeks)
-      getSessionsRecent(supabase, userId, fourWeeksAgo),
+      getSessionsRecent(db, userId, fourWeeksAgo),
       
       // 2. Sessions - Lifetime
-      getSessionsLifetime(supabase, userId),
+      getSessionsLifetime(db, userId),
       
       // 3. Next upcoming session
-      getNextSession(supabase, userId),
+      getNextSession(db, userId),
       
       // 4. Connections (Vibe Tribe) - gracefully handles missing tables
-      getConnectionsMetrics(supabase, userId, oneWeekAgo),
+      getConnectionsMetrics(db, userId, oneWeekAgo),
       
       // 5. Activations
-      getActivationsMetrics(supabase, userId, thirtyDaysAgo),
+      getActivationsMetrics(db, userId, thirtyDaysAgo),
       
       // 6. Creations
-      getCreationsMetrics(supabase, userId, thirtyDaysAgo),
+      getCreationsMetrics(db, userId, thirtyDaysAgo),
     ])
 
     const metrics: RetentionMetrics = {
@@ -100,7 +113,7 @@ export async function GET(request: NextRequest) {
  * Get sessions attended in the last 4 weeks
  */
 async function getSessionsRecent(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: any,
   userId: string,
   fourWeeksAgo: Date
 ): Promise<number> {
@@ -122,7 +135,7 @@ async function getSessionsRecent(
  * Get total lifetime sessions attended
  */
 async function getSessionsLifetime(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: any,
   userId: string
 ): Promise<number> {
   const { count, error } = await supabase
@@ -142,7 +155,7 @@ async function getSessionsLifetime(
  * Get the next upcoming session the user is invited to
  */
 async function getNextSession(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: any,
   userId: string
 ): Promise<{ title: string; scheduledAt: string } | undefined> {
   const now = new Date().toISOString()
@@ -185,7 +198,7 @@ async function getNextSession(
  * Gracefully handles missing tables (returns zeros)
  */
 async function getConnectionsMetrics(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: any,
   userId: string,
   oneWeekAgo: Date
 ): Promise<{
@@ -296,7 +309,7 @@ async function getConnectionsMetrics(
  * - Post in Vibe Tribe
  */
 async function getActivationsMetrics(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: any,
   userId: string,
   thirtyDaysAgo: Date
 ): Promise<{
@@ -446,7 +459,7 @@ async function getActivationsMetrics(
  * Get creation metrics (visions, audios, board items, journal entries, daily papers, abundance events)
  */
 async function getCreationsMetrics(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: any,
   userId: string,
   thirtyDaysAgo: Date
 ): Promise<{
