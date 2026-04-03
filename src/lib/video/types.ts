@@ -136,6 +136,7 @@ export interface CreateSessionRequest {
   // Dynamic scheduling fields
   staff_id?: string
   event_type?: string
+  repeat_weekly_count?: number
 }
 
 export interface CreateSessionResponse {

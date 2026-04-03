@@ -76,15 +76,17 @@ export async function POST(request: NextRequest) {
       hostName = account?.full_name || account?.first_name || user.email || 'Host'
     }
 
-    // Create session in database (no Daily.co room yet -- created on demand at join time)
-    const { data: session, error: sessionError } = await supabase
-      .from('video_sessions')
-      .insert({
+    // Build rows for all sessions (1 base + N-1 weekly repeats)
+    const repeatCount = Math.min(Math.max(body.repeat_weekly_count ?? 1, 1), 52)
+    const sessionRows = Array.from({ length: repeatCount }, (_, i) => {
+      const date = new Date(scheduledAt)
+      date.setDate(date.getDate() + i * 7)
+      return {
         title: body.title,
         description: body.description,
         session_type: sessionType,
-        status: 'scheduled',
-        scheduled_at: body.scheduled_at,
+        status: 'scheduled' as const,
+        scheduled_at: date.toISOString(),
         scheduled_duration_minutes: durationMinutes,
         host_user_id: hostUserId,
         enable_recording: body.enable_recording ?? true,
@@ -93,25 +95,34 @@ export async function POST(request: NextRequest) {
         is_group_session: sessionType !== 'one_on_one',
         staff_id: body.staff_id || null,
         event_type: body.event_type || null,
-      })
-      .select()
-      .single()
+      }
+    })
 
-    if (sessionError) {
+    // Create session(s) in database (no Daily.co room yet -- created on demand at join time)
+    const { data: sessions, error: sessionError } = await supabase
+      .from('video_sessions')
+      .insert(sessionRows)
+      .select()
+
+    if (sessionError || !sessions?.length) {
       console.error('Error creating session in database:', sessionError)
       return NextResponse.json(
-        { error: `Database error: ${sessionError.message}` },
+        { error: `Database error: ${sessionError?.message ?? 'No rows returned'}` },
         { status: 500 }
       )
     }
 
-    // Add host as participant
-    await supabase.from('video_session_participants').insert({
-      session_id: session.id,
-      user_id: hostUserId,
-      name: hostName,
-      is_host: true,
-    })
+    const session = sessions[0]
+
+    // Add host as participant for every created session
+    await supabase.from('video_session_participants').insert(
+      sessions.map(s => ({
+        session_id: s.id,
+        user_id: hostUserId,
+        name: hostName,
+        is_host: true,
+      }))
+    )
 
     // Add invited participant if provided
     if (body.participant_user_id || body.participant_email || body.participant_name) {
@@ -267,7 +278,7 @@ export async function POST(request: NextRequest) {
       room_url: '',
     }
 
-    return NextResponse.json(response, { status: 201 })
+    return NextResponse.json({ ...response, created_count: sessions.length }, { status: 201 })
   } catch (error) {
     console.error('Error in POST /api/video/sessions:', error)
     return NextResponse.json(

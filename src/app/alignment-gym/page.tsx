@@ -199,6 +199,12 @@ export default function AlignmentGymPage() {
     s.status === 'completed' && s.recording_url
   ).sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime())
 
+  const sessionNumberMap = new Map(
+    [...pastSessions]
+      .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())
+      .map((s, i) => [s.id, i + 1])
+  )
+
   // Get next session
   const nextSession = upcomingSessions[0]
   const isLive = nextSession?.status === 'live'
@@ -631,7 +637,9 @@ export default function AlignmentGymPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <h4 className="text-sm font-medium text-white truncate">
-                            {session.title}
+                            {sessionNumberMap.has(session.id)
+                              ? `Session #${sessionNumberMap.get(session.id)}`
+                              : session.title}
                           </h4>
                           {userAttended && (
                             <span title="You attended">
