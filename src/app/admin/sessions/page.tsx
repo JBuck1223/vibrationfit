@@ -91,7 +91,9 @@ function AdminSessionsContent() {
       const searchLower = search.toLowerCase()
       return (
         session.title.toLowerCase().includes(searchLower) ||
-        session.description?.toLowerCase().includes(searchLower)
+        session.description?.toLowerCase().includes(searchLower) ||
+        session.id.toLowerCase().includes(searchLower) ||
+        session.daily_room_name?.toLowerCase().includes(searchLower)
       )
     }
 
@@ -324,6 +326,12 @@ function AdminSessionsContent() {
                               <p className="text-white font-medium">{session.title}</p>
                               <p className="text-xs text-neutral-500">
                                 {getSessionTypeLabel(session.session_type)} · {session.scheduled_duration_minutes}min
+                              </p>
+                              <p className="text-[10px] text-neutral-600 font-mono mt-0.5">
+                                {session.id}
+                                {session.daily_room_name && (
+                                  <span className="text-neutral-700 ml-2">Room: {session.daily_room_name}</span>
+                                )}
                               </p>
                             </div>
                           </div>

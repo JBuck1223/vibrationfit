@@ -92,6 +92,11 @@ export default function AdminSessionDetailPage() {
   const [keyPointsCopied, setKeyPointsCopied] = useState(false)
   const [playbackSkipSeconds, setPlaybackSkipSeconds] = useState('0')
   const [savingPlaybackSkip, setSavingPlaybackSkip] = useState(false)
+  
+  // Participant sync state
+  const [syncingParticipants, setSyncingParticipants] = useState(false)
+  const [syncSteps, setSyncSteps] = useState<Array<{ label: string; status: string; detail?: string }>>([])
+
 
   // Fetch session
   const fetchSession = useCallback(async () => {
@@ -271,6 +276,34 @@ export default function AdminSessionDetailPage() {
       toast.error(err instanceof Error ? err.message : 'Transcription failed', { id: toastId })
     } finally {
       setTranscribing(false)
+    }
+  }
+
+  const syncParticipantsFromDaily = async () => {
+    setSyncingParticipants(true)
+    setSyncSteps([])
+    const toastId = toast.loading('Syncing participants from Daily.co...')
+    try {
+      const res = await fetch('/api/admin/sessions/sync-participants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId }),
+      })
+      const data = await res.json()
+      if (data.steps) setSyncSteps(data.steps)
+
+      if (!res.ok) {
+        toast.error(data.error || 'Sync failed', { id: toastId })
+        return
+      }
+
+      toast.success(`Synced ${data.synced} participant(s)`, { id: toastId })
+      await fetchSession()
+    } catch (err) {
+      console.error('Error syncing participants:', err)
+      toast.error(err instanceof Error ? err.message : 'Sync failed', { id: toastId })
+    } finally {
+      setSyncingParticipants(false)
     }
   }
 
@@ -581,7 +614,7 @@ export default function AdminSessionDetailPage() {
                       onClick={savePlaybackSkip}
                       disabled={savingPlaybackSkip}
                     >
-                      {savingPlaybackSkip ? 'Saving...' : 'Save trim'}
+                      {savingPlaybackSkip ? 'Saving...' : 'Save skip'}
                     </Button>
                   </div>
                   <div className="aspect-video w-full max-w-2xl rounded-xl overflow-hidden bg-black border border-neutral-700 mb-4">
@@ -591,14 +624,36 @@ export default function AdminSessionDetailPage() {
                       className="w-full h-full"
                     />
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open(session.recording_url!, '_blank')}
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Open full file (new tab)
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(session.recording_url!, '_blank')}
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download Recording
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={async () => {
+                        if (!confirm('Remove the recording URL from this session? The file will remain in S3 but the session will no longer link to it.')) return
+                        try {
+                          await fetch(`/api/video/sessions/${sessionId}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ recording_url: null, recording_status: 'none', recording_s3_key: null, daily_recording_id: null }),
+                          })
+                          await fetchSession()
+                        } catch (err) {
+                          console.error('Error removing recording:', err)
+                        }
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Remove Recording
+                    </Button>
+                  </div>
                 </>
               ) : (
                 <div className="space-y-4">
@@ -813,10 +868,46 @@ export default function AdminSessionDetailPage() {
           <div className="space-y-4 md:space-y-6">
             {/* Attendance Analytics */}
             <Card className="p-4 md:p-6">
-              <h2 className="text-base md:text-lg font-medium text-white mb-4 flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-primary-500" />
-                Attendance Analytics
-              </h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-base md:text-lg font-medium text-white flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-primary-500" />
+                  Attendance Analytics
+                </h2>
+                {session.daily_room_name && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={syncParticipantsFromDaily}
+                    disabled={syncingParticipants}
+                  >
+                    {syncingParticipants ? (
+                      <Spinner size="sm" className="mr-2" />
+                    ) : (
+                      <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                    )}
+                    Sync from Daily
+                  </Button>
+                )}
+              </div>
+
+              {syncSteps.length > 0 && (
+                <div className="mb-4 bg-neutral-900 rounded-lg p-3 text-xs space-y-1 max-h-40 overflow-y-auto">
+                  {syncSteps.map((step, i) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <span className={
+                        step.status === 'ok' ? 'text-green-400' :
+                        step.status === 'error' ? 'text-red-400' :
+                        'text-neutral-400'
+                      }>
+                        {step.status === 'ok' ? 'OK' : step.status === 'error' ? 'ERR' : 'i'}
+                      </span>
+                      <span className="text-neutral-300">
+                        {step.label}{step.detail ? `: ${step.detail}` : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
               
               {/* Quick Stats */}
               {(() => {

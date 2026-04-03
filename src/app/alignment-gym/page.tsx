@@ -450,12 +450,6 @@ export default function AlignmentGymPage() {
                     <Video className="w-4 h-4 text-primary-500" />
                     <span>{nextSession.scheduled_duration_minutes} minutes</span>
                   </div>
-                  {(nextSession.participant_count ?? 0) > 0 && (
-                    <div className="flex items-center gap-2 text-neutral-300">
-                      <Users className="w-4 h-4 text-primary-500" />
-                      <span>{nextSession.participant_count} attending</span>
-                    </div>
-                  )}
                 </div>
 
                 {!canJoin && !isLive && (
@@ -653,9 +647,6 @@ export default function AlignmentGymPage() {
                           })}
                           {session.actual_duration_seconds && (
                             <> · {formatDuration(session.actual_duration_seconds)}</>
-                          )}
-                          {session.participant_count && session.participant_count > 0 && (
-                            <> · {session.participant_count} attended</>
                           )}
                         </p>
                       </div>

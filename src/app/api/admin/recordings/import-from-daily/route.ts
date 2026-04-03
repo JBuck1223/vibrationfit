@@ -102,6 +102,10 @@ export async function POST(request: NextRequest) {
     const parsed = parseDailyUrl(daily_url)
     step(`Parsed as ${parsed.type}: ${parsed.id}`)
 
+    // Cloud recordings use "finished", raw-tracks use "ready"
+    const DOWNLOADABLE_STATUSES = ['ready', 'finished']
+    const isDownloadable = (status: string) => DOWNLOADABLE_STATUSES.includes(status)
+
     // Resolve to a recording ID
     let recordingId: string | null = null
     let roomName: string | null = null
@@ -115,9 +119,9 @@ export async function POST(request: NextRequest) {
         roomName = rec.room_name
         recordingDuration = rec.duration || 0
         step(`Recording found: ${rec.id} (room: ${rec.room_name}, status: ${rec.status}, duration: ${rec.duration}s)`)
-        if (rec.status !== 'ready') {
+        if (!isDownloadable(rec.status)) {
           return NextResponse.json(
-            { error: `Recording status is "${rec.status}", not "ready". Try again later.`, steps },
+            { error: `Recording status is "${rec.status}" — not yet downloadable. Try again later.`, steps },
             { status: 422 }
           )
         }
@@ -148,9 +152,9 @@ export async function POST(request: NextRequest) {
               roomName = rec.room_name
               recordingDuration = rec.duration || 0
               step(`Found as recording: ${rec.id} (room: ${rec.room_name}, status: ${rec.status})`)
-              if (rec.status !== 'ready') {
+              if (!isDownloadable(rec.status)) {
                 return NextResponse.json(
-                  { error: `Recording status is "${rec.status}", not "ready".`, steps },
+                  { error: `Recording status is "${rec.status}" — not yet downloadable.`, steps },
                   { status: 422 }
                 )
               }
@@ -173,10 +177,28 @@ export async function POST(request: NextRequest) {
       if (resolvedRoomName && !recordingId) {
         roomName = resolvedRoomName
         step(`Listing recordings for room "${roomName}"...`)
-        const { data: recordings } = await listRecordings(roomName)
-        const readyRecordings = (recordings || []).filter(r => r.status === 'ready')
+        let recordings: Awaited<ReturnType<typeof listRecordings>>['data']
+        try {
+          const result = await listRecordings(roomName)
+          recordings = result.data
+          step(`Daily returned ${recordings?.length ?? 0} recording(s) for this room`)
+          if (recordings && recordings.length > 0) {
+            for (const r of recordings) {
+              step(`  - ${r.id} | status=${r.status} | duration=${r.duration}s | start_ts=${r.start_ts}`)
+            }
+          }
+        } catch (err) {
+          step(`listRecordings API call failed: ${err}`)
+          return NextResponse.json(
+            { error: `Failed to list recordings for room "${roomName}"`, steps },
+            { status: 500 }
+          )
+        }
+
+        const readyRecordings = (recordings || []).filter(r => isDownloadable(r.status))
 
         if (readyRecordings.length === 0) {
+          step(`No downloadable recordings found (need status: ${DOWNLOADABLE_STATUSES.join(' or ')})`)
           return NextResponse.json(
             {
               error: `No ready recordings found for room "${roomName}". Found ${recordings?.length || 0} total recordings.`,

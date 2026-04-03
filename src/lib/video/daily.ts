@@ -80,7 +80,7 @@ export interface DailyRecording {
   id: string
   room_name: string
   start_ts: number
-  status: 'recording' | 'processing' | 'ready' | 'failed'
+  status: 'recording' | 'processing' | 'ready' | 'finished' | 'failed'
   max_participants: number
   duration: number
   tracks?: {
@@ -303,6 +303,21 @@ export interface DailyMeeting {
  */
 export async function getMeeting(meetingId: string): Promise<DailyMeeting> {
   return dailyFetch<DailyMeeting>(`/meetings/${meetingId}`)
+}
+
+/**
+ * List meetings for a room (or all rooms).
+ * Returns participant-level data for each meeting.
+ * https://docs.daily.co/reference/rest-api/meetings/list-meetings
+ */
+export async function listMeetings(
+  roomName?: string
+): Promise<{ data: DailyMeeting[] }> {
+  const params = new URLSearchParams()
+  if (roomName) params.set('room', roomName)
+  const query = params.toString()
+  const endpoint = query ? `/meetings?${query}` : '/meetings'
+  return dailyFetch<{ data: DailyMeeting[] }>(endpoint)
 }
 
 // ============================================================================

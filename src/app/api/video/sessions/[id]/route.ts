@@ -152,6 +152,20 @@ export async function PATCH(
       updates.recording_playback_start_seconds = v
     }
 
+    // Recording management fields (admin use: remove/reassign recordings)
+    if ((body as Record<string, unknown>).recording_url !== undefined) {
+      (updates as Record<string, unknown>).recording_url = (body as Record<string, unknown>).recording_url
+    }
+    if ((body as Record<string, unknown>).recording_status !== undefined) {
+      (updates as Record<string, unknown>).recording_status = (body as Record<string, unknown>).recording_status
+    }
+    if ((body as Record<string, unknown>).recording_s3_key !== undefined) {
+      (updates as Record<string, unknown>).recording_s3_key = (body as Record<string, unknown>).recording_s3_key
+    }
+    if ((body as Record<string, unknown>).daily_recording_id !== undefined) {
+      (updates as Record<string, unknown>).daily_recording_id = (body as Record<string, unknown>).daily_recording_id
+    }
+
     // Update session
     const { data: session, error: updateError } = await supabase
       .from('video_sessions')

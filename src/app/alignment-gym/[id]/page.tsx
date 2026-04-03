@@ -5,14 +5,12 @@ import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft,
   Calendar,
+  ChevronDown,
   Clock,
-  ExternalLink,
-  ListChecks,
   Play,
-  Users,
-  Video,
   CheckCircle,
 } from 'lucide-react'
+import Markdown from 'react-markdown'
 import {
   Container,
   Stack,
@@ -24,7 +22,6 @@ import {
 } from '@/lib/design-system/components'
 import { SessionReplayVideo } from '@/components/video/SessionReplayVideo'
 import { isAlignmentGymDirectorySession } from '@/lib/video/alignment-gym-directory'
-import { parseSessionSummary } from '@/lib/video/session-summary'
 import type { VideoSession, VideoSessionParticipant } from '@/lib/video/types'
 import { formatDuration, isSessionJoinable } from '@/lib/video/types'
 import { createClient } from '@/lib/supabase/client'
@@ -41,9 +38,11 @@ export default function AlignmentGymSessionPage() {
   const sessionId = params?.id as string
 
   const [session, setSession] = useState<NullableSession>(null)
+  const [sessionNumber, setSessionNumber] = useState<number | null>(null)
   const [userId, setUserId] = useState(null as string | null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null as string | null)
+  const [recapOpen, setRecapOpen] = useState(false)
 
   const fetchSession = useCallback(async () => {
     try {
@@ -79,6 +78,23 @@ export default function AlignmentGymSessionPage() {
       .then(({ data: { user } }) => setUserId(user?.id ?? null))
   }, [])
 
+  useEffect(() => {
+    if (!session) return
+    const supabase = createClient()
+    supabase
+      .from('video_sessions')
+      .select('id, scheduled_at')
+      .eq('session_type', 'alignment_gym')
+      .eq('status', 'completed')
+      .not('recording_url', 'is', null)
+      .order('scheduled_at', { ascending: true })
+      .then(({ data }) => {
+        if (!data) return
+        const idx = data.findIndex(s => s.id === session.id)
+        if (idx !== -1) setSessionNumber(idx + 1)
+      })
+  }, [session])
+
   if (loading) {
     return (
       <Container size="xl">
@@ -109,8 +125,6 @@ export default function AlignmentGymSessionPage() {
   }
 
   const scheduledDate = new Date(session.scheduled_at)
-  const attendedCount =
-    session.participants?.filter(p => p.attended).length ?? 0
   const userAttended = session.participants?.some(
     p => p.user_id === userId && p.attended
   )
@@ -119,39 +133,81 @@ export default function AlignmentGymSessionPage() {
   const isLive = session.status === 'live'
   const canJoin = isSessionJoinable(session) || isLive
   const skip = session.recording_playback_start_seconds ?? 0
-  const { intro, bullets } = parseSessionSummary(session.session_summary)
-  const hasSummaryContent = Boolean(intro) || bullets.length > 0
+  const hasSummaryContent = Boolean(session.session_summary?.trim())
 
   return (
     <Container size="xl">
-      <Stack gap="lg" className="py-8 md:py-12">
-        <div className="flex flex-wrap items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => router.push('/alignment-gym')}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Alignment Gym
-          </Button>
-          {userAttended && (
-            <Badge variant="success" className="text-xs">
-              You attended
-            </Badge>
-          )}
-          {isLive && (
-            <Badge variant="success" className="text-xs animate-pulse">
-              Live now
-            </Badge>
-          )}
-        </div>
-
+      <Stack gap="lg">
         <PageHero
-          eyebrow="ALIGNMENT GYM SESSION"
-          title={session.title}
+          eyebrow="THE ALIGNMENT GYM"
+          title={sessionNumber ? `Alignment Gym #${sessionNumber} Replay` : session.title}
           subtitle={
             session.description?.trim()
               ? session.description
               : `Recorded live session${hasReplay ? ' — replay below.' : '.'}`
           }
         >
-          <div className="flex flex-wrap gap-2">
+          {hasReplay && session.recording_url && (
+            <div className="mx-auto w-full max-w-3xl">
+              {skip > 0 && (
+                <p className="text-sm text-neutral-500 mb-3 text-center">
+                  Playback starts {formatDuration(skip)} in to skip pre-session setup.
+                </p>
+              )}
+              <div className="aspect-video w-full rounded-xl overflow-hidden bg-black border border-neutral-800">
+                <SessionReplayVideo
+                  src={session.recording_url}
+                  playbackStartSeconds={skip}
+                  className="w-full h-full"
+                />
+              </div>
+            </div>
+          )}
+          {!hasReplay && session.status === 'completed' && (
+            <p className="text-neutral-400 text-sm text-center">
+              This session is complete but a replay is not available yet. Check back later.
+            </p>
+          )}
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm text-neutral-400">
+            <span className="inline-flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-primary-500 shrink-0" />
+              {scheduledDate.toLocaleDateString(undefined, {
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-primary-500 shrink-0" />
+              {scheduledDate.toLocaleTimeString(undefined, {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+              <span className="text-neutral-500">
+                ({session.scheduled_duration_minutes} min
+                {session.actual_duration_seconds
+                  ? ` · ${formatDuration(session.actual_duration_seconds)} actual`
+                  : ''}
+                )
+              </span>
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => router.push('/alignment-gym')}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Alignment Gym
+            </Button>
+            {userAttended && (
+              <Badge variant="success" className="text-xs">
+                You attended
+              </Badge>
+            )}
+            {isLive && (
+              <Badge variant="success" className="text-xs animate-pulse">
+                Live now
+              </Badge>
+            )}
             {canJoin && (
               <Button
                 variant="primary"
@@ -162,120 +218,97 @@ export default function AlignmentGymSessionPage() {
                 {isLive ? 'Join live' : 'Open session room'}
               </Button>
             )}
-            {hasReplay && session.recording_url && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.open(session.recording_url!, '_blank')}
-              >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Open video file
-              </Button>
-            )}
           </div>
         </PageHero>
 
-        <div className="flex flex-wrap gap-6 text-sm text-neutral-400">
-          <span className="inline-flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-primary-500 shrink-0" />
-            {scheduledDate.toLocaleDateString(undefined, {
-              weekday: 'long',
-              month: 'long',
-              day: 'numeric',
-              year: 'numeric',
-            })}
-          </span>
-          <span className="inline-flex items-center gap-2">
-            <Clock className="w-4 h-4 text-primary-500 shrink-0" />
-            {scheduledDate.toLocaleTimeString(undefined, {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-            <span className="text-neutral-500">
-              ({session.scheduled_duration_minutes} min planned
-              {session.actual_duration_seconds
-                ? ` · ${formatDuration(session.actual_duration_seconds)} actual`
-                : ''}
-              )
-            </span>
-          </span>
-          <span className="inline-flex items-center gap-2">
-            <Users className="w-4 h-4 text-primary-500 shrink-0" />
-            {attendedCount} attended
-          </span>
-        </div>
-
-        {hasReplay && session.recording_url && (
-          <Card className="p-4 md:p-6 overflow-hidden border-neutral-700 bg-neutral-950">
-            <div className="flex items-center gap-2 mb-4">
-              <Video className="w-5 h-5 text-secondary-500" />
-              <h2 className="text-lg font-semibold text-white">Replay</h2>
+        {hasSummaryContent && (
+          <div className="rounded-2xl border-2 border-[#333] bg-[#1F1F1F] overflow-hidden transition-all duration-300 hover:border-[#444]">
+            <button
+              type="button"
+              onClick={() => setRecapOpen(o => !o)}
+              aria-expanded={recapOpen}
+              className="w-full flex items-center justify-between gap-4 py-6 md:p-8 px-6 text-left group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-1 h-8 rounded-full bg-[#39FF14] shrink-0" />
+                <h2 className="text-lg md:text-xl font-bold text-white">
+                  {sessionNumber
+                    ? `Alignment Gym #${sessionNumber} Replay Recap`
+                    : 'Replay Recap'}
+                </h2>
+              </div>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 ${recapOpen ? 'bg-[#39FF14]/20' : 'bg-neutral-700/50 group-hover:bg-neutral-700'}`}>
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform duration-300 ${recapOpen ? 'rotate-180 text-[#39FF14]' : 'text-neutral-400'}`}
+                />
+              </div>
+            </button>
+            <div
+              className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${recapOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
+            >
+              <div className="overflow-hidden">
+                <div className="border-t border-[#333] mx-6 md:mx-8" />
+                <div className="px-6 md:px-8 py-6 md:py-8">
+                  <Markdown
+                    components={{
+                      h1: () => null,
+                      h2: ({ children }) => (
+                        <h2 className="text-xl md:text-2xl font-bold text-white mt-10 mb-4 first:mt-0 border-l-2 border-[#39FF14] pl-4">
+                          {children}
+                        </h2>
+                      ),
+                      h3: ({ children }) => (
+                        <h3 className="text-lg font-semibold text-white mt-8 mb-3">{children}</h3>
+                      ),
+                      p: ({ children }) => (
+                        <p className="text-sm md:text-base text-neutral-300 leading-relaxed mb-4 last:mb-0">
+                          {children}
+                        </p>
+                      ),
+                      strong: ({ children }) => (
+                        <strong className="font-semibold text-white">{children}</strong>
+                      ),
+                      blockquote: ({ children }) => (
+                        <blockquote className="border-l-2 border-[#00FFFF]/40 pl-4 md:pl-6 my-6 italic text-neutral-400">
+                          {children}
+                        </blockquote>
+                      ),
+                      ul: ({ children }) => (
+                        <ul className="space-y-2.5 my-4">{children}</ul>
+                      ),
+                      li: ({ children }) => (
+                        <li className="flex gap-3 text-sm md:text-base text-neutral-200 leading-relaxed">
+                          <CheckCircle className="w-4 h-4 text-[#39FF14] shrink-0 mt-1" />
+                          <span>{children}</span>
+                        </li>
+                      ),
+                      a: ({ href, children }) => (
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#00FFFF] hover:text-[#00FFFF]/80 underline underline-offset-2 transition-colors duration-300"
+                        >
+                          {children}
+                        </a>
+                      ),
+                    }}
+                  >
+                    {session.session_summary}
+                  </Markdown>
+                </div>
+              </div>
             </div>
-            {skip > 0 && (
-              <p className="text-sm text-neutral-500 mb-4">
-                Playback starts {formatDuration(skip)} in. Use &quot;Open video file&quot; above if you need the full recording from the start.
-              </p>
-            )}
-            <div className="aspect-video w-full rounded-xl overflow-hidden bg-black border border-neutral-800">
-              <SessionReplayVideo
-                src={session.recording_url}
-                playbackStartSeconds={skip}
-                className="w-full h-full"
-              />
-            </div>
-          </Card>
+          </div>
         )}
 
-        {!hasReplay && session.status === 'completed' && (
-          <Card className="p-6 border-neutral-700 bg-neutral-900/40">
-            <p className="text-neutral-400 text-sm">
-              This session is complete but a replay is not available yet. Check back later.
+        {session.host_notes?.trim() && (
+          <Card className="p-6 border-neutral-700">
+            <h2 className="text-base font-semibold text-white mb-3">Coach notes</h2>
+            <p className="text-sm text-neutral-400 whitespace-pre-wrap leading-relaxed">
+              {session.host_notes}
             </p>
           </Card>
-        )}
-
-        {(hasSummaryContent || session.host_notes?.trim()) && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {hasSummaryContent && (
-              <Card className="p-6 md:p-8 lg:col-span-2 border-neutral-700">
-                <div className="flex items-center gap-2 mb-4">
-                  <ListChecks className="w-5 h-5 text-primary-500" />
-                  <h2 className="text-lg font-semibold text-white">Session recap</h2>
-                </div>
-                {intro ? (
-                  <p className="text-neutral-300 text-sm md:text-base leading-relaxed whitespace-pre-wrap mb-6">
-                    {intro}
-                  </p>
-                ) : null}
-                {bullets.length > 0 ? (
-                  <ul className="space-y-3">
-                    {bullets.map((item, i) => (
-                      <li
-                        key={i}
-                        className="flex gap-3 text-sm md:text-base text-neutral-200 leading-relaxed"
-                      >
-                        <CheckCircle className="w-5 h-5 text-primary-500 shrink-0 mt-0.5" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : !intro ? (
-                  <p className="text-neutral-500 text-sm">
-                    A recap will appear here when it is added to this session.
-                  </p>
-                ) : null}
-              </Card>
-            )}
-
-            {session.host_notes?.trim() && (
-              <Card className="p-6 border-neutral-700">
-                <h2 className="text-base font-semibold text-white mb-3">Coach notes</h2>
-                <p className="text-sm text-neutral-400 whitespace-pre-wrap leading-relaxed">
-                  {session.host_notes}
-                </p>
-              </Card>
-            )}
-          </div>
         )}
 
         {!hasSummaryContent && !session.host_notes?.trim() && hasReplay && (

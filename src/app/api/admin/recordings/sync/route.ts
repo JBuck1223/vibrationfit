@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
         if (!recordings || recordings.length === 0) continue
 
         for (const recording of recordings) {
-          if (recording.status !== 'ready') continue
+          if (recording.status !== 'ready' && recording.status !== 'finished') continue
 
           // Check if we already have this recording in S3
           const s3Key = `session-recordings/${session.daily_room_name}/${recording.id}.mp4`

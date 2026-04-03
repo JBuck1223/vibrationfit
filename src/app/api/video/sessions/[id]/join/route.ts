@@ -65,18 +65,20 @@ export async function POST(
       }
     }
 
-    // Alignment Gym sessions are open to all authenticated users
-    // Auto-add them as a participant if they aren't already
+    // Alignment Gym sessions are open to all authenticated users.
+    // Use admin client to bypass RLS — the RLS-bound client silently
+    // drops insert errors, causing participants to get a 403 instead.
     if (!isHost && !participant && session.session_type === 'alignment_gym') {
-      const { data: account } = await supabase
+      const { data: acct } = await supabase
         .from('user_accounts')
         .select('first_name, full_name')
         .eq('id', user.id)
         .single()
 
-      const name = account?.full_name || account?.first_name || user.email || 'Member'
+      const name = acct?.full_name || acct?.first_name || user.email || 'Member'
 
-      const { data: newParticipant } = await supabase
+      const admin = createAdminClient()
+      const { data: newParticipant, error: insertErr } = await admin
         .from('video_session_participants')
         .insert({
           session_id: id,
@@ -86,6 +88,10 @@ export async function POST(
         })
         .select()
         .single()
+
+      if (insertErr) {
+        console.error('[join] Failed to auto-enroll alignment_gym participant:', insertErr.message)
+      }
 
       participant = newParticipant
     }
