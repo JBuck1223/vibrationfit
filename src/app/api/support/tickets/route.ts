@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
         htmlBody: emailData.htmlBody,
         textBody: emailData.textBody,
         replyTo: 'team@vibrationfit.com',
-        context: { userId: ticketUserId, guestEmail: !ticketUserId ? email : undefined },
+        context: { userId: ticketUserId || undefined, guestEmail: !ticketUserId ? email : undefined },
       })
     } catch (emailError: unknown) {
       console.error('Failed to send confirmation email:', emailError)

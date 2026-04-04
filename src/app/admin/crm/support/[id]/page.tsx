@@ -16,7 +16,7 @@ import {
   Select,
   Video,
 } from '@/lib/design-system/components'
-import { ArrowLeft, Send, MessageSquare, User, Calendar, Hash, Monitor, Pencil, X, Check, Trash2 } from 'lucide-react'
+import { ArrowLeft, Send, MessageSquare, User, Calendar, Hash, Monitor, Pencil, X, Check, Trash2, Mic } from 'lucide-react'
 import { MediaRecorderComponent } from '@/components/MediaRecorder'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { toast } from 'sonner'
