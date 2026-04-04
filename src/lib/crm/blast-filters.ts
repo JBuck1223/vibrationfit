@@ -111,15 +111,23 @@ async function queryMembers(
   supabase: ReturnType<typeof createAdminClient>,
   filters: BlastFilters
 ): Promise<BlastRecipient[]> {
-  const { data: profiles } = await supabase
+  const { data: profiles, error: profilesError } = await supabase
     .from('user_profiles')
-    .select('user_id, first_name, last_name, email')
+    .select('user_id')
     .eq('is_active', true)
     .eq('is_draft', false)
 
-  if (!profiles || profiles.length === 0) return []
+  if (profilesError) {
+    console.error('[queryMembers] user_profiles query error:', profilesError)
+    return []
+  }
+  if (!profiles || profiles.length === 0) {
+    console.warn('[queryMembers] No active non-draft profiles found')
+    return []
+  }
 
   const userIds = profiles.map((p) => p.user_id)
+  console.log(`[queryMembers] Found ${profiles.length} active profiles, applying filters:`, JSON.stringify(filters))
 
   const needsActivityFilter =
     filters.engagement_status ||
@@ -134,8 +142,6 @@ async function queryMembers(
   const needsTierFilter = !!filters.subscription_tier
   const needsSubscriptionStatusFilter = !!filters.subscription_status
   const needsIntensiveFilter = !!filters.intensive_status
-  const needsAccountFilter =
-    filters.has_phone || filters.sms_opt_in || filters.email_opt_in
 
   const [activityResult, subscriptionResult, authResult, intensiveResult, accountResult] = await Promise.all([
     needsActivityFilter
@@ -143,28 +149,36 @@ async function queryMembers(
           .from('user_activity_metrics')
           .select('user_id, engagement_status, health_status, custom_tags, days_since_last_login, vision_count, journal_entry_count, profile_completion_percent')
           .in('user_id', userIds)
-      : Promise.resolve({ data: null }),
+      : Promise.resolve({ data: null, error: null }),
     (needsTierFilter || needsSubscriptionStatusFilter)
       ? supabase
           .from('customer_subscriptions')
           .select('user_id, status, membership_tiers(name)')
           .in('user_id', userIds)
-      : Promise.resolve({ data: null }),
+      : Promise.resolve({ data: null, error: null }),
     (filters.created_after || filters.created_before)
       ? supabase.auth.admin.listUsers({ perPage: 1000 })
-      : Promise.resolve({ data: null }),
+      : Promise.resolve({ data: null, error: null }),
     needsIntensiveFilter
       ? supabase
           .from('intensive_checklist')
           .select('user_id, status, unlock_completed')
           .in('user_id', userIds)
-      : Promise.resolve({ data: null }),
-    // Always fetch accounts for phone/sms data on recipients
+      : Promise.resolve({ data: null, error: null }),
     supabase
       .from('user_accounts')
-      .select('id, phone, sms_opt_in, email_opt_in')
+      .select('id, email, first_name, last_name, phone, sms_opt_in, email_opt_in')
       .in('id', userIds),
   ])
+
+  if ((intensiveResult as { error?: unknown }).error) {
+    console.error('[queryMembers] intensive_checklist query error:', (intensiveResult as { error: unknown }).error)
+  }
+  if ((accountResult as { error?: unknown }).error) {
+    console.error('[queryMembers] user_accounts query error:', (accountResult as { error: unknown }).error)
+  }
+
+  console.log(`[queryMembers] Data loaded — accounts: ${accountResult.data?.length ?? 'null'}, intensive: ${intensiveResult.data?.length ?? 'null'}`)
 
   const activityMap = new Map<string, Record<string, unknown>>()
   if (activityResult.data) {
@@ -208,10 +222,21 @@ async function queryMembers(
     }
   }
 
-  const accountMap = new Map<string, { phone: string | null; sms_opt_in: boolean; email_opt_in: boolean }>()
+  interface AccountRecord {
+    email: string | null
+    first_name: string | null
+    last_name: string | null
+    phone: string | null
+    sms_opt_in: boolean
+    email_opt_in: boolean
+  }
+  const accountMap = new Map<string, AccountRecord>()
   if (accountResult.data) {
     for (const a of accountResult.data) {
       accountMap.set(a.id, {
+        email: a.email || null,
+        first_name: a.first_name || null,
+        last_name: a.last_name || null,
         phone: a.phone || null,
         sms_opt_in: a.sms_opt_in ?? false,
         email_opt_in: a.email_opt_in ?? true,
@@ -219,9 +244,10 @@ async function queryMembers(
     }
   }
 
-  return profiles
+  const filtered = profiles
     .filter((p) => {
-      if (!p.email) return false
+      const account = accountMap.get(p.user_id)
+      if (!account?.email) return false
 
       if (needsActivityFilter) {
         const activity = activityMap.get(p.user_id)
@@ -293,23 +319,18 @@ async function queryMembers(
         }
       }
 
-      if (needsAccountFilter) {
-        const account = accountMap.get(p.user_id)
-        if (filters.has_phone) {
-          const hasPhone = !!account?.phone
-          if (filters.has_phone === 'yes' && !hasPhone) return false
-          if (filters.has_phone === 'no' && hasPhone) return false
-        }
-        if (filters.sms_opt_in) {
-          const opted = account?.sms_opt_in ?? false
-          if (filters.sms_opt_in === 'yes' && !opted) return false
-          if (filters.sms_opt_in === 'no' && opted) return false
-        }
-        if (filters.email_opt_in) {
-          const opted = account?.email_opt_in ?? true
-          if (filters.email_opt_in === 'yes' && !opted) return false
-          if (filters.email_opt_in === 'no' && opted) return false
-        }
+      if (filters.has_phone) {
+        const hasPhone = !!account.phone
+        if (filters.has_phone === 'yes' && !hasPhone) return false
+        if (filters.has_phone === 'no' && hasPhone) return false
+      }
+      if (filters.sms_opt_in) {
+        if (filters.sms_opt_in === 'yes' && !account.sms_opt_in) return false
+        if (filters.sms_opt_in === 'no' && account.sms_opt_in) return false
+      }
+      if (filters.email_opt_in) {
+        if (filters.email_opt_in === 'yes' && !account.email_opt_in) return false
+        if (filters.email_opt_in === 'no' && account.email_opt_in) return false
       }
 
       if (filters.created_after || filters.created_before) {
@@ -322,17 +343,20 @@ async function queryMembers(
       return true
     })
     .map((p) => {
-      const account = accountMap.get(p.user_id)
+      const account = accountMap.get(p.user_id)!
       return {
-        email: p.email!,
-        name: [p.first_name, p.last_name].filter(Boolean).join(' ') || p.email!,
-        firstName: p.first_name || '',
+        email: account.email!,
+        name: [account.first_name, account.last_name].filter(Boolean).join(' ') || account.email!,
+        firstName: account.first_name || '',
         type: 'member' as const,
         userId: p.user_id,
-        phone: account?.phone || undefined,
-        smsOptIn: account?.sms_opt_in ?? false,
+        phone: account.phone || undefined,
+        smsOptIn: account.sms_opt_in,
       }
     })
+
+  console.log(`[queryMembers] ${profiles.length} profiles → ${filtered.length} recipients after filters`)
+  return filtered
 }
 
 async function queryLeads(

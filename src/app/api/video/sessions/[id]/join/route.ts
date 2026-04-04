@@ -142,7 +142,7 @@ export async function POST(
     if (isHost) {
       token = await createHostToken(room.name, user.id, userName, session.session_type)
     } else {
-      token = await createParticipantToken(room.name, user.id, userName)
+      token = await createParticipantToken(room.name, user.id, userName, session.session_type)
     }
 
     // Update participant record with user_id if they were invited by email
