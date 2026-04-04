@@ -18,6 +18,7 @@ import {
 } from '@/lib/design-system/components'
 import { ArrowLeft, Send, MessageSquare, User, Calendar, Hash, Monitor, Pencil, X, Check, Trash2 } from 'lucide-react'
 import { MediaRecorderComponent } from '@/components/MediaRecorder'
+import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { toast } from 'sonner'
 
 interface Ticket {
@@ -61,12 +62,14 @@ export default function SupportTicketDetailPage() {
   const [updating, setUpdating] = useState(false)
   const [showRecorder, setShowRecorder] = useState(false)
   const [recorderKey, setRecorderKey] = useState(0)
-  const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null)
+  const [attachmentUrls, setAttachmentUrls] = useState<string[]>([])
   const [editingReplyId, setEditingReplyId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
   const [editAttachments, setEditAttachments] = useState<string[]>([])
   const [showEditRecorder, setShowEditRecorder] = useState(false)
   const [editRecorderKey, setEditRecorderKey] = useState(0)
+  const [showEditAudioRecorder, setShowEditAudioRecorder] = useState(false)
+  const [editAudioRecorderKey, setEditAudioRecorderKey] = useState(0)
   const [savingEdit, setSavingEdit] = useState(false)
 
   useEffect(() => {
@@ -108,14 +111,13 @@ export default function SupportTicketDetailPage() {
 
     setSending(true)
     try {
-      const attachments = attachmentUrl ? [attachmentUrl] : []
       const response = await fetch(`/api/support/tickets/${ticketId}/replies`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           reply: replyText,
           is_internal: isInternal,
-          attachments,
+          attachments: attachmentUrls,
         }),
       })
 
@@ -123,7 +125,7 @@ export default function SupportTicketDetailPage() {
 
       setReplyText('')
       setIsInternal(false)
-      setAttachmentUrl(null)
+      setAttachmentUrls([])
       setShowRecorder(false)
       await fetchReplies()
     } catch (error) {
@@ -146,6 +148,7 @@ export default function SupportTicketDetailPage() {
     setEditText('')
     setEditAttachments([])
     setShowEditRecorder(false)
+    setShowEditAudioRecorder(false)
   }
 
   async function handleSaveEdit() {
@@ -260,6 +263,12 @@ export default function SupportTicketDetailPage() {
       default:
         return 'bg-neutral-600'
     }
+  }
+
+  function isAudioAttachment(url: string) {
+    const lower = url.toLowerCase()
+    return lower.includes('audio-recording') || lower.endsWith('.mp3') ||
+      lower.endsWith('.wav') || lower.endsWith('.ogg') || lower.endsWith('.m4a')
   }
 
   if (loading) {
@@ -389,37 +398,52 @@ export default function SupportTicketDetailPage() {
           </h2>
 
           <div className="space-y-4">
-            <Textarea
+            <RecordingTextarea
               value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
-              placeholder="Type your reply here..."
+              onChange={setReplyText}
+              placeholder="Type your reply here... or tap the mic to record a voice memo"
               rows={6}
-              className="w-full"
+              recordingPurpose="quick"
+              storageFolder="journal"
+              category="support-reply"
+              instanceId={`support-reply-${ticketId}`}
+              onAudioSaved={(audioUrl) => {
+                setAttachmentUrls(prev => [...prev, audioUrl])
+              }}
             />
 
-            {/* Attachment preview */}
-            {attachmentUrl && (
-              <div className="flex items-start gap-3 p-3 bg-neutral-900 rounded-xl border border-[#333]">
-                <div className="w-48 shrink-0">
-                  <Video src={attachmentUrl} variant="card" preload="metadata" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-neutral-300 truncate">Screen recording attached</p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setAttachmentUrl(null)}
-                    className="text-red-400 hover:text-red-300 mt-1 flex items-center gap-1"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                    Remove
-                  </Button>
-                </div>
+            {/* Attachment previews */}
+            {attachmentUrls.length > 0 && (
+              <div className="space-y-2">
+                {attachmentUrls.map((url, idx) => (
+                  <div key={idx} className="flex items-start gap-3 p-3 bg-neutral-900 rounded-xl border border-[#333]">
+                    {isAudioAttachment(url) ? (
+                      <div className="flex-1 min-w-0">
+                        <audio src={url} controls className="w-full" preload="metadata" />
+                      </div>
+                    ) : (
+                      <div className="w-48 shrink-0">
+                        <Video src={url} variant="card" preload="metadata" />
+                      </div>
+                    )}
+                    <div className="shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setAttachmentUrls(prev => prev.filter((_, i) => i !== idx))}
+                        className="text-red-400 hover:text-red-300 flex items-center gap-1"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 
             {/* Screen recorder */}
-            {showRecorder && !attachmentUrl && (
+            {showRecorder && (
               <div className="border border-[#333] rounded-xl p-4">
                 <MediaRecorderComponent
                   key={`reply-recorder-${recorderKey}`}
@@ -433,7 +457,7 @@ export default function SupportTicketDetailPage() {
                   showSaveOption={false}
                   onRecordingComplete={(_blob, _transcript, _save, s3Url) => {
                     if (s3Url) {
-                      setAttachmentUrl(s3Url)
+                      setAttachmentUrls(prev => [...prev, s3Url])
                       setShowRecorder(false)
                     }
                   }}
@@ -453,20 +477,18 @@ export default function SupportTicketDetailPage() {
                   Internal note
                 </label>
 
-                {!attachmentUrl && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      if (!showRecorder) setRecorderKey(k => k + 1)
-                      setShowRecorder(!showRecorder)
-                    }}
-                    className="flex items-center gap-2 text-neutral-400 hover:text-white"
-                  >
-                    <Monitor className="w-4 h-4" />
-                    {showRecorder ? 'Hide Recorder' : 'Record Screen'}
-                  </Button>
-                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    if (!showRecorder) setRecorderKey(k => k + 1)
+                    setShowRecorder(!showRecorder)
+                  }}
+                  className="flex items-center gap-2 text-neutral-400 hover:text-white"
+                >
+                  <Monitor className="w-4 h-4" />
+                  {showRecorder ? 'Hide Recorder' : 'Record Screen'}
+                </Button>
               </div>
 
               <Button
@@ -537,12 +559,18 @@ export default function SupportTicketDetailPage() {
                           className="w-full"
                         />
 
-                        {/* Existing video attachments in edit mode */}
+                        {/* Existing attachments in edit mode */}
                         {editAttachments.map((url, idx) => (
                           <div key={idx} className="flex items-start gap-3 p-3 bg-neutral-800 rounded-lg">
-                            <div className="w-48 shrink-0">
-                              <Video src={url} variant="card" preload="metadata" />
-                            </div>
+                            {isAudioAttachment(url) ? (
+                              <div className="flex-1 min-w-0">
+                                <audio src={url} controls className="w-full" preload="metadata" />
+                              </div>
+                            ) : (
+                              <div className="w-48 shrink-0">
+                                <Video src={url} variant="card" preload="metadata" />
+                              </div>
+                            )}
                             <Button
                               variant="ghost"
                               size="sm"
@@ -578,19 +606,59 @@ export default function SupportTicketDetailPage() {
                           </div>
                         )}
 
+                        {/* Add voice memo in edit mode */}
+                        {showEditAudioRecorder && (
+                          <div className="border border-[#333] rounded-xl p-4">
+                            <MediaRecorderComponent
+                              key={`edit-audio-${editAudioRecorderKey}`}
+                              instanceId={`support-edit-audio-${editAudioRecorderKey}`}
+                              mode="audio"
+                              recordingPurpose="support"
+                              storageFolder="supportAudioRecordings"
+                              submitLabel="Attach Voice Memo"
+                              fullscreenVideo={false}
+                              maxDuration={300}
+                              showSaveOption={false}
+                              enableEditor={false}
+                              onRecordingComplete={(_blob, _transcript, _save, s3Url) => {
+                                if (s3Url) {
+                                  setEditAttachments([...editAttachments, s3Url])
+                                  setShowEditAudioRecorder(false)
+                                }
+                              }}
+                            />
+                          </div>
+                        )}
+
                         <div className="flex items-center justify-between">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              if (!showEditRecorder) setEditRecorderKey(k => k + 1)
-                              setShowEditRecorder(!showEditRecorder)
-                            }}
-                            className="flex items-center gap-2 text-neutral-400 hover:text-white"
-                          >
-                            <Monitor className="w-4 h-4" />
-                            {showEditRecorder ? 'Hide Recorder' : 'Add Video'}
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                if (!showEditAudioRecorder) setEditAudioRecorderKey(k => k + 1)
+                                setShowEditAudioRecorder(!showEditAudioRecorder)
+                                setShowEditRecorder(false)
+                              }}
+                              className="flex items-center gap-2 text-neutral-400 hover:text-white"
+                            >
+                              <Mic className="w-4 h-4" />
+                              {showEditAudioRecorder ? 'Hide Recorder' : 'Voice Memo'}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                if (!showEditRecorder) setEditRecorderKey(k => k + 1)
+                                setShowEditRecorder(!showEditRecorder)
+                                setShowEditAudioRecorder(false)
+                              }}
+                              className="flex items-center gap-2 text-neutral-400 hover:text-white"
+                            >
+                              <Monitor className="w-4 h-4" />
+                              {showEditRecorder ? 'Hide Recorder' : 'Add Video'}
+                            </Button>
+                          </div>
                           <div className="flex items-center gap-2">
                             <Button
                               variant="ghost"
@@ -615,16 +683,20 @@ export default function SupportTicketDetailPage() {
                         </div>
                       </div>
                     ) : (
-                      /* Display Mode - two column: text left, video right */
+                      /* Display Mode - text left, media right */
                       <div className={hasVideo ? 'grid grid-cols-2 gap-6' : ''}>
                         <div>
                           <p className="text-neutral-300 whitespace-pre-wrap">{reply.reply}</p>
                         </div>
                         {hasVideo && (
-                          <div>
-                            {reply.attachments.map((url, idx) => (
-                              <Video key={idx} src={url} variant="card" preload="metadata" />
-                            ))}
+                          <div className="space-y-3">
+                            {reply.attachments.map((url, idx) =>
+                              isAudioAttachment(url) ? (
+                                <audio key={idx} src={url} controls className="w-full" preload="metadata" />
+                              ) : (
+                                <Video key={idx} src={url} variant="card" preload="metadata" />
+                              )
+                            )}
                           </div>
                         )}
                       </div>

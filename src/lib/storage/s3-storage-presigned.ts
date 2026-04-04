@@ -31,8 +31,9 @@ export const USER_FOLDERS = {
   abundance: 'abundance',
   // Stories (for life vision and vision board)
   storyAudioRecordings: 'stories/audio-recordings',
-  // Support requests (screen/video clips)
+  // Support requests (screen/video clips and voice memos)
   supportVideoRecordings: 'support/video-recordings',
+  supportAudioRecordings: 'support/audio-recordings',
 } as const
 
 type UserFolder = keyof typeof USER_FOLDERS

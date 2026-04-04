@@ -23,8 +23,13 @@ export async function POST(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser()
 
-    // Validate required fields
-    if (!body.subject || !body.description) {
+    // Check if this is an admin creating on behalf of a member
+    const auth = await verifyAdminAccess()
+    const isAdmin = !('error' in auth)
+    const isOnBehalf = isAdmin && body.on_behalf_of_user_id
+
+    // Validate required fields (relaxed for admin-created tickets)
+    if (!isAdmin && (!body.subject || !body.description)) {
       return NextResponse.json(
         { error: 'Subject and description are required' },
         { status: 400 }
@@ -32,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     // If no user, require email
-    if (!user && !body.guest_email) {
+    if (!user && !body.guest_email && !isOnBehalf) {
       return NextResponse.json(
         { error: 'Email is required for non-logged-in users' },
         { status: 400 }
@@ -41,14 +46,24 @@ export async function POST(request: NextRequest) {
 
     // Use admin client to bypass RLS for ticket creation
     const adminClient = createAdminClient()
-    
-    // Create ticket - ALWAYS populate guest_email for easy replies
-    const email = user?.email || body.guest_email
+
+    let ticketUserId = user?.id || null
+    let email = user?.email || body.guest_email
+
+    // Admin creating on behalf of a member — look up the member's info
+    if (isOnBehalf) {
+      const { data: memberAuth } = await adminClient.auth.admin.getUserById(body.on_behalf_of_user_id)
+      if (!memberAuth?.user) {
+        return NextResponse.json({ error: 'Member not found' }, { status: 404 })
+      }
+      ticketUserId = body.on_behalf_of_user_id
+      email = memberAuth.user.email || body.guest_email || email
+    }
     
     const { data: ticket, error } = await adminClient
       .from('support_tickets')
       .insert({
-        user_id: user?.id || null,
+        user_id: ticketUserId,
         guest_email: email,
         subject: body.subject,
         description: body.description,
@@ -80,36 +95,37 @@ export async function POST(request: NextRequest) {
         htmlBody: emailData.htmlBody,
         textBody: emailData.textBody,
         replyTo: 'team@vibrationfit.com',
-        context: { userId: user?.id, guestEmail: !user ? email : undefined },
+        context: { userId: ticketUserId, guestEmail: !ticketUserId ? email : undefined },
       })
     } catch (emailError: unknown) {
       console.error('Failed to send confirmation email:', emailError)
-      // Don't fail ticket creation if email fails
     }
 
     triggerEvent('support.ticket_created', {
-      email: ticket.email || user?.email || undefined,
-      userId: user?.id || undefined,
-      name: ticket.name || undefined,
+      email: email || undefined,
+      userId: ticketUserId || undefined,
     }).catch((err) => console.error('triggerEvent error:', err))
 
-    createAdminNotification({
-      type: 'support_ticket',
-      title: `New Support Ticket: ${body.subject}`,
-      body: email || undefined,
-      metadata: { ticketId: ticket.id, subject: body.subject, priority: body.priority || 'normal' },
-      link: '/admin/crm/support/board',
-    }).catch(err => console.error('Admin notification DB error:', err))
+    // Skip admin self-notification when admin creates the ticket
+    if (!isOnBehalf) {
+      createAdminNotification({
+        type: 'support_ticket',
+        title: `New Support Ticket: ${body.subject}`,
+        body: email || undefined,
+        metadata: { ticketId: ticket.id, subject: body.subject, priority: body.priority || 'normal' },
+        link: '/admin/crm/support/board',
+      }).catch(err => console.error('Admin notification DB error:', err))
 
-    sendNotification({
-      slug: 'support_ticket_created',
-      variables: {
-        subject: body.subject,
-        email: email || 'Unknown',
-        priority: body.priority || 'normal',
-        ticketId: ticket.id,
-      },
-    }).catch(err => console.error('Notification error:', err))
+      sendNotification({
+        slug: 'support_ticket_created',
+        variables: {
+          subject: body.subject,
+          email: email || 'Unknown',
+          priority: body.priority || 'normal',
+          ticketId: ticket.id,
+        },
+      }).catch(err => console.error('Notification error:', err))
+    }
 
     return NextResponse.json({ ticket }, { status: 201 })
   } catch (error: unknown) {

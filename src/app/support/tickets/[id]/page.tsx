@@ -109,6 +109,12 @@ export default function TicketDetailPage() {
     })
   }
 
+  function isAudioAttachment(url: string) {
+    const lower = url.toLowerCase()
+    return lower.includes('audio-recording') || lower.endsWith('.mp3') ||
+      lower.endsWith('.wav') || lower.endsWith('.ogg') || lower.endsWith('.m4a')
+  }
+
   function getStatusVariant(status: string): BadgeProps['variant'] {
     switch (status) {
       case 'open': return 'accent'
@@ -225,10 +231,14 @@ export default function TicketDetailPage() {
                         <p className="text-neutral-300 whitespace-pre-wrap">{reply.reply}</p>
                       </div>
                       {hasVideo && (
-                        <div>
-                          {reply.attachments.map((url, idx) => (
-                            <Video key={idx} src={url} variant="card" preload="metadata" />
-                          ))}
+                        <div className="space-y-3">
+                          {reply.attachments.map((url, idx) =>
+                            isAudioAttachment(url) ? (
+                              <audio key={idx} src={url} controls className="w-full" preload="metadata" />
+                            ) : (
+                              <Video key={idx} src={url} variant="card" preload="metadata" />
+                            )
+                          )}
                         </div>
                       )}
                     </div>
