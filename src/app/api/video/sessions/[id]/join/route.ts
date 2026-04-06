@@ -103,7 +103,7 @@ export async function POST(
       )
     }
 
-    // Check session status (no strict time checks - hosts can start anytime)
+    // Check session status
     if (session.status === 'cancelled') {
       return NextResponse.json(
         { error: 'This session was cancelled' },

@@ -354,6 +354,9 @@ export default function SessionPage() {
       <PreCallCheck
         sessionTitle={title}
         hostName={showHostName}
+        isHost={isHost}
+        sessionStatus={session?.status || guestSession?.status}
+        scheduledAt={session?.scheduled_at || guestSession?.scheduled_at}
         onReady={handlePreCallReady}
         onCancel={handleCancel}
       />
