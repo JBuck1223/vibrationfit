@@ -3,7 +3,7 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   Button,
@@ -16,8 +16,10 @@ import {
   Select,
   Video,
 } from '@/lib/design-system/components'
-import { ArrowLeft, Send, MessageSquare, User, Calendar, Hash, Monitor, Pencil, X, Check, Trash2 } from 'lucide-react'
+import { ArrowLeft, Send, MessageSquare, User, Calendar, Hash, Monitor, Pencil, X, Check, Trash2, Mic, Paperclip, FileText } from 'lucide-react'
 import { MediaRecorderComponent } from '@/components/MediaRecorder'
+import { RecordingTextarea } from '@/components/RecordingTextarea'
+import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
 import { toast } from 'sonner'
 
 interface Ticket {
@@ -61,13 +63,19 @@ export default function SupportTicketDetailPage() {
   const [updating, setUpdating] = useState(false)
   const [showRecorder, setShowRecorder] = useState(false)
   const [recorderKey, setRecorderKey] = useState(0)
-  const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null)
+  const [attachmentUrls, setAttachmentUrls] = useState<string[]>([])
   const [editingReplyId, setEditingReplyId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
   const [editAttachments, setEditAttachments] = useState<string[]>([])
   const [showEditRecorder, setShowEditRecorder] = useState(false)
   const [editRecorderKey, setEditRecorderKey] = useState(0)
+  const [showEditAudioRecorder, setShowEditAudioRecorder] = useState(false)
+  const [editAudioRecorderKey, setEditAudioRecorderKey] = useState(0)
   const [savingEdit, setSavingEdit] = useState(false)
+  const [uploadingFile, setUploadingFile] = useState(false)
+  const [uploadingEditFile, setUploadingEditFile] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const editFileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (ticketId) {
@@ -108,14 +116,13 @@ export default function SupportTicketDetailPage() {
 
     setSending(true)
     try {
-      const attachments = attachmentUrl ? [attachmentUrl] : []
       const response = await fetch(`/api/support/tickets/${ticketId}/replies`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           reply: replyText,
           is_internal: isInternal,
-          attachments,
+          attachments: attachmentUrls,
         }),
       })
 
@@ -123,7 +130,7 @@ export default function SupportTicketDetailPage() {
 
       setReplyText('')
       setIsInternal(false)
-      setAttachmentUrl(null)
+      setAttachmentUrls([])
       setShowRecorder(false)
       await fetchReplies()
     } catch (error) {
@@ -146,6 +153,7 @@ export default function SupportTicketDetailPage() {
     setEditText('')
     setEditAttachments([])
     setShowEditRecorder(false)
+    setShowEditAudioRecorder(false)
   }
 
   async function handleSaveEdit() {
@@ -218,6 +226,55 @@ export default function SupportTicketDetailPage() {
     } finally {
       setUpdating(false)
     }
+  }
+
+  async function handleFileUpload(files: FileList | null, target: 'reply' | 'edit') {
+    if (!files || files.length === 0) return
+    const setUploading = target === 'reply' ? setUploadingFile : setUploadingEditFile
+    setUploading(true)
+
+    try {
+      for (const file of Array.from(files)) {
+        const { url } = await uploadUserFile('supportAttachments', file)
+        if (target === 'reply') {
+          setAttachmentUrls(prev => [...prev, url])
+        } else {
+          setEditAttachments(prev => [...prev, url])
+        }
+      }
+      toast.success(`File${files.length > 1 ? 's' : ''} attached`)
+    } catch (error) {
+      console.error('File upload error:', error)
+      toast.error('Failed to upload file')
+    } finally {
+      setUploading(false)
+      if (target === 'reply' && fileInputRef.current) fileInputRef.current.value = ''
+      if (target === 'edit' && editFileInputRef.current) editFileInputRef.current.value = ''
+    }
+  }
+
+  function getAttachmentType(url: string): 'audio' | 'video' | 'image' | 'document' {
+    const lower = url.toLowerCase()
+    if (lower.includes('audio-recording') || lower.endsWith('.mp3') ||
+      lower.endsWith('.wav') || lower.endsWith('.ogg') || lower.endsWith('.m4a')) {
+      return 'audio'
+    }
+    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.png') ||
+      lower.endsWith('.gif') || lower.endsWith('.webp') || lower.endsWith('.heic')) {
+      return 'image'
+    }
+    if (lower.endsWith('.pdf') || lower.endsWith('.doc') || lower.endsWith('.docx') ||
+      lower.endsWith('.xls') || lower.endsWith('.xlsx') || lower.endsWith('.csv') ||
+      lower.endsWith('.txt')) {
+      return 'document'
+    }
+    return 'video'
+  }
+
+  function getFileName(url: string) {
+    const parts = url.split('/')
+    const raw = parts[parts.length - 1]
+    return raw.replace(/^\d+-[a-z0-9]+-/, '')
   }
 
   function formatDate(dateString: string) {
@@ -389,37 +446,66 @@ export default function SupportTicketDetailPage() {
           </h2>
 
           <div className="space-y-4">
-            <Textarea
+            <RecordingTextarea
               value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
-              placeholder="Type your reply here..."
+              onChange={setReplyText}
+              placeholder="Type your reply here... or tap the mic to record a voice memo"
               rows={6}
-              className="w-full"
+              recordingPurpose="quick"
+              storageFolder="journal"
+              category="support-reply"
+              instanceId={`support-reply-${ticketId}`}
+              onAudioSaved={(audioUrl) => {
+                setAttachmentUrls(prev => [...prev, audioUrl])
+              }}
             />
 
-            {/* Attachment preview */}
-            {attachmentUrl && (
-              <div className="flex items-start gap-3 p-3 bg-neutral-900 rounded-xl border border-[#333]">
-                <div className="w-48 shrink-0">
-                  <Video src={attachmentUrl} variant="card" preload="metadata" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-neutral-300 truncate">Screen recording attached</p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setAttachmentUrl(null)}
-                    className="text-red-400 hover:text-red-300 mt-1 flex items-center gap-1"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                    Remove
-                  </Button>
-                </div>
+            {/* Attachment previews */}
+            {attachmentUrls.length > 0 && (
+              <div className="space-y-2">
+                {attachmentUrls.map((url, idx) => {
+                  const type = getAttachmentType(url)
+                  return (
+                    <div key={idx} className="flex items-start gap-3 p-3 bg-neutral-900 rounded-xl border border-[#333]">
+                      {type === 'audio' ? (
+                        <div className="flex-1 min-w-0">
+                          <audio src={url} controls className="w-full" preload="metadata" />
+                        </div>
+                      ) : type === 'image' ? (
+                        <div className="w-48 shrink-0">
+                          <img src={url} alt="Attachment" className="w-full rounded-lg object-cover" />
+                        </div>
+                      ) : type === 'document' ? (
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <FileText className="w-5 h-5 text-neutral-400 shrink-0" />
+                          <a href={url} target="_blank" rel="noopener noreferrer" className="text-sm text-secondary-400 hover:underline truncate">
+                            {getFileName(url)}
+                          </a>
+                        </div>
+                      ) : (
+                        <div className="w-48 shrink-0">
+                          <Video src={url} variant="card" preload="metadata" />
+                        </div>
+                      )}
+                      <div className="shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setAttachmentUrls(prev => prev.filter((_, i) => i !== idx))}
+                          className="text-red-400 hover:text-red-300 flex items-center gap-1"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          Remove
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             )}
 
             {/* Screen recorder */}
-            {showRecorder && !attachmentUrl && (
+            {showRecorder && (
               <div className="border border-[#333] rounded-xl p-4">
                 <MediaRecorderComponent
                   key={`reply-recorder-${recorderKey}`}
@@ -433,13 +519,22 @@ export default function SupportTicketDetailPage() {
                   showSaveOption={false}
                   onRecordingComplete={(_blob, _transcript, _save, s3Url) => {
                     if (s3Url) {
-                      setAttachmentUrl(s3Url)
+                      setAttachmentUrls(prev => [...prev, s3Url])
                       setShowRecorder(false)
                     }
                   }}
                 />
               </div>
             )}
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+              onChange={(e) => handleFileUpload(e.target.files, 'reply')}
+              className="hidden"
+            />
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -453,20 +548,29 @@ export default function SupportTicketDetailPage() {
                   Internal note
                 </label>
 
-                {!attachmentUrl && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      if (!showRecorder) setRecorderKey(k => k + 1)
-                      setShowRecorder(!showRecorder)
-                    }}
-                    className="flex items-center gap-2 text-neutral-400 hover:text-white"
-                  >
-                    <Monitor className="w-4 h-4" />
-                    {showRecorder ? 'Hide Recorder' : 'Record Screen'}
-                  </Button>
-                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingFile}
+                  className="flex items-center gap-2 text-neutral-400 hover:text-white"
+                >
+                  {uploadingFile ? <Spinner size="sm" /> : <Paperclip className="w-4 h-4" />}
+                  {uploadingFile ? 'Uploading...' : 'Attach File'}
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    if (!showRecorder) setRecorderKey(k => k + 1)
+                    setShowRecorder(!showRecorder)
+                  }}
+                  className="flex items-center gap-2 text-neutral-400 hover:text-white"
+                >
+                  <Monitor className="w-4 h-4" />
+                  {showRecorder ? 'Hide Recorder' : 'Record Screen'}
+                </Button>
               </div>
 
               <Button
@@ -537,23 +641,43 @@ export default function SupportTicketDetailPage() {
                           className="w-full"
                         />
 
-                        {/* Existing video attachments in edit mode */}
-                        {editAttachments.map((url, idx) => (
-                          <div key={idx} className="flex items-start gap-3 p-3 bg-neutral-800 rounded-lg">
-                            <div className="w-48 shrink-0">
-                              <Video src={url} variant="card" preload="metadata" />
+                        {/* Existing attachments in edit mode */}
+                        {editAttachments.map((url, idx) => {
+                          const type = getAttachmentType(url)
+                          return (
+                            <div key={idx} className="flex items-start gap-3 p-3 bg-neutral-800 rounded-lg">
+                              {type === 'audio' ? (
+                                <div className="flex-1 min-w-0">
+                                  <audio src={url} controls className="w-full" preload="metadata" />
+                                </div>
+                              ) : type === 'image' ? (
+                                <div className="w-48 shrink-0">
+                                  <img src={url} alt="Attachment" className="w-full rounded-lg object-cover" />
+                                </div>
+                              ) : type === 'document' ? (
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                  <FileText className="w-5 h-5 text-neutral-400 shrink-0" />
+                                  <a href={url} target="_blank" rel="noopener noreferrer" className="text-sm text-secondary-400 hover:underline truncate">
+                                    {getFileName(url)}
+                                  </a>
+                                </div>
+                              ) : (
+                                <div className="w-48 shrink-0">
+                                  <Video src={url} variant="card" preload="metadata" />
+                                </div>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setEditAttachments(editAttachments.filter((_, i) => i !== idx))}
+                                className="text-red-400 hover:text-red-300 flex items-center gap-1"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                                Remove
+                              </Button>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setEditAttachments(editAttachments.filter((_, i) => i !== idx))}
-                              className="text-red-400 hover:text-red-300 flex items-center gap-1"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                              Remove
-                            </Button>
-                          </div>
-                        ))}
+                          )
+                        })}
 
                         {/* Add video in edit mode */}
                         {showEditRecorder && (
@@ -578,19 +702,78 @@ export default function SupportTicketDetailPage() {
                           </div>
                         )}
 
+                        {/* Add voice memo in edit mode */}
+                        {showEditAudioRecorder && (
+                          <div className="border border-[#333] rounded-xl p-4">
+                            <MediaRecorderComponent
+                              key={`edit-audio-${editAudioRecorderKey}`}
+                              instanceId={`support-edit-audio-${editAudioRecorderKey}`}
+                              mode="audio"
+                              recordingPurpose="support"
+                              storageFolder="supportAudioRecordings"
+                              submitLabel="Attach Voice Memo"
+                              fullscreenVideo={false}
+                              maxDuration={300}
+                              showSaveOption={false}
+                              enableEditor={false}
+                              onRecordingComplete={(_blob, _transcript, _save, s3Url) => {
+                                if (s3Url) {
+                                  setEditAttachments([...editAttachments, s3Url])
+                                  setShowEditAudioRecorder(false)
+                                }
+                              }}
+                            />
+                          </div>
+                        )}
+
+                        <input
+                          ref={editFileInputRef}
+                          type="file"
+                          multiple
+                          accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+                          onChange={(e) => handleFileUpload(e.target.files, 'edit')}
+                          className="hidden"
+                        />
+
                         <div className="flex items-center justify-between">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              if (!showEditRecorder) setEditRecorderKey(k => k + 1)
-                              setShowEditRecorder(!showEditRecorder)
-                            }}
-                            className="flex items-center gap-2 text-neutral-400 hover:text-white"
-                          >
-                            <Monitor className="w-4 h-4" />
-                            {showEditRecorder ? 'Hide Recorder' : 'Add Video'}
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => editFileInputRef.current?.click()}
+                              disabled={uploadingEditFile}
+                              className="flex items-center gap-2 text-neutral-400 hover:text-white"
+                            >
+                              {uploadingEditFile ? <Spinner size="sm" /> : <Paperclip className="w-4 h-4" />}
+                              {uploadingEditFile ? 'Uploading...' : 'Attach File'}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                if (!showEditAudioRecorder) setEditAudioRecorderKey(k => k + 1)
+                                setShowEditAudioRecorder(!showEditAudioRecorder)
+                                setShowEditRecorder(false)
+                              }}
+                              className="flex items-center gap-2 text-neutral-400 hover:text-white"
+                            >
+                              <Mic className="w-4 h-4" />
+                              {showEditAudioRecorder ? 'Hide Recorder' : 'Voice Memo'}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                if (!showEditRecorder) setEditRecorderKey(k => k + 1)
+                                setShowEditRecorder(!showEditRecorder)
+                                setShowEditAudioRecorder(false)
+                              }}
+                              className="flex items-center gap-2 text-neutral-400 hover:text-white"
+                            >
+                              <Monitor className="w-4 h-4" />
+                              {showEditRecorder ? 'Hide Recorder' : 'Add Video'}
+                            </Button>
+                          </div>
                           <div className="flex items-center gap-2">
                             <Button
                               variant="ghost"
@@ -615,16 +798,33 @@ export default function SupportTicketDetailPage() {
                         </div>
                       </div>
                     ) : (
-                      /* Display Mode - two column: text left, video right */
+                      /* Display Mode - text left, media right */
                       <div className={hasVideo ? 'grid grid-cols-2 gap-6' : ''}>
                         <div>
                           <p className="text-neutral-300 whitespace-pre-wrap">{reply.reply}</p>
                         </div>
                         {hasVideo && (
-                          <div>
-                            {reply.attachments.map((url, idx) => (
-                              <Video key={idx} src={url} variant="card" preload="metadata" />
-                            ))}
+                          <div className="space-y-3">
+                            {reply.attachments.map((url, idx) => {
+                              const type = getAttachmentType(url)
+                              if (type === 'audio') {
+                                return <audio key={idx} src={url} controls className="w-full" preload="metadata" />
+                              }
+                              if (type === 'image') {
+                                return <img key={idx} src={url} alt="Attachment" className="w-full rounded-lg object-cover" />
+                              }
+                              if (type === 'document') {
+                                return (
+                                  <div key={idx} className="flex items-center gap-2 p-3 bg-neutral-800 rounded-lg">
+                                    <FileText className="w-5 h-5 text-neutral-400 shrink-0" />
+                                    <a href={url} target="_blank" rel="noopener noreferrer" className="text-sm text-secondary-400 hover:underline truncate">
+                                      {getFileName(url)}
+                                    </a>
+                                  </div>
+                                )
+                              }
+                              return <Video key={idx} src={url} variant="card" preload="metadata" />
+                            })}
                           </div>
                         )}
                       </div>

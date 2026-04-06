@@ -2,11 +2,10 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Mail, MessageSquare, User, Send, RefreshCw } from 'lucide-react'
+import { ArrowLeft, MessageSquare, User, Send, RefreshCw } from 'lucide-react'
 import { Button, Spinner } from '@/lib/design-system/components'
 import { ConversationThread } from '@/components/crm/ConversationThread'
 import { useConversationRealtime } from '@/hooks/useConversationRealtime'
-import ComposeEmail from '@/components/admin/inbox/ComposeEmail'
 import ComposeSMS from '@/components/admin/inbox/ComposeSMS'
 
 interface Contact {
@@ -25,7 +24,7 @@ export default function SMSDetailPage() {
   const [contact, setContact] = useState<Contact | null>(null)
   const [conversation, setConversation] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [showReply, setShowReply] = useState<'email' | 'sms' | null>(null)
+  const [showReply, setShowReply] = useState(false)
 
   const fetchDetail = useCallback(async () => {
     try {
@@ -67,6 +66,8 @@ export default function SMSDetailPage() {
           <ArrowLeft className="w-4 h-4" />
         </button>
 
+        <MessageSquare className="w-4 h-4 text-[#BF00FF] shrink-0" />
+
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <User className="w-4 h-4 text-neutral-500 shrink-0" />
@@ -74,20 +75,11 @@ export default function SMSDetailPage() {
               {contact?.name || contact?.phone || 'Unknown Contact'}
             </h2>
           </div>
-          <div className="flex items-center gap-3 mt-0.5">
-            {contact?.phone && (
-              <span className="text-xs text-neutral-500 flex items-center gap-1">
-                <MessageSquare className="w-3 h-3" />
-                {contact.phone}
-              </span>
-            )}
-            {contact?.email && (
-              <span className="text-xs text-neutral-500 flex items-center gap-1">
-                <Mail className="w-3 h-3" />
-                {contact.email}
-              </span>
-            )}
-          </div>
+          {contact?.phone && (
+            <span className="text-xs text-neutral-500 mt-0.5 block truncate">
+              {contact.phone}
+            </span>
+          )}
         </div>
 
         <button
@@ -101,6 +93,7 @@ export default function SMSDetailPage() {
 
       {/* Stats */}
       <div className="flex items-center gap-4 px-4 py-2 border-b border-[#1A1A1A]">
+        <span className="text-xs text-[#BF00FF]/70 font-medium">SMS Thread</span>
         <span className="text-xs text-neutral-500">
           {conversation.length} message{conversation.length !== 1 ? 's' : ''}
         </span>
@@ -112,7 +105,7 @@ export default function SMSDetailPage() {
         </span>
       </div>
 
-      {/* Conversation Thread */}
+      {/* SMS Thread (newest first -- already sorted by API) */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <ConversationThread messages={conversation} loading={loading} />
       </div>
@@ -121,32 +114,19 @@ export default function SMSDetailPage() {
       <div className="border-t border-[#222] bg-[#0D0D0D]">
         {showReply ? (
           <div className="max-h-[400px] overflow-y-auto">
-            {showReply === 'sms' ? (
-              <ComposeSMS
-                defaultTo={contact?.phone || ''}
-                replyContext={{
-                  userId: contact?.userId || undefined,
-                  leadId: contact?.leadId || undefined,
-                }}
-                onSend={() => {
-                  setShowReply(null)
-                  fetchDetail()
-                  window.dispatchEvent(new CustomEvent('inbox:counts-changed'))
-                }}
-                onClose={() => setShowReply(null)}
-              />
-            ) : (
-              <ComposeEmail
-                defaultTo={contact?.email || ''}
-                replyContext={{ userId: contact?.userId || undefined }}
-                onSend={() => {
-                  setShowReply(null)
-                  fetchDetail()
-                  window.dispatchEvent(new CustomEvent('inbox:counts-changed'))
-                }}
-                onClose={() => setShowReply(null)}
-              />
-            )}
+            <ComposeSMS
+              defaultTo={contact?.phone || ''}
+              replyContext={{
+                userId: contact?.userId || undefined,
+                leadId: contact?.leadId || undefined,
+              }}
+              onSend={() => {
+                setShowReply(false)
+                fetchDetail()
+                window.dispatchEvent(new CustomEvent('inbox:counts-changed'))
+              }}
+              onClose={() => setShowReply(false)}
+            />
           </div>
         ) : (
           <div className="flex items-center gap-2 px-4 py-3">
@@ -154,22 +134,11 @@ export default function SMSDetailPage() {
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => setShowReply('sms')}
+                onClick={() => setShowReply(true)}
                 className="!text-xs"
               >
                 <Send className="w-3.5 h-3.5 mr-1.5" />
-                Reply via SMS
-              </Button>
-            )}
-            {contact?.email && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setShowReply('email')}
-                className="!text-xs"
-              >
-                <Mail className="w-3.5 h-3.5 mr-1.5" />
-                Reply via Email
+                Reply
               </Button>
             )}
           </div>

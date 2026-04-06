@@ -19,7 +19,6 @@ export async function GET(
 
     const adminClient = createAdminClient()
 
-    // Fetch the specific message
     let message: any = null
     let contactEmail: string | null = null
     let contactPhone: string | null = null
@@ -88,11 +87,10 @@ export async function GET(
       }
     }
 
-    // Fetch full conversation thread for this contact
-    const allMessages: any[] = []
+    // Fetch thread for this contact -- only the same channel, newest first
+    const conversation: any[] = []
 
-    // Get all emails for this contact
-    if (contactEmail || contactUserId) {
+    if (channel === 'email') {
       const emailFilters: string[] = []
       if (contactEmail) {
         emailFilters.push(`from_email.eq.${contactEmail}`)
@@ -102,32 +100,31 @@ export async function GET(
         emailFilters.push(`user_id.eq.${contactUserId}`)
       }
 
-      const { data: emails } = await adminClient
-        .from('email_messages')
-        .select('*')
-        .or(emailFilters.join(','))
-        .order('created_at', { ascending: true })
+      if (emailFilters.length > 0) {
+        const { data: emails } = await adminClient
+          .from('email_messages')
+          .select('*')
+          .or(emailFilters.join(','))
+          .order('created_at', { ascending: false })
 
-      emails?.forEach((e) => {
-        allMessages.push({
-          type: 'email' as const,
-          id: e.id,
-          content: e.body_text || '',
-          htmlContent: e.body_html,
-          subject: e.subject,
-          direction: e.direction,
-          timestamp: e.created_at,
-          metadata: {
-            from: e.from_email,
-            to: e.to_email,
-            status: e.status,
-          },
+        emails?.forEach((e) => {
+          conversation.push({
+            type: 'email' as const,
+            id: e.id,
+            content: e.body_text || '',
+            htmlContent: e.body_html,
+            subject: e.subject,
+            direction: e.direction,
+            timestamp: e.created_at,
+            metadata: {
+              from: e.from_email,
+              to: e.to_email,
+              status: e.status,
+            },
+          })
         })
-      })
-    }
-
-    // Get all SMS for this contact
-    if (contactPhone || contactUserId || contactLeadId) {
+      }
+    } else if (channel === 'sms') {
       const smsFilters: string[] = []
       if (contactPhone) {
         smsFilters.push(`from_number.eq.${contactPhone}`)
@@ -140,32 +137,29 @@ export async function GET(
         smsFilters.push(`lead_id.eq.${contactLeadId}`)
       }
 
-      const { data: smsMessages } = await adminClient
-        .from('sms_messages')
-        .select('*')
-        .or(smsFilters.join(','))
-        .order('created_at', { ascending: true })
+      if (smsFilters.length > 0) {
+        const { data: smsMessages } = await adminClient
+          .from('sms_messages')
+          .select('*')
+          .or(smsFilters.join(','))
+          .order('created_at', { ascending: false })
 
-      smsMessages?.forEach((s) => {
-        allMessages.push({
-          type: 'sms' as const,
-          id: s.id,
-          content: s.body || '',
-          direction: s.direction,
-          timestamp: s.created_at,
-          metadata: {
-            from: s.from_number,
-            to: s.to_number,
-            status: s.status,
-          },
+        smsMessages?.forEach((s) => {
+          conversation.push({
+            type: 'sms' as const,
+            id: s.id,
+            content: s.body || '',
+            direction: s.direction,
+            timestamp: s.created_at,
+            metadata: {
+              from: s.from_number,
+              to: s.to_number,
+              status: s.status,
+            },
+          })
         })
-      })
+      }
     }
-
-    // Sort chronologically
-    allMessages.sort((a, b) =>
-      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    )
 
     return NextResponse.json({
       message,
@@ -177,7 +171,7 @@ export async function GET(
         userId: contactUserId,
         leadId: contactLeadId,
       },
-      conversation: allMessages,
+      conversation,
     })
   } catch (error: unknown) {
     console.error('Error fetching inbox message:', error)

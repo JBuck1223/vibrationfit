@@ -140,6 +140,8 @@ export default function SegmentBuilderForm({ segment, mode }: Props) {
   const [previewCount, setPreviewCount] = useState<number | null>(segment?.recipient_count ?? null)
   const [suppressedCount, setSuppressedCount] = useState(0)
   const [loadingPreview, setLoadingPreview] = useState(false)
+  const [previewRecipients, setPreviewRecipients] = useState<{ email: string; name: string; type: string }[]>([])
+  const [showRecipients, setShowRecipients] = useState(false)
   const [saving, setSaving] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -208,9 +210,11 @@ export default function SegmentBuilderForm({ segment, mode }: Props) {
       const data = await res.json()
       setPreviewCount(data.count)
       setSuppressedCount(data.suppressedCount || 0)
+      setPreviewRecipients(data.recipients || [])
     } catch {
       setPreviewCount(null)
       setSuppressedCount(0)
+      setPreviewRecipients([])
     } finally {
       setLoadingPreview(false)
     }
@@ -557,21 +561,70 @@ export default function SegmentBuilderForm({ segment, mode }: Props) {
             <Eye className="w-5 h-5 text-[#00FFFF]" />
             <h2 className="text-lg font-semibold text-white">Preview</h2>
           </div>
-          {loadingPreview ? (
-            <Spinner size="sm" />
-          ) : previewCount !== null ? (
-            <div className="flex items-center gap-3">
-              <Badge className="bg-[#39FF14] text-black px-3 py-1 text-sm font-bold">
-                {previewCount.toLocaleString()} recipient{previewCount !== 1 ? 's' : ''}
-              </Badge>
-              {suppressedCount > 0 && (
-                <Badge className="bg-[#FF0040]/20 text-[#FF0040] px-3 py-1 text-sm font-bold">
-                  {suppressedCount} suppressed
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => runPreview()}
+              disabled={loadingPreview}
+              className={btnGhost}
+            >
+              {loadingPreview ? <Spinner size="sm" /> : <Eye className="w-4 h-4" />}
+              Refresh
+            </button>
+            {previewCount !== null && (
+              <>
+                <Badge variant="primary">
+                  {previewCount.toLocaleString()} recipient{previewCount !== 1 ? 's' : ''}
                 </Badge>
-              )}
-            </div>
-          ) : null}
+                {suppressedCount > 0 && (
+                  <Badge variant="danger">
+                    {suppressedCount} suppressed
+                  </Badge>
+                )}
+              </>
+            )}
+          </div>
         </div>
+
+        {previewCount !== null && previewCount > 0 && (
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={() => setShowRecipients(!showRecipients)}
+              className="text-sm text-[#00FFFF] hover:text-white transition-colors"
+            >
+              {showRecipients ? 'Hide' : 'Show'} recipient list
+            </button>
+
+            {showRecipients && previewRecipients.length > 0 && (
+              <div className="mt-3 max-h-64 overflow-y-auto rounded-xl border border-[#333] bg-[#1a1a1a]">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-[#333] sticky top-0 bg-[#1a1a1a]">
+                      <th className="text-left py-2 px-3 text-neutral-500 font-medium">Name</th>
+                      <th className="text-left py-2 px-3 text-neutral-500 font-medium">Email</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {previewRecipients.map((r) => (
+                      <tr key={r.email} className="border-b border-[#222]">
+                        <td className="py-2 px-3 text-neutral-300">{r.name}</td>
+                        <td className="py-2 px-3 text-neutral-500 font-mono text-xs">{r.email}</td>
+                      </tr>
+                    ))}
+                    {previewCount > previewRecipients.length && (
+                      <tr>
+                        <td colSpan={2} className="py-2 px-3 text-neutral-600 text-xs text-center">
+                          + {previewCount - previewRecipients.length} more
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
       </Card>
 
       {/* Save */}

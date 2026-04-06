@@ -31,8 +31,10 @@ export const USER_FOLDERS = {
   abundance: 'abundance',
   // Stories (for life vision and vision board)
   storyAudioRecordings: 'stories/audio-recordings',
-  // Support requests (screen/video clips)
+  // Support requests (screen/video clips, voice memos, and file attachments)
   supportVideoRecordings: 'support/video-recordings',
+  supportAudioRecordings: 'support/audio-recordings',
+  supportAttachments: 'support/attachments',
 } as const
 
 type UserFolder = keyof typeof USER_FOLDERS
@@ -764,6 +766,18 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
       types: [
         'video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi',
         'video/3gpp', 'video/3gpp2', 'video/x-m4v', 'video/hevc',
+      ],
+    },
+    supportAttachments: {
+      maxSize: 100 * 1024 * 1024, // 100MB for support attachments
+      types: [
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif',
+        'video/mp4', 'video/quicktime', 'video/webm',
+        'audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg',
+        'application/pdf',
+        'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'text/plain', 'text/csv',
       ],
     },
     vibeTribe: {

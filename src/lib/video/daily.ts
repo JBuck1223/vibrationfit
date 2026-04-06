@@ -261,13 +261,18 @@ export async function createHostToken(
 }
 
 /**
- * Create a participant token with limited permissions
+ * Create a participant token with limited permissions.
+ * For group sessions, participants join muted with camera off.
  */
 export async function createParticipantToken(
   roomName: string,
   userId: string,
-  userName: string
+  userName: string,
+  sessionType?: string
 ): Promise<DailyMeetingToken> {
+  const isGroupSession = sessionType === 'group' || sessionType === 'workshop'
+    || sessionType === 'alignment_gym' || sessionType === 'webinar'
+
   return createMeetingToken({
     room_name: roomName,
     user_id: userId,
@@ -275,6 +280,8 @@ export async function createParticipantToken(
     is_owner: false,
     enable_screenshare: true,
     enable_recording: false,
+    start_video_off: isGroupSession ? true : undefined,
+    start_audio_off: isGroupSession ? true : undefined,
   })
 }
 

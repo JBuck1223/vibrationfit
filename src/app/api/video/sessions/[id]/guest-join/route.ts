@@ -155,7 +155,8 @@ export async function POST(
     const dailyToken = await createParticipantToken(
       room.name,
       matchedUserId || participant.user_id || participant.id,
-      participantName
+      participantName,
+      session.session_type
     )
 
     const response: JoinSessionResponse = {
