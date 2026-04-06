@@ -3592,8 +3592,10 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
             <Stack gap="sm">
               <h4 className="text-sm font-semibold text-white">Full Layout (Videos + Screenshots)</h4>
               <SocialProofSection
-                title="Proof That It Works"
-                subtitle="Watch real stories and see real results from VibrationFit members"
+                eyebrow="Vibration Fit Member Results"
+                title="Real People. Real Manifestations."
+                subtitle="Watch unedited stories and scroll through real screenshots from Vibration Fit members using universal law to create tangible wins in money, relationships, opportunities, and everyday life."
+                microcopy="All videos and messages are from real Vibration Fit members, shared with permission. Screenshots are unedited."
                 videos={[
                   {
                     id: 'v1',
