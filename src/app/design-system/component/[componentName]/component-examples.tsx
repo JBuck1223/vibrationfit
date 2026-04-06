@@ -3597,51 +3597,90 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                 videos={[
                   {
                     id: 'v1',
-                    src: 'https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-3-6-26-new-1080p.mp4',
-                    poster: 'https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-3-6-26-new-thumb.0000000.jpg',
-                    caption: 'Five minute overview',
-                    label: 'Overview',
+                    src: 'https://media.vibrationfit.com/user-uploads/5c49b204-0c1b-4c5e-bb33-118f9d251259/intensive/testimonials/1773515176961-susxm5ps05e-intensive-c8f87e55-24af-4eed-8520-025cc3547a12-testimonial-recording-1773515176541.webm',
+                    caption: 'Member testimonial',
+                    label: 'Testimonial',
                   },
                   {
                     id: 'v2',
-                    src: 'https://media.vibrationfit.com/site-assets/video/membership/tracking-1080p.mp4',
-                    caption: 'How tracking works',
-                    label: 'Tracking',
+                    src: 'https://media.vibrationfit.com/site-assets/video/proof-wall/michele-testimonial-1080p.mp4',
+                    poster: 'https://media.vibrationfit.com/site-assets/video/proof-wall/michele-testimonial-thumb.0000000.jpg',
+                    caption: 'Michele\'s story',
+                    label: 'Michele',
                   },
                   {
                     id: 'v3',
-                    src: 'https://media.vibrationfit.com/site-assets/video/membership/vibe-tribe-1080p.mp4',
-                    caption: 'The Vibe Tribe community',
-                    label: 'Community',
+                    src: 'https://media.vibrationfit.com/user-uploads/4ed2a268-9df0-44da-8a0b-641238f92378/intensive/testimonials/1774242947302-jc0ui5mokj9-intensive-cae9652b-0556-4372-960c-431ea8b7eb3e-testimonial-recording-1774242946695.webm',
+                    caption: 'Intensive experience',
+                    label: 'Intensive',
                   },
                 ]}
                 screenshots={[
                   {
                     id: 's1',
-                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/gross-profit-actualized.jpg',
-                    alt: 'Gross profit vision actualized',
-                    name: 'Jordan B.',
-                    caption: '$1M Vision Actualized',
+                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0002-4.jpg',
+                    alt: 'VibrationFit member testimonial',
                   },
                   {
                     id: 's2',
-                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/italy-actualized.jpg',
-                    alt: 'Italy trip actualized from vision board',
-                    name: 'Vanessa B.',
-                    caption: 'Dream Italy Trip',
+                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0003-5.jpg',
+                    alt: 'VibrationFit member testimonial',
                   },
                   {
                     id: 's3',
-                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/house-actualized.jpg',
-                    alt: 'Dream house vision actualized',
-                    name: 'Jordan B.',
-                    caption: 'Dream Home Actualized',
+                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0004-7.jpg',
+                    alt: 'VibrationFit member testimonial',
                   },
                   {
                     id: 's4',
-                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/beach-wedding-actualized.jpg',
-                    alt: 'Beach wedding vision actualized',
-                    caption: 'Beach Wedding Vision',
+                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0005-8.jpg',
+                    alt: 'VibrationFit member testimonial',
+                  },
+                  {
+                    id: 's5',
+                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0006-9.jpg',
+                    alt: 'VibrationFit member testimonial',
+                  },
+                  {
+                    id: 's6',
+                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0007-13.jpg',
+                    alt: 'VibrationFit member testimonial',
+                  },
+                  {
+                    id: 's7',
+                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0008-jeanie.jpg',
+                    alt: 'Jeanie testimonial',
+                    name: 'Jeanie',
+                  },
+                  {
+                    id: 's8',
+                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0009-11.jpg',
+                    alt: 'VibrationFit member testimonial',
+                  },
+                  {
+                    id: 's9',
+                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0010-12.jpg',
+                    alt: 'VibrationFit member testimonial',
+                  },
+                  {
+                    id: 's10',
+                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0011-14.jpg',
+                    alt: 'VibrationFit member testimonial',
+                  },
+                  {
+                    id: 's11',
+                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0012-15.jpg',
+                    alt: 'VibrationFit member testimonial',
+                  },
+                  {
+                    id: 's12',
+                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0013-16.jpg',
+                    alt: 'VibrationFit member testimonial',
+                  },
+                  {
+                    id: 's13',
+                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0014-17.jpg',
+                    alt: 'VibrationFit member testimonial',
                   },
                 ]}
               />
@@ -3658,24 +3697,24 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                 videos={[
                   {
                     id: 'v1',
-                    src: 'https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-3-6-26-new-1080p.mp4',
-                    poster: 'https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-3-6-26-new-thumb.0000000.jpg',
-                    caption: 'Full overview video',
+                    src: 'https://media.vibrationfit.com/site-assets/video/proof-wall/michele-testimonial-1080p.mp4',
+                    poster: 'https://media.vibrationfit.com/site-assets/video/proof-wall/michele-testimonial-thumb.0000000.jpg',
+                    caption: 'Michele\'s story',
                   },
                 ]}
                 screenshots={[
                   {
                     id: 's1',
-                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/boa-screenshot.jpg',
-                    alt: 'Bank of America screenshot',
-                    name: 'Jordan B.',
-                    caption: 'Financial Alignment',
+                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0008-jeanie.jpg',
+                    alt: 'Jeanie testimonial',
+                    name: 'Jeanie',
+                    caption: 'Member Testimonial',
                   },
                   {
                     id: 's2',
-                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/van-actualized-2.jpg',
-                    alt: 'Van vision actualized',
-                    caption: 'Adventure Van',
+                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0002-4.jpg',
+                    alt: 'VibrationFit member testimonial',
+                    caption: 'Real Feedback',
                   },
                 ]}
               />
@@ -3687,18 +3726,18 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
               <h4 className="text-sm font-semibold text-white">Videos Only (No Screenshots)</h4>
               <SocialProofSection
                 title="Watch the Transformation"
-                videoTitle="Video Walkthroughs"
+                videoTitle="Video Testimonials"
                 videos={[
                   {
                     id: 'v1',
-                    src: 'https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-3-6-26-new-1080p.mp4',
-                    poster: 'https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-3-6-26-new-thumb.0000000.jpg',
-                    label: 'Overview',
+                    src: 'https://media.vibrationfit.com/user-uploads/5c49b204-0c1b-4c5e-bb33-118f9d251259/intensive/testimonials/1773515176961-susxm5ps05e-intensive-c8f87e55-24af-4eed-8520-025cc3547a12-testimonial-recording-1773515176541.webm',
+                    label: 'Testimonial',
                   },
                   {
                     id: 'v2',
-                    src: 'https://media.vibrationfit.com/site-assets/video/membership/tracking-1080p.mp4',
-                    label: 'Tracking',
+                    src: 'https://media.vibrationfit.com/site-assets/video/proof-wall/michele-testimonial-1080p.mp4',
+                    poster: 'https://media.vibrationfit.com/site-assets/video/proof-wall/michele-testimonial-thumb.0000000.jpg',
+                    label: 'Michele',
                   },
                 ]}
                 screenshots={[]}
@@ -3711,29 +3750,24 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
               <h4 className="text-sm font-semibold text-white">Screenshots Only (No Videos)</h4>
               <SocialProofSection
                 title="Real Results"
-                screenshotTitle="Vision to Reality"
+                screenshotTitle="What Members Are Saying"
                 accentColor="#BF00FF"
                 videos={[]}
                 screenshots={[
                   {
                     id: 's1',
-                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/japan-friends.jpg',
-                    alt: 'Japan trip actualized',
-                    name: 'Community Member',
-                    caption: 'Japan Trip Actualized',
+                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0003-5.jpg',
+                    alt: 'VibrationFit member testimonial',
                   },
                   {
                     id: 's2',
-                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/australia-actualized.jpg',
-                    alt: 'Australia trip actualized',
-                    name: 'Community Member',
-                    caption: 'Australia Dream Trip',
+                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0005-8.jpg',
+                    alt: 'VibrationFit member testimonial',
                   },
                   {
                     id: 's3',
-                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/mountain-lodge-actualized.jpg',
-                    alt: 'Mountain lodge vision actualized',
-                    caption: 'Mountain Lodge',
+                    src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0007-13.jpg',
+                    alt: 'VibrationFit member testimonial',
                   },
                 ]}
               />
