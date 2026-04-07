@@ -28,13 +28,19 @@ interface PreCallCheckProps {
   onCancel?: () => void
   sessionTitle?: string
   hostName?: string
+  isHost?: boolean
+  sessionStatus?: string
+  scheduledAt?: string
 }
 
 export function PreCallCheck({ 
   onReady, 
   onCancel, 
   sessionTitle,
-  hostName 
+  hostName,
+  isHost,
+  sessionStatus,
+  scheduledAt,
 }: PreCallCheckProps) {
   // Device state
   const [cameras, setCameras] = useState<DeviceInfo[]>([])
@@ -111,6 +117,17 @@ export function PreCallCheck({
     }
 
     try {
+      if (!cameraEnabled && !micEnabled) {
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop())
+          streamRef.current = null
+        }
+        if (videoRef.current) videoRef.current.srcObject = null
+        setAudioLevel(0)
+        setLoading(false)
+        return
+      }
+
       const constraints: MediaStreamConstraints = {
         video: cameraEnabled ? {
           deviceId: selectedCamera ? { exact: selectedCamera } : undefined,
@@ -431,31 +448,46 @@ export function PreCallCheck({
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-3">
-            {onCancel && (
-              <Button 
-                variant="ghost" 
-                onClick={onCancel}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-            )}
-            <Button 
-              variant="primary" 
-              onClick={handleJoin}
-              disabled={loading || !!error}
-              className="flex-1"
-            >
-              <CheckCircle className="w-5 h-5 mr-2" />
-              Join Session
-            </Button>
-          </div>
+          {(() => {
+            const isLive = sessionStatus === 'live'
+            const waitingRoomOpen = !scheduledAt || (new Date(scheduledAt).getTime() - Date.now() <= 30 * 60 * 1000)
+            const canJoin = isHost || isLive || waitingRoomOpen
 
-          {/* Help Text */}
-          <p className="text-center text-xs text-neutral-500">
-            You can change your camera and microphone settings during the call
-          </p>
+            return (
+              <>
+                <div className="flex gap-3">
+                  {onCancel && (
+                    <Button 
+                      variant="ghost" 
+                      onClick={onCancel}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                  <Button 
+                    variant="primary" 
+                    onClick={handleJoin}
+                    disabled={loading || !!error || !canJoin}
+                    className="flex-1"
+                  >
+                    <CheckCircle className="w-5 h-5 mr-2" />
+                    {!isHost && !isLive ? 'Join Waiting Room' : 'Join Session'}
+                  </Button>
+                </div>
+
+                {!canJoin && (
+                  <p className="text-center text-sm text-neutral-400">
+                    You'll be able to join the waiting room 30 minutes before the session starts
+                  </p>
+                )}
+
+                <p className="text-center text-xs text-neutral-500">
+                  You can change your camera and microphone settings during the call
+                </p>
+              </>
+            )
+          })()}
         </div>
       </Card>
     </div>

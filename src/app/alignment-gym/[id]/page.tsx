@@ -247,8 +247,7 @@ export default function AlignmentGymSessionPage() {
               className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${recapOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
             >
               <div className="overflow-hidden">
-                <div className="border-t border-[#333] mx-6 md:mx-8" />
-                <div className="px-6 md:px-8 py-6 md:py-8">
+                <div className="px-6 md:px-8 pb-6 md:pb-8">
                   <Markdown
                     components={{
                       h1: () => null,

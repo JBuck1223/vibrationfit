@@ -62,6 +62,7 @@ export default function AlignmentGymPage() {
   const [attendanceStats, setAttendanceStats] = useState<AttendanceStats>({ totalAttended: 0, currentStreak: 0 })
   const [statsExpanded, setStatsExpanded] = useState(false)
   const [freezeOpen, setFreezeOpen] = useState(false)
+  const [whatIsOpen, setWhatIsOpen] = useState(false)
   const freezeRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -208,7 +209,6 @@ export default function AlignmentGymPage() {
   // Get next session
   const nextSession = upcomingSessions[0]
   const isLive = nextSession?.status === 'live'
-  // Alignment Gym sessions are always accessible — members can enter the pre-call screen
   const canJoin = nextSession && (isLive || isSessionJoinable(nextSession))
 
   // Format relative time
@@ -359,41 +359,60 @@ export default function AlignmentGymPage() {
           </div>
         </div>
 
-        {/* What is Alignment Gym - parent card with heading + 3 point cards inside */}
-        <Card className="p-6 md:p-8">
-          <h3 className="text-lg md:text-xl font-bold text-white mb-6 text-center">
-            What's The Alignment Gym?
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card variant="outlined" className="p-6 flex flex-col items-center text-center">
-              <div className="w-12 h-12 rounded-xl bg-primary-500/20 flex items-center justify-center flex-shrink-0 mb-4">
-                <Users className="w-6 h-6 text-primary-500" />
+        {/* What is Alignment Gym - collapsible */}
+        <div className="rounded-2xl border-2 border-[#333] bg-[#1F1F1F] overflow-hidden transition-all duration-300 hover:border-[#444]">
+          <button
+            type="button"
+            onClick={() => setWhatIsOpen(o => !o)}
+            aria-expanded={whatIsOpen}
+            className="w-full flex items-center justify-between gap-4 py-6 md:p-8 px-6 text-left group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-1 h-8 rounded-full bg-[#39FF14] shrink-0" />
+              <h3 className="text-lg md:text-xl font-bold text-white">
+                What's The Alignment Gym?
+              </h3>
+            </div>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 ${whatIsOpen ? 'bg-[#39FF14]/20' : 'bg-neutral-700/50 group-hover:bg-neutral-700'}`}>
+              <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${whatIsOpen ? 'rotate-180 text-[#39FF14]' : 'text-neutral-400'}`} />
+            </div>
+          </button>
+          <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${whatIsOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+            <div className="overflow-hidden">
+              <div className="px-6 md:px-8 pb-6 md:pb-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <Card variant="outlined" className="p-6 flex flex-col items-center text-center">
+                    <div className="w-12 h-12 rounded-xl bg-primary-500/20 flex items-center justify-center flex-shrink-0 mb-4">
+                      <Users className="w-6 h-6 text-primary-500" />
+                    </div>
+                    <h4 className="font-medium text-white mb-2">Weekly Group Coaching</h4>
+                    <p className="text-sm text-neutral-400">
+                      Live sessions with your guide and fellow graduates. Practice tools, get feedback, and stay calibrated.
+                    </p>
+                  </Card>
+                  <Card variant="outlined" className="p-6 flex flex-col items-center text-center">
+                    <div className="w-12 h-12 rounded-xl bg-secondary-500/20 flex items-center justify-center flex-shrink-0 mb-4">
+                      <HelpCircle className="w-6 h-6 text-secondary-500" />
+                    </div>
+                    <h4 className="font-medium text-white mb-2">Ask Anything</h4>
+                    <p className="text-sm text-neutral-400">
+                      Bring your questions, challenges, or wins. Get real-time guidance on applying conscious creation to your life.
+                    </p>
+                  </Card>
+                  <Card variant="outlined" className="p-6 flex flex-col items-center text-center">
+                    <div className="w-12 h-12 rounded-xl bg-accent-500/20 flex items-center justify-center flex-shrink-0 mb-4">
+                      <Zap className="w-6 h-6 text-accent-500" />
+                    </div>
+                    <h4 className="font-medium text-white mb-2">Build Your Streak</h4>
+                    <p className="text-sm text-neutral-400">
+                      Attend regularly to maintain momentum and earn badges for 3, 12, and 50+ sessions.
+                    </p>
+                  </Card>
+                </div>
               </div>
-              <h4 className="font-medium text-white mb-2">Weekly Group Coaching</h4>
-              <p className="text-sm text-neutral-400">
-                Live sessions with your guide and fellow graduates. Practice tools, get feedback, and stay calibrated.
-              </p>
-            </Card>
-            <Card variant="outlined" className="p-6 flex flex-col items-center text-center">
-              <div className="w-12 h-12 rounded-xl bg-secondary-500/20 flex items-center justify-center flex-shrink-0 mb-4">
-                <HelpCircle className="w-6 h-6 text-secondary-500" />
-              </div>
-              <h4 className="font-medium text-white mb-2">Ask Anything</h4>
-              <p className="text-sm text-neutral-400">
-                Bring your questions, challenges, or wins. Get real-time guidance on applying conscious creation to your life.
-              </p>
-            </Card>
-            <Card variant="outlined" className="p-6 flex flex-col items-center text-center">
-              <div className="w-12 h-12 rounded-xl bg-accent-500/20 flex items-center justify-center flex-shrink-0 mb-4">
-                <Zap className="w-6 h-6 text-accent-500" />
-              </div>
-              <h4 className="font-medium text-white mb-2">Build Your Streak</h4>
-              <p className="text-sm text-neutral-400">
-                Attend regularly to maintain momentum and earn badges for 3, 12, and 50+ sessions.
-              </p>
-            </Card>
+            </div>
           </div>
-        </Card>
+        </div>
 
         {/* Error State */}
         {error && (
@@ -458,11 +477,6 @@ export default function AlignmentGymPage() {
                   </div>
                 </div>
 
-                {!canJoin && !isLive && (
-                  <p className="mt-4 text-sm text-neutral-500">
-                    Session opens 10 minutes before start time. Click to view details.
-                  </p>
-                )}
               </div>
 
               <div className="flex flex-col items-center gap-2 flex-shrink-0">
@@ -476,7 +490,7 @@ export default function AlignmentGymPage() {
                   className={isLive ? 'animate-pulse' : ''}
                 >
                   <Play className="w-5 h-5 mr-2" />
-                  {isLive ? 'Join Live Session' : canJoin ? 'Join Session' : 'View Session'}
+                  {isLive ? 'Join Live Session' : 'Join Session'}
                 </Button>
                 <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm">
                   <button
@@ -513,88 +527,6 @@ export default function AlignmentGymPage() {
             <p className="text-sm md:text-base text-neutral-400">
               The next Alignment Gym session hasn't been scheduled yet. Check back soon!
             </p>
-          </Card>
-        )}
-
-        {/* Upcoming Sessions */}
-        {upcomingSessions.length > 1 && (
-          <Card className="p-4 md:p-6 lg:p-8">
-            <h3 className="text-base md:text-lg font-medium text-white mb-4 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-primary-500" />
-              Upcoming Sessions
-            </h3>
-            <div className="space-y-3">
-              {upcomingSessions.slice(1).map(session => {
-                const scheduledDate = new Date(session.scheduled_at)
-                const joinable = isSessionJoinable(session)
-                const sessionIsLive = session.status === 'live'
-                
-                return (
-                  <div 
-                    key={session.id} 
-                    className="flex items-center gap-4 p-3 rounded-xl bg-neutral-800/50 hover:bg-neutral-800 transition-colors cursor-pointer"
-                    onClick={() => router.push(`/session/${session.id}`)}
-                  >
-                    <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                      sessionIsLive ? 'bg-green-500/20' : 'bg-primary-500/10'
-                    }`}>
-                      {sessionIsLive ? (
-                        <span className="relative flex h-3 w-3">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                          <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500" />
-                        </span>
-                      ) : (
-                        <Video className="w-5 h-5 md:w-6 md:h-6 text-primary-500" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-sm md:text-base text-white font-medium truncate">
-                          {session.title}
-                        </h4>
-                        {sessionIsLive && (
-                          <Badge variant="success" className="text-[10px] animate-pulse">Live</Badge>
-                        )}
-                      </div>
-                      <p className="text-xs md:text-sm text-neutral-500">
-                        {scheduledDate.toLocaleDateString(undefined, {
-                          weekday: 'short',
-                          month: 'short',
-                          day: 'numeric',
-                        })} at {scheduledDate.toLocaleTimeString(undefined, {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </p>
-                    </div>
-                    {sessionIsLive ? (
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={(e) => { e.stopPropagation(); router.push(`/session/${session.id}`) }}
-                        className="animate-pulse"
-                      >
-                        <Play className="w-3 h-3 mr-1" />
-                        Join
-                      </Button>
-                    ) : joinable ? (
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={(e) => { e.stopPropagation(); router.push(`/session/${session.id}`) }}
-                      >
-                        <Play className="w-3 h-3 mr-1" />
-                        Join
-                      </Button>
-                    ) : (
-                      <Badge variant="secondary" className="text-xs">
-                        {getRelativeTime(session.scheduled_at)}
-                      </Badge>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
           </Card>
         )}
 
