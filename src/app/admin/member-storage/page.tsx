@@ -302,7 +302,7 @@ function MemberStorageContent() {
         subtitle="Browse and view member uploaded files across all storage folders"
       />
       <Container className="py-8">
-        <Stack spacing="lg">
+        <Stack gap="lg">
 
           {/* Toolbar */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

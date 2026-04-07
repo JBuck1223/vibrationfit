@@ -580,7 +580,7 @@ export default function SegmentBuilderForm({ segment, mode }: Props) {
                       <span className="text-xs text-neutral-500 ml-2">{person.email}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant={person.type === 'member' ? 'primary' : 'default'}>
+                      <Badge variant={person.type === 'member' ? 'primary' : 'neutral'}>
                         {person.type}
                       </Badge>
                       {alreadyAdded ? (
