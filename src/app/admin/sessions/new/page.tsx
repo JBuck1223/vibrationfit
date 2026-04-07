@@ -27,6 +27,7 @@ import {
   Calendar,
   Minus,
   Plus,
+  FlaskConical,
 } from 'lucide-react'
 import { 
   PageHero, 
@@ -122,6 +123,7 @@ function NewSessionContent() {
   
   const [repeatWeekly, setRepeatWeekly] = useState(false)
   const [repeatWeeks, setRepeatWeeks] = useState(8)
+  const [testMode, setTestMode] = useState(false)
   
   // Admin users list
   const [admins, setAdmins] = useState<AdminUser[]>([])
@@ -261,6 +263,7 @@ function NewSessionContent() {
       description: defaults.description,
       ...(defaults.duration != null && { duration_minutes: defaults.duration }),
     }))
+    if (type !== 'alignment_gym') setTestMode(false)
   }
 
   // Handle admin selection - auto-populate email
@@ -315,6 +318,7 @@ function NewSessionContent() {
           enable_recording: formData.enable_recording,
           enable_waiting_room: formData.enable_waiting_room,
           ...(repeatWeekly && repeatWeeks > 1 && { repeat_weekly_count: repeatWeeks }),
+          ...(testMode && { test_mode: true }),
         }),
       })
 
@@ -350,8 +354,10 @@ function NewSessionContent() {
             </h2>
             <p className="text-neutral-400 mb-6">
               {isMultiple
-                ? `${createdCount} weekly sessions have been scheduled. Graduates have been notified.`
-                : 'Your video session has been scheduled and invitation sent.'}
+                ? `${createdCount} weekly sessions have been scheduled.${testMode ? ' Test mode — only you will receive notifications.' : ' Reminders will be sent before each session.'}`
+                : testMode
+                  ? 'Session scheduled in test mode — only you will receive notifications.'
+                  : 'Your video session has been scheduled and invitation sent.'}
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button 
@@ -828,6 +834,24 @@ function NewSessionContent() {
                   <p className="text-xs text-neutral-500">Participants wait until you let them in</p>
                 </div>
               </label>
+
+              {formData.session_type === 'alignment_gym' && (
+                <label className="flex items-center gap-3 p-3 bg-amber-900/20 border border-amber-500/30 rounded-lg cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={testMode}
+                    onChange={(e) => setTestMode(e.target.checked)}
+                    className="w-4 h-4 rounded border-neutral-600 bg-neutral-700 text-amber-500 focus:ring-amber-500"
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm text-white flex items-center gap-2">
+                      <FlaskConical className="w-4 h-4 text-amber-500" />
+                      Test Mode
+                    </p>
+                    <p className="text-xs text-neutral-400">All notifications (reminders, going live) go to you only — members will not be notified</p>
+                  </div>
+                </label>
+              )}
             </div>
 
             {/* Error */}

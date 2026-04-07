@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { VibeTag, VIBE_TAGS } from '@/lib/vibe-tribe/types'
+import { extractAndStoreMentions, getMentionedUsersForPosts } from '@/lib/vibe-tribe/mention-utils'
 
 /**
  * GET /api/vibe-tribe/posts
@@ -145,10 +146,15 @@ export async function GET(request: NextRequest) {
       userHearts = (hearts || []).map(h => h.post_id).filter(Boolean) as string[]
     }
 
-    // Add has_hearted flag to each post
+    // Fetch mentioned users for all posts
+    const adminClientForMentions = createAdminClient()
+    const mentionsMap = await getMentionedUsersForPosts(adminClientForMentions, postIds)
+
+    // Add has_hearted flag and mentioned_users to each post
     const postsWithHeartStatus = postsWithUsers.map(post => ({
       ...post,
       has_hearted: userHearts.includes(post.id),
+      mentioned_users: mentionsMap[post.id] || [],
     }))
 
     return NextResponse.json({
@@ -247,12 +253,21 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
+    // Extract and store @mentions
+    const mentionedUsers = await extractAndStoreMentions(
+      adminClient,
+      content?.trim() || null,
+      user.id,
+      { post_id: newPost.id }
+    )
+
     return NextResponse.json({
       success: true,
       post: {
         ...newPost,
         user: userData || null,
         has_hearted: false,
+        mentioned_users: mentionedUsers,
       },
     })
 

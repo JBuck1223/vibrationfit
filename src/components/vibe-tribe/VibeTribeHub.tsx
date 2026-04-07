@@ -265,6 +265,7 @@ export function VibeTribeHub({ userId, isAdmin = false, initialFilter = 'all' }:
               onDelete={handlePostDeleted}
               currentUserId={userId}
               isAdmin={isAdmin}
+              mentionedUsers={post.mentioned_users || []}
             />
           ))}
 

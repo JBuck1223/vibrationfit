@@ -13,7 +13,6 @@ import { sendAndLogEmail } from '@/lib/email/send'
 import { generateSessionInvitationEmail } from '@/lib/email/templates'
 import { formatDateInTimeZone, DEFAULT_DISPLAY_TIMEZONE } from '@/lib/format/timezone'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { sendBulkNotification } from '@/lib/notifications/config'
 import type { CreateSessionRequest, CreateSessionResponse, VideoSession, VideoSessionType } from '@/lib/video/types'
 
 export async function POST(request: NextRequest) {
@@ -95,6 +94,7 @@ export async function POST(request: NextRequest) {
         is_group_session: sessionType !== 'one_on_one',
         staff_id: body.staff_id || null,
         event_type: body.event_type || null,
+        test_mode: body.test_mode ?? false,
       }
     })
 
@@ -265,10 +265,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // --- Alignment Gym: notify all opted-in members ---
+    // --- Alignment Gym: schedule reminders (immediate notification intentionally skipped) ---
     if (sessionType === 'alignment_gym') {
-      notifyAlignmentGymMembers(session, hostName, user.id).catch(err =>
-        console.error('Alignment gym member notification error:', err)
+      const testMode = body.test_mode ?? false
+      scheduleAlignmentGymReminders(session, hostName, user.id, testMode, user.email || '').catch(err =>
+        console.error('Alignment gym reminder scheduling error:', err)
       )
     }
 
@@ -378,41 +379,71 @@ export async function GET(request: NextRequest) {
 
 // ── Alignment Gym: segment-driven notifications ──
 
-async function notifyAlignmentGymMembers(
+async function scheduleAlignmentGymReminders(
   session: Record<string, any>,
   hostName: string,
-  createdByUserId: string
+  createdByUserId: string,
+  testMode: boolean,
+  adminEmail: string
 ) {
   const admin = createAdminClient()
   const joinLink = `${OUTBOUND_URL}/alignment-gym`
 
   const scheduledAt = new Date(session.scheduled_at)
-  const { date: scheduledDate, time: scheduledTime } = formatDateInTimeZone(
-    scheduledAt,
-    DEFAULT_DISPLAY_TIMEZONE
-  )
-  const duration = session.scheduled_duration_minutes || 60
-
-  // Immediate notification -- audience resolved from segment at send time
-  await sendBulkNotification({
-    slug: 'alignment_gym_created',
-    variables: {
-      sessionTitle: session.title || 'Alignment Gym Session',
-      sessionDescription: session.description || '',
-      scheduledDate,
-      scheduledTime,
-      duration: String(duration),
-      hostName,
-      joinLink,
-      graduateCount: '',
-    },
-  })
-
-  // Schedule reminder notification jobs (segment resolved fresh when they fire)
   const oneHourBefore = new Date(scheduledAt.getTime() - 60 * 60 * 1000)
   const fifteenMinBefore = new Date(scheduledAt.getTime() - 15 * 60 * 1000)
   const now = new Date()
 
+  if (testMode) {
+    // Test mode: send reminders directly to the creating admin only
+    let adminPhone: string | null = null
+    const { data: adminAccount } = await admin
+      .from('user_accounts')
+      .select('phone')
+      .eq('id', createdByUserId)
+      .single()
+    if (adminAccount?.phone) adminPhone = adminAccount.phone
+
+    const jobs: Record<string, unknown>[] = []
+
+    if (oneHourBefore > now && adminEmail) {
+      jobs.push({
+        message_type: 'email',
+        recipient_email: adminEmail,
+        recipient_user_id: createdByUserId,
+        subject: `[TEST] Alignment Gym Reminder - 1 Hour`,
+        body: `[TEST MODE] Reminder: "${session.title}" starts in 1 hour.\n\nJoin: ${joinLink}\n\nThis is a test — only you received this.`,
+        related_entity_type: 'video_session',
+        related_entity_id: session.id,
+        scheduled_for: oneHourBefore.toISOString(),
+        status: 'pending',
+        created_by: createdByUserId,
+      })
+    }
+
+    if (fifteenMinBefore > now && adminPhone) {
+      jobs.push({
+        message_type: 'sms',
+        recipient_phone: adminPhone,
+        recipient_user_id: createdByUserId,
+        body: `[TEST] "${session.title}" starts in 15 min! Join: ${joinLink}`,
+        related_entity_type: 'video_session',
+        related_entity_id: session.id,
+        scheduled_for: fifteenMinBefore.toISOString(),
+        status: 'pending',
+        created_by: createdByUserId,
+      })
+    }
+
+    if (jobs.length > 0) {
+      const { error } = await admin.from('scheduled_messages').insert(jobs)
+      if (error) console.error('[alignment-gym:test] reminder insert error:', error.message)
+      else console.log(`[alignment-gym:test] Scheduled ${jobs.length} test reminder(s) to admin only`)
+    }
+    return
+  }
+
+  // Normal mode: notification jobs (segment resolved fresh when they fire)
   const reminderVars = {
     firstName: '',
     sessionTitle: session.title || 'Alignment Gym Session',

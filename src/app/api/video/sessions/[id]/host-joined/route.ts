@@ -76,17 +76,32 @@ export async function POST(
       errors: [] as string[],
     }
 
-    // --- Alignment Gym: broadcast "going live" to ALL members ---
+    // --- Alignment Gym: broadcast "going live" ---
     if (session.session_type === 'alignment_gym') {
-      const liveResults = await broadcastAlignmentGymLive(
-        sessionId,
-        session.title || 'Alignment Gym',
-        hostName,
-        OUTBOUND_URL
-      )
-      results.emailsSent += liveResults.emailsSent
-      results.smsSent += liveResults.smsSent
-      results.errors.push(...liveResults.errors)
+      if (session.test_mode) {
+        // Test mode: send going-live only to the host/admin
+        const liveResults = await broadcastAlignmentGymLiveTestMode(
+          sessionId,
+          session.title || 'Alignment Gym',
+          hostName,
+          user.id,
+          user.email || '',
+          OUTBOUND_URL
+        )
+        results.emailsSent += liveResults.emailsSent
+        results.smsSent += liveResults.smsSent
+        results.errors.push(...liveResults.errors)
+      } else {
+        const liveResults = await broadcastAlignmentGymLive(
+          sessionId,
+          session.title || 'Alignment Gym',
+          hostName,
+          OUTBOUND_URL
+        )
+        results.emailsSent += liveResults.emailsSent
+        results.smsSent += liveResults.smsSent
+        results.errors.push(...liveResults.errors)
+      }
     } else {
       // --- Other sessions: notify registered participants only ---
       const config = await getNotificationConfig('host_joined_session')
@@ -198,4 +213,30 @@ async function broadcastAlignmentGymLive(
 
   console.log(`[host-joined:alignment-gym] Broadcast sent: ~${emailCount} emails, ~${smsCount} SMS`)
   return { emailsSent: emailCount, smsSent: smsCount, errors: [] }
+}
+
+async function broadcastAlignmentGymLiveTestMode(
+  sessionId: string,
+  sessionTitle: string,
+  hostName: string,
+  adminUserId: string,
+  adminEmail: string,
+  baseUrl: string
+): Promise<{ emailsSent: number; smsSent: number; errors: string[] }> {
+  const joinLink = `${baseUrl}/alignment-gym`
+
+  try {
+    await sendBulkNotification({
+      slug: 'alignment_gym_going_live',
+      variables: { hostName, sessionTitle, joinLink },
+      recipients: [{ email: adminEmail, userId: adminUserId }],
+    })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Test broadcast failed'
+    console.error('[host-joined:alignment-gym:test] Broadcast error:', msg)
+    return { emailsSent: 0, smsSent: 0, errors: [msg] }
+  }
+
+  console.log(`[host-joined:alignment-gym:test] Going-live sent to admin only (${adminEmail})`)
+  return { emailsSent: adminEmail ? 1 : 0, smsSent: 0, errors: [] }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { VIBE_TAGS } from '@/lib/vibe-tribe/types'
+import { updateMentions } from '@/lib/vibe-tribe/mention-utils'
 
 /**
  * GET /api/vibe-tribe/posts/[id]
@@ -49,10 +50,27 @@ export async function GET(
       .eq('post_id', id)
       .maybeSingle()
 
+    // Fetch mentioned users
+    const { data: mentions } = await adminClientForUser
+      .from('vibe_mentions')
+      .select('mentioned_user_id')
+      .eq('post_id', id)
+
+    let mentionedUsers: { id: string; full_name: string }[] = []
+    if (mentions && mentions.length > 0) {
+      const mentionedIds = mentions.map(m => m.mentioned_user_id)
+      const { data: mentionedData } = await adminClientForUser
+        .from('user_accounts')
+        .select('id, full_name')
+        .in('id', mentionedIds)
+      mentionedUsers = (mentionedData || []).map(u => ({ id: u.id, full_name: u.full_name }))
+    }
+
     return NextResponse.json({
       post: {
         ...postWithUser,
         has_hearted: !!heart,
+        mentioned_users: mentionedUsers,
       },
     })
 
@@ -139,7 +157,18 @@ export async function PATCH(
       )
     }
 
-    return NextResponse.json({ success: true, post: updatedPost })
+    // Recalculate mentions after edit
+    const mentionedUsers = await updateMentions(
+      adminClient,
+      updatedPost.content,
+      user.id,
+      { post_id: id }
+    )
+
+    return NextResponse.json({
+      success: true,
+      post: { ...updatedPost, mentioned_users: mentionedUsers },
+    })
 
   } catch (error: any) {
     console.error('VIBE TRIBE POST PATCH ERROR:', error)

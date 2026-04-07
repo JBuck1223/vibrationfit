@@ -336,11 +336,15 @@ export const userNavigationGroups: NavGroup[] = [
  * ADMIN NAVIGATION - Admin panel navigation
  * Used in: Sidebar component when isAdmin=true
  * 
- * Comprehensive admin navigation with all management features organized by category
+ * Organized by workflow priority:
+ *   1. Member Support (support tickets, inbox)
+ *   2. Member Communication (blasts, campaigns, templates)
+ *   3. Working Leads & Analytics (pipeline, attribution, growth)
+ *   4. Operations & Tools (scheduling, content, audio, dev)
  */
 export const adminNavigation: NavItem[] = [
   // ============================================================================
-  // OVERVIEW & DASHBOARD
+  // DASHBOARD
   // ============================================================================
   {
     name: 'Admin Dashboard',
@@ -349,128 +353,130 @@ export const adminNavigation: NavItem[] = [
     requiresAdmin: true,
     description: 'Admin overview and quick access',
   },
+
+  // ============================================================================
+  // PRIORITY 1: MEMBER SUPPORT
+  // ============================================================================
   {
-    name: 'Notifications',
-    href: '/admin/notifications',
-    icon: Bell,
+    name: 'Support & Inbox',
+    href: '/admin/crm/support/board',
+    icon: Headset,
     requiresAdmin: true,
     hasDropdown: true,
-    description: 'Purchase alerts, lead notifications, and more',
+    description: 'Tickets, inbox, and notifications',
     children: [
-      { name: 'Notification Feed', href: '/admin/notifications', icon: Bell, description: 'Purchase alerts, lead notifications' },
+      { name: 'Support Board', href: '/admin/crm/support/board', icon: Headset, description: 'Support tickets board' },
+      { name: 'Inbox', href: '/admin/inbox', icon: Inbox, description: 'Unified email and SMS inbox' },
+      { name: 'Notifications', href: '/admin/notifications', icon: Bell, description: 'Purchase alerts, lead notifications' },
       { name: 'Notification Settings', href: '/admin/notification-settings', icon: Settings, description: 'Configure notification templates & channels' },
     ]
   },
-  
+
   // ============================================================================
-  // INBOX
-  // ============================================================================
-  {
-    name: 'Inbox',
-    href: '/admin/inbox',
-    icon: Inbox,
-    requiresAdmin: true,
-    description: 'Unified email and SMS inbox',
-  },
-  
-  // ============================================================================
-  // USER MANAGEMENT
+  // PRIORITY 2A: MEMBERS
   // ============================================================================
   {
-    name: 'User Management',
-    href: '/admin/users',
-    icon: UserCog,
+    name: 'Members',
+    href: '/admin/crm/members',
+    icon: UserCheck,
     requiresAdmin: true,
     hasDropdown: true,
-    description: 'Manage users, roles, and permissions',
+    description: 'Member management, tiers, and programs',
     children: [
+      { name: 'Members List', href: '/admin/crm/members', icon: UserCheck, description: 'Platform members management' },
+      { name: 'Members Board', href: '/admin/crm/members/board', icon: Kanban, description: 'Kanban board for members' },
       { name: 'All Users', href: '/admin/users', icon: Users, description: 'View and manage all users' },
+      { name: 'Orders', href: '/admin/orders', icon: ShoppingCart, description: 'Order status & email delivery' },
+      { name: 'Member Storage', href: '/admin/member-storage', icon: HardDrive, description: 'Browse member uploaded files and storage' },
+      { name: 'Membership Tiers', href: '/admin/membership-tiers', icon: Layers, description: 'Token grants & storage quotas' },
       { name: 'Token Analytics', href: '/admin/token-usage', icon: BarChart3, description: 'User token usage analytics' },
       { name: 'Badges', href: '/admin/badges', icon: Award, description: 'Award and manage badges' },
-      { name: 'Membership Tiers', href: '/admin/membership-tiers', icon: Layers, description: 'Token grants & storage quotas' },
+      { name: 'Intensive Dashboard', href: '/admin/intensive/dashboard', icon: Rocket, description: 'Enrollment status and step progress' },
+      { name: 'Intensive Tester', href: '/admin/intensive/tester', icon: Wrench, description: 'Test intensive flows' },
     ]
   },
-  
+
   // ============================================================================
-  // CRM & MARKETING
+  // PRIORITY 2B: COMMUNICATION
   // ============================================================================
   {
-    name: 'CRM & Marketing',
+    name: 'Communication',
+    href: '/admin/crm/blast',
+    icon: Send,
+    requiresAdmin: true,
+    hasDropdown: true,
+    description: 'Blasts, campaigns, templates, and automations',
+    children: [
+      { name: 'Blasts', href: '/admin/crm/blast', icon: Send, description: 'One-time broadcast messages' },
+      { name: 'Messaging Campaigns', href: '/admin/messaging-campaigns', icon: Megaphone, description: 'Bulk audience sends' },
+      { name: 'Email Templates', href: '/admin/emails/list', icon: FileText, description: 'Browse and edit email templates' },
+      { name: 'SMS Templates', href: '/admin/sms', icon: MessageSquare, description: 'Browse and edit SMS templates' },
+      { name: 'Sequences', href: '/admin/sequences', icon: GitBranch, description: 'Multi-step drip campaigns' },
+      { name: 'Automation Rules', href: '/admin/automations', icon: Radio, description: 'Event-driven single-fire triggers' },
+      { name: 'Messaging Hub', href: '/admin/emails', icon: Mail, description: 'Messaging overview and stats' },
+      { name: 'Sent Email Log', href: '/admin/emails/sent', icon: FileText, description: 'Email delivery history' },
+    ]
+  },
+
+  // ============================================================================
+  // PRIORITY 3: LEADS & GROWTH
+  // ============================================================================
+  {
+    name: 'Leads & Growth',
     href: '/admin/crm/dashboard',
     icon: TrendingUp,
     requiresAdmin: true,
     hasDropdown: true,
-    description: 'Campaigns, leads, and customer success',
+    description: 'Pipeline, campaigns, attribution, and analytics',
     children: [
       { name: 'CRM Dashboard', href: '/admin/crm/dashboard', icon: LayoutDashboard, description: 'CRM overview and metrics' },
-      { name: 'Campaigns', href: '/admin/crm/campaigns', icon: Megaphone, description: 'Marketing campaigns and tracking' },
       { name: 'Leads', href: '/admin/crm/leads', icon: UserPlus, description: 'Lead management' },
       { name: 'Leads Board', href: '/admin/crm/leads/board', icon: Kanban, description: 'Kanban board for leads' },
-      { name: 'Members', href: '/admin/crm/members', icon: UserCheck, description: 'Platform members management' },
-      { name: 'Members Board', href: '/admin/crm/members/board', icon: Kanban, description: 'Kanban board for members' },
-      { name: 'Support Board', href: '/admin/crm/support/board', icon: Headset, description: 'Support tickets board' },
-      { name: 'Orders', href: '/admin/orders', icon: ShoppingCart, description: 'Order status & email delivery' },
-      { name: 'Coupons', href: '/admin/coupons', icon: Star, description: 'Manage coupon codes & discounts' },
-      { name: 'Blasts', href: '/admin/crm/blast', icon: Send, description: 'One-time broadcast messages' },
-      { name: 'UTM Builder', href: '/admin/crm/utm-builder', icon: Link2, description: 'Build UTM tracking URLs' },
+      { name: 'Campaigns', href: '/admin/crm/campaigns', icon: Megaphone, description: 'Marketing campaigns and tracking' },
+      { name: 'Segments', href: '/admin/crm/segments', icon: UsersRound, description: 'Audience segments and targeting' },
       { name: 'Attribution', href: '/admin/crm/attribution', icon: Fingerprint, description: 'Visitor acquisition and session tracking' },
+      { name: 'UTM Builder', href: '/admin/crm/utm-builder', icon: Link2, description: 'Build UTM tracking URLs' },
+      { name: 'Coupons', href: '/admin/coupons', icon: Star, description: 'Manage coupon codes & discounts' },
     ]
   },
-  
+
   // ============================================================================
-  // MESSAGING & AUTOMATION
+  // SCHEDULING
   // ============================================================================
   {
-    name: 'Messaging',
-    href: '/admin/emails',
-    icon: Mail,
+    name: 'Scheduling',
+    href: '/admin/scheduling',
+    icon: Calendar,
     requiresAdmin: true,
     hasDropdown: true,
-    description: 'Email, SMS, automations, and campaigns',
+    description: 'Availability, sessions, and bookings',
     children: [
-      { name: 'Messaging Hub', href: '/admin/emails', icon: Mail, description: 'Messaging overview and stats' },
-      { name: 'Email Templates', href: '/admin/emails/list', icon: FileText, description: 'Browse and edit email templates' },
-      { name: 'SMS Templates', href: '/admin/sms', icon: MessageSquare, description: 'Browse and edit SMS templates' },
-      { name: 'Automation Rules', href: '/admin/automations', icon: Radio, description: 'Event-driven single-fire triggers' },
-      { name: 'Sequences', href: '/admin/sequences', icon: GitBranch, description: 'Multi-step drip campaigns' },
-      { name: 'Campaigns', href: '/admin/messaging-campaigns', icon: Send, description: 'Bulk audience sends' },
-      { name: 'Sent Email Log', href: '/admin/emails/sent', icon: FileText, description: 'Email delivery history' },
+      { name: 'Team Availability', href: '/admin/scheduling', icon: Calendar, description: 'Manage team availability for all event types' },
+      { name: 'Sessions', href: '/admin/sessions', icon: Video, description: 'View booked sessions' },
+      { name: 'Calendar', href: '/admin/calendar', icon: Calendar, description: 'View and manage calendar' },
+      { name: 'Calibration Calls', href: '/admin/intensive/schedule-call', icon: Headset, description: 'Schedule intensive calibration calls' },
     ]
   },
-  
+
   // ============================================================================
-  // CONTENT MANAGEMENT
+  // CONTENT & AUDIO
   // ============================================================================
   {
-    name: 'Content',
+    name: 'Content & Audio',
     href: '/admin/assets',
     icon: Boxes,
     requiresAdmin: true,
     hasDropdown: true,
-    description: 'Manage site content and assets',
+    description: 'Assets, media, and audio tools',
     children: [
       { name: 'Site Assets', href: '/admin/assets', icon: Upload, description: 'Upload and manage media assets' },
       { name: 'Vibrational Sources', href: '/admin/vibrational-event/sources', icon: Activity, description: 'Manage vibrational data sources' },
-    ]
-  },
-  
-  // ============================================================================
-  // AUDIO MANAGEMENT
-  // ============================================================================
-  {
-    name: 'Audio',
-    href: '/admin/audio-mixer',
-    icon: Music,
-    requiresAdmin: true,
-    hasDropdown: true,
-    description: 'Audio mixing and generation tools',
-    children: [
       { name: 'Audio Mixer', href: '/admin/audio-mixer', icon: Headphones, description: 'Manage audio tracks and mixing' },
       { name: 'Audio Generator', href: '/admin/audio-generator', icon: Wand2, description: 'Generate Solfeggio & Binaural tracks' },
       { name: 'Ambient Designer', href: '/admin/audio-designer', icon: Music, description: 'Create custom rain, ocean, waterfall sounds' },
     ]
   },
-  
+
   // ============================================================================
   // VIVA & INTELLIGENCE
   // ============================================================================
@@ -486,41 +492,7 @@ export const adminNavigation: NavItem[] = [
       { name: 'Vision Tester', href: '/admin/vision-tester', icon: Target, description: 'Compare vision output across models' },
     ]
   },
-  
-  // ============================================================================
-  // SCHEDULING (Universal)
-  // ============================================================================
-  {
-    name: 'Scheduling',
-    href: '/admin/scheduling',
-    icon: Calendar,
-    requiresAdmin: true,
-    hasDropdown: true,
-    description: 'Manage availability for all event types',
-    children: [
-      { name: 'All Schedules', href: '/admin/scheduling', icon: Calendar, description: 'Manage all scheduling' },
-      { name: 'Sessions', href: '/admin/sessions', icon: Video, description: 'View booked sessions' },
-      { name: 'Calendar', href: '/admin/calendar', icon: Calendar, description: 'View and manage calendar' },
-    ]
-  },
 
-  // ============================================================================
-  // INTENSIVE PROGRAM
-  // ============================================================================
-  {
-    name: 'Intensive Program',
-    href: '/admin/intensive/dashboard',
-    icon: Rocket,
-    requiresAdmin: true,
-    hasDropdown: true,
-    description: 'Manage Activation Intensive program',
-    children: [
-      { name: 'Intensive Dashboard', href: '/admin/intensive/dashboard', icon: BarChart3, description: 'Enrollment status and step progress' },
-      { name: 'Intensive Tester', href: '/admin/intensive/tester', icon: Rocket, description: 'Test intensive flows' },
-      { name: 'Schedule Call', href: '/admin/intensive/schedule-call', icon: Calendar, description: 'Schedule intensive calls' },
-    ]
-  },
-  
   // ============================================================================
   // HOMESCHOOL CURRICULUM
   // ============================================================================
