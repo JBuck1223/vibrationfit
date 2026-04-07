@@ -1,13 +1,16 @@
 'use client'
 
-import { useState } from 'react'
-import { Card, Button, Textarea, CategoryCard } from '@/lib/design-system'
+import { useState, useRef } from 'react'
+import { Card, Button, CategoryCard } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { UploadProgress } from '@/components/UploadProgress'
 import { uploadMultipleUserFiles, getUploadErrorMessage } from '@/lib/storage/s3-storage-presigned'
 import { Image as ImageIcon, Send, ChevronDown, ChevronUp, Trophy, Heart, Sparkles, Lightbulb } from 'lucide-react'
 import { VibeTag, VIBE_TAG_CONFIG, VibePost, VIBE_TAGS } from '@/lib/vibe-tribe/types'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
+import { useMentionAutocomplete } from '@/hooks/useMentionAutocomplete'
+import { MentionDropdown } from './MentionDropdown'
+import { EmojiPickerButton } from './EmojiPickerButton'
 
 interface PostComposerProps {
   preselectedTag?: VibeTag
@@ -30,6 +33,7 @@ export function PostComposer({
   userId,
 }: PostComposerProps) {
   const [content, setContent] = useState('')
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [selectedTag, setSelectedTag] = useState<VibeTag | null>(preselectedTag || null)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [showCategories, setShowCategories] = useState(false)
@@ -43,6 +47,15 @@ export function PostComposer({
     fileSize: 0,
     isVisible: false,
   })
+
+  const {
+    mentionResults,
+    mentionActiveIndex,
+    isMentionOpen,
+    mentionHandleChange,
+    mentionHandleKeyDown,
+    mentionSelectMember,
+  } = useMentionAutocomplete({ value: content, onChange: setContent, textareaRef })
 
   const canSubmit = selectedTag && (content.trim() || files.length > 0)
 
@@ -184,24 +197,35 @@ export function PostComposer({
 
       {/* Content Input */}
       <div className="mb-4 relative">
-        <Textarea
+        <MentionDropdown
+          results={mentionResults}
+          activeIndex={mentionActiveIndex}
+          onSelect={mentionSelectMember}
+          isOpen={isMentionOpen}
+        />
+        <textarea
+          ref={textareaRef}
           value={content}
-          onChange={(e) => setContent(e.target.value)}
+          onChange={mentionHandleChange}
+          onKeyDown={mentionHandleKeyDown}
           placeholder={
             selectedTag 
               ? VIBE_TAG_CONFIG[selectedTag].description 
               : placeholder
           }
           rows={3}
-          className="resize-none pb-12"
+          className="w-full px-4 py-3 text-base bg-[#404040] border-2 rounded-xl text-white placeholder-[#9CA3AF] focus:outline-none transition-all duration-200 border-[#666666] focus:border-[#39FF14] resize-none pb-12"
         />
-        {/* Image upload icon positioned at bottom right of textarea */}
         <div className="absolute bottom-5 right-4 flex items-center gap-2">
           {files.length > 0 && (
             <span className="text-xs text-neutral-400">
               {files.length} file{files.length > 1 ? 's' : ''}
             </span>
           )}
+          <EmojiPickerButton
+            textareaRef={textareaRef}
+            onInsert={(val) => setContent(val)}
+          />
           <ImageIcon 
             className="w-5 h-5 cursor-pointer transition-opacity text-[#39FF14] hover:opacity-70"
             onClick={() => setShowMediaUpload(!showMediaUpload)}

@@ -131,6 +131,7 @@ export function VibeTribeFeed({
                 onDelete={handlePostDeleted}
                 currentUserId={currentUserId}
                 isAdmin={isAdmin}
+                mentionedUsers={post.mentioned_users || []}
               />
             ))}
           </div>

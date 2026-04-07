@@ -28,6 +28,8 @@ export interface BlastFilters {
   // Shared
   created_after?: string
   created_before?: string
+  // Manual selection (bypasses all filters)
+  manual_emails?: string[]
   // Exclusions
   exclude_leads?: boolean
   exclude_segment_id?: string
@@ -47,6 +49,11 @@ export async function queryRecipients(
   filters: BlastFilters
 ): Promise<BlastRecipient[]> {
   const adminClient = createAdminClient()
+
+  if (filters.manual_emails?.length) {
+    return queryManualRecipients(adminClient, filters.manual_emails)
+  }
+
   const recipients: BlastRecipient[] = []
   const seenEmails = new Set<string>()
 
@@ -111,23 +118,15 @@ async function queryMembers(
   supabase: ReturnType<typeof createAdminClient>,
   filters: BlastFilters
 ): Promise<BlastRecipient[]> {
-  const { data: profiles, error: profilesError } = await supabase
+  const { data: profiles } = await supabase
     .from('user_profiles')
     .select('user_id')
     .eq('is_active', true)
     .eq('is_draft', false)
 
-  if (profilesError) {
-    console.error('[queryMembers] user_profiles query error:', profilesError)
-    return []
-  }
-  if (!profiles || profiles.length === 0) {
-    console.warn('[queryMembers] No active non-draft profiles found')
-    return []
-  }
+  if (!profiles || profiles.length === 0) return []
 
   const userIds = profiles.map((p) => p.user_id)
-  console.log(`[queryMembers] Found ${profiles.length} active profiles, applying filters:`, JSON.stringify(filters))
 
   const needsActivityFilter =
     filters.engagement_status ||
@@ -149,36 +148,28 @@ async function queryMembers(
           .from('user_activity_metrics')
           .select('user_id, engagement_status, health_status, custom_tags, days_since_last_login, vision_count, journal_entry_count, profile_completion_percent')
           .in('user_id', userIds)
-      : Promise.resolve({ data: null, error: null }),
+      : Promise.resolve({ data: null }),
     (needsTierFilter || needsSubscriptionStatusFilter)
       ? supabase
           .from('customer_subscriptions')
           .select('user_id, status, membership_tiers(name)')
           .in('user_id', userIds)
-      : Promise.resolve({ data: null, error: null }),
+      : Promise.resolve({ data: null }),
     (filters.created_after || filters.created_before)
       ? supabase.auth.admin.listUsers({ perPage: 1000 })
-      : Promise.resolve({ data: null, error: null }),
+      : Promise.resolve({ data: null }),
     needsIntensiveFilter
       ? supabase
           .from('intensive_checklist')
           .select('user_id, status, unlock_completed')
           .in('user_id', userIds)
-      : Promise.resolve({ data: null, error: null }),
+      : Promise.resolve({ data: null }),
     supabase
       .from('user_accounts')
       .select('id, email, first_name, last_name, phone, sms_opt_in, email_opt_in')
       .in('id', userIds),
   ])
 
-  if ((intensiveResult as { error?: unknown }).error) {
-    console.error('[queryMembers] intensive_checklist query error:', (intensiveResult as { error: unknown }).error)
-  }
-  if ((accountResult as { error?: unknown }).error) {
-    console.error('[queryMembers] user_accounts query error:', (accountResult as { error: unknown }).error)
-  }
-
-  console.log(`[queryMembers] Data loaded — accounts: ${accountResult.data?.length ?? 'null'}, intensive: ${intensiveResult.data?.length ?? 'null'}`)
 
   const activityMap = new Map<string, Record<string, unknown>>()
   if (activityResult.data) {
@@ -355,8 +346,64 @@ async function queryMembers(
       }
     })
 
-  console.log(`[queryMembers] ${profiles.length} profiles → ${filtered.length} recipients after filters`)
   return filtered
+}
+
+async function queryManualRecipients(
+  supabase: ReturnType<typeof createAdminClient>,
+  emails: string[]
+): Promise<BlastRecipient[]> {
+  const lowerEmails = emails.map((e) => e.toLowerCase().trim()).filter(Boolean)
+  if (lowerEmails.length === 0) return []
+
+  const recipients: BlastRecipient[] = []
+  const foundEmails = new Set<string>()
+
+  const { data: accounts } = await supabase
+    .from('user_accounts')
+    .select('id, email, first_name, last_name, phone, sms_opt_in')
+    .in('email', lowerEmails)
+
+  if (accounts) {
+    for (const a of accounts) {
+      if (!a.email) continue
+      foundEmails.add(a.email.toLowerCase())
+      recipients.push({
+        email: a.email,
+        name: [a.first_name, a.last_name].filter(Boolean).join(' ') || a.email,
+        firstName: a.first_name || '',
+        type: 'member',
+        userId: a.id,
+        phone: a.phone || undefined,
+        smsOptIn: a.sms_opt_in ?? false,
+      })
+    }
+  }
+
+  const missingEmails = lowerEmails.filter((e) => !foundEmails.has(e))
+  if (missingEmails.length > 0) {
+    const { data: leads } = await supabase
+      .from('leads')
+      .select('id, email, first_name, last_name, phone, sms_opt_in')
+      .in('email', missingEmails)
+
+    if (leads) {
+      for (const l of leads) {
+        if (!l.email || foundEmails.has(l.email.toLowerCase())) continue
+        foundEmails.add(l.email.toLowerCase())
+        recipients.push({
+          email: l.email,
+          name: [l.first_name, l.last_name].filter(Boolean).join(' ') || l.email,
+          firstName: l.first_name || '',
+          type: 'lead',
+          phone: l.phone || undefined,
+          smsOptIn: l.sms_opt_in ?? false,
+        })
+      }
+    }
+  }
+
+  return recipients
 }
 
 async function queryLeads(

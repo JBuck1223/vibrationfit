@@ -11,6 +11,7 @@ import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { VibeTagBadge } from './VibeTagBadge'
 import { CommentSection } from './CommentSection'
 import { format, isToday, isYesterday } from 'date-fns'
+import { renderContentWithMentions, MentionedUser } from '@/lib/vibe-tribe/render-mentions'
 
 const EDIT_ICON_MAP: Record<VibeTag, any> = {
   win: Trophy,
@@ -25,6 +26,7 @@ interface PostCardProps {
   onDelete?: (postId: string) => void
   currentUserId?: string
   isAdmin?: boolean
+  mentionedUsers?: MentionedUser[]
 }
 
 export function PostCard({ 
@@ -33,6 +35,7 @@ export function PostCard({
   onDelete,
   currentUserId,
   isAdmin = false,
+  mentionedUsers = [],
 }: PostCardProps) {
   const [hearted, setHearted] = useState(post.has_hearted || false)
   const [heartsCount, setHeartsCount] = useState(post.hearts_count)
@@ -293,7 +296,7 @@ export function PostCard({
           
           {post.content && (
             <p className="text-sm text-neutral-300 line-clamp-2 mb-2">
-              {post.content}
+              {renderContentWithMentions(post.content, mentionedUsers)}
             </p>
           )}
           
@@ -517,7 +520,7 @@ export function PostCard({
           ) : (
             post.content && (
               <p className="text-sm md:text-base text-white whitespace-pre-wrap leading-normal mt-1.5">
-                {post.content}
+                {renderContentWithMentions(post.content, mentionedUsers)}
               </p>
             )
           )}
