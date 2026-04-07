@@ -9,6 +9,9 @@ import { uploadMultipleUserFiles, getUploadErrorMessage } from '@/lib/storage/s3
 import { CategoryCard, Spinner } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
+import { useMentionAutocomplete } from '@/hooks/useMentionAutocomplete'
+import { MentionDropdown } from './MentionDropdown'
+import { EmojiPickerButton } from './EmojiPickerButton'
 
 const ICON_MAP: Record<VibeTag, any> = {
   win: Trophy,
@@ -48,6 +51,15 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const modalRef = useRef<HTMLDivElement>(null)
+
+  const {
+    mentionResults,
+    mentionActiveIndex,
+    isMentionOpen,
+    mentionHandleChange,
+    mentionHandleKeyDown,
+    mentionSelectMember,
+  } = useMentionAutocomplete({ value: content, onChange: setContent, textareaRef })
 
   const hasContent = content.trim() || files.length > 0
   const canSubmit = selectedTag && hasContent
@@ -332,11 +344,18 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
               </div>
 
               {/* Textarea */}
-              <div className="px-5 pb-3">
+              <div className="px-5 pb-3 relative">
+                <MentionDropdown
+                  results={mentionResults}
+                  activeIndex={mentionActiveIndex}
+                  onSelect={mentionSelectMember}
+                  isOpen={isMentionOpen}
+                />
                 <textarea
                   ref={textareaRef}
                   value={content}
-                  onChange={(e) => setContent(e.target.value)}
+                  onChange={mentionHandleChange}
+                  onKeyDown={mentionHandleKeyDown}
                   placeholder={`What's on your mind, ${firstName}?`}
                   className="w-full bg-transparent text-white text-base placeholder-neutral-500 focus:outline-none resize-none"
                   style={{ minHeight: '100px' }}
@@ -457,6 +476,11 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
                 >
                   <Video className="w-5 h-5" />
                 </button>
+                <EmojiPickerButton
+                  textareaRef={textareaRef}
+                  onInsert={(val) => setContent(val)}
+                  className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-neutral-800 transition-colors"
+                />
                 <input
                   ref={fileInputRef}
                   type="file"

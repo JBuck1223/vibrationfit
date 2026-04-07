@@ -19,6 +19,9 @@ import {
   ShieldOff,
   Layers,
   Zap,
+  Search,
+  X,
+  UserCheck,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Audience, BlastFilters } from '@/lib/crm/blast-filters'
@@ -46,6 +49,14 @@ interface FilterRow {
   id: string
   field: FilterField
   value: string
+}
+
+type SegmentMode = 'filter' | 'manual'
+
+interface ManualPerson {
+  email: string
+  name: string
+  type: 'member' | 'lead'
 }
 
 interface Props {
@@ -127,6 +138,8 @@ function filtersToRows(filters: BlastFilters): FilterRow[] {
 
 export default function SegmentBuilderForm({ segment, mode }: Props) {
   const router = useRouter()
+  const hasManualEmails = !!(segment?.filters?.manual_emails?.length)
+  const [segmentMode, setSegmentMode] = useState<SegmentMode>(hasManualEmails ? 'manual' : 'filter')
   const [name, setName] = useState(segment?.name || '')
   const [description, setDescription] = useState(segment?.description || '')
   const [audience, setAudience] = useState<Audience>(segment?.filters?.audience || 'members')
@@ -145,10 +158,37 @@ export default function SegmentBuilderForm({ segment, mode }: Props) {
   const [saving, setSaving] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  const [manualPeople, setManualPeople] = useState<ManualPerson[]>(() => {
+    if (!segment?.filters?.manual_emails?.length) return []
+    return segment.filters.manual_emails.map((email: string) => ({ email, name: email, type: 'member' as const }))
+  })
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<ManualPerson[]>([])
+  const [searching, setSearching] = useState(false)
+  const searchRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   useEffect(() => {
     fetchSegments()
     fetchTierNames()
+    if (hasManualEmails) {
+      loadManualPeopleNames(segment!.filters.manual_emails!)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  async function loadManualPeopleNames(emails: string[]) {
+    try {
+      const results: ManualPerson[] = []
+      for (const email of emails) {
+        const res = await fetch(`/api/crm/segments/search-users?q=${encodeURIComponent(email)}`)
+        if (!res.ok) continue
+        const data = await res.json()
+        const match = (data.users || []).find((u: ManualPerson) => u.email.toLowerCase() === email.toLowerCase())
+        results.push(match || { email, name: email, type: 'member' })
+      }
+      setManualPeople(results)
+    } catch { /* keep email-only fallback */ }
+  }
 
   useEffect(() => {
     setPreviewCount(null)
@@ -157,7 +197,46 @@ export default function SegmentBuilderForm({ segment, mode }: Props) {
     debounceRef.current = setTimeout(() => runPreview(), 600)
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [audience, filterRows, excludeLeads, excludeSegmentId])
+  }, [audience, filterRows, excludeLeads, excludeSegmentId, segmentMode, manualPeople])
+
+  useEffect(() => {
+    if (!searchQuery.trim() || searchQuery.trim().length < 2) {
+      setSearchResults([])
+      return
+    }
+    if (searchRef.current) clearTimeout(searchRef.current)
+    searchRef.current = setTimeout(() => searchUsers(searchQuery.trim()), 300)
+    return () => { if (searchRef.current) clearTimeout(searchRef.current) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery])
+
+  async function searchUsers(q: string) {
+    setSearching(true)
+    try {
+      const res = await fetch(`/api/crm/segments/search-users?q=${encodeURIComponent(q)}`)
+      if (!res.ok) return
+      const data = await res.json()
+      setSearchResults(data.users || [])
+    } catch {
+      setSearchResults([])
+    } finally {
+      setSearching(false)
+    }
+  }
+
+  function addManualPerson(person: ManualPerson) {
+    if (manualPeople.some((p) => p.email.toLowerCase() === person.email.toLowerCase())) {
+      toast.error('Already added')
+      return
+    }
+    setManualPeople([...manualPeople, person])
+    setSearchQuery('')
+    setSearchResults([])
+  }
+
+  function removeManualPerson(email: string) {
+    setManualPeople(manualPeople.filter((p) => p.email.toLowerCase() !== email.toLowerCase()))
+  }
 
   async function fetchSegments() {
     try {
@@ -182,6 +261,12 @@ export default function SegmentBuilderForm({ segment, mode }: Props) {
   }
 
   function buildFilters(): BlastFilters {
+    if (segmentMode === 'manual') {
+      return {
+        audience: 'members',
+        manual_emails: manualPeople.map((p) => p.email),
+      }
+    }
     const f: BlastFilters = { audience, exclude_leads: excludeLeads || undefined }
     for (const row of filterRows) {
       if (!row.value) continue
@@ -418,141 +503,276 @@ export default function SegmentBuilderForm({ segment, mode }: Props) {
               className={inputClass}
             />
           </div>
-        </div>
-      </Card>
-
-      {/* Smart Presets */}
-      <Card className="p-6 md:p-8">
-        <div className="flex items-center gap-2 mb-4">
-          <Zap className="w-5 h-5 text-[#FFFF00]" />
-          <h2 className="text-lg font-semibold text-white">Quick Presets</h2>
-        </div>
-        <p className="text-sm text-neutral-500 mb-4">
-          One-click presets for common segments. Applying a preset replaces current filters.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {SMART_PRESETS.map((preset) => (
-            <button
-              key={preset.label}
-              type="button"
-              onClick={() => applyPreset(preset)}
-              className="px-4 py-2 text-sm font-medium rounded-full border-2 border-[#333] text-neutral-300 hover:border-[#39FF14] hover:text-[#39FF14] transition-all duration-200"
-            >
-              {preset.label}
-            </button>
-          ))}
-        </div>
-      </Card>
-
-      {/* Audience */}
-      <Card className="p-6 md:p-8">
-        <div className="flex items-center gap-2 mb-6">
-          <Filter className="w-5 h-5 text-[#39FF14]" />
-          <h2 className="text-lg font-semibold text-white">Audience & Filters</h2>
-        </div>
-
-        <div className="mb-6">
-          <label className="block text-sm text-neutral-400 mb-2">Base Audience</label>
-          <div className="flex gap-2">
-            {([
-              { value: 'members' as Audience, label: 'Members', icon: Users },
-              { value: 'leads' as Audience, label: 'Leads', icon: UserPlus },
-              { value: 'both' as Audience, label: 'Both', icon: Users },
-            ]).map(({ value, label, icon: Icon }) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => {
-                  setAudience(value)
-                  setFilterRows([])
-                }}
-                className={`inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold rounded-full border-2 transition-all duration-300 ${
-                  audience === value
-                    ? 'bg-[#39FF14] text-black border-transparent'
-                    : 'bg-transparent border-[#333] text-neutral-400 hover:border-[#39FF14] hover:text-[#39FF14]'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {label}
-              </button>
-            ))}
+          <div>
+            <label className="block text-sm text-neutral-400 mb-2">Segment Type</label>
+            <div className="flex gap-2">
+              {([
+                { value: 'filter' as SegmentMode, label: 'Filter-based', icon: Filter },
+                { value: 'manual' as SegmentMode, label: 'Manual', icon: UserCheck },
+              ]).map(({ value, label, icon: Icon }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setSegmentMode(value)}
+                  className={`inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold rounded-full border-2 transition-all duration-300 ${
+                    segmentMode === value
+                      ? 'bg-[#39FF14] text-black border-transparent'
+                      : 'bg-transparent border-[#333] text-neutral-400 hover:border-[#39FF14] hover:text-[#39FF14]'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-
-        {/* Filter rows */}
-        <div className="space-y-3">
-          {filterRows.map((row) => {
-            const options = getFilterOptions(audience)
-
-            return (
-              <div key={row.id} className="flex items-center gap-3">
-                <select
-                  value={row.field}
-                  onChange={(e) => updateFilter(row.id, 'field', e.target.value)}
-                  className={selectClass + ' max-w-[240px]'}
-                >
-                  {options.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
-
-                {renderValueInput(row)}
-
-                <button
-                  type="button"
-                  onClick={() => removeFilter(row.id)}
-                  className="p-2 text-neutral-500 hover:text-red-400 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            )
-          })}
-        </div>
-
-        <button type="button" onClick={addFilter} className={`${btnGhost} mt-4`}>
-          <Plus className="w-4 h-4" />
-          Add Filter
-        </button>
       </Card>
 
-      {/* Exclusions */}
-      <Card className="p-6 md:p-8">
-        <div className="flex items-center gap-2 mb-6">
-          <ShieldOff className="w-5 h-5 text-[#FF0040]" />
-          <h2 className="text-lg font-semibold text-white">Exclusions</h2>
-        </div>
+      {segmentMode === 'manual' ? (
+        /* Manual People Picker */
+        <Card className="p-6 md:p-8">
+          <div className="flex items-center gap-2 mb-6">
+            <UserCheck className="w-5 h-5 text-[#00FFFF]" />
+            <h2 className="text-lg font-semibold text-white">Select People</h2>
+          </div>
 
-        <div className="space-y-4">
-          {(audience === 'members' || audience === 'both') && (
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={excludeLeads}
-                onChange={(e) => setExcludeLeads(e.target.checked)}
-                className="w-4 h-4 rounded border-[#666] bg-[#404040] text-[#39FF14] focus:ring-[#39FF14]"
-              />
-              <span className="text-sm text-neutral-300">
-                Exclude emails also found in leads
-              </span>
-            </label>
+          <p className="text-sm text-neutral-500 mb-4">
+            Search by name or email to hand-pick recipients for this segment.
+          </p>
+
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by name or email..."
+              className={inputClass + ' pl-10'}
+            />
+            {searching && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Spinner size="sm" />
+              </div>
+            )}
+          </div>
+
+          {searchResults.length > 0 && (
+            <div className="mb-4 max-h-48 overflow-y-auto rounded-xl border border-[#333] bg-[#1a1a1a]">
+              {searchResults.map((person) => {
+                const alreadyAdded = manualPeople.some(
+                  (p) => p.email.toLowerCase() === person.email.toLowerCase()
+                )
+                return (
+                  <button
+                    key={person.email}
+                    type="button"
+                    disabled={alreadyAdded}
+                    onClick={() => addManualPerson(person)}
+                    className={`w-full flex items-center justify-between px-4 py-3 text-left border-b border-[#222] last:border-b-0 transition-colors ${
+                      alreadyAdded
+                        ? 'opacity-40 cursor-not-allowed'
+                        : 'hover:bg-[#333] cursor-pointer'
+                    }`}
+                  >
+                    <div>
+                      <span className="text-sm text-white">{person.name}</span>
+                      <span className="text-xs text-neutral-500 ml-2">{person.email}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={person.type === 'member' ? 'primary' : 'default'}>
+                        {person.type}
+                      </Badge>
+                      {alreadyAdded ? (
+                        <span className="text-xs text-neutral-600">Added</span>
+                      ) : (
+                        <Plus className="w-4 h-4 text-[#39FF14]" />
+                      )}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
           )}
 
-          <div>
-            <label className="block text-sm text-neutral-400 mb-1">Exclude another segment</label>
-            <select
-              value={excludeSegmentId}
-              onChange={(e) => setExcludeSegmentId(e.target.value)}
-              className={selectClass}
-            >
-              <option value="">None</option>
-              {allSegments.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
+          {searchQuery.trim().length > 0 && searchQuery.trim().length < 2 && (
+            <p className="text-xs text-neutral-600 mb-4">Type at least 2 characters to search</p>
+          )}
+
+          {manualPeople.length > 0 ? (
+            <div>
+              <p className="text-sm text-neutral-400 mb-2">
+                {manualPeople.length} {manualPeople.length === 1 ? 'person' : 'people'} selected
+              </p>
+              <div className="space-y-2">
+                {manualPeople.map((person) => (
+                  <div
+                    key={person.email}
+                    className="flex items-center justify-between px-4 py-3 rounded-xl border border-[#333] bg-[#1a1a1a]"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-[#333] flex items-center justify-center text-xs font-semibold text-white">
+                        {person.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="text-sm text-white">{person.name}</div>
+                        <div className="text-xs text-neutral-500 font-mono">{person.email}</div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeManualPerson(person.email)}
+                      className="p-1.5 text-neutral-500 hover:text-red-400 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-neutral-600">
+              <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">No people added yet. Use the search above to find and add people.</p>
+            </div>
+          )}
+        </Card>
+      ) : (
+        <>
+          {/* Smart Presets */}
+          <Card className="p-6 md:p-8">
+            <div className="flex items-center gap-2 mb-4">
+              <Zap className="w-5 h-5 text-[#FFFF00]" />
+              <h2 className="text-lg font-semibold text-white">Quick Presets</h2>
+            </div>
+            <p className="text-sm text-neutral-500 mb-4">
+              One-click presets for common segments. Applying a preset replaces current filters.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {SMART_PRESETS.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => applyPreset(preset)}
+                  className="px-4 py-2 text-sm font-medium rounded-full border-2 border-[#333] text-neutral-300 hover:border-[#39FF14] hover:text-[#39FF14] transition-all duration-200"
+                >
+                  {preset.label}
+                </button>
               ))}
-            </select>
-          </div>
-        </div>
-      </Card>
+            </div>
+          </Card>
+
+          {/* Audience */}
+          <Card className="p-6 md:p-8">
+            <div className="flex items-center gap-2 mb-6">
+              <Filter className="w-5 h-5 text-[#39FF14]" />
+              <h2 className="text-lg font-semibold text-white">Audience & Filters</h2>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm text-neutral-400 mb-2">Base Audience</label>
+              <div className="flex gap-2">
+                {([
+                  { value: 'members' as Audience, label: 'Members', icon: Users },
+                  { value: 'leads' as Audience, label: 'Leads', icon: UserPlus },
+                  { value: 'both' as Audience, label: 'Both', icon: Users },
+                ]).map(({ value, label, icon: Icon }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => {
+                      setAudience(value)
+                      setFilterRows([])
+                    }}
+                    className={`inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold rounded-full border-2 transition-all duration-300 ${
+                      audience === value
+                        ? 'bg-[#39FF14] text-black border-transparent'
+                        : 'bg-transparent border-[#333] text-neutral-400 hover:border-[#39FF14] hover:text-[#39FF14]'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Filter rows */}
+            <div className="space-y-3">
+              {filterRows.map((row) => {
+                const options = getFilterOptions(audience)
+
+                return (
+                  <div key={row.id} className="flex items-center gap-3">
+                    <select
+                      value={row.field}
+                      onChange={(e) => updateFilter(row.id, 'field', e.target.value)}
+                      className={selectClass + ' max-w-[240px]'}
+                    >
+                      {options.map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+
+                    {renderValueInput(row)}
+
+                    <button
+                      type="button"
+                      onClick={() => removeFilter(row.id)}
+                      className="p-2 text-neutral-500 hover:text-red-400 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+
+            <button type="button" onClick={addFilter} className={`${btnGhost} mt-4`}>
+              <Plus className="w-4 h-4" />
+              Add Filter
+            </button>
+          </Card>
+
+          {/* Exclusions */}
+          <Card className="p-6 md:p-8">
+            <div className="flex items-center gap-2 mb-6">
+              <ShieldOff className="w-5 h-5 text-[#FF0040]" />
+              <h2 className="text-lg font-semibold text-white">Exclusions</h2>
+            </div>
+
+            <div className="space-y-4">
+              {(audience === 'members' || audience === 'both') && (
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={excludeLeads}
+                    onChange={(e) => setExcludeLeads(e.target.checked)}
+                    className="w-4 h-4 rounded border-[#666] bg-[#404040] text-[#39FF14] focus:ring-[#39FF14]"
+                  />
+                  <span className="text-sm text-neutral-300">
+                    Exclude emails also found in leads
+                  </span>
+                </label>
+              )}
+
+              <div>
+                <label className="block text-sm text-neutral-400 mb-1">Exclude another segment</label>
+                <select
+                  value={excludeSegmentId}
+                  onChange={(e) => setExcludeSegmentId(e.target.value)}
+                  className={selectClass}
+                >
+                  <option value="">None</option>
+                  {allSegments.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </Card>
+        </>
+      )}
 
       {/* Preview */}
       <Card className="p-6 md:p-8">

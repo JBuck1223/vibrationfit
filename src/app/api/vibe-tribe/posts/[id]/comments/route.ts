@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendNotification } from '@/lib/notifications/config'
 import { VibeComment } from '@/lib/vibe-tribe/types'
+import { extractAndStoreMentions, getMentionedUsersForComments } from '@/lib/vibe-tribe/mention-utils'
 
 /**
  * GET /api/vibe-tribe/posts/[id]/comments
@@ -73,10 +74,16 @@ export async function GET(
       userHearts = (hearts || []).map(h => h.comment_id).filter(Boolean) as string[]
     }
 
-    // Add has_hearted flag to each comment
+    // Fetch mentioned users for all comments
+    const allCommentIds = (comments || []).map(c => c.id)
+    const adminClientForMentions = createAdminClient()
+    const commentMentionsMap = await getMentionedUsersForComments(adminClientForMentions, allCommentIds)
+
+    // Add has_hearted flag and mentioned_users to each comment
     const commentsWithHeartStatus = commentsWithUsers.map(comment => ({
       ...comment,
       has_hearted: userHearts.includes(comment.id),
+      mentioned_users: commentMentionsMap[comment.id] || [],
       replies: [] as VibeComment[],
     }))
 
@@ -200,6 +207,14 @@ export async function POST(
       .eq('id', user.id)
       .single()
 
+    // Extract and store @mentions from comment content
+    const mentionedUsers = await extractAndStoreMentions(
+      adminClient,
+      content.trim(),
+      user.id,
+      { comment_id: newComment.id }
+    )
+
     const userName = userData?.full_name || user.email?.split('@')[0] || 'Someone'
     const postPreview = (post.content || '').slice(0, 40) + ((post.content || '').length > 40 ? '...' : '')
     const commentPreview = content.trim().slice(0, 60) + (content.trim().length > 60 ? '...' : '')
@@ -220,6 +235,7 @@ export async function POST(
         user: userData || null,
         has_hearted: false,
         replies: [],
+        mentioned_users: mentionedUsers,
       },
     })
 

@@ -18,14 +18,13 @@ export interface DashboardSection {
 }
 
 const GROUP_COLORS: Record<string, string> = {
-  'User Management': 'text-primary-500',
-  'CRM & Marketing': 'text-[#FFB701]',
-  'Messaging': 'text-secondary-500',
-  'Content': 'text-[#8B5CF6]',
-  'Audio': 'text-[#BF00FF]',
-  'VIVA & Models': 'text-accent-500',
+  'Support & Inbox': 'text-[#FF0040]',
+  'Members': 'text-primary-500',
+  'Communication': 'text-secondary-500',
+  'Leads & Growth': 'text-[#FFB701]',
   'Scheduling': 'text-[#00FFFF]',
-  'Intensive Program': 'text-[#39FF14]',
+  'Content & Audio': 'text-[#8B5CF6]',
+  'VIVA & Models': 'text-accent-500',
   'Homeschool': 'text-[#FFB701]',
   'Developer': 'text-neutral-400',
 }

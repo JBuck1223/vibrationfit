@@ -137,6 +137,8 @@ export interface CreateSessionRequest {
   staff_id?: string
   event_type?: string
   repeat_weekly_count?: number
+  // Notification controls (Alignment Gym)
+  test_mode?: boolean
 }
 
 export interface CreateSessionResponse {
