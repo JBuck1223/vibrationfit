@@ -119,6 +119,15 @@ export const SocialProofSection = React.forwardRef<HTMLDivElement, SocialProofSe
     const lightboxNext = () => setLightboxIndex(p => (p + 1) % screenshots.length)
     const lightboxPrev = () => setLightboxIndex(p => (p - 1 + screenshots.length) % screenshots.length)
 
+    const lbTouchStartX = useRef(0)
+    const lbTouchEndX = useRef(0)
+    const handleLbTouchStart = (e: React.TouchEvent) => { lbTouchStartX.current = e.touches[0].clientX }
+    const handleLbTouchMove = (e: React.TouchEvent) => { lbTouchEndX.current = e.touches[0].clientX }
+    const handleLbTouchEnd = () => {
+      const diff = lbTouchStartX.current - lbTouchEndX.current
+      if (Math.abs(diff) > 50) diff > 0 ? lightboxNext() : lightboxPrev()
+    }
+
     useEffect(() => {
       if (!lightboxOpen) return
       const handleKey = (e: KeyboardEvent) => {
@@ -325,6 +334,9 @@ export const SocialProofSection = React.forwardRef<HTMLDivElement, SocialProofSe
           <div
             className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 md:p-8"
             onClick={closeLightbox}
+            onTouchStart={handleLbTouchStart}
+            onTouchMove={handleLbTouchMove}
+            onTouchEnd={handleLbTouchEnd}
           >
             <button
               onClick={closeLightbox}
@@ -338,7 +350,7 @@ export const SocialProofSection = React.forwardRef<HTMLDivElement, SocialProofSe
               <>
                 <button
                   onClick={(e) => { e.stopPropagation(); lightboxPrev() }}
-                  className="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 z-50 w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 bg-black/60 backdrop-blur-md border"
+                  className="hidden md:flex absolute left-6 top-1/2 -translate-y-1/2 z-50 w-11 h-11 rounded-full items-center justify-center transition-all duration-300 hover:scale-110 bg-black/60 backdrop-blur-md border"
                   style={{ borderColor: `${accentColor}40` }}
                   aria-label="Previous"
                 >
@@ -346,7 +358,7 @@ export const SocialProofSection = React.forwardRef<HTMLDivElement, SocialProofSe
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); lightboxNext() }}
-                  className="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 z-50 w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 bg-black/60 backdrop-blur-md border"
+                  className="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 z-50 w-11 h-11 rounded-full items-center justify-center transition-all duration-300 hover:scale-110 bg-black/60 backdrop-blur-md border"
                   style={{ borderColor: `${accentColor}50` }}
                   aria-label="Next"
                 >
