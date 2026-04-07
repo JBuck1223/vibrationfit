@@ -3593,7 +3593,7 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
               <h4 className="text-sm font-semibold text-white">Full Layout (Videos + Screenshots)</h4>
               <SocialProofSection
                 eyebrow="Vibration Fit Member Results"
-                title="Real People. Real Manifestations."
+                title="Real People. Real Results."
                 subtitle="Watch unedited stories and scroll through real screenshots from Vibration Fit members using universal law to create tangible wins in money, relationships, opportunities, and everyday life."
                 microcopy="All videos and messages are from real Vibration Fit members, shared with permission. Screenshots are unedited."
                 videos={[
@@ -3651,8 +3651,7 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                   {
                     id: 's7',
                     src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0008-jeanie.jpg',
-                    alt: 'Jeanie testimonial',
-                    name: 'Jeanie',
+                    alt: 'Vibration Fit member testimonial',
                   },
                   {
                     id: 's8',
@@ -3708,9 +3707,7 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                   {
                     id: 's1',
                     src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0008-jeanie.jpg',
-                    alt: 'Jeanie testimonial',
-                    name: 'Jeanie',
-                    caption: 'Member Testimonial',
+                    alt: 'Vibration Fit member testimonial',
                   },
                   {
                     id: 's2',

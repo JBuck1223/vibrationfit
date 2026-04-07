@@ -24,6 +24,8 @@ interface ProofWallItem {
 interface ProofWallProps extends React.HTMLAttributes<HTMLDivElement> {
   items: ProofWallItem[]
   heading?: string | null
+  subtitle?: string
+  caption?: string
   className?: string
   showHeadingOutside?: boolean
   showStoryHighlight?: boolean
@@ -33,6 +35,8 @@ export const ProofWall = React.forwardRef<HTMLDivElement, ProofWallProps>(
   ({
     items,
     heading,
+    subtitle,
+    caption,
     className = '',
     showHeadingOutside = true,
     showStoryHighlight = true,
@@ -73,7 +77,7 @@ export const ProofWall = React.forwardRef<HTMLDivElement, ProofWallProps>(
 
           <Stack gap="lg">
             <Text size="base" className="text-neutral-400 text-center leading-relaxed">
-              From no money &amp; 6-figures in the hole to 6-figures in the bank. Once we locked in the system, abundance flowed.
+              {subtitle || 'From no money & 6-figures in the hole to 6-figures in the bank. Once we locked in the system, abundance flowed.'}
             </Text>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
@@ -103,6 +107,12 @@ export const ProofWall = React.forwardRef<HTMLDivElement, ProofWallProps>(
                 </div>
               </div>
             </div>
+
+            {caption && (
+              <p className="text-center text-xs text-neutral-500 leading-relaxed">
+                {caption}
+              </p>
+            )}
           </Stack>
         </Card>
       </div>
