@@ -12,7 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateText } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { gateway, VISION_MODEL } from '@/lib/ai/gateway'
 import { getAIToolConfig } from '@/lib/ai/database-config'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 import { 
@@ -118,12 +118,11 @@ export async function POST(request: NextRequest) {
       }, { status: tokenValidation.status })
     }
 
-    console.log(`[FocusGenerate] Using model ${toolConfig.model_name} for story`)
+    console.log(`[FocusGenerate] Using model ${VISION_MODEL} (Gemini via gateway) for story`)
 
-    // Generate the story
-    // Note: maxTokens is handled by the model provider
+    // Generate the story using Gemini via Vercel AI Gateway
     const storyResult = await generateText({
-      model: openai(toolConfig.model_name),
+      model: gateway(VISION_MODEL),
       prompt: storyPrompt,
       temperature: toolConfig.supports_temperature ? (toolConfig.temperature || 0.8) : undefined,
     })
@@ -137,7 +136,7 @@ export async function POST(request: NextRequest) {
       trackTokenUsage({
         user_id: user.id,
         action_type: 'focus_story_generation',
-        model_used: storyResult.response?.modelId || toolConfig.model_name,
+        model_used: storyResult.response?.modelId || VISION_MODEL,
         tokens_used: storyResult.usage.totalTokens || 0,
         input_tokens: storyResult.usage.inputTokens || 0,
         output_tokens: storyResult.usage.outputTokens || 0,
