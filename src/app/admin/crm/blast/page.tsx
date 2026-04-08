@@ -34,6 +34,7 @@ import {
   Layers,
   AlertCircle,
   Smartphone,
+  Clock,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { BlastFilters, Audience } from '@/lib/crm/blast-filters'
@@ -190,6 +191,8 @@ export default function BlastPage() {
 
   const [sending, setSending] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [sendMode, setSendMode] = useState<'now' | 'scheduled'>('now')
+  const [scheduledFor, setScheduledFor] = useState('')
 
   const [campaignId, setCampaignId] = useState<string | null>(null)
   const [campaignData, setCampaignData] = useState<{
@@ -404,6 +407,7 @@ export default function BlastPage() {
     if (sendsEmail && (!subject.trim() || !textBody.trim())) return
     if (sendsSms && !smsBody.trim()) return
     if (!previewCount) return
+    if (sendMode === 'scheduled' && !scheduledFor) return
 
     setSending(true)
     setCampaignId(null)
@@ -420,6 +424,7 @@ export default function BlastPage() {
           smsBody: sendsSms ? smsBody.trim() : undefined,
           senderId,
           excludeSegmentId: excludeSegmentId || undefined,
+          scheduledFor: sendMode === 'scheduled' ? new Date(scheduledFor).toISOString() : undefined,
         }),
       })
       const data = await res.json()
@@ -429,7 +434,11 @@ export default function BlastPage() {
       if (data.emailCount) parts.push(`${data.emailCount} emails`)
       if (data.smsCount) parts.push(`${data.smsCount} texts`)
       const suppMsg = data.suppressedCount ? ` (${data.suppressedCount} suppressed)` : ''
-      toast.success(`Blast queued: ${parts.join(' + ') || data.recipientCount + ' recipients'}${suppMsg}`)
+      if (data.scheduledFor) {
+        toast.success(`Blast scheduled for ${new Date(data.scheduledFor).toLocaleString()}`)
+      } else {
+        toast.success(`Blast queued: ${parts.join(' + ') || data.recipientCount + ' recipients'}${suppMsg}`)
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to send blast'
       toast.error(msg)
@@ -442,7 +451,8 @@ export default function BlastPage() {
   const canSend =
     previewCount && previewCount > 0 &&
     (!sendsEmail || (subject.trim() && textBody.trim())) &&
-    (!sendsSms || smsBody.trim())
+    (!sendsSms || smsBody.trim()) &&
+    (sendMode === 'now' || scheduledFor)
 
   function renderFilterValueInput(row: FilterRow) {
     const valueOptions = getValueOptions(row.field)
@@ -1022,6 +1032,58 @@ export default function BlastPage() {
               </div>
             )}
 
+            {/* Schedule */}
+            <div className="mb-6 pt-6 border-t border-[#333]">
+              <div className="flex items-center gap-2 mb-4">
+                <Clock className="w-4 h-4 text-[#00FFFF]" />
+                <h3 className="text-sm font-semibold text-neutral-300">Delivery</h3>
+              </div>
+              <div className="flex gap-2 mb-3">
+                {([
+                  { value: 'now' as const, label: 'Send Now', icon: Send },
+                  { value: 'scheduled' as const, label: 'Schedule', icon: Clock },
+                ]).map(({ value, label, icon: Icon }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setSendMode(value)}
+                    className={`inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold rounded-full border-2 transition-all duration-300 ${
+                      sendMode === value
+                        ? 'bg-[#00FFFF] text-black border-transparent'
+                        : 'bg-transparent border-[#333] text-neutral-400 hover:border-[#00FFFF] hover:text-[#00FFFF]'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {sendMode === 'scheduled' && (
+                <div className="max-w-xs">
+                  <label className="block text-sm text-neutral-400 mb-1">Send at</label>
+                  <input
+                    type="datetime-local"
+                    value={scheduledFor}
+                    onChange={(e) => setScheduledFor(e.target.value)}
+                    min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
+                    className={inputClass}
+                  />
+                  {scheduledFor && (
+                    <p className="text-xs text-neutral-500 mt-1">
+                      {new Date(scheduledFor).toLocaleString(undefined, {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        timeZoneName: 'short',
+                      })}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Send */}
             <div className="flex items-center gap-4">
               <button
@@ -1030,17 +1092,19 @@ export default function BlastPage() {
                 onClick={() => setShowConfirm(true)}
                 className={btnPrimary}
               >
-                <Send className="w-4 h-4" />
+                {sendMode === 'scheduled' ? <Clock className="w-4 h-4" /> : <Send className="w-4 h-4" />}
                 {sending
                   ? 'Sending...'
-                  : channel === 'both'
-                    ? `Send ${emailCount.toLocaleString()} Emails + ${smsCount.toLocaleString()} Texts`
-                    : channel === 'sms'
-                      ? `Send to ${smsCount.toLocaleString()} Phone${smsCount !== 1 ? 's' : ''}`
-                      : `Send to ${(previewCount ?? 0).toLocaleString()} Recipient${previewCount !== 1 ? 's' : ''}`}
+                  : sendMode === 'scheduled'
+                    ? `Schedule for ${scheduledFor ? new Date(scheduledFor).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '...'}`
+                    : channel === 'both'
+                      ? `Send ${emailCount.toLocaleString()} Emails + ${smsCount.toLocaleString()} Texts`
+                      : channel === 'sms'
+                        ? `Send to ${smsCount.toLocaleString()} Phone${smsCount !== 1 ? 's' : ''}`
+                        : `Send to ${(previewCount ?? 0).toLocaleString()} Recipient${previewCount !== 1 ? 's' : ''}`}
               </button>
 
-              {previewCount !== null && previewCount > 1000 && (
+              {previewCount !== null && previewCount > 1000 && sendMode === 'now' && (
                 <p className="text-sm text-[#00FFFF] flex items-center gap-1">
                   <AlertCircle className="w-4 h-4" />
                   Large blast -- will be queued and sent in background
@@ -1134,7 +1198,9 @@ export default function BlastPage() {
           <div className="absolute inset-0 bg-black/70" onClick={() => setShowConfirm(false)} />
           <div className="relative z-[10000] w-full max-w-md bg-[#1A1A1A] rounded-2xl border-2 border-[#333] p-6 md:p-8 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-white">Confirm Send</h2>
+              <h2 className="text-xl font-semibold text-white">
+                {sendMode === 'scheduled' ? 'Confirm Schedule' : 'Confirm Send'}
+              </h2>
               <button
                 type="button"
                 onClick={() => setShowConfirm(false)}
@@ -1197,8 +1263,25 @@ export default function BlastPage() {
                   <span className="text-neutral-400">Audience:</span>{' '}
                   <span className="text-white capitalize">{audience}</span>
                 </p>
+                {sendMode === 'scheduled' && scheduledFor && (
+                  <p>
+                    <span className="text-neutral-400">Scheduled for:</span>{' '}
+                    <span className="text-[#00FFFF] font-semibold">
+                      {new Date(scheduledFor).toLocaleString(undefined, {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        timeZoneName: 'short',
+                      })}
+                    </span>
+                  </p>
+                )}
               </div>
-              <p className="text-sm text-neutral-500">This action cannot be undone.</p>
+              <p className="text-sm text-neutral-500">
+                {sendMode === 'scheduled' ? 'The blast will be sent at the scheduled time.' : 'This action cannot be undone.'}
+              </p>
             </div>
 
             <div className="flex gap-3">
@@ -1218,12 +1301,12 @@ export default function BlastPage() {
                 {sending ? (
                   <>
                     <Spinner size="sm" />
-                    Sending...
+                    {sendMode === 'scheduled' ? 'Scheduling...' : 'Sending...'}
                   </>
                 ) : (
                   <>
-                    <Send className="w-4 h-4" />
-                    Send Blast
+                    {sendMode === 'scheduled' ? <Clock className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+                    {sendMode === 'scheduled' ? 'Schedule Blast' : 'Send Blast'}
                   </>
                 )}
               </button>

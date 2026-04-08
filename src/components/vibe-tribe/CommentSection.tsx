@@ -7,6 +7,10 @@ import { Heart, Trash2, Send, Reply, X, Pencil } from 'lucide-react'
 import { VibeComment } from '@/lib/vibe-tribe/types'
 import { UserBadgeIndicator } from '@/components/badges'
 import { format, isToday, isYesterday } from 'date-fns'
+import { useMentionAutocomplete } from '@/hooks/useMentionAutocomplete'
+import { MentionDropdown } from './MentionDropdown'
+import { EmojiPickerButton } from './EmojiPickerButton'
+import { renderContentWithMentions } from '@/lib/vibe-tribe/render-mentions'
 
 interface CommentSectionProps {
   postId: string
@@ -27,6 +31,13 @@ export function CommentSection({
   const [submitting, setSubmitting] = useState(false)
   const [replyingToId, setReplyingToId] = useState<string | null>(null)
   const [replyText, setReplyText] = useState('')
+  const topCommentRef = useRef<HTMLTextAreaElement>(null)
+
+  const topMention = useMentionAutocomplete({
+    value: newComment,
+    onChange: setNewComment,
+    textareaRef: topCommentRef,
+  })
 
   useEffect(() => {
     fetchComments()
@@ -239,21 +250,36 @@ export function CommentSection({
       {/* Top-level Comment Input - hidden when replying to someone */}
       {!replyingToId && (
         <form onSubmit={handleSubmitTopLevel} className="mb-4">
-          <div className="flex items-end gap-2">
-            <textarea
-              value={newComment}
-              onChange={(e) => {
-                setNewComment(e.target.value)
-                e.target.style.height = 'auto'
-                const maxH = Math.min(window.innerHeight * 0.4, 300)
-                const newH = Math.min(e.target.scrollHeight, maxH)
-                e.target.style.height = `${newH}px`
-                e.target.style.overflowY = e.target.scrollHeight > maxH ? 'auto' : 'hidden'
-              }}
-              placeholder="Add a comment..."
-              className="flex-1 bg-neutral-800 border border-neutral-700 rounded-2xl px-4 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500 resize-none min-h-[36px]"
-              style={{ overflowY: 'hidden' }}
-              rows={1}
+          <div className="flex items-end gap-2 relative">
+            <div className="flex-1 relative">
+              <MentionDropdown
+                results={topMention.mentionResults}
+                activeIndex={topMention.mentionActiveIndex}
+                onSelect={topMention.mentionSelectMember}
+                isOpen={topMention.isMentionOpen}
+              />
+              <textarea
+                ref={topCommentRef}
+                value={newComment}
+                onChange={(e) => {
+                  topMention.mentionHandleChange(e)
+                  e.target.style.height = 'auto'
+                  const maxH = Math.min(window.innerHeight * 0.4, 300)
+                  const newH = Math.min(e.target.scrollHeight, maxH)
+                  e.target.style.height = `${newH}px`
+                  e.target.style.overflowY = e.target.scrollHeight > maxH ? 'auto' : 'hidden'
+                }}
+                onKeyDown={topMention.mentionHandleKeyDown}
+                placeholder="Add a comment..."
+                className="w-full bg-neutral-800 border border-neutral-700 rounded-2xl px-4 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500 resize-none min-h-[36px]"
+                style={{ overflowY: 'hidden' }}
+                rows={1}
+              />
+            </div>
+            <EmojiPickerButton
+              textareaRef={topCommentRef}
+              onInsert={(val) => setNewComment(val)}
+              iconSize="w-4 h-4"
             />
             <button
               type="submit"
@@ -357,6 +383,12 @@ function CommentItem({
   const [editError, setEditError] = useState(false)
   const replyInputRef = useRef<HTMLTextAreaElement>(null)
   const editInputRef = useRef<HTMLTextAreaElement>(null)
+
+  const replyMention = useMentionAutocomplete({
+    value: replyText,
+    onChange: setReplyText,
+    textareaRef: replyInputRef,
+  })
   
   // Format time: show time for today, "Yesterday" for yesterday, or date for older
   const commentDate = new Date(comment.created_at)
@@ -434,63 +466,18 @@ function CommentItem({
 
   const indentClass = nestingLevel === 0 ? '' : nestingLevel === 1 ? 'ml-6 md:ml-10' : 'ml-4 md:ml-8'
 
-  const renderContentWithMentions = (content: string) => {
-    if (userNameMap.size === 0) return content
-
-    const nameEntries = Array.from(userNameMap.entries())
-      .sort((a, b) => b[0].length - a[0].length)
-
-    const escapedNames = nameEntries.map(([name]) =>
-      name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    )
-    const mentionRegex = new RegExp(`@(${escapedNames.join('|')})`, 'gi')
-
-    const parts: (string | React.ReactElement)[] = []
-    let lastIndex = 0
-    let match: RegExpExecArray | null
-    let prevIndex = -1
-
-    while ((match = mentionRegex.exec(content)) !== null) {
-      if (match.index === prevIndex) break
-      prevIndex = match.index
-      if (match.index > lastIndex) {
-        parts.push(content.slice(lastIndex, match.index))
-      }
-
-      const mentionedName = match[1]
-      const userId =
-        userNameMap.get(mentionedName) ||
-        Array.from(userNameMap.entries()).find(
-          ([name]) => name.toLowerCase() === mentionedName.toLowerCase()
-        )?.[1]
-
-      if (userId) {
-        parts.push(
-          <Link
-            key={match.index}
-            href={`/snapshot/${userId}`}
-            className="text-[#39FF14] font-medium hover:underline"
-          >
-            {mentionedName}
-          </Link>
-        )
-      } else {
-        parts.push(
-          <span key={match.index} className="text-[#39FF14] font-medium">
-            {mentionedName}
-          </span>
-        )
-      }
-
-      lastIndex = match.index + match[0].length
+  const allMentionedUsers = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const [name, id] of userNameMap.entries()) {
+      map.set(name, id)
     }
-
-    if (lastIndex < content.length) {
-      parts.push(content.slice(lastIndex))
+    if (comment.mentioned_users) {
+      for (const u of comment.mentioned_users) {
+        map.set(u.full_name, u.id)
+      }
     }
-
-    return parts.length > 0 ? <>{parts}</> : content
-  }
+    return Array.from(map.entries()).map(([full_name, id]) => ({ id, full_name }))
+  }, [userNameMap, comment.mentioned_users])
 
 
   return (
@@ -574,7 +561,7 @@ function CommentItem({
             </div>
           ) : (
             <p className="text-sm text-neutral-200 whitespace-pre-wrap">
-              {renderContentWithMentions(comment.content)}
+              {renderContentWithMentions(comment.content, allMentionedUsers)}
               {comment.edited_at && (
                 <span className="text-xs text-neutral-500 ml-2">(edited)</span>
               )}
@@ -638,22 +625,36 @@ function CommentItem({
           {/* Inline Reply Input */}
           {isReplying && (
             <div className="mt-3">
-              <div className="flex items-end gap-2">
-                <textarea
-                  ref={replyInputRef}
-                  value={replyText}
-                  onChange={(e) => {
-                    setReplyText(e.target.value)
-                    e.target.style.height = 'auto'
-                    const maxH = Math.min(window.innerHeight * 0.4, 300)
-                    const newH = Math.min(e.target.scrollHeight, maxH)
-                    e.target.style.height = `${newH}px`
-                    e.target.style.overflowY = e.target.scrollHeight > maxH ? 'auto' : 'hidden'
-                  }}
-                  placeholder={`Reply to ${comment.user?.full_name || 'Anonymous'}...`}
-                  className="flex-1 bg-neutral-800 border border-neutral-700 rounded-2xl px-4 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#39FF14] resize-none min-h-[36px]"
-                  style={{ overflowY: 'hidden' }}
-                  rows={1}
+              <div className="flex items-end gap-2 relative">
+                <div className="flex-1 relative">
+                  <MentionDropdown
+                    results={replyMention.mentionResults}
+                    activeIndex={replyMention.mentionActiveIndex}
+                    onSelect={replyMention.mentionSelectMember}
+                    isOpen={replyMention.isMentionOpen}
+                  />
+                  <textarea
+                    ref={replyInputRef}
+                    value={replyText}
+                    onChange={(e) => {
+                      replyMention.mentionHandleChange(e)
+                      e.target.style.height = 'auto'
+                      const maxH = Math.min(window.innerHeight * 0.4, 300)
+                      const newH = Math.min(e.target.scrollHeight, maxH)
+                      e.target.style.height = `${newH}px`
+                      e.target.style.overflowY = e.target.scrollHeight > maxH ? 'auto' : 'hidden'
+                    }}
+                    onKeyDown={replyMention.mentionHandleKeyDown}
+                    placeholder={`Reply to ${comment.user?.full_name || 'Anonymous'}...`}
+                    className="w-full bg-neutral-800 border border-neutral-700 rounded-2xl px-4 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#39FF14] resize-none min-h-[36px]"
+                    style={{ overflowY: 'hidden' }}
+                    rows={1}
+                  />
+                </div>
+                <EmojiPickerButton
+                  textareaRef={replyInputRef}
+                  onInsert={(val) => setReplyText(val)}
+                  iconSize="w-4 h-4"
                 />
                 <button
                   type="button"

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { updateMentions } from '@/lib/vibe-tribe/mention-utils'
 
 /**
  * PATCH /api/vibe-tribe/comments/[id]
@@ -72,7 +73,22 @@ export async function PATCH(
       return NextResponse.json({ error: 'Failed to update comment' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, comment: { ...updated, edited_at: updated?.edited_at || new Date().toISOString() } })
+    // Recalculate mentions after edit
+    const mentionedUsers = await updateMentions(
+      adminClient,
+      content.trim(),
+      user.id,
+      { comment_id: id }
+    )
+
+    return NextResponse.json({
+      success: true,
+      comment: {
+        ...updated,
+        edited_at: updated?.edited_at || new Date().toISOString(),
+        mentioned_users: mentionedUsers,
+      },
+    })
   } catch (error: any) {
     console.error('VIBE TRIBE COMMENT PATCH ERROR:', error)
     return NextResponse.json(

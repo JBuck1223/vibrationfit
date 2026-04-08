@@ -7,7 +7,7 @@
  * Provides a beautiful, branded experience for 1:1 coaching calls.
  */
 
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import {
   DailyProvider,
   useDaily,
@@ -40,6 +40,9 @@ import {
   Clock,
   UserCircle,
   VolumeX,
+  LayoutGrid,
+  Monitor,
+  Camera,
 } from 'lucide-react'
 import { Button, Badge, Card } from '@/lib/design-system/components'
 import { SessionChat } from '@/components/video/SessionChat'
@@ -157,6 +160,16 @@ function VideoCallUI({
   const [hostJoinedNotified, setHostJoinedNotified] = useState(false)
   const [highlightedMessage, setHighlightedMessage] = useState<{ sender_name: string; message: string } | null>(null)
 
+  // Layout: speaker view (one featured) vs grid (all visible)
+  type LayoutMode = 'speaker' | 'grid'
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>(isGroupSession ? 'speaker' : 'speaker')
+
+  // Camera source picker (host only)
+  const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([])
+  const [showDevicePicker, setShowDevicePicker] = useState(false)
+  const [activeVideoDeviceId, setActiveVideoDeviceId] = useState<string | null>(null)
+  const devicePickerRef = useRef<HTMLDivElement>(null)
+
   // Stable callback for SessionChat's onHighlightChange so it doesn't tear down Realtime
   const handleHighlightChange = useCallback((msg: { sender_name: string; message: string } | null) => {
     setHighlightedMessage(msg ? { sender_name: msg.sender_name, message: msg.message } : null)
@@ -166,6 +179,63 @@ function VideoCallUI({
   const containerRef = useRef<HTMLDivElement>(null)
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const joinTrackedRef = useRef(false)
+
+  // Enumerate video input devices for the camera picker (host only)
+  useEffect(() => {
+    if (!isHost) return
+    async function enumerateDevices() {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices()
+        const cameras = devices.filter(d => d.kind === 'videoinput' && d.deviceId)
+        setVideoDevices(cameras)
+      } catch {
+        // Permissions not yet granted — retry after join
+      }
+    }
+    enumerateDevices()
+    navigator.mediaDevices?.addEventListener('devicechange', enumerateDevices)
+    return () => navigator.mediaDevices?.removeEventListener('devicechange', enumerateDevices)
+  }, [isHost])
+
+  // Close device picker on outside click
+  useEffect(() => {
+    if (!showDevicePicker) return
+    function handleOutside(e: MouseEvent | TouchEvent) {
+      if (devicePickerRef.current && !devicePickerRef.current.contains(e.target as Node)) {
+        setShowDevicePicker(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutside)
+    document.addEventListener('touchstart', handleOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleOutside)
+      document.removeEventListener('touchstart', handleOutside)
+    }
+  }, [showDevicePicker])
+
+  // After joining, re-enumerate (permissions are now granted and labels available)
+  useEffect(() => {
+    if (meetingState !== 'joined-meeting' || !isHost) return
+    navigator.mediaDevices.enumerateDevices().then(devices => {
+      setVideoDevices(devices.filter(d => d.kind === 'videoinput' && d.deviceId))
+    }).catch(() => {})
+  }, [meetingState, isHost])
+
+  // Switch camera source
+  const switchCamera = useCallback(async (deviceId: string) => {
+    if (!daily) return
+    try {
+      await daily.setInputDevicesAsync({ videoDeviceId: deviceId })
+      setActiveVideoDeviceId(deviceId)
+      if (!cameraEnabled) {
+        await daily.setLocalVideo(true)
+        setCameraEnabled(true)
+      }
+      setShowDevicePicker(false)
+    } catch (err) {
+      console.error('Failed to switch camera:', err)
+    }
+  }, [daily, cameraEnabled])
 
   // Join the call
   useEffect(() => {
@@ -285,6 +355,36 @@ function VideoCallUI({
     }
   }, [daily, onRecordingStart, onRecordingStop, sessionId])
 
+  // Audio safety: ensure we stay subscribed to all remote audio tracks.
+  // This guards against edge cases where track subscriptions silently drop
+  // (e.g., after a network reconnect or when a remote participant toggles their mic).
+  useEffect(() => {
+    if (!daily || meetingState !== 'joined-meeting') return
+
+    const ensureAudioSubscriptions = () => {
+      const participants = daily.participants()
+      for (const [id, p] of Object.entries(participants)) {
+        if (id === 'local') continue
+        const tracks = p?.tracks
+        if (tracks?.audio?.subscribed === false) {
+          daily.updateParticipant(id, {
+            setSubscribedTracks: { audio: true, video: true, screenAudio: true, screenVideo: true },
+          })
+        }
+      }
+    }
+
+    ensureAudioSubscriptions()
+
+    daily.on('participant-updated', ensureAudioSubscriptions)
+    daily.on('track-started', ensureAudioSubscriptions)
+
+    return () => {
+      daily.off('participant-updated', ensureAudioSubscriptions)
+      daily.off('track-started', ensureAudioSubscriptions)
+    }
+  }, [daily, meetingState])
+
   // Toggle camera
   const toggleCamera = useCallback(async () => {
     if (!daily) return
@@ -300,6 +400,11 @@ function VideoCallUI({
     await daily.setLocalAudio(newState)
     setMicEnabled(newState)
   }, [daily, micEnabled])
+
+  // Toggle layout mode
+  const toggleLayout = useCallback(() => {
+    setLayoutMode(prev => prev === 'speaker' ? 'grid' : 'speaker')
+  }, [])
 
   const [screenShareError, setScreenShareError] = useState<string | null>(null)
 
@@ -575,95 +680,53 @@ function VideoCallUI({
       <div className="flex-1 flex min-h-0">
         {/* Video Area */}
         <div className="flex-1 relative min-w-0">
-          {/* Main Video Area — screen share takes priority when active */}
-          <div className="absolute inset-0">
-            {activeScreenShare ? (
-              <DailyVideo
-                fit="contain"
-                sessionId={activeScreenShare.session_id}
-                type="screenVideo"
-                className="w-full h-full bg-black"
-              />
-            ) : featuredParticipantId ? (
-              <RemoteParticipantTile participantId={featuredParticipantId} />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-neutral-900">
-                <div className="text-center max-w-sm">
-                  <div className="w-24 h-24 rounded-full bg-neutral-800 flex items-center justify-center mx-auto mb-5">
-                    {isHost ? (
-                      <Users className="w-12 h-12 text-neutral-600" />
-                    ) : (
-                      <div className="relative">
-                        <Users className="w-12 h-12 text-neutral-600" />
-                        <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-neutral-700 flex items-center justify-center">
-                          <Clock className="w-3 h-3 text-neutral-400" />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  {isHost ? (
-                    <>
-                      <p className="text-white text-lg font-medium">No participants yet</p>
-                      <p className="text-neutral-500 text-sm mt-2">
-                        Members will appear here when they join
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-white text-lg font-medium">Waiting for host to join</p>
-                      <p className="text-neutral-500 text-sm mt-2">
-                        The session will begin once the host arrives
-                      </p>
-                      <div className="mt-4 inline-flex items-center gap-2 bg-neutral-800/80 px-4 py-2 rounded-full">
-                        <div className="w-2 h-2 rounded-full bg-primary-500 animate-pulse" />
-                        <span className="text-neutral-300 text-sm font-mono">
-                          {formatDuration(waitingSeconds)}
-                        </span>
-                      </div>
-                    </>
-                  )}
-                </div>
+          {/* Screen share takes top priority regardless of layout */}
+          {activeScreenShare ? (
+            <>
+              <div className="absolute inset-0">
+                <DailyVideo
+                  fit="contain"
+                  sessionId={activeScreenShare.session_id}
+                  type="screenVideo"
+                  className="w-full h-full bg-black"
+                />
               </div>
-            )}
-          </div>
-
-          {/* Remote participant PiP — shown when screen share is active so you still see them */}
-          {activeScreenShare && featuredParticipantId && (
-            <div className="absolute top-4 right-4 w-36 md:w-48 aspect-video rounded-xl overflow-hidden shadow-2xl border-2 border-neutral-700 bg-neutral-800 z-10">
-              <RemoteParticipantTile participantId={featuredParticipantId} />
-            </div>
-          )}
-
-          {/* Local Video (Picture-in-Picture) */}
-          <div className={`absolute ${activeScreenShare ? 'bottom-4 right-4 w-28 md:w-40' : 'bottom-4 right-4 w-36 md:w-56'} aspect-video rounded-xl overflow-hidden shadow-2xl border-2 border-neutral-700 bg-neutral-800 z-10`}>
-            {localParticipant && cameraEnabled ? (
-              <DailyVideo
-                automirror
-                fit="cover"
-                sessionId={localParticipant.session_id}
-                type="video"
-                className="w-full h-full"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <div className="w-12 h-12 rounded-full bg-neutral-700 flex items-center justify-center">
-                  <span className="text-lg font-bold text-neutral-400">
-                    {userName?.[0]?.toUpperCase() || 'Y'}
-                  </span>
+              {featuredParticipantId && (
+                <div className="absolute top-4 right-4 w-36 md:w-48 aspect-video rounded-xl overflow-hidden shadow-2xl border-2 border-neutral-700 bg-neutral-800 z-10">
+                  <RemoteParticipantTile participantId={featuredParticipantId} />
                 </div>
-              </div>
-            )}
-            
-            {/* Local participant name */}
-            <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
-              <span className="text-xs text-white bg-black/50 px-2 py-1 rounded-full">
-                You
-              </span>
-              {!micEnabled && (
-                <MicOff className="w-3 h-3 text-red-400" />
               )}
+              <div className="absolute bottom-4 right-4 w-28 md:w-40 aspect-video rounded-xl overflow-hidden shadow-2xl border-2 border-neutral-700 bg-neutral-800 z-10">
+                <LocalVideoTile localParticipant={localParticipant} cameraEnabled={cameraEnabled} userName={userName} micEnabled={micEnabled} />
+              </div>
+            </>
+          ) : layoutMode === 'grid' && isGroupSession && participantIds.length > 0 ? (
+            /* ─── Grid Layout ─── */
+            <div className="absolute inset-0 p-2 md:p-3">
+              <GridLayout
+                localParticipant={localParticipant}
+                cameraEnabled={cameraEnabled}
+                micEnabled={micEnabled}
+                userName={userName}
+                participantIds={participantIds}
+                activeSpeakerId={activeSpeakerId}
+              />
             </div>
-          </div>
+          ) : (
+            /* ─── Speaker Layout (default) ─── */
+            <>
+              <div className="absolute inset-0">
+                {featuredParticipantId ? (
+                  <RemoteParticipantTile participantId={featuredParticipantId} />
+                ) : (
+                  <EmptyRoomPlaceholder isHost={isHost} waitingSeconds={waitingSeconds} formatDuration={formatDuration} />
+                )}
+              </div>
+              <div className="absolute bottom-4 right-4 w-36 md:w-56 aspect-video rounded-xl overflow-hidden shadow-2xl border-2 border-neutral-700 bg-neutral-800 z-10">
+                <LocalVideoTile localParticipant={localParticipant} cameraEnabled={cameraEnabled} userName={userName} micEnabled={micEnabled} />
+              </div>
+            </>
+          )}
 
           {/* Participants panel */}
           {showParticipants && (
@@ -770,6 +833,71 @@ function VideoCallUI({
             {isSharingScreen ? <ScreenShareOff className="w-5 h-5 md:w-6 md:h-6" /> : <ScreenShare className="w-5 h-5 md:w-6 md:h-6" />}
           </button>
 
+          {/* Layout toggle (group sessions only, 2+ participants) */}
+          {isGroupSession && participantIds.length > 0 && (
+            <button
+              onClick={toggleLayout}
+              className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-200 ${
+                layoutMode === 'grid'
+                  ? 'bg-secondary-500/20 text-secondary-500'
+                  : 'bg-neutral-700 hover:bg-neutral-600 text-white'
+              }`}
+              title={layoutMode === 'grid' ? 'Speaker view' : 'Grid view'}
+            >
+              {layoutMode === 'grid' ? <Monitor className="w-5 h-5 md:w-6 md:h-6" /> : <LayoutGrid className="w-5 h-5 md:w-6 md:h-6" />}
+            </button>
+          )}
+
+          {/* Camera source picker (host only, multiple cameras) */}
+          {isHost && videoDevices.length > 1 && (
+            <div className="relative" ref={devicePickerRef}>
+              <button
+                onClick={() => setShowDevicePicker(prev => !prev)}
+                className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-200 ${
+                  showDevicePicker
+                    ? 'bg-accent-500/20 text-accent-500'
+                    : 'bg-neutral-700 hover:bg-neutral-600 text-white'
+                }`}
+                title="Switch camera source"
+              >
+                <Camera className="w-5 h-5 md:w-6 md:h-6" />
+              </button>
+              {showDevicePicker && (
+                <div className="absolute bottom-full mb-2 right-0 w-72 bg-neutral-900/95 backdrop-blur rounded-2xl border border-neutral-700 p-3 shadow-2xl z-30">
+                  <p className="text-xs text-neutral-400 font-medium mb-2 px-1">Camera Source</p>
+                  <div className="space-y-1">
+                    {videoDevices.map((device, idx) => {
+                      const isActive = activeVideoDeviceId
+                        ? device.deviceId === activeVideoDeviceId
+                        : idx === 0
+                      return (
+                        <button
+                          key={device.deviceId}
+                          onClick={() => switchCamera(device.deviceId)}
+                          className={`w-full text-left px-3 py-2.5 rounded-xl text-sm transition-colors ${
+                            isActive
+                              ? 'bg-primary-500/20 text-primary-400 font-medium'
+                              : 'text-neutral-300 hover:bg-neutral-800'
+                          }`}
+                        >
+                          <span className="block truncate">
+                            {device.label || `Camera ${idx + 1}`}
+                          </span>
+                          {device.label.toLowerCase().includes('obs') && (
+                            <span className="text-[10px] text-accent-400 mt-0.5 block">OBS Virtual Camera</span>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <p className="text-[10px] text-neutral-500 mt-2 px-1 leading-relaxed">
+                    Use OBS Virtual Camera with Stream Deck for scene switching
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Recording (host only — auto-starts, but host can stop/restart) */}
           {isHost && (
             <button
@@ -853,6 +981,195 @@ function VideoCallUI({
           >
             <PhoneOff className="w-5 h-5 md:w-6 md:h-6" />
           </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Local video PiP tile (extracted to share between layouts)
+function LocalVideoTile({
+  localParticipant,
+  cameraEnabled,
+  userName,
+  micEnabled,
+}: {
+  localParticipant: ReturnType<typeof useLocalParticipant>
+  cameraEnabled: boolean
+  userName: string
+  micEnabled: boolean
+}) {
+  return (
+    <>
+      {localParticipant && cameraEnabled ? (
+        <DailyVideo
+          automirror
+          fit="cover"
+          sessionId={localParticipant.session_id}
+          type="video"
+          className="w-full h-full"
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center">
+          <div className="w-12 h-12 rounded-full bg-neutral-700 flex items-center justify-center">
+            <span className="text-lg font-bold text-neutral-400">
+              {userName?.[0]?.toUpperCase() || 'Y'}
+            </span>
+          </div>
+        </div>
+      )}
+      <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
+        <span className="text-xs text-white bg-black/50 px-2 py-1 rounded-full">You</span>
+        {!micEnabled && <MicOff className="w-3 h-3 text-red-400" />}
+      </div>
+    </>
+  )
+}
+
+// Empty room placeholder (no remote participants yet)
+function EmptyRoomPlaceholder({
+  isHost,
+  waitingSeconds,
+  formatDuration,
+}: {
+  isHost: boolean
+  waitingSeconds: number
+  formatDuration: (s: number) => string
+}) {
+  return (
+    <div className="w-full h-full flex items-center justify-center bg-neutral-900">
+      <div className="text-center max-w-sm">
+        <div className="w-24 h-24 rounded-full bg-neutral-800 flex items-center justify-center mx-auto mb-5">
+          {isHost ? (
+            <Users className="w-12 h-12 text-neutral-600" />
+          ) : (
+            <div className="relative">
+              <Users className="w-12 h-12 text-neutral-600" />
+              <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-neutral-700 flex items-center justify-center">
+                <Clock className="w-3 h-3 text-neutral-400" />
+              </div>
+            </div>
+          )}
+        </div>
+        {isHost ? (
+          <>
+            <p className="text-white text-lg font-medium">No participants yet</p>
+            <p className="text-neutral-500 text-sm mt-2">Members will appear here when they join</p>
+          </>
+        ) : (
+          <>
+            <p className="text-white text-lg font-medium">Waiting for host to join</p>
+            <p className="text-neutral-500 text-sm mt-2">The session will begin once the host arrives</p>
+            <div className="mt-4 inline-flex items-center gap-2 bg-neutral-800/80 px-4 py-2 rounded-full">
+              <div className="w-2 h-2 rounded-full bg-primary-500 animate-pulse" />
+              <span className="text-neutral-300 text-sm font-mono">{formatDuration(waitingSeconds)}</span>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// Grid layout for group sessions
+function GridLayout({
+  localParticipant,
+  cameraEnabled,
+  micEnabled,
+  userName,
+  participantIds,
+  activeSpeakerId,
+}: {
+  localParticipant: ReturnType<typeof useLocalParticipant>
+  cameraEnabled: boolean
+  micEnabled: boolean
+  userName: string
+  participantIds: string[]
+  activeSpeakerId: string | null
+}) {
+  const totalTiles = participantIds.length + 1
+  const cols =
+    totalTiles <= 1 ? 1 :
+    totalTiles <= 4 ? 2 :
+    totalTiles <= 9 ? 3 :
+    4
+
+  return (
+    <div
+      className="w-full h-full grid gap-2"
+      style={{
+        gridTemplateColumns: `repeat(${cols}, 1fr)`,
+        gridAutoRows: '1fr',
+      }}
+    >
+      {/* Local user tile */}
+      <div
+        className={`relative rounded-xl overflow-hidden bg-neutral-800 border-2 transition-colors ${
+          activeSpeakerId === localParticipant?.session_id
+            ? 'border-primary-500'
+            : 'border-neutral-700'
+        }`}
+      >
+        <LocalVideoTile
+          localParticipant={localParticipant}
+          cameraEnabled={cameraEnabled}
+          userName={userName}
+          micEnabled={micEnabled}
+        />
+      </div>
+
+      {/* Remote participant tiles */}
+      {participantIds.map(id => (
+        <GridParticipantTile
+          key={id}
+          participantId={id}
+          isActiveSpeaker={activeSpeakerId === id}
+        />
+      ))}
+    </div>
+  )
+}
+
+// Individual grid tile for a remote participant
+function GridParticipantTile({
+  participantId,
+  isActiveSpeaker,
+}: {
+  participantId: string
+  isActiveSpeaker: boolean
+}) {
+  const participant = useParticipant(participantId)
+  if (!participant) return null
+
+  return (
+    <div
+      className={`relative rounded-xl overflow-hidden bg-neutral-800 border-2 transition-colors ${
+        isActiveSpeaker ? 'border-primary-500' : 'border-neutral-700'
+      }`}
+    >
+      {participant.video ? (
+        <DailyVideo
+          fit="cover"
+          sessionId={participantId}
+          type="video"
+          className="w-full h-full"
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center bg-neutral-900">
+          <div className="w-16 h-16 rounded-full bg-neutral-800 flex items-center justify-center">
+            <span className="text-2xl font-bold text-neutral-400">
+              {participant.user_name?.[0]?.toUpperCase() || '?'}
+            </span>
+          </div>
+        </div>
+      )}
+      <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
+        <span className="text-xs text-white bg-black/50 px-2 py-1 rounded-full truncate max-w-[70%]">
+          {participant.user_name || 'Participant'}
+        </span>
+        <div className="flex items-center gap-1">
+          {!participant.audio && <MicOff className="w-3 h-3 text-red-400" />}
+          {!participant.video && <VideoOff className="w-3 h-3 text-red-400" />}
         </div>
       </div>
     </div>

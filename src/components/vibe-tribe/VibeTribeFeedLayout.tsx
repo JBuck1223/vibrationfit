@@ -453,6 +453,7 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
                   onDelete={handlePostDeleted}
                   currentUserId={userId}
                   isAdmin={isAdmin}
+                  mentionedUsers={post.mentioned_users || []}
                 />
               ))}
 
