@@ -162,7 +162,9 @@ function VideoCallUI({
 
   // Layout: speaker view (one featured) vs grid (all visible)
   type LayoutMode = 'speaker' | 'grid'
-  const [layoutMode, setLayoutMode] = useState<LayoutMode>(isGroupSession ? 'speaker' : 'speaker')
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>(
+    sessionType === 'alignment_gym' ? 'grid' : 'speaker'
+  )
 
   // Camera source picker (host only)
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([])
@@ -715,16 +717,33 @@ function VideoCallUI({
           ) : (
             /* ─── Speaker Layout (default) ─── */
             <>
-              <div className="absolute inset-0">
+              <div className={`absolute inset-0 ${isGroupSession && participantIds.length > 1 ? 'bottom-24 md:bottom-28' : ''}`}>
                 {featuredParticipantId ? (
                   <RemoteParticipantTile participantId={featuredParticipantId} />
                 ) : (
                   <EmptyRoomPlaceholder isHost={isHost} waitingSeconds={waitingSeconds} formatDuration={formatDuration} />
                 )}
               </div>
-              <div className="absolute bottom-4 right-4 w-36 md:w-56 aspect-video rounded-xl overflow-hidden shadow-2xl border-2 border-neutral-700 bg-neutral-800 z-10">
-                <LocalVideoTile localParticipant={localParticipant} cameraEnabled={cameraEnabled} userName={userName} micEnabled={micEnabled} />
-              </div>
+              {/* Filmstrip of other participants in speaker view (group sessions, 2+ remote) */}
+              {isGroupSession && participantIds.length > 1 && (
+                <div className="absolute bottom-0 left-0 right-0 h-24 md:h-28 bg-neutral-900/80 backdrop-blur-sm flex items-center gap-2 px-3 overflow-x-auto z-10">
+                  {participantIds
+                    .filter(id => id !== featuredParticipantId)
+                    .map(id => (
+                      <FilmstripTile key={id} participantId={id} isActiveSpeaker={activeSpeakerId === id} />
+                    ))
+                  }
+                  <div className="relative w-28 md:w-36 aspect-video rounded-lg overflow-hidden flex-shrink-0 border-2 border-neutral-700 bg-neutral-800">
+                    <LocalVideoTile localParticipant={localParticipant} cameraEnabled={cameraEnabled} userName={userName} micEnabled={micEnabled} />
+                  </div>
+                </div>
+              )}
+              {/* Self PiP when alone or only one remote participant */}
+              {(!isGroupSession || participantIds.length <= 1) && (
+                <div className="absolute bottom-4 right-4 w-36 md:w-56 aspect-video rounded-xl overflow-hidden shadow-2xl border-2 border-neutral-700 bg-neutral-800 z-10">
+                  <LocalVideoTile localParticipant={localParticipant} cameraEnabled={cameraEnabled} userName={userName} micEnabled={micEnabled} />
+                </div>
+              )}
             </>
           )}
 
@@ -833,18 +852,21 @@ function VideoCallUI({
             {isSharingScreen ? <ScreenShareOff className="w-5 h-5 md:w-6 md:h-6" /> : <ScreenShare className="w-5 h-5 md:w-6 md:h-6" />}
           </button>
 
-          {/* Layout toggle (group sessions only, 2+ participants) */}
-          {isGroupSession && participantIds.length > 0 && (
+          {/* Layout toggle (group sessions) */}
+          {isGroupSession && (
             <button
               onClick={toggleLayout}
-              className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-200 ${
+              className={`h-12 md:h-14 rounded-full flex items-center justify-center gap-2 transition-all duration-200 px-4 md:px-5 ${
                 layoutMode === 'grid'
                   ? 'bg-secondary-500/20 text-secondary-500'
                   : 'bg-neutral-700 hover:bg-neutral-600 text-white'
               }`}
-              title={layoutMode === 'grid' ? 'Speaker view' : 'Grid view'}
+              title={layoutMode === 'grid' ? 'Switch to speaker view' : 'Switch to grid view'}
             >
               {layoutMode === 'grid' ? <Monitor className="w-5 h-5 md:w-6 md:h-6" /> : <LayoutGrid className="w-5 h-5 md:w-6 md:h-6" />}
+              <span className="hidden md:inline text-xs font-medium">
+                {layoutMode === 'grid' ? 'Speaker' : 'Grid'}
+              </span>
             </button>
           )}
 
@@ -1171,6 +1193,47 @@ function GridParticipantTile({
           {!participant.audio && <MicOff className="w-3 h-3 text-red-400" />}
           {!participant.video && <VideoOff className="w-3 h-3 text-red-400" />}
         </div>
+      </div>
+    </div>
+  )
+}
+
+// Filmstrip thumbnail tile (speaker view, group sessions)
+function FilmstripTile({
+  participantId,
+  isActiveSpeaker,
+}: {
+  participantId: string
+  isActiveSpeaker: boolean
+}) {
+  const participant = useParticipant(participantId)
+  if (!participant) return null
+
+  return (
+    <div
+      className={`relative w-28 md:w-36 aspect-video rounded-lg overflow-hidden flex-shrink-0 border-2 transition-colors ${
+        isActiveSpeaker ? 'border-primary-500' : 'border-neutral-700'
+      } bg-neutral-800`}
+    >
+      {participant.video ? (
+        <DailyVideo
+          fit="cover"
+          sessionId={participantId}
+          type="video"
+          className="w-full h-full"
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center bg-neutral-900">
+          <span className="text-lg font-bold text-neutral-400">
+            {participant.user_name?.[0]?.toUpperCase() || '?'}
+          </span>
+        </div>
+      )}
+      <div className="absolute bottom-1 left-1 right-1 flex items-center justify-between">
+        <span className="text-[10px] text-white bg-black/60 px-1.5 py-0.5 rounded-full truncate max-w-[70%]">
+          {participant.user_name || 'Participant'}
+        </span>
+        {!participant.audio && <MicOff className="w-2.5 h-2.5 text-red-400" />}
       </div>
     </div>
   )

@@ -526,12 +526,12 @@ export async function generateAudioTracks(params: {
     }
 
     // STEP 2: Check if a matching track exists in ANY other set (same voice, same content)
-    // This allows reusing TTS audio across focused sets
+    // This allows reusing TTS audio across focused sets AND across vision versions
+    // (e.g. unchanged sections carried over from a parent vision)
     const { data: existingElsewhere, error: existingElsewhereError } = await supabase
       .from('audio_tracks')
       .select('*')
       .eq('user_id', userId)
-      .eq('vision_id', visionId)
       .eq('section_key', section.sectionKey)
       .eq('voice_id', voice)
       .eq('content_hash', contentHash)
