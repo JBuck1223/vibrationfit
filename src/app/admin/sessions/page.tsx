@@ -21,7 +21,12 @@ import {
   Trash2,
   Edit,
   ExternalLink,
-  Play
+  Play,
+  Wifi,
+  WifiOff,
+  RefreshCw,
+  AlertTriangle,
+  CheckCircle
 } from 'lucide-react'
 import { 
   PageHero, 
@@ -51,6 +56,34 @@ function AdminSessionsContent() {
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'past'>('upcoming')
   const [search, setSearch] = useState('')
 
+  // Webhook health
+  const [webhookHealth, setWebhookHealth] = useState<{
+    healthy: boolean
+    state: string
+    failedCount?: number
+    message?: string
+    checkedAt?: string
+  } | null>(null)
+  const [webhookLoading, setWebhookLoading] = useState(false)
+  const [syncRunning, setSyncRunning] = useState(false)
+
+  const checkWebhookHealth = useCallback(async () => {
+    setWebhookLoading(true)
+    try {
+      const res = await fetch('/api/admin/webhook-health')
+      const data = await res.json()
+      setWebhookHealth({ ...data, checkedAt: new Date().toLocaleTimeString() })
+    } catch {
+      setWebhookHealth({ healthy: false, state: 'error', message: 'Failed to check webhook status' })
+    } finally {
+      setWebhookLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    checkWebhookHealth()
+  }, [checkWebhookHealth])
+
   // Fetch sessions
   const fetchSessions = useCallback(async () => {
     try {
@@ -73,6 +106,22 @@ function AdminSessionsContent() {
 
   useEffect(() => {
     fetchSessions()
+  }, [fetchSessions])
+
+  const runRecordingSync = useCallback(async () => {
+    setSyncRunning(true)
+    try {
+      const res = await fetch('/api/cron/recording-sync')
+      const data = await res.json()
+      if (data.synced > 0) {
+        fetchSessions()
+      }
+      alert(`Sync complete: ${data.synced} recording(s) synced, ${data.errors || 0} error(s)`)
+    } catch {
+      alert('Sync failed — check console for details')
+    } finally {
+      setSyncRunning(false)
+    }
   }, [fetchSessions])
 
   // Filter sessions
@@ -157,6 +206,68 @@ function AdminSessionsContent() {
             View Bookings
           </Button>
         </Card>
+
+        {/* Webhook Health */}
+        {webhookHealth && (
+          <Card className={`p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
+            webhookHealth.healthy 
+              ? 'border-green-500/30 bg-green-500/5' 
+              : 'border-red-500/30 bg-red-500/5'
+          }`}>
+            <div className="flex items-center gap-3">
+              {webhookHealth.healthy ? (
+                <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
+                  <Wifi className="w-5 h-5 text-green-400" />
+                </div>
+              ) : (
+                <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
+                  <WifiOff className="w-5 h-5 text-red-400" />
+                </div>
+              )}
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-white">Recording Pipeline</p>
+                  <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${
+                    webhookHealth.healthy
+                      ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                      : 'bg-red-500/20 text-red-400 border-red-500/30'
+                  }`}>
+                    {webhookHealth.healthy ? (
+                      <><CheckCircle className="w-3 h-3" /> Active</>
+                    ) : (
+                      <><AlertTriangle className="w-3 h-3" /> {webhookHealth.state}</>
+                    )}
+                  </span>
+                </div>
+                <p className="text-xs text-neutral-400 mt-0.5">
+                  {webhookHealth.message || `Webhook state: ${webhookHealth.state}`}
+                  {webhookHealth.failedCount ? ` (${webhookHealth.failedCount} failures)` : ''}
+                  {webhookHealth.checkedAt && <span className="text-neutral-600 ml-2">Checked {webhookHealth.checkedAt}</span>}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={checkWebhookHealth}
+                disabled={webhookLoading}
+              >
+                <RefreshCw className={`w-4 h-4 mr-1 ${webhookLoading ? 'animate-spin' : ''}`} />
+                Check
+              </Button>
+              <Button
+                variant={webhookHealth.healthy ? 'ghost' : 'secondary'}
+                size="sm"
+                onClick={runRecordingSync}
+                disabled={syncRunning}
+              >
+                <RefreshCw className={`w-4 h-4 mr-1 ${syncRunning ? 'animate-spin' : ''}`} />
+                {syncRunning ? 'Syncing...' : 'Sync Recordings'}
+              </Button>
+            </div>
+          </Card>
+        )}
 
         {/* Quick Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
