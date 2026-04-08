@@ -3,6 +3,11 @@ import { SupabaseClient } from '@supabase/supabase-js'
 /**
  * Extract @FullName patterns from content, resolve to user IDs,
  * and store in vibe_mentions table.
+ *
+ * Uses database-backed name resolution: extracts candidate text after
+ * each @, generates progressively shorter word combinations, and queries
+ * the DB for matching full_name values. This correctly handles multiple
+ * mentions with arbitrary text between them.
  */
 export async function extractAndStoreMentions(
   adminClient: SupabaseClient,
@@ -12,25 +17,73 @@ export async function extractAndStoreMentions(
 ) {
   if (!content) return []
 
-  const mentionPattern = /@([A-Za-z][A-Za-z\s]*?)(?=\s@|\s*$|[.,!?;:\n])/g
-  const names: string[] = []
-  let match: RegExpExecArray | null
-
-  while ((match = mentionPattern.exec(content)) !== null) {
-    const name = match[1].trim()
-    if (name.length >= 2) {
-      names.push(name)
+  // Find @ positions not preceded by a word character (skip emails, etc.)
+  const atPositions: number[] = []
+  for (let i = 0; i < content.length; i++) {
+    if (content[i] === '@' && (i === 0 || /[^A-Za-z0-9_]/.test(content[i - 1]))) {
+      atPositions.push(i)
     }
   }
 
-  if (names.length === 0) return []
+  if (atPositions.length === 0) return []
 
-  const { data: users } = await adminClient
+  // For each @, extract candidate text (up to 4 words of letters)
+  const candidateChunks: string[] = []
+  for (const pos of atPositions) {
+    const text = content.slice(pos + 1)
+    const wordMatch = text.match(/^([A-Za-z]+(?:\s+[A-Za-z]+){0,3})/)
+    if (wordMatch) {
+      const trimmed = wordMatch[1].trim()
+      if (trimmed.length >= 2) candidateChunks.push(trimmed)
+    }
+  }
+
+  if (candidateChunks.length === 0) return []
+
+  // For each chunk, generate name candidates from longest to shortest
+  // e.g. "John Doe and" → ["John Doe and", "John Doe", "John"]
+  const allCandidates = new Set<string>()
+  for (const chunk of candidateChunks) {
+    const words = chunk.split(/\s+/)
+    for (let len = words.length; len >= 1; len--) {
+      const candidate = words.slice(0, len).join(' ')
+      if (candidate.length >= 2) allCandidates.add(candidate)
+    }
+  }
+
+  if (allCandidates.size === 0) return []
+
+  const { data: matchingUsers } = await adminClient
     .from('user_accounts')
     .select('id, full_name')
-    .in('full_name', names)
+    .in('full_name', Array.from(allCandidates))
 
-  if (!users || users.length === 0) return []
+  if (!matchingUsers || matchingUsers.length === 0) return []
+
+  // For each chunk, find the longest matching user name
+  const matchedUsers = new Map<string, { id: string; full_name: string }>()
+
+  for (const chunk of candidateChunks) {
+    const chunkLower = chunk.toLowerCase()
+    let bestMatch: (typeof matchingUsers)[number] | null = null
+
+    for (const user of matchingUsers) {
+      if (!user.full_name) continue
+      const nameLower = user.full_name.toLowerCase()
+      if (chunkLower === nameLower || chunkLower.startsWith(nameLower + ' ')) {
+        if (!bestMatch || user.full_name.length > (bestMatch.full_name?.length || 0)) {
+          bestMatch = user
+        }
+      }
+    }
+
+    if (bestMatch?.full_name) {
+      matchedUsers.set(bestMatch.id, { id: bestMatch.id, full_name: bestMatch.full_name })
+    }
+  }
+
+  const users = Array.from(matchedUsers.values())
+  if (users.length === 0) return []
 
   const mentionRows = users
     .filter(u => u.id !== mentionedByUserId)
@@ -44,7 +97,7 @@ export async function extractAndStoreMentions(
     await adminClient.from('vibe_mentions').insert(mentionRows)
   }
 
-  return users.map(u => ({ id: u.id, full_name: u.full_name }))
+  return users
 }
 
 /**

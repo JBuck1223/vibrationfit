@@ -235,7 +235,7 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
       const data = await resp.json()
       voiceList = (data.voices || []).map((v: any) => ({ 
         id: v.id, 
-        name: `${v.brandName || v.name} (${v.gender})`
+        name: v.brandName || v.name
       }))
       setVoices(voiceList)
     } catch {}

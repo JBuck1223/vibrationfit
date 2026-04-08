@@ -56,7 +56,7 @@ export default function AudioQueuePage({ params }: { params: Promise<{ id: strin
       const data = await resp.json()
       const voices = (data.voices || []).map((v: any) => ({ 
         id: v.id, 
-        name: `${v.brandName || v.name} (${v.gender})`
+        name: v.brandName || v.name
       }))
       setVoices(voices)
     } catch (err) {

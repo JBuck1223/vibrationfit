@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft,
-  Calendar,
   ChevronDown,
   Clock,
   Play,
@@ -21,6 +20,8 @@ import {
   Badge,
 } from '@/lib/design-system/components'
 import { SessionReplayVideo } from '@/components/video/SessionReplayVideo'
+import { SessionNotes } from '@/components/video/SessionNotes'
+import { SessionCommentSection } from '@/components/video/SessionCommentSection'
 import { isAlignmentGymDirectorySession } from '@/lib/video/alignment-gym-directory'
 import type { VideoSession, VideoSessionParticipant } from '@/lib/video/types'
 import { formatDuration, isSessionJoinable } from '@/lib/video/types'
@@ -38,7 +39,6 @@ export default function AlignmentGymSessionPage() {
   const sessionId = params?.id as string
 
   const [session, setSession] = useState<NullableSession>(null)
-  const [sessionNumber, setSessionNumber] = useState<number | null>(null)
   const [userId, setUserId] = useState(null as string | null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null as string | null)
@@ -78,22 +78,6 @@ export default function AlignmentGymSessionPage() {
       .then(({ data: { user } }) => setUserId(user?.id ?? null))
   }, [])
 
-  useEffect(() => {
-    if (!session) return
-    const supabase = createClient()
-    supabase
-      .from('video_sessions')
-      .select('id, scheduled_at')
-      .eq('session_type', 'alignment_gym')
-      .eq('status', 'completed')
-      .not('recording_url', 'is', null)
-      .order('scheduled_at', { ascending: true })
-      .then(({ data }) => {
-        if (!data) return
-        const idx = data.findIndex(s => s.id === session.id)
-        if (idx !== -1) setSessionNumber(idx + 1)
-      })
-  }, [session])
 
   if (loading) {
     return (
@@ -140,12 +124,13 @@ export default function AlignmentGymSessionPage() {
       <Stack gap="lg">
         <PageHero
           eyebrow="THE ALIGNMENT GYM"
-          title={sessionNumber ? `Alignment Gym #${sessionNumber} Replay` : session.title}
-          subtitle={
-            session.description?.trim()
-              ? session.description
-              : `Recorded live session${hasReplay ? ' — replay below.' : '.'}`
-          }
+          title="Session Replay"
+          subtitle={scheduledDate.toLocaleDateString(undefined, {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric',
+          })}
         >
           {hasReplay && session.recording_url && (
             <div className="mx-auto w-full max-w-3xl">
@@ -168,31 +153,12 @@ export default function AlignmentGymSessionPage() {
               This session is complete but a replay is not available yet. Check back later.
             </p>
           )}
-          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm text-neutral-400">
-            <span className="inline-flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-primary-500 shrink-0" />
-              {scheduledDate.toLocaleDateString(undefined, {
-                weekday: 'long',
-                month: 'long',
-                day: 'numeric',
-                year: 'numeric',
-              })}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
+          {session.actual_duration_seconds && (
+            <div className="flex items-center justify-center gap-1.5 text-sm text-neutral-400">
               <Clock className="w-3.5 h-3.5 text-primary-500 shrink-0" />
-              {scheduledDate.toLocaleTimeString(undefined, {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-              <span className="text-neutral-500">
-                ({session.scheduled_duration_minutes} min
-                {session.actual_duration_seconds
-                  ? ` · ${formatDuration(session.actual_duration_seconds)} actual`
-                  : ''}
-                )
-              </span>
-            </span>
-          </div>
+              {formatDuration(session.actual_duration_seconds)}
+            </div>
+          )}
           <div className="flex flex-wrap items-center justify-center gap-2">
             <Button variant="ghost" size="sm" onClick={() => router.push('/alignment-gym')}>
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -232,9 +198,7 @@ export default function AlignmentGymSessionPage() {
               <div className="flex items-center gap-3">
                 <div className="w-1 h-8 rounded-full bg-[#39FF14] shrink-0" />
                 <h2 className="text-lg md:text-xl font-bold text-white">
-                  {sessionNumber
-                    ? `Alignment Gym #${sessionNumber} Replay Recap`
-                    : 'Replay Recap'}
+                  Replay Recap
                 </h2>
               </div>
               <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 ${recapOpen ? 'bg-[#39FF14]/20' : 'bg-neutral-700/50 group-hover:bg-neutral-700'}`}>
@@ -315,6 +279,23 @@ export default function AlignmentGymSessionPage() {
             <p className="text-sm text-neutral-500">
               Session recap and highlights can be added to this session and will show here for quick review.
             </p>
+          </Card>
+        )}
+
+        {/* Personal Notes (private) */}
+        {userId && (
+          <Card className="p-6 border-neutral-700">
+            <SessionNotes sessionId={sessionId} />
+          </Card>
+        )}
+
+        {/* Discussion (public comments) */}
+        {userId && (
+          <Card className="p-6 border-neutral-700">
+            <SessionCommentSection
+              sessionId={sessionId}
+              currentUserId={userId}
+            />
           </Card>
         )}
       </Stack>

@@ -15,10 +15,17 @@
     {
       "path": "/api/cron/recording-sync",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/recurring-emails",
+      "schedule": "0 * * * *"
     }
   ],
   "functions": {
     "src/app/api/messaging/process-scheduled/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/recurring-emails/route.ts": {
       "maxDuration": 60
     },
     "src/app/api/map/refresh-notifications/route.ts": {
