@@ -192,6 +192,15 @@ export default function AdminSessionDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ session_id: sessionId }),
       })
+
+      const contentType = res.headers.get('content-type') || ''
+      if (!contentType.includes('application/json')) {
+        const text = await res.text()
+        console.error('Sync returned non-JSON response:', res.status, text.slice(0, 500))
+        toast.error(`Sync failed (HTTP ${res.status}). The server may have timed out — try again.`, { id: toastId })
+        return
+      }
+
       const data = await res.json()
 
       if (!res.ok) {
@@ -206,14 +215,19 @@ export default function AdminSessionDetailPage() {
         toast.success('Recording already in S3. Refreshing session...', { id: toastId })
         await fetchSession()
       } else {
-        const msg = data.results?.length
-          ? 'No ready recording found for this session in Daily.co yet. Try again in a few minutes.'
-          : 'No recordings to sync for this session.'
-        toast.info(msg, { id: toastId })
+        const errorResults = data.results?.filter((r: { action: string }) => r.action === 'error') || []
+        if (errorResults.length > 0) {
+          toast.error('Daily.co returned an error for this room. The recording may not be available yet.', { id: toastId })
+        } else {
+          const msg = data.results?.length
+            ? 'No ready recording found for this session in Daily.co yet. Try again in a few minutes.'
+            : 'No recordings to sync for this session.'
+          toast.info(msg, { id: toastId })
+        }
       }
     } catch (err) {
       console.error('Error syncing recording:', err)
-      toast.error(err instanceof Error ? err.message : 'Sync failed', { id: toastId })
+      toast.error('Sync failed — check console for details', { id: toastId })
     } finally {
       setSyncingRecording(false)
     }

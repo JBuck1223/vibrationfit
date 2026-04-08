@@ -398,15 +398,15 @@ export default function AudioHubPage() {
 
   const getVoiceDisplayName = (voiceId: string) => {
     const voiceMap: Record<string, string> = {
-      'alloy': 'Clear & Professional',
-      'shimmer': 'Gentle & Soothing (Female)',
-      'ash': 'Warm & Friendly (Male)',
-      'coral': 'Bright & Energetic (Female)',
-      'echo': 'Deep & Authoritative (Male)',
-      'fable': 'Storytelling & Expressive (Male)',
-      'onyx': 'Strong & Confident (Male)',
-      'nova': 'Fresh & Modern (Female)',
-      'sage': 'Excited & Firm (Female)',
+      'alloy': 'Alloy',
+      'shimmer': 'Shimmer',
+      'ash': 'Ash',
+      'coral': 'Coral',
+      'echo': 'Echo',
+      'fable': 'Fable',
+      'onyx': 'Onyx',
+      'nova': 'Nova',
+      'sage': 'Sage',
     }
     return voiceMap[voiceId] || voiceId
   }

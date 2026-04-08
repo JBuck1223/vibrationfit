@@ -834,15 +834,15 @@ export async function generateAudioTracks(params: {
 
 export function getOpenAIVoices(): { id: OpenAIVoice; name: string; brandName: string; gender: 'male' | 'female' | 'neutral'; provider: 'openai' }[] {
   return [
-    { id: 'alloy', name: 'Alloy', brandName: 'Clear & Professional', gender: 'neutral', provider: 'openai' },
-    { id: 'shimmer', name: 'Shimmer', brandName: 'Gentle & Soothing', gender: 'female', provider: 'openai' },
-    { id: 'ash', name: 'Ash', brandName: 'Warm & Friendly', gender: 'male', provider: 'openai' },
-    { id: 'coral', name: 'Coral', brandName: 'Bright & Energetic', gender: 'female', provider: 'openai' },
-    { id: 'echo', name: 'Echo', brandName: 'Deep & Authoritative', gender: 'male', provider: 'openai' },
-    { id: 'fable', name: 'Fable', brandName: 'Storytelling & Expressive', gender: 'male', provider: 'openai' },
-    { id: 'onyx', name: 'Onyx', brandName: 'Strong & Confident', gender: 'male', provider: 'openai' },
-    { id: 'nova', name: 'Nova', brandName: 'Fresh & Modern', gender: 'female', provider: 'openai' },
-    { id: 'sage', name: 'Sage', brandName: 'Excited & Firm', gender: 'female', provider: 'openai' },
+    { id: 'alloy', name: 'Alloy', brandName: 'Alloy', gender: 'neutral', provider: 'openai' },
+    { id: 'shimmer', name: 'Shimmer', brandName: 'Shimmer', gender: 'female', provider: 'openai' },
+    { id: 'ash', name: 'Ash', brandName: 'Ash', gender: 'male', provider: 'openai' },
+    { id: 'coral', name: 'Coral', brandName: 'Coral', gender: 'female', provider: 'openai' },
+    { id: 'echo', name: 'Echo', brandName: 'Echo', gender: 'male', provider: 'openai' },
+    { id: 'fable', name: 'Fable', brandName: 'Fable', gender: 'male', provider: 'openai' },
+    { id: 'onyx', name: 'Onyx', brandName: 'Onyx', gender: 'male', provider: 'openai' },
+    { id: 'nova', name: 'Nova', brandName: 'Nova', gender: 'female', provider: 'openai' },
+    { id: 'sage', name: 'Sage', brandName: 'Sage', gender: 'female', provider: 'openai' },
   ]
 }
 

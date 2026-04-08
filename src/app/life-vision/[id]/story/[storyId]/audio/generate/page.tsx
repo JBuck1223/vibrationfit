@@ -112,7 +112,7 @@ export default function StoryAudioGeneratePage({
       const data = await resp.json()
       const voiceList = (data.voices || []).map((v: any) => ({ 
         id: v.id, 
-        name: `${v.brandName || v.name} (${v.gender})`,
+        name: v.brandName || v.name,
         previewUrl: v.previewUrl
       }))
       setVoices(voiceList)

@@ -128,7 +128,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
       const data = await resp.json()
       const voices = (data.voices || []).map((v: any) => ({ 
         id: v.id, 
-        name: `${v.brandName || v.name} (${v.gender})`
+        name: v.brandName || v.name
       }))
       
       setVoices(voices)

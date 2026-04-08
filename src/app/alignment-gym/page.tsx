@@ -200,12 +200,6 @@ export default function AlignmentGymPage() {
     s.status === 'completed' && s.recording_url
   ).sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime())
 
-  const sessionNumberMap = new Map(
-    [...pastSessions]
-      .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())
-      .map((s, i) => [s.id, i + 1])
-  )
-
   // Get next session
   const nextSession = upcomingSessions[0]
   const isLive = nextSession?.status === 'live'
@@ -549,62 +543,56 @@ export default function AlignmentGymPage() {
               <h3 className="text-lg md:text-xl font-bold text-white mb-4 text-center">
                 Session Replays
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="rounded-2xl border border-white/[0.06] bg-[#111] overflow-hidden divide-y divide-white/[0.06]">
                 {pastSessions.map(session => {
-                const scheduledDate = new Date(session.scheduled_at)
-                const userAttended = session.participants?.some(
-                  (p: VideoSessionParticipant) => p.user_id === userId && p.attended
-                )
-                
-                return (
-                  <div 
-                    key={session.id} 
-                    className="group p-4 rounded-xl bg-neutral-800/30 hover:bg-neutral-800/50 transition-all cursor-pointer border border-neutral-800 hover:border-neutral-700"
-                    onClick={() => router.push(`/alignment-gym/${session.id}`)}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-secondary-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-secondary-500/20 transition-colors">
-                        <PlayCircle className="w-5 h-5 text-secondary-500" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="text-sm font-medium text-white truncate">
-                            {sessionNumberMap.has(session.id)
-                              ? `Session #${sessionNumberMap.get(session.id)}`
-                              : session.title}
-                          </h4>
-                          {userAttended && (
-                            <span title="You attended">
-                              <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                            </span>
-                          )}
+                  const scheduledDate = new Date(session.scheduled_at)
+                  const dayNum = scheduledDate.getDate()
+                  const monthStr = scheduledDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()
+                  const weekday = scheduledDate.toLocaleDateString('en-US', { weekday: 'short' })
+                  const userAttended = session.participants?.some(
+                    (p: VideoSessionParticipant) => p.user_id === userId && p.attended
+                  )
+
+                  return (
+                    <div
+                      key={session.id}
+                      className="cursor-pointer hover:bg-white/[0.03] transition-colors group"
+                      onClick={() => router.push(`/alignment-gym/${session.id}`)}
+                    >
+                      <div className="px-4 py-3.5 md:px-5 md:py-4">
+                        <div className="flex items-center gap-4">
+                          <div className="flex-shrink-0 w-11 text-center">
+                            <p className="text-[10px] uppercase tracking-wider text-neutral-500 leading-none">{weekday}</p>
+                            <p className="text-xl font-semibold text-white leading-tight">{dayNum}</p>
+                            <p className="text-[10px] uppercase tracking-wider text-neutral-500 leading-none">{monthStr}</p>
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-white truncate mb-0.5">
+                              {session.title || 'Alignment Gym'}
+                            </p>
+                            <p className="text-[13px] text-neutral-400 leading-relaxed truncate">
+                              {session.actual_duration_seconds
+                                ? formatDuration(session.actual_duration_seconds)
+                                : `${session.scheduled_duration_minutes} min`}
+                              {session.description ? ` · ${session.description}` : ''}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-2.5 flex-shrink-0">
+                            {userAttended && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary-500/15 text-[10px] font-semibold text-primary-500 tracking-wide uppercase">
+                                <CheckCircle className="w-3 h-3" />
+                                Attended
+                              </span>
+                            )}
+                            <PlayCircle className="w-5 h-5 text-neutral-600 group-hover:text-primary-500 transition-colors" />
+                          </div>
                         </div>
-                        <p className="text-xs text-neutral-500">
-                          {scheduledDate.toLocaleDateString(undefined, {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                          })}
-                          {session.actual_duration_seconds && (
-                            <> · {formatDuration(session.actual_duration_seconds)}</>
-                          )}
-                        </p>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          router.push(`/alignment-gym/${session.id}`)
-                        }}
-                      >
-                        <Play className="w-4 h-4" />
-                      </Button>
                     </div>
-                  </div>
-                )
-              })}
+                  )
+                })}
               </div>
             </>
           )}

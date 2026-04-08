@@ -23,7 +23,10 @@ export function EmojiPickerButton({ textareaRef, onInsert, className = '', iconS
 
   useEffect(() => {
     if (open && !pickerData) {
-      import('@emoji-mart/data').then(mod => setPickerData(mod))
+      import('@emoji-mart/data').then(mod => {
+        const raw = mod.default ?? mod
+        setPickerData(JSON.parse(JSON.stringify(raw)))
+      })
     }
   }, [open, pickerData])
 
@@ -77,7 +80,7 @@ export function EmojiPickerButton({ textareaRef, onInsert, className = '', iconS
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="text-neutral-400 hover:text-[#39FF14] transition-colors"
+        className="h-9 w-9 flex items-center justify-center text-neutral-400 hover:text-[#39FF14] transition-colors flex-shrink-0"
         aria-label="Emoji picker"
       >
         <Smile className={iconSize} />

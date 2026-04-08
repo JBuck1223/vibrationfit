@@ -227,7 +227,7 @@ export default function AudioQueuePage({
         const voiceData = await voiceResp.json()
         const voice = (voiceData.voices || []).find((v: any) => v.id === batchData.voice_id)
         if (voice) {
-          setVoiceName(`${voice.brandName || voice.name} (${voice.gender})`)
+          setVoiceName(voice.brandName || voice.name)
         }
       } catch (error) {
         console.error('Failed to load voice name:', error)

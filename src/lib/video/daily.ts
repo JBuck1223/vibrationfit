@@ -119,10 +119,26 @@ async function dailyFetch<T>(
     },
   })
 
+  const contentType = response.headers.get('content-type') || ''
+
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}))
+    let errorBody: string
+    if (contentType.includes('application/json')) {
+      const error = await response.json().catch(() => ({}))
+      errorBody = JSON.stringify(error)
+    } else {
+      const text = await response.text().catch(() => '')
+      errorBody = text.slice(0, 200)
+    }
     throw new Error(
-      `Daily.co API error: ${response.status} ${response.statusText} - ${JSON.stringify(error)}`
+      `Daily.co API error: ${response.status} ${response.statusText} - ${errorBody}`
+    )
+  }
+
+  if (!contentType.includes('application/json')) {
+    const text = await response.text()
+    throw new Error(
+      `Daily.co API returned non-JSON response (${contentType || 'no content-type'}): ${text.slice(0, 200)}`
     )
   }
 

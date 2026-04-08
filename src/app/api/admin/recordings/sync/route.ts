@@ -67,11 +67,11 @@ export async function POST(request: NextRequest) {
       title: string
       action: string
       recording_url?: string
+      error_detail?: string
     }> = []
 
     for (const session of pendingSessions || []) {
       try {
-        // Check Daily.co for recordings from this room
         const { data: recordings } = await listRecordings(session.daily_room_name)
 
         if (!recordings || recordings.length === 0) continue
@@ -79,7 +79,6 @@ export async function POST(request: NextRequest) {
         for (const recording of recordings) {
           if (recording.status !== 'ready' && recording.status !== 'finished') continue
 
-          // Check if we already have this recording in S3
           const s3Key = `session-recordings/${session.daily_room_name}/${recording.id}.mp4`
 
           let alreadyInS3 = false
@@ -101,8 +100,22 @@ export async function POST(request: NextRequest) {
             continue
           }
 
-          // Download from Daily.co and upload to S3
-          const accessData = await getRecordingAccessLink(recording.id)
+          let accessData: { download_link: string }
+          try {
+            accessData = await getRecordingAccessLink(recording.id)
+          } catch (accessErr) {
+            const msg = accessErr instanceof Error ? accessErr.message : String(accessErr)
+            console.error(`Failed to get access link for recording ${recording.id}:`, msg)
+            results.push({
+              session_id: session.id,
+              room_name: session.daily_room_name,
+              title: session.title,
+              action: 'error',
+              error_detail: `Access link failed: ${msg}`,
+            })
+            continue
+          }
+
           const downloadResponse = await fetch(accessData.download_link)
 
           if (!downloadResponse.ok || !downloadResponse.body) {
@@ -182,12 +195,14 @@ export async function POST(request: NextRequest) {
           })
         }
       } catch (err) {
-        console.error(`Error syncing recording for ${session.daily_room_name}:`, err)
+        const errMsg = err instanceof Error ? err.message : String(err)
+        console.error(`Error syncing recording for ${session.daily_room_name}:`, errMsg)
         results.push({
           session_id: session.id,
           room_name: session.daily_room_name,
           title: session.title,
           action: 'error',
+          error_detail: errMsg,
         })
       }
     }
@@ -199,7 +214,8 @@ export async function POST(request: NextRequest) {
       results,
     })
   } catch (error) {
-    console.error('Recording sync error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const msg = error instanceof Error ? error.message : String(error)
+    console.error('Recording sync error:', msg)
+    return NextResponse.json({ error: msg || 'Internal server error' }, { status: 500 })
   }
 }

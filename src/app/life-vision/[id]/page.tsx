@@ -77,15 +77,15 @@ interface AudioSetOption {
 }
 
 const VOICE_DISPLAY_NAMES: Record<string, string> = {
-  alloy: 'Clear & Professional',
-  shimmer: 'Gentle & Soothing',
-  ash: 'Warm & Friendly',
-  coral: 'Bright & Energetic',
-  echo: 'Deep & Authoritative',
-  fable: 'Storytelling & Expressive',
-  onyx: 'Strong & Confident',
-  nova: 'Fresh & Modern',
-  sage: 'Excited & Firm',
+  alloy: 'Alloy',
+  shimmer: 'Shimmer',
+  ash: 'Ash',
+  coral: 'Coral',
+  echo: 'Echo',
+  fable: 'Fable',
+  onyx: 'Onyx',
+  nova: 'Nova',
+  sage: 'Sage',
 }
 
 // Use centralized vision categories
