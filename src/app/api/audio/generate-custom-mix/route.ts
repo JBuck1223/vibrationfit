@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateAudioTracks, hashContent } from '@/lib/services/audioService'
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda'
+import { ORDERED_VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
 export const maxDuration = 800
 
@@ -163,7 +164,7 @@ export async function POST(request: NextRequest) {
 
     const uniqueVariant = `custom-${batchId.slice(0, 8)}`
     let audioSetId: string
-    const lambdaSections: { trackId: string; voiceUrl: string; outputKey: string }[] = []
+    const lambdaSections: { trackId: string; voiceUrl: string; outputKey: string; sectionKey: string }[] = []
     let results: { sectionKey: string; status: string }[] = []
 
     if (sourceAudioSetId) {
@@ -241,7 +242,8 @@ export async function POST(request: NextRequest) {
           lambdaSections.push({
             trackId: newTrack.id,
             voiceUrl: track.audio_url,
-            outputKey: mixedKey
+            outputKey: mixedKey,
+            sectionKey: track.section_key
           })
         }
       }
@@ -303,7 +305,8 @@ export async function POST(request: NextRequest) {
             lambdaSections.push({
               trackId: track.id,
               voiceUrl: track.audio_url,
-              outputKey: mixedKey
+              outputKey: mixedKey,
+              sectionKey: result.sectionKey
             })
           }
         }
@@ -386,6 +389,10 @@ export async function POST(request: NextRequest) {
 
       console.log(`[CUSTOM MIX] Combined track record: id=${combinedTrackId}, key=${combinedOutputKey}`)
     }
+
+    // Sort lambdaSections by canonical vision category order (forward first, conclusion last)
+    const categoryOrder = new Map(ORDERED_VISION_CATEGORIES.map((c, i) => [c.key, i]))
+    lambdaSections.sort((a, b) => (categoryOrder.get(a.sectionKey) ?? 99) - (categoryOrder.get(b.sectionKey) ?? 99))
 
     // Convert percentages to decimals for Lambda
     const voiceVolumeDecimal = (adjustedVoiceVol || voiceVolume) / 100

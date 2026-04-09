@@ -254,11 +254,14 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
       .in('variant', ['standard', 'personal'])
       .order('created_at', { ascending: false })
 
+    const orderedKeys = VISION_CATEGORIES.map(c => c.key) as string[]
     const voiceSets: ExistingVoiceSet[] = (sets || []).map((set: any) => {
       const completedTracks = (set.audio_tracks || []).filter(
         (t: any) => t.status === 'completed' && t.audio_url && t.section_key !== 'full'
       )
-      const availableSections = completedTracks.map((t: any) => t.section_key)
+      const availableSections = completedTracks
+        .map((t: any) => t.section_key)
+        .sort((a: string, b: string) => orderedKeys.indexOf(a) - orderedKeys.indexOf(b))
       const sampleUrl = completedTracks.length > 0 ? completedTracks[0].audio_url : undefined
       
       const isPersonal = set.variant === 'personal'
@@ -390,8 +393,10 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
         return
       }
       
-      // Build sections only for tracks that actually exist
-      const sections = availableSections
+      // Build sections only for tracks that actually exist, sorted by vision category order
+      const catOrder = VISION_CATEGORIES.map(c => c.key) as string[]
+      const sections = [...availableSections]
+        .sort((a, b) => catOrder.indexOf(a) - catOrder.indexOf(b))
         .map(key => ({ key, text: vv[key] || '' }))
         .filter(s => s.text.trim().length > 0)
 
@@ -534,13 +539,16 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
       
       // Build sections based on user selection, but only include sections that exist
       let sectionsToMix: { key: string; text: string }[] = []
+      const catOrderKeys = VISION_CATEGORIES.map(c => c.key) as string[]
       
       if (mixAllSections) {
-        // Use all available sections (instead of all possible sections)
-        sectionsToMix = availableSections.map(key => ({
-          key,
-          text: vv[key] || ''
-        }))
+        // Use all available sections, sorted by vision category order
+        sectionsToMix = [...availableSections]
+          .sort((a, b) => catOrderKeys.indexOf(a) - catOrderKeys.indexOf(b))
+          .map(key => ({
+            key,
+            text: vv[key] || ''
+          }))
       } else {
         // Filter selected sections to only include those that are actually available
         const orderedKeys = VISION_CATEGORIES.map(c => c.key) as string[]
