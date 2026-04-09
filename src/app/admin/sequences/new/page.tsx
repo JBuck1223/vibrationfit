@@ -16,6 +16,7 @@ import { ArrowLeft } from 'lucide-react'
 
 const EVENT_NAMES = [
   'intensive.purchased',
+  'intensive.completed',
   'lead.created',
   'user.created',
   'subscription.created',

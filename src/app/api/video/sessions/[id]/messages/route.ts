@@ -72,7 +72,25 @@ export async function GET(
       return NextResponse.json({ error: 'Failed to fetch messages' }, { status: 500 })
     }
 
-    return NextResponse.json({ messages })
+    // Batch-fetch profile pictures for all message authors
+    const userIds = [...new Set((messages || []).map(m => m.user_id).filter(Boolean))]
+    let profileMap: Record<string, string | null> = {}
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('user_accounts')
+        .select('id, profile_picture_url')
+        .in('id', userIds)
+      if (profiles) {
+        profileMap = Object.fromEntries(profiles.map(p => [p.id, p.profile_picture_url]))
+      }
+    }
+
+    const enrichedMessages = (messages || []).map(m => ({
+      ...m,
+      profile_picture_url: m.user_id ? profileMap[m.user_id] || null : null,
+    }))
+
+    return NextResponse.json({ messages: enrichedMessages })
   } catch (error) {
     console.error('Error in GET /api/video/sessions/[id]/messages:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -129,16 +147,19 @@ export async function POST(
       }
     }
 
-    // Get sender name
+    // Get sender name and profile picture
     let senderName = participant?.name
+    let profilePictureUrl: string | null = null
+    const { data: senderAccount } = await supabase
+      .from('user_accounts')
+      .select('first_name, full_name, profile_picture_url')
+      .eq('id', user.id)
+      .single()
+    
     if (!senderName) {
-      const { data: account } = await supabase
-        .from('user_accounts')
-        .select('first_name, full_name')
-        .eq('id', user.id)
-        .single()
-      senderName = account?.full_name || account?.first_name || user.email || 'Participant'
+      senderName = senderAccount?.full_name || senderAccount?.first_name || user.email || 'Participant'
     }
+    profilePictureUrl = senderAccount?.profile_picture_url || null
 
     // Insert message
     const { data: newMessage, error: insertError } = await supabase
@@ -158,7 +179,9 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to send message' }, { status: 500 })
     }
 
-    return NextResponse.json({ message: newMessage }, { status: 201 })
+    return NextResponse.json({ 
+      message: { ...newMessage, profile_picture_url: profilePictureUrl }
+    }, { status: 201 })
   } catch (error) {
     console.error('Error in POST /api/video/sessions/[id]/messages:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
