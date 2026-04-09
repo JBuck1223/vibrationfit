@@ -32,8 +32,10 @@ import {
   isNumberField,
   isBooleanField,
   isDynamicSelectField,
+  isMultiSelectField,
   formatFilterValue,
   type FilterField,
+  type FilterOperator,
 } from '@/lib/crm/blast-constants'
 
 interface Segment {
@@ -48,7 +50,9 @@ interface Segment {
 interface FilterRow {
   id: string
   field: FilterField
+  operator: FilterOperator
   value: string
+  values: string[]
 }
 
 type SegmentMode = 'filter' | 'manual'
@@ -130,7 +134,25 @@ function filtersToRows(filters: BlastFilters): FilterRow[] {
   for (const [field, key] of Object.entries(FILTER_TO_KEY)) {
     const val = filters[key as keyof BlastFilters]
     if (val !== undefined && val !== null && val !== '') {
-      rows.push({ id: crypto.randomUUID(), field: field as FilterField, value: String(val) })
+      if (typeof val === 'object' && val !== null && 'operator' in val && 'values' in val) {
+        const fv = val as { operator: string; values: string[] }
+        rows.push({
+          id: crypto.randomUUID(),
+          field: field as FilterField,
+          operator: fv.operator === 'is_not' ? 'is_not' : 'is',
+          value: '',
+          values: fv.values,
+        })
+      } else {
+        const strVal = String(val)
+        rows.push({
+          id: crypto.randomUUID(),
+          field: field as FilterField,
+          operator: 'is',
+          value: strVal,
+          values: isMultiSelectField(field as FilterField) ? [strVal] : [],
+        })
+      }
     }
   }
   return rows
@@ -269,12 +291,21 @@ export default function SegmentBuilderForm({ segment, mode }: Props) {
     }
     const f: BlastFilters = { audience, exclude_leads: excludeLeads || undefined }
     for (const row of filterRows) {
-      if (!row.value) continue
       const key = FILTER_TO_KEY[row.field]
-      if (isNumberField(row.field)) {
-        ;(f as unknown as Record<string, unknown>)[key] = parseInt(row.value)
+      if (isMultiSelectField(row.field)) {
+        if (row.values.length === 0) continue
+        if (row.values.length === 1 && row.operator === 'is') {
+          ;(f as unknown as Record<string, unknown>)[key] = row.values[0]
+        } else {
+          ;(f as unknown as Record<string, unknown>)[key] = { operator: row.operator, values: row.values }
+        }
       } else {
-        ;(f as unknown as Record<string, unknown>)[key] = row.value
+        if (!row.value) continue
+        if (isNumberField(row.field)) {
+          ;(f as unknown as Record<string, unknown>)[key] = parseInt(row.value)
+        } else {
+          ;(f as unknown as Record<string, unknown>)[key] = row.value
+        }
       }
     }
     return f
@@ -313,7 +344,7 @@ export default function SegmentBuilderForm({ segment, mode }: Props) {
       toast.error('All available filters are already added')
       return
     }
-    setFilterRows([...filterRows, { id: crypto.randomUUID(), field: next.value, value: '' }])
+    setFilterRows([...filterRows, { id: crypto.randomUUID(), field: next.value, operator: 'is', value: '', values: [] }])
   }
 
   function removeFilter(id: string) {
@@ -324,9 +355,23 @@ export default function SegmentBuilderForm({ segment, mode }: Props) {
     setFilterRows(
       filterRows.map((r) =>
         r.id === id
-          ? { ...r, [key]: val, ...(key === 'field' ? { value: '' } : {}) }
+          ? { ...r, [key]: val, ...(key === 'field' ? { value: '', values: [], operator: 'is' as FilterOperator } : {}) }
           : r
       )
+    )
+  }
+
+  function updateFilterOperator(id: string, op: FilterOperator) {
+    setFilterRows(filterRows.map((r) => (r.id === id ? { ...r, operator: op } : r)))
+  }
+
+  function toggleMultiValue(rowId: string, val: string) {
+    setFilterRows(
+      filterRows.map((r) => {
+        if (r.id !== rowId) return r
+        const has = r.values.includes(val)
+        return { ...r, values: has ? r.values.filter((v) => v !== val) : [...r.values, val] }
+      })
     )
   }
 
@@ -336,7 +381,14 @@ export default function SegmentBuilderForm({ segment, mode }: Props) {
     for (const [field, key] of Object.entries(FILTER_TO_KEY)) {
       const val = preset.filters[key as keyof BlastFilters]
       if (val !== undefined && val !== null && val !== '') {
-        rows.push({ id: crypto.randomUUID(), field: field as FilterField, value: String(val) })
+        const strVal = String(val)
+        rows.push({
+          id: crypto.randomUUID(),
+          field: field as FilterField,
+          operator: 'is',
+          value: strVal,
+          values: isMultiSelectField(field as FilterField) ? [strVal] : [],
+        })
       }
     }
     setFilterRows(rows)
@@ -382,7 +434,32 @@ export default function SegmentBuilderForm({ segment, mode }: Props) {
   }
 
   function renderValueInput(row: FilterRow) {
-    const valueOptions = getValueOptions(row.field)
+    if (isMultiSelectField(row.field)) {
+      const options = isDynamicSelectField(row.field) ? tierNames : (getValueOptions(row.field) || [])
+      return (
+        <div className="flex flex-wrap gap-1.5 flex-1">
+          {options.map((v) => {
+            const selected = row.values.includes(v)
+            return (
+              <button
+                key={v}
+                type="button"
+                onClick={() => toggleMultiValue(row.id, v)}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-full border-2 transition-all duration-200 ${
+                  selected
+                    ? row.operator === 'is_not'
+                      ? 'bg-[#FF0040] text-white border-transparent'
+                      : 'bg-[#39FF14] text-black border-transparent'
+                    : 'bg-transparent border-[#555] text-neutral-400 hover:border-[#39FF14] hover:text-white'
+                }`}
+              >
+                {formatFilterValue(v)}
+              </button>
+            )
+          })}
+        </div>
+      )
+    }
 
     if (isBooleanField(row.field)) {
       return (
@@ -404,36 +481,6 @@ export default function SegmentBuilderForm({ segment, mode }: Props) {
             </button>
           ))}
         </div>
-      )
-    }
-
-    if (isDynamicSelectField(row.field)) {
-      return (
-        <select
-          value={row.value}
-          onChange={(e) => updateFilter(row.id, 'value', e.target.value)}
-          className={selectClass + ' flex-1'}
-        >
-          <option value="">Select...</option>
-          {tierNames.map((t) => (
-            <option key={t} value={t}>{t}</option>
-          ))}
-        </select>
-      )
-    }
-
-    if (valueOptions) {
-      return (
-        <select
-          value={row.value}
-          onChange={(e) => updateFilter(row.id, 'value', e.target.value)}
-          className={selectClass + ' flex-1'}
-        >
-          <option value="">Select...</option>
-          {valueOptions.map((v) => (
-            <option key={v} value={v}>{formatFilterValue(v)}</option>
-          ))}
-        </select>
       )
     }
 
@@ -701,25 +748,37 @@ export default function SegmentBuilderForm({ segment, mode }: Props) {
             <div className="space-y-3">
               {filterRows.map((row) => {
                 const options = getFilterOptions(audience)
+                const multiSelect = isMultiSelectField(row.field)
 
                 return (
-                  <div key={row.id} className="flex items-center gap-3">
+                  <div key={row.id} className="flex flex-wrap items-center gap-3">
                     <select
                       value={row.field}
                       onChange={(e) => updateFilter(row.id, 'field', e.target.value)}
-                      className={selectClass + ' max-w-[240px]'}
+                      className={selectClass + ' w-[200px] shrink-0'}
                     >
                       {options.map((o) => (
                         <option key={o.value} value={o.value}>{o.label}</option>
                       ))}
                     </select>
 
+                    {multiSelect && (
+                      <select
+                        value={row.operator}
+                        onChange={(e) => updateFilterOperator(row.id, e.target.value as FilterOperator)}
+                        className={selectClass + ' w-[100px] shrink-0'}
+                      >
+                        <option value="is">is</option>
+                        <option value="is_not">is not</option>
+                      </select>
+                    )}
+
                     {renderValueInput(row)}
 
                     <button
                       type="button"
                       onClick={() => removeFilter(row.id)}
-                      className="p-2 text-neutral-500 hover:text-red-400 transition-colors"
+                      className="p-2 text-neutral-500 hover:text-red-400 transition-colors shrink-0"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

@@ -106,6 +106,12 @@ export function isDynamicSelectField(field: FilterField): boolean {
   return field === 'subscription_tier'
 }
 
+export type FilterOperator = 'is' | 'is_not'
+
+export function isMultiSelectField(field: FilterField): boolean {
+  return (!!VALUE_OPTIONS[field] && !isBooleanField(field)) || isDynamicSelectField(field)
+}
+
 export function formatFilterValue(value: string): string {
   return value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
