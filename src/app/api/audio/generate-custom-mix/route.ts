@@ -391,7 +391,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Sort lambdaSections by canonical vision category order (forward first, conclusion last)
-    const categoryOrder = new Map(ORDERED_VISION_CATEGORIES.map((c, i) => [c.key, i]))
+    const categoryOrder = new Map<string, number>(ORDERED_VISION_CATEGORIES.map((c, i) => [c.key, i]))
     lambdaSections.sort((a, b) => (categoryOrder.get(a.sectionKey) ?? 99) - (categoryOrder.get(b.sectionKey) ?? 99))
 
     // Convert percentages to decimals for Lambda
