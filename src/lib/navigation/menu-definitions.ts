@@ -72,6 +72,7 @@ import {
   Fingerprint,
   GraduationCap,
   Share2,
+  Lightbulb,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -490,6 +491,23 @@ export const adminNavigation: NavItem[] = [
     children: [
       { name: 'VIVA Model Config', href: '/admin/ai-models', icon: Wand2, description: 'Configure VIVA model settings' },
       { name: 'Vision Tester', href: '/admin/vision-tester', icon: Target, description: 'Compare vision output across models' },
+    ]
+  },
+
+  // ============================================================================
+  // IDEA HUB
+  // ============================================================================
+  {
+    name: 'Idea Hub',
+    href: '/admin/ideas',
+    icon: Lightbulb,
+    requiresAdmin: true,
+    hasDropdown: true,
+    description: 'Project ideas, planning, and tracking',
+    children: [
+      { name: 'All Ideas', href: '/admin/ideas', icon: Lightbulb, description: 'Browse and manage all ideas' },
+      { name: 'Board View', href: '/admin/ideas/board', icon: Kanban, description: 'Kanban board for idea pipeline' },
+      { name: 'Settings', href: '/admin/ideas/settings', icon: Settings, description: 'Categories, fields, and tags' },
     ]
   },
 
