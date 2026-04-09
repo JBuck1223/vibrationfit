@@ -2,14 +2,16 @@ import { createAdminClient } from '@/lib/supabase/admin'
 
 export type Audience = 'members' | 'leads' | 'both'
 
+export type FilterValue = string | { operator: 'is' | 'is_not'; values: string[] }
+
 export interface BlastFilters {
   audience: Audience
-  // Member filters
-  engagement_status?: string
-  health_status?: string
-  subscription_tier?: string
-  subscription_status?: string
-  intensive_status?: string
+  // Member filters (enum fields support FilterValue for multi-select + is/is_not)
+  engagement_status?: FilterValue
+  health_status?: FilterValue
+  subscription_tier?: FilterValue
+  subscription_status?: FilterValue
+  intensive_status?: FilterValue
   custom_tags?: string[]
   days_since_last_login_gt?: number
   days_since_last_login_lt?: number
@@ -20,8 +22,8 @@ export interface BlastFilters {
   has_journal_entry?: string
   profile_completion_gte?: number
   // Lead filters
-  lead_status?: string
-  lead_type?: string
+  lead_status?: FilterValue
+  lead_type?: FilterValue
   utm_source?: string
   utm_medium?: string
   utm_campaign?: string
@@ -33,6 +35,28 @@ export interface BlastFilters {
   // Exclusions
   exclude_leads?: boolean
   exclude_segment_id?: string
+}
+
+function parseFilterValue(val: unknown): { operator: 'is' | 'is_not'; values: string[] } | null {
+  if (!val) return null
+  if (typeof val === 'string') return { operator: 'is', values: [val] }
+  if (typeof val === 'object' && val !== null && 'operator' in val && 'values' in val) {
+    const obj = val as { operator: string; values: string[] }
+    return { operator: (obj.operator === 'is_not' ? 'is_not' : 'is'), values: obj.values }
+  }
+  return null
+}
+
+function matchesFilterValue(actual: string, fv: { operator: 'is' | 'is_not'; values: string[] }): boolean {
+  const matched = fv.values.includes(actual)
+  return fv.operator === 'is_not' ? !matched : matched
+}
+
+function getIntensiveEffectiveStatus(entry: { status: string; unlock_completed: boolean } | undefined): string {
+  if (!entry) return 'no_intensive'
+  if (entry.unlock_completed) return 'unlocked'
+  if (entry.status === 'completed') return 'completed'
+  return entry.status
 }
 
 export interface BlastRecipient {
@@ -118,15 +142,15 @@ async function queryMembers(
   supabase: ReturnType<typeof createAdminClient>,
   filters: BlastFilters
 ): Promise<BlastRecipient[]> {
-  const { data: profiles } = await supabase
-    .from('user_profiles')
-    .select('user_id')
+  const { data: accounts } = await supabase
+    .from('user_accounts')
+    .select('id, email, first_name, last_name, phone, sms_opt_in, email_opt_in, is_active')
+    .eq('role', 'member')
     .eq('is_active', true)
-    .eq('is_draft', false)
 
-  if (!profiles || profiles.length === 0) return []
+  if (!accounts || accounts.length === 0) return []
 
-  const userIds = profiles.map((p) => p.user_id)
+  const userIds = accounts.map((a) => a.id)
 
   const needsActivityFilter =
     filters.engagement_status ||
@@ -142,7 +166,7 @@ async function queryMembers(
   const needsSubscriptionStatusFilter = !!filters.subscription_status
   const needsIntensiveFilter = !!filters.intensive_status
 
-  const [activityResult, subscriptionResult, authResult, intensiveResult, accountResult] = await Promise.all([
+  const [activityResult, subscriptionResult, authResult, intensiveResult] = await Promise.all([
     needsActivityFilter
       ? supabase
           .from('user_activity_metrics')
@@ -164,12 +188,7 @@ async function queryMembers(
           .select('user_id, status, unlock_completed')
           .in('user_id', userIds)
       : Promise.resolve({ data: null }),
-    supabase
-      .from('user_accounts')
-      .select('id, email, first_name, last_name, phone, sms_opt_in, email_opt_in')
-      .in('id', userIds),
   ])
-
 
   const activityMap = new Map<string, Record<string, unknown>>()
   if (activityResult.data) {
@@ -213,37 +232,20 @@ async function queryMembers(
     }
   }
 
-  interface AccountRecord {
-    email: string | null
-    first_name: string | null
-    last_name: string | null
-    phone: string | null
-    sms_opt_in: boolean
-    email_opt_in: boolean
-  }
-  const accountMap = new Map<string, AccountRecord>()
-  if (accountResult.data) {
-    for (const a of accountResult.data) {
-      accountMap.set(a.id, {
-        email: a.email || null,
-        first_name: a.first_name || null,
-        last_name: a.last_name || null,
-        phone: a.phone || null,
-        sms_opt_in: a.sms_opt_in ?? false,
-        email_opt_in: a.email_opt_in ?? true,
-      })
-    }
-  }
-
-  const filtered = profiles
-    .filter((p) => {
-      const account = accountMap.get(p.user_id)
-      if (!account?.email) return false
+  const filtered = accounts
+    .filter((a) => {
+      if (!a.email) return false
 
       if (needsActivityFilter) {
-        const activity = activityMap.get(p.user_id)
-        if (filters.engagement_status && activity?.engagement_status !== filters.engagement_status) return false
-        if (filters.health_status && activity?.health_status !== filters.health_status) return false
+        const activity = activityMap.get(a.id)
+        if (filters.engagement_status) {
+          const fv = parseFilterValue(filters.engagement_status)
+          if (fv && !matchesFilterValue(String(activity?.engagement_status || ''), fv)) return false
+        }
+        if (filters.health_status) {
+          const fv = parseFilterValue(filters.health_status)
+          if (fv && !matchesFilterValue(String(activity?.health_status || ''), fv)) return false
+        }
         if (filters.custom_tags?.length) {
           const tags = (activity?.custom_tags as string[]) || []
           if (!filters.custom_tags.some((t) => tags.includes(t))) return false
@@ -273,59 +275,53 @@ async function queryMembers(
       }
 
       if (filters.subscription_tier) {
-        const tier = tierMap.get(p.user_id) || 'Free'
-        if (tier.toLowerCase() !== filters.subscription_tier.toLowerCase()) return false
+        const fv = parseFilterValue(filters.subscription_tier)
+        if (fv) {
+          const tier = (tierMap.get(a.id) || 'Free').toLowerCase()
+          const matched = fv.values.some((v) => v.toLowerCase() === tier)
+          if (fv.operator === 'is_not' ? matched : !matched) return false
+        }
       }
 
       if (filters.subscription_status) {
-        const status = subStatusMap.get(p.user_id) || 'free'
-        const target = filters.subscription_status.toLowerCase()
-        if (target === 'not_canceled') {
-          if (status === 'canceled' || status === 'incomplete_expired') return false
-        } else if (target === 'free') {
-          if (status !== 'free' && status !== 'canceled' && status !== 'incomplete_expired') return false
-        } else {
-          if (status !== target) return false
+        const fv = parseFilterValue(filters.subscription_status)
+        if (fv) {
+          const status = subStatusMap.get(a.id) || 'free'
+          const matched = fv.values.some((v) => {
+            const t = v.toLowerCase()
+            if (t === 'not_canceled') return status !== 'canceled' && status !== 'incomplete_expired'
+            if (t === 'free') return status === 'free' || status === 'canceled' || status === 'incomplete_expired'
+            return status === t
+          })
+          if (fv.operator === 'is_not' ? matched : !matched) return false
         }
       }
 
       if (filters.intensive_status) {
-        const intensive = intensiveMap.get(p.user_id)
-        switch (filters.intensive_status) {
-          case 'no_intensive':
-            if (intensive) return false
-            break
-          case 'pending':
-            if (!intensive || intensive.status !== 'pending') return false
-            break
-          case 'in_progress':
-            if (!intensive || intensive.status !== 'in_progress') return false
-            break
-          case 'completed':
-            if (!intensive || intensive.status !== 'completed' || intensive.unlock_completed) return false
-            break
-          case 'unlocked':
-            if (!intensive || !intensive.unlock_completed) return false
-            break
+        const fv = parseFilterValue(filters.intensive_status)
+        if (fv) {
+          const intensive = intensiveMap.get(a.id)
+          const effective = getIntensiveEffectiveStatus(intensive)
+          if (!matchesFilterValue(effective, fv)) return false
         }
       }
 
       if (filters.has_phone) {
-        const hasPhone = !!account.phone
+        const hasPhone = !!a.phone
         if (filters.has_phone === 'yes' && !hasPhone) return false
         if (filters.has_phone === 'no' && hasPhone) return false
       }
       if (filters.sms_opt_in) {
-        if (filters.sms_opt_in === 'yes' && !account.sms_opt_in) return false
-        if (filters.sms_opt_in === 'no' && account.sms_opt_in) return false
+        if (filters.sms_opt_in === 'yes' && !a.sms_opt_in) return false
+        if (filters.sms_opt_in === 'no' && a.sms_opt_in) return false
       }
       if (filters.email_opt_in) {
-        if (filters.email_opt_in === 'yes' && !account.email_opt_in) return false
-        if (filters.email_opt_in === 'no' && account.email_opt_in) return false
+        if (filters.email_opt_in === 'yes' && !a.email_opt_in) return false
+        if (filters.email_opt_in === 'no' && a.email_opt_in) return false
       }
 
       if (filters.created_after || filters.created_before) {
-        const created = authCreatedMap.get(p.user_id)
+        const created = authCreatedMap.get(a.id)
         if (!created) return false
         if (filters.created_after && created < filters.created_after) return false
         if (filters.created_before && created > filters.created_before) return false
@@ -333,18 +329,15 @@ async function queryMembers(
 
       return true
     })
-    .map((p) => {
-      const account = accountMap.get(p.user_id)!
-      return {
-        email: account.email!,
-        name: [account.first_name, account.last_name].filter(Boolean).join(' ') || account.email!,
-        firstName: account.first_name || '',
-        type: 'member' as const,
-        userId: p.user_id,
-        phone: account.phone || undefined,
-        smsOptIn: account.sms_opt_in,
-      }
-    })
+    .map((a) => ({
+      email: a.email,
+      name: [a.first_name, a.last_name].filter(Boolean).join(' ') || a.email,
+      firstName: a.first_name || '',
+      type: 'member' as const,
+      userId: a.id,
+      phone: a.phone || undefined,
+      smsOptIn: a.sms_opt_in ?? false,
+    }))
 
   return filtered
 }
@@ -414,11 +407,13 @@ async function queryLeads(
     .from('leads')
     .select('id, first_name, last_name, email, phone, sms_opt_in, status, type, utm_source, utm_medium, utm_campaign, created_at')
 
-  if (filters.lead_status) {
-    query = query.eq('status', filters.lead_status)
+  const leadStatusFv = parseFilterValue(filters.lead_status)
+  if (leadStatusFv && leadStatusFv.operator === 'is') {
+    query = query.in('status', leadStatusFv.values)
   }
-  if (filters.lead_type) {
-    query = query.eq('type', filters.lead_type)
+  const leadTypeFv = parseFilterValue(filters.lead_type)
+  if (leadTypeFv && leadTypeFv.operator === 'is') {
+    query = query.in('type', leadTypeFv.values)
   }
   if (filters.utm_source) {
     query = query.ilike('utm_source', `%${filters.utm_source}%`)
@@ -441,7 +436,16 @@ async function queryLeads(
   if (!leads) return []
 
   return leads
-    .filter((l) => !!l.email)
+    .filter((l) => {
+      if (!l.email) return false
+      if (leadStatusFv && leadStatusFv.operator === 'is_not') {
+        if (leadStatusFv.values.includes(l.status)) return false
+      }
+      if (leadTypeFv && leadTypeFv.operator === 'is_not') {
+        if (leadTypeFv.values.includes(l.type)) return false
+      }
+      return true
+    })
     .map((l) => ({
       email: l.email!,
       name: [l.first_name, l.last_name].filter(Boolean).join(' ') || l.email!,

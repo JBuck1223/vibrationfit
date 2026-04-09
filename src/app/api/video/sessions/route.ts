@@ -379,6 +379,21 @@ export async function GET(request: NextRequest) {
 
 // ── Alignment Gym: segment-driven notifications ──
 
+function formatSessionTime(date: Date): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: 'America/New_York',
+  }).formatToParts(date)
+
+  const hour = parts.find(p => p.type === 'hour')?.value || ''
+  const minute = parts.find(p => p.type === 'minute')?.value || '00'
+  const period = (parts.find(p => p.type === 'dayPeriod')?.value || '').toLowerCase()
+
+  const time = minute === '00' ? hour : `${hour}:${minute}`
+  return `${time} ${period} ET`
+}
+
 async function scheduleAlignmentGymReminders(
   session: Record<string, any>,
   hostName: string,
@@ -391,11 +406,10 @@ async function scheduleAlignmentGymReminders(
 
   const scheduledAt = new Date(session.scheduled_at)
   const oneHourBefore = new Date(scheduledAt.getTime() - 60 * 60 * 1000)
-  const fifteenMinBefore = new Date(scheduledAt.getTime() - 15 * 60 * 1000)
   const now = new Date()
+  const sessionTime = formatSessionTime(scheduledAt)
 
   if (testMode) {
-    // Test mode: send reminders directly to the creating admin only
     let adminPhone: string | null = null
     const { data: adminAccount } = await admin
       .from('user_accounts')
@@ -404,60 +418,30 @@ async function scheduleAlignmentGymReminders(
       .single()
     if (adminAccount?.phone) adminPhone = adminAccount.phone
 
-    const jobs: Record<string, unknown>[] = []
-
-    if (oneHourBefore > now && adminEmail) {
-      jobs.push({
-        message_type: 'email',
-        recipient_email: adminEmail,
+    if (oneHourBefore > now && adminPhone) {
+      const { error } = await admin.from('scheduled_messages').insert({
+        message_type: 'sms',
+        recipient_phone: adminPhone,
         recipient_user_id: createdByUserId,
-        subject: `[TEST] Alignment Gym Reminder - 1 Hour`,
-        body: `[TEST MODE] Reminder: "${session.title}" starts in 1 hour.\n\nJoin: ${joinLink}\n\nThis is a test — only you received this.`,
+        body: `[TEST] Alignment Gym is today at ${sessionTime}. Join: ${joinLink} — Only you received this.`,
         related_entity_type: 'video_session',
         related_entity_id: session.id,
         scheduled_for: oneHourBefore.toISOString(),
         status: 'pending',
         created_by: createdByUserId,
       })
-    }
-
-    if (fifteenMinBefore > now && adminPhone) {
-      jobs.push({
-        message_type: 'sms',
-        recipient_phone: adminPhone,
-        recipient_user_id: createdByUserId,
-        body: `[TEST] "${session.title}" starts in 15 min! Join: ${joinLink}`,
-        related_entity_type: 'video_session',
-        related_entity_id: session.id,
-        scheduled_for: fifteenMinBefore.toISOString(),
-        status: 'pending',
-        created_by: createdByUserId,
-      })
-    }
-
-    if (jobs.length > 0) {
-      const { error } = await admin.from('scheduled_messages').insert(jobs)
-      if (error) console.error('[alignment-gym:test] reminder insert error:', error.message)
-      else console.log(`[alignment-gym:test] Scheduled ${jobs.length} test reminder(s) to admin only`)
+      if (error) console.error('[alignment-gym:test] SMS reminder insert error:', error.message)
+      else console.log('[alignment-gym:test] Scheduled 1hr SMS reminder to admin only')
     }
     return
   }
 
-  // Normal mode: notification jobs (segment resolved fresh when they fire)
-  const reminderVars = {
-    firstName: '',
-    sessionTitle: session.title || 'Alignment Gym Session',
-    hostName,
-    joinLink,
-  }
-
-  const jobs: Record<string, unknown>[] = []
-
+  // Normal mode: 1-hour SMS notification job (segment resolved fresh when it fires)
   if (oneHourBefore > now) {
-    jobs.push({
-      message_type: 'email',
-      notification_config_slug: 'alignment_gym_reminder_1hr',
-      notification_variables: reminderVars,
+    const { error } = await admin.from('scheduled_messages').insert({
+      message_type: 'sms',
+      notification_config_slug: 'alignment_gym_reminder_1hr_sms',
+      notification_variables: { sessionTime },
       related_entity_type: 'video_session',
       related_entity_id: session.id,
       scheduled_for: oneHourBefore.toISOString(),
@@ -465,26 +449,8 @@ async function scheduleAlignmentGymReminders(
       created_by: createdByUserId,
       body: 'notification-job',
     })
-  }
-
-  if (fifteenMinBefore > now) {
-    jobs.push({
-      message_type: 'sms',
-      notification_config_slug: 'alignment_gym_reminder_15min',
-      notification_variables: reminderVars,
-      related_entity_type: 'video_session',
-      related_entity_id: session.id,
-      scheduled_for: fifteenMinBefore.toISOString(),
-      status: 'pending',
-      created_by: createdByUserId,
-      body: 'notification-job',
-    })
-  }
-
-  if (jobs.length > 0) {
-    const { error } = await admin.from('scheduled_messages').insert(jobs)
-    if (error) console.error('[alignment-gym] reminder job insert error:', error.message)
-    else console.log(`[alignment-gym] Scheduled ${jobs.length} notification reminder jobs`)
+    if (error) console.error('[alignment-gym] SMS reminder job insert error:', error.message)
+    else console.log(`[alignment-gym] Scheduled 1hr SMS reminder for ${sessionTime}`)
   }
 }
 

@@ -109,15 +109,15 @@ const FILTER_TO_KEY: Record<FilterField, keyof BlastFilters> = {
   created_before: 'created_before',
 }
 
-function filtersToRows(filters: BlastFilters): FilterRow[] {
-  const rows: FilterRow[] = []
-  for (const [field, key] of Object.entries(FILTER_TO_KEY)) {
-    const val = filters[key as keyof BlastFilters]
-    if (val !== undefined && val !== null && val !== '') {
-      rows.push({ id: crypto.randomUUID(), field: field as FilterField, value: String(val) })
-    }
+function describeFilterValue(val: unknown): string {
+  if (!val) return ''
+  if (typeof val === 'string') return formatFilterValue(val)
+  if (typeof val === 'object' && val !== null && 'operator' in val && 'values' in val) {
+    const fv = val as { operator: string; values: string[] }
+    const labels = fv.values.map((v: string) => formatFilterValue(v)).join(', ')
+    return fv.operator === 'is_not' ? `is not ${labels}` : labels
   }
-  return rows
+  return String(val)
 }
 
 const MERGE_TAGS = [
@@ -178,6 +178,7 @@ export default function BlastPage() {
 
   const [segments, setSegments] = useState<SegmentOption[]>([])
   const [loadedSegmentId, setLoadedSegmentId] = useState('')
+  const [loadedSegment, setLoadedSegment] = useState<SegmentOption | null>(null)
 
   const [tierNames, setTierNames] = useState<string[]>([])
   const [templates, setTemplates] = useState<EmailTemplate[]>([])
@@ -262,20 +263,24 @@ export default function BlastPage() {
     setEmailCount(0)
     setSmsCount(0)
     setRecipients([])
-    setShowRecipients(false)
+
+    if (loadedSegment) setShowRecipients(true)
 
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
       runPreview()
-    }, 600)
+    }, loadedSegment ? 100 : 600)
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [audience, filterRows, excludeLeads, excludeSegmentId])
+  }, [audience, filterRows, excludeLeads, excludeSegmentId, loadedSegment])
 
   function buildFilters(): BlastFilters {
+    if (loadedSegment) {
+      return { ...loadedSegment.filters }
+    }
     const f: BlastFilters = { audience, exclude_leads: excludeLeads || undefined }
     for (const row of filterRows) {
       if (!row.value) continue
@@ -350,11 +355,21 @@ export default function BlastPage() {
     const seg = segments.find((s) => s.id === id)
     if (!seg) return
     setLoadedSegmentId(id)
+    setLoadedSegment(seg)
     setAudience(seg.filters.audience)
-    setFilterRows(filtersToRows(seg.filters))
+    setFilterRows([])
     setExcludeLeads(!!seg.filters.exclude_leads)
     setExcludeSegmentId(seg.exclude_segment_id || '')
     toast.success(`Loaded segment "${seg.name}"`)
+  }
+
+  function clearSegment() {
+    setLoadedSegmentId('')
+    setLoadedSegment(null)
+    setFilterRows([])
+    setExcludeLeads(false)
+    setExcludeSegmentId('')
+    setAudience('members')
   }
 
   function addFilter() {
@@ -603,141 +618,199 @@ export default function BlastPage() {
             </div>
           </Card>
 
-          {/* Load Segment */}
-          {segments.length > 0 && (
-            <Card className="p-6">
-              <div className="flex items-center gap-3">
+          {/* Targeting: Segment or Custom */}
+          <Card className="p-6 md:p-8">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
                 <Layers className="w-5 h-5 text-[#BF00FF]" />
-                <label className="text-sm text-neutral-400">Load Segment:</label>
+                <h2 className="text-lg font-semibold text-white">
+                  {loadedSegment ? 'Segment' : 'Targeting'}
+                </h2>
+              </div>
+              {loadedSegment && (
+                <button type="button" onClick={clearSegment} className={btnGhost}>
+                  <X className="w-4 h-4" />
+                  Clear Segment
+                </button>
+              )}
+            </div>
+
+            {/* Segment selector */}
+            {segments.length > 0 && !loadedSegment && (
+              <div className="mb-6 pb-6 border-b border-[#333]">
+                <label className="block text-sm text-neutral-400 mb-2">Load a saved segment</label>
                 <select
                   value={loadedSegmentId}
-                  onChange={(e) => {
-                    if (e.target.value) loadSegment(e.target.value)
-                  }}
-                  className={selectClass + ' max-w-xs'}
+                  onChange={(e) => { if (e.target.value) loadSegment(e.target.value) }}
+                  className={selectClass + ' max-w-sm'}
                 >
                   <option value="">Select a segment...</option>
                   {segments.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.name} ({s.recipient_count ?? '?'} recipients)
+                      {s.name} ({s.recipient_count ?? '?'})
                     </option>
                   ))}
                 </select>
+                <p className="text-xs text-neutral-600 mt-1">
+                  Or build a custom audience below.
+                </p>
               </div>
-            </Card>
-          )}
+            )}
 
-          {/* Audience & Filters */}
-          <Card className="p-6 md:p-8">
-            <div className="flex items-center gap-2 mb-6">
-              <Filter className="w-5 h-5 text-[#39FF14]" />
-              <h2 className="text-lg font-semibold text-white">Audience & Filters</h2>
-            </div>
+            {/* Segment loaded view */}
+            {loadedSegment ? (
+              <div className="space-y-4">
+                <div className="p-4 rounded-xl border-2 border-[#BF00FF]/30 bg-[#BF00FF]/5">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-base font-bold text-white">{loadedSegment.name}</h3>
+                    <Badge className="bg-[#BF00FF]/20 text-[#BF00FF] px-3 py-1 text-xs font-bold">
+                      Segment
+                    </Badge>
+                  </div>
+                  {loadedSegment.filters.audience && (
+                    <p className="text-sm text-neutral-400 mb-3">
+                      Audience: <span className="text-white capitalize">{loadedSegment.filters.audience}</span>
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(FILTER_TO_KEY).map(([field, key]) => {
+                      const val = loadedSegment.filters[key as keyof BlastFilters]
+                      if (val === undefined || val === null || val === '') return null
+                      const label = getFilterOptions('both').find((o) => o.value === field)?.label || field
+                      return (
+                        <div key={field} className="px-3 py-1.5 rounded-full bg-[#333] border border-[#555] text-xs">
+                          <span className="text-neutral-400">{label}:</span>{' '}
+                          <span className="text-white font-medium">{describeFilterValue(val)}</span>
+                        </div>
+                      )
+                    })}
+                    {loadedSegment.filters.exclude_leads && (
+                      <div className="px-3 py-1.5 rounded-full bg-[#FF0040]/10 border border-[#FF0040]/30 text-xs text-[#FF0040]">
+                        Excluding leads
+                      </div>
+                    )}
+                  </div>
+                </div>
 
-            <div className="mb-6">
-              <label className="block text-sm text-neutral-400 mb-2">Audience</label>
-              <div className="flex gap-2">
-                {[
-                  { value: 'members' as Audience, label: 'Members', icon: Users },
-                  { value: 'leads' as Audience, label: 'Leads', icon: UserPlus },
-                  { value: 'both' as Audience, label: 'Both', icon: Users },
-                ].map(({ value, label, icon: Icon }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => {
-                      setAudience(value)
-                      setFilterRows([])
-                    }}
-                    className={`inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold rounded-full border-2 transition-all duration-300 ${
-                      audience === value
-                        ? 'bg-[#39FF14] text-black border-transparent'
-                        : 'bg-transparent border-[#333] text-neutral-400 hover:border-[#39FF14] hover:text-[#39FF14]'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {filterRows.map((row) => {
-                const options = getFilterOptions(audience)
-
-                return (
-                  <div key={row.id} className="flex items-center gap-3">
+                {segments.length > 1 && (
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm text-neutral-400 shrink-0">Switch segment:</label>
                     <select
-                      value={row.field}
-                      onChange={(e) => updateFilter(row.id, 'field', e.target.value)}
-                      className={selectClass + ' max-w-[240px]'}
+                      value={loadedSegmentId}
+                      onChange={(e) => { if (e.target.value) loadSegment(e.target.value) }}
+                      className={selectClass + ' max-w-sm'}
                     >
-                      {options.map((o) => (
-                        <option key={o.value} value={o.value}>
-                          {o.label}
+                      {segments.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} ({s.recipient_count ?? '?'})
                         </option>
                       ))}
                     </select>
-
-                    {renderFilterValueInput(row)}
-
-                    <button
-                      type="button"
-                      onClick={() => removeFilter(row.id)}
-                      className="p-2 text-neutral-500 hover:text-red-400 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
                   </div>
-                )
-              })}
-            </div>
-
-            <button
-              type="button"
-              onClick={addFilter}
-              className={`${btnGhost} mt-4`}
-            >
-              <Plus className="w-4 h-4" />
-              Add Filter
-            </button>
-
-            {/* Exclusions */}
-            <div className="mt-6 pt-6 border-t border-[#333]">
-              <div className="flex items-center gap-2 mb-4">
-                <ShieldOff className="w-4 h-4 text-[#FF0040]" />
-                <h3 className="text-sm font-semibold text-neutral-300">Exclusions</h3>
-              </div>
-              <div className="space-y-3">
-                {(audience === 'members' || audience === 'both') && (
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={excludeLeads}
-                      onChange={(e) => setExcludeLeads(e.target.checked)}
-                      className="w-4 h-4 rounded border-[#666] bg-[#404040] text-[#39FF14] focus:ring-[#39FF14]"
-                    />
-                    <span className="text-sm text-neutral-300">
-                      Exclude emails also found in leads
-                    </span>
-                  </label>
                 )}
-                <div className="flex items-center gap-3">
-                  <label className="text-sm text-neutral-400 shrink-0">Exclude segment:</label>
-                  <select
-                    value={excludeSegmentId}
-                    onChange={(e) => setExcludeSegmentId(e.target.value)}
-                    className={selectClass + ' max-w-xs'}
-                  >
-                    <option value="">None</option>
-                    {segments.map((s) => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                  </select>
-                </div>
               </div>
-            </div>
+            ) : (
+              <>
+                {/* Custom audience builder */}
+                <div className="mb-6">
+                  <label className="block text-sm text-neutral-400 mb-2">Audience</label>
+                  <div className="flex gap-2">
+                    {[
+                      { value: 'members' as Audience, label: 'Members', icon: Users },
+                      { value: 'leads' as Audience, label: 'Leads', icon: UserPlus },
+                      { value: 'both' as Audience, label: 'Both', icon: Users },
+                    ].map(({ value, label, icon: Icon }) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => {
+                          setAudience(value)
+                          setFilterRows([])
+                        }}
+                        className={`inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold rounded-full border-2 transition-all duration-300 ${
+                          audience === value
+                            ? 'bg-[#39FF14] text-black border-transparent'
+                            : 'bg-transparent border-[#333] text-neutral-400 hover:border-[#39FF14] hover:text-[#39FF14]'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4" />
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {filterRows.map((row) => {
+                    const options = getFilterOptions(audience)
+                    return (
+                      <div key={row.id} className="flex items-center gap-3">
+                        <select
+                          value={row.field}
+                          onChange={(e) => updateFilter(row.id, 'field', e.target.value)}
+                          className={selectClass + ' max-w-[240px]'}
+                        >
+                          {options.map((o) => (
+                            <option key={o.value} value={o.value}>
+                              {o.label}
+                            </option>
+                          ))}
+                        </select>
+                        {renderFilterValueInput(row)}
+                        <button
+                          type="button"
+                          onClick={() => removeFilter(row.id)}
+                          className="p-2 text-neutral-500 hover:text-red-400 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <button type="button" onClick={addFilter} className={`${btnGhost} mt-4`}>
+                  <Plus className="w-4 h-4" />
+                  Add Filter
+                </button>
+
+                {/* Exclusions */}
+                <div className="mt-6 pt-6 border-t border-[#333]">
+                  <div className="flex items-center gap-2 mb-4">
+                    <ShieldOff className="w-4 h-4 text-[#FF0040]" />
+                    <h3 className="text-sm font-semibold text-neutral-300">Exclusions</h3>
+                  </div>
+                  <div className="space-y-3">
+                    {(audience === 'members' || audience === 'both') && (
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={excludeLeads}
+                          onChange={(e) => setExcludeLeads(e.target.checked)}
+                          className="w-4 h-4 rounded border-[#666] bg-[#404040] text-[#39FF14] focus:ring-[#39FF14]"
+                        />
+                        <span className="text-sm text-neutral-300">
+                          Exclude emails also found in leads
+                        </span>
+                      </label>
+                    )}
+                    <div className="flex items-center gap-3">
+                      <label className="text-sm text-neutral-400 shrink-0">Exclude segment:</label>
+                      <select
+                        value={excludeSegmentId}
+                        onChange={(e) => setExcludeSegmentId(e.target.value)}
+                        className={selectClass + ' max-w-xs'}
+                      >
+                        <option value="">None</option>
+                        {segments.map((s) => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </Card>
 
           {/* Recipients */}
