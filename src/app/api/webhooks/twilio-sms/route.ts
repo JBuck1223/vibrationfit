@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { notifyAdminSMS } from '@/lib/admin/notifications'
 
 // Helper function to normalize phone numbers for comparison
 function normalizePhone(phone: string): string {
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
     const from = formData.get('From') as string
     const to = formData.get('To') as string
     const body = formData.get('Body') as string
-    const status = formData.get('SmsStatus') as string
+    const status = (formData.get('MessageStatus') || formData.get('SmsStatus')) as string
     const mediaUrls = formData.getAll('MediaUrl0') // For MMS
     
     console.log('📥 Twilio webhook data:', {
@@ -60,16 +61,16 @@ export async function POST(request: NextRequest) {
     // Find user by phone number
     let userId: string | null = null
     let leadId: string | null = null
+    let contactName: string | null = null
     
     const userPhone = direction === 'inbound' ? from : to
     const normalizedUserPhone = normalizePhone(userPhone)
     
-    console.log('🔍 Looking for user with phone:', { original: userPhone, normalized: normalizedUserPhone })
+    console.log('Looking for user with phone:', { original: userPhone, normalized: normalizedUserPhone })
     
-    // Try to find user in user_profiles by normalizing all phone numbers
     const { data: profiles } = await adminClient
       .from('user_profiles')
-      .select('user_id, phone')
+      .select('user_id, phone, first_name, last_name')
       .not('phone', 'is', null)
     
     if (profiles) {
@@ -79,15 +80,15 @@ export async function POST(request: NextRequest) {
       
       if (matchedProfile) {
         userId = matchedProfile.user_id
-        console.log('✅ Found user:', userId)
+        contactName = [matchedProfile.first_name, matchedProfile.last_name].filter(Boolean).join(' ') || null
+        console.log('Found user:', userId)
       }
     }
     
-    // If no user found, try to find lead
     if (!userId) {
       const { data: leads } = await adminClient
         .from('leads')
-        .select('id, phone')
+        .select('id, phone, first_name, last_name')
         .not('phone', 'is', null)
       
       if (leads) {
@@ -97,13 +98,16 @@ export async function POST(request: NextRequest) {
         
         if (matchedLead) {
           leadId = matchedLead.id
-          console.log('✅ Found lead:', leadId)
+          if (!contactName) {
+            contactName = [matchedLead.first_name, matchedLead.last_name].filter(Boolean).join(' ') || null
+          }
+          console.log('Found lead:', leadId)
         }
       }
     }
     
     if (!userId && !leadId) {
-      console.log('⚠️ No user or lead found for phone:', normalizedUserPhone)
+      console.log('No user or lead found for phone:', normalizedUserPhone)
     }
 
     // Check if message already exists
@@ -140,11 +144,17 @@ export async function POST(request: NextRequest) {
         })
 
       if (insertError) {
-        console.error('❌ Failed to insert SMS:', insertError)
+        console.error('Failed to insert SMS:', insertError)
         throw insertError
       }
 
-      console.log(`✅ Logged ${direction} SMS: ${messageId}`)
+      console.log(`Logged ${direction} SMS: ${messageId}`)
+
+      if (direction === 'inbound') {
+        const sender = contactName || from
+        const preview = (body || '').substring(0, 140)
+        notifyAdminSMS(`New SMS from ${sender}: "${preview}"`).catch(() => {})
+      }
     }
 
     // Return empty TwiML response (no auto-reply)

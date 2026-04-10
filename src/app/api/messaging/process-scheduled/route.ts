@@ -189,6 +189,7 @@ async function processMessages(request: NextRequest) {
             await sendSMS({
               to: message.recipient_phone,
               body: message.body,
+              userId: message.recipient_user_id || undefined,
             })
           }
 
@@ -360,6 +361,7 @@ async function processCampaignMessages(
             await sendSMS({
               to: msg.recipient_phone,
               body: msg.body,
+              userId: msg.recipient_user_id || undefined,
             })
 
             await supabase

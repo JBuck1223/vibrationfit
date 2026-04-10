@@ -110,24 +110,29 @@ function EditAutomationContent() {
 
   useEffect(() => {
     setTemplatesLoading(true)
-    const url = formData.channel === 'email'
+    const channel = formData.channel
+    const url = channel === 'email'
       ? '/api/admin/templates/email'
       : '/api/admin/templates/sms'
     fetch(url)
       .then((r) => r.json())
       .then((data) => {
         const list = data.templates || []
-        if (formData.channel === 'email') {
+        if (channel === 'email') {
           setEmailTemplates(list)
         } else {
           setSmsTemplates(list)
         }
-        if (list.length > 0 && !list.some((t: Template) => t.id === formData.template_id)) {
-          setFormData((prev) => ({ ...prev, template_id: list[0].id }))
-        }
+        setFormData((prev) => {
+          if (prev.channel !== channel) return prev
+          if (list.length > 0 && !list.some((t: Template) => t.id === prev.template_id)) {
+            return { ...prev, template_id: list[0].id }
+          }
+          return prev
+        })
       })
       .catch(() => {
-        if (formData.channel === 'email') setEmailTemplates([])
+        if (channel === 'email') setEmailTemplates([])
         else setSmsTemplates([])
       })
       .finally(() => setTemplatesLoading(false))

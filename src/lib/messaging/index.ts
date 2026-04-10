@@ -3,7 +3,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { sendSMS, validatePhoneNumber, isTwilioConfigured } from './twilio'
-import { fillTemplate, getTemplate } from './templates'
+import { fillTemplate, getTemplate, trackTemplateSend } from './templates'
 
 export interface SendMessageParams {
   to: string
@@ -69,10 +69,12 @@ export async function sendMessage(
     }
   }
 
-  // Send via Twilio
   const smsResult = await sendSMS({
     to: phoneValidation.formatted!,
     body: messageBody,
+    userId,
+    leadId,
+    ticketId,
   })
 
   if (!smsResult.success) {
@@ -82,32 +84,8 @@ export async function sendMessage(
     }
   }
 
-  // Store message in database (use admin client to bypass RLS)
-  try {
-    const { createAdminClient } = await import('@/lib/supabase/admin')
-    const adminClient = createAdminClient()
-
-    const { error: dbError } = await adminClient.from('sms_messages').insert({
-      lead_id: leadId || null,
-      ticket_id: ticketId || null,
-      user_id: userId || null,
-      direction: 'outbound',
-      from_number: process.env.TWILIO_PHONE_NUMBER || '',
-      to_number: phoneValidation.formatted!,
-      body: messageBody,
-      status: smsResult.status || 'sent',
-      twilio_sid: smsResult.sid,
-    })
-
-    if (dbError) {
-      console.error('❌ Failed to store SMS in database:', dbError)
-      // Don't fail the send if DB storage fails
-    } else {
-      console.log('✅ SMS stored in database')
-    }
-  } catch (error) {
-    console.error('❌ Error storing SMS:', error)
-    // Don't fail the send if DB storage fails
+  if (templateId) {
+    trackTemplateSend(templateId).catch(() => {})
   }
 
   return {
