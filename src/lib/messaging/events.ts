@@ -115,7 +115,7 @@ export async function triggerEvent(
                 context: { userId: payload.userId, guestEmail: payload.email },
               })
             } else if (rule.channel === 'sms' && payload.phone) {
-              await sendSMS({ to: payload.phone, body })
+              await sendSMS({ to: payload.phone, body, userId: payload.userId })
             }
 
             await supabase.from('scheduled_messages').insert({

@@ -22,12 +22,14 @@ interface ChatMessage {
   message_type: string
   sent_at: string
   created_at: string
+  profile_picture_url?: string | null
 }
 
 interface SessionChatProps {
   sessionId: string
   currentUserId?: string
   currentUserName?: string
+  currentUserProfilePic?: string | null
   isHost?: boolean
   onClose?: () => void
   /** Callback when a message is highlighted — parent can display it prominently */
@@ -38,6 +40,7 @@ export function SessionChat({
   sessionId,
   currentUserId,
   currentUserName = 'You',
+  currentUserProfilePic,
   isHost = false,
   onClose,
   onHighlightChange,
@@ -247,6 +250,7 @@ export function SessionChat({
       message_type: 'chat',
       sent_at: new Date().toISOString(),
       created_at: new Date().toISOString(),
+      profile_picture_url: currentUserProfilePic,
     }
     setMessages((prev) => [...prev, optimisticMessage])
     setNewMessage('')
@@ -358,11 +362,26 @@ export function SessionChat({
             return (
               <div
                 key={msg.id}
-                className={`group flex items-start gap-1.5 py-[3px] hover:bg-neutral-800/50 px-1 -mx-1 rounded ${
+                className={`group flex items-start gap-2 py-1 hover:bg-neutral-800/50 px-1 -mx-1 rounded ${
                   isHighlighted ? 'bg-energy-500/10' : ''
                 }`}
               >
-                {/* Compact message: @Name message */}
+                {/* Profile picture avatar */}
+                <div className="w-6 h-6 rounded-full bg-neutral-700 overflow-hidden flex-shrink-0 mt-0.5">
+                  {msg.profile_picture_url ? (
+                    <img
+                      src={msg.profile_picture_url}
+                      alt={msg.sender_name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-neutral-400 text-[10px] font-medium">
+                      {msg.sender_name?.[0]?.toUpperCase() || '?'}
+                    </div>
+                  )}
+                </div>
+
+                {/* Message content */}
                 <p className="text-[13px] leading-5 flex-1 min-w-0 break-words">
                   <span className={`font-medium ${
                     isHighlighted ? 'text-energy-400' : own ? 'text-primary-400' : getNameColor(msg.sender_name)

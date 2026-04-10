@@ -11,7 +11,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { sendAndLogEmail, sendAndLogBulkEmail } from '@/lib/email/send'
 import { sendSMS } from '@/lib/messaging/twilio'
 import { renderEmailTemplate } from '@/lib/email/templates/db'
-import { fillTemplate } from '@/lib/messaging/templates'
+import { fillTemplate, trackTemplateSend } from '@/lib/messaging/templates'
 import { queryRecipients, type BlastFilters, type BlastRecipient } from '@/lib/crm/blast-filters'
 
 // ── Types ──
@@ -196,7 +196,8 @@ export async function sendNotification(params: SendNotificationParams): Promise<
     try {
       const body = await resolveSmsTemplate(config.sms_template_slug, vars)
       if (body) {
-        await sendSMS({ to: params.recipientPhone, body })
+        await sendSMS({ to: params.recipientPhone, body, userId: params.userId })
+        trackTemplateSend(config.sms_template_slug).catch(() => {})
       }
     } catch (err) {
       console.error(`[notifications] SMS failed for ${params.slug}:`, err)
@@ -273,10 +274,14 @@ export async function sendBulkNotification(params: SendBulkNotificationParams): 
     if (smsRecipients.length > 0) {
       const body = await resolveSmsTemplate(config.sms_template_slug, vars)
       if (body) {
-        await Promise.allSettled(
+        const results = await Promise.allSettled(
           smsRecipients.map(r => sendSMS({ to: r.phone!, body }))
-        ).catch(err => console.error(`[notifications] Bulk SMS failed for ${params.slug}:`, err))
-        console.log(`[notifications] Bulk SMS sent to ${smsRecipients.length} for ${params.slug}`)
+        )
+        const successCount = results.filter(r => r.status === 'fulfilled').length
+        if (successCount > 0) {
+          trackTemplateSend(config.sms_template_slug, successCount).catch(() => {})
+        }
+        console.log(`[notifications] Bulk SMS sent to ${successCount}/${smsRecipients.length} for ${params.slug}`)
       }
     }
   }

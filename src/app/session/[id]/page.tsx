@@ -67,6 +67,7 @@ export default function SessionPage() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
   const [isGuestJoin, setIsGuestJoin] = useState(false)
   const [initialGuestEmail, setInitialGuestEmail] = useState<string>('')
+  const [userProfilePic, setUserProfilePic] = useState<string | null>(null)
 
   useEffect(() => {
     const emailFromUrl = searchParams?.get('email') || ''
@@ -95,6 +96,7 @@ export default function SessionPage() {
             if (profileResponse.ok) {
               const profileData = await profileResponse.json()
               setUserName(profileData.full_name || profileData.email || 'Participant')
+              setUserProfilePic(profileData.profile_picture_url || null)
             }
 
             setPageState('pre-call')
@@ -386,6 +388,7 @@ export default function SessionPage() {
         token={token}
         userName={userName}
         userId={userId}
+        userProfilePic={userProfilePic}
         sessionId={sessionId}
         sessionTitle={session?.title}
         sessionType={session?.session_type}

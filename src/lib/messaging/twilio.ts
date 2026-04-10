@@ -3,7 +3,6 @@
 
 import { Twilio } from 'twilio'
 
-// Initialize Twilio client
 const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN
   ? new Twilio(
       process.env.TWILIO_ACCOUNT_SID,
@@ -13,10 +12,21 @@ const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_T
 
 const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER
 
+function getStatusCallbackUrl(): string | undefined {
+  if (process.env.TWILIO_STATUS_CALLBACK_URL) return process.env.TWILIO_STATUS_CALLBACK_URL
+  const base = process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ?? process.env.VERCEL_URL
+  if (base) return `https://${base}/api/webhooks/twilio-sms`
+  return undefined
+}
+
 export interface SendSMSParams {
   to: string
   body: string
   mediaUrls?: string[]
+  userId?: string
+  leadId?: string
+  ticketId?: string
 }
 
 export interface SMSResponse {
@@ -27,31 +37,42 @@ export interface SMSResponse {
 }
 
 /**
- * Send SMS via Twilio
+ * Send SMS via Twilio and log to sms_messages.
+ * DB logging is best-effort -- never blocks or fails the send.
  */
 export async function sendSMS(params: SendSMSParams): Promise<SMSResponse> {
   if (!twilioClient || !twilioPhoneNumber) {
-    console.error('❌ Twilio not configured - missing credentials')
+    console.error('Twilio not configured - missing credentials')
     return {
       success: false,
       error: 'SMS service not configured',
     }
   }
 
-  const { to, body, mediaUrls } = params
+  const { to, body, mediaUrls, userId, leadId, ticketId } = params
 
   try {
+    const statusCallback = getStatusCallbackUrl()
     const message = await twilioClient.messages.create({
       from: twilioPhoneNumber,
       to,
       body,
       ...(mediaUrls && mediaUrls.length > 0 && { mediaUrl: mediaUrls }),
+      ...(statusCallback && { statusCallback }),
     })
 
-    console.log('✅ SMS sent successfully:', {
-      sid: message.sid,
+    console.log('SMS sent:', { sid: message.sid, to, status: message.status })
+
+    logOutboundSMS({
+      twilioSid: message.sid,
+      from: twilioPhoneNumber,
       to,
+      body,
       status: message.status,
+      mediaUrls,
+      userId,
+      leadId,
+      ticketId,
     })
 
     return {
@@ -60,12 +81,54 @@ export async function sendSMS(params: SendSMSParams): Promise<SMSResponse> {
       status: message.status,
     }
   } catch (error: any) {
-    console.error('❌ Failed to send SMS:', error)
+    console.error('Failed to send SMS:', error)
     return {
       success: false,
       error: error.message || 'Failed to send SMS',
     }
   }
+}
+
+/**
+ * Best-effort DB logging. Fire-and-forget so it never delays the caller.
+ * Uses twilio_sid unique index to silently skip duplicates.
+ */
+function logOutboundSMS(params: {
+  twilioSid: string
+  from: string
+  to: string
+  body: string
+  status: string
+  mediaUrls?: string[]
+  userId?: string
+  leadId?: string
+  ticketId?: string
+}): void {
+  import('@/lib/supabase/admin')
+    .then(({ createAdminClient }) => {
+      const supabase = createAdminClient()
+      return supabase.from('sms_messages').insert({
+        twilio_sid: params.twilioSid,
+        direction: 'outbound',
+        from_number: params.from,
+        to_number: params.to,
+        body: params.body,
+        status: params.status || 'sent',
+        media_urls: params.mediaUrls?.length ? params.mediaUrls : null,
+        user_id: params.userId || null,
+        lead_id: params.leadId || null,
+        ticket_id: params.ticketId || null,
+      })
+    })
+    .then(({ error }) => {
+      if (error) {
+        if (error.code === '23505') return // duplicate twilio_sid, already logged
+        console.error('Failed to log outbound SMS:', error.message)
+      }
+    })
+    .catch((err) => {
+      console.error('SMS DB logging error:', err)
+    })
 }
 
 /**

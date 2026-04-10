@@ -17,6 +17,7 @@ import { Save, ArrowLeft, ChevronDown } from 'lucide-react'
 
 const EVENT_NAMES = [
   { value: 'intensive.purchased', label: 'Intensive Purchased' },
+  { value: 'intensive.completed', label: 'Intensive Completed' },
   { value: 'lead.created', label: 'Lead Created' },
   { value: 'user.created', label: 'User Created' },
   { value: 'subscription.created', label: 'Subscription Created' },

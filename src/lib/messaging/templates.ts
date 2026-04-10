@@ -126,14 +126,24 @@ export function applyVariables(
 }
 
 /**
- * Increment the total_sent counter and update last_sent_at for a template
+ * Increment the total_sent counter and update last_sent_at for a template.
+ * Pass `count` for bulk sends to increment by more than 1.
  */
-export async function trackTemplateSend(slug: string): Promise<void> {
+export async function trackTemplateSend(slug: string, count = 1): Promise<void> {
   try {
     const supabase = createAdminClient()
+    const { data } = await supabase
+      .from('sms_templates')
+      .select('total_sent')
+      .eq('slug', slug)
+      .single()
+
     await supabase
       .from('sms_templates')
-      .update({ last_sent_at: new Date().toISOString() })
+      .update({
+        total_sent: (data?.total_sent || 0) + count,
+        last_sent_at: new Date().toISOString(),
+      })
       .eq('slug', slug)
   } catch {
     // Non-critical tracking -- don't fail the send

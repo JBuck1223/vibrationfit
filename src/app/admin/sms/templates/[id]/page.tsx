@@ -9,11 +9,11 @@ import {
   Stack,
   PageHero,
   Input,
-  Textarea,
   Spinner,
   Badge,
 } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
+import { FormattedTextarea } from '@/components/admin/FormattedTextarea'
 import {
   Save,
   ArrowLeft,
@@ -22,7 +22,6 @@ import {
   ChevronDown,
   Copy,
   Trash2,
-  MessageSquare,
 } from 'lucide-react'
 
 const CATEGORIES = [
@@ -378,14 +377,14 @@ function SmsTemplateDetailContent() {
                 </div>
               </div>
 
-              <Textarea
+              <FormattedTextarea
                 value={formData.body}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, body: e.target.value }))
+                onChange={(val) =>
+                  setFormData((prev) => ({ ...prev, body: val }))
                 }
-                placeholder="Your SMS message body..."
+                variables={formData.variables}
+                placeholder="Your SMS message body. Use the toolbar to insert merge tags like {{firstName}}."
                 rows={6}
-                className="bg-neutral-800 border-neutral-700 text-sm"
               />
 
               {charCount > 160 && (

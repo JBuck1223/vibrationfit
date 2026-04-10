@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { handleOptOut } from '@/lib/messaging'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { notifyAdminSMS } from '@/lib/admin/notifications'
 
 function normalizePhone(phone: string): string {
   const digits = phone.replace(/\D/g, '')
@@ -44,22 +45,26 @@ export async function POST(request: NextRequest) {
     // Find user by phone in user_profiles
     let userId: string | null = null
     let leadId: string | null = null
+    let contactName: string | null = null
 
     const { data: profiles } = await adminClient
       .from('user_profiles')
-      .select('user_id, phone')
+      .select('user_id, phone, first_name, last_name')
       .not('phone', 'is', null)
 
     if (profiles) {
       const matched = profiles.find(p => normalizePhone(p.phone || '') === normalizedFrom)
-      if (matched) userId = matched.user_id
+      if (matched) {
+        userId = matched.user_id
+        contactName = [matched.first_name, matched.last_name].filter(Boolean).join(' ') || null
+      }
     }
 
     // If no user found, try leads
     if (!userId) {
       const { data: leads } = await adminClient
         .from('leads')
-        .select('id, phone, converted_to_user_id')
+        .select('id, phone, converted_to_user_id, first_name, last_name')
         .not('phone', 'is', null)
 
       if (leads) {
@@ -67,6 +72,9 @@ export async function POST(request: NextRequest) {
         if (matched) {
           leadId = matched.id
           if (matched.converted_to_user_id) userId = matched.converted_to_user_id
+          if (!contactName) {
+            contactName = [matched.first_name, matched.last_name].filter(Boolean).join(' ') || null
+          }
         }
       }
     }
@@ -112,6 +120,10 @@ export async function POST(request: NextRequest) {
         console.error('Failed to insert inbound SMS:', insertError)
       } else {
         console.log('Inbound SMS stored:', { messageSid, userId, leadId })
+
+        const sender = contactName || from
+        const preview = (body || '').substring(0, 140)
+        notifyAdminSMS(`New SMS from ${sender}: "${preview}"`).catch(() => {})
       }
     }
 

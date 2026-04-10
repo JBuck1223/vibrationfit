@@ -1386,7 +1386,7 @@ export default function VisionBoardPage() {
         )}
 
         {/* Vision Board Content */}
-        <div id="content">
+        <div id="content" className="overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center min-h-[400px]">
             <Spinner size="lg" />
@@ -1395,9 +1395,9 @@ export default function VisionBoardPage() {
           <>
             {viewMode === 'grid' ? (
               /* Grid View - Masonry with Clean/Detail modes */
-              <div className="flex gap-4 md:gap-6">
+              <div className="flex gap-4 md:gap-6 w-full">
                 {columnizedItems.map((column, columnIndex) => (
-                  <div key={columnIndex} className="flex-1 flex flex-col gap-4 md:gap-6">
+                  <div key={columnIndex} className="flex-1 min-w-0 flex flex-col gap-4 md:gap-6">
                     {column.map((item) => {
                       const isExpanded = expandedItemId === item.id
                       const isEditing = editingItemId === item.id
@@ -1408,7 +1408,7 @@ export default function VisionBoardPage() {
                         return (
                           <div
                             key={item.id}
-                            className={`rounded-2xl overflow-hidden bg-neutral-800 border-2 shadow-lg cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 relative ${
+                            className={`rounded-2xl overflow-hidden bg-neutral-800 border-2 shadow-lg cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 relative max-w-full ${
                               bulkMode && isSelected ? 'border-[#39FF14] ring-2 ring-[#39FF14]/30' : 'border-[#333]'
                             }`}
                             onClick={() => bulkMode ? toggleItemSelection(item.id) : openLightbox(item.originalIndex)}
@@ -1436,7 +1436,7 @@ export default function VisionBoardPage() {
                       }
 
                       return (
-                        <div key={item.id} className={`rounded-2xl overflow-hidden bg-neutral-800 border-2 shadow-lg transition-all duration-300 ${
+                        <div key={item.id} className={`rounded-2xl overflow-hidden bg-neutral-800 border-2 shadow-lg transition-all duration-300 max-w-full ${
                           bulkMode && selectedItemIds.has(item.id) ? 'border-[#39FF14] ring-2 ring-[#39FF14]/30' : 'border-[#333]'
                         }`}>
                           {/* Image - tap for lightbox or select */}
@@ -1588,10 +1588,10 @@ export default function VisionBoardPage() {
                         </div>
 
                         {/* Item Details */}
-                        <div className={`flex-1 min-w-0 ${bulkMode ? 'cursor-pointer' : ''}`} onClick={() => bulkMode && toggleItemSelection(item.id)}>
+                        <div className={`flex-1 min-w-0 overflow-hidden ${bulkMode ? 'cursor-pointer' : ''}`} onClick={() => bulkMode && toggleItemSelection(item.id)}>
                           {/* Title row with action icons */}
                           <div className="flex items-start gap-2 mb-2">
-                            <h3 className="flex-1 text-xl font-semibold text-white">{item.name}</h3>
+                            <h3 className="flex-1 min-w-0 text-xl font-semibold text-white break-words">{item.name}</h3>
                             {!bulkMode && (
                               <>
                                 <button
@@ -1624,7 +1624,7 @@ export default function VisionBoardPage() {
                           </div>
 
                           {!isEditing && item.description && (
-                            <p className="text-neutral-300 mb-3">{item.description}</p>
+                            <p className="text-neutral-300 mb-3 break-words">{item.description}</p>
                           )}
 
                           {!isEditing && (

@@ -84,18 +84,10 @@ export async function POST(request: NextRequest) {
           const result = await sendSMS({
             to: profile.phone,
             body: message,
+            userId: profile.user_id,
           })
 
           if (result.success) {
-            await adminClient.from('sms_messages').insert({
-              user_id: profile.user_id,
-              from_number: process.env.TWILIO_PHONE_NUMBER,
-              to_number: profile.phone,
-              body: message,
-              direction: 'outbound',
-              status: 'sent',
-              twilio_sid: result.sid,
-            })
             results.success++
           } else {
             results.failed++

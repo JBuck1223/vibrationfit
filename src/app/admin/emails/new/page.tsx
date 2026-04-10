@@ -20,7 +20,8 @@ import {
   Badge,
 } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
-import { Mail, Save, ArrowLeft, Plus, X, ChevronDown } from 'lucide-react'
+import { FormattedTextarea, plainTextToEmailHtml } from '@/components/admin/FormattedTextarea'
+import { Save, ArrowLeft, Plus, X, ChevronDown, Wand2 } from 'lucide-react'
 
 const CATEGORIES = [
   { value: 'sessions', label: 'Sessions' },
@@ -276,25 +277,40 @@ export default function NewEmailTemplatePage() {
                           Recommended for CRM outbound
                         </span>
                       </label>
-                      <Textarea
+                      <FormattedTextarea
                         value={formData.text_body}
-                        onChange={(e) => setFormData(prev => ({ ...prev, text_body: e.target.value }))}
-                        placeholder={"Hey {{firstName}},\n\nWrite your email in plain text here for best deliverability..."}
+                        onChange={(val) => setFormData(prev => ({ ...prev, text_body: val }))}
+                        variables={formData.variables}
+                        placeholder={"Hey {{firstName}},\n\nWrite your email in plain text here for best deliverability...\n\nUse the toolbar above for formatting and merge tags."}
                         rows={10}
-                        className="bg-neutral-800 border-neutral-700 font-mono text-sm"
                       />
                       <p className="text-xs text-neutral-500 mt-1">
-                        When set, automation rules and CRM sends use this as the primary body (no HTML). Lands in Primary inbox.
+                        When set, automation rules and CRM sends use this as the primary body. Lands in Primary inbox.
                       </p>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-neutral-300 mb-2">
-                        HTML Body
-                        <span className="ml-2 text-xs text-neutral-500 font-normal">
-                          For styled notifications only
-                        </span>
-                      </label>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-sm font-medium text-neutral-300">
+                          HTML Body
+                          <span className="ml-2 text-xs text-neutral-500 font-normal">
+                            For styled notifications only
+                          </span>
+                        </label>
+                        {formData.text_body.trim() && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const html = plainTextToEmailHtml(formData.text_body)
+                              setFormData(prev => ({ ...prev, html_body: html }))
+                            }}
+                            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-[#BF00FF]/15 text-[#BF00FF] hover:bg-[#BF00FF]/25 border border-[#BF00FF]/30 transition-colors"
+                          >
+                            <Wand2 className="w-3 h-3" />
+                            Generate from Text
+                          </button>
+                        )}
+                      </div>
                       <Textarea
                         value={formData.html_body}
                         onChange={(e) => setFormData(prev => ({ ...prev, html_body: e.target.value }))}
