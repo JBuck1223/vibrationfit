@@ -230,8 +230,7 @@ Write the enhanced story directly without any preamble, explanation, or quotes.`
         throw new Error('Failed to enhance story')
       }
 
-      const data = await response.json()
-      const enhancedContent = data.content || data.message || ''
+      const enhancedContent = await response.text()
 
       if (enhancedContent) {
         setStoryContent(enhancedContent)
@@ -308,6 +307,18 @@ Write the enhanced story directly without any preamble, explanation, or quotes.`
           title="Create a Story"
           subtitle={`Bring "${item?.name}" to life through story and audio`}
         >
+          {item && (
+            <div className="flex justify-center">
+              <div className="inline-flex flex-wrap items-center justify-center gap-3 px-4 py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+                {item.image_url && (
+                  <div className="w-10 h-10 rounded-lg overflow-hidden bg-neutral-800 flex-shrink-0">
+                    <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <span className="text-white font-medium text-sm">{item.name}</span>
+              </div>
+            </div>
+          )}
           <div className="flex justify-center">
             <Button asChild variant="ghost" size="sm">
               <Link href={`/vision-board/${itemId}/story`}>
@@ -318,83 +329,33 @@ Write the enhanced story directly without any preamble, explanation, or quotes.`
           </div>
         </PageHero>
 
-        {/* Mode Toggle */}
-        <div className="flex justify-center">
-          <div className="inline-flex bg-neutral-800 rounded-full p-1">
-            <button
-              onClick={() => setMode('viva')}
-              className={`px-6 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${
-                mode === 'viva'
-                  ? 'bg-purple-500 text-white'
-                  : 'text-neutral-400 hover:text-white'
-              }`}
-            >
-              <Sparkles className="w-4 h-4" />
-              VIVA Story
-            </button>
-            <button
-              onClick={() => setMode('write')}
-              className={`px-6 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${
-                mode === 'write'
-                  ? 'bg-teal-500 text-white'
-                  : 'text-neutral-400 hover:text-white'
-              }`}
-            >
-              <Mic className="w-4 h-4" />
-              Write Your Own
-            </button>
-          </div>
-        </div>
+        {/* Story Creation Card */}
+        <Card variant="glass" className="p-4 md:p-6 relative overflow-hidden">
+          <VIVALoadingOverlay
+            isVisible={generating}
+            messages={[
+              "VIVA is crafting your vision story...",
+              "Imagining you living this reality...",
+              "Adding sensory details and emotions...",
+              "Creating an immersive first-person narrative...",
+              "Putting the finishing touches on your story..."
+            ]}
+            cycleDuration={8000}
+            estimatedTime="This usually takes 15-30 seconds"
+            estimatedDuration={25000}
+            progress={vivaProgress}
+          />
 
-        {/* Item Preview */}
-        {item?.image_url && (
-          <Card className="p-4 md:p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-20 h-20 rounded-xl overflow-hidden bg-neutral-800 flex-shrink-0">
-                <img 
-                  src={item.image_url} 
-                  alt={item.name}
-                  className="w-full h-full object-cover"
-                />
+          <div className="space-y-6">
+            {/* Step 1: Name Your Story */}
+            <div className="py-4">
+              <div className="flex flex-col items-center mb-4">
+                <div className="w-12 h-12 rounded-full bg-primary-500/20 flex items-center justify-center mb-2">
+                  <span className="text-primary-500 font-bold text-2xl">1</span>
+                </div>
+                <h3 className="text-lg md:text-xl font-semibold text-white">Name Your Story</h3>
               </div>
-              <div className="flex-1 min-w-0">
-                <Text className="text-white font-medium truncate">{item.name}</Text>
-                {item.description && (
-                  <Text size="sm" className="text-neutral-400 line-clamp-2">{item.description}</Text>
-                )}
-              </div>
-            </div>
-          </Card>
-        )}
-
-        {/* VIVA Generate Mode */}
-        {mode === 'viva' && (
-          <Card className="p-4 md:p-6 lg:p-8 relative overflow-hidden">
-            <VIVALoadingOverlay
-              isVisible={generating}
-              messages={[
-                "VIVA is crafting your vision story...",
-                "Imagining you living this reality...",
-                "Adding sensory details and emotions...",
-                "Creating an immersive first-person narrative...",
-                "Putting the finishing touches on your story..."
-              ]}
-              cycleDuration={8000}
-              estimatedTime="This usually takes 15-30 seconds"
-              estimatedDuration={25000}
-              progress={vivaProgress}
-            />
-
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mx-auto mb-4">
-                <Sparkles className="w-8 h-8 text-white" />
-              </div>
-              <Heading level={3} className="text-white mb-2">Let VIVA Write Your Story</Heading>
-              <Text className="text-neutral-400 mb-6 max-w-md mx-auto">
-                VIVA will create an immersive first-person story about living the reality of your vision.
-              </Text>
-              
-              <div className="max-w-md mx-auto mb-6">
+              <div className="max-w-md mx-auto">
                 <Input
                   value={storyTitle}
                   onChange={(e) => setStoryTitle(e.target.value)}
@@ -402,111 +363,133 @@ Write the enhanced story directly without any preamble, explanation, or quotes.`
                   className="text-center"
                 />
               </div>
-
-              <Button
-                onClick={handleGenerateStory}
-                variant="primary"
-                size="lg"
-                disabled={generating}
-              >
-                {generating ? (
-                  <>
-                    <Spinner size="sm" className="mr-2" />
-                    Writing Story...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-5 h-5 mr-2" />
-                    Generate Story with VIVA
-                  </>
-                )}
-              </Button>
-            </div>
-          </Card>
-        )}
-
-        {/* Write Your Own Mode */}
-        {mode === 'write' && (
-          <Card className="p-4 md:p-6 lg:p-8">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-teal-500/20 rounded-lg flex items-center justify-center">
-                <Mic className="w-5 h-5 text-teal-400" />
-              </div>
-              <div>
-                <Heading level={4} className="text-white">Write or Record Your Own</Heading>
-                <Text size="sm" className="text-neutral-400">Type, dictate, or let VIVA enhance your words</Text>
-              </div>
             </div>
 
-            <div className="space-y-4">
-              <Input
-                value={storyTitle}
-                onChange={(e) => setStoryTitle(e.target.value)}
-                placeholder="Story title"
-              />
-              
-              {/* Recording Textarea with transcription */}
-              <RecordingTextarea
-                value={storyContent}
-                onChange={setStoryContent}
-                placeholder="Start writing your story, or click the mic to record and transcribe..."
-                rows={6}
-                recordingPurpose="quick"
-                storageFolder="visionBoard"
-                category="story"
-              />
+            <div className="border-t border-[#333]" />
 
-              {/* Word count */}
-              {storyContent && (
-                <Text size="xs" className="text-neutral-500">
-                  {storyContent.trim().split(/\s+/).filter(Boolean).length} words
-                </Text>
-              )}
-
-              {/* Action buttons */}
-              <div className="flex flex-col sm:flex-row gap-3">
-                {/* Enhance with VIVA */}
-                {storyContent.trim().length > 20 && (
-                  <Button
-                    onClick={handleEnhanceWithViva}
-                    variant="secondary"
-                    disabled={enhancing || !storyContent.trim()}
+            {/* Step 2: Choose Method */}
+            <div className="py-4">
+              <div className="flex flex-col items-center mb-4">
+                <div className="w-12 h-12 rounded-full bg-primary-500/20 flex items-center justify-center mb-2">
+                  <span className="text-primary-500 font-bold text-2xl">2</span>
+                </div>
+                <h3 className="text-lg md:text-xl font-semibold text-white">Choose Method</h3>
+              </div>
+              <div className="flex justify-center mb-6">
+                <div className="inline-flex bg-neutral-800 rounded-full p-1">
+                  <button
+                    onClick={() => setMode('viva')}
+                    className={`px-6 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${
+                      mode === 'viva'
+                        ? 'bg-purple-500 text-white'
+                        : 'text-neutral-400 hover:text-white'
+                    }`}
                   >
-                    {enhancing ? (
+                    <Sparkles className="w-4 h-4" />
+                    VIVA Story
+                  </button>
+                  <button
+                    onClick={() => setMode('write')}
+                    className={`px-6 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${
+                      mode === 'write'
+                        ? 'bg-teal-500 text-white'
+                        : 'text-neutral-400 hover:text-white'
+                    }`}
+                  >
+                    <Mic className="w-4 h-4" />
+                    Write Your Own
+                  </button>
+                </div>
+              </div>
+
+              {/* VIVA Generate Mode */}
+              {mode === 'viva' && (
+                <div className="text-center max-w-md mx-auto">
+                  <Text className="text-neutral-400 mb-6">
+                    VIVA will create an immersive first-person story about living the reality of your vision.
+                  </Text>
+                  <Button
+                    onClick={handleGenerateStory}
+                    variant="primary"
+                    size="lg"
+                    disabled={generating}
+                  >
+                    {generating ? (
                       <>
                         <Spinner size="sm" className="mr-2" />
-                        Enhancing...
+                        Writing Story...
                       </>
                     ) : (
                       <>
-                        <Wand2 className="w-4 h-4 mr-2" />
-                        Enhance with VIVA
+                        <Sparkles className="w-5 h-5 mr-2" />
+                        Generate Story with VIVA
                       </>
                     )}
                   </Button>
-                )}
+                </div>
+              )}
 
-                {/* Create Story */}
-                <Button
-                  onClick={handleCreateBlankStory}
-                  variant="primary"
-                  disabled={!storyTitle.trim() || !storyContent.trim()}
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  Create Story
-                </Button>
-              </div>
+              {/* Write Your Own Mode */}
+              {mode === 'write' && (
+                <div className="max-w-2xl mx-auto space-y-4">
+                  <RecordingTextarea
+                    value={storyContent}
+                    onChange={setStoryContent}
+                    placeholder="Start writing your story, or click the mic to record and transcribe..."
+                    rows={6}
+                    recordingPurpose="quick"
+                    storageFolder="visionBoard"
+                    category="story"
+                  />
 
-              {/* Helper text */}
-              <div className="p-3 bg-neutral-800/50 rounded-lg border border-neutral-700">
-                <Text size="xs" className="text-neutral-400">
-                  <strong className="text-teal-400">Tip:</strong> Click the mic button to record your thoughts, 
-                  then use "Enhance with VIVA" to transform your raw ideas into a polished, immersive story.
-                </Text>
-              </div>
+                  {storyContent && (
+                    <Text size="xs" className="text-neutral-500 text-center">
+                      {storyContent.trim().split(/\s+/).filter(Boolean).length} words
+                    </Text>
+                  )}
+
+                  <div className="flex flex-col sm:flex-row justify-center gap-3">
+                    {storyContent.trim().length > 20 && (
+                      <Button
+                        onClick={handleEnhanceWithViva}
+                        variant="secondary"
+                        disabled={enhancing || !storyContent.trim()}
+                      >
+                        {enhancing ? (
+                          <>
+                            <Spinner size="sm" className="mr-2" />
+                            Enhancing...
+                          </>
+                        ) : (
+                          <>
+                            <Wand2 className="w-4 h-4 mr-2" />
+                            Enhance with VIVA
+                          </>
+                        )}
+                      </Button>
+                    )}
+
+                    <Button
+                      onClick={handleCreateBlankStory}
+                      variant="primary"
+                      disabled={!storyTitle.trim() || !storyContent.trim()}
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      Create Story
+                    </Button>
+                  </div>
+
+                  <div className="p-3 bg-neutral-800/50 rounded-lg border border-neutral-700">
+                    <Text size="xs" className="text-neutral-400">
+                      <strong className="text-teal-400">Tip:</strong> Click the mic button to record your thoughts, 
+                      then use "Enhance with VIVA" to transform your raw ideas into a polished, immersive story.
+                    </Text>
+                  </div>
+                </div>
+              )}
             </div>
-          </Card>
-        )}
+          </div>
+        </Card>
 
         {/* Error display */}
         {error && (

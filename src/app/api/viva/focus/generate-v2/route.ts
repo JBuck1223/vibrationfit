@@ -265,10 +265,8 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Return streaming response
-    return new Response(result.textStream, {
+    return result.toTextStreamResponse({
       headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
         'Cache-Control': 'no-cache, no-transform',
       }
     })

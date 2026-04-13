@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { Plus, Calendar, CheckCircle, XCircle, Filter, Grid3X3, X, ChevronLeft, ChevronRight, Eye, List, Grid, Lightbulb, Download, Edit3, Save, ChevronUp, Trash2, BookOpen, Upload, Sparkles, CheckSquare, Square, ListChecks, Image as ImageIcon, Flame, Shield, ChevronDown } from 'lucide-react'
 import { useDeleteItem } from '@/hooks/useDeleteItem'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
+import { BeforeAfterSlider } from '@/components/BeforeAfterSlider'
 import { colors } from '@/lib/design-system/tokens'
 
 // Hook to get responsive column count
@@ -76,6 +77,7 @@ export default function VisionBoardPage() {
   const [statsExpanded, setStatsExpanded] = useState(false)
   const [freezeOpen, setFreezeOpen] = useState(false)
   const freezeRef = useRef<HTMLDivElement>(null)
+  const touchStartX = useRef<number | null>(null)
 
   useEffect(() => {
     if (!freezeOpen) return
@@ -1089,7 +1091,7 @@ export default function VisionBoardPage() {
   }
 
   return (
-    <Container size="xl">
+    <Container size="xl" className="overflow-x-hidden">
       <Stack gap="lg">
         {/* Header */}
         <PageHero
@@ -1422,10 +1424,15 @@ export default function VisionBoardPage() {
                                 )}
                               </div>
                             )}
-                            {(item.status === 'actualized' && item.actualized_image_url) ? (
-                              <img src={item.actualized_image_url} alt={item.name} className="w-full h-auto object-cover" loading="lazy" />
+                            {(item.status === 'actualized' && item.actualized_image_url && item.image_url) ? (
+                              <BeforeAfterSlider
+                                beforeSrc={item.image_url}
+                                afterSrc={item.actualized_image_url}
+                              />
+                            ) : (item.status === 'actualized' && item.actualized_image_url) ? (
+                              <img src={item.actualized_image_url} alt={item.name} className="w-full max-w-full h-auto object-cover block" loading="lazy" />
                             ) : item.image_url ? (
-                              <img src={item.image_url} alt={item.name} className="w-full h-auto object-cover" loading="lazy" />
+                              <img src={item.image_url} alt={item.name} className="w-full max-w-full h-auto object-cover block" loading="lazy" />
                             ) : (
                               <div className="w-full h-48 bg-neutral-900 flex items-center justify-center">
                                 <Grid3X3 className="w-12 h-12 text-neutral-600" />
@@ -1441,7 +1448,7 @@ export default function VisionBoardPage() {
                         }`}>
                           {/* Image - tap for lightbox or select */}
                           <div
-                            className="relative cursor-pointer"
+                            className="relative cursor-pointer overflow-hidden"
                             onClick={() => bulkMode ? toggleItemSelection(item.id) : openLightbox(item.originalIndex)}
                           >
                             {bulkMode && (
@@ -1453,10 +1460,15 @@ export default function VisionBoardPage() {
                                 )}
                               </div>
                             )}
-                            {(item.status === 'actualized' && item.actualized_image_url) ? (
-                              <img src={item.actualized_image_url} alt={item.name} className="w-full h-auto object-cover" loading="lazy" />
+                            {(item.status === 'actualized' && item.actualized_image_url && item.image_url) ? (
+                              <BeforeAfterSlider
+                                beforeSrc={item.image_url}
+                                afterSrc={item.actualized_image_url}
+                              />
+                            ) : (item.status === 'actualized' && item.actualized_image_url) ? (
+                              <img src={item.actualized_image_url} alt={item.name} className="w-full max-w-full h-auto object-cover block" loading="lazy" />
                             ) : item.image_url ? (
-                              <img src={item.image_url} alt={item.name} className="w-full h-auto object-cover" loading="lazy" />
+                              <img src={item.image_url} alt={item.name} className="w-full max-w-full h-auto object-cover block" loading="lazy" />
                             ) : (
                               <div className="w-full h-48 bg-neutral-900 flex items-center justify-center">
                                 <Grid3X3 className="w-12 h-12 text-neutral-600" />
@@ -1469,7 +1481,7 @@ export default function VisionBoardPage() {
 
                           {/* Name + Action Icons Bar */}
                           <div
-                            className={`px-3 py-2.5 flex items-center gap-2 ${bulkMode ? 'cursor-pointer' : ''}`}
+                            className={`px-3 py-2.5 flex items-center gap-2 min-w-0 ${bulkMode ? 'cursor-pointer' : ''}`}
                             onClick={() => bulkMode && toggleItemSelection(item.id)}
                           >
                             <span className="flex-1 text-sm font-semibold text-white truncate">{item.name}</span>
@@ -1724,7 +1736,16 @@ export default function VisionBoardPage() {
                   </>
                 )}
 
-                {imageUrl ? (
+                {(currentItem.status === 'actualized' && currentItem.image_url && currentItem.actualized_image_url) ? (
+                  <div className="max-w-[95vw] max-h-[95vh] w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                    <BeforeAfterSlider
+                      beforeSrc={currentItem.image_url}
+                      afterSrc={currentItem.actualized_image_url}
+                      fill
+                      className="max-w-[95vw] max-h-[95vh]"
+                    />
+                  </div>
+                ) : imageUrl ? (
                   <img
                     src={imageUrl}
                     alt={currentItem.name}
@@ -1748,175 +1769,184 @@ export default function VisionBoardPage() {
 
           return (
             <div
-              className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-3"
+              className="fixed inset-0 bg-black/95 z-50 flex items-start md:items-center justify-center px-3 pt-14 pb-6 md:p-4 overflow-y-auto"
               onClick={closeLightbox}
             >
               <button
                 onClick={closeLightbox}
-                className="absolute top-3 right-3 md:top-5 md:right-5 z-20 p-2 bg-neutral-800/80 backdrop-blur-sm rounded-full text-white hover:bg-neutral-700 transition-colors"
+                className="fixed top-3 right-3 z-30 p-2 bg-neutral-800/80 backdrop-blur-sm rounded-full text-white hover:bg-neutral-700 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
 
-              {filteredItems.length > 1 && (
-                <>
+              <div className="relative flex items-center gap-2 md:gap-4 w-full max-w-[700px] md:max-w-none justify-center">
+                {filteredItems.length > 1 && editingItemId !== currentItem.id && (
                   <button
                     onClick={(e) => { e.stopPropagation(); prevImage() }}
-                    className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 z-20 p-2 md:p-3 bg-neutral-800/80 backdrop-blur-sm rounded-full text-white hover:bg-neutral-700 transition-colors"
+                    className="hidden md:flex flex-shrink-0 p-2.5 bg-neutral-800/80 backdrop-blur-sm rounded-full text-white hover:bg-neutral-700 transition-colors"
                   >
-                    <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
+                    <ChevronLeft className="w-5 h-5" />
                   </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); nextImage() }}
-                    className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 z-20 p-2 md:p-3 bg-neutral-800/80 backdrop-blur-sm rounded-full text-white hover:bg-neutral-700 transition-colors"
-                  >
-                    <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
-                  </button>
-                </>
-              )}
+                )}
 
-              <div
-                className={`relative w-[94vw] max-w-[1600px] h-[96vh] flex bg-neutral-900 rounded-2xl overflow-hidden shadow-2xl border border-neutral-700/50 ${
-                  editingItemId === currentItem.id ? 'flex-row' : 'flex-col'
-                }`}
-                onClick={(e) => e.stopPropagation()}
-              >
-                {editingItemId === currentItem.id && editFormData ? (
-                  <>
-                    {/* Edit mode: image left, form right */}
-                    <div className="flex-1 min-w-0 flex items-center justify-center bg-black/50">
-                      {imageUrl ? (
-                        <img
-                          src={imageUrl}
-                          alt={currentItem.name}
-                          className="max-w-full max-h-full object-contain"
-                        />
-                      ) : (
-                        <div className="w-full h-64 flex items-center justify-center">
-                          <Grid3X3 className="w-16 h-16 text-neutral-600" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="w-[420px] flex-shrink-0 border-l border-neutral-800 overflow-y-auto px-5 py-5">
-                      {renderInlineEditForm(currentItem)}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {/* View mode: image top, details bottom */}
-                    <div className="relative flex-1 min-h-0 flex items-center justify-center bg-black/50">
-                      {imageUrl ? (
-                        <img
-                          src={imageUrl}
-                          alt={currentItem.name}
-                          className="max-w-full max-h-full object-contain"
-                        />
-                      ) : (
-                        <div className="w-full h-64 flex items-center justify-center">
-                          <Grid3X3 className="w-16 h-16 text-neutral-600" />
-                        </div>
-                      )}
-                      {currentItem.status === 'actualized' && currentItem.actualized_image_url && (
-                        <div className="absolute bottom-2 left-3 text-xs text-purple-400 bg-black/60 px-2 py-1 rounded-full">
-                          Evidence of actualization
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex-shrink-0 overflow-y-auto max-h-[25vh] px-5 py-4 border-t border-neutral-800">
-                      <div className="flex flex-col md:flex-row md:items-start gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-lg font-bold text-white truncate">{currentItem.name}</h3>
-                            {getStatusBadge(currentItem.status)}
-                          </div>
-                          {currentItem.description && (
-                            <p className="text-sm text-neutral-300 mb-3 line-clamp-3">{currentItem.description}</p>
-                          )}
-                          {currentItem.status === 'actualized' && currentItem.actualization_story && (
-                            <div className="p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg mb-3">
-                              <h4 className="text-xs font-semibold text-purple-400 mb-1">Actualization Story</h4>
-                              <p className="text-sm text-neutral-200 whitespace-pre-wrap line-clamp-4">{currentItem.actualization_story}</p>
-                            </div>
-                          )}
-                          <div className="flex flex-wrap items-center gap-2">
-                            {currentItem.categories && currentItem.categories.length > 0 && currentItem.categories.map((categoryKey: string) => {
-                              const categoryInfo = VISION_CATEGORIES.find(c => c.key === categoryKey)
-                              return (
-                                <span key={categoryKey} className="text-xs bg-primary-500/20 text-primary-500 px-2.5 py-1 rounded-full">
-                                  {categoryInfo ? categoryInfo.label : categoryKey}
-                                </span>
-                              )
-                            })}
-                            <span className="text-xs text-neutral-500">
-                              Created {new Date(currentItem.created_at).toLocaleDateString()}
-                            </span>
-                            {currentItem.actualized_at && (
-                              <span className="text-xs text-purple-400">
-                                Actualized {new Date(currentItem.actualized_at).toLocaleDateString()}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <Button
-                            asChild
-                            variant="ghost"
-                            size="sm"
-                            className="text-xs"
-                          >
-                            <Link href={`/vision-board/${currentItem.id}/story`}>
-                              <BookOpen className="w-3.5 h-3.5 mr-1.5" />
-                              Stories
-                            </Link>
-                          </Button>
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            className="text-xs"
-                            onClick={() => startEditing(currentItem)}
-                          >
-                            <Edit3 className="w-3.5 h-3.5 mr-1.5" />
-                            Edit
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-
-                    {filteredItems.length > 1 && (
-                      <div className="flex-shrink-0 px-4 py-3 border-t border-neutral-800 flex items-center gap-3">
-                        <div className="flex-1 flex gap-1.5 overflow-x-auto scrollbar-none">
-                          {filteredItems.map((thumbItem, index) => {
-                            const thumbUrl = (thumbItem.status === 'actualized' && thumbItem.actualized_image_url)
-                              ? thumbItem.actualized_image_url
-                              : thumbItem.image_url
-                            return (
-                              <button
-                                key={index}
-                                onClick={() => setLightboxIndex(index)}
-                                className={`flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 transition-all ${
-                                  index === lightboxIndex
-                                    ? 'border-[#39FF14] shadow-[0_0_8px_rgba(57,255,20,0.3)]'
-                                    : 'border-neutral-700 hover:border-neutral-500'
-                                }`}
-                              >
-                                {thumbUrl ? (
-                                  <img src={thumbUrl} alt="" className="w-full h-full object-cover" />
-                                ) : (
-                                  <div className="w-full h-full bg-neutral-800 flex items-center justify-center">
-                                    <Grid3X3 className="w-3 h-3 text-neutral-600" />
-                                  </div>
-                                )}
-                              </button>
-                            )
-                          })}
-                        </div>
-                        <span className="text-xs text-neutral-500 flex-shrink-0">
-                          {lightboxIndex + 1} / {filteredItems.length}
-                        </span>
+              {editingItemId === currentItem.id && editFormData ? (
+                <div
+                  className="relative w-full md:w-[94vw] max-w-[700px] h-full md:max-h-[96vh] flex flex-row bg-neutral-900 rounded-2xl overflow-hidden shadow-2xl border border-neutral-700/50"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex-1 min-w-0 flex items-center justify-center bg-black/50">
+                    {imageUrl ? (
+                      <img src={imageUrl} alt={currentItem.name} className="max-w-full max-h-full object-contain" />
+                    ) : (
+                      <div className="w-full h-64 flex items-center justify-center">
+                        <Grid3X3 className="w-16 h-16 text-neutral-600" />
                       </div>
                     )}
-                  </>
+                  </div>
+                  <div className="w-[420px] flex-shrink-0 border-l border-neutral-800 overflow-y-auto px-5 py-5">
+                    {renderInlineEditForm(currentItem)}
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className="relative w-full md:w-auto md:min-w-[500px] md:max-w-[700px] max-h-full md:max-h-[96vh] bg-neutral-900 rounded-2xl overflow-y-auto shadow-2xl border border-neutral-700/50"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="relative w-full">
+                    {(currentItem.status === 'actualized' && currentItem.image_url && currentItem.actualized_image_url) ? (
+                      <BeforeAfterSlider
+                        beforeSrc={currentItem.image_url}
+                        afterSrc={currentItem.actualized_image_url}
+                      />
+                    ) : imageUrl ? (
+                      <img src={imageUrl} alt={currentItem.name} className="w-full h-auto object-cover block" />
+                    ) : (
+                      <div className="w-full h-64 bg-neutral-800 flex items-center justify-center">
+                        <Grid3X3 className="w-16 h-16 text-neutral-600" />
+                      </div>
+                    )}
+                    {filteredItems.length > 1 && (
+                      <>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); prevImage() }}
+                          className="md:hidden absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 bg-black/40 rounded-full text-white/70"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); nextImage() }}
+                          className="md:hidden absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 bg-black/40 rounded-full text-white/70"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Details - swipe here on mobile to navigate */}
+                  <div
+                    className="px-4 py-4 space-y-3"
+                    onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX }}
+                    onTouchEnd={(e) => {
+                      if (touchStartX.current === null || filteredItems.length <= 1) return
+                      const delta = e.changedTouches[0].clientX - touchStartX.current
+                      if (Math.abs(delta) > 50) { delta < 0 ? nextImage() : prevImage() }
+                      touchStartX.current = null
+                    }}
+                  >
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-lg font-bold text-white">{currentItem.name}</h3>
+                      {getStatusBadge(currentItem.status)}
+                    </div>
+
+                    {currentItem.description && (
+                      <p className="text-sm text-neutral-300 leading-relaxed">{currentItem.description}</p>
+                    )}
+
+                    {currentItem.status === 'actualized' && currentItem.actualization_story && (
+                      <div className="p-4 bg-purple-500/10 border border-purple-500/30 rounded-xl">
+                        <h4 className="text-xs font-semibold text-purple-400 mb-2">Actualization Story</h4>
+                        <p className="text-sm text-neutral-200 whitespace-pre-wrap">{currentItem.actualization_story}</p>
+                      </div>
+                    )}
+
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      {currentItem.categories && currentItem.categories.length > 0 && currentItem.categories.map((categoryKey: string) => {
+                        const categoryInfo = VISION_CATEGORIES.find(c => c.key === categoryKey)
+                        return (
+                          <span key={categoryKey} className="text-xs bg-primary-500/20 text-primary-500 px-2.5 py-1 rounded-full">
+                            {categoryInfo ? categoryInfo.label : categoryKey}
+                          </span>
+                        )
+                      })}
+                      <span className="text-xs text-neutral-500">
+                        Created {new Date(currentItem.created_at).toLocaleDateString()}
+                      </span>
+                      {currentItem.actualized_at && (
+                        <span className="text-xs text-purple-400">
+                          Actualized {new Date(currentItem.actualized_at).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <Button asChild variant="ghost" size="sm" className="text-xs w-full justify-center">
+                        <Link href={`/vision-board/${currentItem.id}/story`}>
+                          <BookOpen className="w-3.5 h-3.5 mr-1.5" />
+                          Stories
+                        </Link>
+                      </Button>
+                      <Button variant="primary" size="sm" className="text-xs w-full justify-center" onClick={() => startEditing(currentItem)}>
+                        <Edit3 className="w-3.5 h-3.5 mr-1.5" />
+                        Edit
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Thumbnail strip */}
+                  {filteredItems.length > 1 && (
+                    <div className="px-4 py-3 border-t border-neutral-800 flex items-center gap-3">
+                      <div className="flex-1 flex gap-1.5 overflow-x-auto scrollbar-none">
+                        {filteredItems.map((thumbItem, index) => {
+                          const thumbUrl = (thumbItem.status === 'actualized' && thumbItem.actualized_image_url)
+                            ? thumbItem.actualized_image_url
+                            : thumbItem.image_url
+                          return (
+                            <button
+                              key={index}
+                              onClick={() => setLightboxIndex(index)}
+                              className={`flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 transition-all ${
+                                index === lightboxIndex
+                                  ? 'border-[#39FF14] shadow-[0_0_8px_rgba(57,255,20,0.3)]'
+                                  : 'border-neutral-700 hover:border-neutral-500'
+                              }`}
+                            >
+                              {thumbUrl ? (
+                                <img src={thumbUrl} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full bg-neutral-800 flex items-center justify-center">
+                                  <Grid3X3 className="w-3 h-3 text-neutral-600" />
+                                </div>
+                              )}
+                            </button>
+                          )
+                        })}
+                      </div>
+                      <span className="text-xs text-neutral-500 flex-shrink-0">
+                        {lightboxIndex + 1} / {filteredItems.length}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+                {filteredItems.length > 1 && editingItemId !== currentItem.id && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); nextImage() }}
+                    className="hidden md:flex flex-shrink-0 p-2.5 bg-neutral-800/80 backdrop-blur-sm rounded-full text-white hover:bg-neutral-700 transition-colors"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
                 )}
               </div>
             </div>
@@ -1933,91 +1963,85 @@ export default function VisionBoardPage() {
 
           return (
             <div
-              className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center"
+              className="fixed inset-0 bg-black/90 z-50 flex items-start md:items-center justify-center px-3 pt-14 pb-6 md:p-4 overflow-y-auto"
               onClick={closeDetailModal}
             >
-              {/* Close */}
               <button
                 onClick={closeDetailModal}
-                className="absolute top-4 right-4 z-20 p-2.5 bg-neutral-800/80 backdrop-blur-sm rounded-full text-white hover:bg-neutral-700 transition-colors"
+                className="fixed top-3 right-3 z-30 p-2.5 bg-neutral-800/80 backdrop-blur-sm rounded-full text-white hover:bg-neutral-700 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
 
-              {filteredItems.length > 1 && (
-                <>
+              <div className="relative flex items-center gap-2 md:gap-4 w-full max-w-[700px] md:max-w-none justify-center">
+                {filteredItems.length > 1 && editingItemId !== item.id && (
                   <button
                     onClick={(e) => { e.stopPropagation(); setDetailModalIndex((detailModalIndex - 1 + filteredItems.length) % filteredItems.length) }}
-                    className="absolute left-2 md:left-3 top-1/2 -translate-y-1/2 z-20 p-2.5 bg-neutral-800/80 backdrop-blur-sm rounded-full text-white hover:bg-neutral-700 transition-colors"
+                    className="hidden md:flex flex-shrink-0 p-2.5 bg-neutral-800/80 backdrop-blur-sm rounded-full text-white hover:bg-neutral-700 transition-colors"
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setDetailModalIndex((detailModalIndex + 1) % filteredItems.length) }}
-                    className="absolute right-2 md:right-3 top-1/2 -translate-y-1/2 z-20 p-2.5 bg-neutral-800/80 backdrop-blur-sm rounded-full text-white hover:bg-neutral-700 transition-colors"
-                  >
-                    <ChevronRight className="w-5 h-5" />
-                  </button>
-                </>
-              )}
+                )}
 
               <div
-                className="relative h-[96vh] flex flex-col bg-neutral-900 rounded-2xl overflow-hidden shadow-2xl border border-neutral-700/50"
-                style={{ width: 'calc(100vw - 120px)', maxWidth: '1600px' }}
+                className="relative w-full md:w-auto md:min-w-[500px] md:max-w-[700px] max-h-full md:max-h-[96vh] bg-neutral-900 rounded-2xl overflow-y-auto shadow-2xl border border-neutral-700/50"
                 onClick={(e) => e.stopPropagation()}
               >
                 {editingItemId === item.id && editFormData ? (
-                  <div className="flex-1 overflow-y-auto min-h-0 px-6 py-5">
+                  <div className="px-6 py-5">
                     {renderInlineEditForm(item)}
                   </div>
                 ) : (
                   <>
-                    <div className="relative flex-1 min-h-0 bg-black/30 flex items-center justify-center">
-                      {displayImageUrl ? (
-                        <img
-                          src={displayImageUrl}
-                          alt={item.name}
-                          className="max-w-full max-h-full object-contain"
+                    <div className="relative w-full">
+                      {(item.status === 'actualized' && item.image_url && item.actualized_image_url) ? (
+                        <BeforeAfterSlider
+                          beforeSrc={item.image_url}
+                          afterSrc={item.actualized_image_url}
                         />
+                      ) : displayImageUrl ? (
+                        <img src={displayImageUrl} alt={item.name} className="w-full h-auto object-cover block" />
                       ) : (
-                        <div className="w-full h-48 flex items-center justify-center">
+                        <div className="w-full h-48 bg-neutral-800 flex items-center justify-center">
                           <Grid3X3 className="w-16 h-16 text-neutral-600" />
                         </div>
                       )}
+                      {filteredItems.length > 1 && (
+                        <>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setDetailModalIndex((detailModalIndex - 1 + filteredItems.length) % filteredItems.length) }}
+                            className="md:hidden absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 bg-black/40 rounded-full text-white/70"
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setDetailModalIndex((detailModalIndex + 1) % filteredItems.length) }}
+                            className="md:hidden absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 bg-black/40 rounded-full text-white/70"
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
                     </div>
 
-                    <div className="flex-shrink-0 overflow-y-auto max-h-[30vh] px-6 py-5 space-y-4 border-t border-neutral-800">
-                      <div className="flex items-start gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 mb-1">
-                            <h2 className="text-xl font-bold text-white truncate">{item.name}</h2>
-                            {getStatusBadge(item.status)}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <Button asChild variant="ghost" size="sm">
-                            <Link href={`/vision-board/${item.id}/story`}>
-                              <BookOpen className="w-4 h-4 mr-1.5" />
-                              Stories
-                            </Link>
-                          </Button>
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            onClick={() => initEditState(item)}
-                          >
-                            <Edit3 className="w-4 h-4 mr-1.5" />
-                            Edit
-                          </Button>
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            onClick={() => { closeDetailModal(); handleDeleteItem(item.id) }}
-                          >
-                            <Trash2 className="w-4 h-4 mr-1.5" />
-                            Delete
-                          </Button>
-                        </div>
+                    {/* Details - swipe here on mobile to navigate */}
+                    <div
+                      className="px-4 py-4 space-y-3"
+                      onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX }}
+                      onTouchEnd={(e) => {
+                        if (touchStartX.current === null || filteredItems.length <= 1) return
+                        const delta = e.changedTouches[0].clientX - touchStartX.current
+                        if (Math.abs(delta) > 50) {
+                          delta < 0
+                            ? setDetailModalIndex((detailModalIndex + 1) % filteredItems.length)
+                            : setDetailModalIndex((detailModalIndex - 1 + filteredItems.length) % filteredItems.length)
+                        }
+                        touchStartX.current = null
+                      }}
+                    >
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h2 className="text-lg md:text-xl font-bold text-white">{item.name}</h2>
+                        {getStatusBadge(item.status)}
                       </div>
 
                       {item.description && (
@@ -2031,20 +2055,7 @@ export default function VisionBoardPage() {
                         </div>
                       )}
 
-                      {item.status === 'actualized' && item.image_url && item.actualized_image_url && (
-                        <div className="flex gap-3">
-                          <div className="flex-1">
-                            <p className="text-xs text-neutral-500 mb-1.5">Original Vision</p>
-                            <img src={item.image_url} alt="Vision" className="w-full h-28 object-cover rounded-lg border border-neutral-700" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-xs text-purple-400 mb-1.5">Evidence</p>
-                            <img src={item.actualized_image_url} alt="Evidence" className="w-full h-28 object-cover rounded-lg border border-purple-500/30" />
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1">
                         {item.categories && item.categories.length > 0 && item.categories.map((categoryKey: string) => {
                           const categoryInfo = VISION_CATEGORIES.find(c => c.key === categoryKey)
                           return (
@@ -2067,8 +2078,31 @@ export default function VisionBoardPage() {
                           </span>
                         )}
                       </div>
+
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        <Button asChild variant="ghost" size="sm" className="w-full justify-center">
+                          <Link href={`/vision-board/${item.id}/story`}>
+                            <BookOpen className="w-4 h-4 mr-1.5" />
+                            Stories
+                          </Link>
+                        </Button>
+                        <Button variant="primary" size="sm" className="w-full justify-center" onClick={() => initEditState(item)}>
+                          <Edit3 className="w-4 h-4 mr-1.5" />
+                          Edit
+                        </Button>
+                      </div>
                     </div>
                   </>
+                )}
+              </div>
+
+                {filteredItems.length > 1 && editingItemId !== item.id && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setDetailModalIndex((detailModalIndex + 1) % filteredItems.length) }}
+                    className="hidden md:flex flex-shrink-0 p-2.5 bg-neutral-800/80 backdrop-blur-sm rounded-full text-white hover:bg-neutral-700 transition-colors"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
                 )}
               </div>
             </div>

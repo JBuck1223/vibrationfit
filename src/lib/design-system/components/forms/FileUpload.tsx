@@ -81,6 +81,7 @@ export const FileUpload = React.forwardRef<HTMLDivElement, FileUploadProps>(
     const [error, setError] = useState<string>('')
     const [isDragging, setIsDragging] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const [inputId] = useState(() => `file-upload-${Math.random().toString(36).slice(2, 9)}`)
     
     // Use controlled or uncontrolled mode
     const selectedFiles = value !== undefined ? value : internalFiles
@@ -260,24 +261,26 @@ export const FileUpload = React.forwardRef<HTMLDivElement, FileUploadProps>(
       <div ref={ref} className={cn('space-y-3', className)}>
         <input
           ref={fileInputRef}
+          id={inputId}
           type="file"
           accept={accept}
           multiple={multiple}
           onChange={handleFileSelect}
-          className="hidden"
+          style={{ position: 'absolute', width: 0, height: 0, opacity: 0, overflow: 'hidden', pointerEvents: 'none' }}
           disabled={disabled}
+          tabIndex={-1}
         />
 
         {/* Drag and drop zone or button */}
         {dragDrop ? (
-          <div
-            onClick={handleClick}
+          <label
+            htmlFor={inputId}
             onDragEnter={handleDragEnter}
             onDragLeave={handleDragLeave}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
             className={cn(
-              'border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer',
+              'border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer block',
               'transition-all duration-300',
               isDragging 
                 ? 'border-[#39FF14] bg-[rgba(57,255,20,0.1)]' 
@@ -300,34 +303,36 @@ export const FileUpload = React.forwardRef<HTMLDivElement, FileUploadProps>(
                 {dragDropSubtext}
               </p>
             )}
-          </div>
+          </label>
         ) : customTrigger ? (
-          <div onClick={handleClick}>
+          <label htmlFor={inputId} className="cursor-pointer">
             {customTrigger}
-          </div>
+          </label>
         ) : (
-          <Button
-            type="button"
-            variant={variant}
-            size="md"
-            onClick={handleClick}
-            disabled={disabled || isUploading}
-          >
-            {isUploading ? (
-              <>
-                <LoaderIcon />
-                <span className="ml-2">Uploading...</span>
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                </svg>
-                {label}
-              </>
-            )}
-          </Button>
+          <label htmlFor={inputId}>
+            <Button
+              type="button"
+              variant={variant}
+              size="md"
+              disabled={disabled || isUploading}
+              className="pointer-events-none"
+            >
+              {isUploading ? (
+                <>
+                  <LoaderIcon />
+                  <span className="ml-2">Uploading...</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  {label}
+                </>
+              )}
+            </Button>
+          </label>
         )}
 
         {/* Upload progress bar */}

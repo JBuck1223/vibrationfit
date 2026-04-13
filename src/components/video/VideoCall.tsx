@@ -298,9 +298,8 @@ function VideoCallUI({
           }
         }
 
-        // For group sessions, start cloud recording with active-speaker layout.
-        // (1:1 sessions auto-start raw-tracks recording via the host token.)
-        if (isHost && isGroupSession) {
+        // Auto-start cloud recording for all session types when the host joins
+        if (isHost) {
           try {
             await daily.startRecording({
               layout: { preset: 'active-participant' },

@@ -21,7 +21,6 @@ import {
 } from '@/lib/design-system/components'
 import { SessionReplayVideo } from '@/components/video/SessionReplayVideo'
 import { SessionNotes } from '@/components/video/SessionNotes'
-import { SessionCommentSection } from '@/components/video/SessionCommentSection'
 import { isAlignmentGymDirectorySession } from '@/lib/video/alignment-gym-directory'
 import type { VideoSession, VideoSessionParticipant } from '@/lib/video/types'
 import { formatDuration, isSessionJoinable } from '@/lib/video/types'
@@ -289,15 +288,6 @@ export default function AlignmentGymSessionPage() {
           </Card>
         )}
 
-        {/* Discussion (public comments) */}
-        {userId && (
-          <Card className="p-6 border-neutral-700">
-            <SessionCommentSection
-              sessionId={sessionId}
-              currentUserId={userId}
-            />
-          </Card>
-        )}
       </Stack>
     </Container>
   )
