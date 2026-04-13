@@ -110,6 +110,16 @@ const SESSION_TYPE_DEFAULTS: Record<SessionTypeKey, { title: string; description
     description: 'Join our live event to learn, connect, and elevate together.',
     apiType: 'webinar',
   },
+  test_1on1: {
+    title: 'Test 1:1 Session',
+    description: 'Admin-only test session using 1:1 flow (recording, controls). Not visible to members.',
+    apiType: 'test_1on1',
+  },
+  test_group: {
+    title: 'Test Group Session',
+    description: 'Admin-only test session using group flow (recording, controls). Not visible to members.',
+    apiType: 'test_group',
+  },
 }
 
 function NewSessionContent() {
@@ -294,7 +304,8 @@ function NewSessionContent() {
       // Combine date and time
       const scheduledAt = new Date(`${formData.scheduled_date}T${formData.scheduled_time}`)
       
-      if (scheduledAt <= new Date()) {
+      const isTestSession = formData.session_type === 'test_1on1' || formData.session_type === 'test_group'
+      if (!isTestSession && scheduledAt <= new Date()) {
         throw new Error('Please select a future date and time')
       }
 
@@ -507,6 +518,52 @@ function NewSessionContent() {
                     Webinar
                   </p>
                 </button>
+              </div>
+
+              {/* Test Session Types */}
+              <div className="mt-3 pt-3 border-t border-neutral-700/50">
+                <p className="text-xs text-amber-500/70 font-medium mb-2 flex items-center gap-1.5">
+                  <FlaskConical className="w-3 h-3" />
+                  Test Sessions (admin only, invisible to members)
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleSessionTypeChange('test_1on1')}
+                    className={`p-3 rounded-xl border-2 transition-all ${
+                      formData.session_type === 'test_1on1'
+                        ? 'border-amber-500 bg-amber-500/10'
+                        : 'border-neutral-700/50 hover:border-neutral-600'
+                    }`}
+                  >
+                    <FlaskConical className={`w-5 h-5 mx-auto mb-1.5 ${
+                      formData.session_type === 'test_1on1' ? 'text-amber-500' : 'text-neutral-500'
+                    }`} />
+                    <p className={`text-sm font-medium ${
+                      formData.session_type === 'test_1on1' ? 'text-white' : 'text-neutral-500'
+                    }`}>
+                      Test 1:1
+                    </p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSessionTypeChange('test_group')}
+                    className={`p-3 rounded-xl border-2 transition-all ${
+                      formData.session_type === 'test_group'
+                        ? 'border-amber-500 bg-amber-500/10'
+                        : 'border-neutral-700/50 hover:border-neutral-600'
+                    }`}
+                  >
+                    <FlaskConical className={`w-5 h-5 mx-auto mb-1.5 ${
+                      formData.session_type === 'test_group' ? 'text-amber-500' : 'text-neutral-500'
+                    }`} />
+                    <p className={`text-sm font-medium ${
+                      formData.session_type === 'test_group' ? 'text-white' : 'text-neutral-500'
+                    }`}>
+                      Test Group
+                    </p>
+                  </button>
+                </div>
               </div>
             </div>
 

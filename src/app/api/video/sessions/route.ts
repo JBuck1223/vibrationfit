@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 
     // Determine max participants by session type
     let maxParticipants = 2
-    if (sessionType === 'group' || sessionType === 'workshop') {
+    if (sessionType === 'group' || sessionType === 'workshop' || sessionType === 'test_group') {
       maxParticipants = 25
     } else if (sessionType === 'alignment_gym' || sessionType === 'webinar') {
       maxParticipants = 0
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
         enable_recording: body.enable_recording ?? true,
         enable_waiting_room: false,
         max_participants: maxParticipants,
-        is_group_session: sessionType !== 'one_on_one',
+        is_group_session: sessionType !== 'one_on_one' && sessionType !== 'test_1on1',
         staff_id: body.staff_id || null,
         event_type: body.event_type || null,
         test_mode: body.test_mode ?? false,
