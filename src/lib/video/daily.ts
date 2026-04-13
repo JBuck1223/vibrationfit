@@ -161,11 +161,11 @@ export async function createRoom(config: DailyRoomConfig = {}): Promise<DailyRoo
     properties: {
       enable_screenshare: true,
       enable_chat: true,
-      enable_knocking: true,        // Waiting room
-      enable_prejoin_ui: true,      // Pre-call check
-      enable_network_ui: true,      // Show connection quality
-      enable_people_ui: true,       // Show participant list
-      enable_recording: 'raw-tracks',
+      enable_knocking: true,
+      enable_prejoin_ui: true,
+      enable_network_ui: true,
+      enable_people_ui: true,
+      enable_recording: 'cloud',
       max_participants: 2,
       ...config.properties,
     },
@@ -230,7 +230,7 @@ export async function createMeetingToken(
     user_name: config.user_name,
     is_owner: config.is_owner || false,
     enable_screenshare: config.enable_screenshare ?? true,
-    enable_recording: config.enable_recording ?? 'raw-tracks',
+    enable_recording: config.enable_recording ?? 'cloud',
     start_video_off: config.start_video_off ?? false,
     start_audio_off: config.start_audio_off ?? false,
     exp: config.exp || Math.floor(Date.now() / 1000) + 86400,
@@ -252,9 +252,8 @@ export async function createMeetingToken(
 /**
  * Create a host token with full permissions.
  * 
- * 1:1 sessions use raw-tracks (individual files per participant, full resolution).
- * Group/alignment_gym/webinar use cloud recording (composited active-speaker layout).
- * For cloud sessions the client starts recording after join so we can set the layout.
+ * All session types use cloud recording (composited active-speaker layout).
+ * The client auto-starts recording after the host joins.
  */
 export async function createHostToken(
   roomName: string,
@@ -262,17 +261,13 @@ export async function createHostToken(
   userName: string,
   sessionType?: string
 ): Promise<DailyMeetingToken> {
-  const isGroupSession = sessionType === 'group' || sessionType === 'workshop'
-    || sessionType === 'alignment_gym' || sessionType === 'webinar'
-
   return createMeetingToken({
     room_name: roomName,
     user_id: userId,
     user_name: userName,
     is_owner: true,
     enable_screenshare: true,
-    enable_recording: isGroupSession ? 'cloud' : 'raw-tracks',
-    start_cloud_recording: isGroupSession,
+    enable_recording: 'cloud',
   })
 }
 
@@ -499,10 +494,10 @@ export async function createOneOnOneRoom(
   return createRoom({
     properties: {
       max_participants: 2,
-      enable_knocking: true,        // Waiting room
+      enable_knocking: true,
       enable_screenshare: true,
       enable_chat: true,
-      enable_recording: 'raw-tracks',
+      enable_recording: 'cloud',
       enable_prejoin_ui: true,
       exp: Math.floor(expirationTime.getTime() / 1000),
     },

@@ -35,6 +35,9 @@ export const USER_FOLDERS = {
   supportVideoRecordings: 'support/video-recordings',
   supportAudioRecordings: 'support/audio-recordings',
   supportAttachments: 'support/attachments',
+  // Alignment Gym session notes & comments
+  sessionNotes: 'sessions/notes',
+  sessionComments: 'sessions/comments',
 } as const
 
 type UserFolder = keyof typeof USER_FOLDERS
@@ -798,6 +801,26 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
     storyAudioRecordings: {
       maxSize: 1024 * 1024 * 1024, // 1GB for story audio recordings
       types: ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg'],
+    },
+    supportAudioRecordings: {
+      maxSize: 1024 * 1024 * 1024, // 1GB for support audio recordings
+      types: ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg'],
+    },
+    sessionNotes: {
+      maxSize: 500 * 1024 * 1024, // 500MB
+      types: [
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif',
+        'video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi',
+        'video/3gpp', 'video/3gpp2', 'video/x-m4v', 'video/hevc',
+      ],
+    },
+    sessionComments: {
+      maxSize: 500 * 1024 * 1024, // 500MB
+      types: [
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif',
+        'video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi',
+        'video/3gpp', 'video/3gpp2', 'video/x-m4v', 'video/hevc',
+      ],
     },
   }
 

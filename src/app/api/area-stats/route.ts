@@ -37,22 +37,53 @@ function toDateStr(date: Date): string {
 /**
  * Given an array of ISO date strings (YYYY-MM-DD), compute the current streak
  * ending today (or yesterday if today is not yet completed).
+ *
+ * Streak Freeze: allows 1 single-day gap per rolling 7 streak-days.
+ * The missed day does not increment the streak count, but the streak
+ * continues through it (like Duolingo-style freeze).
  */
-function computeDayStreak(activeDates: string[], todayStr: string): number {
+function computeDayStreak(
+  activeDates: string[],
+  todayStr: string,
+): { streak: number; freezeUsed: boolean } {
   const dateSet = new Set(activeDates)
-  let streak = 0
   const d = new Date(todayStr + 'T00:00:00')
 
   if (!dateSet.has(todayStr)) {
     d.setDate(d.getDate() - 1)
-    if (!dateSet.has(toDateStr(d))) return 0
   }
 
-  while (dateSet.has(toDateStr(d))) {
-    streak++
-    d.setDate(d.getDate() - 1)
+  let streak = 0
+  let daysSinceFreeze = Infinity
+  let freezeUsed = false
+
+  while (true) {
+    const dateStr = toDateStr(d)
+
+    if (dateSet.has(dateStr)) {
+      streak++
+      daysSinceFreeze++
+      d.setDate(d.getDate() - 1)
+      continue
+    }
+
+    // Gap found — check if freeze can bridge a single-day gap.
+    // Requires: the day *before* the gap is active (gap is exactly 1 day)
+    // and no freeze has been used in the last 7 streak-days.
+    const prev = new Date(d)
+    prev.setDate(prev.getDate() - 1)
+
+    if (daysSinceFreeze >= 7 && dateSet.has(toDateStr(prev))) {
+      daysSinceFreeze = 0
+      freezeUsed = true
+      d.setDate(d.getDate() - 1)
+      continue
+    }
+
+    break
   }
-  return streak
+
+  return { streak, freezeUsed }
 }
 
 /**
@@ -219,9 +250,15 @@ export async function GET(request: NextRequest) {
 
     const todayCompleted = activeDates.includes(todayStr)
 
-    const currentStreak = isWeekly
-      ? computeWeekStreak(activeDates, todayStr)
-      : computeDayStreak(activeDates, todayStr)
+    let currentStreak: number
+    let streakFreezeUsed = false
+    if (isWeekly) {
+      currentStreak = computeWeekStreak(activeDates, todayStr)
+    } else {
+      const result = computeDayStreak(activeDates, todayStr)
+      currentStreak = result.streak
+      streakFreezeUsed = result.freezeUsed
+    }
 
     const d7 = new Date(today)
     d7.setDate(d7.getDate() - 6)
@@ -235,15 +272,7 @@ export async function GET(request: NextRequest) {
     const countAllTime = activeDates.length
 
     const streakFreezeAvailable = currentStreak >= 2
-    let streakFreezeUsedThisWeek = false
-    if (currentStreak > 0 && !todayCompleted && !isWeekly) {
-      const yesterday = new Date(today)
-      yesterday.setDate(yesterday.getDate() - 1)
-      const yesterdayStr = toDateStr(yesterday)
-      if (!activeDates.includes(yesterdayStr)) {
-        streakFreezeUsedThisWeek = true
-      }
-    }
+    const streakFreezeUsedThisWeek = streakFreezeUsed
 
     const stats: AreaStatsResponse = {
       todayCompleted,

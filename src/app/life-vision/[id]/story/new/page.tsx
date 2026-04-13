@@ -250,8 +250,15 @@ export default function NewStoryPage({ params }: { params: Promise<{ id: string 
       })
 
       if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to generate focus story')
+        const text = await response.text()
+        let errorMessage = 'Failed to generate focus story'
+        try {
+          const data = JSON.parse(text)
+          errorMessage = data.error || errorMessage
+        } catch {
+          if (text) errorMessage = text
+        }
+        throw new Error(errorMessage)
       }
 
       const reader = response.body?.getReader()
@@ -339,8 +346,7 @@ Write the enhanced story directly without any preamble, explanation, or quotes.`
         throw new Error('Failed to enhance story')
       }
 
-      const data = await response.json()
-      const enhancedContent = data.content || data.message || ''
+      const enhancedContent = await response.text()
 
       if (enhancedContent) {
         setStoryContent(enhancedContent)
@@ -447,163 +453,179 @@ Write the enhanced story directly without any preamble, explanation, or quotes.`
         {/* ========== VIVA FOCUS STORY MODE ========== */}
         {createMode === 'viva' && (
           <>
-            {/* Category Selection */}
-            <Card className="p-4 md:p-6 lg:p-8">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <Heading level={3} className="text-white mb-1">1. Choose Your Focus Areas</Heading>
-                  <Text size="sm" className="text-neutral-400">
-                    Select the life areas you want featured in your story
-                  </Text>
-                </div>
-                <Badge variant="info">
-                  {selectedCategories.length} selected
-                </Badge>
-              </div>
-              
-              <CategoryGrid
-                categories={LIFE_CATEGORIES}
-                selectedCategories={selectedCategories}
-                onCategoryClick={handleCategoryToggle}
-                layout="12-column"
-                mode="selection"
-                variant="outlined"
-                withCard={false}
+            <Card variant="glass" className="p-4 md:p-6 relative overflow-hidden">
+              <VIVALoadingOverlay
+                isVisible={generatingStory}
+                messages={[
+                  "VIVA is crafting your day-in-the-life story...",
+                  "Weaving together your selected life areas...",
+                  "Creating an immersive morning-to-evening narrative...",
+                  "Adding sensory details and emotional depth...",
+                  "Putting the finishing touches on your story..."
+                ]}
+                cycleDuration={8000}
+                estimatedTime="This usually takes 30-60 seconds"
+                estimatedDuration={45000}
+                progress={vivaProgress}
               />
-            </Card>
 
-            {/* Category Content */}
-            {selectedCategories.length > 0 && (
-              <Card className="p-4 md:p-6 lg:p-8">
-                <div className="mb-6">
-                  <Heading level={3} className="text-white mb-1">2. Review & Add Focus Notes</Heading>
-                  <Text size="sm" className="text-neutral-400">
-                    Your vision text is pre-filled. Add optional notes to highlight specific details you want emphasized.
-                  </Text>
+              <div className="space-y-6">
+                {/* Step 1: Choose Focus Areas */}
+                <div className="py-4">
+                  <div className="flex flex-col items-center mb-4">
+                    <div className="w-12 h-12 rounded-full bg-primary-500/20 flex items-center justify-center mb-2">
+                      <span className="text-primary-500 font-bold text-2xl">1</span>
+                    </div>
+                    <h3 className="text-lg md:text-xl font-semibold text-white">Choose Your Focus Areas</h3>
+                    <Text size="sm" className="text-neutral-400 mt-1">
+                      Select the life areas you want featured in your story
+                    </Text>
+                    {selectedCategories.length > 0 && (
+                      <Badge variant="info" className="mt-2">
+                        {selectedCategories.length} selected
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  <CategoryGrid
+                    categories={LIFE_CATEGORIES}
+                    selectedCategories={selectedCategories}
+                    onCategoryClick={handleCategoryToggle}
+                    layout="12-column"
+                    mode="selection"
+                    variant="outlined"
+                    withCard={false}
+                  />
                 </div>
 
-                <Stack gap="md">
-                  {categoryData.map(cat => {
-                    const category = LIFE_CATEGORIES.find(c => c.key === cat.key)
-                    if (!category) return null
-                    const Icon = category.icon
+                {/* Step 2: Review & Focus Notes */}
+                {selectedCategories.length > 0 && (
+                  <>
+                    <div className="border-t border-[#333]" />
 
-                    return (
-                      <div 
-                        key={cat.key}
-                        className="border border-neutral-700 rounded-xl overflow-hidden"
-                      >
-                        <button
-                          onClick={() => toggleExpanded(cat.key)}
-                          className="w-full flex items-center justify-between p-4 bg-neutral-800/50 hover:bg-neutral-800 transition-colors"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-neutral-700 flex items-center justify-center">
-                              <Icon className="w-5 h-5 text-white" />
-                            </div>
-                            <div className="text-left">
-                              <Text className="text-white font-medium">{category.label}</Text>
-                              {cat.focusNotes && (
-                                <Text size="xs" className="text-purple-400">Has focus notes</Text>
+                    <div className="py-4">
+                      <div className="flex flex-col items-center mb-4">
+                        <div className="w-12 h-12 rounded-full bg-primary-500/20 flex items-center justify-center mb-2">
+                          <span className="text-primary-500 font-bold text-2xl">2</span>
+                        </div>
+                        <h3 className="text-lg md:text-xl font-semibold text-white">Review & Add Focus Notes</h3>
+                        <Text size="sm" className="text-neutral-400 mt-1">
+                          Your vision text is pre-filled. Add optional notes to highlight specific details.
+                        </Text>
+                      </div>
+
+                      <Stack gap="md">
+                        {categoryData.map(cat => {
+                          const category = LIFE_CATEGORIES.find(c => c.key === cat.key)
+                          if (!category) return null
+                          const Icon = category.icon
+
+                          return (
+                            <div 
+                              key={cat.key}
+                              className="border border-neutral-700 rounded-xl overflow-hidden"
+                            >
+                              <button
+                                onClick={() => toggleExpanded(cat.key)}
+                                className="w-full flex items-center justify-between p-4 bg-neutral-800/50 hover:bg-neutral-800 transition-colors"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 rounded-lg bg-neutral-700 flex items-center justify-center">
+                                    <Icon className="w-5 h-5 text-white" />
+                                  </div>
+                                  <div className="text-left">
+                                    <Text className="text-white font-medium">{category.label}</Text>
+                                    {cat.focusNotes && (
+                                      <Text size="xs" className="text-purple-400">Has focus notes</Text>
+                                    )}
+                                  </div>
+                                </div>
+                                {cat.isExpanded ? (
+                                  <ChevronUp className="w-5 h-5 text-neutral-400" />
+                                ) : (
+                                  <ChevronDown className="w-5 h-5 text-neutral-400" />
+                                )}
+                              </button>
+
+                              {cat.isExpanded && (
+                                <div className="p-4 space-y-4 bg-neutral-900/50">
+                                  <div>
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <Text size="sm" className="text-neutral-400 font-medium">Vision Text</Text>
+                                      <Edit3 className="w-3 h-3 text-neutral-500" />
+                                    </div>
+                                    <AutoResizeTextarea
+                                      value={cat.visionText}
+                                      onChange={(value) => updateVisionText(cat.key, value)}
+                                      className="w-full min-h-[100px] text-sm"
+                                      placeholder={`Your ${category.label.toLowerCase()} vision...`}
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <Text size="sm" className="text-purple-400 font-medium">Key Details to Focus On</Text>
+                                      <Text size="xs" className="text-neutral-500">(optional)</Text>
+                                    </div>
+                                    <AutoResizeTextarea
+                                      value={cat.focusNotes}
+                                      onChange={(value) => updateFocusNotes(cat.key, value)}
+                                      className="w-full min-h-[60px] text-sm border-purple-500/30 focus:border-purple-500"
+                                      placeholder="Any specific moments, feelings, or details you want highlighted..."
+                                    />
+                                  </div>
+                                </div>
                               )}
                             </div>
-                          </div>
-                          {cat.isExpanded ? (
-                            <ChevronUp className="w-5 h-5 text-neutral-400" />
-                          ) : (
-                            <ChevronDown className="w-5 h-5 text-neutral-400" />
-                          )}
-                        </button>
+                          )
+                        })}
+                      </Stack>
+                    </div>
 
-                        {cat.isExpanded && (
-                          <div className="p-4 space-y-4 bg-neutral-900/50">
-                            <div>
-                              <div className="flex items-center gap-2 mb-2">
-                                <Text size="sm" className="text-neutral-400 font-medium">Vision Text</Text>
-                                <Edit3 className="w-3 h-3 text-neutral-500" />
-                              </div>
-                              <AutoResizeTextarea
-                                value={cat.visionText}
-                                onChange={(value) => updateVisionText(cat.key, value)}
-                                className="w-full min-h-[100px] text-sm"
-                                placeholder={`Your ${category.label.toLowerCase()} vision...`}
-                              />
-                            </div>
+                    <div className="border-t border-[#333]" />
 
-                            <div>
-                              <div className="flex items-center gap-2 mb-2">
-                                <Text size="sm" className="text-purple-400 font-medium">Key Details to Focus On</Text>
-                                <Text size="xs" className="text-neutral-500">(optional)</Text>
-                              </div>
-                              <AutoResizeTextarea
-                                value={cat.focusNotes}
-                                onChange={(value) => updateFocusNotes(cat.key, value)}
-                                className="w-full min-h-[60px] text-sm border-purple-500/30 focus:border-purple-500"
-                                placeholder="Any specific moments, feelings, or details you want highlighted..."
-                              />
-                            </div>
-                          </div>
-                        )}
+                    {/* Step 3: Generate */}
+                    <div className="py-4">
+                      <div className="flex flex-col items-center mb-4">
+                        <div className="w-12 h-12 rounded-full bg-primary-500/20 flex items-center justify-center mb-2">
+                          <span className="text-primary-500 font-bold text-2xl">3</span>
+                        </div>
+                        <h3 className="text-lg md:text-xl font-semibold text-white">Generate Your Story</h3>
+                        <Text className="text-neutral-400 mt-1 max-w-md mx-auto text-center text-sm">
+                          VIVA will weave your {selectedCategories.length} selected areas into an immersive 
+                          day-in-the-life narrative. You can add audio after reviewing.
+                        </Text>
                       </div>
-                    )
-                  })}
-                </Stack>
-              </Card>
-            )}
-
-            {/* Generate Button */}
-            {selectedCategories.length > 0 && (
-              <Card className="p-4 md:p-6 lg:p-8 relative overflow-hidden">
-                <VIVALoadingOverlay
-                  isVisible={generatingStory}
-                  messages={[
-                    "VIVA is crafting your day-in-the-life story...",
-                    "Weaving together your selected life areas...",
-                    "Creating an immersive morning-to-evening narrative...",
-                    "Adding sensory details and emotional depth...",
-                    "Putting the finishing touches on your story..."
-                  ]}
-                  cycleDuration={8000}
-                  estimatedTime="This usually takes 30-60 seconds"
-                  estimatedDuration={45000}
-                  progress={vivaProgress}
-                />
-
-                <div className="text-center">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mx-auto mb-4">
-                    <Sparkles className="w-8 h-8 text-white" />
-                  </div>
-                  <Heading level={3} className="text-white mb-2">3. Generate Your Story</Heading>
-                  <Text className="text-neutral-400 mb-6 max-w-md mx-auto">
-                    VIVA will weave your {selectedCategories.length} selected areas into an immersive 
-                    day-in-the-life narrative. You can add audio after reviewing your story.
-                  </Text>
-                  <Button
-                    onClick={handleGenerate}
-                    variant="primary"
-                    size="lg"
-                    disabled={generating || selectedCategories.length === 0}
-                  >
-                    {generating ? (
-                      <>
-                        <Spinner size="sm" className="mr-2" />
-                        Writing Story...
-                      </>
-                    ) : hasGeneratedStory ? (
-                      <>
-                        <RefreshCw className="w-5 h-5 mr-2" />
-                        Create New Story
-                      </>
-                    ) : (
-                      <>
-                        <Play className="w-5 h-5 mr-2" />
-                        Generate Story
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </Card>
-            )}
+                      <div className="flex justify-center">
+                        <Button
+                          onClick={handleGenerate}
+                          variant="primary"
+                          size="lg"
+                          disabled={generating || selectedCategories.length === 0}
+                        >
+                          {generating ? (
+                            <>
+                              <Spinner size="sm" className="mr-2" />
+                              Writing Story...
+                            </>
+                          ) : hasGeneratedStory ? (
+                            <>
+                              <RefreshCw className="w-5 h-5 mr-2" />
+                              Create New Story
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-5 h-5 mr-2" />
+                              Generate Story
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </Card>
 
             {/* Story Display (streaming) */}
             {hasGeneratedStory && (
@@ -654,76 +676,93 @@ Write the enhanced story directly without any preamble, explanation, or quotes.`
 
         {/* ========== WRITE MY OWN MODE ========== */}
         {createMode === 'manual' && (
-          <Card className="p-4 md:p-6 lg:p-8">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-teal-500/20 rounded-lg flex items-center justify-center">
-                <Mic className="w-5 h-5 text-teal-400" />
+          <Card variant="glass" className="p-4 md:p-6">
+            <div className="space-y-6">
+              {/* Step 1: Name Your Story */}
+              <div className="py-4">
+                <div className="flex flex-col items-center mb-4">
+                  <div className="w-12 h-12 rounded-full bg-primary-500/20 flex items-center justify-center mb-2">
+                    <span className="text-primary-500 font-bold text-2xl">1</span>
+                  </div>
+                  <h3 className="text-lg md:text-xl font-semibold text-white">Name Your Story</h3>
+                </div>
+                <div className="max-w-md mx-auto">
+                  <Input
+                    value={storyTitle}
+                    onChange={(e) => setStoryTitle(e.target.value)}
+                    placeholder="Story title"
+                    className="text-center"
+                  />
+                </div>
               </div>
-              <div>
-                <Heading level={4} className="text-white">Write or Record Your Own</Heading>
-                <Text size="sm" className="text-neutral-400">Type, dictate, or let VIVA enhance your words</Text>
-              </div>
-            </div>
 
-            <div className="space-y-4">
-              <Input
-                value={storyTitle}
-                onChange={(e) => setStoryTitle(e.target.value)}
-                placeholder="Story title"
-              />
-              
-              <RecordingTextarea
-                value={storyContent}
-                onChange={setStoryContent}
-                placeholder="Start writing your story, or click the mic to record and transcribe..."
-                rows={6}
-                recordingPurpose="quick"
-                storageFolder="lifeVision"
-                category="story"
-              />
+              <div className="border-t border-[#333]" />
 
-              {storyContent && (
-                <Text size="xs" className="text-neutral-500">
-                  {storyContent.trim().split(/\s+/).filter(Boolean).length} words
-                </Text>
-              )}
+              {/* Step 2: Write or Record */}
+              <div className="py-4">
+                <div className="flex flex-col items-center mb-4">
+                  <div className="w-12 h-12 rounded-full bg-primary-500/20 flex items-center justify-center mb-2">
+                    <span className="text-primary-500 font-bold text-2xl">2</span>
+                  </div>
+                  <h3 className="text-lg md:text-xl font-semibold text-white">Write or Record</h3>
+                  <Text size="sm" className="text-neutral-400 mt-1">Type, dictate, or let VIVA enhance your words</Text>
+                </div>
 
-              <div className="flex flex-col sm:flex-row gap-3">
-                {storyContent.trim().length > 20 && (
-                  <Button
-                    onClick={handleEnhanceWithViva}
-                    variant="secondary"
-                    disabled={enhancing || !storyContent.trim()}
-                  >
-                    {enhancing ? (
-                      <>
-                        <Spinner size="sm" className="mr-2" />
-                        Enhancing...
-                      </>
-                    ) : (
-                      <>
-                        <Wand2 className="w-4 h-4 mr-2" />
-                        Enhance with VIVA
-                      </>
+                <div className="max-w-2xl mx-auto space-y-4">
+                  <RecordingTextarea
+                    value={storyContent}
+                    onChange={setStoryContent}
+                    placeholder="Start writing your story, or click the mic to record and transcribe..."
+                    rows={6}
+                    recordingPurpose="quick"
+                    storageFolder="lifeVision"
+                    category="story"
+                  />
+
+                  {storyContent && (
+                    <Text size="xs" className="text-neutral-500 text-center">
+                      {storyContent.trim().split(/\s+/).filter(Boolean).length} words
+                    </Text>
+                  )}
+
+                  <div className="flex flex-col sm:flex-row justify-center gap-3">
+                    {storyContent.trim().length > 20 && (
+                      <Button
+                        onClick={handleEnhanceWithViva}
+                        variant="secondary"
+                        disabled={enhancing || !storyContent.trim()}
+                      >
+                        {enhancing ? (
+                          <>
+                            <Spinner size="sm" className="mr-2" />
+                            Enhancing...
+                          </>
+                        ) : (
+                          <>
+                            <Wand2 className="w-4 h-4 mr-2" />
+                            Enhance with VIVA
+                          </>
+                        )}
+                      </Button>
                     )}
-                  </Button>
-                )}
 
-                <Button
-                  onClick={handleCreateStory}
-                  variant="primary"
-                  disabled={!storyTitle.trim() || !storyContent.trim()}
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  Create Story
-                </Button>
-              </div>
+                    <Button
+                      onClick={handleCreateStory}
+                      variant="primary"
+                      disabled={!storyTitle.trim() || !storyContent.trim()}
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      Create Story
+                    </Button>
+                  </div>
 
-              <div className="p-3 bg-neutral-800/50 rounded-lg border border-neutral-700">
-                <Text size="xs" className="text-neutral-400">
-                  <strong className="text-teal-400">Tip:</strong> Click the mic button to record your thoughts, 
-                  then use &quot;Enhance with VIVA&quot; to transform your raw ideas into a polished, immersive story.
-                </Text>
+                  <div className="p-3 bg-neutral-800/50 rounded-lg border border-neutral-700">
+                    <Text size="xs" className="text-neutral-400">
+                      <strong className="text-teal-400">Tip:</strong> Click the mic button to record your thoughts, 
+                      then use &quot;Enhance with VIVA&quot; to transform your raw ideas into a polished, immersive story.
+                    </Text>
+                  </div>
+                </div>
               </div>
             </div>
           </Card>

@@ -109,20 +109,19 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
   }, [currentTrack, cachedTrackIds, getPlaybackUrl])
 
   const handleTrackComplete = useCallback(async (trackId: string) => {
-    if (hasTrackedThisListen.current) return
-    
     try {
       const { createClient } = await import('@/lib/supabase/client')
       const supabase = createClient()
-      await supabase.rpc('increment_audio_play', {
-        p_track_id: trackId
-      })
       const { data: { user } } = await supabase.auth.getUser()
+
+      await supabase.rpc('increment_audio_play', { p_track_id: trackId })
+
       if (user) {
-        await supabase.from('area_activations').insert({
-          user_id: user.id,
-          area: 'vision_audio',
-        })
+        const today = new Date().toISOString().split('T')[0]
+        await supabase.from('area_activations').upsert(
+          { user_id: user.id, area: 'vision_audio', activation_date: today },
+          { onConflict: 'user_id,area,activation_date', ignoreDuplicates: true },
+        )
       }
     } catch (error) {
       console.error('Failed to track audio play:', error)

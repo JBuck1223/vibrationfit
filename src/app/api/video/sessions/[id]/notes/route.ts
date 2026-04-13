@@ -50,18 +50,25 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { content } = body
+    const { content, media_urls } = body
 
     if (typeof content !== 'string') {
       return NextResponse.json({ error: 'Content must be a string' }, { status: 400 })
     }
 
+    const upsertData: Record<string, unknown> = {
+      session_id: sessionId,
+      user_id: user.id,
+      content,
+    }
+
+    if (Array.isArray(media_urls)) {
+      upsertData.media_urls = media_urls
+    }
+
     const { data: note, error } = await supabase
       .from('session_notes')
-      .upsert(
-        { session_id: sessionId, user_id: user.id, content },
-        { onConflict: 'session_id,user_id' }
-      )
+      .upsert(upsertData, { onConflict: 'session_id,user_id' })
       .select('*')
       .single()
 

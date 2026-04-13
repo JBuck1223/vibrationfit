@@ -2,9 +2,16 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react'
 import Link from 'next/link'
-import { Spinner } from '@/lib/design-system'
-import { Heart, Send, Reply, Pencil, MessageCircle } from 'lucide-react'
+import { Spinner, Button } from '@/lib/design-system'
+import { FileUpload } from '@/lib/design-system/components/forms/FileUpload'
+import { Heart, Send, Reply, Pencil, MessageCircle, X, Film, Upload } from 'lucide-react'
 import { format, isToday, isYesterday } from 'date-fns'
+import { uploadMultipleUserFiles } from '@/lib/storage/s3-storage-presigned'
+
+function isVideoUrl(url: string): boolean {
+  const ext = url.split('.').pop()?.split('?')[0]?.toLowerCase()
+  return ['mp4', 'mov', 'webm', 'avi'].includes(ext || '')
+}
 
 interface SessionComment {
   id: string
@@ -12,6 +19,7 @@ interface SessionComment {
   user_id: string
   parent_comment_id: string | null
   content: string
+  media_urls?: string[]
   hearts_count: number
   is_deleted: boolean
   created_at: string
@@ -32,6 +40,32 @@ interface SessionCommentSectionProps {
   isAdmin?: boolean
 }
 
+function MediaThumbnails({ urls }: { urls: string[] }) {
+  if (!urls || urls.length === 0) return null
+
+  return (
+    <div className="flex flex-wrap gap-2 mt-2">
+      {urls.map((url) => (
+        <a
+          key={url}
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="relative group w-20 h-20 rounded-lg overflow-hidden bg-neutral-800 border border-neutral-700 block"
+        >
+          {isVideoUrl(url) ? (
+            <div className="w-full h-full flex items-center justify-center bg-neutral-900">
+              <Film className="w-6 h-6 text-neutral-400" />
+            </div>
+          ) : (
+            <img src={url} alt="" className="w-full h-full object-cover" />
+          )}
+        </a>
+      ))}
+    </div>
+  )
+}
+
 export function SessionCommentSection({
   sessionId,
   currentUserId,
@@ -40,9 +74,14 @@ export function SessionCommentSection({
   const [comments, setComments] = useState<SessionComment[]>([])
   const [loading, setLoading] = useState(true)
   const [newComment, setNewComment] = useState('')
+  const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [submitting, setSubmitting] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [showUploader, setShowUploader] = useState(false)
+  const [showReplyUploader, setShowReplyUploader] = useState(false)
   const [replyingToId, setReplyingToId] = useState<string | null>(null)
   const [replyText, setReplyText] = useState('')
+  const [replyFiles, setReplyFiles] = useState<File[]>([])
   const topCommentRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
@@ -63,22 +102,42 @@ export function SessionCommentSection({
     }
   }
 
+  const uploadFiles = async (files: File[]): Promise<string[]> => {
+    if (files.length === 0) return []
+    setUploading(true)
+    try {
+      const results = await uploadMultipleUserFiles('sessionComments', files)
+      return results
+        .filter((r: { url: string; key: string; error?: string }) => !r.error && r.url)
+        .map((r: { url: string; key: string; error?: string }) => r.url)
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const handleSubmitTopLevel = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newComment.trim() || submitting) return
+    if ((!newComment.trim() && pendingFiles.length === 0) || submitting) return
 
     setSubmitting(true)
     try {
+      const mediaUrls = await uploadFiles(pendingFiles)
+
       const response = await fetch(`/api/video/sessions/${sessionId}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: newComment.trim() }),
+        body: JSON.stringify({
+          content: newComment.trim(),
+          media_urls: mediaUrls.length > 0 ? mediaUrls : undefined,
+        }),
       })
 
       if (response.ok) {
         const data = await response.json()
         setComments(prev => [...prev, data.comment])
         setNewComment('')
+        setPendingFiles([])
+        setShowUploader(false)
       }
     } catch (error) {
       console.error('Error posting session comment:', error)
@@ -88,16 +147,19 @@ export function SessionCommentSection({
   }
 
   const handleSubmitReply = async (parentCommentId: string) => {
-    if (!replyText.trim() || submitting) return
+    if ((!replyText.trim() && replyFiles.length === 0) || submitting) return
 
     setSubmitting(true)
     try {
+      const mediaUrls = await uploadFiles(replyFiles)
+
       const response = await fetch(`/api/video/sessions/${sessionId}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           content: replyText.trim(),
           parent_comment_id: parentCommentId,
+          media_urls: mediaUrls.length > 0 ? mediaUrls : undefined,
         }),
       })
 
@@ -119,6 +181,8 @@ export function SessionCommentSection({
         setComments(prev => addReplyToParent(prev, parentCommentId, data.comment))
         setReplyText('')
         setReplyingToId(null)
+        setReplyFiles([])
+        setShowReplyUploader(false)
       }
     } catch (error) {
       console.error('Error posting reply:', error)
@@ -160,7 +224,6 @@ export function SessionCommentSection({
       })
     }
 
-    // Optimistic update
     setComments(prev =>
       updateComment(prev, comment.id, {
         has_hearted: !comment.has_hearted,
@@ -175,7 +238,6 @@ export function SessionCommentSection({
         setComments(prev => updateComment(prev, comment.id, { hearts_count: data.hearts_count }))
       }
     } catch {
-      // Revert
       setComments(prev =>
         updateComment(prev, comment.id, {
           has_hearted: comment.has_hearted,
@@ -238,7 +300,7 @@ export function SessionCommentSection({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="flex items-center gap-2">
         <MessageCircle className="w-4 h-4 text-[#00FFFF]" />
         <h3 className="text-sm font-semibold text-white">Discussion</h3>
@@ -262,14 +324,14 @@ export function SessionCommentSection({
                 e.target.style.height = `${newH}px`
                 e.target.style.overflowY = e.target.scrollHeight > maxH ? 'auto' : 'hidden'
               }}
-              placeholder="Share a thought, question, or win from this session..."
+              placeholder="Share a thought, question, or win..."
               className="flex-1 bg-neutral-800 border border-neutral-700 rounded-2xl px-4 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500 resize-none min-h-[36px]"
               style={{ overflowY: 'hidden' }}
               rows={1}
             />
             <button
               type="submit"
-              disabled={!newComment.trim() || submitting}
+              disabled={(!newComment.trim() && pendingFiles.length === 0) || submitting || uploading}
               className="h-9 w-9 rounded-full flex items-center justify-center bg-[#39FF14] text-black hover:bg-[rgba(57,255,20,0.9)] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-shrink-0"
             >
               <Send className="w-4 h-4" />
@@ -278,14 +340,40 @@ export function SessionCommentSection({
         </form>
       )}
 
-      {/* Comments list */}
-      <div className="space-y-4">
-        {comments.length === 0 ? (
-          <p className="text-sm text-neutral-500 text-center py-2">
-            No comments yet. Be the first to share!
-          </p>
+      {/* Upload toggle for new comments */}
+      {!replyingToId && (
+        !showUploader ? (
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            onClick={() => setShowUploader(true)}
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Upload Files
+          </Button>
         ) : (
-          comments.map((comment) => (
+          <FileUpload
+            dragDrop
+            accept="image/*,video/*"
+            multiple
+            maxFiles={5}
+            maxSize={500}
+            value={pendingFiles}
+            onChange={setPendingFiles}
+            onUpload={setPendingFiles}
+            isUploading={uploading}
+            dragDropText="Click to upload or drag and drop"
+            dragDropSubtext="Images or videos (max 5 files, 500MB each)"
+            previewSize="md"
+          />
+        )
+      )}
+
+      {/* Comments list */}
+      {comments.length > 0 && (
+        <div className="space-y-4">
+          {comments.map((comment) => (
             <CommentItem
               key={comment.id}
               comment={comment}
@@ -300,15 +388,20 @@ export function SessionCommentSection({
               setReplyingToId={setReplyingToId}
               replyText={replyText}
               setReplyText={setReplyText}
+              replyFiles={replyFiles}
+              setReplyFiles={setReplyFiles}
+              showReplyUploader={showReplyUploader}
+              setShowReplyUploader={setShowReplyUploader}
               onSubmitReply={handleSubmitReply}
               submitting={submitting}
+              uploading={uploading}
               onDeleteComment={handleDeleteComment}
               onHeartComment={handleHeartComment}
               onEditComment={handleEditComment}
             />
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -326,8 +419,13 @@ interface CommentItemProps {
   setReplyingToId: (id: string | null) => void
   replyText: string
   setReplyText: (text: string) => void
+  replyFiles: File[]
+  setReplyFiles: (files: File[]) => void
+  showReplyUploader: boolean
+  setShowReplyUploader: (show: boolean) => void
   onSubmitReply: (parentId: string) => void
   submitting: boolean
+  uploading: boolean
   onDeleteComment: (id: string) => void
   onHeartComment: (comment: SessionComment) => void
   onEditComment: (commentId: string, newContent: string) => Promise<boolean>
@@ -347,8 +445,13 @@ function CommentItem({
   setReplyingToId,
   replyText,
   setReplyText,
+  replyFiles,
+  setReplyFiles,
+  showReplyUploader,
+  setShowReplyUploader,
   onSubmitReply,
   submitting,
+  uploading,
   onDeleteComment,
   onHeartComment,
   onEditComment,
@@ -427,6 +530,8 @@ function CommentItem({
     if (isReplying) {
       setReplyingToId(null)
       setReplyText('')
+      setReplyFiles([])
+      setShowReplyUploader(false)
     } else {
       setReplyingToId(comment.id)
       const authorName = comment.user?.full_name || 'Anonymous'
@@ -514,12 +619,17 @@ function CommentItem({
               </div>
             </div>
           ) : (
-            <p className="text-sm text-neutral-200 whitespace-pre-wrap">
-              {comment.content}
-              {comment.edited_at && (
-                <span className="text-xs text-neutral-500 ml-2">(edited)</span>
+            <>
+              {comment.content && (
+                <p className="text-sm text-neutral-200 whitespace-pre-wrap">
+                  {comment.content}
+                  {comment.edited_at && (
+                    <span className="text-xs text-neutral-500 ml-2">(edited)</span>
+                  )}
+                </p>
               )}
-            </p>
+              <MediaThumbnails urls={comment.media_urls || []} />
+            </>
           )}
 
           {!editing && (
@@ -573,7 +683,7 @@ function CommentItem({
 
           {/* Inline Reply Input */}
           {isReplying && (
-            <div className="mt-3">
+            <div className="mt-3 space-y-2">
               <div className="flex items-end gap-2">
                 <textarea
                   ref={replyInputRef}
@@ -593,13 +703,39 @@ function CommentItem({
                 />
                 <button
                   type="button"
-                  disabled={!replyText.trim() || submitting}
+                  disabled={(!replyText.trim() && replyFiles.length === 0) || submitting || uploading}
                   onClick={() => onSubmitReply(comment.id)}
                   className="h-9 w-9 rounded-full flex items-center justify-center bg-[#39FF14] text-black hover:bg-[rgba(57,255,20,0.9)] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-shrink-0"
                 >
                   <Send className="w-4 h-4" />
                 </button>
               </div>
+              {!showReplyUploader ? (
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setShowReplyUploader(true)}
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload Files
+                </Button>
+              ) : (
+                <FileUpload
+                  dragDrop
+                  accept="image/*,video/*"
+                  multiple
+                  maxFiles={5}
+                  maxSize={500}
+                  value={replyFiles}
+                  onChange={setReplyFiles}
+                  onUpload={setReplyFiles}
+                  isUploading={uploading}
+                  dragDropText="Click to upload or drag and drop"
+                  dragDropSubtext="Images or videos (max 5 files, 500MB each)"
+                  previewSize="sm"
+                />
+              )}
             </div>
           )}
         </div>
@@ -623,8 +759,13 @@ function CommentItem({
               setReplyingToId={setReplyingToId}
               replyText={replyText}
               setReplyText={setReplyText}
+              replyFiles={replyFiles}
+              setReplyFiles={setReplyFiles}
+              showReplyUploader={showReplyUploader}
+              setShowReplyUploader={setShowReplyUploader}
               onSubmitReply={onSubmitReply}
               submitting={submitting}
+              uploading={uploading}
               onDeleteComment={onDeleteComment}
               onHeartComment={onHeartComment}
               onEditComment={onEditComment}

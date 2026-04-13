@@ -119,10 +119,10 @@ export async function POST(
     }
 
     const body = await request.json()
-    const { content, parent_comment_id } = body
+    const { content, parent_comment_id, media_urls } = body
 
-    if (!content || content.trim() === '') {
-      return NextResponse.json({ error: 'Comment content is required' }, { status: 400 })
+    if ((!content || content.trim() === '') && (!Array.isArray(media_urls) || media_urls.length === 0)) {
+      return NextResponse.json({ error: 'Comment content or media is required' }, { status: 400 })
     }
 
     if (parent_comment_id) {
@@ -139,14 +139,20 @@ export async function POST(
       }
     }
 
+    const insertData: Record<string, unknown> = {
+      session_id: sessionId,
+      user_id: user.id,
+      content: (content || '').trim(),
+      parent_comment_id: parent_comment_id || null,
+    }
+
+    if (Array.isArray(media_urls) && media_urls.length > 0) {
+      insertData.media_urls = media_urls
+    }
+
     const { data: newComment, error: insertError } = await supabase
       .from('session_comments')
-      .insert({
-        session_id: sessionId,
-        user_id: user.id,
-        content: content.trim(),
-        parent_comment_id: parent_comment_id || null,
-      })
+      .insert(insertData)
       .select('*')
       .single()
 
