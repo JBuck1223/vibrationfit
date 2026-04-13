@@ -2,6 +2,27 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminAccess } from '@/lib/supabase/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
 
+function buildTaskTree(tasks: any[]): any[] {
+  const topLevel: any[] = []
+  const byParent = new Map<string, any[]>()
+
+  for (const t of tasks) {
+    if (t.parent_task_id) {
+      const arr = byParent.get(t.parent_task_id) || []
+      arr.push(t)
+      byParent.set(t.parent_task_id, arr)
+    } else {
+      topLevel.push(t)
+    }
+  }
+
+  for (const parent of topLevel) {
+    parent.subtasks = (byParent.get(parent.id) || []).sort((a: any, b: any) => a.sort_order - b.sort_order)
+  }
+
+  return topLevel
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -52,7 +73,7 @@ export async function GET(
     const result = {
       ...project,
       tags: (project.idea_project_tags || []).map((pt: any) => pt.idea_tags).filter(Boolean),
-      tasks: project.idea_tasks || [],
+      tasks: buildTaskTree(project.idea_tasks || []),
       comments: (project.idea_comments || []).map((c: any) => ({
         ...c,
         user_name: c.user_accounts?.full_name || null,

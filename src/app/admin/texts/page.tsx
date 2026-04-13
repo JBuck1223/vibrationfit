@@ -9,7 +9,7 @@
 import { useState, useEffect } from 'react'
 import { Container, Card, Button, Stack, PageHero, Spinner } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
-import { MessageSquare, Plus, Send, Clock, Settings } from 'lucide-react'
+import { MessageSquare, Plus, Send, Clock, Settings, FileText } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface SMSStats {
@@ -75,6 +75,14 @@ export default function SMSDashboardPage() {
               >
                 <MessageSquare className="w-4 h-4 mr-2" />
                 All Templates
+              </Button>
+              <Button
+                onClick={() => router.push('/admin/texts/sent')}
+                variant="outline"
+                size="sm"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Sent SMS Log
               </Button>
             </div>
           </PageHero>
@@ -155,15 +163,15 @@ export default function SMSDashboardPage() {
 
             <Card
               className="p-6 cursor-pointer hover:border-secondary-500 transition-colors"
-              onClick={() => router.push('/admin/texts/scheduled')}
+              onClick={() => router.push('/admin/texts/sent')}
             >
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-xl bg-secondary-500/20 flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-secondary-500" />
+                  <FileText className="w-6 h-6 text-secondary-500" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-white">Scheduled Messages</h3>
-                  <p className="text-sm text-neutral-400">View pending and sent messages</p>
+                  <h3 className="text-lg font-semibold text-white">Sent SMS Log</h3>
+                  <p className="text-sm text-neutral-400">View all sent and received messages</p>
                 </div>
               </div>
             </Card>

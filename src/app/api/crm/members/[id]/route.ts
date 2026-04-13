@@ -12,6 +12,13 @@ const MEMBER_UPDATABLE_FIELDS = [
   'engagement_status', 'health_status', 'custom_tags', 'admin_notes',
 ] as const
 
+function toE164(phone: string): string {
+  const digits = phone.replace(/\D/g, '')
+  if (digits.length === 10) return `+1${digits}`
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`
+  return `+${digits}`
+}
+
 function pickAllowedFields(body: Record<string, unknown>, allowedFields: readonly string[]) {
   const result: Record<string, unknown> = {}
   for (const key of allowedFields) {
@@ -45,6 +52,7 @@ export async function GET(
 
     // Run independent queries in parallel
     const [
+      { data: userAccount },
       { data: profile },
       { count: visionCount },
       { count: journalCount },
@@ -58,6 +66,11 @@ export async function GET(
       { data: tickets },
       { data: lead },
     ] = await Promise.all([
+      adminClient
+        .from('user_accounts')
+        .select('*')
+        .eq('id', id)
+        .single(),
       adminClient
         .from('user_profiles')
         .select('*')
@@ -222,14 +235,33 @@ export async function GET(
       member: {
         user_id: authUser.id,
         email: authUser.email,
-        phone: profile?.phone || authUser.phone || null,
-        full_name: profile?.first_name && profile?.last_name 
-          ? `${profile.first_name} ${profile.last_name}` 
-          : profile?.first_name || profile?.last_name || authUser.email?.split('@')[0] || 'Unknown',
+        phone: (() => {
+          const raw = userAccount?.phone || profile?.phone || authUser.phone
+          return raw ? toE164(raw) : null
+        })(),
+        phone_raw: userAccount?.phone || profile?.phone || authUser.phone || null,
+        full_name: userAccount?.full_name
+          || (profile?.first_name && profile?.last_name 
+            ? `${profile.first_name} ${profile.last_name}` 
+            : profile?.first_name || profile?.last_name || authUser.email?.split('@')[0] || 'Unknown'),
+        first_name: userAccount?.first_name || profile?.first_name || null,
+        last_name: userAccount?.last_name || profile?.last_name || null,
+        profile_picture_url: userAccount?.profile_picture_url || null,
+        date_of_birth: userAccount?.date_of_birth || null,
+        role: userAccount?.role || 'member',
+        sms_opt_in: userAccount?.sms_opt_in ?? false,
+        sms_opt_in_date: userAccount?.sms_opt_in_date || null,
+        email_opt_in: userAccount?.email_opt_in ?? true,
+        is_active: userAccount?.is_active ?? true,
+        household_id: userAccount?.household_id || null,
+        is_household_admin: userAccount?.is_household_admin ?? false,
+        last_login_at: userAccount?.last_login_at || authUser.last_sign_in_at || null,
         created_at: authUser.created_at,
+        updated_at: userAccount?.updated_at || null,
         activity_metrics: activityMetrics,
         revenue_metrics: revenueMetrics,
       },
+      profile: profile || null,
       smsMessages: smsMessages || [],
       emailMessages: emailMessages || [],
       tickets: tickets || [],

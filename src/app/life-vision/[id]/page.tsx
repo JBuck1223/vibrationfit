@@ -950,6 +950,15 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                         <span>Audio Tracks</span>
                       </Button>
                       <Button
+                        onClick={() => router.push('/story/new')}
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+                      >
+                        <Icon icon={FileText} size="sm" className="shrink-0" />
+                        <span>Stories</span>
+                      </Button>
+                      <Button
                         onClick={() => router.push(`/life-vision/${vision.id}/print`)}
                         variant="outline"
                         size="sm"
