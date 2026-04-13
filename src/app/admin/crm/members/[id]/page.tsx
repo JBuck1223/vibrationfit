@@ -1,863 +1,929 @@
-// /src/app/admin/crm/members/[id]/page.tsx
-// Member intelligence page
-
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter, useParams } from 'next/navigation'
-import { Button, Card, Badge, Container, Spinner, Input, Textarea, Stack, PageHero, TrackingMilestoneCard } from '@/lib/design-system/components'
-import { ConversationThread } from '@/components/crm/ConversationThread'
-import { useConversationRealtime } from '@/hooks/useConversationRealtime'
-import { RefreshCw, MessageSquare, Mail, Target, Activity, Clock, DollarSign, BarChart3, User } from 'lucide-react'
-import RetentionMetricsBreakdown from '@/components/admin/RetentionMetricsBreakdown'
-import { CRM_SENDERS, DEFAULT_CRM_SENDER } from '@/lib/crm/senders'
+import { useState, useEffect, useRef } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { Container, Card, Badge, Button, Input, Textarea, Stack, PageHero, Spinner } from '@/lib/design-system/components'
+import { AdminWrapper } from '@/components/AdminWrapper'
+import {
+  ArrowLeft, User, Mail, Phone, Calendar, Clock, Shield, CreditCard,
+  MessageSquare, Send, ChevronDown, ChevronUp, CheckCircle, XCircle,
+  FileText, Hash, DollarSign, Activity, Globe, Copy, ExternalLink,
+  AlertTriangle, Zap
+} from 'lucide-react'
 import { toast } from 'sonner'
+import { CRM_SENDERS } from '@/lib/crm/senders'
 
-interface Member {
+// ── Types ──
+
+interface MemberData {
   user_id: string
   email: string
+  phone: string | null
   full_name: string
-  phone: string
-  subscription_tier: string
+  first_name: string | null
+  last_name: string | null
+  profile_picture_url: string | null
+  date_of_birth: string | null
+  role: string
+  sms_opt_in: boolean
+  sms_opt_in_date: string | null
+  email_opt_in: boolean
+  is_active: boolean
+  household_id: string | null
+  is_household_admin: boolean
+  last_login_at: string | null
   created_at: string
-  activity_metrics: {
-    profile_completion_percent: number
-    vision_count: number
-    vision_refinement_count: number
-    audio_generated_count: number
-    journal_entry_count: number
-    vision_board_image_count: number
-    last_login_at: string
-    days_since_last_login: number
-    s3_file_count: number
-    total_storage_mb: number
-    tokens_used: number
-    tokens_remaining: number
-    engagement_status: string
-    health_status: string
-    custom_tags: string[]
-    admin_notes: string
-  }
-  revenue_metrics: {
-    subscription_tier: string
-    subscription_tiers: string[]
-    subscription_count: number
-    subscription_status: string
-    mrr: number
-    monthly_tokens: number
-    storage_gb: number
-    ltv: number
-    total_spent: number
-    subscription_start_date: string
-    months_subscribed: number
-  }
+  updated_at: string | null
+  activity_metrics: Record<string, unknown>
+  revenue_metrics: Record<string, unknown>
 }
 
-export default function MemberDetailPage() {
-  const router = useRouter()
-  const params = useParams()
-  const [member, setMember] = useState<Member | null>(null)
-  const [smsMessages, setSmsMessages] = useState<any[]>([])
-  const [emailMessages, setEmailMessages] = useState<any[]>([])
-  const [conversation, setConversation] = useState<any[]>([])
-  const [loadingConversation, setLoadingConversation] = useState(false)
-  const [tickets, setTickets] = useState<any[]>([])
-  const [lead, setLead] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('overview')
-  const [updating, setUpdating] = useState(false)
+interface ProfileData {
+  first_name: string | null
+  last_name: string | null
+  phone: string | null
+  email: string | null
+  gender: string | null
+  date_of_birth: string | null
+  city: string | null
+  state: string | null
+  country: string | null
+  postal_code: string | null
+  employment_type: string | null
+  occupation: string | null
+  company: string | null
+  household_income: string | null
+  relationship_status: string | null
+  education: string | null
+  [key: string]: unknown
+}
 
-  // Form state for manual updates
-  const [engagementStatus, setEngagementStatus] = useState('')
-  const [healthStatus, setHealthStatus] = useState('')
-  const [tags, setTags] = useState<string[]>([])
-  const [notes, setNotes] = useState('')
-  const [newTag, setNewTag] = useState('')
-  
-  // Message composer state
-  const [messageBody, setMessageBody] = useState('')
-  const [sending, setSending] = useState(false)
-  
-  // Email composer state
-  const [showEmailModal, setShowEmailModal] = useState(false)
-  const [emailSubject, setEmailSubject] = useState('')
-  const [emailBody, setEmailBody] = useState('')
-  const [sendingEmail, setSendingEmail] = useState(false)
-  const [senderId, setSenderId] = useState(DEFAULT_CRM_SENDER.id)
+interface ConversationMessage {
+  type: 'sms' | 'email'
+  id: string
+  content: string
+  htmlContent?: string
+  subject?: string
+  direction: string
+  timestamp: string
+  metadata: Record<string, unknown>
+}
 
-  useConversationRealtime({
-    onUpdate: fetchConversation,
-    userId: member?.user_id,
-    enabled: !!member,
+interface Template {
+  id: string
+  slug: string
+  name: string
+  body: string
+  subject?: string
+  html_body?: string
+  text_body?: string
+  variables: string[]
+  category: string
+  status: string
+}
+
+// ── Helpers ──
+
+function formatDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return 'N/A'
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric'
   })
+}
+
+function formatDateTime(dateStr: string | null | undefined): string {
+  if (!dateStr) return 'N/A'
+  return new Date(dateStr).toLocaleString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+    hour: 'numeric', minute: '2-digit'
+  })
+}
+
+function timeAgo(dateStr: string | null | undefined): string {
+  if (!dateStr) return 'Never'
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+  if (days === 0) return 'Today'
+  if (days === 1) return 'Yesterday'
+  if (days < 30) return `${days}d ago`
+  if (days < 365) return `${Math.floor(days / 30)}mo ago`
+  return `${Math.floor(days / 365)}y ago`
+}
+
+function copyToClipboard(text: string) {
+  navigator.clipboard.writeText(text)
+  toast.success('Copied to clipboard')
+}
+
+// ── Collapsible Section ──
+
+function Section({ title, icon: Icon, children, defaultOpen = true, count, badge }: {
+  title: string
+  icon: React.ComponentType<{ className?: string }>
+  children: React.ReactNode
+  defaultOpen?: boolean
+  count?: number
+  badge?: React.ReactNode
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <Card className="overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between p-5 hover:bg-white/[0.02] transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <Icon className="w-5 h-5 text-primary-400" />
+          <h2 className="text-lg font-semibold text-white">{title}</h2>
+          {count !== undefined && (
+            <Badge variant="neutral" className="text-xs">{count}</Badge>
+          )}
+          {badge}
+        </div>
+        {open ? <ChevronUp className="w-4 h-4 text-neutral-400" /> : <ChevronDown className="w-4 h-4 text-neutral-400" />}
+      </button>
+      {open && <div className="px-5 pb-5 border-t border-neutral-700/50 pt-4">{children}</div>}
+    </Card>
+  )
+}
+
+function DataRow({ label, value, mono, copyable }: {
+  label: string
+  value: React.ReactNode
+  mono?: boolean
+  copyable?: string
+}) {
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-2 border-b border-neutral-800 last:border-0">
+      <span className="text-neutral-400 text-sm w-44 flex-shrink-0">{label}</span>
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <span className={`text-white text-sm ${mono ? 'font-mono text-xs' : ''} truncate`}>
+          {value || <span className="text-neutral-600 italic">Not set</span>}
+        </span>
+        {copyable && (
+          <button onClick={() => copyToClipboard(copyable)} className="text-neutral-500 hover:text-white flex-shrink-0">
+            <Copy className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Compose Modal ──
+
+function ComposeModal({ type, member, onClose, onSent }: {
+  type: 'sms' | 'email'
+  member: MemberData
+  onClose: () => void
+  onSent: () => void
+}) {
+  const [message, setMessage] = useState('')
+  const [subject, setSubject] = useState('')
+  const [senderId, setSenderId] = useState<string>(CRM_SENDERS[0].id)
+  const [sending, setSending] = useState(false)
+  const [templates, setTemplates] = useState<Template[]>([])
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('')
+  const [loadingTemplates, setLoadingTemplates] = useState(true)
 
   useEffect(() => {
-    fetchMember()
-    fetchConversation()
-  }, [params.id])
+    const endpoint = type === 'sms'
+      ? '/api/admin/templates/sms?status=active'
+      : '/api/admin/templates/email?status=active'
+    fetch(endpoint)
+      .then(res => res.json())
+      .then(data => setTemplates(data.templates || []))
+      .catch(() => toast.error('Failed to load templates'))
+      .finally(() => setLoadingTemplates(false))
+  }, [type])
 
-  async function fetchMember() {
-    try {
-      const response = await fetch(`/api/crm/members/${params.id}`)
-      if (!response.ok) throw new Error('Failed to fetch member')
+  function handleTemplateSelect(templateId: string) {
+    setSelectedTemplate(templateId)
+    if (!templateId) return
+    const tmpl = templates.find(t => t.id === templateId)
+    if (!tmpl) return
 
-      const data = await response.json()
-      setMember(data.member)
-      setSmsMessages(data.smsMessages || [])
-      setEmailMessages(data.emailMessages || [])
-      setTickets(data.tickets || [])
-      setLead(data.lead)
-
-      // Initialize form state
-      setEngagementStatus(data.member.activity_metrics?.engagement_status || '')
-      setHealthStatus(data.member.activity_metrics?.health_status || '')
-      setTags(data.member.activity_metrics?.custom_tags || [])
-      setNotes(data.member.activity_metrics?.admin_notes || '')
-    } catch (error) {
-      console.error('Error fetching member:', error)
-    } finally {
-      setLoading(false)
+    const vars: Record<string, string> = {
+      first_name: member.first_name || '',
+      last_name: member.last_name || '',
+      full_name: member.full_name || '',
+      email: member.email || '',
     }
-  }
 
-  async function fetchConversation() {
-    setLoadingConversation(true)
-    try {
-      const response = await fetch(`/api/crm/members/${params.id}/conversation`)
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        console.error('❌ Conversation API error:', response.status, errorData)
-        
-        // Don't show error for 404 - just means no conversation yet
-        if (response.status === 404) {
-          setConversation([])
-          return
-        }
-        
-        throw new Error('Failed to fetch conversation')
+    if (type === 'sms') {
+      let body = tmpl.body || ''
+      for (const [key, val] of Object.entries(vars)) {
+        body = body.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), val)
       }
-
-      const data = await response.json()
-      setConversation(data.conversation || [])
-    } catch (error) {
-      console.error('Error fetching conversation:', error)
-      setConversation([]) // Set empty array on error
-    } finally {
-      setLoadingConversation(false)
+      setMessage(body)
+    } else {
+      let htmlBody = tmpl.html_body || tmpl.text_body || tmpl.body || ''
+      for (const [key, val] of Object.entries(vars)) {
+        htmlBody = htmlBody.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), val)
+      }
+      setMessage(htmlBody)
+      if (tmpl.subject) {
+        let subj = tmpl.subject
+        for (const [key, val] of Object.entries(vars)) {
+          subj = subj.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), val)
+        }
+        setSubject(subj)
+      }
     }
   }
 
-  async function handleUpdate() {
-    setUpdating(true)
-    try {
-      const response = await fetch(`/api/crm/members/${params.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          engagement_status: engagementStatus || null,
-          health_status: healthStatus || null,
-          custom_tags: tags,
-          admin_notes: notes,
-        }),
-      })
-
-      if (!response.ok) throw new Error('Failed to update member')
-
-      toast.success('Member updated successfully')
-      fetchMember()
-    } catch (error: any) {
-      console.error('Error updating member:', error)
-      toast.error('Failed to update member')
-    } finally {
-      setUpdating(false)
-    }
-  }
-
-  function addTag() {
-    if (newTag && !tags.includes(newTag)) {
-      setTags([...tags, newTag])
-      setNewTag('')
-    }
-  }
-
-  function removeTag(tag: string) {
-    setTags(tags.filter((t) => t !== tag))
-  }
-
-  async function handleSendMessage() {
-    if (!messageBody.trim() || !member?.phone) return
+  async function handleSend() {
+    if (!message.trim()) return
+    if (type === 'email' && !subject.trim()) return
 
     setSending(true)
     try {
-      const response = await fetch('/api/messaging/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: member.phone,
-          message: messageBody.trim(),
-          userId: member.user_id,
-        }),
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to send message')
+      if (type === 'sms') {
+        const res = await fetch(`/api/crm/members/${member.user_id}/sms`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ to: member.phone, message }),
+        })
+        if (!res.ok) {
+          const err = await res.json()
+          throw new Error(err.error || 'Failed to send SMS')
+        }
+        toast.success('SMS sent successfully')
+      } else {
+        const isHtml = message.includes('<') && message.includes('>')
+        const res = await fetch(`/api/crm/members/${member.user_id}/email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: member.email,
+            subject,
+            ...(isHtml ? { htmlBody: message } : { textBody: message }),
+            senderId,
+          }),
+        })
+        if (!res.ok) {
+          const err = await res.json()
+          throw new Error(err.error || 'Failed to send email')
+        }
+        toast.success('Email sent successfully')
       }
-
-      // Clear message
-      setMessageBody('')
-      
-    } catch (error: any) {
-      toast.error('Failed to send message')
+      onSent()
+      onClose()
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : 'Failed to send'
+      toast.error(errMsg)
     } finally {
       setSending(false)
     }
   }
 
-  async function handleSendEmail() {
-    if (!emailSubject.trim() || !emailBody.trim() || !member?.email) return
+  const canSend = type === 'sms'
+    ? (!!member.phone && !!message.trim())
+    : (!!member.email && !!subject.trim() && !!message.trim())
 
-    setSendingEmail(true)
+  const optedOut = type === 'sms' ? !member.sms_opt_in : !member.email_opt_in
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <Card className="max-w-2xl w-full p-0 max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between p-5 border-b border-neutral-700/50">
+          <div className="flex items-center gap-3">
+            {type === 'sms' ? <MessageSquare className="w-5 h-5 text-primary-400" /> : <Mail className="w-5 h-5 text-primary-400" />}
+            <h2 className="text-lg font-semibold text-white">
+              Send {type === 'sms' ? 'SMS' : 'Email'} to {member.first_name || member.full_name}
+            </h2>
+          </div>
+          <button onClick={onClose} className="text-neutral-400 hover:text-white text-2xl leading-none">&times;</button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 p-5 space-y-4">
+          {optedOut && (
+            <div className="flex items-start gap-3 p-3 bg-[#FF0040]/10 border border-[#FF0040]/30 rounded-xl">
+              <AlertTriangle className="w-5 h-5 text-[#FF0040] flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm text-white font-medium">
+                  {type === 'sms' ? 'SMS Opt-In: OFF' : 'Email Opt-In: OFF'}
+                </p>
+                <p className="text-xs text-neutral-400 mt-0.5">
+                  This member has not opted in to {type === 'sms' ? 'SMS' : 'email'} communications. Proceed with caution.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {type === 'sms' && !member.phone && (
+            <div className="flex items-start gap-3 p-3 bg-[#FF0040]/10 border border-[#FF0040]/30 rounded-xl">
+              <XCircle className="w-5 h-5 text-[#FF0040] flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-white">No phone number on file. Cannot send SMS.</p>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium mb-2 text-neutral-300">To:</label>
+            <div className="px-3 py-2 bg-neutral-800 rounded-lg text-sm text-neutral-300">
+              {type === 'sms' ? (member.phone || 'No phone number') : member.email}
+            </div>
+          </div>
+
+          {type === 'email' && (
+            <div>
+              <label className="block text-sm font-medium mb-2 text-neutral-300">From:</label>
+              <select
+                value={senderId}
+                onChange={(e) => setSenderId(e.target.value)}
+                className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white focus:border-primary-500 focus:outline-none"
+              >
+                {CRM_SENDERS.map(s => (
+                  <option key={s.id} value={s.id}>{s.label} ({s.email})</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium mb-2 text-neutral-300">Template:</label>
+            {loadingTemplates ? (
+              <div className="flex items-center gap-2 text-sm text-neutral-500">
+                <Spinner size="sm" /> Loading templates...
+              </div>
+            ) : (
+              <select
+                value={selectedTemplate}
+                onChange={(e) => handleTemplateSelect(e.target.value)}
+                className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white focus:border-primary-500 focus:outline-none"
+              >
+                <option value="">Write from scratch</option>
+                {templates.map(t => (
+                  <option key={t.id} value={t.id}>{t.name} ({t.category})</option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          {type === 'email' && (
+            <div>
+              <label className="block text-sm font-medium mb-2 text-neutral-300">Subject:</label>
+              <Input
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder="Enter subject line..."
+                disabled={sending}
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium mb-2 text-neutral-300">Message:</label>
+            <Textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder={type === 'sms' ? 'Type your SMS...' : 'Type your email body...'}
+              rows={type === 'sms' ? 6 : 10}
+              disabled={sending}
+            />
+            {type === 'sms' && (
+              <div className="flex items-center justify-between mt-1.5 text-xs text-neutral-500">
+                <span>{message.length} characters</span>
+                <span>{Math.ceil(message.length / 160) || 1} segment{Math.ceil(message.length / 160) !== 1 ? 's' : ''} (160 chars each)</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 p-5 border-t border-neutral-700/50">
+          <Button variant="outline" onClick={onClose} disabled={sending}>Cancel</Button>
+          <Button variant="primary" onClick={handleSend} disabled={!canSend || sending} loading={sending}>
+            <Send className="w-4 h-4 mr-2" />
+            {sending ? 'Sending...' : `Send ${type === 'sms' ? 'SMS' : 'Email'}`}
+          </Button>
+        </div>
+      </Card>
+    </div>
+  )
+}
+
+// ── Conversation Timeline with Tabs ──
+
+function MessageBubble({ msg }: { msg: ConversationMessage }) {
+  const isOutbound = msg.direction === 'outbound'
+  return (
+    <div className={`flex ${isOutbound ? 'justify-end' : 'justify-start'}`}>
+      <div className={`max-w-[80%] rounded-xl px-4 py-3 ${
+        isOutbound
+          ? 'bg-primary-500/15 border border-primary-500/30'
+          : 'bg-neutral-800 border border-neutral-700'
+      }`}>
+        <div className="flex items-center gap-2 mb-1">
+          {msg.type === 'sms' ? (
+            <MessageSquare className="w-3.5 h-3.5 text-secondary-400" />
+          ) : (
+            <Mail className="w-3.5 h-3.5 text-accent-400" />
+          )}
+          <span className="text-xs font-medium text-neutral-400 uppercase">
+            {msg.type} {isOutbound ? 'Sent' : 'Received'}
+          </span>
+          <span className="text-xs text-neutral-500">{formatDateTime(msg.timestamp)}</span>
+        </div>
+        {msg.subject && (
+          <p className="text-xs text-neutral-300 font-medium mb-1">Re: {msg.subject}</p>
+        )}
+        <p className="text-sm text-white whitespace-pre-wrap break-words">{msg.content}</p>
+        {msg.metadata?.from || msg.metadata?.to ? (
+          <div className="flex items-center gap-2 mt-1.5 text-xs text-neutral-600">
+            {msg.metadata.from ? <span>From: {String(msg.metadata.from)}</span> : null}
+            {msg.metadata.to ? <span>To: {String(msg.metadata.to)}</span> : null}
+          </div>
+        ) : null}
+        {msg.metadata?.status ? (
+          <div className="mt-1">
+            <span className="text-xs text-neutral-500">{String(msg.metadata.status)}</span>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function MessageList({ messages }: { messages: ConversationMessage[] }) {
+  const bottomRef = useRef<HTMLDivElement>(null)
+
+  if (messages.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-12 text-neutral-500">
+        <p className="text-sm italic">No messages in this channel</p>
+      </div>
+    )
+  }
+
+  const sorted = [...messages].sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  )
+
+  return (
+    <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
+      {sorted.map((msg) => (
+        <MessageBubble key={msg.id} msg={msg} />
+      ))}
+      <div ref={bottomRef} />
+    </div>
+  )
+}
+
+type ConvoTab = 'all' | 'sms' | 'email'
+
+function ConversationPanel({ messages, onCompose }: {
+  messages: ConversationMessage[]
+  onCompose: (type: 'sms' | 'email') => void
+}) {
+  const [tab, setTab] = useState<ConvoTab>('all')
+
+  const smsMsgs = messages.filter(m => m.type === 'sms')
+  const emailMsgs = messages.filter(m => m.type === 'email')
+
+  const tabs: { key: ConvoTab; label: string; count: number; icon: React.ComponentType<{ className?: string }> }[] = [
+    { key: 'all', label: 'All', count: messages.length, icon: Activity },
+    { key: 'sms', label: 'SMS', count: smsMsgs.length, icon: MessageSquare },
+    { key: 'email', label: 'Email', count: emailMsgs.length, icon: Mail },
+  ]
+
+  const filtered = tab === 'sms' ? smsMsgs : tab === 'email' ? emailMsgs : messages
+
+  return (
+    <div>
+      {/* Tab bar + compose buttons */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <div className="flex items-center gap-1 bg-neutral-800/50 rounded-lg p-1">
+          {tabs.map(t => {
+            const Icon = t.icon
+            return (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  tab === t.key
+                    ? 'bg-neutral-700 text-white'
+                    : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-700/50'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {t.label}
+                <span className={`text-xs ml-0.5 ${tab === t.key ? 'text-primary-400' : 'text-neutral-500'}`}>
+                  {t.count}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="primary" onClick={() => onCompose('email')}>
+            <Mail className="w-3.5 h-3.5 mr-1.5" /> Compose Email
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onCompose('sms')}
+            className="text-secondary-400 border-secondary-500/50 hover:bg-secondary-500/10"
+          >
+            <MessageSquare className="w-3.5 h-3.5 mr-1.5" /> Compose SMS
+          </Button>
+        </div>
+      </div>
+
+      <MessageList messages={filtered} />
+    </div>
+  )
+}
+
+// ── Main Content ──
+
+function MemberDetailContent() {
+  const { id } = useParams<{ id: string }>()
+  const router = useRouter()
+  const [member, setMember] = useState<MemberData | null>(null)
+  const [profile, setProfile] = useState<ProfileData | null>(null)
+  const [conversation, setConversation] = useState<ConversationMessage[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [composeType, setComposeType] = useState<'sms' | 'email' | null>(null)
+
+  async function loadMember() {
     try {
-      const response = await fetch(`/api/crm/members/${member.user_id}/email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: member.email,
-          subject: emailSubject.trim(),
-          textBody: emailBody.trim(),
-          senderId,
-        }),
-      })
+      const [memberRes, convoRes] = await Promise.all([
+        fetch(`/api/crm/members/${id}`),
+        fetch(`/api/crm/members/${id}/conversation`),
+      ])
 
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to send email')
+      if (!memberRes.ok) throw new Error('Failed to load member')
+      const memberData = await memberRes.json()
+      setMember(memberData.member)
+      setProfile(memberData.profile)
+
+      if (convoRes.ok) {
+        const convoData = await convoRes.json()
+        setConversation(convoData.conversation || [])
       }
-
-      // Clear form
-      setEmailSubject('')
-      setEmailBody('')
-      
-      toast.success('Email sent successfully')
-    } catch (error: any) {
-      toast.error('Failed to send email')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
-      setSendingEmail(false)
+      setLoading(false)
     }
   }
 
-  async function handleSendSMS() {
-    if (!member?.phone) {
-      toast.error('No phone number for this member')
-      return
-    }
-
-    const message = prompt('Enter message to send:')
-    if (!message) return
-
-    try {
-      const response = await fetch('/api/messaging/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: member.phone,
-          message,
-          userId: member.user_id,
-        }),
-      })
-
-      if (!response.ok) throw new Error('Failed to send SMS')
-
-      toast.success('SMS sent successfully')
-      fetchMember()
-    } catch (error: any) {
-      console.error('Error sending SMS:', error)
-      toast.error('Failed to send SMS')
-    }
-  }
+  useEffect(() => {
+    if (id) loadMember()
+  }, [id])
 
   if (loading) {
     return (
-      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-        <Spinner size="lg" />
+      <Container size="xl">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <Spinner size="lg" />
+            <p className="text-neutral-400 mt-4">Loading member data...</p>
+          </div>
+        </div>
       </Container>
     )
   }
 
-  if (!member) {
+  if (error || !member) {
     return (
       <Container size="xl">
-        <Stack gap="lg">
-          <PageHero title="Member Not Found" subtitle="The requested member could not be found" />
-        <Card className="text-center p-8 md:p-12">
-          <p className="text-sm md:text-base text-neutral-400">This member may have been deleted or the ID is incorrect.</p>
-          <Button
-            variant="outline"
-            onClick={() => router.push('/admin/crm/members')}
-            className="mt-4"
-          >
-            ← Back to Members
+        <div className="text-center py-16">
+          <p className="text-red-400 mb-4">{error || 'Member not found'}</p>
+          <Button variant="outline" onClick={() => router.push('/admin/crm/members')}>
+            <ArrowLeft className="w-4 h-4 mr-2" /> Back to Members
           </Button>
-        </Card>
-        </Stack>
+        </div>
       </Container>
     )
   }
 
-  const activity = member.activity_metrics || {}
-  const revenue = member.revenue_metrics || {}
-  const daysSinceLogin = activity.days_since_last_login
+  const revenue = member.revenue_metrics as Record<string, unknown>
+  const activity = member.activity_metrics as Record<string, unknown>
 
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <PageHero 
-          title={member.full_name || 'Unknown Member'}
-          subtitle={`${member.email}${member.phone ? ` • ${member.phone}` : ''}`}
-        >
-          <div className="flex flex-wrap gap-2 mt-4">
+        {/* Back nav */}
+        <Button variant="ghost" size="sm" onClick={() => router.push('/admin/crm/members')} className="self-start">
+          <ArrowLeft className="w-4 h-4 mr-2" /> Back to Members
+        </Button>
+
+        {/* ── Hero Header ── */}
+        <Card className="p-6">
+          <div className="flex flex-col md:flex-row items-start gap-6">
+            <div className="flex-shrink-0">
+              {member.profile_picture_url ? (
+                <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-primary-500/30">
+                  <img src={member.profile_picture_url} alt="" className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div className="w-20 h-20 bg-gradient-to-br from-primary-500/20 to-accent-500/20 rounded-full flex items-center justify-center border-2 border-neutral-700">
+                  <User className="w-8 h-8 text-neutral-400" />
+                </div>
+              )}
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-3 mb-2">
+                <h1 className="text-2xl font-bold text-white">{member.full_name}</h1>
+                <Badge variant={member.is_active ? 'success' : 'neutral'}>
+                  {member.is_active ? 'Active' : 'Inactive'}
+                </Badge>
+                <Badge variant="neutral">{member.role}</Badge>
+                {revenue.subscription_tier ? (
+                  <Badge className="bg-accent-500/20 text-accent-400 border-accent-500/30">
+                    {String(revenue.subscription_tier)}
+                  </Badge>
+                ) : null}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-neutral-300">
+                <button
+                  onClick={() => copyToClipboard(member.email)}
+                  className="flex items-center gap-2 hover:text-white transition-colors text-left"
+                >
+                  <Mail className="w-4 h-4 text-neutral-500 flex-shrink-0" />
+                  <span className="truncate">{member.email}</span>
+                  <Copy className="w-3 h-3 text-neutral-600" />
+                </button>
+
+                {member.phone ? (
+                  <button
+                    onClick={() => copyToClipboard(member.phone!)}
+                    className="flex items-center gap-2 hover:text-white transition-colors text-left"
+                  >
+                    <Phone className="w-4 h-4 text-neutral-500 flex-shrink-0" />
+                    <span>{member.phone}</span>
+                    <Copy className="w-3 h-3 text-neutral-600" />
+                  </button>
+                ) : (
+                  <span className="flex items-center gap-2 text-neutral-600">
+                    <Phone className="w-4 h-4" /> No phone
+                  </span>
+                )}
+
+                <span className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-neutral-500" /> Joined {formatDate(member.created_at)}
+                </span>
+                <span className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-neutral-500" /> Last login {timeAgo(member.last_login_at)}
+                </span>
+              </div>
+
+              {/* Opt-in Status */}
+              <div className="flex items-center gap-4 mt-3">
+                <div className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full ${
+                  member.sms_opt_in ? 'bg-green-500/10 text-green-400 border border-green-500/30' : 'bg-neutral-800 text-neutral-500 border border-neutral-700'
+                }`}>
+                  {member.sms_opt_in ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                  SMS {member.sms_opt_in ? 'Opted In' : 'Not Opted In'}
+                  {member.sms_opt_in_date && <span className="text-neutral-500 ml-1">({formatDate(member.sms_opt_in_date)})</span>}
+                </div>
+                <div className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full ${
+                  member.email_opt_in ? 'bg-green-500/10 text-green-400 border border-green-500/30' : 'bg-neutral-800 text-neutral-500 border border-neutral-700'
+                }`}>
+                  {member.email_opt_in ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                  Email {member.email_opt_in ? 'Opted In' : 'Not Opted In'}
+                </div>
+              </div>
+
+              <div className="text-xs text-neutral-600 font-mono mt-2">ID: {member.user_id}</div>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="flex gap-5 flex-shrink-0">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-primary-400">${Number(revenue.mrr || 0).toFixed(0)}</div>
+                <div className="text-xs text-neutral-400">MRR</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-secondary-400">${Number(revenue.ltv || 0).toFixed(0)}</div>
+                <div className="text-xs text-neutral-400">LTV</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-accent-400">{Number(activity.vision_count || 0)}</div>
+                <div className="text-xs text-neutral-400">Visions</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="mt-5 pt-4 border-t border-neutral-700/50 flex flex-wrap gap-3">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setComposeType('email')}
+            >
+              <Mail className="w-4 h-4 mr-2" /> Send Email
+            </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => router.push('/admin/crm/members')}
+              onClick={() => setComposeType('sms')}
+              disabled={!member.phone}
+              className={member.phone ? 'text-secondary-400 border-secondary-500/50 hover:bg-secondary-500/10' : ''}
             >
-              ← Back to Members
+              <MessageSquare className="w-4 h-4 mr-2" /> Send SMS
             </Button>
-            {activity.engagement_status && (
-              <Badge className="bg-primary-500/20 text-primary-500 border border-primary-500/30 px-3 py-1 text-xs font-semibold">
-                {activity.engagement_status}
-              </Badge>
-            )}
-            {revenue.subscription_tiers && revenue.subscription_tiers.length > 0 && revenue.subscription_tiers.map((tier, index) => (
-              <Badge 
-                key={index}
-                className="bg-secondary-500/20 text-secondary-500 border border-secondary-500/30 px-3 py-1 text-xs font-semibold"
-              >
-                {tier}
-              </Badge>
-            ))}
-          </div>
-        </PageHero>
-
-      {/* Tabs */}
-      <div className="flex flex-wrap gap-2 border-b border-[#333] pb-4">
-        {['overview', 'retention', 'activity', 'features', 'revenue', 'conversation', 'support'].map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-3 md:px-4 py-2 text-xs md:text-sm font-medium rounded-lg transition-colors border-2 ${
-              activeTab === tab
-                ? 'border-primary-500 text-primary-500 bg-primary-500/10'
-                : 'border-[#333] text-neutral-400 hover:text-white hover:border-[#666] hover:bg-[#1F1F1F]'
-            }`}
-          >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-          </button>
-        ))}
-      </div>
-
-      {/* Tab Content */}
-      {activeTab === 'overview' && (
-        <div className="space-y-4 md:space-y-6">
-          {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
-            <TrackingMilestoneCard
-              label="Visions"
-              value={activity.vision_count || 0}
-              theme="primary"
-              icon={<Target className="w-6 h-6" />}
-            />
-            <TrackingMilestoneCard
-              label="Last Login"
-              value={daysSinceLogin !== null ? `${daysSinceLogin}d ago` : 'Never'}
-              theme="secondary"
-              icon={<Clock className="w-6 h-6" />}
-            />
-            <TrackingMilestoneCard
-              label="MRR"
-              value={`$${revenue.mrr?.toFixed(0) || '0'}`}
-              theme="accent"
-              icon={<DollarSign className="w-6 h-6" />}
-            />
-          </div>
-
-          {/* Manual Classification */}
-          <Card className="p-4 md:p-6 lg:p-8">
-            <h2 className="text-lg md:text-xl font-semibold mb-4 md:mb-6">Manual Classification</h2>
-            
-            <div className="space-y-4 md:space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs md:text-sm font-medium mb-2">Engagement Status</label>
-                  <select
-                    value={engagementStatus}
-                    onChange={(e) => setEngagementStatus(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#1F1F1F] border border-[#333] rounded-xl text-white focus:outline-none focus:border-primary-500 text-sm md:text-base"
-                  >
-                    <option value="">Not Set</option>
-                    <option value="active">Active</option>
-                    <option value="at_risk">At Risk</option>
-                    <option value="champion">Champion</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs md:text-sm font-medium mb-2">Health Status</label>
-                  <select
-                    value={healthStatus}
-                    onChange={(e) => setHealthStatus(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#1F1F1F] border border-[#333] rounded-xl text-white focus:outline-none focus:border-primary-500 text-sm md:text-base"
-                  >
-                    <option value="">Not Set</option>
-                    <option value="healthy">Healthy</option>
-                    <option value="needs_attention">Needs Attention</option>
-                    <option value="churned">Churned</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs md:text-sm font-medium mb-2">Tags</label>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {tags.map((tag) => (
-                    <Badge
-                      key={tag}
-                      className="bg-[#8B5CF6]/20 text-[#C4B5FD] border border-[#8B5CF6]/30 px-3 py-1 text-xs cursor-pointer hover:bg-[#8B5CF6]/30 font-semibold"
-                      onClick={() => removeTag(tag)}
-                    >
-                      {tag} ×
-                    </Badge>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    value={newTag}
-                    onChange={(e) => setNewTag(e.target.value)}
-                    placeholder="Add tag..."
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                  />
-                  <Button variant="ghost" size="sm" onClick={addTag}>
-                    Add
-                  </Button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs md:text-sm font-medium mb-2">Your Notes</label>
-                <Textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Add observations, action items, etc..."
-                  rows={4}
-                />
-              </div>
-
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleUpdate}
-                disabled={updating}
-              >
-                {updating ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {activeTab === 'retention' && (
-        <div className="space-y-4">
-          <Card className="p-4 md:p-6 lg:p-8">
-            <div className="flex items-center gap-3 mb-6">
-              <BarChart3 className="w-5 h-5 text-primary-500" />
-              <div>
-                <h2 className="text-lg md:text-xl font-semibold">Retention Metrics</h2>
-                <p className="text-xs text-neutral-500">
-                  Detailed breakdown of what activities are feeding each metric
-                </p>
-              </div>
-            </div>
-            <RetentionMetricsBreakdown userId={member.user_id} />
-          </Card>
-        </div>
-      )}
-
-      {activeTab === 'activity' && (
-        <Card className="p-4 md:p-6 lg:p-8">
-          <h2 className="text-lg md:text-xl font-semibold mb-4 md:mb-6">Activity Metrics</h2>
-          
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 rounded-xl bg-secondary-500/10 border border-secondary-500/25">
-                <div className="text-xs md:text-sm text-secondary-500 uppercase tracking-wide mb-2">Last Login</div>
-                <div className="text-sm md:text-base font-semibold text-white">
-                  {activity.last_login_at
-                    ? new Date(activity.last_login_at).toLocaleDateString()
-                    : 'Never'}
-                </div>
-              </div>
-              <div className={`p-4 rounded-xl border ${
-                daysSinceLogin > 14 ? 'bg-[#D03739]/10 border-[#D03739]/25' :
-                daysSinceLogin > 7 ? 'bg-[#FFB701]/10 border-[#FFB701]/25' :
-                'bg-primary-500/10 border-primary-500/25'
-              }`}>
-                <div className={`text-xs md:text-sm uppercase tracking-wide mb-2 ${
-                  daysSinceLogin > 14 ? 'text-[#EF4444]' :
-                  daysSinceLogin > 7 ? 'text-[#FCD34D]' :
-                  'text-primary-500'
-                }`}>Days Since Login</div>
-                <div className="text-lg md:text-xl font-bold text-white">
-                  {daysSinceLogin !== null ? `${daysSinceLogin}d` : 'N/A'}
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-[#333]">
-              <div className="text-xs md:text-sm text-neutral-500 mb-2">Member Since</div>
-              <div className="text-sm md:text-base text-neutral-300">
-                {new Date(member.created_at).toLocaleDateString()} 
-                {' '}({Math.floor((Date.now() - new Date(member.created_at).getTime()) / (1000 * 60 * 60 * 24))} days)
-              </div>
-            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push(`/admin/users/${member.user_id}`)}
+            >
+              <ExternalLink className="w-4 h-4 mr-2" /> Full User Profile
+            </Button>
           </div>
         </Card>
-      )}
 
-      {activeTab === 'features' && (
-        <Card className="p-4 md:p-6 lg:p-8">
-          <h2 className="text-lg md:text-xl font-semibold mb-4 md:mb-6">Feature Usage</h2>
-          
-          <div className="space-y-4 md:space-y-6">
-            <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-primary-500/10 border border-primary-500/25">
-              <div>
-                <div className="text-sm md:text-base font-medium text-white">Profile Complete</div>
-                <div className="text-xs md:text-sm text-primary-500">
-                  {activity.profile_completion_percent || 0}% complete
-                </div>
-              </div>
-              <div className="text-xl md:text-2xl text-primary-500">
-                {(activity.profile_completion_percent || 0) >= 70 ? '✓' : '○'}
-              </div>
+        {/* ── Contact & Account Details ── */}
+        <Section title="Contact & Account Details" icon={User} defaultOpen={true}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
+            <div>
+              <h3 className="text-sm font-semibold text-primary-400 mb-2">Contact Info</h3>
+              <DataRow label="Email" value={member.email} copyable={member.email} />
+              <DataRow label="Phone" value={member.phone} copyable={member.phone || undefined} />
+              <DataRow label="First Name" value={member.first_name} />
+              <DataRow label="Last Name" value={member.last_name} />
+              <DataRow label="Date of Birth" value={formatDate(member.date_of_birth)} />
             </div>
-
-            <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-primary-500/10 border border-primary-500/25">
-              <div>
-                <div className="text-sm md:text-base font-medium text-white">Life Visions</div>
-                <div className="text-xs md:text-sm text-primary-500">
-                  {activity.vision_count || 0} created, {activity.vision_refinement_count || 0} refinements
-                </div>
-              </div>
-              <div className="text-lg md:text-xl font-bold text-primary-500">
-                {activity.vision_count || 0}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-secondary-500/10 border border-secondary-500/25">
-              <div>
-                <div className="text-sm md:text-base font-medium text-white">Vision Audio</div>
-                <div className="text-xs md:text-sm text-secondary-500">
-                  {activity.audio_generated_count || 0} generated
-                </div>
-              </div>
-              <div className="text-lg md:text-xl font-bold text-secondary-500">
-                {activity.audio_generated_count || 0}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-[#FFB701]/10 border border-[#FFB701]/25">
-              <div>
-                <div className="text-sm md:text-base font-medium text-white">Journal Entries</div>
-                <div className="text-xs md:text-sm text-[#FCD34D]">
-                  Total entries written
-                </div>
-              </div>
-              <div className="text-lg md:text-xl font-bold text-[#FCD34D]">
-                {activity.journal_entry_count || 0}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/25">
-              <div>
-                <div className="text-sm md:text-base font-medium text-white">Vision Board Images</div>
-                <div className="text-xs md:text-sm text-[#C4B5FD]">
-                  Images uploaded
-                </div>
-              </div>
-              <div className="text-lg md:text-xl font-bold text-[#C4B5FD]">
-                {activity.vision_board_image_count || 0}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-neutral-600/10 border border-neutral-600/25">
-              <div>
-                <div className="text-sm md:text-base font-medium text-white">Storage</div>
-                <div className="text-xs md:text-sm text-neutral-400">
-                  {activity.s3_file_count || 0} files, {activity.total_storage_mb?.toFixed(1) || '0'} MB
-                </div>
-              </div>
-              <div className="text-lg md:text-xl font-bold text-neutral-400">
-                {activity.s3_file_count || 0}
-              </div>
+            <div>
+              <h3 className="text-sm font-semibold text-primary-400 mb-2">Account Settings</h3>
+              <DataRow label="Role" value={member.role} />
+              <DataRow label="SMS Opt-In" value={
+                member.sms_opt_in
+                  ? <span className="text-green-400">Yes ({formatDate(member.sms_opt_in_date)})</span>
+                  : <span className="text-neutral-500">No</span>
+              } />
+              <DataRow label="Email Opt-In" value={
+                member.email_opt_in
+                  ? <span className="text-green-400">Yes</span>
+                  : <span className="text-neutral-500">No</span>
+              } />
+              <DataRow label="Account Status" value={
+                member.is_active
+                  ? <span className="text-green-400">Active</span>
+                  : <span className="text-red-400">Inactive</span>
+              } />
+              <DataRow label="Household Admin" value={member.is_household_admin ? 'Yes' : 'No'} />
+              {member.household_id && <DataRow label="Household ID" value={member.household_id} mono copyable={member.household_id} />}
+              <DataRow label="User ID" value={member.user_id} mono copyable={member.user_id} />
             </div>
           </div>
-        </Card>
-      )}
 
-      {activeTab === 'revenue' && (
-        <Card className="p-4 md:p-6 lg:p-8">
-          <h2 className="text-lg md:text-xl font-semibold mb-4 md:mb-6">Revenue & Subscription</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            <div className="p-4 rounded-xl bg-secondary-500/10 border border-secondary-500/25">
-              <div className="text-xs md:text-sm text-secondary-500 mb-1 uppercase tracking-wide">Subscription Tier</div>
-              <div className="text-base md:text-lg font-semibold text-white">
-                {revenue.subscription_tier || member.subscription_tier || 'Free'}
+          {profile && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 mt-6 pt-4 border-t border-neutral-800">
+              <div>
+                <h3 className="text-sm font-semibold text-primary-400 mb-2">Demographics</h3>
+                <DataRow label="Gender" value={profile.gender} />
+                <DataRow label="Relationship" value={profile.relationship_status} />
+                <DataRow label="Education" value={profile.education} />
               </div>
-            </div>
-            <div className="p-4 rounded-xl bg-neutral-600/10 border border-neutral-600/25">
-              <div className="text-xs md:text-sm text-neutral-400 mb-1 uppercase tracking-wide">Status</div>
-              <div className="text-base md:text-lg font-semibold text-white">
-                {revenue.subscription_status || 'N/A'}
-              </div>
-            </div>
-            <div className="p-4 rounded-xl bg-primary-500/10 border border-primary-500/25">
-              <div className="text-xs md:text-sm text-primary-500 mb-1 uppercase tracking-wide">Monthly Revenue</div>
-              <div className="text-xl md:text-2xl font-bold text-white">
-                ${revenue.mrr?.toFixed(2) || '0.00'}
-              </div>
-            </div>
-            <div className="p-4 rounded-xl bg-secondary-500/10 border border-secondary-500/25">
-              <div className="text-xs md:text-sm text-secondary-500 mb-1 uppercase tracking-wide">Lifetime Value</div>
-              <div className="text-xl md:text-2xl font-bold text-white">
-                ${revenue.ltv?.toFixed(2) || '0.00'}
-              </div>
-            </div>
-            <div className="p-4 rounded-xl bg-[#FFB701]/10 border border-[#FFB701]/25">
-              <div className="text-xs md:text-sm text-[#FCD34D] mb-1 uppercase tracking-wide">Total Spent</div>
-              <div className="text-base md:text-lg font-semibold text-white">
-                ${revenue.total_spent?.toFixed(2) || '0.00'}
-              </div>
-            </div>
-            <div className="p-4 rounded-xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/25">
-              <div className="text-xs md:text-sm text-[#C4B5FD] mb-1 uppercase tracking-wide">Active Subscriptions</div>
-              <div className="text-base md:text-lg font-semibold text-white">
-                {revenue.subscription_count || 0}
-              </div>
-            </div>
-            {revenue.monthly_tokens > 0 && (
-              <div className="p-4 rounded-xl bg-primary-500/10 border border-primary-500/25">
-                <div className="text-xs md:text-sm text-primary-500 mb-1 uppercase tracking-wide">Monthly Tokens</div>
-                <div className="text-base md:text-lg font-semibold text-white">
-                  {(revenue.monthly_tokens / 1000).toFixed(0)}k
-                </div>
-              </div>
-            )}
-            {revenue.storage_gb > 0 && (
-              <div className="p-4 rounded-xl bg-secondary-500/10 border border-secondary-500/25">
-                <div className="text-xs md:text-sm text-secondary-500 mb-1 uppercase tracking-wide">Storage Quota</div>
-                <div className="text-base md:text-lg font-semibold text-white">
-                  {revenue.storage_gb} GB
-                </div>
-              </div>
-            )}
-          </div>
-
-          {activity.tokens_used !== undefined && (
-            <div className="mt-6 pt-6 border-t border-[#333]">
-              <h3 className="text-base md:text-lg font-semibold mb-4">Token Usage</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl bg-primary-500/10 border border-primary-500/25">
-                  <div className="text-xs md:text-sm text-primary-500 mb-1 uppercase tracking-wide">Tokens Used</div>
-                  <div className="text-base md:text-lg font-semibold text-white">
-                    {activity.tokens_used || 0}
-                  </div>
-                </div>
-                <div className="p-4 rounded-xl bg-secondary-500/10 border border-secondary-500/25">
-                  <div className="text-xs md:text-sm text-secondary-500 mb-1 uppercase tracking-wide">Tokens Remaining</div>
-                  <div className="text-base md:text-lg font-semibold text-white">
-                    {activity.tokens_remaining || 0}
-                  </div>
-                </div>
+              <div>
+                <h3 className="text-sm font-semibold text-primary-400 mb-2">Location</h3>
+                <DataRow label="City" value={profile.city} />
+                <DataRow label="State" value={profile.state} />
+                <DataRow label="Country" value={profile.country} />
+                <DataRow label="Postal Code" value={profile.postal_code} />
               </div>
             </div>
           )}
-        </Card>
-      )}
 
-      {activeTab === 'conversation' && (
-        <div className="space-y-6">
-          {/* Quick Messaging - Moved to Top */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* SMS Composer */}
-            <Card className="p-4 md:p-6">
-              <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
-                <MessageSquare className="w-4 h-4" /> Send SMS
-              </h3>
-              
-              {!member?.phone ? (
-                <p className="text-sm text-yellow-500">
-                  No phone number on file.
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  <Textarea
-                    value={messageBody}
-                    onChange={(e) => setMessageBody(e.target.value)}
-                    placeholder="Type your SMS..."
-                    rows={4}
-                    disabled={sending}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                        e.preventDefault()
-                        handleSendMessage()
-                      }
-                    }}
-                  />
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-neutral-500">
-                      To: {member.phone}
-                    </span>
-                    <Button
-                      onClick={handleSendMessage}
-                      disabled={!messageBody.trim() || sending}
-                      loading={sending}
-                      variant="primary"
-                      size="sm"
-                    >
-                      Send
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </Card>
+          {profile && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 mt-4 pt-4 border-t border-neutral-800">
+              <div>
+                <h3 className="text-sm font-semibold text-primary-400 mb-2">Work & Finance</h3>
+                <DataRow label="Employment" value={profile.employment_type} />
+                <DataRow label="Occupation" value={profile.occupation} />
+                <DataRow label="Company" value={profile.company} />
+                <DataRow label="Household Income" value={profile.household_income} />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-primary-400 mb-2">Dates</h3>
+                <DataRow label="Account Created" value={formatDateTime(member.created_at)} />
+                <DataRow label="Last Login" value={formatDateTime(member.last_login_at)} />
+                <DataRow label="Last Updated" value={formatDateTime(member.updated_at)} />
+              </div>
+            </div>
+          )}
+        </Section>
 
-            {/* Email Composer */}
-            <Card className="p-4 md:p-6">
-              <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
-                <Mail className="w-4 h-4" /> Send Email
-              </h3>
-              
-              {!member?.email ? (
-                <p className="text-sm text-yellow-500">
-                  No email on file.
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-neutral-500 shrink-0" />
-                    <select
-                      value={senderId}
-                      onChange={(e) => setSenderId(e.target.value as typeof senderId)}
-                      disabled={sendingEmail}
-                      className="flex-1 px-4 py-2.5 text-sm bg-[#404040] border-2 border-[#666666] rounded-xl text-white focus:outline-none focus:border-[#39FF14] transition-all duration-200 disabled:opacity-50"
-                    >
-                      {CRM_SENDERS.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.label} ({s.email})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <Input
-                    value={emailSubject}
-                    onChange={(e) => setEmailSubject(e.target.value)}
-                    placeholder="Subject..."
-                    disabled={sendingEmail}
-                  />
-                  <Textarea
-                    value={emailBody}
-                    onChange={(e) => setEmailBody(e.target.value)}
-                    placeholder="Type your email..."
-                    rows={3}
-                    disabled={sendingEmail}
-                  />
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-neutral-500">
-                      To: {member.email}
-                    </span>
-                    <Button
-                      onClick={handleSendEmail}
-                      disabled={!emailSubject.trim() || !emailBody.trim() || sendingEmail}
-                      loading={sendingEmail}
-                      variant="primary"
-                      size="sm"
-                    >
-                      Send
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </Card>
+        {/* ── Revenue & Subscription ── */}
+        <Section title="Revenue & Subscription" icon={CreditCard} defaultOpen={true}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-6">
+            {[
+              { label: 'Subscription', value: String(revenue.subscription_tier || 'Free'), color: 'text-accent-400' },
+              { label: 'MRR', value: `$${Number(revenue.mrr || 0).toFixed(2)}`, color: 'text-primary-400' },
+              { label: 'LTV', value: `$${Number(revenue.ltv || 0).toFixed(2)}`, color: 'text-secondary-400' },
+              { label: 'Total Spent', value: `$${Number(revenue.total_spent || 0).toFixed(2)}`, color: 'text-white' },
+              { label: 'Days as Customer', value: String(revenue.days_as_customer || 0), color: 'text-white' },
+            ].map(item => (
+              <div key={item.label} className="bg-neutral-800 rounded-xl p-4 text-center">
+                <div className={`text-xl font-bold ${item.color}`}>{item.value}</div>
+                <div className="text-xs text-neutral-400 mt-1">{item.label}</div>
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
+            <div>
+              <DataRow label="Subscription Status" value={String(revenue.subscription_status || 'None')} />
+              <DataRow label="Active Subscriptions" value={String(revenue.subscription_count || 0)} />
+              <DataRow label="Monthly Tokens" value={String(revenue.monthly_tokens || 0)} />
+              <DataRow label="Storage" value={`${revenue.storage_gb || 0} GB`} />
+            </div>
+            <div>
+              {revenue.stripe_customer_id ? (
+                <DataRow label="Stripe Customer" value={String(revenue.stripe_customer_id)} mono copyable={String(revenue.stripe_customer_id)} />
+              ) : null}
+              {revenue.stripe_subscription_id ? (
+                <DataRow label="Stripe Subscription" value={String(revenue.stripe_subscription_id)} mono copyable={String(revenue.stripe_subscription_id)} />
+              ) : null}
+              <DataRow label="Sub Start Date" value={formatDate(revenue.subscription_start_date as string)} />
+            </div>
+          </div>
+        </Section>
+
+        {/* ── Activity Metrics ── */}
+        <Section title="Activity Metrics" icon={Activity} defaultOpen={true}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+            {[
+              { label: 'Profile Completion', value: `${activity.profile_completion_percent || 0}%` },
+              { label: 'Visions', value: activity.vision_count || 0 },
+              { label: 'Journal Entries', value: activity.journal_entry_count || 0 },
+              { label: 'Audio Generated', value: activity.audio_generated_count || 0 },
+              { label: 'Vision Board', value: activity.vision_board_image_count || 0 },
+              { label: 'Days Since Login', value: activity.days_since_last_login ?? 'N/A' },
+            ].map(item => (
+              <div key={item.label} className="bg-neutral-800 rounded-lg p-3 text-center">
+                <div className="text-lg font-bold text-white">{String(item.value)}</div>
+                <div className="text-xs text-neutral-400">{item.label}</div>
+              </div>
+            ))}
           </div>
 
-          {/* Conversation History - Moved Below Messaging */}
-          <Card className="p-4 md:p-6 lg:p-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg md:text-xl font-semibold flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-primary-500" />
-                Conversation History ({conversation.length})
-              </h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={fetchConversation}
-                disabled={loadingConversation}
-                className="flex items-center gap-2"
-              >
-                <RefreshCw className={`w-4 h-4 ${loadingConversation ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
+          {activity.engagement_status ? (
+            <div className="mt-4 flex items-center gap-4">
+              <DataRow label="Engagement Status" value={
+                <Badge className="text-xs">{String(activity.engagement_status)}</Badge>
+              } />
+              {activity.health_status ? (
+                <DataRow label="Health Status" value={
+                  <Badge className="text-xs">{String(activity.health_status)}</Badge>
+                } />
+              ) : null}
             </div>
-            <ConversationThread 
-              messages={conversation} 
-              loading={loadingConversation}
-            />
-          </Card>
-        </div>
-      )}
+          ) : null}
 
-      {activeTab === 'support' && (
-        <Card className="p-4 md:p-6 lg:p-8">
-          <h2 className="text-lg md:text-xl font-semibold mb-4 md:mb-6">Support Tickets</h2>
-          
-          {tickets.length === 0 ? (
-            <p className="text-sm md:text-base text-neutral-400 text-center py-8">
-              No support tickets
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {tickets.map((ticket) => (
-                <div
-                  key={ticket.id}
-                  className="flex flex-col md:flex-row md:items-center md:justify-between p-4 bg-[#1F1F1F] rounded-xl hover:bg-[#2A2A2A] cursor-pointer transition-colors gap-3"
-                  onClick={() => window.open(`/admin/crm/support/${ticket.id}`, '_blank')}
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs md:text-sm text-neutral-500 mb-1">{ticket.ticket_number}</div>
-                    <div className="font-medium text-sm md:text-base truncate">{ticket.subject}</div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Badge className={`px-2 py-1 text-xs ${
-                      ticket.status === 'resolved' ? 'bg-primary-500' :
-                      ticket.status === 'in_progress' ? 'bg-[#FFB701]' :
-                      'bg-[#666666]'
-                    } text-white`}>
-                      {ticket.status}
-                    </Badge>
-                    <span className="text-xs md:text-sm text-neutral-500">
-                      {new Date(ticket.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
+          {activity.admin_notes ? (
+            <div className="mt-4 p-3 bg-accent-500/10 border border-accent-500/30 rounded-xl">
+              <div className="text-xs text-accent-400 font-semibold mb-1">Admin Notes</div>
+              <p className="text-sm text-white">{String(activity.admin_notes)}</p>
+            </div>
+          ) : null}
+
+          {Array.isArray(activity.custom_tags) && (activity.custom_tags as string[]).length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {(activity.custom_tags as string[]).map((tag: string) => (
+                <Badge key={tag} variant="neutral" className="text-xs">{tag}</Badge>
               ))}
             </div>
           )}
-        </Card>
-      )}
+        </Section>
+
+        {/* ── Conversation History ── */}
+        <Section
+          title="Conversation History"
+          icon={MessageSquare}
+          count={conversation.length}
+          defaultOpen={true}
+        >
+          <ConversationPanel
+            messages={conversation}
+            onCompose={(type) => setComposeType(type)}
+          />
+        </Section>
+
       </Stack>
+
+      {/* Compose Modal */}
+      {composeType && (
+        <ComposeModal
+          type={composeType}
+          member={member}
+          onClose={() => setComposeType(null)}
+          onSent={loadMember}
+        />
+      )}
     </Container>
   )
 }
 
+export default function MemberDetailPage() {
+  return (
+    <AdminWrapper>
+      <MemberDetailContent />
+    </AdminWrapper>
+  )
+}

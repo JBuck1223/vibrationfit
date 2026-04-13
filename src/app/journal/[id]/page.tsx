@@ -6,7 +6,8 @@ import { Card, Button, DeleteConfirmationDialog, Container, Stack, PageHero, Spi
 import { OptimizedImage } from '@/components/OptimizedImage'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { SavedRecordings } from '@/components/SavedRecordings'
-import { ArrowLeft, Calendar, FileText, X, Download, Play, Volume2, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowLeft, Calendar, FileText, X, Download, Play, Volume2, Edit, Trash2, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react'
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
 interface JournalEntry {
@@ -374,7 +375,7 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
           title={entry?.title || 'Journal Entry'}
           subtitle="View your journal entry"
         >
-          <div className="flex justify-center">
+          <div className="flex justify-center gap-3">
             <Button 
               variant="ghost" 
               size="sm" 
@@ -382,6 +383,12 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Journal
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/story/new">
+                <BookOpen className="w-4 h-4 mr-2" />
+                Create Story
+              </Link>
             </Button>
           </div>
         </PageHero>

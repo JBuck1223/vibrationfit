@@ -77,11 +77,14 @@ export interface IdeaProjectTag {
 export interface IdeaTask {
   id: string
   project_id: string
+  parent_task_id: string | null
   title: string
+  description: string | null
   is_complete: boolean
   sort_order: number
   created_at: string
   updated_at: string
+  subtasks?: IdeaTask[]
 }
 
 export interface IdeaComment {
