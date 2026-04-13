@@ -26,7 +26,9 @@ import {
   WifiOff,
   RefreshCw,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  Wrench,
+  FlaskConical
 } from 'lucide-react'
 import { 
   PageHero, 
@@ -66,6 +68,7 @@ function AdminSessionsContent() {
   } | null>(null)
   const [webhookLoading, setWebhookLoading] = useState(false)
   const [syncRunning, setSyncRunning] = useState(false)
+  const [fixingWebhook, setFixingWebhook] = useState(false)
 
   const checkWebhookHealth = useCallback(async () => {
     setWebhookLoading(true)
@@ -79,6 +82,24 @@ function AdminSessionsContent() {
       setWebhookLoading(false)
     }
   }, [])
+
+  const fixWebhook = useCallback(async () => {
+    setFixingWebhook(true)
+    try {
+      const res = await fetch('/api/admin/webhook-health', { method: 'POST' })
+      const data = await res.json()
+      if (res.ok) {
+        alert(`Webhook ${data.action}: ${data.message}`)
+        await checkWebhookHealth()
+      } else {
+        alert(`Failed: ${data.error || 'Unknown error'}`)
+      }
+    } catch {
+      alert('Failed to fix webhook — check console')
+    } finally {
+      setFixingWebhook(false)
+    }
+  }, [checkWebhookHealth])
 
   useEffect(() => {
     checkWebhookHealth()
@@ -256,6 +277,17 @@ function AdminSessionsContent() {
                 <RefreshCw className={`w-4 h-4 mr-1 ${webhookLoading ? 'animate-spin' : ''}`} />
                 Check
               </Button>
+              {!webhookHealth.healthy && webhookHealth.state !== 'missing' && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={fixWebhook}
+                  disabled={fixingWebhook}
+                >
+                  <Wrench className={`w-4 h-4 mr-1 ${fixingWebhook ? 'animate-spin' : ''}`} />
+                  {fixingWebhook ? 'Fixing...' : 'Fix Webhook'}
+                </Button>
+              )}
               <Button
                 variant={webhookHealth.healthy ? 'ghost' : 'secondary'}
                 size="sm"
@@ -428,9 +460,11 @@ function AdminSessionsContent() {
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-lg bg-neutral-800 flex items-center justify-center">
-                              {session.session_type === 'one_on_one' 
-                                ? <User className="w-5 h-5 text-primary-500" />
-                                : <Users className="w-5 h-5 text-secondary-500" />
+                              {session.session_type === 'test_1on1' || session.session_type === 'test_group'
+                                ? <FlaskConical className="w-5 h-5 text-amber-500" />
+                                : session.session_type === 'one_on_one' 
+                                  ? <User className="w-5 h-5 text-primary-500" />
+                                  : <Users className="w-5 h-5 text-secondary-500" />
                               }
                             </div>
                             <div>

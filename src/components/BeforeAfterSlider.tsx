@@ -72,14 +72,15 @@ export function BeforeAfterSlider({
     }
   }, [fill, imgBounds])
 
+  const handleRef = useRef<HTMLDivElement>(null)
+
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     e.preventDefault()
     e.stopPropagation()
     isDragging.current = true
     didDrag.current = false
-    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
-    updatePosition(e.clientX)
-  }, [updatePosition])
+    handleRef.current?.setPointerCapture(e.pointerId)
+  }, [])
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!isDragging.current) return
@@ -116,11 +117,7 @@ export function BeforeAfterSlider({
     <div
       ref={containerRef}
       className={`relative select-none overflow-hidden ${className}`}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
       onClick={handleClick}
-      style={{ touchAction: 'none', cursor: 'col-resize' }}
     >
       {/* After image (full, bottom layer) */}
       <img
@@ -141,12 +138,25 @@ export function BeforeAfterSlider({
         style={{ clipPath: `inset(0 ${clipRightPct}% 0 0)` }}
       />
 
-      {/* Slider handle */}
+      {/* Slider drag zone — wide invisible hit area for easy grabbing */}
       <div
-        className="absolute top-0 bottom-0 w-0.5 bg-purple-500 pointer-events-none"
-        style={{ left: sliderLeftPx !== null ? `${sliderLeftPx}px` : `${position}%`, transform: 'translateX(-50%)' }}
+        ref={handleRef}
+        className="absolute top-0 bottom-0 z-10"
+        style={{
+          left: sliderLeftPx !== null ? `${sliderLeftPx}px` : `${position}%`,
+          transform: 'translateX(-50%)',
+          width: '44px',
+          touchAction: 'none',
+          cursor: 'col-resize',
+        }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
       >
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-purple-500 flex items-center justify-center shadow-lg shadow-purple-500/40 border-2 border-white/30">
+        {/* Visible line */}
+        <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-0.5 bg-purple-500 pointer-events-none" />
+        {/* Visible handle circle */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-purple-500 flex items-center justify-center shadow-lg shadow-purple-500/40 border-2 border-white/30 pointer-events-none">
           <ArrowLeftRight className="w-4 h-4 text-white" />
         </div>
       </div>
