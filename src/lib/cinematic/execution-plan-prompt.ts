@@ -322,7 +322,6 @@ export async function generateExecutionPlan(
 
   const { object } = await generateObject({
     model: gateway(VISION_MODEL),
-    mode: 'json',
     schema: executionPlanSchema,
     system: systemPrompt,
     prompt: userPrompt,
