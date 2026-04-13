@@ -155,6 +155,12 @@ export const userNavigation: (NavItem | NavGroup)[] = [
     description: 'My Journal',
   },
   {
+    name: 'Stories',
+    href: '/story',
+    icon: FileText,
+    description: 'Focus Stories',
+  },
+  {
     name: 'Daily Paper',
     href: '/daily-paper',
     icon: FileText,
@@ -416,6 +422,7 @@ export const adminNavigation: NavItem[] = [
       { name: 'Automation Rules', href: '/admin/automations', icon: Radio, description: 'Event-driven single-fire triggers' },
       { name: 'Messaging Hub', href: '/admin/emails', icon: Mail, description: 'Messaging overview and stats' },
       { name: 'Sent Email Log', href: '/admin/emails/sent', icon: FileText, description: 'Email delivery history' },
+      { name: 'Sent SMS Log', href: '/admin/texts/sent', icon: MessageSquare, description: 'SMS delivery history' },
     ]
   },
 
@@ -748,6 +755,12 @@ export function isNavItemActive(
     
     if (item.href === '/vibe-tribe') {
       if (pathname.startsWith('/vibe-tribe/')) {
+        return true
+      }
+    }
+    
+    if (item.href === '/story') {
+      if (pathname.startsWith('/story/')) {
         return true
       }
     }

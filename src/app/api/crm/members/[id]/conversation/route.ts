@@ -5,6 +5,17 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminAccess, createAdminClient } from '@/lib/supabase/admin'
 
+/**
+ * Normalize any phone string to E.164 format (+1XXXXXXXXXX).
+ * Handles: (325) 234-4785, 3252344785, +13252344785, 325-234-4785, etc.
+ */
+function toE164(phone: string): string {
+  const digits = phone.replace(/\D/g, '')
+  if (digits.length === 10) return `+1${digits}`
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`
+  return `+${digits}`
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -18,27 +29,36 @@ export async function GET(
 
     const adminClient = createAdminClient()
 
-    // Get member details and auth user in parallel
-    const [{ data: member }, { data: authUser }] = await Promise.all([
+    // Get member details from user_accounts (primary), user_profiles (fallback), and auth
+    const [{ data: account }, { data: profile }, { data: authUser }] = await Promise.all([
+      adminClient
+        .from('user_accounts')
+        .select('email, phone')
+        .eq('id', id)
+        .single(),
       adminClient
         .from('user_profiles')
-        .select('*')
+        .select('email, phone')
         .eq('user_id', id)
+        .eq('is_active', true)
+        .eq('is_draft', false)
         .single(),
       adminClient.auth.admin.getUserById(id),
     ])
 
-    const userEmail = authUser?.user?.email || member?.email
+    const userEmail = account?.email || authUser?.user?.email || profile?.email
+    const rawPhone = account?.phone || profile?.phone || authUser?.user?.phone
+    const e164Phone = rawPhone ? toE164(rawPhone) : null
 
-    // Build SMS query — match by user_id, and also by phone number as fallback
-    const memberPhone = member?.phone
+    // Build SMS query — match by user_id, and also by E.164 phone number
+    // Twilio always stores numbers in E.164 format, so we normalize before matching
     let smsQuery = adminClient
       .from('sms_messages')
       .select('*')
       .order('created_at', { ascending: false })
 
-    if (memberPhone) {
-      smsQuery = smsQuery.or(`user_id.eq.${id},from_number.eq.${memberPhone},to_number.eq.${memberPhone}`)
+    if (e164Phone) {
+      smsQuery = smsQuery.or(`user_id.eq.${id},from_number.eq.${e164Phone},to_number.eq.${e164Phone}`)
     } else {
       smsQuery = smsQuery.eq('user_id', id)
     }
@@ -110,14 +130,13 @@ export async function GET(
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     )
 
+    const smsCount = allMessages.filter(m => m.type === 'sms').length
+    const emailCount = allMessages.filter(m => m.type === 'email').length
+
     return NextResponse.json({
       conversation: allMessages,
-      member: member ? {
-        id: member.user_id,
-        name: `${member.first_name} ${member.last_name}`.trim(),
-        email: member.email,
-        phone: member.phone,
-      } : null,
+      counts: { total: allMessages.length, sms: smsCount, email: emailCount },
+      matchedOn: { email: userEmail || null, phone: e164Phone || null, rawPhone: rawPhone || null },
     })
   } catch (error: unknown) {
     console.error('Error fetching member conversation:', error)

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Container, Card, Button, Input, Stack, PageHero, Spinner, Modal } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
+import { RecordingTextarea } from '@/components/RecordingTextarea'
 import {
   Search, Plus, Kanban, Settings, Calendar, CheckCircle2,
   Filter, X, Lightbulb,
@@ -400,12 +401,13 @@ function IdeasListContent() {
           </div>
           <div>
             <label className="text-sm text-neutral-300 block mb-1">Description</label>
-            <textarea
+            <RecordingTextarea
               value={newDescription}
-              onChange={(e) => setNewDescription(e.target.value)}
+              onChange={(val) => setNewDescription(val)}
               placeholder="Describe the idea..."
               rows={3}
-              className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 resize-none"
+              recordingPurpose="quick"
+              storageFolder="journal"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">

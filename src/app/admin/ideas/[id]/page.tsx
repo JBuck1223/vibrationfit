@@ -4,9 +4,10 @@ import { useState, useEffect, useCallback, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { Container, Card, Button, Input, Stack, PageHero, Spinner, Modal } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
+import { RecordingTextarea } from '@/components/RecordingTextarea'
 import {
   ArrowLeft, Save, Trash2, Plus, CheckCircle2, Circle, X,
-  MessageSquare, Paperclip, Link2, Calendar, Tag, ChevronDown,
+  MessageSquare, Paperclip, Link2, Calendar, Tag, ChevronDown, ChevronRight,
   FileText, Image, File, ExternalLink, Clock,
   ArrowRight, AlertCircle,
 } from 'lucide-react'
@@ -22,6 +23,22 @@ import {
 } from '@/lib/ideas/types'
 
 type Tab = 'overview' | 'tasks' | 'files' | 'activity'
+
+function countAllTasks(tasks: IdeaTask[]): { total: number; done: number } {
+  let total = 0
+  let done = 0
+  for (const t of tasks) {
+    total++
+    if (t.is_complete) done++
+    if (t.subtasks) {
+      for (const st of t.subtasks) {
+        total++
+        if (st.is_complete) done++
+      }
+    }
+  }
+  return { total, done }
+}
 
 function IdeaDetailContent({ id }: { id: string }) {
   const router = useRouter()
@@ -63,6 +80,12 @@ function IdeaDetailContent({ id }: { id: string }) {
   const [linkType, setLinkType] = useState<LinkType>('related')
 
   const [showTagDropdown, setShowTagDropdown] = useState(false)
+
+  const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set())
+  const [editingDescriptionId, setEditingDescriptionId] = useState<string | null>(null)
+  const [editingDescriptionValue, setEditingDescriptionValue] = useState('')
+  const [newSubtaskParentId, setNewSubtaskParentId] = useState<string | null>(null)
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState('')
 
   const fetchProject = useCallback(async () => {
     try {
@@ -162,36 +185,119 @@ function IdeaDetailContent({ id }: { id: string }) {
   }
 
   // Tasks
-  const addTask = async () => {
-    if (!newTaskTitle.trim()) return
+  const addTask = async (parentTaskId?: string) => {
+    const title = parentTaskId ? newSubtaskTitle : newTaskTitle
+    if (!title.trim()) return
     const res = await fetch(`/api/admin/ideas/${id}/tasks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: newTaskTitle }),
+      body: JSON.stringify({
+        title,
+        ...(parentTaskId ? { parent_task_id: parentTaskId } : {}),
+      }),
     })
     if (res.ok) {
       const data = await res.json()
-      setTasks(prev => [...prev, data.task])
-      setNewTaskTitle('')
+      if (parentTaskId) {
+        setTasks(prev => prev.map(t => {
+          if (t.id === parentTaskId) {
+            return { ...t, subtasks: [...(t.subtasks || []), data.task] }
+          }
+          return t
+        }))
+        setNewSubtaskTitle('')
+        setNewSubtaskParentId(null)
+      } else {
+        setTasks(prev => [...prev, { ...data.task, subtasks: [] }])
+        setNewTaskTitle('')
+      }
     }
   }
 
-  const toggleTask = async (task: IdeaTask) => {
+  const toggleTask = async (task: IdeaTask, parentId?: string) => {
     const res = await fetch(`/api/admin/ideas/${id}/tasks`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ task_id: task.id, is_complete: !task.is_complete }),
     })
     if (res.ok) {
-      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, is_complete: !t.is_complete } : t))
+      if (parentId) {
+        setTasks(prev => prev.map(t => {
+          if (t.id === parentId) {
+            return {
+              ...t,
+              subtasks: (t.subtasks || []).map(st =>
+                st.id === task.id ? { ...st, is_complete: !st.is_complete } : st
+              ),
+            }
+          }
+          return t
+        }))
+      } else {
+        setTasks(prev => prev.map(t =>
+          t.id === task.id ? { ...t, is_complete: !t.is_complete } : t
+        ))
+      }
     }
   }
 
-  const deleteTask = async (taskId: string) => {
+  const deleteTask = async (taskId: string, parentId?: string) => {
     const res = await fetch(`/api/admin/ideas/${id}/tasks?task_id=${taskId}`, { method: 'DELETE' })
     if (res.ok) {
-      setTasks(prev => prev.filter(t => t.id !== taskId))
+      if (parentId) {
+        setTasks(prev => prev.map(t => {
+          if (t.id === parentId) {
+            return { ...t, subtasks: (t.subtasks || []).filter(st => st.id !== taskId) }
+          }
+          return t
+        }))
+      } else {
+        setTasks(prev => prev.filter(t => t.id !== taskId))
+      }
     }
+  }
+
+  const saveTaskDescription = async (taskId: string, description: string, parentId?: string) => {
+    const res = await fetch(`/api/admin/ideas/${id}/tasks`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task_id: taskId, description: description || null }),
+    })
+    if (res.ok) {
+      if (parentId) {
+        setTasks(prev => prev.map(t => {
+          if (t.id === parentId) {
+            return {
+              ...t,
+              subtasks: (t.subtasks || []).map(st =>
+                st.id === taskId ? { ...st, description: description || null } : st
+              ),
+            }
+          }
+          return t
+        }))
+      } else {
+        setTasks(prev => prev.map(t =>
+          t.id === taskId ? { ...t, description: description || null } : t
+        ))
+      }
+      setEditingDescriptionId(null)
+      toast.success('Description saved')
+    }
+  }
+
+  const toggleDescriptionExpanded = (taskId: string) => {
+    setExpandedDescriptions(prev => {
+      const next = new Set(prev)
+      if (next.has(taskId)) next.delete(taskId)
+      else next.add(taskId)
+      return next
+    })
+  }
+
+  const startEditDescription = (task: IdeaTask) => {
+    setEditingDescriptionId(task.id)
+    setEditingDescriptionValue(task.description || '')
   }
 
   // Comments
@@ -308,8 +414,7 @@ function IdeaDetailContent({ id }: { id: string }) {
   if (!project) return null
 
   const statusInfo = getStatusInfo(editStatus)
-  const tasksDone = tasks.filter(t => t.is_complete).length
-  const tasksTotal = tasks.length
+  const { total: tasksTotal, done: tasksDone } = countAllTasks(tasks)
 
   const relevantFields = allFields.filter(
     f => !f.category_id || f.category_id === editCategoryId
@@ -321,6 +426,141 @@ function IdeaDetailContent({ id }: { id: string }) {
     { key: 'files', label: 'Files', count: attachments.length },
     { key: 'activity', label: 'Activity', count: comments.length },
   ]
+
+  const renderTaskItem = (task: IdeaTask, parentId?: string, isSubtask = false) => {
+    const isDescExpanded = expandedDescriptions.has(task.id)
+    const isEditingDesc = editingDescriptionId === task.id
+    const hasDescription = !!task.description
+    const subtaskCount = task.subtasks?.length || 0
+    const subtaskDone = task.subtasks?.filter(st => st.is_complete).length || 0
+
+    return (
+      <div key={task.id} className={isSubtask ? 'ml-7' : ''}>
+        <div className="flex items-start gap-2 group py-1.5">
+          <button onClick={() => toggleTask(task, parentId)} className="mt-0.5">
+            {task.is_complete ? (
+              <CheckCircle2 className="w-5 h-5 text-green-400" />
+            ) : (
+              <Circle className="w-5 h-5 text-neutral-600 group-hover:text-neutral-400" />
+            )}
+          </button>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              {(hasDescription || !isSubtask) && (
+                <button
+                  onClick={() => toggleDescriptionExpanded(task.id)}
+                  className="text-neutral-500 hover:text-neutral-300 flex-shrink-0"
+                >
+                  {isDescExpanded ? (
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  ) : (
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              )}
+              <span className={`text-sm ${task.is_complete ? 'text-neutral-500 line-through' : 'text-white'}`}>
+                {task.title}
+              </span>
+              {!isSubtask && subtaskCount > 0 && (
+                <span className="text-xs text-neutral-500">
+                  {subtaskDone}/{subtaskCount}
+                </span>
+              )}
+            </div>
+
+            {isDescExpanded && (
+              <div className="mt-2 ml-5">
+                {isEditingDesc ? (
+                  <div className="space-y-2">
+                    <RecordingTextarea
+                      value={editingDescriptionValue}
+                      onChange={(val) => setEditingDescriptionValue(val)}
+                      placeholder="Add details, instructions, or acceptance criteria..."
+                      rows={3}
+                      recordingPurpose="quick"
+                      storageFolder="journal"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => saveTaskDescription(task.id, editingDescriptionValue, parentId)}
+                      >
+                        Save
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditingDescriptionId(null)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => startEditDescription(task)}
+                    className="w-full text-left"
+                  >
+                    {task.description ? (
+                      <p className="text-xs text-neutral-400 whitespace-pre-wrap hover:text-neutral-300 transition-colors">
+                        {task.description}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-neutral-600 italic hover:text-neutral-400 transition-colors">
+                        Click to add description...
+                      </p>
+                    )}
+                  </button>
+                )}
+
+                {!isSubtask && (
+                  <div className="mt-2">
+                    {newSubtaskParentId === task.id ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          value={newSubtaskTitle}
+                          onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') addTask(task.id); if (e.key === 'Escape') { setNewSubtaskParentId(null); setNewSubtaskTitle('') } }}
+                          placeholder="Subtask title..."
+                          className="flex-1 bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-neutral-500 outline-none focus:ring-1 focus:ring-primary-500/50"
+                          autoFocus
+                        />
+                        <Button variant="ghost" size="sm" onClick={() => addTask(task.id)}>Add</Button>
+                        <Button variant="ghost" size="sm" onClick={() => { setNewSubtaskParentId(null); setNewSubtaskTitle('') }}>
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setNewSubtaskParentId(task.id)}
+                        className="flex items-center gap-1 text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
+                      >
+                        <Plus className="w-3 h-3" />
+                        Add subtask
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          <button
+            onClick={() => deleteTask(task.id, parentId)}
+            className="opacity-0 group-hover:opacity-100 text-neutral-500 hover:text-red-400 transition-opacity mt-0.5"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {task.subtasks && task.subtasks.length > 0 && (
+          <div className="space-y-0">
+            {task.subtasks.map(subtask => renderTaskItem(subtask, task.id, true))}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <Container size="xl">
@@ -485,12 +725,13 @@ function IdeaDetailContent({ id }: { id: string }) {
             {/* Description */}
             <Card className="p-4 md:p-6">
               <h3 className="text-sm font-semibold text-neutral-300 mb-3">Description</h3>
-              <textarea
+              <RecordingTextarea
                 value={editDescription}
-                onChange={(e) => { setEditDescription(e.target.value); markDirty() }}
+                onChange={(val) => { setEditDescription(val); markDirty() }}
                 placeholder="Describe this idea in detail..."
                 rows={6}
-                className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 resize-y"
+                recordingPurpose="quick"
+                storageFolder="journal"
               />
             </Card>
 
@@ -638,27 +879,8 @@ function IdeaDetailContent({ id }: { id: string }) {
             )}
 
             {/* Task List */}
-            <div className="space-y-1 mb-4">
-              {tasks.map(task => (
-                <div key={task.id} className="flex items-center gap-2 group py-1.5">
-                  <button onClick={() => toggleTask(task)}>
-                    {task.is_complete ? (
-                      <CheckCircle2 className="w-5 h-5 text-green-400" />
-                    ) : (
-                      <Circle className="w-5 h-5 text-neutral-600 group-hover:text-neutral-400" />
-                    )}
-                  </button>
-                  <span className={`flex-1 text-sm ${task.is_complete ? 'text-neutral-500 line-through' : 'text-white'}`}>
-                    {task.title}
-                  </span>
-                  <button
-                    onClick={() => deleteTask(task.id)}
-                    className="opacity-0 group-hover:opacity-100 text-neutral-500 hover:text-red-400 transition-opacity"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))}
+            <div className="space-y-0 mb-4">
+              {tasks.map(task => renderTaskItem(task))}
             </div>
 
             {/* Add Task */}
@@ -672,7 +894,7 @@ function IdeaDetailContent({ id }: { id: string }) {
                 className="flex-1 bg-transparent text-sm text-white placeholder:text-neutral-500 outline-none"
               />
               {newTaskTitle.trim() && (
-                <Button variant="ghost" size="sm" onClick={addTask}>Add</Button>
+                <Button variant="ghost" size="sm" onClick={() => addTask()}>Add</Button>
               )}
             </div>
           </Card>
@@ -738,14 +960,15 @@ function IdeaDetailContent({ id }: { id: string }) {
           <div className="space-y-4">
             {/* New Comment */}
             <Card className="p-4">
-              <textarea
+              <RecordingTextarea
                 value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
+                onChange={(val) => setNewComment(val)}
                 placeholder="Add a comment..."
                 rows={3}
-                className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 resize-none mb-2"
+                recordingPurpose="quick"
+                storageFolder="journal"
               />
-              <div className="flex justify-end">
+              <div className="flex justify-end mt-2">
                 <Button
                   variant="primary"
                   size="sm"

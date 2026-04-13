@@ -273,13 +273,18 @@ function VideoCallUI({
           }
         }
 
-        // For group sessions, start cloud recording with active-speaker layout.
-        // (1:1 sessions auto-start raw-tracks recording via the host token.)
-        if (isHost && isGroupSession) {
+        // Auto-start recording for the host.
+        // Group/workshop sessions use cloud recording with active-speaker layout.
+        // 1:1 sessions use raw-tracks (individual files per participant).
+        if (isHost) {
           try {
-            await daily.startRecording({
-              layout: { preset: 'active-participant' },
-            })
+            if (isGroupSession) {
+              await daily.startRecording({
+                layout: { preset: 'active-participant' },
+              })
+            } else {
+              await daily.startRecording()
+            }
           } catch (recErr) {
             console.error('Failed to auto-start recording:', recErr)
           }

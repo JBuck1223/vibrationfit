@@ -72,15 +72,22 @@ export {
   CATEGORY_PROFILE_FIELDS,
 } from './imagination-starter-prompt'
 
-// Focus Story (5-7 minute day-in-the-life narratives)
+// Focus Story (day-in-the-life narratives with full vibrational integrity)
 export {
   FOCUS_HIGHLIGHT_SYSTEM_PROMPT,
   FOCUS_STORY_SYSTEM_PROMPT,
   buildHighlightExtractionPrompt,
+  buildFocusStoryFromCategoriesPrompt,
   buildDayInTheLifeStoryPrompt,
   buildStoryRefinementPrompt,
+  buildVisionBoardStoryPrompt,
+  buildJournalStoryPrompt,
+  buildCustomStoryPrompt,
   type FocusHighlight,
   type VisionSections,
+  type CategoryContent,
+  type VisionBoardStoryInput,
+  type JournalStoryInput,
 } from './focus-story-prompt'
 
 // Shared Components

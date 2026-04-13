@@ -16,6 +16,7 @@ import { gateway, VISION_MODEL } from '@/lib/ai/gateway'
 import { getAIToolConfig } from '@/lib/ai/database-config'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 import { 
+  FOCUS_STORY_SYSTEM_PROMPT,
   buildDayInTheLifeStoryPrompt,
   type FocusHighlight 
 } from '@/lib/viva/prompts'
@@ -123,6 +124,7 @@ export async function POST(request: NextRequest) {
     // Generate the story using Gemini via Vercel AI Gateway
     const storyResult = await generateText({
       model: gateway(VISION_MODEL),
+      system: FOCUS_STORY_SYSTEM_PROMPT,
       prompt: storyPrompt,
       temperature: toolConfig.supports_temperature ? (toolConfig.temperature || 0.8) : undefined,
     })

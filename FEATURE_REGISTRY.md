@@ -383,6 +383,30 @@ npm run docs:schema
 
 ---
 
+### 🚧 Cinematic Universe (Keyframe Execution Engine)
+**Version:** `v1.0.0`  
+**Status:** 🚧 IN PROGRESS  
+**Last Modified:** April 10, 2026  
+**Schema:** `cu_series`, `cu_characters`, `cu_episodes`, `cu_keyframes`, `cu_clips`, `cu_media`, `cu_scheduled_posts`  
+**API:** `/api/cinematic/*`  
+**UI:** `/admin/cinematic/*`
+
+**What It Does:**
+- Takes a story prompt and generates a keyframe execution plan via VIVA
+- Two-phase generation: keyframe images first, then video clips between keyframe pairs
+- Character system with reference photos for face/body consistency
+- Veo 3.1 first-last-frame-to-video for seamless clip chaining
+- Series > Episodes hierarchy with social media scheduling
+- Queue runner with dependency-aware sequential execution
+
+**Key Files:**
+- `src/lib/cinematic/` -- Core library (types, generation, queue, prompts)
+- `src/app/admin/cinematic/` -- Admin UI (series, characters, studio, episodes, schedule)
+- `src/app/api/cinematic/` -- API routes
+- `supabase/migrations/20260410000001_cinematic_universe_tables.sql`
+
+---
+
 ### ⚠️ Vision Refinement Flow
 **Version:** `v2.0.0`  
 **Status:** ⚠️ NEEDS REVIEW (Recently restored)  

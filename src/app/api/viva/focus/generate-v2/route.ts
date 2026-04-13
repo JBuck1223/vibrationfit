@@ -14,114 +14,14 @@ import { streamText } from 'ai'
 import { gateway, VISION_MODEL } from '@/lib/ai/gateway'
 import { getAIToolConfig } from '@/lib/ai/database-config'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
+import {
+  FOCUS_STORY_SYSTEM_PROMPT,
+  buildFocusStoryFromCategoriesPrompt,
+  type CategoryContent,
+} from '@/lib/viva/prompts/focus-story-prompt'
 
 export const maxDuration = 120
 export const dynamic = 'force-dynamic'
-
-interface CategoryContent {
-  visionText: string
-  focusNotes: string
-}
-
-const FOCUS_STORY_SYSTEM_PROMPT = `You are VIVA — the Vibrationally Intelligent Virtual Assistant for VibrationFit.
-
-You are crafting an immersive day-in-the-life narrative that brings someone's life vision to life.
-This story will be listened to as a 5-7 minute audio experience (750-1000 words).
-
-NARRATIVE STYLE:
-- First person, present tense throughout
-- Sensory-rich and cinematic
-- Flowing transitions between moments
-- Emotionally activating without being preachy
-- Natural rhythm suitable for audio listening
-
-STORY STRUCTURE:
-The day flows naturally from morning awakening through evening wind-down:
-
-MORNING (dawn to mid-morning):
-- Waking, the quality of light, first sensations
-- Morning rituals, energy, intention
-
-MIDDAY (late morning to early afternoon):
-- Active engagement, work or play
-- Connections, conversations, flow
-
-AFTERNOON (mid to late afternoon):
-- Continued experiences, transitions
-- Energy of accomplishment or leisure
-
-EVENING (sunset and beyond):
-- Winding down, reflection
-- Gratitude, presence, peace
-
-WRITING RULES:
-1. Each moment should SHOW, not tell ("I feel the warm sun on my face" not "I am grateful for the sun")
-2. Transitions should be smooth, not jarring ("Later..." or "As the afternoon unfolds...")
-3. Include micro-moments of sensation (a sip of coffee, a deep breath, a smile)
-4. Vary sentence length - some short and punchy, some flowing and descriptive
-5. End with a sense of completeness and contentment
-
-AVOID:
-- "I am so grateful for..." or "I feel blessed..."
-- Listing activities without sensory grounding
-- Rushing through moments
-- Generic or vague descriptions
-- Coaching or advice language
-- Starting paragraphs with "I wake up" or similar cliches
-
-FOCUS NOTES:
-When the user provides "focus notes" for a category, make sure to emphasize and expand on those specific details in the narrative. These are the moments they most want to experience.`
-
-function buildFocusStoryPrompt(
-  categoryData: Record<string, CategoryContent>,
-  perspective: 'singular' | 'plural' = 'singular'
-): string {
-  const pronoun = perspective === 'plural' ? 'we/us/our' : 'I/me/my'
-  
-  // Build category sections
-  const categorySections = Object.entries(categoryData)
-    .filter(([_, content]) => content.visionText.trim())
-    .map(([category, content]) => {
-      let section = `## ${category.charAt(0).toUpperCase() + category.slice(1)}\n`
-      section += `Vision:\n${content.visionText}\n`
-      if (content.focusNotes.trim()) {
-        section += `\nKey Details to Emphasize:\n${content.focusNotes}\n`
-      }
-      return section
-    })
-    .join('\n---\n\n')
-
-  return `PERSPECTIVE: ${pronoun}
-
-SELECTED LIFE AREAS AND CONTENT:
-
-${categorySections}
-
----
-
-TASK:
-Create a flowing day-in-the-life narrative (750-1000 words) that weaves these life areas 
-into an immersive story. The narrative should:
-
-1. Flow naturally from morning to evening
-2. Incorporate content from EACH selected life area
-3. ESPECIALLY emphasize any "Key Details to Emphasize" the user provided
-4. Create smooth transitions between different life areas
-5. Feel like listening to someone share their ideal day
-6. End with a sense of peaceful completion
-
-IMPORTANT:
-- Add sensory details (sounds, textures, temperatures, smells)
-- Create bridging moments between life areas
-- The tone should be calm, present, and embodied - not excited or performative
-- Every life area MUST appear in the story, woven naturally into the day
-
-TARGET LENGTH: 750-1000 words (this produces 5-7 minutes of audio)
-
-OUTPUT:
-Return ONLY the narrative text. No titles, headers, or formatting.
-Write in flowing paragraphs suitable for audio narration.`
-}
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now()
@@ -163,8 +63,8 @@ export async function POST(request: NextRequest) {
 
     const perspective = (profile?.perspective as 'singular' | 'plural') || 'singular'
 
-    // Build the prompt
-    const prompt = buildFocusStoryPrompt(categoryData, perspective)
+    // Build the prompt using centralized prompt system
+    const prompt = buildFocusStoryFromCategoriesPrompt(categoryData, perspective)
 
     // Get AI config
     let toolConfig

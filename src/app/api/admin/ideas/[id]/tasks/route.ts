@@ -1,6 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminAccess } from '@/lib/supabase/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
+import type { IdeaTask } from '@/lib/ideas/types'
+
+function buildTaskTree(tasks: IdeaTask[]): IdeaTask[] {
+  const topLevel: IdeaTask[] = []
+  const byParent = new Map<string, IdeaTask[]>()
+
+  for (const t of tasks) {
+    if (t.parent_task_id) {
+      const arr = byParent.get(t.parent_task_id) || []
+      arr.push(t)
+      byParent.set(t.parent_task_id, arr)
+    } else {
+      topLevel.push(t)
+    }
+  }
+
+  for (const parent of topLevel) {
+    parent.subtasks = (byParent.get(parent.id) || []).sort((a, b) => a.sort_order - b.sort_order)
+  }
+
+  return topLevel
+}
 
 export async function GET(
   request: NextRequest,
@@ -25,7 +47,8 @@ export async function GET(
       return NextResponse.json({ error: 'Failed to fetch tasks' }, { status: 500 })
     }
 
-    return NextResponse.json({ tasks: data || [] })
+    const tree = buildTaskTree((data || []) as IdeaTask[])
+    return NextResponse.json({ tasks: tree })
   } catch (error) {
     console.error('Error in tasks GET:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -44,7 +67,7 @@ export async function POST(
 
     const { id } = await params
     const body = await request.json()
-    const { title } = body
+    const { title, parent_task_id, description } = body
 
     if (!title?.trim()) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 })
@@ -52,26 +75,39 @@ export async function POST(
 
     const supabase = createAdminClient()
 
-    const { data: existing } = await supabase
+    const siblingFilter = supabase
       .from('idea_tasks')
       .select('sort_order')
       .eq('project_id', id)
       .order('sort_order', { ascending: false })
       .limit(1)
 
+    if (parent_task_id) {
+      siblingFilter.eq('parent_task_id', parent_task_id)
+    } else {
+      siblingFilter.is('parent_task_id', null)
+    }
+
+    const { data: existing } = await siblingFilter
+
     const nextOrder = existing?.[0] ? existing[0].sort_order + 1 : 0
+
+    const insertPayload: Record<string, unknown> = {
+      project_id: id,
+      title: title.trim(),
+      sort_order: nextOrder,
+    }
+    if (parent_task_id) insertPayload.parent_task_id = parent_task_id
+    if (description !== undefined) insertPayload.description = description || null
 
     const { data, error } = await supabase
       .from('idea_tasks')
-      .insert({
-        project_id: id,
-        title: title.trim(),
-        sort_order: nextOrder,
-      })
+      .insert(insertPayload)
       .select()
       .single()
 
     if (error) {
+      console.error('Task creation error:', error)
       return NextResponse.json({ error: 'Failed to create task' }, { status: 500 })
     }
 
@@ -94,7 +130,7 @@ export async function PATCH(
 
     await params
     const body = await request.json()
-    const { task_id, title, is_complete, sort_order } = body
+    const { task_id, title, is_complete, sort_order, description } = body
 
     if (!task_id) {
       return NextResponse.json({ error: 'task_id is required' }, { status: 400 })
@@ -105,6 +141,7 @@ export async function PATCH(
     if (title !== undefined) updates.title = title
     if (is_complete !== undefined) updates.is_complete = is_complete
     if (sort_order !== undefined) updates.sort_order = sort_order
+    if (description !== undefined) updates.description = description
 
     const { data, error } = await supabase
       .from('idea_tasks')
