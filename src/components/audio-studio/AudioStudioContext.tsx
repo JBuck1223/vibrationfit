@@ -53,16 +53,27 @@ interface PlayerState {
   setIcon?: React.ReactNode
 }
 
+interface ActivationChecklist {
+  hasMainVisionAudio: boolean
+  hasFocusStoryWithAudio: boolean
+  hasPersonalRecording: boolean
+}
+
 interface AudioStudioContextValue {
   visionId: string | null
   vision: VisionData | null
+  allVisions: VisionData[]
   visionLoading: boolean
+  switchVision: (id: string) => void
+  checklist: ActivationChecklist
   audioSets: AudioSetItem[]
   audioSetsLoading: boolean
   refreshAudioSets: () => Promise<void>
   activeBatches: QueueBatch[]
   activeBatchCount: number
   refreshBatches: () => Promise<void>
+  activePill: string
+  setActivePill: (value: string) => void
   player: PlayerState
   playTracks: (tracks: AudioTrack[], startIndex?: number, setName?: string) => void
   pausePlayer: () => void
@@ -87,10 +98,17 @@ export function useAudioStudio() {
 export function AudioStudioProvider({ children }: { children: React.ReactNode }) {
   const [visionId, setVisionId] = useState<string | null>(null)
   const [vision, setVision] = useState<VisionData | null>(null)
+  const [allVisions, setAllVisions] = useState<VisionData[]>([])
   const [visionLoading, setVisionLoading] = useState(true)
   const [audioSets, setAudioSets] = useState<AudioSetItem[]>([])
   const [audioSetsLoading, setAudioSetsLoading] = useState(true)
   const [activeBatches, setActiveBatches] = useState<QueueBatch[]>([])
+  const [checklist, setChecklist] = useState<ActivationChecklist>({
+    hasMainVisionAudio: false,
+    hasFocusStoryWithAudio: false,
+    hasPersonalRecording: false,
+  })
+  const [activePill, setActivePill] = useState('life-vision')
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
 
@@ -168,28 +186,50 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
       return
     }
 
-    const { data: activeVision } = await supabase
+    const { data: versions } = await supabase
       .from('vision_versions')
       .select('*')
       .eq('user_id', user.id)
-      .eq('is_active', true)
       .eq('is_draft', false)
       .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
 
-    if (activeVision) {
-      const { data: calculatedVersionNumber } = await supabase
-        .rpc('get_vision_version_number', { p_vision_id: activeVision.id })
+    if (versions && versions.length > 0) {
+      const enriched: VisionData[] = []
+      for (let i = 0; i < versions.length; i++) {
+        const v = versions[i]
+        enriched.push({
+          ...v,
+          version_number: versions.length - i,
+        })
+      }
+      setAllVisions(enriched)
 
-      setVision({
-        ...activeVision,
-        version_number: calculatedVersionNumber || 1,
-      })
-      setVisionId(activeVision.id)
+      const active = enriched.find(v => v.is_active) || enriched[0]
+      setVision(active)
+      setVisionId(active.id)
     }
 
+    // Load activation checklist
+    const { count: storyAudioCount } = await supabase
+      .from('stories')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .not('audio_set_id', 'is', null)
+      .eq('status', 'completed')
+
+    setChecklist(prev => ({
+      ...prev,
+      hasFocusStoryWithAudio: (storyAudioCount || 0) > 0,
+    }))
+
     setVisionLoading(false)
+  }
+
+  function switchVision(id: string) {
+    const target = allVisions.find(v => v.id === id)
+    if (!target) return
+    setVision(target)
+    setVisionId(target.id)
   }
 
   async function loadAudioSets() {
@@ -260,6 +300,15 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
     }))
 
     setAudioSets(enriched)
+
+    const hasMain = enriched.some(s => s.isReady && s.variant !== 'personal')
+    const hasPersonal = enriched.some(s => s.isReady && s.variant === 'personal')
+    setChecklist(prev => ({
+      ...prev,
+      hasMainVisionAudio: hasMain,
+      hasPersonalRecording: hasPersonal,
+    }))
+
     setAudioSetsLoading(false)
   }
 
@@ -351,13 +400,18 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
       value={{
         visionId,
         vision,
+        allVisions,
         visionLoading,
+        switchVision,
+        checklist,
         audioSets,
         audioSetsLoading,
         refreshAudioSets: loadAudioSets,
         activeBatches,
         activeBatchCount,
         refreshBatches: loadBatches,
+        activePill,
+        setActivePill,
         player,
         playTracks,
         pausePlayer,
@@ -376,4 +430,4 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
   )
 }
 
-export type { VisionData, AudioSetItem, QueueBatch, PlayerState }
+export type { VisionData, AudioSetItem, QueueBatch, PlayerState, ActivationChecklist }

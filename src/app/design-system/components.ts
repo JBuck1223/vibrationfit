@@ -563,6 +563,15 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
     exportName: 'SidebarLayout',
     path: '/design-system/component/sidebar-layout'
   },
+  {
+    id: 'area-bar',
+    name: 'AreaBar',
+    description: 'Universal top bar for all member experience areas: identity, outcome tabs, pill filters, context selector',
+    category: 'Navigation',
+    icon: Columns,
+    exportName: 'AreaBar',
+    path: '/design-system/component/area-bar'
+  },
 
   // Special Components
   {
