@@ -65,10 +65,13 @@ export async function POST(
       }
     }
 
-    // Alignment Gym sessions are open to all authenticated users.
+    // Open sessions (Alignment Gym + test types) are joinable by all authenticated users.
     // Use admin client to bypass RLS — the RLS-bound client silently
     // drops insert errors, causing participants to get a 403 instead.
-    if (!isHost && !participant && session.session_type === 'alignment_gym') {
+    const isOpenSession = session.session_type === 'alignment_gym'
+      || session.session_type === 'test_1on1'
+      || session.session_type === 'test_group'
+    if (!isHost && !participant && isOpenSession) {
       const { data: acct } = await supabase
         .from('user_accounts')
         .select('first_name, full_name')

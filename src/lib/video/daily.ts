@@ -289,7 +289,7 @@ export async function createParticipantToken(
     user_id: userId,
     user_name: userName,
     is_owner: false,
-    enable_screenshare: true,
+    enable_screenshare: isGroupSession ? false : true,
     enable_recording: false,
     start_video_off: isGroupSession ? true : undefined,
     start_audio_off: isGroupSession ? true : undefined,
@@ -462,7 +462,7 @@ export async function ensureDailyRoom(session: {
   switch (session.session_type) {
     case 'group':
     case 'workshop':
-      room = await createGroupRoom(scheduledAt, 25, duration)
+      room = await createGroupRoom(scheduledAt, 0, duration)
       break
     case 'alignment_gym':
       room = await createAlignmentGymRoom(scheduledAt, duration)
@@ -509,7 +509,7 @@ export async function createOneOnOneRoom(
  */
 export async function createGroupRoom(
   scheduledAt: Date,
-  maxParticipants = 10,
+  maxParticipants = 0,
   durationMinutes = 90
 ): Promise<DailyRoom> {
   const expirationTime = new Date(scheduledAt)
@@ -518,11 +518,13 @@ export async function createGroupRoom(
   return createRoom({
     properties: {
       max_participants: maxParticipants,
-      enable_knocking: true,
+      enable_knocking: false,
       enable_screenshare: true,
       enable_chat: true,
       enable_recording: 'cloud',
       enable_prejoin_ui: true,
+      start_video_off: true,
+      start_audio_off: true,
       exp: Math.floor(expirationTime.getTime() / 1000),
     },
   })

@@ -174,7 +174,7 @@ function VideoCallUI({
   // Layout: speaker view (one featured) vs grid (all visible)
   type LayoutMode = 'speaker' | 'grid'
   const [layoutMode, setLayoutMode] = useState<LayoutMode>(
-    sessionType === 'alignment_gym' ? 'grid' : 'speaker'
+    isGroupSession ? 'grid' : 'speaker'
   )
 
   // Grid pagination
@@ -182,6 +182,9 @@ function VideoCallUI({
 
   // Mute lock: when active, participants cannot unmute themselves
   const [muteLockActive, setMuteLockActive] = useState(false)
+
+  // Speaker unlock: non-host participants granted temporary speaking rights by the host
+  const [isSpeakerUnlocked, setIsSpeakerUnlocked] = useState(false)
 
   // Hand raise tracking: map of Daily session_id → { name, note, timestamp }
   type RaisedHand = { name: string; note: string; timestamp: number }
@@ -298,6 +301,13 @@ function VideoCallUI({
           }
         }
 
+        // Auto-activate mute lock for group sessions so participants see the
+        // locked UI immediately and cannot unmute until the host grants permission.
+        if (isHost && isGroupSession) {
+          setMuteLockActive(true)
+          daily.sendAppMessage({ type: 'mute-lock-state', locked: true }, '*')
+        }
+
         // Auto-start recording for the host.
         // Group/workshop sessions use cloud recording with active-speaker layout.
         // 1:1 sessions use raw-tracks (individual files per participant).
@@ -410,21 +420,39 @@ function VideoCallUI({
       }
     }
 
+    // Priority host-audio guard: on participant side, immediately re-subscribe
+    // if the host (owner) audio track drops. The host track is the most critical —
+    // participants must NEVER lose the ability to hear the host.
+    const ensureHostAudio = () => {
+      if (isHost) return
+      const participants = daily.participants()
+      for (const [id, p] of Object.entries(participants)) {
+        if (id === 'local' || !p.owner) continue
+        if (p.tracks?.audio?.subscribed === false) {
+          daily.updateParticipant(id, {
+            setSubscribedTracks: { audio: true, video: true, screenAudio: true, screenVideo: true },
+          })
+        }
+      }
+    }
+
     ensureAudioSubscriptions()
 
-    // Only listen to track lifecycle events — NOT participant-updated
+    // Listen to track lifecycle events — NOT participant-updated
     daily.on('track-started', ensureAudioSubscriptions)
+    daily.on('track-stopped', ensureHostAudio)
     daily.on('participant-joined', ensureAudioSubscriptions)
 
-    // Periodic fallback every 10s to catch silent subscription drops
-    const periodicCheck = setInterval(ensureAudioSubscriptions, 10000)
+    // Periodic fallback every 5s to catch silent subscription drops
+    const periodicCheck = setInterval(ensureAudioSubscriptions, 5000)
 
     return () => {
       daily.off('track-started', ensureAudioSubscriptions)
+      daily.off('track-stopped', ensureHostAudio)
       daily.off('participant-joined', ensureAudioSubscriptions)
       clearInterval(periodicCheck)
     }
-  }, [daily, meetingState])
+  }, [daily, meetingState, isHost])
 
   // Mute lock enforcement: when active, re-mute any non-host who unmutes.
   // IMPORTANT: Uses ONLY `setAudio: false` which controls the participant's
@@ -436,6 +464,9 @@ function VideoCallUI({
   const muteLockRef = useRef(muteLockActive)
   useEffect(() => { muteLockRef.current = muteLockActive }, [muteLockActive])
 
+  // Track which participant session_ids are currently unlocked to speak (host-side)
+  const unlockedSpeakersRef = useRef<Set<string>>(new Set())
+
   useEffect(() => {
     if (!daily || meetingState !== 'joined-meeting' || !isHost) return
 
@@ -444,7 +475,7 @@ function VideoCallUI({
       const participants = daily.participants()
       for (const [id, p] of Object.entries(participants)) {
         if (id === 'local') continue
-        if (p.audio && !p.owner) {
+        if (p.audio && !p.owner && !unlockedSpeakersRef.current.has(id)) {
           daily.updateParticipant(id, { setAudio: false })
         }
       }
@@ -483,6 +514,8 @@ function VideoCallUI({
         if (!isHost) {
           setMuteLockActive(data.locked)
           if (data.locked) {
+            // Reset speaker unlock — host re-locked, all speakers revoked
+            setIsSpeakerUnlocked(false)
             // Only mute the local MICROPHONE — setLocalAudio controls outgoing
             // audio only. The participant can still HEAR everyone normally.
             daily.setLocalAudio(false)
@@ -515,6 +548,24 @@ function VideoCallUI({
 
       if (data?.type === 'audio-reset-ack' && isHost) {
         console.log(`Audio reset acknowledged by ${data.name}`)
+      }
+
+      // Participant received speaker-unlock from host
+      if (data?.type === 'speaker-unlocked' && !isHost) {
+        const local = daily.participants()?.local
+        if (local && data.targetId === local.session_id) {
+          setIsSpeakerUnlocked(true)
+        }
+      }
+
+      // Participant received speaker-lock from host
+      if (data?.type === 'speaker-locked' && !isHost) {
+        const local = daily.participants()?.local
+        if (local && data.targetId === local.session_id) {
+          setIsSpeakerUnlocked(false)
+          daily.setLocalAudio(false)
+          setMicEnabled(false)
+        }
       }
     }
 
@@ -558,14 +609,14 @@ function VideoCallUI({
     setCameraEnabled(newState)
   }, [daily, cameraEnabled])
 
-  // Toggle microphone (respects mute lock for non-host)
+  // Toggle microphone (respects mute lock for non-host, allows unlocked speakers)
   const toggleMic = useCallback(async () => {
     if (!daily) return
-    if (!micEnabled && muteLockActive && !isHost) return
+    if (!micEnabled && muteLockActive && !isHost && !isSpeakerUnlocked) return
     const newState = !micEnabled
     await daily.setLocalAudio(newState)
     setMicEnabled(newState)
-  }, [daily, micEnabled, muteLockActive, isHost])
+  }, [daily, micEnabled, muteLockActive, isHost, isSpeakerUnlocked])
 
   // Toggle layout mode
   const toggleLayout = useCallback(() => {
@@ -619,16 +670,27 @@ function VideoCallUI({
     }
   }, [daily, isHost])
 
-  // Unmute a specific participant (host only).
-  const allowToSpeak = useCallback((sessionId: string) => {
+  // Unmute a specific participant and grant speaking rights (host only).
+  const allowToSpeak = useCallback((participantSessionId: string) => {
     if (!daily || !isHost) return
-    daily.updateParticipant(sessionId, { setAudio: true })
+    unlockedSpeakersRef.current.add(participantSessionId)
+    daily.updateParticipant(participantSessionId, { setAudio: true })
+    daily.sendAppMessage({ type: 'speaker-unlocked', targetId: participantSessionId }, '*')
   }, [daily, isHost])
 
-  // Mute a specific participant (host only).
-  const revokeSpeak = useCallback((sessionId: string) => {
+  // Mute a specific participant and revoke speaking rights (host only).
+  const revokeSpeak = useCallback((participantSessionId: string) => {
     if (!daily || !isHost) return
-    daily.updateParticipant(sessionId, { setAudio: false })
+    unlockedSpeakersRef.current.delete(participantSessionId)
+    daily.updateParticipant(participantSessionId, { setAudio: false })
+    daily.sendAppMessage({ type: 'speaker-locked', targetId: participantSessionId }, '*')
+  }, [daily, isHost])
+
+  // Turn off a remote participant's camera (host only).
+  // Uses setVideo only — NEVER touches subscriptions.
+  const toggleRemoteVideo = useCallback((participantSessionId: string, videoOn: boolean) => {
+    if (!daily || !isHost) return
+    daily.updateParticipant(participantSessionId, { setVideo: videoOn })
   }, [daily, isHost])
 
   // Toggle mute lock: mute everyone's MIC and prevent self-unmuting (host only).
@@ -639,12 +701,14 @@ function VideoCallUI({
     setMuteLockActive(newState)
 
     if (newState) {
-      // Mute all remote participants' MICROPHONES (they can still hear everyone)
+      // Revoke all unlocked speakers and mute all remote participants' MICROPHONES
+      unlockedSpeakersRef.current.clear()
       const participants = daily.participants()
       for (const [id, p] of Object.entries(participants)) {
         if (id === 'local') continue
         if (!p.owner) {
           daily.updateParticipant(id, { setAudio: false })
+          daily.sendAppMessage({ type: 'speaker-locked', targetId: id }, '*')
         }
       }
     }
@@ -970,6 +1034,7 @@ function VideoCallUI({
                 isGroupSession={isGroupSession}
                 onAllowToSpeak={allowToSpeak}
                 onRevokeSpeak={revokeSpeak}
+                onToggleRemoteVideo={toggleRemoteVideo}
                 onResetAudio={resetParticipantAudio}
                 onClose={() => setShowParticipants(false)}
               />
@@ -1062,33 +1127,60 @@ function VideoCallUI({
               <Hand className="w-4 h-4 text-energy-500" />
               <span className="text-sm font-medium text-white">Raised Hands ({raisedHands.size})</span>
             </div>
-            <div className="space-y-1.5 max-h-32 overflow-y-auto">
-              {Array.from(raisedHands.entries()).map(([sessionId, hand]) => (
-                <div key={sessionId} className="flex items-center gap-2 bg-neutral-900/80 rounded-xl px-3 py-2">
-                  <Hand className="w-3.5 h-3.5 text-energy-500 flex-shrink-0" />
-                  <span className="text-sm text-white font-medium">{hand.name}</span>
-                  {hand.note && (
-                    <span className="text-xs text-neutral-400 truncate flex-1">&mdash; {hand.note}</span>
-                  )}
-                  <button
-                    onClick={() => allowToSpeak(sessionId)}
-                    className="text-xs px-2 py-1 bg-primary-500/20 text-primary-400 rounded-full hover:bg-primary-500/30 transition-colors"
-                  >
-                    Unmute
-                  </button>
-                </div>
-              ))}
+            <div className="space-y-1.5 max-h-40 overflow-y-auto">
+              {Array.from(raisedHands.entries()).map(([sessionId, hand]) => {
+                const isUnlocked = unlockedSpeakersRef.current.has(sessionId)
+                return (
+                  <div key={sessionId} className="bg-neutral-900/80 rounded-xl px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <Hand className="w-3.5 h-3.5 text-energy-500 flex-shrink-0" />
+                      <span className="text-sm text-white font-medium">{hand.name}</span>
+                      {isUnlocked && (
+                        <span className="text-[10px] px-1.5 py-0.5 bg-primary-500/20 text-primary-400 rounded-full font-medium">SPEAKING</span>
+                      )}
+                      <div className="flex-1" />
+                      {isUnlocked ? (
+                        <button
+                          onClick={() => revokeSpeak(sessionId)}
+                          className="text-xs px-2 py-1 bg-red-500/20 text-red-400 rounded-full hover:bg-red-500/30 transition-colors"
+                        >
+                          Mute
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => allowToSpeak(sessionId)}
+                          className="text-xs px-2 py-1 bg-primary-500/20 text-primary-400 rounded-full hover:bg-primary-500/30 transition-colors"
+                        >
+                          Unmute
+                        </button>
+                      )}
+                    </div>
+                    {hand.note && (
+                      <p className="text-xs text-neutral-400 mt-1 ml-5.5 pl-0.5 italic">&ldquo;{hand.note}&rdquo;</p>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>
       )}
 
-      {/* Mute lock notice for participants */}
-      {muteLockActive && !isHost && (
+      {/* Mute lock notice for participants (hidden when speaker-unlocked) */}
+      {muteLockActive && !isHost && !isSpeakerUnlocked && (
         <div className="flex-shrink-0 px-4 py-2 bg-red-500/10 border-t border-red-500/20 text-center">
           <p className="text-xs text-red-300 flex items-center justify-center gap-1.5">
             <Lock className="w-3 h-3" />
-            Mics are locked by the host
+            Mics are locked by the host. Raise your hand to request to speak.
+          </p>
+        </div>
+      )}
+      {/* Speaker unlocked notice */}
+      {isSpeakerUnlocked && !isHost && (
+        <div className="flex-shrink-0 px-4 py-2 bg-primary-500/10 border-t border-primary-500/20 text-center">
+          <p className="text-xs text-primary-300 flex items-center justify-center gap-1.5">
+            <Unlock className="w-3 h-3" />
+            You have been granted permission to speak
           </p>
         </div>
       )}
@@ -1116,39 +1208,43 @@ function VideoCallUI({
             {cameraEnabled ? <Video className="w-5 h-5 md:w-6 md:h-6" /> : <VideoOff className="w-5 h-5 md:w-6 md:h-6" />}
           </button>
 
-          {/* Mic toggle */}
-          <button
-            onClick={toggleMic}
-            className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-200 ${
-              muteLockActive && !isHost
-                ? 'bg-red-500/30 text-red-300 cursor-not-allowed'
-                : micEnabled 
-                  ? 'bg-neutral-700 hover:bg-neutral-600 text-white' 
-                  : 'bg-red-500 hover:bg-red-600 text-white'
-            }`}
-            title={muteLockActive && !isHost ? 'Mics locked by host' : micEnabled ? 'Mute' : 'Unmute'}
-          >
-            {muteLockActive && !isHost ? (
-              <Lock className="w-5 h-5 md:w-6 md:h-6" />
-            ) : micEnabled ? (
-              <Mic className="w-5 h-5 md:w-6 md:h-6" />
-            ) : (
-              <MicOff className="w-5 h-5 md:w-6 md:h-6" />
-            )}
-          </button>
+          {/* Mic toggle — hidden for locked non-host participants in group sessions */}
+          {(isHost || !isGroupSession || !muteLockActive || isSpeakerUnlocked) && (
+            <button
+              onClick={toggleMic}
+              className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-200 ${
+                muteLockActive && !isHost && !isSpeakerUnlocked
+                  ? 'bg-red-500/30 text-red-300 cursor-not-allowed'
+                  : micEnabled 
+                    ? 'bg-neutral-700 hover:bg-neutral-600 text-white' 
+                    : 'bg-red-500 hover:bg-red-600 text-white'
+              }`}
+              title={muteLockActive && !isHost && !isSpeakerUnlocked ? 'Mics locked by host' : micEnabled ? 'Mute' : 'Unmute'}
+            >
+              {muteLockActive && !isHost && !isSpeakerUnlocked ? (
+                <Lock className="w-5 h-5 md:w-6 md:h-6" />
+              ) : micEnabled ? (
+                <Mic className="w-5 h-5 md:w-6 md:h-6" />
+              ) : (
+                <MicOff className="w-5 h-5 md:w-6 md:h-6" />
+              )}
+            </button>
+          )}
 
-          {/* Screen share */}
-          <button
-            onClick={toggleScreenShare}
-            className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-200 ${
-              isSharingScreen 
-                ? 'bg-primary-500 hover:bg-primary-600 text-black' 
-                : 'bg-neutral-700 hover:bg-neutral-600 text-white'
-            }`}
-            title={isSharingScreen ? 'Stop sharing' : 'Share screen'}
-          >
-            {isSharingScreen ? <ScreenShareOff className="w-5 h-5 md:w-6 md:h-6" /> : <ScreenShare className="w-5 h-5 md:w-6 md:h-6" />}
-          </button>
+          {/* Screen share — hidden for locked participants in group sessions */}
+          {(isHost || !isGroupSession || !muteLockActive || isSpeakerUnlocked) && (
+            <button
+              onClick={toggleScreenShare}
+              className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-200 ${
+                isSharingScreen 
+                  ? 'bg-primary-500 hover:bg-primary-600 text-black' 
+                  : 'bg-neutral-700 hover:bg-neutral-600 text-white'
+              }`}
+              title={isSharingScreen ? 'Stop sharing' : 'Share screen'}
+            >
+              {isSharingScreen ? <ScreenShareOff className="w-5 h-5 md:w-6 md:h-6" /> : <ScreenShare className="w-5 h-5 md:w-6 md:h-6" />}
+            </button>
+          )}
 
           {/* Layout toggle (group sessions) */}
           {isGroupSession && (
@@ -1233,14 +1329,17 @@ function VideoCallUI({
             </button>
           )}
 
-          {/* Mute Lock toggle (host only, group sessions) */}
-          {isHost && isGroupSession && participantIds.length > 0 && (
+          {/* Mute Lock toggle (host only, group sessions — always visible, disabled when empty) */}
+          {isHost && isGroupSession && (
             <button
               onClick={toggleMuteLock}
+              disabled={participantIds.length === 0 && !muteLockActive}
               className={`h-12 md:h-14 rounded-full flex items-center justify-center gap-2 transition-all duration-200 px-4 md:px-5 ${
-                muteLockActive
-                  ? 'bg-red-500/20 text-red-400'
-                  : 'bg-neutral-700 hover:bg-neutral-600 text-white'
+                participantIds.length === 0 && !muteLockActive
+                  ? 'bg-neutral-800 text-neutral-600 cursor-not-allowed'
+                  : muteLockActive
+                    ? 'bg-red-500/20 text-red-400'
+                    : 'bg-neutral-700 hover:bg-neutral-600 text-white'
               }`}
               title={muteLockActive ? 'Unlock mics (allow participants to unmute)' : 'Lock mics (mute all & prevent unmuting)'}
             >
@@ -1725,6 +1824,7 @@ function ParticipantsPanel({
   isGroupSession,
   onAllowToSpeak,
   onRevokeSpeak,
+  onToggleRemoteVideo,
   onResetAudio,
   onClose,
 }: { 
@@ -1736,6 +1836,7 @@ function ParticipantsPanel({
   isGroupSession: boolean
   onAllowToSpeak: (sessionId: string) => void
   onRevokeSpeak: (sessionId: string) => void
+  onToggleRemoteVideo?: (sessionId: string, videoOn: boolean) => void
   onResetAudio?: (sessionId: string) => void
   onClose: () => void
 }) {
@@ -1797,6 +1898,7 @@ function ParticipantsPanel({
             showHostControls={isHost && isGroupSession}
             onAllowToSpeak={onAllowToSpeak}
             onRevokeSpeak={onRevokeSpeak}
+            onToggleRemoteVideo={isHost ? onToggleRemoteVideo : undefined}
             onResetAudio={isHost ? onResetAudio : undefined}
           />
         ))}
@@ -1810,12 +1912,14 @@ function RemoteParticipantRow({
   showHostControls,
   onAllowToSpeak,
   onRevokeSpeak,
+  onToggleRemoteVideo,
   onResetAudio,
 }: {
   participantId: string
   showHostControls: boolean
   onAllowToSpeak: (sessionId: string) => void
   onRevokeSpeak: (sessionId: string) => void
+  onToggleRemoteVideo?: (sessionId: string, videoOn: boolean) => void
   onResetAudio?: (sessionId: string) => void
 }) {
   const participant = useParticipant(participantId)
@@ -1824,6 +1928,7 @@ function RemoteParticipantRow({
   if (!participant) return null
 
   const hasAudio = !!participant.audio
+  const hasVideo = !!participant.video
   const isOwner = !!participant.owner
 
   // Audio health: check if audio track is in a healthy state
@@ -1886,11 +1991,31 @@ function RemoteParticipantRow({
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
         )}
-        {participant.video ? (
-          <Video className="w-3.5 h-3.5 text-green-400" />
+        {/* Camera toggle (host only) */}
+        {showHostControls && onToggleRemoteVideo ? (
+          <button
+            onClick={() => onToggleRemoteVideo(participantId, !hasVideo)}
+            className={`p-1 rounded-full transition-colors ${
+              hasVideo
+                ? 'bg-green-500/20 hover:bg-green-500/30'
+                : 'bg-neutral-700 hover:bg-neutral-600'
+            }`}
+            title={hasVideo ? 'Turn off camera' : 'Request camera on'}
+          >
+            {hasVideo ? (
+              <Video className="w-3.5 h-3.5 text-green-400" />
+            ) : (
+              <VideoOff className="w-3.5 h-3.5 text-neutral-500" />
+            )}
+          </button>
         ) : (
-          <VideoOff className="w-3.5 h-3.5 text-neutral-500" />
+          hasVideo ? (
+            <Video className="w-3.5 h-3.5 text-green-400" />
+          ) : (
+            <VideoOff className="w-3.5 h-3.5 text-neutral-500" />
+          )
         )}
+        {/* Mic toggle (host controls) / status indicator (non-host) */}
         {showHostControls ? (
           <button
             onClick={() => hasAudio

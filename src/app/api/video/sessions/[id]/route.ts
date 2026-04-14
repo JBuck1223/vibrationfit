@@ -49,12 +49,13 @@ export async function GET(
       )
     }
 
-    // Check access - must be host, participant, admin, or alignment_gym (open to all)
+    // Check access - must be host, participant, admin, or open session type
     const isHost = session.host_user_id === user.id
     const isParticipant = session.participants?.some(
       (p: { user_id: string }) => p.user_id === user.id
     )
-    const isOpenSession = isAlignmentGymDirectorySession(session)
+    const isTestSession = session.session_type === 'test_1on1' || session.session_type === 'test_group'
+    const isOpenSession = isAlignmentGymDirectorySession(session) || isTestSession
 
     let isAdmin = false
     if (!isHost) {
