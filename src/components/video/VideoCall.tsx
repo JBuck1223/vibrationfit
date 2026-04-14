@@ -497,40 +497,12 @@ function VideoCallUI({
     return () => clearInterval(interval)
   }, [daily, meetingState, isHost])
 
-  // Participant-side mute lock enforcement: if mute lock is active and participant
-  // is not an unlocked speaker, re-mute every second to prevent any bypass.
-  useEffect(() => {
-    if (!daily || meetingState !== 'joined-meeting' || isHost) return
-    if (!muteLockActive || isSpeakerUnlocked) return
-
-    const enforceLocal = () => {
-      const local = daily.participants()?.local
-      if (local?.audio) {
-        daily.setLocalAudio(false)
-        setMicEnabled(false)
-      }
-    }
-    enforceLocal()
-    const interval = setInterval(enforceLocal, 1000)
-    return () => clearInterval(interval)
-  }, [daily, meetingState, isHost, muteLockActive, isSpeakerUnlocked])
-
-  // Participant-side camera lock enforcement
-  useEffect(() => {
-    if (!daily || meetingState !== 'joined-meeting' || isHost) return
-    if (!isCameraLocked) return
-
-    const enforceLocal = () => {
-      const local = daily.participants()?.local
-      if (local?.video) {
-        daily.setLocalVideo(false)
-        setCameraEnabled(false)
-      }
-    }
-    enforceLocal()
-    const interval = setInterval(enforceLocal, 1000)
-    return () => clearInterval(interval)
-  }, [daily, meetingState, isHost, isCameraLocked])
+  // Mute/camera lock enforcement strategy:
+  // - Host-side: 2s poll in enforceMuteLock catches bypasses (see above)
+  // - Participant-side: toggleMic/toggleCamera block the UI action
+  // - Participant-side: mute-lock-state/camera-locked messages immediately disable
+  // NO participant-side polling — it races with speaker-unlocked messages and
+  // re-mutes participants within 1s of being granted speaking rights.
 
   // Fetch profile pictures for remote participants
   const fetchedUserIdsRef = useRef<Set<string>>(new Set())
@@ -588,9 +560,11 @@ function VideoCallUI({
       const { data, fromId } = event
 
       if (data?.type === 'hand-raise') {
+        const participant = daily.participants()[fromId]
+        const name = data.name || participant?.user_name || 'Participant'
         setRaisedHands(prev => {
           const next = new Map(prev)
-          next.set(fromId, { name: data.name || 'Participant', note: data.note || '', timestamp: Date.now() })
+          next.set(fromId, { name, note: data.note || '', timestamp: Date.now() })
           return next
         })
       }
@@ -737,8 +711,9 @@ function VideoCallUI({
 
   const [screenShareError, setScreenShareError] = useState<string | null>(null)
 
-  // Toggle screen share with error handling
+  // Toggle screen share with error handling (respects mute lock for non-host)
   const toggleScreenShare = useCallback(async () => {
+    if (muteLockActive && !isHost && !isSpeakerUnlocked) return
     setScreenShareError(null)
     if (isSharingScreen) {
       stopScreenShare()
@@ -756,7 +731,7 @@ function VideoCallUI({
         setTimeout(() => setScreenShareError(null), 5000)
       }
     }
-  }, [isSharingScreen, startScreenShare, stopScreenShare])
+  }, [isSharingScreen, startScreenShare, stopScreenShare, muteLockActive, isHost, isSpeakerUnlocked])
 
   // Start/stop recording (host only)
   const toggleRecording = useCallback(async () => {
@@ -1332,7 +1307,7 @@ function VideoCallUI({
           {/* Camera toggle */}
           <button
             onClick={toggleCamera}
-            className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-200 ${
+            className={`relative w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-200 ${
               isCameraLocked && !isHost
                 ? 'bg-red-500/30 text-red-300 cursor-not-allowed'
                 : cameraEnabled 
@@ -1341,52 +1316,47 @@ function VideoCallUI({
             }`}
             title={isCameraLocked && !isHost ? 'Camera locked by host' : cameraEnabled ? 'Turn off camera' : 'Turn on camera'}
           >
-            {isCameraLocked && !isHost ? (
-              <Lock className="w-5 h-5 md:w-6 md:h-6" />
-            ) : cameraEnabled ? (
-              <Video className="w-5 h-5 md:w-6 md:h-6" />
-            ) : (
-              <VideoOff className="w-5 h-5 md:w-6 md:h-6" />
+            {cameraEnabled ? <Video className="w-5 h-5 md:w-6 md:h-6" /> : <VideoOff className="w-5 h-5 md:w-6 md:h-6" />}
+            {isCameraLocked && !isHost && (
+              <Lock className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 text-red-400 bg-neutral-900 rounded-full p-0.5" />
             )}
           </button>
 
-          {/* Mic toggle — hidden for locked non-host participants in group sessions */}
-          {(isHost || !isGroupSession || !muteLockActive || isSpeakerUnlocked) && (
-            <button
-              onClick={toggleMic}
-              className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-200 ${
-                muteLockActive && !isHost && !isSpeakerUnlocked
-                  ? 'bg-red-500/30 text-red-300 cursor-not-allowed'
-                  : micEnabled 
-                    ? 'bg-neutral-700 hover:bg-neutral-600 text-white' 
-                    : 'bg-red-500 hover:bg-red-600 text-white'
-              }`}
-              title={muteLockActive && !isHost && !isSpeakerUnlocked ? 'Mics locked by host' : micEnabled ? 'Mute' : 'Unmute'}
-            >
-              {muteLockActive && !isHost && !isSpeakerUnlocked ? (
-                <Lock className="w-5 h-5 md:w-6 md:h-6" />
-              ) : micEnabled ? (
-                <Mic className="w-5 h-5 md:w-6 md:h-6" />
-              ) : (
-                <MicOff className="w-5 h-5 md:w-6 md:h-6" />
-              )}
-            </button>
-          )}
+          {/* Mic toggle — always visible, shows lock badge when locked by host */}
+          <button
+            onClick={toggleMic}
+            className={`relative w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-200 ${
+              muteLockActive && !isHost && !isSpeakerUnlocked
+                ? 'bg-red-500/30 text-red-300 cursor-not-allowed'
+                : micEnabled 
+                  ? 'bg-neutral-700 hover:bg-neutral-600 text-white' 
+                  : 'bg-red-500 hover:bg-red-600 text-white'
+            }`}
+            title={muteLockActive && !isHost && !isSpeakerUnlocked ? 'Mics locked by host' : micEnabled ? 'Mute' : 'Unmute'}
+          >
+            {micEnabled ? <Mic className="w-5 h-5 md:w-6 md:h-6" /> : <MicOff className="w-5 h-5 md:w-6 md:h-6" />}
+            {muteLockActive && !isHost && !isSpeakerUnlocked && (
+              <Lock className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 text-red-400 bg-neutral-900 rounded-full p-0.5" />
+            )}
+          </button>
 
-          {/* Screen share — hidden for locked participants in group sessions */}
-          {(isHost || !isGroupSession || !muteLockActive || isSpeakerUnlocked) && (
-            <button
-              onClick={toggleScreenShare}
-              className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-200 ${
-                isSharingScreen 
+          {/* Screen share — always visible, shows lock badge when locked by host */}
+          <button
+            onClick={muteLockActive && !isHost && !isSpeakerUnlocked ? undefined : toggleScreenShare}
+            className={`relative w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-200 ${
+              muteLockActive && !isHost && !isSpeakerUnlocked
+                ? 'bg-red-500/30 text-red-300 cursor-not-allowed'
+                : isSharingScreen 
                   ? 'bg-primary-500 hover:bg-primary-600 text-black' 
                   : 'bg-neutral-700 hover:bg-neutral-600 text-white'
-              }`}
-              title={isSharingScreen ? 'Stop sharing' : 'Share screen'}
-            >
-              {isSharingScreen ? <ScreenShareOff className="w-5 h-5 md:w-6 md:h-6" /> : <ScreenShare className="w-5 h-5 md:w-6 md:h-6" />}
-            </button>
-          )}
+            }`}
+            title={muteLockActive && !isHost && !isSpeakerUnlocked ? 'Screen share locked by host' : isSharingScreen ? 'Stop sharing' : 'Share screen'}
+          >
+            {isSharingScreen ? <ScreenShareOff className="w-5 h-5 md:w-6 md:h-6" /> : <ScreenShare className="w-5 h-5 md:w-6 md:h-6" />}
+            {muteLockActive && !isHost && !isSpeakerUnlocked && (
+              <Lock className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 text-red-400 bg-neutral-900 rounded-full p-0.5" />
+            )}
+          </button>
 
           {/* Layout toggle (group sessions) */}
           {isGroupSession && (
