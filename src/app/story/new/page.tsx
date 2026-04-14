@@ -517,17 +517,19 @@ export default function NewStoryWizardPage() {
 
   return (
     <Container size="xl" className="py-6">
-      <Stack gap="lg" className="overflow-visible">
-        {/* Back Button */}
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push('/story')}
-          >
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            All Stories
-          </Button>
+      <Stack gap="lg">
+        <div className="flex flex-col items-center gap-3">
+          {renderStepIndicator()}
+          {step !== 'source' && (
+            <Button variant="ghost" size="sm" onClick={() => {
+              if (step === 'create' && !selectedSource?.skipEntity) setStep('entity')
+              else if (step === 'entity') setStep('source')
+              else router.push('/story')
+            }}>
+              <ChevronLeft className="w-4 h-4 mr-1" />
+              Back
+            </Button>
+          )}
         </div>
 
         {/* Streaming Story Display (replaces entire form when generated) */}
