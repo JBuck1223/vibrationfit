@@ -161,6 +161,87 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Reverse lookup: resolve names for messages that still have no contact_name
+    // by matching phone numbers and emails against user_accounts and leads
+    const unresolvedPhones = [...new Set(
+      messages
+        .filter(m => !m.contact_name && m.contact_phone)
+        .map(m => m.contact_phone!)
+    )]
+    const unresolvedEmails = [...new Set(
+      messages
+        .filter(m => !m.contact_name && m.contact_email)
+        .map(m => m.contact_email!)
+    )]
+
+    const phoneToName = new Map<string, string>()
+    const emailToName = new Map<string, string>()
+
+    if (unresolvedPhones.length > 0) {
+      const { data: usersByPhone } = await adminClient
+        .from('user_accounts')
+        .select('full_name, email, phone')
+        .in('phone', unresolvedPhones)
+
+      usersByPhone?.forEach(u => {
+        if (u.phone && (u.full_name || u.email)) {
+          phoneToName.set(u.phone, u.full_name || u.email)
+        }
+      })
+
+      const stillUnresolved = unresolvedPhones.filter(p => !phoneToName.has(p))
+      if (stillUnresolved.length > 0) {
+        const { data: leadsByPhone } = await adminClient
+          .from('leads')
+          .select('first_name, last_name, email, phone')
+          .in('phone', stillUnresolved)
+
+        leadsByPhone?.forEach(l => {
+          if (l.phone) {
+            const name = [l.first_name, l.last_name].filter(Boolean).join(' ')
+            phoneToName.set(l.phone, name || l.email || l.phone)
+          }
+        })
+      }
+    }
+
+    if (unresolvedEmails.length > 0) {
+      const { data: usersByEmail } = await adminClient
+        .from('user_accounts')
+        .select('full_name, email')
+        .in('email', unresolvedEmails)
+
+      usersByEmail?.forEach(u => {
+        if (u.email && (u.full_name || u.email)) {
+          emailToName.set(u.email, u.full_name || u.email)
+        }
+      })
+
+      const stillUnresolved = unresolvedEmails.filter(e => !emailToName.has(e))
+      if (stillUnresolved.length > 0) {
+        const { data: leadsByEmail } = await adminClient
+          .from('leads')
+          .select('first_name, last_name, email')
+          .in('email', stillUnresolved)
+
+        leadsByEmail?.forEach(l => {
+          if (l.email) {
+            const name = [l.first_name, l.last_name].filter(Boolean).join(' ')
+            emailToName.set(l.email, name || l.email)
+          }
+        })
+      }
+    }
+
+    for (const msg of messages) {
+      if (msg.contact_name) continue
+      if (msg.contact_phone && phoneToName.has(msg.contact_phone)) {
+        msg.contact_name = phoneToName.get(msg.contact_phone)!
+      } else if (msg.contact_email && emailToName.has(msg.contact_email)) {
+        msg.contact_name = emailToName.get(msg.contact_email)!
+      }
+    }
+
     // Paginate the combined sorted result
     const paginated = messages.slice(offset, offset + limit)
     const total = messages.length
