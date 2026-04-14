@@ -68,8 +68,15 @@ export async function GET(
     }
 
     if (!isHost && !isParticipant && !isOpenSession && !isAdmin) {
+      const host = session.participants?.find((p: { is_host: boolean }) => p.is_host)
       return NextResponse.json(
-        { error: 'Access denied' },
+        {
+          error: 'Access denied',
+          session_title: session.title,
+          session_type: session.session_type,
+          host_name: host?.name || undefined,
+          scheduled_at: session.scheduled_at,
+        },
         { status: 403 }
       )
     }
