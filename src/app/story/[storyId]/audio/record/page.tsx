@@ -17,7 +17,6 @@ import {
   Card,
   Button,
   Spinner,
-  PageHero,
   Text,
   Badge,
   AudioPlayer,
@@ -155,7 +154,7 @@ export default function StoryAudioRecordPage({
 
   if (error && !story) {
     return (
-      <Container size="xl">
+      <Container size="xl" className="py-6">
         <Card className="text-center p-4 md:p-6 lg:p-8">
           <Text className="text-red-400 mb-4">{error}</Text>
           <Button asChild variant="outline">
@@ -173,31 +172,28 @@ export default function StoryAudioRecordPage({
   const hasContent = !!story?.content?.trim()
 
   return (
-    <Container size="xl">
+    <Container size="xl" className="py-6">
       <Stack gap="lg">
-        <PageHero
-          eyebrow="FOCUS STORY"
-          title="Record Your Voice"
-          subtitle="Read your story in your own voice"
-        >
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
             <Button asChild variant="ghost" size="sm">
               <Link href={`/story/${storyId}/audio`}>
                 <ChevronLeft className="w-4 h-4 mr-1" />
-                Audio Studio
+                Back
               </Link>
             </Button>
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary">{wordCount} words</Badge>
-              {existingRecording && (
-                <Badge variant="success">
-                  <CheckCircle className="w-3 h-3 mr-1" />
-                  Recorded
-                </Badge>
-              )}
-            </div>
+            <h2 className="text-xl font-semibold text-white">Record Your Voice</h2>
           </div>
-        </PageHero>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary">{wordCount} words</Badge>
+            {existingRecording && (
+              <Badge variant="success">
+                <CheckCircle className="w-3 h-3 mr-1" />
+                Recorded
+              </Badge>
+            )}
+          </div>
+        </div>
 
         {existingRecording && (
           <Card className="p-4 md:p-6 lg:p-8">

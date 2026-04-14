@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import Link from 'next/link'
 import {
   Plus,
@@ -23,21 +22,11 @@ import {
   Card,
   Button,
   Spinner,
-  PageHero,
   Text,
   Badge,
 } from '@/lib/design-system/components'
-import type { Story, StoryEntityType } from '@/lib/stories/types'
-
-type FilterType = 'all' | StoryEntityType
-
-const FILTER_PILLS: { value: FilterType; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'life_vision', label: 'Life Vision' },
-  { value: 'vision_board_item', label: 'Vision Board' },
-  { value: 'journal_entry', label: 'Journal' },
-  { value: 'custom', label: 'Custom' },
-]
+import type { StoryEntityType } from '@/lib/stories/types'
+import { useStoryStudio } from '@/components/story-studio'
 
 const ENTITY_TYPE_META: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   life_vision: { label: 'Life Vision', color: 'text-purple-400 bg-purple-500/20', icon: Sparkles },
@@ -48,38 +37,20 @@ const ENTITY_TYPE_META: Record<string, { label: string; color: string; icon: Rea
   schedule_block: { label: 'Schedule', color: 'text-orange-400 bg-orange-500/20', icon: Clock },
 }
 
-export default function StoryHubPage() {
-  const router = useRouter()
-  const supabase = createClient()
+const PILL_LABELS: Record<string, string> = {
+  all: 'All',
+  life_vision: 'Life Vision',
+  vision_board_item: 'Vision Board',
+  journal_entry: 'Journal',
+  custom: 'Custom',
+}
 
-  const [stories, setStories] = useState<Story[]>([])
-  const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<FilterType>('all')
+export default function StoryHubPage() {
+  const supabase = createClient()
+  const { stories, loading, activePill, refreshStories } = useStoryStudio()
+
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
-
-  useEffect(() => {
-    loadStories()
-  }, [])
-
-  async function loadStories() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      router.push('/auth/login')
-      return
-    }
-
-    const { data, error } = await supabase
-      .from('stories')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('updated_at', { ascending: false })
-
-    if (!error && data) {
-      setStories(data)
-    }
-    setLoading(false)
-  }
 
   async function handleDelete(storyId: string) {
     if (!confirm('Are you sure you want to delete this story?')) return
@@ -87,13 +58,13 @@ export default function StoryHubPage() {
     setDeletingId(storyId)
     const { error } = await supabase.from('stories').delete().eq('id', storyId)
     if (!error) {
-      setStories(prev => prev.filter(s => s.id !== storyId))
+      await refreshStories()
     }
     setDeletingId(null)
     setMenuOpenId(null)
   }
 
-  const filtered = filter === 'all' ? stories : stories.filter(s => s.entity_type === filter)
+  const filtered = activePill === 'all' ? stories : stories.filter(s => s.entity_type === activePill)
 
   if (loading) {
     return (
@@ -104,40 +75,8 @@ export default function StoryHubPage() {
   }
 
   return (
-    <Container size="xl">
+    <Container size="xl" className="py-6">
       <Stack gap="lg">
-        <PageHero
-          eyebrow="FOCUS STORIES"
-          title="Your Stories"
-          subtitle="Immersive day-in-the-life narratives from your visions, journal entries, and more."
-        >
-          <div className="flex justify-center">
-            <Button asChild variant="primary" size="sm">
-              <Link href="/story/new">
-                <Plus className="w-4 h-4 mr-2" />
-                Create Story
-              </Link>
-            </Button>
-          </div>
-        </PageHero>
-
-        {/* Filter Pills */}
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          {FILTER_PILLS.map(pill => (
-            <button
-              key={pill.value}
-              onClick={() => setFilter(pill.value)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-                filter === pill.value
-                  ? 'bg-white text-black'
-                  : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-white'
-              }`}
-            >
-              {pill.label}
-            </button>
-          ))}
-        </div>
-
         {/* Stories Grid */}
         {filtered.length === 0 ? (
           <Card className="p-8 md:p-12 text-center">
@@ -145,9 +84,9 @@ export default function StoryHubPage() {
               <FileText className="w-8 h-8 text-neutral-500" />
             </div>
             <Text className="text-neutral-400 mb-6">
-              {filter === 'all'
+              {activePill === 'all'
                 ? 'No stories yet. Create your first immersive narrative.'
-                : `No ${FILTER_PILLS.find(p => p.value === filter)?.label || ''} stories yet.`}
+                : `No ${PILL_LABELS[activePill] || ''} stories yet.`}
             </Text>
             <Button asChild variant="primary">
               <Link href="/story/new">

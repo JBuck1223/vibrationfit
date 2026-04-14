@@ -19,7 +19,6 @@ import {
   Card,
   Button,
   Spinner,
-  PageHero,
   Text,
   Badge,
   AudioPlayer,
@@ -187,7 +186,7 @@ export default function StoryAudioGeneratePage({
 
   if (error && !story) {
     return (
-      <Container size="xl">
+      <Container size="xl" className="py-6">
         <Card className="text-center p-4 md:p-6 lg:p-8">
           <Text className="text-red-400 mb-4">{error}</Text>
           <Button asChild variant="outline">
@@ -205,26 +204,23 @@ export default function StoryAudioGeneratePage({
   const estimatedDuration = Math.max(1, Math.ceil(wordCount / 150))
 
   return (
-    <Container size="xl">
+    <Container size="xl" className="py-6">
       <Stack gap="lg">
-        <PageHero
-          eyebrow="FOCUS STORY"
-          title="Generate Audio"
-          subtitle="Create AI-narrated audio of your story"
-        >
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
             <Button asChild variant="ghost" size="sm">
               <Link href={`/story/${storyId}/audio`}>
                 <ChevronLeft className="w-4 h-4 mr-1" />
-                Audio Studio
+                Back
               </Link>
             </Button>
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary">{wordCount} words</Badge>
-              <Badge variant="info">~{estimatedDuration} min</Badge>
-            </div>
+            <h2 className="text-xl font-semibold text-white">Generate Audio</h2>
           </div>
-        </PageHero>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary">{wordCount} words</Badge>
+            <Badge variant="info">~{estimatedDuration} min</Badge>
+          </div>
+        </div>
 
         {/* Voice Selection */}
         <Card className="p-4 md:p-6 lg:p-8">

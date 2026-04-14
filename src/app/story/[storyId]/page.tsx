@@ -20,7 +20,6 @@ import {
   Card,
   Button,
   Spinner,
-  PageHero,
   Text,
   Badge,
   Heading,
@@ -79,7 +78,7 @@ export default function StoryDetailPage({
 
   if (error || !story) {
     return (
-      <Container size="xl">
+      <Container size="xl" className="py-6">
         <Card className="text-center p-4 md:p-6 lg:p-8">
           <Text className="text-red-400 mb-4">{error || 'Story not found'}</Text>
           <Button asChild variant="outline">
@@ -101,37 +100,26 @@ export default function StoryDetailPage({
   const readTime = Math.max(1, Math.ceil(wordCount / 200))
 
   return (
-    <Container size="xl">
+    <Container size="xl" className="py-6">
       <Stack gap="lg">
-        <PageHero
-          eyebrow="FOCUS STORY"
-          title={story.title || 'Untitled Story'}
-          subtitle="Edit your story content and add audio experiences."
-        >
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/story">
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                All Stories
-              </Link>
-            </Button>
-            <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <h2 className="text-xl font-semibold text-white">{story.title || 'Untitled Story'}</h2>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge variant="premium">
+              <EntityIcon className="w-3 h-3 mr-1" />
+              {meta.label}
+            </Badge>
+            {story.source === 'ai_generated' && (
               <Badge variant="premium">
-                <EntityIcon className="w-3 h-3 mr-1" />
-                {meta.label}
+                <Sparkles className="w-3 h-3 mr-1" />
+                VIVA Generated
               </Badge>
-              {story.source === 'ai_generated' && (
-                <Badge variant="premium">
-                  <Sparkles className="w-3 h-3 mr-1" />
-                  VIVA Generated
-                </Badge>
-              )}
-              <Badge variant={story.status === 'completed' ? 'success' : 'secondary'}>
-                {story.status === 'completed' ? 'Complete' : 'Draft'}
-              </Badge>
-            </div>
+            )}
+            <Badge variant={story.status === 'completed' ? 'success' : 'secondary'}>
+              {story.status === 'completed' ? 'Complete' : 'Draft'}
+            </Badge>
           </div>
-        </PageHero>
+        </div>
 
         {/* Stats Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

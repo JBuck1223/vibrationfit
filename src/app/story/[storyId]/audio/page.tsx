@@ -8,8 +8,6 @@ import {
   Mic,
   Wand2,
   ArrowRight,
-  ChevronLeft,
-  Eye,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -18,7 +16,6 @@ import {
   Card,
   Button,
   Spinner,
-  PageHero,
   Text,
   TrackingMilestoneCard,
 } from '@/lib/design-system/components'
@@ -104,7 +101,7 @@ export default function StoryAudioHubPage({
 
   if (!story) {
     return (
-      <Container size="xl">
+      <Container size="xl" className="py-6">
         <Card className="text-center p-4 md:p-6 lg:p-8">
           <Text className="text-red-400 mb-4">Story not found</Text>
           <Button asChild variant="outline">
@@ -121,40 +118,25 @@ export default function StoryAudioHubPage({
   const hasAudio = stats.totalSets > 0 || stats.hasRecording
 
   return (
-    <Container size="xl">
+    <Container size="xl" className="py-6">
       <Stack gap="lg">
-        <PageHero
-          eyebrow="FOCUS STORY"
-          title="Audio Studio"
-          subtitle="Transform your story into a powerful audio experience"
-        >
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 max-w-4xl mx-auto">
-            <Button variant="outline" size="sm" asChild className="w-full">
-              <Link href={`/story/${storyId}/audio/generate`} className="flex items-center justify-center gap-2">
-                <Wand2 className="w-4 h-4" />
-                <span>Generate</span>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <h2 className="text-xl font-semibold text-white">{story?.title || 'Story Audio'}</h2>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/story/${storyId}/audio/generate`} className="flex items-center gap-1.5">
+                <Wand2 className="w-3.5 h-3.5" />
+                Generate
               </Link>
             </Button>
-            <Button variant="outline" size="sm" asChild className="w-full">
-              <Link href={`/story/${storyId}/audio/record`} className="flex items-center justify-center gap-2">
-                <Mic className="w-4 h-4" />
-                <span>Record</span>
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" asChild className="w-full">
-              <Link href={`/story/${storyId}`} className="flex items-center justify-center gap-2">
-                <Eye className="w-4 h-4" />
-                <span>View Story</span>
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" asChild className="w-full">
-              <Link href="/story" className="flex items-center justify-center gap-2">
-                <ChevronLeft className="w-4 h-4" />
-                <span>All Stories</span>
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/story/${storyId}/audio/record`} className="flex items-center gap-1.5">
+                <Mic className="w-3.5 h-3.5" />
+                Record
               </Link>
             </Button>
           </div>
-        </PageHero>
+        </div>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">

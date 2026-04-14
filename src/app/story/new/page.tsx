@@ -27,7 +27,6 @@ import {
   Container,
   Stack,
   Badge,
-  PageHero,
   Text,
   Heading,
   Input,
@@ -548,25 +547,21 @@ export default function NewStoryWizardPage() {
   const isLifeVision = selectedSource?.entityType === 'life_vision'
 
   return (
-    <Container size="xl">
+    <Container size="xl" className="py-6">
       <Stack gap="lg">
-        <PageHero
-          eyebrow="NEW STORY"
-          title="Create a Story"
-          subtitle="Transform your visions, journal entries, or ideas into immersive narratives."
-        >
-          <div className="flex flex-col items-center gap-3">
-            {renderStepIndicator()}
+        <div className="flex flex-col items-center gap-3">
+          {renderStepIndicator()}
+          {step !== 'source' && (
             <Button variant="ghost" size="sm" onClick={() => {
               if (step === 'create' && !selectedSource?.skipEntity) setStep('entity')
               else if (step === 'entity') setStep('source')
               else router.push('/story')
             }}>
               <ChevronLeft className="w-4 h-4 mr-1" />
-              {step === 'source' ? 'All Stories' : 'Back'}
+              Back
             </Button>
-          </div>
-        </PageHero>
+          )}
+        </div>
 
         {/* ═══════ STEP 1: SOURCE TYPE ═══════ */}
         {step === 'source' && (

@@ -1,5 +1,5 @@
 export { AudioStudioProvider, useAudioStudio } from './AudioStudioContext'
-export type { VisionData, AudioSetItem, QueueBatch, PlayerState } from './AudioStudioContext'
+export type { VisionData, AudioSetItem, QueueBatch, PlayerState, ActivationChecklist } from './AudioStudioContext'
 export { AudioStudioHeader } from './AudioStudioHeader'
 export { AudioStudioPlayer } from './AudioStudioPlayer'
 export { QueueStatusBanner } from './QueueStatusBanner'
