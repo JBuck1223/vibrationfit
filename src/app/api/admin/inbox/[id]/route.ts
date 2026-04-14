@@ -87,6 +87,61 @@ export async function GET(
       }
     }
 
+    // Reverse lookup: if still no name, match phone/email against user_accounts and leads
+    if (!contactName && contactPhone) {
+      const { data: userByPhone } = await adminClient
+        .from('user_accounts')
+        .select('id, full_name, email, phone')
+        .eq('phone', contactPhone)
+        .limit(1)
+        .maybeSingle()
+
+      if (userByPhone) {
+        contactName = userByPhone.full_name || userByPhone.email
+        contactUserId = userByPhone.id
+        if (!contactEmail) contactEmail = userByPhone.email
+      } else {
+        const { data: leadByPhone } = await adminClient
+          .from('leads')
+          .select('id, first_name, last_name, email, phone')
+          .eq('phone', contactPhone)
+          .limit(1)
+          .maybeSingle()
+
+        if (leadByPhone) {
+          contactName = [leadByPhone.first_name, leadByPhone.last_name].filter(Boolean).join(' ') || leadByPhone.email
+          contactLeadId = leadByPhone.id
+          if (!contactEmail) contactEmail = leadByPhone.email
+        }
+      }
+    }
+
+    if (!contactName && contactEmail) {
+      const { data: userByEmail } = await adminClient
+        .from('user_accounts')
+        .select('id, full_name, email')
+        .eq('email', contactEmail)
+        .limit(1)
+        .maybeSingle()
+
+      if (userByEmail) {
+        contactName = userByEmail.full_name || userByEmail.email
+        contactUserId = userByEmail.id
+      } else {
+        const { data: leadByEmail } = await adminClient
+          .from('leads')
+          .select('id, first_name, last_name, email')
+          .eq('email', contactEmail)
+          .limit(1)
+          .maybeSingle()
+
+        if (leadByEmail) {
+          contactName = [leadByEmail.first_name, leadByEmail.last_name].filter(Boolean).join(' ') || leadByEmail.email
+          contactLeadId = leadByEmail.id
+        }
+      }
+    }
+
     // Fetch thread for this contact -- only the same channel, newest first
     const conversation: any[] = []
 

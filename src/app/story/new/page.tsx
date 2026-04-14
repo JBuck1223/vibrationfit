@@ -12,12 +12,13 @@ import {
   ChevronDown,
   ChevronUp,
   Play,
-  RefreshCw,
   ArrowRight,
   Edit3,
   Mic,
   Wand2,
   Check,
+  CheckCircle,
+  Waves,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -27,7 +28,6 @@ import {
   Container,
   Stack,
   Badge,
-  PageHero,
   Text,
   Heading,
   Input,
@@ -108,11 +108,15 @@ export default function NewStoryWizardPage() {
   const [selectedSource, setSelectedSource] = useState<SourceType | null>(null)
   const [createMode, setCreateMode] = useState<CreateMode>('viva')
 
+  // Source dropdown state
+  const [isSourceDropdownOpen, setIsSourceDropdownOpen] = useState(false)
+
   // Entity selection state
   const [entityLoading, setEntityLoading] = useState(false)
   const [entities, setEntities] = useState<any[]>([])
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null)
   const [selectedEntity, setSelectedEntity] = useState<any>(null)
+  const [isEntityDropdownOpen, setIsEntityDropdownOpen] = useState(false)
 
   // Life Vision specific state
   const [selectedCategories, setSelectedCategories] = useState<LifeCategoryKey[]>([])
@@ -164,7 +168,12 @@ export default function NewStoryWizardPage() {
 
   function handleSourceSelect(source: SourceType) {
     setSelectedSource(source)
+    setIsSourceDropdownOpen(false)
     setError(null)
+
+    setSelectedEntityId(null)
+    setSelectedEntity(null)
+    setEntities([])
 
     if (source.skipEntity) {
       setStep('create')
@@ -224,6 +233,7 @@ export default function NewStoryWizardPage() {
   async function handleEntitySelect(entity: any) {
     setSelectedEntityId(entity.id)
     setSelectedEntity(entity)
+    setIsEntityDropdownOpen(false)
 
     if (selectedSource?.entityType === 'life_vision') {
       const { data } = await supabase
@@ -315,8 +325,6 @@ export default function NewStoryWizardPage() {
 
       setVivaProgress(100)
 
-      // Fetch the created story to get its ID for navigation
-      const entityId = response.headers.get('X-Story-Entity-Id') || selectedEntityId
       const entityType = selectedSource.entityType
 
       const { data: { user } } = await supabase.auth.getUser()
@@ -405,544 +413,529 @@ export default function NewStoryWizardPage() {
 
   // ── Render helpers ──
 
-  function renderStepIndicator() {
-    const steps = selectedSource?.skipEntity
-      ? [{ key: 'source', label: 'Source' }, { key: 'create', label: 'Create' }]
-      : [{ key: 'source', label: 'Source' }, { key: 'entity', label: 'Select' }, { key: 'create', label: 'Create' }]
-
-    const currentIdx = steps.findIndex(s => s.key === step)
-
-    return (
-      <div className="flex items-center justify-center gap-2 mb-2">
-        {steps.map((s, i) => (
-          <div key={s.key} className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                if (i < currentIdx) setStep(s.key as WizardStep)
-              }}
-              disabled={i > currentIdx}
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
-                i === currentIdx
-                  ? 'bg-white text-black'
-                  : i < currentIdx
-                    ? 'bg-primary-500 text-black cursor-pointer'
-                    : 'bg-neutral-800 text-neutral-500'
-              }`}
-            >
-              {i < currentIdx ? <Check className="w-4 h-4" /> : i + 1}
-            </button>
-            {i < steps.length - 1 && (
-              <div className={`w-8 h-0.5 ${i < currentIdx ? 'bg-primary-500' : 'bg-neutral-700'}`} />
-            )}
-          </div>
-        ))}
-      </div>
-    )
+  function getEntityDisplayName(entity: any): string {
+    if (!entity) return ''
+    if (selectedSource?.entityType === 'life_vision') return entity.title || `Vision v${entity.version_number}`
+    if (selectedSource?.entityType === 'vision_board_item') return entity.name || 'Vision Board Item'
+    if (selectedSource?.entityType === 'journal_entry') return entity.title || 'Untitled Entry'
+    return entity.name || entity.title || 'Selected Item'
   }
 
-  function renderEntityPicker() {
+  function renderEntityDropdownItems() {
     if (entityLoading) {
       return (
-        <div className="flex items-center justify-center py-12">
-          <Spinner size="lg" />
+        <div className="flex items-center justify-center py-6">
+          <Spinner size="sm" />
+          <span className="text-sm text-neutral-400 ml-2">Loading...</span>
         </div>
       )
     }
 
     if (entities.length === 0) {
       return (
-        <Card className="p-8 text-center">
-          <Text className="text-neutral-400 mb-4">
-            No {selectedSource?.label.toLowerCase()}s found. Create one first.
-          </Text>
-          <Button variant="ghost" size="sm" onClick={() => setStep('source')}>
-            <ChevronLeft className="w-4 h-4 mr-1" /> Choose Different Source
-          </Button>
-        </Card>
-      )
-    }
-
-    if (selectedSource?.entityType === 'life_vision') {
-      return (
-        <div className="grid grid-cols-1 gap-3">
-          {entities.map(v => (
-            <button
-              key={v.id}
-              onClick={() => handleEntitySelect(v)}
-              className={`text-left p-4 rounded-xl border transition-all ${
-                selectedEntityId === v.id
-                  ? 'border-purple-500 bg-purple-500/10'
-                  : 'border-neutral-700 hover:border-neutral-500 bg-neutral-900/50'
-              }`}
-            >
-              <Text className="text-white font-medium">{v.title || `Vision v${v.version_number}`}</Text>
-              <Text size="xs" className="text-neutral-400">Version {v.version_number}</Text>
-            </button>
-          ))}
+        <div className="px-4 py-6 text-center">
+          <p className="text-sm text-neutral-400">No {selectedSource?.label.toLowerCase()}s found.</p>
         </div>
       )
     }
 
-    if (selectedSource?.entityType === 'vision_board_item') {
-      return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {entities.map(item => (
-            <button
-              key={item.id}
-              onClick={() => handleEntitySelect(item)}
-              className={`text-left p-4 rounded-xl border transition-all ${
-                selectedEntityId === item.id
-                  ? 'border-cyan-500 bg-cyan-500/10'
-                  : 'border-neutral-700 hover:border-neutral-500 bg-neutral-900/50'
-              }`}
-            >
-              <Text className="text-white font-medium">{item.name}</Text>
-              {item.description && (
-                <Text size="xs" className="text-neutral-400 line-clamp-2 mt-1">{item.description}</Text>
-              )}
-              {item.categories?.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {item.categories.slice(0, 3).map((c: string) => (
-                    <Badge key={c} variant="secondary">{c}</Badge>
-                  ))}
-                </div>
-              )}
-            </button>
-          ))}
-        </div>
-      )
-    }
+    return entities.map(entity => {
+      const entityId = entity.id
+      const isSelected = selectedEntityId === entityId
 
-    if (selectedSource?.entityType === 'journal_entry') {
-      return (
-        <div className="grid grid-cols-1 gap-3">
-          {entities.map(entry => (
-            <button
-              key={entry.id}
-              onClick={() => handleEntitySelect(entry)}
-              className={`text-left p-4 rounded-xl border transition-all ${
-                selectedEntityId === entry.id
-                  ? 'border-teal-500 bg-teal-500/10'
-                  : 'border-neutral-700 hover:border-neutral-500 bg-neutral-900/50'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <Text className="text-white font-medium">{entry.title || 'Untitled Entry'}</Text>
-                <Text size="xs" className="text-neutral-500">
-                  {new Date(entry.created_at).toLocaleDateString()}
-                </Text>
+      if (selectedSource?.entityType === 'life_vision') {
+        return (
+          <button
+            key={entityId}
+            onClick={() => handleEntitySelect(entity)}
+            className={`w-full px-4 py-3 text-left hover:bg-[#2A2A2A] transition-colors border-b border-[#333] last:border-b-0 ${isSelected ? 'bg-primary-500/10' : ''}`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-white font-medium">{entity.title || `Vision v${entity.version_number}`}</span>
+                <span className="text-xs text-neutral-400 ml-2">Version {entity.version_number}</span>
               </div>
-              {entry.content && (
-                <Text size="xs" className="text-neutral-400 line-clamp-2">{entry.content.slice(0, 120)}</Text>
-              )}
-            </button>
-          ))}
-        </div>
-      )
-    }
+              {isSelected && <CheckCircle className="w-5 h-5 text-primary-500" />}
+            </div>
+          </button>
+        )
+      }
 
-    return null
+      if (selectedSource?.entityType === 'vision_board_item') {
+        return (
+          <button
+            key={entityId}
+            onClick={() => handleEntitySelect(entity)}
+            className={`w-full px-4 py-3 text-left hover:bg-[#2A2A2A] transition-colors border-b border-[#333] last:border-b-0 ${isSelected ? 'bg-primary-500/10' : ''}`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex-1 min-w-0">
+                <span className="text-white font-medium">{entity.name}</span>
+                {entity.description && (
+                  <p className="text-xs text-neutral-400 line-clamp-1 mt-0.5">{entity.description}</p>
+                )}
+              </div>
+              {isSelected && <CheckCircle className="w-5 h-5 text-primary-500 flex-shrink-0 ml-2" />}
+            </div>
+          </button>
+        )
+      }
+
+      if (selectedSource?.entityType === 'journal_entry') {
+        return (
+          <button
+            key={entityId}
+            onClick={() => handleEntitySelect(entity)}
+            className={`w-full px-4 py-3 text-left hover:bg-[#2A2A2A] transition-colors border-b border-[#333] last:border-b-0 ${isSelected ? 'bg-primary-500/10' : ''}`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex-1 min-w-0">
+                <span className="text-white font-medium">{entity.title || 'Untitled Entry'}</span>
+                <span className="text-xs text-neutral-500 ml-2">
+                  {new Date(entity.created_at).toLocaleDateString()}
+                </span>
+              </div>
+              {isSelected && <CheckCircle className="w-5 h-5 text-primary-500 flex-shrink-0 ml-2" />}
+            </div>
+          </button>
+        )
+      }
+
+      return null
+    })
   }
 
   const hasGeneratedStory = streamingText.length > 0
   const isLifeVision = selectedSource?.entityType === 'life_vision'
+  const isCustom = selectedSource?.entityType === 'custom'
+  const needsEntity = selectedSource && !selectedSource.skipEntity
+  const stepNumber = (n: number) => (
+    <div className="w-12 h-12 rounded-full bg-primary-500/20 flex items-center justify-center mb-2">
+      <span className="text-primary-500 font-bold text-2xl">{n}</span>
+    </div>
+  )
 
   return (
-    <Container size="xl">
-      <Stack gap="lg">
-        <PageHero
-          eyebrow="NEW STORY"
-          title="Create a Story"
-          subtitle="Transform your visions, journal entries, or ideas into immersive narratives."
-        >
-          <div className="flex flex-col items-center gap-3">
-            {renderStepIndicator()}
-            <Button variant="ghost" size="sm" onClick={() => {
-              if (step === 'create' && !selectedSource?.skipEntity) setStep('entity')
-              else if (step === 'entity') setStep('source')
-              else router.push('/story')
-            }}>
-              <ChevronLeft className="w-4 h-4 mr-1" />
-              {step === 'source' ? 'All Stories' : 'Back'}
-            </Button>
-          </div>
-        </PageHero>
+    <Container size="xl" className="py-6">
+      <Stack gap="lg" className="overflow-visible">
+        {/* Back Button */}
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push('/story')}
+          >
+            <ChevronLeft className="w-4 h-4 mr-1" />
+            All Stories
+          </Button>
+        </div>
 
-        {/* ═══════ STEP 1: SOURCE TYPE ═══════ */}
-        {step === 'source' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {SOURCE_TYPES.map(source => {
-              const IconComp = source.icon
-              return (
-                <button
-                  key={source.entityType}
-                  onClick={() => handleSourceSelect(source)}
-                  className="text-left"
-                >
-                  <Card
-                    variant="elevated"
-                    hover
-                    className="p-6 cursor-pointer h-full transition-all"
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${source.color}`}>
-                        <IconComp className="w-6 h-6" />
-                      </div>
-                      <div className="flex-1">
-                        <Heading level={4} className="text-white mb-1">{source.label}</Heading>
-                        <Text size="sm" className="text-neutral-400">{source.description}</Text>
-                      </div>
-                      <ArrowRight className="w-5 h-5 text-neutral-500 flex-shrink-0 mt-1" />
-                    </div>
-                  </Card>
-                </button>
-              )
-            })}
-          </div>
-        )}
-
-        {/* ═══════ STEP 2: ENTITY SELECTION ═══════ */}
-        {step === 'entity' && (
-          <Card className="p-4 md:p-6 lg:p-8">
-            <Heading level={3} className="text-white mb-1">
-              Choose Your {selectedSource?.label}
-            </Heading>
-            <Text size="sm" className="text-neutral-400 mb-6">
-              Select the {selectedSource?.label.toLowerCase()} you want to turn into a story
-            </Text>
-            {renderEntityPicker()}
-          </Card>
-        )}
-
-        {/* ═══════ STEP 3: CREATE ═══════ */}
-        {step === 'create' && (
-          <>
-            {/* Source Preview (non-life-vision, non-custom) */}
-            {selectedEntity && !isLifeVision && selectedSource?.entityType !== 'custom' && (
-              <Card className="p-4 md:p-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <Badge variant="info">{selectedSource?.label}</Badge>
-                  <Text className="text-white font-medium">
-                    {selectedEntity.name || selectedEntity.title || 'Selected Item'}
-                  </Text>
+        {/* Streaming Story Display (replaces entire form when generated) */}
+        {hasGeneratedStory ? (
+          <Card variant="glass" className="p-4 md:p-6 lg:p-8" ref={storyRef}>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                  <Sparkles className="w-6 h-6 text-white" />
                 </div>
-                <div className="p-4 bg-neutral-900/50 rounded-xl border border-neutral-800 max-h-[200px] overflow-y-auto">
-                  <Text size="sm" className="text-neutral-300 whitespace-pre-wrap">
-                    {selectedEntity.description || selectedEntity.content || ''}
-                  </Text>
+                <div>
+                  <h3 className="text-lg md:text-xl font-semibold text-white">Your Story</h3>
+                  <p className="text-sm text-neutral-400">
+                    {streamingText.split(/\s+/).length} words
+                  </p>
                 </div>
-              </Card>
-            )}
+              </div>
+              {!generating && createdStoryId && (
+                <Button asChild variant="primary" size="sm">
+                  <Link href={`/story/${createdStoryId}`}>
+                    Edit & Add Audio
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Link>
+                </Button>
+              )}
+            </div>
 
-            {/* Mode Toggle */}
-            {!hasGeneratedStory && (
-              <div className="flex justify-center">
-                <Toggle
-                  value={createMode}
-                  onChange={setCreateMode}
-                  options={[
-                    { value: 'viva', label: 'VIVA Story' },
-                    { value: 'manual', label: 'Write My Own' },
-                  ]}
-                />
+            {!generating && createdStoryId && (
+              <div className="mb-4 p-3 bg-primary-500/10 border border-primary-500/30 rounded-lg flex items-center gap-3">
+                <Spinner size="sm" />
+                <p className="text-sm text-primary-400">
+                  Redirecting to your story where you can edit and add audio...
+                </p>
               </div>
             )}
 
-            {/* ── VIVA MODE ── */}
-            {createMode === 'viva' && (
-              <>
-                {/* Life Vision: Category Selection + Focus Notes */}
-                {isLifeVision && !hasGeneratedStory && (
-                  <>
-                    <Card className="p-4 md:p-6 lg:p-8">
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <Heading level={3} className="text-white mb-1">Choose Your Focus Areas</Heading>
-                          <Text size="sm" className="text-neutral-400">
-                            Select the life areas you want featured in your story
-                          </Text>
-                        </div>
-                        <Badge variant="info">{selectedCategories.length} selected</Badge>
-                      </div>
-                      <CategoryGrid
-                        categories={LIFE_CATEGORIES}
-                        selectedCategories={selectedCategories}
-                        onCategoryClick={handleCategoryToggle}
-                        layout="12-column"
-                        mode="selection"
-                        variant="outlined"
-                        withCard={false}
-                      />
-                    </Card>
+            <div className="p-4 md:p-6 bg-neutral-900/50 rounded-xl border border-neutral-800">
+              <p className="text-neutral-200 whitespace-pre-wrap leading-relaxed">
+                {streamingText}
+                {generating && <span className="inline-block w-2 h-5 bg-purple-500 animate-pulse ml-1" />}
+              </p>
+            </div>
+          </Card>
+        ) : (
+          /* Main Creation Card */
+          <Card variant="glass" className="p-4 md:p-6">
+            <div className="space-y-6">
 
-                    {selectedCategories.length > 0 && (
-                      <Card className="p-4 md:p-6 lg:p-8">
-                        <div className="mb-6">
-                          <Heading level={3} className="text-white mb-1">Review & Add Focus Notes</Heading>
-                          <Text size="sm" className="text-neutral-400">
-                            Your vision text is pre-filled. Add optional notes to highlight specific details.
-                          </Text>
-                        </div>
-                        <Stack gap="md">
-                          {categoryData.map(cat => {
-                            const category = LIFE_CATEGORIES.find(c => c.key === cat.key)
-                            if (!category) return null
-                            const CatIcon = category.icon
-                            return (
-                              <div key={cat.key} className="border border-neutral-700 rounded-xl overflow-hidden">
-                                <button
-                                  onClick={() => toggleExpanded(cat.key)}
-                                  className="w-full flex items-center justify-between p-4 bg-neutral-800/50 hover:bg-neutral-800 transition-colors"
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-lg bg-neutral-700 flex items-center justify-center">
-                                      <CatIcon className="w-5 h-5 text-white" />
-                                    </div>
-                                    <div className="text-left">
-                                      <Text className="text-white font-medium">{category.label}</Text>
-                                      {cat.focusNotes && <Text size="xs" className="text-purple-400">Has focus notes</Text>}
-                                    </div>
-                                  </div>
-                                  {cat.isExpanded ? <ChevronUp className="w-5 h-5 text-neutral-400" /> : <ChevronDown className="w-5 h-5 text-neutral-400" />}
-                                </button>
-                                {cat.isExpanded && (
-                                  <div className="p-4 space-y-4 bg-neutral-900/50">
-                                    <div>
-                                      <div className="flex items-center gap-2 mb-2">
-                                        <Text size="sm" className="text-neutral-400 font-medium">Vision Text</Text>
-                                        <Edit3 className="w-3 h-3 text-neutral-500" />
-                                      </div>
-                                      <AutoResizeTextarea
-                                        value={cat.visionText}
-                                        onChange={value => updateVisionText(cat.key, value)}
-                                        className="w-full min-h-[100px] text-sm"
-                                        placeholder={`Your ${category.label.toLowerCase()} vision...`}
-                                      />
-                                    </div>
-                                    <div>
-                                      <div className="flex items-center gap-2 mb-2">
-                                        <Text size="sm" className="text-purple-400 font-medium">Key Details to Focus On</Text>
-                                        <Text size="xs" className="text-neutral-500">(optional)</Text>
-                                      </div>
-                                      <AutoResizeTextarea
-                                        value={cat.focusNotes}
-                                        onChange={value => updateFocusNotes(cat.key, value)}
-                                        className="w-full min-h-[60px] text-sm border-purple-500/30 focus:border-purple-500"
-                                        placeholder="Any specific moments, feelings, or details you want highlighted..."
-                                      />
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            )
-                          })}
-                        </Stack>
-                      </Card>
-                    )}
-                  </>
-                )}
-
-                {/* Non-life-vision focus notes */}
-                {!isLifeVision && selectedSource?.entityType !== 'custom' && !hasGeneratedStory && (
-                  <Card className="p-4 md:p-6 lg:p-8">
-                    <Heading level={3} className="text-white mb-1">Focus Notes</Heading>
-                    <Text size="sm" className="text-neutral-400 mb-4">
-                      Optional: highlight specific moments, feelings, or details you want emphasized.
-                    </Text>
-                    <AutoResizeTextarea
-                      value={focusNotes}
-                      onChange={setFocusNotes}
-                      className="w-full min-h-[80px] text-sm border-purple-500/30 focus:border-purple-500"
-                      placeholder="Key details to emphasize in your story..."
-                    />
-                  </Card>
-                )}
-
-                {/* Custom content input */}
-                {selectedSource?.entityType === 'custom' && !hasGeneratedStory && (
-                  <Card className="p-4 md:p-6 lg:p-8">
-                    <Heading level={3} className="text-white mb-1">Your Content</Heading>
-                    <Text size="sm" className="text-neutral-400 mb-4">
-                      Describe the reality you want to live. VIVA will weave it into an immersive story.
-                    </Text>
-                    <div className="space-y-4">
-                      <Input
-                        value={storyTitle}
-                        onChange={e => setStoryTitle(e.target.value)}
-                        placeholder="Story title (optional)"
-                      />
-                      <RecordingTextarea
-                        value={storyContent}
-                        onChange={setStoryContent}
-                        placeholder="Describe your vision, experience, or idea. Be specific with names, places, and details..."
-                        rows={6}
-                        recordingPurpose="quick"
-                        storageFolder="lifeVision"
-                        category="story"
-                      />
-                    </div>
-                  </Card>
-                )}
-
-                {/* Generate Button */}
-                {!hasGeneratedStory && (
-                  <Card className="p-4 md:p-6 lg:p-8 relative overflow-hidden">
-                    <VIVALoadingOverlay
-                      isVisible={generating}
-                      messages={[
-                        'VIVA is crafting your day-in-the-life story...',
-                        'Weaving together your selected life areas...',
-                        'Creating an immersive morning-to-evening narrative...',
-                        'Adding sensory details and emotional depth...',
-                        'Putting the finishing touches on your story...',
-                      ]}
-                      cycleDuration={8000}
-                      estimatedTime="This usually takes 30-60 seconds"
-                      estimatedDuration={45000}
-                      progress={vivaProgress}
-                    />
-                    <div className="text-center">
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mx-auto mb-4">
-                        <Sparkles className="w-8 h-8 text-white" />
-                      </div>
-                      <Heading level={3} className="text-white mb-2">Generate Your Story</Heading>
-                      <Text className="text-neutral-400 mb-6 max-w-md mx-auto">
-                        VIVA will create an immersive day-in-the-life narrative. You can edit and add audio after.
-                      </Text>
-                      <Button
-                        onClick={handleGenerate}
-                        variant="primary"
-                        size="lg"
-                        disabled={generating || (isLifeVision && selectedCategories.length === 0) || (selectedSource?.entityType === 'custom' && !storyContent.trim())}
-                      >
-                        {generating ? (
-                          <>
-                            <Spinner size="sm" className="mr-2" />
-                            Writing Story...
-                          </>
-                        ) : (
-                          <>
-                            <Play className="w-5 h-5 mr-2" />
-                            Generate Story
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </Card>
-                )}
-
-                {/* Streaming Story Display */}
-                {hasGeneratedStory && (
-                  <Card className="p-4 md:p-6 lg:p-8" ref={storyRef}>
-                    <div className="flex items-center justify-between mb-6">
+              {/* Step 1: Select Source */}
+              <div className="py-4">
+                <div className="flex flex-col items-center mb-4">
+                  {stepNumber(1)}
+                  <h3 className="text-lg md:text-xl font-semibold text-white">Select Source</h3>
+                </div>
+                <div className="relative max-w-2xl mx-auto">
+                  <button
+                    type="button"
+                    onClick={() => setIsSourceDropdownOpen(!isSourceDropdownOpen)}
+                    className="w-full pl-6 pr-12 py-3 rounded-full bg-[#1F1F1F] text-white text-sm border-2 border-[#333] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left"
+                  >
+                    {selectedSource ? (
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                          <Sparkles className="w-6 h-6 text-white" />
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${selectedSource.color}`}>
+                          <selectedSource.icon className="w-4 h-4" />
                         </div>
-                        <div>
-                          <Heading level={3} className="text-white">Your Story</Heading>
-                          <Text size="sm" className="text-neutral-400">
-                            {streamingText.split(/\s+/).length} words
-                          </Text>
-                        </div>
+                        <span>{selectedSource.label}</span>
                       </div>
-                      {!generating && createdStoryId && (
-                        <Button asChild variant="primary" size="sm">
-                          <Link href={`/story/${createdStoryId}`}>
-                            Edit & Add Audio
-                            <ArrowRight className="w-4 h-4 ml-2" />
-                          </Link>
-                        </Button>
+                    ) : (
+                      <span className="text-neutral-400">Choose a story source...</span>
+                    )}
+                  </button>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isSourceDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                  {isSourceDropdownOpen && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setIsSourceDropdownOpen(false)} />
+                      <div className="absolute z-20 w-full mt-2 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-80 overflow-y-auto">
+                        {SOURCE_TYPES.map(source => {
+                          const IconComp = source.icon
+                          return (
+                            <button
+                              key={source.entityType}
+                              onClick={() => handleSourceSelect(source)}
+                              className={`w-full px-4 py-3 text-left hover:bg-[#2A2A2A] transition-colors border-b border-[#333] last:border-b-0 ${selectedSource?.entityType === source.entityType ? 'bg-primary-500/10' : ''}`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${source.color}`}>
+                                    <IconComp className="w-4 h-4" />
+                                  </div>
+                                  <div>
+                                    <span className="text-white font-medium">{source.label}</span>
+                                    <p className="text-xs text-neutral-400 mt-0.5">{source.description}</p>
+                                  </div>
+                                </div>
+                                {selectedSource?.entityType === source.entityType && <CheckCircle className="w-5 h-5 text-primary-500 flex-shrink-0 ml-2" />}
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Step 2: Select Entity (only for non-custom sources) */}
+              {needsEntity && (
+                <>
+                  <div className="border-t border-[#333]" />
+                  <div className="py-4">
+                    <div className="flex flex-col items-center mb-4">
+                      {stepNumber(2)}
+                      <h3 className="text-lg md:text-xl font-semibold text-white">Select {selectedSource?.label}</h3>
+                    </div>
+                    <div className="relative max-w-2xl mx-auto">
+                      <button
+                        type="button"
+                        onClick={() => setIsEntityDropdownOpen(!isEntityDropdownOpen)}
+                        className="w-full pl-6 pr-12 py-3 rounded-full bg-[#1F1F1F] text-white text-sm border-2 border-[#333] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left"
+                      >
+                        {selectedEntity ? (
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${selectedSource?.color || 'bg-primary-500/20 text-primary-500'}`}>
+                              {selectedSource?.icon && <selectedSource.icon className="w-4 h-4" />}
+                            </div>
+                            <span>{getEntityDisplayName(selectedEntity)}</span>
+                          </div>
+                        ) : (
+                          <span className="text-neutral-400">
+                            {entityLoading ? 'Loading...' : `Choose a ${selectedSource?.label.toLowerCase()}...`}
+                          </span>
+                        )}
+                      </button>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isEntityDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                      {isEntityDropdownOpen && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setIsEntityDropdownOpen(false)} />
+                          <div className="absolute z-20 w-full mt-2 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-60 overflow-y-auto">
+                            {renderEntityDropdownItems()}
+                          </div>
+                        </>
                       )}
                     </div>
+                  </div>
+                </>
+              )}
 
-                    {!generating && createdStoryId && (
-                      <div className="mb-4 p-3 bg-primary-500/10 border border-primary-500/30 rounded-lg flex items-center gap-3">
-                        <Spinner size="sm" />
-                        <Text size="sm" className="text-primary-400">
-                          Redirecting to your story where you can edit and add audio...
-                        </Text>
+              {/* Step 3 (or 2 for Custom): Configure & Generate */}
+              {step === 'create' && (
+                <>
+                  <div className="border-t border-[#333]" />
+                  <div className="py-4">
+                    <div className="flex flex-col items-center mb-4">
+                      {stepNumber(isCustom ? 2 : 3)}
+                      <h3 className="text-lg md:text-xl font-semibold text-white">Create Story</h3>
+                    </div>
+
+                    {/* Mode Toggle */}
+                    <div className="flex justify-center mb-6">
+                      <Toggle
+                        value={createMode}
+                        onChange={setCreateMode}
+                        options={[
+                          { value: 'viva', label: 'VIVA Story' },
+                          { value: 'manual', label: 'Write My Own' },
+                        ]}
+                      />
+                    </div>
+
+                    {/* VIVA MODE */}
+                    {createMode === 'viva' && (
+                      <div className="space-y-6">
+                        {/* Life Vision: Category Selection */}
+                        {isLifeVision && (
+                          <>
+                            <div className="max-w-2xl mx-auto">
+                              <div className="flex items-center justify-between mb-4">
+                                <div>
+                                  <h4 className="text-white font-semibold">Choose Focus Areas</h4>
+                                  <p className="text-sm text-neutral-400">
+                                    Select the life areas for your story
+                                  </p>
+                                </div>
+                                <Badge variant="info">{selectedCategories.length} selected</Badge>
+                              </div>
+                              <CategoryGrid
+                                categories={LIFE_CATEGORIES}
+                                selectedCategories={selectedCategories}
+                                onCategoryClick={handleCategoryToggle}
+                                layout="12-column"
+                                mode="selection"
+                                variant="outlined"
+                                withCard={false}
+                              />
+                            </div>
+
+                            {selectedCategories.length > 0 && (
+                              <div className="max-w-2xl mx-auto space-y-3">
+                                <div>
+                                  <h4 className="text-white font-semibold">Review & Add Focus Notes</h4>
+                                  <p className="text-sm text-neutral-400">
+                                    Your vision text is pre-filled. Add optional notes to highlight specific details.
+                                  </p>
+                                </div>
+                                {categoryData.map(cat => {
+                                  const category = LIFE_CATEGORIES.find(c => c.key === cat.key)
+                                  if (!category) return null
+                                  const CatIcon = category.icon
+                                  return (
+                                    <div key={cat.key} className="border border-neutral-700 rounded-xl overflow-hidden">
+                                      <button
+                                        onClick={() => toggleExpanded(cat.key)}
+                                        className="w-full flex items-center justify-between p-4 bg-neutral-800/50 hover:bg-neutral-800 transition-colors"
+                                      >
+                                        <div className="flex items-center gap-3">
+                                          <div className="w-10 h-10 rounded-lg bg-neutral-700 flex items-center justify-center">
+                                            <CatIcon className="w-5 h-5 text-white" />
+                                          </div>
+                                          <div className="text-left">
+                                            <span className="text-white font-medium">{category.label}</span>
+                                            {cat.focusNotes && <p className="text-xs text-purple-400">Has focus notes</p>}
+                                          </div>
+                                        </div>
+                                        {cat.isExpanded ? <ChevronUp className="w-5 h-5 text-neutral-400" /> : <ChevronDown className="w-5 h-5 text-neutral-400" />}
+                                      </button>
+                                      {cat.isExpanded && (
+                                        <div className="p-4 space-y-4 bg-neutral-900/50">
+                                          <div>
+                                            <div className="flex items-center gap-2 mb-2">
+                                              <span className="text-sm text-neutral-400 font-medium">Vision Text</span>
+                                              <Edit3 className="w-3 h-3 text-neutral-500" />
+                                            </div>
+                                            <AutoResizeTextarea
+                                              value={cat.visionText}
+                                              onChange={value => updateVisionText(cat.key, value)}
+                                              className="w-full min-h-[100px] text-sm"
+                                              placeholder={`Your ${category.label.toLowerCase()} vision...`}
+                                            />
+                                          </div>
+                                          <div>
+                                            <div className="flex items-center gap-2 mb-2">
+                                              <span className="text-sm text-purple-400 font-medium">Key Details to Focus On</span>
+                                              <span className="text-xs text-neutral-500">(optional)</span>
+                                            </div>
+                                            <AutoResizeTextarea
+                                              value={cat.focusNotes}
+                                              onChange={value => updateFocusNotes(cat.key, value)}
+                                              className="w-full min-h-[60px] text-sm border-purple-500/30 focus:border-purple-500"
+                                              placeholder="Any specific moments, feelings, or details you want highlighted..."
+                                            />
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                        {/* Non-life-vision focus notes */}
+                        {!isLifeVision && !isCustom && (
+                          <div className="max-w-2xl mx-auto">
+                            <h4 className="text-white font-semibold mb-1">Focus Notes</h4>
+                            <p className="text-sm text-neutral-400 mb-4">
+                              Optional: highlight specific moments, feelings, or details you want emphasized.
+                            </p>
+                            <AutoResizeTextarea
+                              value={focusNotes}
+                              onChange={setFocusNotes}
+                              className="w-full min-h-[80px] text-sm border-purple-500/30 focus:border-purple-500"
+                              placeholder="Key details to emphasize in your story..."
+                            />
+                          </div>
+                        )}
+
+                        {/* Custom content input */}
+                        {isCustom && (
+                          <div className="max-w-2xl mx-auto space-y-4">
+                            <div>
+                              <h4 className="text-white font-semibold mb-1">Your Content</h4>
+                              <p className="text-sm text-neutral-400 mb-4">
+                                Describe the reality you want to live. VIVA will weave it into an immersive story.
+                              </p>
+                            </div>
+                            <Input
+                              value={storyTitle}
+                              onChange={e => setStoryTitle(e.target.value)}
+                              placeholder="Story title (optional)"
+                            />
+                            <RecordingTextarea
+                              value={storyContent}
+                              onChange={setStoryContent}
+                              placeholder="Describe your vision, experience, or idea. Be specific with names, places, and details..."
+                              rows={6}
+                              recordingPurpose="quick"
+                              storageFolder="lifeVision"
+                              category="story"
+                            />
+                          </div>
+                        )}
+
+                        {/* Generate Button */}
+                        <div className="flex justify-center relative">
+                          <VIVALoadingOverlay
+                            isVisible={generating}
+                            messages={[
+                              'VIVA is crafting your day-in-the-life story...',
+                              'Weaving together your selected life areas...',
+                              'Creating an immersive morning-to-evening narrative...',
+                              'Adding sensory details and emotional depth...',
+                              'Putting the finishing touches on your story...',
+                            ]}
+                            cycleDuration={8000}
+                            estimatedTime="This usually takes 30-60 seconds"
+                            estimatedDuration={45000}
+                            progress={vivaProgress}
+                          />
+                          <Button
+                            onClick={handleGenerate}
+                            variant="primary"
+                            disabled={generating || (isLifeVision && selectedCategories.length === 0) || (isCustom && !storyContent.trim())}
+                          >
+                            {generating ? (
+                              <>
+                                <Spinner size="sm" className="mr-2" />
+                                Writing Story...
+                              </>
+                            ) : (
+                              <>
+                                <Waves className="w-5 h-5 mr-2" />
+                                Generate Story
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       </div>
                     )}
 
-                    <div className="p-4 md:p-6 bg-neutral-900/50 rounded-xl border border-neutral-800">
-                      <Text className="text-neutral-200 whitespace-pre-wrap leading-relaxed">
-                        {streamingText}
-                        {generating && <span className="inline-block w-2 h-5 bg-purple-500 animate-pulse ml-1" />}
-                      </Text>
-                    </div>
-                  </Card>
-                )}
-              </>
-            )}
-
-            {/* ── MANUAL MODE ── */}
-            {createMode === 'manual' && !hasGeneratedStory && (
-              <Card className="p-4 md:p-6 lg:p-8">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-teal-500/20 rounded-lg flex items-center justify-center">
-                    <Mic className="w-5 h-5 text-teal-400" />
-                  </div>
-                  <div>
-                    <Heading level={4} className="text-white">Write or Record Your Own</Heading>
-                    <Text size="sm" className="text-neutral-400">Type, dictate, or let VIVA enhance your words</Text>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <Input
-                    value={storyTitle}
-                    onChange={e => setStoryTitle(e.target.value)}
-                    placeholder="Story title"
-                  />
-                  <RecordingTextarea
-                    value={storyContent}
-                    onChange={setStoryContent}
-                    placeholder="Start writing your story, or click the mic to record and transcribe..."
-                    rows={6}
-                    recordingPurpose="quick"
-                    storageFolder="lifeVision"
-                    category="story"
-                  />
-                  {storyContent && (
-                    <Text size="xs" className="text-neutral-500">
-                      {storyContent.trim().split(/\s+/).filter(Boolean).length} words
-                    </Text>
-                  )}
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    {storyContent.trim().length > 20 && (
-                      <Button onClick={handleEnhanceWithViva} variant="secondary" disabled={enhancing}>
-                        {enhancing ? (
-                          <><Spinner size="sm" className="mr-2" /> Enhancing...</>
-                        ) : (
-                          <><Wand2 className="w-4 h-4 mr-2" /> Enhance with VIVA</>
+                    {/* MANUAL MODE */}
+                    {createMode === 'manual' && (
+                      <div className="max-w-2xl mx-auto space-y-4">
+                        <Input
+                          value={storyTitle}
+                          onChange={e => setStoryTitle(e.target.value)}
+                          placeholder="Story title"
+                        />
+                        <RecordingTextarea
+                          value={storyContent}
+                          onChange={setStoryContent}
+                          placeholder="Start writing your story, or click the mic to record and transcribe..."
+                          rows={6}
+                          recordingPurpose="quick"
+                          storageFolder="lifeVision"
+                          category="story"
+                        />
+                        {storyContent && (
+                          <p className="text-xs text-neutral-500">
+                            {storyContent.trim().split(/\s+/).filter(Boolean).length} words
+                          </p>
                         )}
-                      </Button>
+                        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                          {storyContent.trim().length > 20 && (
+                            <Button onClick={handleEnhanceWithViva} variant="secondary" disabled={enhancing}>
+                              {enhancing ? (
+                                <><Spinner size="sm" className="mr-2" /> Enhancing...</>
+                              ) : (
+                                <><Wand2 className="w-4 h-4 mr-2" /> Enhance with VIVA</>
+                              )}
+                            </Button>
+                          )}
+                          <Button
+                            onClick={handleCreateManual}
+                            variant="primary"
+                            disabled={!storyTitle.trim() || !storyContent.trim()}
+                          >
+                            <FileText className="w-4 h-4 mr-2" />
+                            Create Story
+                          </Button>
+                        </div>
+                        <div className="p-3 bg-neutral-800/50 rounded-lg border border-neutral-700">
+                          <p className="text-xs text-neutral-400">
+                            <strong className="text-teal-400">Tip:</strong> Click the mic button to record your thoughts,
+                            then use &quot;Enhance with VIVA&quot; to transform your raw ideas into a polished, immersive story.
+                          </p>
+                        </div>
+                      </div>
                     )}
-                    <Button
-                      onClick={handleCreateManual}
-                      variant="primary"
-                      disabled={!storyTitle.trim() || !storyContent.trim()}
-                    >
-                      <FileText className="w-4 h-4 mr-2" />
-                      Create Story
-                    </Button>
                   </div>
-                  <div className="p-3 bg-neutral-800/50 rounded-lg border border-neutral-700">
-                    <Text size="xs" className="text-neutral-400">
-                      <strong className="text-teal-400">Tip:</strong> Click the mic button to record your thoughts,
-                      then use &quot;Enhance with VIVA&quot; to transform your raw ideas into a polished, immersive story.
-                    </Text>
-                  </div>
-                </div>
-              </Card>
-            )}
-          </>
+                </>
+              )}
+            </div>
+          </Card>
         )}
 
         {/* Error */}
         {error && (
           <Card className="p-4 bg-red-500/10 border-red-500/30">
-            <Text size="sm" className="text-red-400">{error}</Text>
+            <p className="text-sm text-red-400">{error}</p>
           </Card>
         )}
       </Stack>
