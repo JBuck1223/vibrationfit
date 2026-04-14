@@ -56,6 +56,7 @@ import {
 import { Button, Badge, Card } from '@/lib/design-system/components'
 import { SessionChat } from '@/components/video/SessionChat'
 import { MemberContextPanel } from '@/components/video/MemberContextPanel'
+import { createClient } from '@/lib/supabase/client'
 import type { CallSettings } from '@/lib/video/types'
 
 interface VideoCallProps {
@@ -157,6 +158,7 @@ function VideoCallUI({
 
   const isGroupSession = sessionType === 'group' || sessionType === 'workshop'
     || sessionType === 'alignment_gym' || sessionType === 'webinar'
+    || sessionType === 'test_group'
   
   // State
   const [cameraEnabled, setCameraEnabled] = useState(initialSettings?.camera ?? true)
@@ -180,11 +182,19 @@ function VideoCallUI({
   // Grid pagination
   const [currentGridPage, setCurrentGridPage] = useState(0)
 
-  // Mute lock: when active, participants cannot unmute themselves
-  const [muteLockActive, setMuteLockActive] = useState(false)
+  // Mute lock: when active, participants cannot unmute themselves.
+  // Non-host participants in group sessions start locked to prevent a race
+  // window before the host's mute-lock-state message arrives.
+  const [muteLockActive, setMuteLockActive] = useState(isGroupSession && !isHost)
 
   // Speaker unlock: non-host participants granted temporary speaking rights by the host
   const [isSpeakerUnlocked, setIsSpeakerUnlocked] = useState(false)
+
+  // Camera lock: when host turns off a participant's camera, they cannot turn it back on
+  const [isCameraLocked, setIsCameraLocked] = useState(false)
+
+  // Participant profile pictures (keyed by Daily session_id)
+  const [participantPhotos, setParticipantPhotos] = useState<Record<string, string>>({})
 
   // Hand raise tracking: map of Daily session_id → { name, note, timestamp }
   type RaisedHand = { name: string; note: string; timestamp: number }
@@ -487,6 +497,61 @@ function VideoCallUI({
     return () => clearInterval(interval)
   }, [daily, meetingState, isHost])
 
+  // Mute/camera lock enforcement strategy:
+  // - Host-side: 2s poll in enforceMuteLock catches bypasses (see above)
+  // - Participant-side: toggleMic/toggleCamera block the UI action
+  // - Participant-side: mute-lock-state/camera-locked messages immediately disable
+  // NO participant-side polling — it races with speaker-unlocked messages and
+  // re-mutes participants within 1s of being granted speaking rights.
+
+  // Fetch profile pictures for remote participants
+  const fetchedUserIdsRef = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    if (!daily || meetingState !== 'joined-meeting' || participantIds.length === 0) return
+
+    const fetchPhotos = async () => {
+      const participants = daily.participants()
+      const newUserIds: string[] = []
+      const userIdToSessionId: Record<string, string> = {}
+
+      for (const [id, p] of Object.entries(participants)) {
+        if (id === 'local' || !p.user_id) continue
+        if (!fetchedUserIdsRef.current.has(p.user_id)) {
+          newUserIds.push(p.user_id)
+          userIdToSessionId[p.user_id] = id
+        }
+      }
+
+      if (newUserIds.length === 0) return
+
+      try {
+        const supabase = createClient()
+        const { data } = await supabase
+          .from('user_accounts')
+          .select('id, profile_picture_url')
+          .in('id', newUserIds)
+
+        if (data) {
+          const newPhotos: Record<string, string> = {}
+          for (const account of data) {
+            fetchedUserIdsRef.current.add(account.id)
+            if (account.profile_picture_url) {
+              const sid = userIdToSessionId[account.id]
+              if (sid) newPhotos[sid] = account.profile_picture_url
+            }
+          }
+          if (Object.keys(newPhotos).length > 0) {
+            setParticipantPhotos(prev => ({ ...prev, ...newPhotos }))
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching participant photos:', err)
+      }
+    }
+
+    fetchPhotos()
+  }, [daily, meetingState, participantIds])
+
   // App message handling: hand raises, mute lock state, audio reset
   useEffect(() => {
     if (!daily || meetingState !== 'joined-meeting') return
@@ -495,9 +560,11 @@ function VideoCallUI({
       const { data, fromId } = event
 
       if (data?.type === 'hand-raise') {
+        const participant = daily.participants()[fromId]
+        const name = data.name || participant?.user_name || 'Participant'
         setRaisedHands(prev => {
           const next = new Map(prev)
-          next.set(fromId, { name: data.name || 'Participant', note: data.note || '', timestamp: Date.now() })
+          next.set(fromId, { name, note: data.note || '', timestamp: Date.now() })
           return next
         })
       }
@@ -567,6 +634,24 @@ function VideoCallUI({
           setMicEnabled(false)
         }
       }
+
+      // Host locked this participant's camera
+      if (data?.type === 'camera-locked' && !isHost) {
+        const local = daily.participants()?.local
+        if (local && data.targetId === local.session_id) {
+          setIsCameraLocked(true)
+          daily.setLocalVideo(false)
+          setCameraEnabled(false)
+        }
+      }
+
+      // Host unlocked this participant's camera
+      if (data?.type === 'camera-unlocked' && !isHost) {
+        const local = daily.participants()?.local
+        if (local && data.targetId === local.session_id) {
+          setIsCameraLocked(false)
+        }
+      }
     }
 
     daily.on('app-message', handleAppMessage as any)
@@ -601,13 +686,14 @@ function VideoCallUI({
     }
   }, [daily, meetingState, isHost, userName])
 
-  // Toggle camera
+  // Toggle camera (respects camera lock for non-host)
   const toggleCamera = useCallback(async () => {
     if (!daily) return
+    if (!cameraEnabled && isCameraLocked && !isHost) return
     const newState = !cameraEnabled
     await daily.setLocalVideo(newState)
     setCameraEnabled(newState)
-  }, [daily, cameraEnabled])
+  }, [daily, cameraEnabled, isCameraLocked, isHost])
 
   // Toggle microphone (respects mute lock for non-host, allows unlocked speakers)
   const toggleMic = useCallback(async () => {
@@ -625,8 +711,9 @@ function VideoCallUI({
 
   const [screenShareError, setScreenShareError] = useState<string | null>(null)
 
-  // Toggle screen share with error handling
+  // Toggle screen share with error handling (respects mute lock for non-host)
   const toggleScreenShare = useCallback(async () => {
+    if (muteLockActive && !isHost && !isSpeakerUnlocked) return
     setScreenShareError(null)
     if (isSharingScreen) {
       stopScreenShare()
@@ -644,7 +731,7 @@ function VideoCallUI({
         setTimeout(() => setScreenShareError(null), 5000)
       }
     }
-  }, [isSharingScreen, startScreenShare, stopScreenShare])
+  }, [isSharingScreen, startScreenShare, stopScreenShare, muteLockActive, isHost, isSpeakerUnlocked])
 
   // Start/stop recording (host only)
   const toggleRecording = useCallback(async () => {
@@ -686,11 +773,22 @@ function VideoCallUI({
     daily.sendAppMessage({ type: 'speaker-locked', targetId: participantSessionId }, '*')
   }, [daily, isHost])
 
-  // Turn off a remote participant's camera (host only).
+  // Track which participants have host-locked cameras (host-side)
+  const lockedCamerasRef = useRef<Set<string>>(new Set())
+
+  // Toggle a remote participant's camera (host only).
+  // Turning off also locks — participant cannot re-enable until host unlocks.
   // Uses setVideo only — NEVER touches subscriptions.
   const toggleRemoteVideo = useCallback((participantSessionId: string, videoOn: boolean) => {
     if (!daily || !isHost) return
-    daily.updateParticipant(participantSessionId, { setVideo: videoOn })
+    if (!videoOn) {
+      lockedCamerasRef.current.add(participantSessionId)
+      daily.updateParticipant(participantSessionId, { setVideo: false })
+      daily.sendAppMessage({ type: 'camera-locked', targetId: participantSessionId }, '*')
+    } else {
+      lockedCamerasRef.current.delete(participantSessionId)
+      daily.sendAppMessage({ type: 'camera-unlocked', targetId: participantSessionId }, '*')
+    }
   }, [daily, isHost])
 
   // Toggle mute lock: mute everyone's MIC and prevent self-unmuting (host only).
@@ -1027,9 +1125,11 @@ function VideoCallUI({
             <div className="absolute top-4 right-4 z-20">
               <ParticipantsPanel 
                 localName={userName}
+                localProfilePic={userProfilePic}
                 cameraEnabled={cameraEnabled}
                 micEnabled={micEnabled}
                 participantIds={participantIds}
+                participantPhotos={participantPhotos}
                 isHost={isHost}
                 isGroupSession={isGroupSession}
                 onAllowToSpeak={allowToSpeak}
@@ -1184,6 +1284,15 @@ function VideoCallUI({
           </p>
         </div>
       )}
+      {/* Camera locked notice for participants */}
+      {isCameraLocked && !isHost && (
+        <div className="flex-shrink-0 px-4 py-2 bg-red-500/10 border-t border-red-500/20 text-center">
+          <p className="text-xs text-red-300 flex items-center justify-center gap-1.5">
+            <Lock className="w-3 h-3" />
+            Your camera has been turned off by the host.
+          </p>
+        </div>
+      )}
 
       {/* Screen share error toast */}
       {screenShareError && (
@@ -1198,53 +1307,56 @@ function VideoCallUI({
           {/* Camera toggle */}
           <button
             onClick={toggleCamera}
-            className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-200 ${
-              cameraEnabled 
-                ? 'bg-neutral-700 hover:bg-neutral-600 text-white' 
-                : 'bg-red-500 hover:bg-red-600 text-white'
+            className={`relative w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-200 ${
+              isCameraLocked && !isHost
+                ? 'bg-red-500/30 text-red-300 cursor-not-allowed'
+                : cameraEnabled 
+                  ? 'bg-neutral-700 hover:bg-neutral-600 text-white' 
+                  : 'bg-red-500 hover:bg-red-600 text-white'
             }`}
-            title={cameraEnabled ? 'Turn off camera' : 'Turn on camera'}
+            title={isCameraLocked && !isHost ? 'Camera locked by host' : cameraEnabled ? 'Turn off camera' : 'Turn on camera'}
           >
             {cameraEnabled ? <Video className="w-5 h-5 md:w-6 md:h-6" /> : <VideoOff className="w-5 h-5 md:w-6 md:h-6" />}
+            {isCameraLocked && !isHost && (
+              <Lock className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 text-red-400 bg-neutral-900 rounded-full p-0.5" />
+            )}
           </button>
 
-          {/* Mic toggle — hidden for locked non-host participants in group sessions */}
-          {(isHost || !isGroupSession || !muteLockActive || isSpeakerUnlocked) && (
-            <button
-              onClick={toggleMic}
-              className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-200 ${
-                muteLockActive && !isHost && !isSpeakerUnlocked
-                  ? 'bg-red-500/30 text-red-300 cursor-not-allowed'
-                  : micEnabled 
-                    ? 'bg-neutral-700 hover:bg-neutral-600 text-white' 
-                    : 'bg-red-500 hover:bg-red-600 text-white'
-              }`}
-              title={muteLockActive && !isHost && !isSpeakerUnlocked ? 'Mics locked by host' : micEnabled ? 'Mute' : 'Unmute'}
-            >
-              {muteLockActive && !isHost && !isSpeakerUnlocked ? (
-                <Lock className="w-5 h-5 md:w-6 md:h-6" />
-              ) : micEnabled ? (
-                <Mic className="w-5 h-5 md:w-6 md:h-6" />
-              ) : (
-                <MicOff className="w-5 h-5 md:w-6 md:h-6" />
-              )}
-            </button>
-          )}
+          {/* Mic toggle — always visible, shows lock badge when locked by host */}
+          <button
+            onClick={toggleMic}
+            className={`relative w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-200 ${
+              muteLockActive && !isHost && !isSpeakerUnlocked
+                ? 'bg-red-500/30 text-red-300 cursor-not-allowed'
+                : micEnabled 
+                  ? 'bg-neutral-700 hover:bg-neutral-600 text-white' 
+                  : 'bg-red-500 hover:bg-red-600 text-white'
+            }`}
+            title={muteLockActive && !isHost && !isSpeakerUnlocked ? 'Mics locked by host' : micEnabled ? 'Mute' : 'Unmute'}
+          >
+            {micEnabled ? <Mic className="w-5 h-5 md:w-6 md:h-6" /> : <MicOff className="w-5 h-5 md:w-6 md:h-6" />}
+            {muteLockActive && !isHost && !isSpeakerUnlocked && (
+              <Lock className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 text-red-400 bg-neutral-900 rounded-full p-0.5" />
+            )}
+          </button>
 
-          {/* Screen share — hidden for locked participants in group sessions */}
-          {(isHost || !isGroupSession || !muteLockActive || isSpeakerUnlocked) && (
-            <button
-              onClick={toggleScreenShare}
-              className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-200 ${
-                isSharingScreen 
+          {/* Screen share — always visible, shows lock badge when locked by host */}
+          <button
+            onClick={muteLockActive && !isHost && !isSpeakerUnlocked ? undefined : toggleScreenShare}
+            className={`relative w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-200 ${
+              muteLockActive && !isHost && !isSpeakerUnlocked
+                ? 'bg-red-500/30 text-red-300 cursor-not-allowed'
+                : isSharingScreen 
                   ? 'bg-primary-500 hover:bg-primary-600 text-black' 
                   : 'bg-neutral-700 hover:bg-neutral-600 text-white'
-              }`}
-              title={isSharingScreen ? 'Stop sharing' : 'Share screen'}
-            >
-              {isSharingScreen ? <ScreenShareOff className="w-5 h-5 md:w-6 md:h-6" /> : <ScreenShare className="w-5 h-5 md:w-6 md:h-6" />}
-            </button>
-          )}
+            }`}
+            title={muteLockActive && !isHost && !isSpeakerUnlocked ? 'Screen share locked by host' : isSharingScreen ? 'Stop sharing' : 'Share screen'}
+          >
+            {isSharingScreen ? <ScreenShareOff className="w-5 h-5 md:w-6 md:h-6" /> : <ScreenShare className="w-5 h-5 md:w-6 md:h-6" />}
+            {muteLockActive && !isHost && !isSpeakerUnlocked && (
+              <Lock className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 text-red-400 bg-neutral-900 rounded-full p-0.5" />
+            )}
+          </button>
 
           {/* Layout toggle (group sessions) */}
           {isGroupSession && (
@@ -1817,9 +1929,11 @@ function RemoteParticipantTile({ participantId }: { participantId: string }) {
 // Participants panel
 function ParticipantsPanel({ 
   localName, 
+  localProfilePic,
   cameraEnabled, 
   micEnabled, 
   participantIds,
+  participantPhotos,
   isHost,
   isGroupSession,
   onAllowToSpeak,
@@ -1829,9 +1943,11 @@ function ParticipantsPanel({
   onClose,
 }: { 
   localName: string
+  localProfilePic?: string | null
   cameraEnabled: boolean
   micEnabled: boolean
   participantIds: string[]
+  participantPhotos: Record<string, string>
   isHost: boolean
   isGroupSession: boolean
   onAllowToSpeak: (sessionId: string) => void
@@ -1858,10 +1974,14 @@ function ParticipantsPanel({
       <div className="space-y-2">
         {/* Local user (host indicator) */}
         <div className="flex items-center gap-3 p-2 rounded-lg bg-neutral-800">
-          <div className="relative w-8 h-8 rounded-full bg-primary-500/20 flex items-center justify-center">
-            <span className="text-sm font-medium text-primary-500">
-              {localName?.[0]?.toUpperCase()}
-            </span>
+          <div className="relative w-8 h-8 rounded-full bg-primary-500/20 flex items-center justify-center overflow-hidden">
+            {localProfilePic ? (
+              <img src={localProfilePic} alt={localName} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-sm font-medium text-primary-500">
+                {localName?.[0]?.toUpperCase()}
+              </span>
+            )}
             {isHost && (
               <div className="absolute -top-1 -right-1 w-4 h-4 bg-energy-500 rounded-full flex items-center justify-center">
                 <Crown className="w-2.5 h-2.5 text-black" />
@@ -1895,6 +2015,7 @@ function ParticipantsPanel({
           <RemoteParticipantRow
             key={id}
             participantId={id}
+            profilePicUrl={participantPhotos[id]}
             showHostControls={isHost && isGroupSession}
             onAllowToSpeak={onAllowToSpeak}
             onRevokeSpeak={onRevokeSpeak}
@@ -1909,6 +2030,7 @@ function ParticipantsPanel({
 
 function RemoteParticipantRow({
   participantId,
+  profilePicUrl,
   showHostControls,
   onAllowToSpeak,
   onRevokeSpeak,
@@ -1916,6 +2038,7 @@ function RemoteParticipantRow({
   onResetAudio,
 }: {
   participantId: string
+  profilePicUrl?: string
   showHostControls: boolean
   onAllowToSpeak: (sessionId: string) => void
   onRevokeSpeak: (sessionId: string) => void
@@ -1931,10 +2054,23 @@ function RemoteParticipantRow({
   const hasVideo = !!participant.video
   const isOwner = !!participant.owner
 
-  // Audio health: check if audio track is in a healthy state
   const audioTrack = participant.tracks?.audio
+  const audioOff = audioTrack?.state === 'off'
   const audioHealthy = audioTrack?.state === 'playable' || audioTrack?.state === 'loading'
   const audioSubscribed = audioTrack?.subscribed !== false
+
+  let audioLabel = 'Audio OK'
+  let audioDotColor = 'bg-green-400'
+  if (!audioSubscribed) {
+    audioLabel = 'Audio disconnected'
+    audioDotColor = 'bg-red-400'
+  } else if (audioOff) {
+    audioLabel = 'Audio muted'
+    audioDotColor = 'bg-neutral-400'
+  } else if (!audioHealthy) {
+    audioLabel = 'Audio connecting...'
+    audioDotColor = 'bg-yellow-400'
+  }
 
   const handleReset = () => {
     setResetting(true)
@@ -1944,10 +2080,14 @@ function RemoteParticipantRow({
 
   return (
     <div className="flex items-center gap-3 p-2 rounded-lg bg-neutral-800">
-      <div className="relative w-8 h-8 rounded-full bg-secondary-500/20 flex items-center justify-center">
-        <span className="text-sm font-medium text-secondary-500">
-          {participant.user_name?.[0]?.toUpperCase() || '?'}
-        </span>
+      <div className="relative w-8 h-8 rounded-full bg-secondary-500/20 flex items-center justify-center overflow-hidden">
+        {profilePicUrl ? (
+          <img src={profilePicUrl} alt={participant.user_name || ''} className="w-full h-full object-cover" />
+        ) : (
+          <span className="text-sm font-medium text-secondary-500">
+            {participant.user_name?.[0]?.toUpperCase() || '?'}
+          </span>
+        )}
         {isOwner && (
           <div className="absolute -top-1 -right-1 w-4 h-4 bg-energy-500 rounded-full flex items-center justify-center">
             <Crown className="w-2.5 h-2.5 text-black" />
@@ -1961,19 +2101,10 @@ function RemoteParticipantRow({
             <span className="text-[10px] px-1.5 py-0.5 bg-energy-500/20 text-energy-400 rounded-full font-medium flex-shrink-0">HOST</span>
           )}
         </div>
-        {/* Audio health indicator (host controls) */}
         {showHostControls && (
           <div className="flex items-center gap-1 mt-0.5">
-            <div className={`w-1.5 h-1.5 rounded-full ${
-              audioHealthy && audioSubscribed ? 'bg-green-400' :
-              audioSubscribed ? 'bg-yellow-400' :
-              'bg-red-400'
-            }`} />
-            <span className="text-[10px] text-neutral-500">
-              {audioHealthy && audioSubscribed ? 'Audio OK' :
-               audioSubscribed ? 'Audio connecting...' :
-               'Audio disconnected'}
-            </span>
+            <div className={`w-1.5 h-1.5 rounded-full ${audioDotColor}`} />
+            <span className="text-[10px] text-neutral-500">{audioLabel}</span>
           </div>
         )}
       </div>

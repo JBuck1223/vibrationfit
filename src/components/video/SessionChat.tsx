@@ -362,7 +362,7 @@ export function SessionChat({
             return (
               <div
                 key={msg.id}
-                className={`group flex items-start gap-2 py-1 hover:bg-neutral-800/50 px-1 -mx-1 rounded ${
+                className={`group flex items-center gap-2 py-1 hover:bg-neutral-800/50 px-1 -mx-1 rounded ${
                   isHighlighted ? 'bg-energy-500/10' : ''
                 }`}
               >
