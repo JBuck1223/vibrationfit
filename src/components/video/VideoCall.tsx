@@ -52,6 +52,11 @@ import {
   Lock,
   Unlock,
   Send,
+  UserPlus,
+  Search,
+  Check,
+  Copy,
+  Link,
 } from 'lucide-react'
 import { Button, Badge, Card } from '@/lib/design-system/components'
 import { SessionChat } from '@/components/video/SessionChat'
@@ -1149,6 +1154,7 @@ function VideoCallUI({
                 participantPhotos={participantPhotos}
                 isHost={isHost}
                 isGroupSession={isGroupSession}
+                sessionId={sessionId}
                 onAllowToSpeak={allowToSpeak}
                 onRevokeSpeak={revokeSpeak}
                 onToggleRemoteVideo={toggleRemoteVideo}
@@ -1982,6 +1988,7 @@ function ParticipantsPanel({
   participantPhotos,
   isHost,
   isGroupSession,
+  sessionId,
   onAllowToSpeak,
   onRevokeSpeak,
   onToggleRemoteVideo,
@@ -1996,12 +2003,66 @@ function ParticipantsPanel({
   participantPhotos: Record<string, string>
   isHost: boolean
   isGroupSession: boolean
+  sessionId?: string
   onAllowToSpeak: (sessionId: string) => void
   onRevokeSpeak: (sessionId: string) => void
   onToggleRemoteVideo?: (sessionId: string, videoOn: boolean) => void
   onResetAudio?: (sessionId: string) => void
   onClose: () => void
 }) {
+  const [showAddMember, setShowAddMember] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<{ id: string; full_name: string; profile_picture_url?: string }[]>([])
+  const [searching, setSearching] = useState(false)
+  const [addingUserId, setAddingUserId] = useState<string | null>(null)
+  const [addedUserIds, setAddedUserIds] = useState<Set<string>>(new Set())
+  const [linkCopied, setLinkCopied] = useState(false)
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  const handleSearch = useCallback((q: string) => {
+    setSearchQuery(q)
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
+    if (q.trim().length < 2) {
+      setSearchResults([])
+      return
+    }
+    setSearching(true)
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/vibe-tribe/members/search?q=${encodeURIComponent(q.trim())}`)
+        if (res.ok) {
+          const data = await res.json()
+          setSearchResults(data.members || [])
+        }
+      } catch { /* ignore */ }
+      setSearching(false)
+    }, 300)
+  }, [])
+
+  const handleAddMember = useCallback(async (userId: string) => {
+    if (!sessionId) return
+    setAddingUserId(userId)
+    try {
+      const res = await fetch(`/api/video/sessions/${sessionId}/participants`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      })
+      if (res.ok || res.status === 409) {
+        setAddedUserIds(prev => new Set(prev).add(userId))
+      }
+    } catch { /* ignore */ }
+    setAddingUserId(null)
+  }, [sessionId])
+
+  const handleCopyLink = useCallback(() => {
+    if (!sessionId) return
+    const url = `${window.location.origin}/session/${sessionId}`
+    navigator.clipboard.writeText(url)
+    setLinkCopied(true)
+    setTimeout(() => setLinkCopied(false), 2000)
+  }, [sessionId])
+
   return (
     <div className="w-80 bg-neutral-900/95 backdrop-blur rounded-2xl border border-neutral-700 p-4 max-h-[70vh] overflow-y-auto">
       <div className="flex items-center justify-between mb-4">
@@ -2009,13 +2070,89 @@ function ParticipantsPanel({
           <Users className="w-4 h-4" />
           Participants ({participantIds.length + 1})
         </h3>
-        <button
-          onClick={onClose}
-          className="p-1 hover:bg-neutral-700 rounded-full transition-colors"
-        >
-          <X className="w-4 h-4 text-neutral-400" />
-        </button>
+        <div className="flex items-center gap-1">
+          {isHost && sessionId && (
+            <>
+              <button
+                onClick={handleCopyLink}
+                className="p-1 hover:bg-neutral-700 rounded-full transition-colors"
+                title="Copy session link"
+              >
+                {linkCopied ? <Check className="w-4 h-4 text-green-400" /> : <Link className="w-4 h-4 text-neutral-400" />}
+              </button>
+              <button
+                onClick={() => { setShowAddMember(!showAddMember); setSearchQuery(''); setSearchResults([]) }}
+                className={`p-1 rounded-full transition-colors ${showAddMember ? 'bg-primary-500/20 text-primary-400' : 'hover:bg-neutral-700 text-neutral-400'}`}
+                title="Add participant"
+              >
+                <UserPlus className="w-4 h-4" />
+              </button>
+            </>
+          )}
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-neutral-700 rounded-full transition-colors"
+          >
+            <X className="w-4 h-4 text-neutral-400" />
+          </button>
+        </div>
       </div>
+
+      {/* Add member search */}
+      {showAddMember && isHost && (
+        <div className="mb-4 space-y-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              placeholder="Search members by name..."
+              className="w-full pl-9 pr-3 py-2 bg-neutral-800 border border-neutral-700 rounded-xl text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-primary-500/50"
+              autoFocus
+            />
+          </div>
+          {searching && (
+            <p className="text-xs text-neutral-500 px-1">Searching...</p>
+          )}
+          {searchResults.length > 0 && (
+            <div className="space-y-1 max-h-40 overflow-y-auto">
+              {searchResults.map(member => {
+                const alreadyAdded = addedUserIds.has(member.id)
+                const isAdding = addingUserId === member.id
+                return (
+                  <div key={member.id} className="flex items-center gap-2 p-2 rounded-lg bg-neutral-800/50 hover:bg-neutral-800">
+                    <div className="w-7 h-7 rounded-full bg-primary-500/20 flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {member.profile_picture_url ? (
+                        <img src={member.profile_picture_url} alt={member.full_name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-xs font-medium text-primary-500">{member.full_name?.[0]?.toUpperCase()}</span>
+                      )}
+                    </div>
+                    <p className="text-sm text-white truncate flex-1">{member.full_name}</p>
+                    {alreadyAdded ? (
+                      <span className="flex items-center gap-1 text-xs text-green-400">
+                        <Check className="w-3 h-3" /> Added
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleAddMember(member.id)}
+                        disabled={isAdding}
+                        className="text-xs px-2 py-1 rounded-full bg-primary-500/20 text-primary-400 hover:bg-primary-500/30 transition-colors disabled:opacity-50"
+                      >
+                        {isAdding ? '...' : 'Invite'}
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          {searchQuery.length >= 2 && !searching && searchResults.length === 0 && (
+            <p className="text-xs text-neutral-500 px-1">No members found</p>
+          )}
+        </div>
+      )}
       
       <div className="space-y-2">
         {/* Local user (host indicator) */}
