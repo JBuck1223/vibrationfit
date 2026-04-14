@@ -204,6 +204,9 @@ function VideoCallUI({
   const [showHandRaiseInput, setShowHandRaiseInput] = useState(false)
   const [showRaisedHands, setShowRaisedHands] = useState(false)
 
+  // Host end-session confirmation
+  const [showEndConfirm, setShowEndConfirm] = useState(false)
+
   // Camera source picker (host only)
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([])
   const [showDevicePicker, setShowDevicePicker] = useState(false)
@@ -219,6 +222,10 @@ function VideoCallUI({
   const containerRef = useRef<HTMLDivElement>(null)
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const joinTrackedRef = useRef(false)
+  const onLeaveRef = useRef(onLeave)
+  useEffect(() => { onLeaveRef.current = onLeave }, [onLeave])
+  const callDurationRef = useRef(callDuration)
+  useEffect(() => { callDurationRef.current = callDuration }, [callDuration])
 
   // Enumerate video input devices for the camera picker (host only)
   useEffect(() => {
@@ -652,6 +659,12 @@ function VideoCallUI({
           setIsCameraLocked(false)
         }
       }
+
+      // Host ended the session — all participants must leave
+      if (data?.type === 'host-ended-session' && !isHost) {
+        daily.leave()
+        onLeaveRef.current?.({ durationSeconds: callDurationRef.current, wasRecording: false })
+      }
     }
 
     daily.on('app-message', handleAppMessage as any)
@@ -852,9 +865,13 @@ function VideoCallUI({
         console.error('Error tracking participant leave:', trackErr)
       }
 
-      // If host is leaving, mark session as completed
+      // If host is leaving, end the session for everyone
       if (isHost) {
         try {
+          // Tell all participants to leave before the host disconnects
+          if (daily) {
+            daily.sendAppMessage({ type: 'host-ended-session' }, '*')
+          }
           // Stop recording if still running
           if (isRecording && daily) {
             await daily.stopRecording()
@@ -1558,7 +1575,7 @@ function VideoCallUI({
 
           {/* Leave call */}
           <button
-            onClick={handleLeave}
+            onClick={isHost && isGroupSession ? () => setShowEndConfirm(true) : handleLeave}
             className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition-all duration-200 ml-2 md:ml-4"
             title="Leave call"
           >
@@ -1566,6 +1583,35 @@ function VideoCallUI({
           </button>
         </div>
       </div>
+
+      {/* Host end-session confirmation overlay */}
+      {showEndConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="bg-neutral-900 border border-neutral-700 rounded-2xl p-6 md:p-8 max-w-sm w-full mx-4 shadow-2xl">
+            <div className="w-14 h-14 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4">
+              <PhoneOff className="w-7 h-7 text-red-500" />
+            </div>
+            <h3 className="text-lg font-bold text-white text-center mb-2">End Session?</h3>
+            <p className="text-sm text-neutral-400 text-center mb-6">
+              This will end the meeting for all {participantIds.length} participant{participantIds.length !== 1 ? 's' : ''} and stop recording.
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={handleLeave}
+                className="w-full py-3 rounded-full bg-red-500 hover:bg-red-600 text-white font-medium transition-colors"
+              >
+                End for Everyone
+              </button>
+              <button
+                onClick={() => setShowEndConfirm(false)}
+                className="w-full py-3 rounded-full bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-medium transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
