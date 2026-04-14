@@ -509,6 +509,42 @@ export default function NewStoryWizardPage() {
   const isLifeVision = selectedSource?.entityType === 'life_vision'
   const isCustom = selectedSource?.entityType === 'custom'
   const needsEntity = selectedSource && !selectedSource.skipEntity
+
+  function renderStepIndicator() {
+    const steps = selectedSource?.skipEntity
+      ? [{ key: 'source', label: 'Source' }, { key: 'create', label: 'Create' }]
+      : [{ key: 'source', label: 'Source' }, { key: 'entity', label: 'Select' }, { key: 'create', label: 'Create' }]
+
+    const currentIdx = steps.findIndex(s => s.key === step)
+
+    return (
+      <div className="flex items-center justify-center gap-2 mb-2">
+        {steps.map((s, i) => (
+          <div key={s.key} className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                if (i < currentIdx) setStep(s.key as WizardStep)
+              }}
+              disabled={i > currentIdx}
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
+                i === currentIdx
+                  ? 'bg-white text-black'
+                  : i < currentIdx
+                    ? 'bg-primary-500 text-black cursor-pointer'
+                    : 'bg-neutral-800 text-neutral-500'
+              }`}
+            >
+              {i < currentIdx ? <Check className="w-4 h-4" /> : i + 1}
+            </button>
+            {i < steps.length - 1 && (
+              <div className={`w-8 h-0.5 ${i < currentIdx ? 'bg-primary-500' : 'bg-neutral-700'}`} />
+            )}
+          </div>
+        ))}
+      </div>
+    )
+  }
+
   const stepNumber = (n: number) => (
     <div className="w-12 h-12 rounded-full bg-primary-500/20 flex items-center justify-center mb-2">
       <span className="text-primary-500 font-bold text-2xl">{n}</span>

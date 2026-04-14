@@ -8,6 +8,7 @@ import {
   Mic,
   Wand2,
   ArrowRight,
+  ChevronLeft,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import {
