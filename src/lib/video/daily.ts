@@ -291,8 +291,6 @@ export async function createParticipantToken(
     is_owner: false,
     enable_screenshare: isGroupSession ? false : true,
     enable_recording: false,
-    start_video_off: isGroupSession ? true : undefined,
-    start_audio_off: isGroupSession ? true : undefined,
   })
 }
 
@@ -523,8 +521,6 @@ export async function createGroupRoom(
       enable_chat: true,
       enable_recording: 'cloud',
       enable_prejoin_ui: true,
-      start_video_off: true,
-      start_audio_off: true,
       exp: Math.floor(expirationTime.getTime() / 1000),
     },
   })
@@ -549,8 +545,6 @@ export async function createAlignmentGymRoom(
       enable_chat: true,
       enable_recording: 'cloud',
       enable_prejoin_ui: true,
-      start_video_off: true,
-      start_audio_off: true,
       exp: Math.floor(expirationTime.getTime() / 1000),
     },
   })
@@ -574,8 +568,6 @@ export async function createWebinarRoom(
       enable_chat: true,
       enable_recording: 'cloud',
       enable_prejoin_ui: true,
-      start_video_off: true,
-      start_audio_off: true,
       exp: Math.floor(expirationTime.getTime() / 1000),
     },
   })
