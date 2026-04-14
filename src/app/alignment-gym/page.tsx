@@ -100,7 +100,7 @@ export default function AlignmentGymPage() {
           *,
           participants:video_session_participants(*)
         `)
-        .or('session_type.eq.alignment_gym,session_type.eq.group,title.ilike.%alignment gym%')
+        .or('session_type.eq.alignment_gym,title.ilike.%alignment gym%')
         .order('scheduled_at', { ascending: false })
 
       if (sessionsError) {
