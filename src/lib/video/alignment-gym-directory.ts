@@ -8,7 +8,6 @@ export function isAlignmentGymDirectorySession(
   session: Pick<VideoSession, 'session_type' | 'title'>
 ): boolean {
   if (session.session_type === 'alignment_gym') return true
-  if (session.session_type === 'group') return true
   if (typeof session.title === 'string' && /alignment gym/i.test(session.title)) return true
   return false
 }
