@@ -41,9 +41,8 @@ export async function POST(request: NextRequest) {
 
     // Determine max participants by session type
     let maxParticipants = 2
-    if (sessionType === 'group' || sessionType === 'workshop' || sessionType === 'test_group') {
-      maxParticipants = 25
-    } else if (sessionType === 'alignment_gym' || sessionType === 'webinar') {
+    if (sessionType === 'group' || sessionType === 'workshop' || sessionType === 'test_group'
+      || sessionType === 'alignment_gym' || sessionType === 'webinar') {
       maxParticipants = 0
     }
 
