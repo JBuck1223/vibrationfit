@@ -367,7 +367,7 @@ export function SessionChat({
                 }`}
               >
                 {/* Profile picture avatar */}
-                <div className="w-6 h-6 rounded-full bg-neutral-700 overflow-hidden flex-shrink-0 mt-0.5">
+                <div className="w-6 h-6 rounded-full bg-neutral-700 overflow-hidden flex-shrink-0">
                   {msg.profile_picture_url ? (
                     <img
                       src={msg.profile_picture_url}
@@ -382,7 +382,7 @@ export function SessionChat({
                 </div>
 
                 {/* Message content */}
-                <p className="text-[13px] leading-5 flex-1 min-w-0 break-words">
+                <p className="text-[13px] leading-6 flex-1 min-w-0 break-words">
                   <span className={`font-medium ${
                     isHighlighted ? 'text-energy-400' : own ? 'text-primary-400' : getNameColor(msg.sender_name)
                   }`}>
