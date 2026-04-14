@@ -24,13 +24,13 @@ import {
   Button, 
   Spinner,
 } from '@/lib/design-system/components'
-import { AlertCircle, ArrowLeft } from 'lucide-react'
+import { AlertCircle, ArrowLeft, Lock, CheckCircle, Send } from 'lucide-react'
 import type { VideoSession, VideoSessionParticipant, CallSettings, JoinSessionResponse } from '@/lib/video/types'
 import { isAlignmentGymDirectorySession } from '@/lib/video/alignment-gym-directory'
 
 type SessionWithParticipants = VideoSession & { participants?: VideoSessionParticipant[] }
 
-type PageState = 'loading' | 'error' | 'lobby' | 'pre-call' | 'waiting' | 'in-call' | 'post-call'
+type PageState = 'loading' | 'error' | 'access-denied' | 'lobby' | 'pre-call' | 'waiting' | 'in-call' | 'post-call'
 
 interface GuestSessionInfo {
   id: string
@@ -68,6 +68,9 @@ export default function SessionPage() {
   const [isGuestJoin, setIsGuestJoin] = useState(false)
   const [initialGuestEmail, setInitialGuestEmail] = useState<string>('')
   const [userProfilePic, setUserProfilePic] = useState<string | null>(null)
+  const [deniedSessionInfo, setDeniedSessionInfo] = useState<{
+    title?: string; hostName?: string; scheduledAt?: string
+  } | null>(null)
 
   useEffect(() => {
     const emailFromUrl = searchParams?.get('email') || ''
@@ -103,7 +106,23 @@ export default function SessionPage() {
             return
           }
 
-          // Authenticated endpoint failed — fall through to guest flow
+          if (response.status === 403) {
+            const profileResponse = await fetch('/api/profile')
+            if (profileResponse.ok) {
+              const profileData = await profileResponse.json()
+              setUserName(profileData.full_name || profileData.email || 'Participant')
+              setUserEmail(profileData.email || user.email || '')
+            }
+            setDeniedSessionInfo({
+              title: data.session_title,
+              hostName: data.host_name,
+              scheduledAt: data.scheduled_at,
+            })
+            setPageState('access-denied')
+            return
+          }
+
+          // Other errors — fall through to guest flow
         }
 
         setIsGuestJoin(true)
@@ -327,6 +346,22 @@ export default function SessionPage() {
     )
   }
 
+  // Access Denied — lead capture
+  if (pageState === 'access-denied') {
+    return (
+      <AccessDeniedPage
+        sessionTitle={deniedSessionInfo?.title}
+        hostName={deniedSessionInfo?.hostName}
+        scheduledAt={deniedSessionInfo?.scheduledAt}
+        userName={userName}
+        userEmail={userEmail}
+        isAuthenticated={!!isAuthenticated}
+        sessionId={sessionId}
+        onBack={handleCancel}
+      />
+    )
+  }
+
   // Lobby
   if (pageState === 'lobby') {
     const lobbySession = session || guestSession
@@ -425,6 +460,182 @@ export default function SessionPage() {
   return (
     <div className="min-h-screen bg-black flex items-center justify-center">
       <Spinner size="lg" />
+    </div>
+  )
+}
+
+function AccessDeniedPage({
+  sessionTitle,
+  hostName,
+  scheduledAt,
+  userName,
+  userEmail,
+  isAuthenticated,
+  sessionId,
+  onBack,
+}: {
+  sessionTitle?: string
+  hostName?: string
+  scheduledAt?: string
+  userName: string
+  userEmail: string
+  isAuthenticated: boolean
+  sessionId: string
+  onBack: () => void
+}) {
+  const [requestState, setRequestState] = useState<'idle' | 'sending' | 'sent'>('idle')
+  const [guestName, setGuestName] = useState(userName !== 'Participant' ? userName : '')
+  const [guestEmail, setGuestEmail] = useState(userEmail)
+  const [message, setMessage] = useState('')
+
+  const handleRequestAccess = async () => {
+    const email = isAuthenticated ? userEmail : guestEmail.trim()
+    if (!email) return
+
+    setRequestState('sending')
+    try {
+      await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'session_access_request',
+          email,
+          first_name: isAuthenticated ? userName : guestName.trim() || undefined,
+          source: 'session_link',
+          message: message.trim() || `Requested access to session: ${sessionTitle || sessionId}`,
+          landing_page: `/session/${sessionId}`,
+          metadata: {
+            session_id: sessionId,
+            session_title: sessionTitle,
+            host_name: hostName,
+            scheduled_at: scheduledAt,
+            is_authenticated: isAuthenticated,
+          },
+        }),
+      })
+    } catch { /* best effort */ }
+    setRequestState('sent')
+  }
+
+  const formattedDate = scheduledAt
+    ? new Date(scheduledAt).toLocaleDateString('en-US', {
+        weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit',
+      })
+    : null
+
+  return (
+    <div className="min-h-screen bg-black">
+      <Container size="md">
+        <Stack gap="lg">
+          <PageHero
+            eyebrow="PRIVATE SESSION"
+            title={sessionTitle || 'Private Session'}
+            subtitle={
+              hostName
+                ? `Hosted by ${hostName}${formattedDate ? ` on ${formattedDate}` : ''}`
+                : formattedDate || 'This session requires an invitation to join.'
+            }
+          >
+            <Button variant="ghost" size="sm" onClick={onBack}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              {isAuthenticated ? 'Back to Sessions' : 'Go Home'}
+            </Button>
+          </PageHero>
+
+          <Card className="p-4 md:p-6 lg:p-8">
+            {requestState === 'sent' ? (
+              <div className="text-center">
+                <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="w-8 h-8 text-green-400" />
+                </div>
+                <h2 className="text-lg md:text-xl font-bold text-white mb-2">Request Sent</h2>
+                <p className="text-sm md:text-base text-neutral-400 mb-6">
+                  {hostName || 'The host'} has been notified. You&apos;ll hear back soon if access is granted.
+                </p>
+                <Button variant="secondary" size="sm" onClick={onBack}>
+                  {isAuthenticated ? 'Back to Sessions' : 'Go Home'}
+                </Button>
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                    <Lock className="w-6 h-6 text-amber-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-white">Invitation Required</h2>
+                    <p className="text-sm text-neutral-400">
+                      This session is private. Request access and the host will be notified.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {!isAuthenticated && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-neutral-300 mb-1.5">Your Name</label>
+                        <input
+                          type="text"
+                          value={guestName}
+                          onChange={(e) => setGuestName(e.target.value)}
+                          placeholder="Enter your name"
+                          className="w-full px-4 py-2.5 bg-neutral-800 border border-neutral-700 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:border-primary-500/50"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-neutral-300 mb-1.5">Your Email</label>
+                        <input
+                          type="email"
+                          value={guestEmail}
+                          onChange={(e) => setGuestEmail(e.target.value)}
+                          placeholder="you@example.com"
+                          className="w-full px-4 py-2.5 bg-neutral-800 border border-neutral-700 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:border-primary-500/50"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {isAuthenticated && (
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-neutral-800/50 border border-neutral-700/50">
+                      <div className="w-9 h-9 rounded-full bg-primary-500/20 flex items-center justify-center">
+                        <span className="text-sm font-medium text-primary-500">{userName?.[0]?.toUpperCase()}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white truncate">{userName}</p>
+                        <p className="text-xs text-neutral-500 truncate">{userEmail}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-300 mb-1.5">
+                      Message <span className="text-neutral-500">(optional)</span>
+                    </label>
+                    <textarea
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      placeholder="Let the host know why you'd like to join..."
+                      rows={3}
+                      className="w-full px-4 py-2.5 bg-neutral-800 border border-neutral-700 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:border-primary-500/50 resize-none"
+                    />
+                  </div>
+
+                  <Button
+                    variant="primary"
+                    className="w-full"
+                    onClick={handleRequestAccess}
+                    disabled={requestState === 'sending' || (!isAuthenticated && !guestEmail.trim())}
+                  >
+                    <Send className="w-4 h-4 mr-2" />
+                    {requestState === 'sending' ? 'Sending...' : 'Request Access'}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </Card>
+        </Stack>
+      </Container>
     </div>
   )
 }
