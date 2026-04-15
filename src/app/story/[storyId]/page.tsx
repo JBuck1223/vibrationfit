@@ -149,7 +149,7 @@ export default function StoryDetailPage({
         </div>
 
         {/* Generation Details */}
-        {story.metadata && (story.metadata.selected_categories || story.metadata.model_used || story.metadata.focus_notes) && (
+        {story.metadata && !!(story.metadata.selected_categories || story.metadata.model_used || story.metadata.focus_notes) && (
           <Card className="p-4 md:p-6 lg:p-8">
             <div className="flex items-center gap-2 mb-4">
               <Info className="w-4 h-4 text-neutral-400" />
@@ -189,7 +189,7 @@ export default function StoryDetailPage({
                   </div>
                 </div>
               )}
-              {story.metadata.focus_notes && (
+              {!!story.metadata.focus_notes && (
                 <div className="flex items-start gap-3">
                   <StickyNote className="w-4 h-4 text-neutral-500 mt-0.5 flex-shrink-0" />
                   <div>
