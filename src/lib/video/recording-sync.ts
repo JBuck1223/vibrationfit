@@ -122,11 +122,11 @@ export async function syncRecordings(opts?: {
         // Fall back to the list data if detail fetch fails
       }
 
-      // With direct-to-S3, Daily uses our recordings_template:
-      //   session-recordings/{room_name}/{recording_id}-{epoch_time}.mp4
-      // The recording object from Daily's API includes s3_key when using custom S3.
-      // Fall back to constructing the key from the template pattern.
-      const s3Key = (recordingDetails as unknown as Record<string, unknown>).s3_key as string
+      // Daily's API returns the actual S3 key as `s3key` (no underscore) when
+      // using custom S3 storage. Fall back to the room/id pattern for legacy recordings.
+      const details = recordingDetails as unknown as Record<string, unknown>
+      const s3Key = (details.s3key as string)
+        || (details.s3_key as string)
         || `session-recordings/${session.daily_room_name}/${best.id}.mp4`
 
       const recordingUrl = `${CDN_URL}/${s3Key}`
