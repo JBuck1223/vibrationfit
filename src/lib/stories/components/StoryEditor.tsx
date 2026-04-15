@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Check, Loader2, AlertCircle } from 'lucide-react'
-import { Card, Text, Badge, Input, AutoResizeTextarea } from '@/lib/design-system/components'
+import { Card, Text, Input, AutoResizeTextarea } from '@/lib/design-system/components'
 import type { Story } from '../types'
 
 interface StoryEditorProps {
@@ -33,9 +33,6 @@ export function StoryEditor({
   
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const lastSavedRef = useRef({ title: story.title || '', content: story.content || '' })
-
-  // Calculate word count
-  const wordCount = content.trim() ? content.trim().split(/\s+/).filter(Boolean).length : 0
 
   // Handle save
   const handleSave = useCallback(async () => {
@@ -132,31 +129,23 @@ export function StoryEditor({
 
   return (
     <div className="space-y-4">
-      {/* Header with status */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Text size="sm" className="text-neutral-400">
-            {wordCount.toLocaleString()} words
-          </Text>
-          {story.status === 'draft' && (
-            <Badge variant="secondary">Draft</Badge>
-          )}
-          {story.status === 'completed' && (
-            <Badge variant="success">Complete</Badge>
-          )}
-        </div>
-        {autoSave && getSaveStatusDisplay()}
-      </div>
-
-      {/* Title input */}
+      {/* Title + save status */}
       {showTitle && (
-        <Input
-          value={title}
-          onChange={(e) => handleTitleChange(e.target.value)}
-          placeholder="Story title (optional)"
-          disabled={readOnly}
-          className="text-lg font-medium"
-        />
+        <div className="flex items-center gap-3">
+          <Input
+            value={title}
+            onChange={(e) => handleTitleChange(e.target.value)}
+            placeholder="Story title (optional)"
+            disabled={readOnly}
+            className="text-lg font-medium flex-1"
+          />
+          {autoSave && getSaveStatusDisplay()}
+        </div>
+      )}
+      {!showTitle && autoSave && getSaveStatusDisplay() && (
+        <div className="flex items-center justify-end">
+          {getSaveStatusDisplay()}
+        </div>
       )}
 
       {/* Content editor */}

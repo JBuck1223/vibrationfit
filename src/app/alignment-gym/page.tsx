@@ -101,6 +101,7 @@ export default function AlignmentGymPage() {
           participants:video_session_participants(*)
         `)
         .or('session_type.eq.alignment_gym,title.ilike.%alignment gym%')
+        .eq('hidden_from_users', false)
         .order('scheduled_at', { ascending: false })
 
       if (sessionsError) {

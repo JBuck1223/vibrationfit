@@ -516,7 +516,7 @@ export default function NewStoryWizardPage() {
   )
 
   return (
-    <Container size="xl" className="py-6">
+    <Container size="xl" className="pt-6">
       <Stack gap="lg">
         {/* Streaming Story Display (replaces entire form when generated) */}
         {hasGeneratedStory ? (
@@ -714,8 +714,8 @@ export default function NewStoryWizardPage() {
                         {isLifeVision && (
                           <>
                             <div className="rounded-2xl bg-neutral-800/50 border border-neutral-700/50 p-4 md:p-6">
-                              <div className="flex items-center justify-between mb-4">
-                                <div>
+                              <div className="flex flex-col items-center gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between">
+                                <div className="text-center sm:text-left">
                                   <h4 className="text-white font-semibold">Choose Focus Areas</h4>
                                   <p className="text-sm text-neutral-400">
                                     Select the life areas for your story
@@ -907,7 +907,7 @@ export default function NewStoryWizardPage() {
                         </div>
                         <div className="p-3 bg-neutral-800/50 rounded-lg border border-neutral-700">
                           <p className="text-xs text-neutral-400">
-                            <strong className="text-teal-400">Tip:</strong> Click the mic button to record your thoughts,
+                            <strong className="text-teal-400">Tip: </strong>Click the mic button to record your thoughts,
                             then use &quot;Enhance with VIVA&quot; to transform your raw ideas into a polished, immersive story.
                           </p>
                         </div>
