@@ -1,33 +1,18 @@
 /**
- * Recording Sync API (Polling Fallback)
+ * Admin Recording Sync
  *
  * POST /api/admin/recordings/sync
  *
- * Checks Daily.co for completed recordings that haven't been transferred to S3 yet.
- * Works as a fallback when webhooks can't reach the server (e.g., local dev)
- * and as a safety net in production to catch any missed webhooks.
+ * Admin-only wrapper around the shared syncRecordings() utility.
+ * Accepts optional { session_id } to sync a single session.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminAccess } from '@/lib/supabase/admin'
-import { createServiceClient } from '@/lib/supabase/service'
-import { listRecordings, getRecordingAccessLink, getRecording } from '@/lib/video/daily'
-import { S3Client, PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3'
-import { Upload } from '@aws-sdk/lib-storage'
+import { syncRecordings } from '@/lib/video/recording-sync'
 
 export const runtime = 'nodejs'
-export const maxDuration = 300
-
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION || 'us-east-2',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
-})
-
-const BUCKET_NAME = 'vibration-fit-client-storage'
-const CDN_URL = 'https://media.vibrationfit.com'
+export const maxDuration = 60
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,185 +22,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json().catch(() => ({}))
-    const targetSessionId = body.session_id as string | undefined
+    const sessionId = body.session_id as string | undefined
 
-    const supabase = createServiceClient()
+    const summary = await syncRecordings(sessionId ? { sessionId } : undefined)
 
-    let query = supabase
-      .from('video_sessions')
-      .select('id, daily_room_name, daily_recording_id, recording_status, recording_url, title')
-      .not('daily_room_name', 'is', null)
-
-    if (targetSessionId) {
-      query = query.eq('id', targetSessionId)
-    } else {
-      query = query
-        .in('recording_status', ['recording', 'processing', 'none', 'failed'])
-        .order('created_at', { ascending: false })
-        .limit(50)
-    }
-
-    const { data: pendingSessions, error: dbError } = await query
-
-    if (dbError) {
-      return NextResponse.json({ error: dbError.message }, { status: 500 })
-    }
-
-    const results: Array<{
-      session_id: string
-      room_name: string
-      title: string
-      action: string
-      recording_url?: string
-      error_detail?: string
-    }> = []
-
-    for (const session of pendingSessions || []) {
-      try {
-        const { data: recordings } = await listRecordings(session.daily_room_name)
-
-        if (!recordings || recordings.length === 0) continue
-
-        for (const recording of recordings) {
-          if (recording.status !== 'ready' && recording.status !== 'finished') continue
-
-          const s3Key = `session-recordings/${session.daily_room_name}/${recording.id}.mp4`
-
-          let alreadyInS3 = false
-          try {
-            await s3Client.send(new HeadObjectCommand({ Bucket: BUCKET_NAME, Key: s3Key }))
-            alreadyInS3 = true
-          } catch {
-            // Object doesn't exist in S3
-          }
-
-          if (alreadyInS3 && session.recording_url) {
-            results.push({
-              session_id: session.id,
-              room_name: session.daily_room_name,
-              title: session.title,
-              action: 'already_synced',
-              recording_url: session.recording_url,
-            })
-            continue
-          }
-
-          let accessData: { download_link: string }
-          try {
-            accessData = await getRecordingAccessLink(recording.id)
-          } catch (accessErr) {
-            const msg = accessErr instanceof Error ? accessErr.message : String(accessErr)
-            console.error(`Failed to get access link for recording ${recording.id}:`, msg)
-            results.push({
-              session_id: session.id,
-              room_name: session.daily_room_name,
-              title: session.title,
-              action: 'error',
-              error_detail: `Access link failed: ${msg}`,
-            })
-            continue
-          }
-
-          const downloadResponse = await fetch(accessData.download_link)
-
-          if (!downloadResponse.ok || !downloadResponse.body) {
-            results.push({
-              session_id: session.id,
-              room_name: session.daily_room_name,
-              title: session.title,
-              action: 'download_failed',
-            })
-            continue
-          }
-
-          const reader = downloadResponse.body.getReader()
-          const chunks: Uint8Array[] = []
-          while (true) {
-            const { done, value } = await reader.read()
-            if (done) break
-            chunks.push(value)
-          }
-          const fullBuffer = Buffer.concat(chunks)
-
-          if (fullBuffer.length > 50 * 1024 * 1024) {
-            const upload = new Upload({
-              client: s3Client,
-              params: {
-                Bucket: BUCKET_NAME,
-                Key: s3Key,
-                Body: fullBuffer,
-                ContentType: 'video/mp4',
-                CacheControl: 'max-age=31536000',
-                Metadata: {
-                  'daily-recording-id': recording.id,
-                  'daily-room-name': session.daily_room_name,
-                  'recording-duration': String(recording.duration || 0),
-                },
-              },
-              queueSize: 4,
-              partSize: 10 * 1024 * 1024,
-            })
-            await upload.done()
-          } else {
-            await s3Client.send(
-              new PutObjectCommand({
-                Bucket: BUCKET_NAME,
-                Key: s3Key,
-                Body: fullBuffer,
-                ContentType: 'video/mp4',
-                CacheControl: 'max-age=31536000',
-                Metadata: {
-                  'daily-recording-id': recording.id,
-                  'daily-room-name': session.daily_room_name,
-                  'recording-duration': String(recording.duration || 0),
-                },
-              })
-            )
-          }
-
-          const recordingUrl = `${CDN_URL}/${s3Key}`
-
-          await supabase
-            .from('video_sessions')
-            .update({
-              recording_status: 'uploaded',
-              recording_s3_key: s3Key,
-              recording_url: recordingUrl,
-              recording_duration_seconds: recording.duration || 0,
-              daily_recording_id: recording.id,
-            })
-            .eq('id', session.id)
-
-          results.push({
-            session_id: session.id,
-            room_name: session.daily_room_name,
-            title: session.title,
-            action: 'synced',
-            recording_url: recordingUrl,
-          })
-        }
-      } catch (err) {
-        const errMsg = err instanceof Error ? err.message : String(err)
-        console.error(`Error syncing recording for ${session.daily_room_name}:`, errMsg)
-        results.push({
-          session_id: session.id,
-          room_name: session.daily_room_name,
-          title: session.title,
-          action: 'error',
-          error_detail: errMsg,
-        })
-      }
-    }
-
-    return NextResponse.json({
-      synced: results.filter((r) => r.action === 'synced').length,
-      already_synced: results.filter((r) => r.action === 'already_synced').length,
-      errors: results.filter((r) => r.action === 'error').length,
-      results,
-    })
+    return NextResponse.json(summary)
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
-    console.error('Recording sync error:', msg)
+    console.error('[admin/recordings/sync] Error:', msg)
     return NextResponse.json({ error: msg || 'Internal server error' }, { status: 500 })
   }
 }
