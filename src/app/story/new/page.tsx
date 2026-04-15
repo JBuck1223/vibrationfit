@@ -18,6 +18,7 @@ import {
   Mic,
   Wand2,
   CheckCircle,
+  Search,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -116,6 +117,7 @@ export default function NewStoryWizardPage() {
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null)
   const [selectedEntity, setSelectedEntity] = useState<any>(null)
   const [isEntityDropdownOpen, setIsEntityDropdownOpen] = useState(false)
+  const [entitySearchQuery, setEntitySearchQuery] = useState('')
 
   // Life Vision specific state
   const [selectedCategories, setSelectedCategories] = useState<LifeCategoryKey[]>([])
@@ -173,6 +175,7 @@ export default function NewStoryWizardPage() {
     setSelectedEntityId(null)
     setSelectedEntity(null)
     setEntities([])
+    setEntitySearchQuery('')
 
     if (source.skipEntity) {
       setStep('create')
@@ -420,6 +423,18 @@ export default function NewStoryWizardPage() {
     return entity.name || entity.title || 'Selected Item'
   }
 
+  const isSearchableEntity = selectedSource?.entityType === 'vision_board_item' || selectedSource?.entityType === 'journal_entry'
+
+  const filteredEntities = isSearchableEntity && entitySearchQuery.trim()
+    ? entities.filter(entity => {
+        const q = entitySearchQuery.toLowerCase()
+        const name = (entity.name || entity.title || '').toLowerCase()
+        const desc = (entity.description || entity.content || '').toLowerCase()
+        const cats = Array.isArray(entity.categories) ? entity.categories.join(' ').toLowerCase() : ''
+        return name.includes(q) || desc.includes(q) || cats.includes(q)
+      })
+    : entities
+
   function renderEntityDropdownItems() {
     if (entityLoading) {
       return (
@@ -438,7 +453,15 @@ export default function NewStoryWizardPage() {
       )
     }
 
-    return entities.map(entity => {
+    if (filteredEntities.length === 0) {
+      return (
+        <div className="px-4 py-6 text-center">
+          <p className="text-sm text-neutral-400">No results for &ldquo;{entitySearchQuery}&rdquo;</p>
+        </div>
+      )
+    }
+
+    return filteredEntities.map(entity => {
       const entityId = entity.id
       const isSelected = selectedEntityId === entityId
 
@@ -674,9 +697,27 @@ export default function NewStoryWizardPage() {
                       </div>
                       {isEntityDropdownOpen && (
                         <>
-                          <div className="fixed inset-0 z-10" onClick={() => setIsEntityDropdownOpen(false)} />
-                          <div className="absolute z-20 w-full mt-2 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-60 overflow-y-auto">
-                            {renderEntityDropdownItems()}
+                          <div className="fixed inset-0 z-10" onClick={() => { setIsEntityDropdownOpen(false); setEntitySearchQuery('') }} />
+                          <div className="absolute z-20 w-full mt-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl overflow-hidden">
+                            {isSearchableEntity && !entityLoading && entities.length > 0 && (
+                              <div className="p-2 border-b border-[#333]">
+                                <div className="relative">
+                                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
+                                  <input
+                                    type="text"
+                                    value={entitySearchQuery}
+                                    onChange={(e) => setEntitySearchQuery(e.target.value)}
+                                    placeholder={`Search ${selectedSource?.label.toLowerCase()}s...`}
+                                    className="w-full pl-9 pr-3 py-2 bg-neutral-800 border border-neutral-700 rounded-xl text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-primary-500/50"
+                                    autoFocus
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                            <div className="py-2 max-h-60 overflow-y-auto">
+                              {renderEntityDropdownItems()}
+                            </div>
                           </div>
                         </>
                       )}
