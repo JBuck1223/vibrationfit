@@ -126,7 +126,7 @@ export async function syncRecordings(opts?: {
       //   session-recordings/{room_name}/{recording_id}-{epoch_time}.mp4
       // The recording object from Daily's API includes s3_key when using custom S3.
       // Fall back to constructing the key from the template pattern.
-      const s3Key = (recordingDetails as Record<string, unknown>).s3_key as string
+      const s3Key = (recordingDetails as unknown as Record<string, unknown>).s3_key as string
         || `session-recordings/${session.daily_room_name}/${best.id}.mp4`
 
       const recordingUrl = `${CDN_URL}/${s3Key}`
