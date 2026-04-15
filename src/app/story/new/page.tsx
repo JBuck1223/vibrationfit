@@ -587,6 +587,7 @@ export default function NewStoryWizardPage() {
           <Card variant="glass" className="p-4 md:p-6 relative">
             <VIVALoadingOverlay
               isVisible={generating}
+              className="!fixed !inset-0 !rounded-none"
               messages={[
                 'VIVA is crafting your day-in-the-life story...',
                 'Weaving together your selected life areas...',

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Library, PenLine, Target, Image, FileText, BookOpen, Clock, ChevronDown, Check, Lightbulb } from 'lucide-react'
+import { Library, PenLine, Target, Image, FileText, BookOpen, Clock, ChevronDown, Check, Lightbulb, Search } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { AreaBar } from '@/components/area-studio'
 import { useStoryStudio } from './StoryStudioContext'
@@ -50,6 +50,7 @@ function StoryContextBar({ currentStoryId, stories }: { currentStoryId: string; 
 
   const [filterOpen, setFilterOpen] = useState(false)
   const [storyOpen, setStoryOpen] = useState(false)
+  const [storySearch, setStorySearch] = useState('')
   const filterRef = useRef<HTMLDivElement>(null)
   const storyRef = useRef<HTMLDivElement>(null)
 
@@ -61,31 +62,40 @@ function StoryContextBar({ currentStoryId, stories }: { currentStoryId: string; 
   }, [currentStory])
 
   const closeFilter = useCallback(() => setFilterOpen(false), [])
-  const closeStory = useCallback(() => setStoryOpen(false), [])
+  const closeStory = useCallback(() => { setStoryOpen(false); setStorySearch('') }, [])
   useClickOutside(filterRef, closeFilter, filterOpen)
   useClickOutside(storyRef, closeStory, storyOpen)
 
-  const filteredStories = activeFilter === 'all'
+  const filteredByType = activeFilter === 'all'
     ? stories
     : stories.filter(s => s.entity_type === activeFilter)
+
+  const filteredStories = storySearch.trim()
+    ? filteredByType.filter(s => (s.title || '').toLowerCase().includes(storySearch.toLowerCase()))
+    : filteredByType
 
   const activeFilterObj = SOURCE_FILTERS.find(f => f.value === activeFilter) || SOURCE_FILTERS[0]
   const FilterIcon = activeFilterObj.icon
 
+  const currentStoryMatchesFilter = activeFilter === 'all' || currentStory?.entity_type === activeFilter
+  const displayedStory = currentStoryMatchesFilter ? currentStory : null
+
   const handleSelectFilter = (value: string) => {
     setActiveFilter(value)
     setFilterOpen(false)
+    setStorySearch('')
   }
 
   const handleSelectStory = (storyId: string) => {
     setStoryOpen(false)
+    setStorySearch('')
     if (storyId !== currentStoryId) {
       router.push(`/story/${storyId}`)
     }
   }
 
   return (
-    <div className="flex flex-col gap-2 w-full md:flex-row md:items-center md:max-w-lg md:mx-auto">
+    <div className="flex flex-col gap-2 w-full md:flex-row md:items-center md:max-w-2xl md:mx-auto">
       {/* Source type dropdown */}
       <div className="relative md:flex-1 md:min-w-0" ref={filterRef}>
         <button
@@ -96,6 +106,9 @@ function StoryContextBar({ currentStoryId, stories }: { currentStoryId: string; 
           <FilterIcon className="w-4 h-4 md:w-3.5 md:h-3.5 text-[#39FF14] flex-shrink-0" />
           <span className="text-xs md:text-xs text-white font-medium whitespace-nowrap flex-1">
             {activeFilterObj.label}
+          </span>
+          <span className="text-[10px] text-neutral-500 flex-shrink-0">
+            {filteredByType.length}
           </span>
           <ChevronDown className={`w-3.5 h-3.5 md:w-3 md:h-3 text-neutral-400 transition-transform flex-shrink-0 ${filterOpen ? 'rotate-180' : ''}`} />
         </button>
@@ -135,54 +148,71 @@ function StoryContextBar({ currentStoryId, stories }: { currentStoryId: string; 
           onClick={() => { setStoryOpen(prev => !prev); setFilterOpen(false) }}
           className="w-full px-3 py-2 md:py-1.5 rounded-xl md:rounded-lg bg-neutral-900/80 md:bg-black/40 border border-neutral-700/50 hover:border-neutral-600 active:bg-neutral-800 transition-colors flex items-center gap-2.5 text-left"
         >
-          {currentStory && (() => {
-            const Icon = ENTITY_ICONS[currentStory.entity_type] || FileText
+          {displayedStory && (() => {
+            const Icon = ENTITY_ICONS[displayedStory.entity_type] || FileText
             return <Icon className="w-4 h-4 md:w-3.5 md:h-3.5 text-neutral-400 flex-shrink-0" />
           })()}
-          <span className="text-xs md:text-xs text-white font-medium truncate flex-1">
-            {currentStory?.title || 'Select a story...'}
-          </span>
-          <span className="text-[10px] text-neutral-500 flex-shrink-0">
-            {filteredStories.length}
+          <span className={`text-xs md:text-xs font-medium truncate flex-1 ${displayedStory ? 'text-white' : 'text-neutral-500'}`}>
+            {displayedStory?.title || 'Select a story...'}
           </span>
           <ChevronDown className={`w-3.5 h-3.5 md:w-3 md:h-3 text-neutral-400 transition-transform flex-shrink-0 ${storyOpen ? 'rotate-180' : ''}`} />
         </button>
 
         {storyOpen && (
-          <div className="absolute z-50 right-0 left-0 mt-1.5 py-1 bg-[#1A1A1A] border border-neutral-700 rounded-xl shadow-2xl max-h-64 overflow-y-auto">
-            {filteredStories.length === 0 ? (
-              <div className="px-4 py-3 text-center">
-                <p className="text-sm md:text-xs text-neutral-500">No stories in this category</p>
+          <div className="absolute z-50 right-0 left-0 mt-1.5 bg-[#1A1A1A] border border-neutral-700 rounded-xl shadow-2xl overflow-hidden">
+            {filteredByType.length > 3 && (
+              <div className="p-2 border-b border-neutral-700/50">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
+                  <input
+                    type="text"
+                    value={storySearch}
+                    onChange={(e) => setStorySearch(e.target.value)}
+                    placeholder="Search stories..."
+                    className="w-full pl-9 pr-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#39FF14]/50"
+                    autoFocus
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
               </div>
-            ) : (
-              filteredStories.map(story => {
-                const isSelected = story.id === currentStoryId
-                const Icon = ENTITY_ICONS[story.entity_type] || FileText
-                const wordCount = story.word_count || 0
-                return (
-                  <button
-                    key={story.id}
-                    type="button"
-                    onClick={() => handleSelectStory(story.id)}
-                    className={`w-full px-3.5 py-2.5 md:px-3 md:py-2 flex items-center gap-2.5 text-left transition-colors ${
-                      isSelected ? 'bg-[#39FF14]/10' : 'hover:bg-neutral-800 active:bg-neutral-800'
-                    }`}
-                  >
-                    <Icon className={`w-4 h-4 md:w-3.5 md:h-3.5 flex-shrink-0 ${isSelected ? 'text-[#39FF14]' : 'text-neutral-500'}`} />
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm md:text-xs font-medium truncate ${isSelected ? 'text-white' : 'text-neutral-300'}`}>
-                        {story.title || 'Untitled Story'}
-                      </p>
-                      <p className="text-xs md:text-[10px] text-neutral-500">
-                        {wordCount > 0 ? `${wordCount.toLocaleString()} words · ` : ''}
-                        {new Date(story.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </p>
-                    </div>
-                    {isSelected && <Check className="w-4 h-4 md:w-3.5 md:h-3.5 text-[#39FF14] flex-shrink-0" />}
-                  </button>
-                )
-              })
             )}
+            <div className="py-1 max-h-64 overflow-y-auto">
+              {filteredStories.length === 0 ? (
+                <div className="px-4 py-3 text-center">
+                  <p className="text-sm md:text-xs text-neutral-500">
+                    {storySearch.trim() ? `No results for "${storySearch}"` : 'No stories in this category'}
+                  </p>
+                </div>
+              ) : (
+                filteredStories.map(story => {
+                  const isSelected = story.id === currentStoryId
+                  const Icon = ENTITY_ICONS[story.entity_type] || FileText
+                  const wordCount = story.word_count || 0
+                  return (
+                    <button
+                      key={story.id}
+                      type="button"
+                      onClick={() => handleSelectStory(story.id)}
+                      className={`w-full px-3.5 py-2.5 md:px-3 md:py-2 flex items-center gap-2.5 text-left transition-colors ${
+                        isSelected ? 'bg-[#39FF14]/10' : 'hover:bg-neutral-800 active:bg-neutral-800'
+                      }`}
+                    >
+                      <Icon className={`w-4 h-4 md:w-3.5 md:h-3.5 flex-shrink-0 ${isSelected ? 'text-[#39FF14]' : 'text-neutral-500'}`} />
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm md:text-xs font-medium truncate ${isSelected ? 'text-white' : 'text-neutral-300'}`}>
+                          {story.title || 'Untitled Story'}
+                        </p>
+                        <p className="text-xs md:text-[10px] text-neutral-500">
+                          {wordCount > 0 ? `${wordCount.toLocaleString()} words · ` : ''}
+                          {new Date(story.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </p>
+                      </div>
+                      {isSelected && <Check className="w-4 h-4 md:w-3.5 md:h-3.5 text-[#39FF14] flex-shrink-0" />}
+                    </button>
+                  )
+                })
+              )}
+            </div>
           </div>
         )}
       </div>
