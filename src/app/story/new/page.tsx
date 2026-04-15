@@ -8,7 +8,8 @@ import {
   Image,
   PenLine,
   FileText,
-  ChevronLeft,
+  Target,
+  BookOpen,
   ChevronDown,
   ChevronUp,
   Play,
@@ -16,9 +17,7 @@ import {
   Edit3,
   Mic,
   Wand2,
-  Check,
   CheckCircle,
-  Waves,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -61,7 +60,7 @@ const SOURCE_TYPES: SourceType[] = [
     entityType: 'life_vision',
     label: 'Life Vision',
     description: 'Weave your life vision categories into an immersive day-in-the-life story.',
-    icon: Sparkles,
+    icon: Target,
     color: 'bg-purple-500/20 text-purple-400',
   },
   {
@@ -75,7 +74,7 @@ const SOURCE_TYPES: SourceType[] = [
     entityType: 'journal_entry',
     label: 'Journal Entry',
     description: 'Turn a journal entry into an immersive story of your experience at its best.',
-    icon: PenLine,
+    icon: BookOpen,
     color: 'bg-teal-500/20 text-teal-400',
   },
   {
@@ -415,7 +414,7 @@ export default function NewStoryWizardPage() {
 
   function getEntityDisplayName(entity: any): string {
     if (!entity) return ''
-    if (selectedSource?.entityType === 'life_vision') return entity.title || `Vision v${entity.version_number}`
+    if (selectedSource?.entityType === 'life_vision') return `Version ${entity.version_number}`
     if (selectedSource?.entityType === 'vision_board_item') return entity.name || 'Vision Board Item'
     if (selectedSource?.entityType === 'journal_entry') return entity.title || 'Untitled Entry'
     return entity.name || entity.title || 'Selected Item'
@@ -452,8 +451,8 @@ export default function NewStoryWizardPage() {
           >
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-white font-medium">{entity.title || `Vision v${entity.version_number}`}</span>
-                <span className="text-xs text-neutral-400 ml-2">Version {entity.version_number}</span>
+                <span className="text-white font-medium">Version {entity.version_number}</span>
+                {entity.title && <span className="text-xs text-neutral-400 ml-2">{entity.title}</span>}
               </div>
               {isSelected && <CheckCircle className="w-5 h-5 text-primary-500" />}
             </div>
@@ -510,41 +509,6 @@ export default function NewStoryWizardPage() {
   const isCustom = selectedSource?.entityType === 'custom'
   const needsEntity = selectedSource && !selectedSource.skipEntity
 
-  function renderStepIndicator() {
-    const steps = selectedSource?.skipEntity
-      ? [{ key: 'source', label: 'Source' }, { key: 'create', label: 'Create' }]
-      : [{ key: 'source', label: 'Source' }, { key: 'entity', label: 'Select' }, { key: 'create', label: 'Create' }]
-
-    const currentIdx = steps.findIndex(s => s.key === step)
-
-    return (
-      <div className="flex items-center justify-center gap-2 mb-2">
-        {steps.map((s, i) => (
-          <div key={s.key} className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                if (i < currentIdx) setStep(s.key as WizardStep)
-              }}
-              disabled={i > currentIdx}
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
-                i === currentIdx
-                  ? 'bg-white text-black'
-                  : i < currentIdx
-                    ? 'bg-primary-500 text-black cursor-pointer'
-                    : 'bg-neutral-800 text-neutral-500'
-              }`}
-            >
-              {i < currentIdx ? <Check className="w-4 h-4" /> : i + 1}
-            </button>
-            {i < steps.length - 1 && (
-              <div className={`w-8 h-0.5 ${i < currentIdx ? 'bg-primary-500' : 'bg-neutral-700'}`} />
-            )}
-          </div>
-        ))}
-      </div>
-    )
-  }
-
   const stepNumber = (n: number) => (
     <div className="w-12 h-12 rounded-full bg-primary-500/20 flex items-center justify-center mb-2">
       <span className="text-primary-500 font-bold text-2xl">{n}</span>
@@ -554,20 +518,6 @@ export default function NewStoryWizardPage() {
   return (
     <Container size="xl" className="py-6">
       <Stack gap="lg">
-        <div className="flex flex-col items-center gap-3">
-          {renderStepIndicator()}
-          {step !== 'source' && (
-            <Button variant="ghost" size="sm" onClick={() => {
-              if (step === 'create' && !selectedSource?.skipEntity) setStep('entity')
-              else if (step === 'entity') setStep('source')
-              else router.push('/story')
-            }}>
-              <ChevronLeft className="w-4 h-4 mr-1" />
-              Back
-            </Button>
-          )}
-        </div>
-
         {/* Streaming Story Display (replaces entire form when generated) */}
         {hasGeneratedStory ? (
           <Card variant="glass" className="p-4 md:p-6 lg:p-8" ref={storyRef}>
@@ -611,7 +561,21 @@ export default function NewStoryWizardPage() {
           </Card>
         ) : (
           /* Main Creation Card */
-          <Card variant="glass" className="p-4 md:p-6">
+          <Card variant="glass" className="p-4 md:p-6 relative">
+            <VIVALoadingOverlay
+              isVisible={generating}
+              messages={[
+                'VIVA is crafting your day-in-the-life story...',
+                'Weaving together your selected life areas...',
+                'Creating an immersive morning-to-evening narrative...',
+                'Adding sensory details and emotional depth...',
+                'Putting the finishing touches on your story...',
+              ]}
+              cycleDuration={8000}
+              estimatedTime="This usually takes 30-60 seconds"
+              estimatedDuration={45000}
+              progress={vivaProgress}
+            />
             <div className="space-y-6">
 
               {/* Step 1: Select Source */}
@@ -725,7 +689,7 @@ export default function NewStoryWizardPage() {
               {step === 'create' && (
                 <>
                   <div className="border-t border-[#333]" />
-                  <div className="py-4">
+                  <div className="pt-6">
                     <div className="flex flex-col items-center mb-4">
                       {stepNumber(isCustom ? 2 : 3)}
                       <h3 className="text-lg md:text-xl font-semibold text-white">Create Story</h3>
@@ -749,7 +713,7 @@ export default function NewStoryWizardPage() {
                         {/* Life Vision: Category Selection */}
                         {isLifeVision && (
                           <>
-                            <div className="max-w-2xl mx-auto">
+                            <div className="rounded-2xl bg-neutral-800/50 border border-neutral-700/50 p-4 md:p-6">
                               <div className="flex items-center justify-between mb-4">
                                 <div>
                                   <h4 className="text-white font-semibold">Choose Focus Areas</h4>
@@ -771,7 +735,7 @@ export default function NewStoryWizardPage() {
                             </div>
 
                             {selectedCategories.length > 0 && (
-                              <div className="max-w-2xl mx-auto space-y-3">
+                              <div className="rounded-2xl bg-neutral-800/50 border border-neutral-700/50 p-4 md:p-6 space-y-3">
                                 <div>
                                   <h4 className="text-white font-semibold">Review & Add Focus Notes</h4>
                                   <p className="text-sm text-neutral-400">
@@ -789,11 +753,11 @@ export default function NewStoryWizardPage() {
                                         className="w-full flex items-center justify-between p-4 bg-neutral-800/50 hover:bg-neutral-800 transition-colors"
                                       >
                                         <div className="flex items-center gap-3">
-                                          <div className="w-10 h-10 rounded-lg bg-neutral-700 flex items-center justify-center">
-                                            <CatIcon className="w-5 h-5 text-white" />
+                                          <div className="w-10 h-10 rounded-lg bg-primary-500/20 flex items-center justify-center">
+                                            <CatIcon className="w-5 h-5 text-primary-500" />
                                           </div>
                                           <div className="text-left">
-                                            <span className="text-white font-medium">{category.label}</span>
+                                            <span className="text-primary-500 font-medium">{category.label}</span>
                                             {cat.focusNotes && <p className="text-xs text-purple-400">Has focus notes</p>}
                                           </div>
                                         </div>
@@ -878,21 +842,7 @@ export default function NewStoryWizardPage() {
                         )}
 
                         {/* Generate Button */}
-                        <div className="flex justify-center relative">
-                          <VIVALoadingOverlay
-                            isVisible={generating}
-                            messages={[
-                              'VIVA is crafting your day-in-the-life story...',
-                              'Weaving together your selected life areas...',
-                              'Creating an immersive morning-to-evening narrative...',
-                              'Adding sensory details and emotional depth...',
-                              'Putting the finishing touches on your story...',
-                            ]}
-                            cycleDuration={8000}
-                            estimatedTime="This usually takes 30-60 seconds"
-                            estimatedDuration={45000}
-                            progress={vivaProgress}
-                          />
+                        <div className="flex justify-center">
                           <Button
                             onClick={handleGenerate}
                             variant="primary"
@@ -905,7 +855,7 @@ export default function NewStoryWizardPage() {
                               </>
                             ) : (
                               <>
-                                <Waves className="w-5 h-5 mr-2" />
+                                <Sparkles className="w-5 h-5 mr-2" />
                                 Generate Story
                               </>
                             )}

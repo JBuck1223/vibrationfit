@@ -313,8 +313,8 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
           {/* Modal — flexes vertically so the scrollable middle fills available space */}
           <div 
             ref={modalRef}
-            className="relative w-full max-w-2xl bg-neutral-900 border border-neutral-700 rounded-t-2xl md:rounded-2xl shadow-2xl flex flex-col"
-            style={{ maxHeight: viewportHeight ? `${viewportHeight}px` : '100dvh' }}
+            className="relative w-full max-w-2xl bg-neutral-900 border border-neutral-700 rounded-2xl shadow-2xl flex flex-col mt-4 md:mt-0"
+            style={{ maxHeight: viewportHeight ? `${viewportHeight - 16}px` : 'calc(100dvh - 16px)' }}
           >
             {/* Header — pinned */}
             <div className="flex-shrink-0 flex items-center justify-between px-5 py-3 border-b border-neutral-800">

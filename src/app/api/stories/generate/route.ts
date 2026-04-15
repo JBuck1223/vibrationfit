@@ -51,7 +51,11 @@ async function buildPromptForEntity(
         throw new Error('life_vision requires entityId, selectedCategories, and categoryData')
       }
       const prompt = buildFocusStoryFromCategoriesPrompt(body.categoryData, perspective)
-      return { prompt, entityId, title: 'Focus Story' }
+      const categoryLabels = body.selectedCategories.map(
+        c => c.charAt(0).toUpperCase() + c.slice(1)
+      )
+      const generatedTitle = `Life Vision Focus – ${categoryLabels.join(' | ')}`
+      return { prompt, entityId, title: generatedTitle }
     }
 
     case 'vision_board_item': {

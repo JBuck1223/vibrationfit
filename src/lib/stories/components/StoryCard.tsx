@@ -86,7 +86,7 @@ export function StoryCard({
               </Text>
             </div>
             <div className="flex items-center gap-2">
-              {getStatusBadge()}
+              {story.status !== 'completed' && getStatusBadge()}
               {wordCount > 0 && (
                 <Text size="xs" className="text-neutral-500">
                   {wordCount.toLocaleString()} words
@@ -135,18 +135,25 @@ export function StoryCard({
         {/* Footer */}
         <div className="flex items-center justify-between pt-3 border-t border-neutral-800">
           <div className="flex items-center gap-3">
-            {/* Audio indicators */}
             {hasAiAudio && (
-              <div className="flex items-center gap-1 text-purple-400">
+              <Link
+                href={`/story/${story.id}/audio`}
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center gap-1 text-purple-400 hover:text-purple-300 transition-colors"
+              >
                 <Volume2 className="w-3.5 h-3.5" />
                 <Text size="xs">AI Audio</Text>
-              </div>
+              </Link>
             )}
             {hasUserRecording && (
-              <div className="flex items-center gap-1 text-teal-400">
+              <Link
+                href={`/story/${story.id}/audio`}
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center gap-1 text-teal-400 hover:text-teal-300 transition-colors"
+              >
                 <Mic className="w-3.5 h-3.5" />
                 <Text size="xs">Recording</Text>
-              </div>
+              </Link>
             )}
             {!hasAiAudio && !hasUserRecording && (
               <Text size="xs" className="text-neutral-500">No audio</Text>
