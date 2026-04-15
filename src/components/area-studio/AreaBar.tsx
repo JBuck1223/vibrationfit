@@ -49,6 +49,10 @@ export interface AreaBarProps {
   }
   menuItems?: React.ReactNode
   breadcrumb?: AreaBarBreadcrumb
+  /** Rich context bar rendered as a second row (also suppresses tab highlighting like breadcrumb) */
+  contextBar?: React.ReactNode
+  /** "default" = neutral dark card, "hero" = PageHero-style gradient border & bg */
+  variant?: 'default' | 'hero'
 }
 
 // ─── Tab active detection ───
@@ -88,204 +92,449 @@ export function AreaBar({
   contextSelector,
   menuItems,
   breadcrumb,
+  contextBar,
+  variant = 'default',
 }: AreaBarProps) {
   const pathname = usePathname()
   const [sheetOpen, setSheetOpen] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const AreaIcon = area.icon
   const gridCols = GRID_COLS[tabs.length] || 'grid-cols-3'
+  const isHero = variant === 'hero'
+  const suppressActiveTab = !!(breadcrumb || contextBar)
 
   return (
     <>
       {/* ═══ MOBILE (below md) ═══ */}
       <div className="md:hidden">
-        {/* Sticky unit: identity + tabs pin together */}
-        <div className="sticky top-0 z-30 bg-black">
-          {/* Identity row: centered icon + name, context badge absolute-right */}
-          <div className="relative flex items-center justify-center px-4 py-2">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-lg bg-[#39FF14]/10 flex items-center justify-center">
-                <AreaIcon className="w-3.5 h-3.5 text-[#39FF14]" />
-              </div>
-              <span className="text-sm font-semibold text-white">
-                {area.name}
-              </span>
-            </div>
-            {(contextSelector || menuItems) && (
-              <div className="absolute right-4 flex items-center gap-2">
-                {contextSelector && (
-                  <button
-                    type="button"
-                    onClick={() => setSheetOpen(true)}
-                    className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-neutral-900 border border-neutral-800 active:bg-neutral-800 transition-colors"
-                  >
-                    {(() => {
-                      const sel = contextSelector.options.find(o => o.id === contextSelector.selectedId)
-                      return sel?.badge ? (
-                        <span className={`w-5 h-5 flex items-center justify-center rounded-full text-[9px] font-bold ${
-                          sel.isActive ? 'bg-[#39FF14] text-black' : 'bg-neutral-700 text-neutral-300'
-                        }`}>
-                          {sel.badge}
-                        </span>
-                      ) : null
-                    })()}
-                    <ChevronDown className="w-3 h-3 text-neutral-500" />
-                  </button>
+        {isHero ? (
+          <>
+            {/* Hero mobile: gradient-bordered card matching desktop */}
+            <div className="sticky top-0 z-30 p-[1.5px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
+              <div className="rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+                {/* Identity row (centered) + context absolute-right */}
+                <div className="relative flex items-center justify-center px-4 pt-4 pb-2">
+                  <h1 className="text-2xl font-bold text-white leading-tight">
+                    {area.name}
+                  </h1>
+                  {(contextSelector || menuItems) && (
+                    <div className="absolute right-4 flex items-center gap-2">
+                      {contextSelector && (
+                        <button
+                          type="button"
+                          onClick={() => setSheetOpen(true)}
+                          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-black/30 border border-white/[0.06] active:bg-black/50 transition-colors"
+                        >
+                          {(() => {
+                            const sel = contextSelector.options.find(o => o.id === contextSelector.selectedId)
+                            return sel?.badge ? (
+                              <span className={`w-5 h-5 flex items-center justify-center rounded-full text-[9px] font-bold ${
+                                sel.isActive ? 'bg-[#39FF14] text-black' : 'bg-neutral-700 text-neutral-300'
+                              }`}>
+                                {sel.badge}
+                              </span>
+                            ) : null
+                          })()}
+                          <ChevronDown className="w-3 h-3 text-neutral-400" />
+                        </button>
+                      )}
+                      {menuItems}
+                    </div>
+                  )}
+                </div>
+
+                {/* Tabs */}
+                <div className="px-3 pb-2">
+                  <nav className={`grid ${gridCols} p-1 gap-1 rounded-xl bg-black/30 backdrop-blur-sm`}>
+                    {tabs.map(tab => {
+                      const active = !suppressActiveTab && isTabActive(pathname, tab.path, tabs)
+                      const TabIcon = tab.icon
+                      return (
+                        <Link
+                          key={tab.path}
+                          href={tab.path}
+                          className={`flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg transition-all ${
+                            active
+                              ? 'bg-primary-500/20 text-primary-500'
+                              : 'text-neutral-400 active:text-neutral-200 active:bg-white/5'
+                          }`}
+                        >
+                          {TabIcon && <TabIcon className="w-3.5 h-3.5" />}
+                          <span>{tab.label}</span>
+                        </Link>
+                      )
+                    })}
+                  </nav>
+                </div>
+
+                {/* Breadcrumb */}
+                {breadcrumb && !contextBar && (
+                  <div className="px-4 pb-2.5 relative">
+                    <div className="absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-[#39FF14]/20 to-transparent" />
+                    <div className="flex justify-center pt-2">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-primary-500/20 text-primary-500">
+                        {breadcrumb.icon && <breadcrumb.icon className="w-3 h-3" />}
+                        {breadcrumb.label}
+                      </span>
+                    </div>
+                  </div>
                 )}
-                {menuItems}
+
+                {/* Context Bar */}
+                {contextBar && (
+                  <div className="px-3 pb-2.5 relative">
+                    <div className="absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-[#39FF14]/20 to-transparent" />
+                    <div className="flex justify-center pt-2">
+                      {contextBar}
+                    </div>
+                  </div>
+                )}
+
+                {/* Pills */}
+                {pills && pills.length > 0 && activePill !== undefined && onPillChange && (
+                  <div className="px-3 pb-2.5 relative">
+                    <div className="absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-[#39FF14]/20 to-transparent" />
+                    <div className="flex items-center justify-center gap-1.5 pt-2 flex-wrap">
+                      <div className="flex items-center gap-1 flex-shrink-0 pl-1">
+                        <Filter className="w-3 h-3 text-[#39FF14]/50" />
+                        <span className="text-[10px] text-[#39FF14]/50 uppercase tracking-wide whitespace-nowrap">FILTER BY:</span>
+                      </div>
+                      {pills.map(pill => (
+                        <button
+                          key={pill.value}
+                          type="button"
+                          onClick={() => onPillChange(pill.value)}
+                          className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+                            activePill === pill.value
+                              ? 'bg-[#39FF14]/15 text-white border border-[#39FF14]/30 shadow-sm shadow-[#39FF14]/10'
+                              : 'text-neutral-400 border border-transparent active:text-neutral-200 active:border-[#39FF14]/15'
+                          }`}
+                        >
+                          {pill.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-
-          {/* Tabs: full-width grid, equally distributed */}
-          <nav className={`grid ${gridCols} p-1.5 gap-1`}>
-            {tabs.map(tab => {
-              const active = !breadcrumb && isTabActive(pathname, tab.path, tabs)
-              const TabIcon = tab.icon
-              return (
-                <Link
-                  key={tab.path}
-                  href={tab.path}
-                  className={`flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium rounded-lg transition-all ${
-                    active
-                      ? 'bg-primary-500/20 text-primary-500'
-                      : 'text-neutral-500 active:text-neutral-300 active:bg-white/5'
-                  }`}
-                >
-                  {TabIcon && <TabIcon className="w-3.5 h-3.5" />}
-                  <span>{tab.label}</span>
-                </Link>
-              )
-            })}
-          </nav>
-        </div>
-
-        {/* Breadcrumb bar (same position as pills row) */}
-        {breadcrumb && (
-          <div className="flex justify-center py-2 border-b border-neutral-800/20">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md bg-primary-500/20 text-primary-500">
-              {breadcrumb.icon && <breadcrumb.icon className="w-3 h-3" />}
-              {breadcrumb.label}
-            </span>
-          </div>
-        )}
-
-        {/* Pills row with filter label */}
-        {pills && pills.length > 0 && activePill !== undefined && onPillChange && (
-          <div className="flex justify-center py-2 border-b border-neutral-800/20">
-            <div className="relative flex items-center gap-1">
-              <div className="absolute right-full mr-1 flex items-center gap-1">
-                <Filter className="w-3 h-3 text-neutral-500" />
-                <span className="text-[10px] text-neutral-500 uppercase tracking-wide whitespace-nowrap">FILTER BY:</span>
-              </div>
-              {pills.map(pill => (
-                <button
-                  key={pill.value}
-                  type="button"
-                  onClick={() => onPillChange(pill.value)}
-                  className={`px-3 py-1 text-xs font-medium transition-colors rounded-md ${
-                    activePill === pill.value
-                      ? 'text-white bg-white/5'
-                      : 'text-neutral-500 active:text-neutral-300'
-                  }`}
-                >
-                  {pill.label}
-                </button>
-              ))}
             </div>
-          </div>
+          </>
+        ) : (
+          <>
+            {/* Default mobile */}
+            <div className="sticky top-0 z-30 bg-[#0A0A0A] border-b border-neutral-800/60 shadow-[0_2px_12px_rgba(0,0,0,0.4)]">
+              <div className="relative flex items-center justify-center px-4 pt-3 pb-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-[#39FF14]/10 flex items-center justify-center">
+                    <AreaIcon className="w-4 h-4 text-[#39FF14]" />
+                  </div>
+                  <span className="text-base font-bold text-white tracking-tight">
+                    {area.name}
+                  </span>
+                </div>
+                {(contextSelector || menuItems) && (
+                  <div className="absolute right-4 flex items-center gap-2">
+                    {contextSelector && (
+                      <button
+                        type="button"
+                        onClick={() => setSheetOpen(true)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-neutral-900 border border-neutral-800 active:bg-neutral-800 transition-colors"
+                      >
+                        {(() => {
+                          const sel = contextSelector.options.find(o => o.id === contextSelector.selectedId)
+                          return sel?.badge ? (
+                            <span className={`w-5 h-5 flex items-center justify-center rounded-full text-[9px] font-bold ${
+                              sel.isActive ? 'bg-[#39FF14] text-black' : 'bg-neutral-700 text-neutral-300'
+                            }`}>
+                              {sel.badge}
+                            </span>
+                          ) : null
+                        })()}
+                        <ChevronDown className="w-3 h-3 text-neutral-500" />
+                      </button>
+                    )}
+                    {menuItems}
+                  </div>
+                )}
+              </div>
+
+              <div className="px-3 pb-2.5">
+                <nav className={`grid ${gridCols} p-1 gap-1 rounded-xl bg-neutral-900/60`}>
+                  {tabs.map(tab => {
+                    const active = !suppressActiveTab && isTabActive(pathname, tab.path, tabs)
+                    const TabIcon = tab.icon
+                    return (
+                      <Link
+                        key={tab.path}
+                        href={tab.path}
+                        className={`flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg transition-all ${
+                          active
+                            ? 'bg-primary-500/20 text-primary-500'
+                            : 'text-neutral-500 active:text-neutral-300 active:bg-white/5'
+                        }`}
+                      >
+                        {TabIcon && <TabIcon className="w-3.5 h-3.5" />}
+                        <span>{tab.label}</span>
+                      </Link>
+                    )
+                  })}
+                </nav>
+              </div>
+
+              {breadcrumb && !contextBar && (
+                <div className="px-4 pb-2.5 relative">
+                  <div className="absolute inset-x-4 top-0 h-px bg-neutral-800/60" />
+                  <div className="flex justify-center pt-1.5">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-primary-500/20 text-primary-500">
+                      {breadcrumb.icon && <breadcrumb.icon className="w-3 h-3" />}
+                      {breadcrumb.label}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {contextBar && (
+                <div className="px-3 pb-2.5 relative">
+                  <div className="absolute inset-x-4 top-0 h-px bg-neutral-800/60" />
+                  <div className="pt-2 w-full">
+                    {contextBar}
+                  </div>
+                </div>
+              )}
+
+              {pills && pills.length > 0 && activePill !== undefined && onPillChange && (
+                <div className="px-3 pb-2.5 relative">
+                  <div className="absolute inset-x-4 top-0 h-px bg-neutral-800/60" />
+                  <div className="flex items-center justify-center gap-1.5 pt-2 flex-wrap">
+                    <div className="flex items-center gap-1 flex-shrink-0 pl-1">
+                      <Filter className="w-3 h-3 text-neutral-500" />
+                      <span className="text-[10px] text-neutral-500 uppercase tracking-wide whitespace-nowrap">FILTER BY:</span>
+                    </div>
+                    {pills.map(pill => (
+                      <button
+                        key={pill.value}
+                        type="button"
+                        onClick={() => onPillChange(pill.value)}
+                        className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+                          activePill === pill.value
+                            ? 'bg-white/10 text-white border border-white/20 shadow-sm'
+                            : 'text-neutral-500 border border-transparent active:text-neutral-300 active:border-neutral-700'
+                        }`}
+                      >
+                        {pill.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
 
       {/* ═══ DESKTOP (md and up) ═══ */}
-      <div className="hidden md:block rounded-2xl border border-neutral-800 bg-[#0A0A0A]">
-        {/* Single row: identity left | tabs centered | context right */}
-        <div className="px-6">
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center">
-            <div className="flex items-center gap-3 py-3">
-              <div className="w-9 h-9 rounded-xl bg-[#39FF14]/10 flex items-center justify-center">
-                <AreaIcon className="w-5 h-5 text-[#39FF14]" />
+      {isHero ? (
+        <div className="hidden md:block relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
+          <div className="rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+            {/* Single row: identity left | tabs centered | context right */}
+            <div className="px-6">
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center">
+                <div className="flex items-center gap-3 py-3">
+                  <div className="w-9 h-9 rounded-xl bg-[#39FF14]/10 flex items-center justify-center">
+                    <AreaIcon className="w-5 h-5 text-[#39FF14]" />
+                  </div>
+                  <h1 className="text-xl font-bold text-white tracking-tight">
+                    {area.name}
+                  </h1>
+                </div>
+
+                <nav className="flex items-center gap-1 p-1.5 rounded-xl bg-black/30 backdrop-blur-sm">
+                  {tabs.map(tab => {
+                    const TabIcon = tab.icon
+                    const active = !suppressActiveTab && isTabActive(pathname, tab.path, tabs)
+                    return (
+                      <Link
+                        key={tab.path}
+                        href={tab.path}
+                        className={`relative flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
+                          active
+                            ? 'bg-primary-500/20 text-primary-500'
+                            : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
+                        }`}
+                      >
+                        {TabIcon && <TabIcon className="w-4 h-4" />}
+                        <span>{tab.label}</span>
+                      </Link>
+                    )
+                  })}
+                </nav>
+
+                <div className="flex items-center gap-2 justify-end py-3">
+                  {contextSelector && (
+                    <DesktopDropdown
+                      {...contextSelector}
+                      isOpen={dropdownOpen}
+                      onToggle={() => setDropdownOpen(prev => !prev)}
+                      onClose={() => setDropdownOpen(false)}
+                    />
+                  )}
+                  {menuItems}
+                </div>
               </div>
-              <h1 className="text-xl font-bold text-white tracking-tight">
-                {area.name}
-              </h1>
             </div>
 
-            <nav className="flex items-center gap-1 p-1.5 rounded-xl bg-neutral-900/60">
-              {tabs.map(tab => {
-                const TabIcon = tab.icon
-                const active = !breadcrumb && isTabActive(pathname, tab.path, tabs)
-                return (
-                  <Link
-                    key={tab.path}
-                    href={tab.path}
-                    className={`relative flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
-                      active
-                        ? 'bg-primary-500/20 text-primary-500'
-                        : 'text-neutral-500 hover:text-neutral-300 hover:bg-white/5'
-                    }`}
-                  >
-                    {TabIcon && <TabIcon className="w-4 h-4" />}
-                    <span>{tab.label}</span>
-                  </Link>
-                )
-              })}
-            </nav>
+            {/* Breadcrumb bar (same row style as pills) */}
+            {breadcrumb && !contextBar && (
+              <div className="px-6 py-3 relative">
+                <div className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-[#39FF14]/20 to-transparent" />
+                <div className="flex justify-center">
+                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap bg-primary-500/20 text-primary-500">
+                    {breadcrumb.icon && <breadcrumb.icon className="w-3.5 h-3.5" />}
+                    {breadcrumb.label}
+                  </span>
+                </div>
+              </div>
+            )}
 
-            <div className="flex items-center gap-2 justify-end py-3">
-              {contextSelector && (
-                <DesktopDropdown
-                  {...contextSelector}
-                  isOpen={dropdownOpen}
-                  onToggle={() => setDropdownOpen(prev => !prev)}
-                  onClose={() => setDropdownOpen(false)}
-                />
-              )}
-              {menuItems}
-            </div>
+            {/* Context Bar */}
+            {contextBar && (
+              <div className="px-6 py-3 relative">
+                <div className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-[#39FF14]/20 to-transparent" />
+                <div className="flex justify-center">
+                  {contextBar}
+                </div>
+              </div>
+            )}
+
+            {/* Pills (optional) */}
+            {pills && pills.length > 0 && activePill !== undefined && onPillChange && (
+              <div className="px-6 py-3 relative">
+                <div className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-[#39FF14]/20 to-transparent" />
+                <div className="flex justify-center">
+                  <div className="relative flex items-center gap-2">
+                    <div className="absolute right-full mr-2 flex items-center gap-1.5">
+                      <Filter className="w-3.5 h-3.5 text-[#39FF14]/50" />
+                      <span className="text-[10px] text-[#39FF14]/50 uppercase tracking-wide whitespace-nowrap">FILTER BY:</span>
+                    </div>
+                    {pills.map(pill => (
+                      <button
+                        key={pill.value}
+                        type="button"
+                        onClick={() => onPillChange(pill.value)}
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+                          activePill === pill.value
+                            ? 'bg-[#39FF14]/15 text-white border border-[#39FF14]/30 shadow-sm shadow-[#39FF14]/10'
+                            : 'text-neutral-400 border border-transparent hover:text-neutral-200 hover:border-[#39FF14]/15'
+                        }`}
+                      >
+                        {pill.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-
-        {/* Breadcrumb bar (same row style as pills) */}
-        {breadcrumb && (
-          <div className="px-6 py-3 border-t border-neutral-800/50">
-            <div className="flex justify-center">
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap bg-primary-500/20 text-primary-500">
-                {breadcrumb.icon && <breadcrumb.icon className="w-3.5 h-3.5" />}
-                {breadcrumb.label}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Pills (optional) */}
-        {pills && pills.length > 0 && activePill !== undefined && onPillChange && (
-          <div className="px-6 py-3 border-t border-neutral-800/50">
-            <div className="flex justify-center">
-              <div className="relative flex items-center gap-2">
-                <div className="absolute right-full mr-2 flex items-center gap-1.5">
-                  <Filter className="w-3.5 h-3.5 text-neutral-500" />
-                  <span className="text-[10px] text-neutral-500 uppercase tracking-wide whitespace-nowrap">FILTER BY:</span>
+      ) : (
+        <div className="hidden md:block rounded-2xl border border-neutral-800 bg-[#0A0A0A]">
+          {/* Single row: identity left | tabs centered | context right */}
+          <div className="px-6">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center">
+              <div className="flex items-center gap-3 py-3">
+                <div className="w-9 h-9 rounded-xl bg-[#39FF14]/10 flex items-center justify-center">
+                  <AreaIcon className="w-5 h-5 text-[#39FF14]" />
                 </div>
-                {pills.map(pill => (
-                  <button
-                    key={pill.value}
-                    type="button"
-                    onClick={() => onPillChange(pill.value)}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
-                      activePill === pill.value
-                        ? 'bg-white/10 text-white border border-white/20 shadow-sm'
-                        : 'text-neutral-500 border border-transparent hover:text-neutral-300 hover:border-neutral-700'
-                    }`}
-                  >
-                    {pill.label}
-                  </button>
-                ))}
+                <h1 className="text-xl font-bold text-white tracking-tight">
+                  {area.name}
+                </h1>
+              </div>
+
+              <nav className="flex items-center gap-1 p-1.5 rounded-xl bg-neutral-900/60">
+                {tabs.map(tab => {
+                  const TabIcon = tab.icon
+                  const active = !suppressActiveTab && isTabActive(pathname, tab.path, tabs)
+                  return (
+                    <Link
+                      key={tab.path}
+                      href={tab.path}
+                      className={`relative flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
+                        active
+                          ? 'bg-primary-500/20 text-primary-500'
+                          : 'text-neutral-500 hover:text-neutral-300 hover:bg-white/5'
+                      }`}
+                    >
+                      {TabIcon && <TabIcon className="w-4 h-4" />}
+                      <span>{tab.label}</span>
+                    </Link>
+                  )
+                })}
+              </nav>
+
+              <div className="flex items-center gap-2 justify-end py-3">
+                {contextSelector && (
+                  <DesktopDropdown
+                    {...contextSelector}
+                    isOpen={dropdownOpen}
+                    onToggle={() => setDropdownOpen(prev => !prev)}
+                    onClose={() => setDropdownOpen(false)}
+                  />
+                )}
+                {menuItems}
               </div>
             </div>
           </div>
-        )}
-      </div>
+
+          {/* Breadcrumb bar (same row style as pills) */}
+          {breadcrumb && !contextBar && (
+            <div className="px-6 py-3 border-t border-neutral-800/50">
+              <div className="flex justify-center">
+                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap bg-primary-500/20 text-primary-500">
+                  {breadcrumb.icon && <breadcrumb.icon className="w-3.5 h-3.5" />}
+                  {breadcrumb.label}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Context Bar */}
+          {contextBar && (
+            <div className="px-6 py-3 border-t border-neutral-800/50">
+              <div className="flex justify-center">
+                {contextBar}
+              </div>
+            </div>
+          )}
+
+          {/* Pills (optional) */}
+          {pills && pills.length > 0 && activePill !== undefined && onPillChange && (
+            <div className="px-6 py-3 border-t border-neutral-800/50">
+              <div className="flex justify-center">
+                <div className="relative flex items-center gap-2">
+                  <div className="absolute right-full mr-2 flex items-center gap-1.5">
+                    <Filter className="w-3.5 h-3.5 text-neutral-500" />
+                    <span className="text-[10px] text-neutral-500 uppercase tracking-wide whitespace-nowrap">FILTER BY:</span>
+                  </div>
+                  {pills.map(pill => (
+                    <button
+                      key={pill.value}
+                      type="button"
+                      onClick={() => onPillChange(pill.value)}
+                      className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+                        activePill === pill.value
+                          ? 'bg-white/10 text-white border border-white/20 shadow-sm'
+                          : 'text-neutral-500 border border-transparent hover:text-neutral-300 hover:border-neutral-700'
+                      }`}
+                    >
+                      {pill.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ═══ MOBILE BOTTOM SHEET (context selector) ═══ */}
       {contextSelector && (

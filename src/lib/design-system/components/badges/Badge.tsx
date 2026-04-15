@@ -20,7 +20,7 @@ export const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
       danger: 'bg-[#FF0040]/20 text-[#FF0040] border-[#FF0040]/30',
       error: 'bg-red-500/20 text-red-400 border-red-500/30',
       info: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-      premium: 'bg-gradient-to-r from-[#BF00FF]/20 to-[#8B5CF6]/20 text-[#BF00FF] border-[#BF00FF]/30',
+      premium: 'bg-[#9333EA]/20 text-[#BF00FF] border-[#BF00FF]/30',
       neutral: 'bg-[#404040]/50 text-[#9CA3AF] border-[#404040]'
     }
     

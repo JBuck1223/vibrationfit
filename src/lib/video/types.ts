@@ -58,6 +58,7 @@ export interface VideoSession {
   transcript_text?: string
   transcript_segments?: unknown
   transcript_key_points?: unknown
+  hidden_from_users?: boolean
   transcribed_at?: string
   created_at: string
   updated_at: string
