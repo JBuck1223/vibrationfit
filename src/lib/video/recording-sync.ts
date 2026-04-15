@@ -4,10 +4,14 @@
  * Daily.co writes recordings directly to our S3 bucket via custom S3 storage.
  * This module just checks Daily's API for completed recordings and updates
  * the database with the CDN URL. No file downloads or uploads needed.
+ *
+ * After syncing, newly synced recordings are automatically submitted to
+ * MediaConvert for optimization (fragmented MP4 → progressive MP4).
  */
 
 import { createServiceClient } from '@/lib/supabase/service'
 import { listRecordings, getRecording } from '@/lib/video/daily'
+import { optimizeRecording } from '@/lib/video/recording-optimize'
 
 const CDN_URL = 'https://media.vibrationfit.com'
 
@@ -174,8 +178,18 @@ export async function syncRecordings(opts?: {
     }
   }
 
+  // Auto-submit newly synced recordings for MediaConvert optimization.
+  // Fire-and-forget: optimization runs in background and the status endpoint
+  // or a future poll will finalize the URL swap.
+  const synced = results.filter((r) => r.action === 'synced')
+  for (const r of synced) {
+    optimizeRecording(r.session_id).catch((err) =>
+      console.error(`[recording-sync] optimize trigger failed for ${r.session_id}:`, err)
+    )
+  }
+
   return {
-    synced: results.filter((r) => r.action === 'synced').length,
+    synced: synced.length,
     already_synced: results.filter((r) => r.action === 'already_synced').length,
     not_ready: results.filter((r) => r.action === 'not_ready').length,
     errors: results.filter((r) => r.action === 'error').length,

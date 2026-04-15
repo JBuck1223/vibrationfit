@@ -148,7 +148,11 @@ export const Video = React.forwardRef<HTMLVideoElement, VideoProps>(
 
       // WebM files from MediaRecorder often report Infinity for duration.
       // Seek to a large value to force the browser to discover the real length.
+      // Only safe for local blobs; for remote CDN files (especially large
+      // fragmented MP4s) this would trigger massive downloads.
       const video = videoRef.current
+      if (/^https?:\/\//.test(src)) return
+
       const onSeeked = () => {
         if (video) {
           const realDuration = video.duration
