@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ChevronDown, Check, X } from 'lucide-react'
+import { ChevronDown, Check, X, Filter } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 // ─── Types ───
@@ -27,6 +27,11 @@ export interface ContextOption {
   isActive?: boolean
 }
 
+export interface AreaBarBreadcrumb {
+  label: string
+  icon?: LucideIcon
+}
+
 export interface AreaBarProps {
   area: {
     name: string
@@ -43,18 +48,24 @@ export interface AreaBarProps {
     onSelect: (id: string) => void
   }
   menuItems?: React.ReactNode
+  breadcrumb?: AreaBarBreadcrumb
 }
 
 // ─── Tab active detection ───
 
 function isTabActive(pathname: string, tabPath: string, allTabs: AreaBarTab[]): boolean {
   if (pathname === tabPath) return true
-  if (pathname.startsWith(tabPath + '/')) return true
-  const isFirstTab = allTabs[0]?.path === tabPath
-  const noOtherMatch = !allTabs.some(
-    t => t.path !== tabPath && (pathname === t.path || pathname.startsWith(t.path + '/'))
-  )
-  return isFirstTab && noOtherMatch
+
+  if (pathname.startsWith(tabPath + '/')) {
+    const hasMoreSpecificMatch = allTabs.some(
+      t => t.path !== tabPath &&
+        t.path.startsWith(tabPath + '/') &&
+        (pathname === t.path || pathname.startsWith(t.path + '/'))
+    )
+    if (!hasMoreSpecificMatch) return true
+  }
+
+  return false
 }
 
 // ─── Grid cols helper ───
@@ -76,6 +87,7 @@ export function AreaBar({
   onPillChange,
   contextSelector,
   menuItems,
+  breadcrumb,
 }: AreaBarProps) {
   const pathname = usePathname()
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -126,19 +138,21 @@ export function AreaBar({
           </div>
 
           {/* Tabs: full-width grid, equally distributed */}
-          <nav className={`grid ${gridCols} border-b border-neutral-800/30`}>
+          <nav className={`grid ${gridCols} p-1.5 gap-1`}>
             {tabs.map(tab => {
-              const active = isTabActive(pathname, tab.path, tabs)
+              const active = !breadcrumb && isTabActive(pathname, tab.path, tabs)
+              const TabIcon = tab.icon
               return (
                 <Link
                   key={tab.path}
                   href={tab.path}
-                  className={`flex items-center justify-center gap-1.5 py-3 text-xs font-medium border-b-2 transition-colors ${
+                  className={`flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium rounded-lg transition-all ${
                     active
-                      ? 'border-[#39FF14] text-white'
-                      : 'border-transparent text-neutral-500 active:text-neutral-300'
+                      ? 'bg-primary-500/20 text-primary-500'
+                      : 'text-neutral-500 active:text-neutral-300 active:bg-white/5'
                   }`}
                 >
+                  {TabIcon && <TabIcon className="w-3.5 h-3.5" />}
                   <span>{tab.label}</span>
                 </Link>
               )
@@ -146,23 +160,39 @@ export function AreaBar({
           </nav>
         </div>
 
-        {/* Pills: full-width grid, matching tabs pattern */}
+        {/* Breadcrumb bar (same position as pills row) */}
+        {breadcrumb && (
+          <div className="flex justify-center py-2 border-b border-neutral-800/20">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md bg-primary-500/20 text-primary-500">
+              {breadcrumb.icon && <breadcrumb.icon className="w-3 h-3" />}
+              {breadcrumb.label}
+            </span>
+          </div>
+        )}
+
+        {/* Pills row with filter label */}
         {pills && pills.length > 0 && activePill !== undefined && onPillChange && (
-          <div className={`grid ${GRID_COLS[pills.length] || 'grid-cols-3'} border-b border-neutral-800/20`}>
-            {pills.map(pill => (
-              <button
-                key={pill.value}
-                type="button"
-                onClick={() => onPillChange(pill.value)}
-                className={`flex items-center justify-center py-2 text-xs font-medium transition-colors ${
-                  activePill === pill.value
-                    ? 'text-white bg-white/5'
-                    : 'text-neutral-500 active:text-neutral-300'
-                }`}
-              >
-                {pill.label}
-              </button>
-            ))}
+          <div className="flex justify-center py-2 border-b border-neutral-800/20">
+            <div className="relative flex items-center gap-1">
+              <div className="absolute right-full mr-1 flex items-center gap-1">
+                <Filter className="w-3 h-3 text-neutral-500" />
+                <span className="text-[10px] text-neutral-500 uppercase tracking-wide whitespace-nowrap">FILTER BY:</span>
+              </div>
+              {pills.map(pill => (
+                <button
+                  key={pill.value}
+                  type="button"
+                  onClick={() => onPillChange(pill.value)}
+                  className={`px-3 py-1 text-xs font-medium transition-colors rounded-md ${
+                    activePill === pill.value
+                      ? 'text-white bg-white/5'
+                      : 'text-neutral-500 active:text-neutral-300'
+                  }`}
+                >
+                  {pill.label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -181,18 +211,18 @@ export function AreaBar({
               </h1>
             </div>
 
-            <nav className="flex items-center gap-1 -mb-px">
+            <nav className="flex items-center gap-1 p-1.5 rounded-xl bg-neutral-900/60">
               {tabs.map(tab => {
                 const TabIcon = tab.icon
-                const active = isTabActive(pathname, tab.path, tabs)
+                const active = !breadcrumb && isTabActive(pathname, tab.path, tabs)
                 return (
                   <Link
                     key={tab.path}
                     href={tab.path}
-                    className={`relative flex items-center gap-1.5 px-5 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                    className={`relative flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
                       active
-                        ? 'border-[#39FF14] text-white'
-                        : 'border-transparent text-neutral-500 hover:text-neutral-300 hover:border-neutral-700'
+                        ? 'bg-primary-500/20 text-primary-500'
+                        : 'text-neutral-500 hover:text-neutral-300 hover:bg-white/5'
                     }`}
                   >
                     {TabIcon && <TabIcon className="w-4 h-4" />}
@@ -216,24 +246,42 @@ export function AreaBar({
           </div>
         </div>
 
+        {/* Breadcrumb bar (same row style as pills) */}
+        {breadcrumb && (
+          <div className="px-6 py-3 border-t border-neutral-800/50">
+            <div className="flex justify-center">
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap bg-primary-500/20 text-primary-500">
+                {breadcrumb.icon && <breadcrumb.icon className="w-3.5 h-3.5" />}
+                {breadcrumb.label}
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Pills (optional) */}
         {pills && pills.length > 0 && activePill !== undefined && onPillChange && (
           <div className="px-6 py-3 border-t border-neutral-800/50">
-            <div className="flex justify-center items-center gap-2">
-              {pills.map(pill => (
-                <button
-                  key={pill.value}
-                  type="button"
-                  onClick={() => onPillChange(pill.value)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
-                    activePill === pill.value
-                      ? 'bg-white/10 text-white border border-white/20 shadow-sm'
-                      : 'text-neutral-500 border border-transparent hover:text-neutral-300 hover:border-neutral-700'
-                  }`}
-                >
-                  {pill.label}
-                </button>
-              ))}
+            <div className="flex justify-center">
+              <div className="relative flex items-center gap-2">
+                <div className="absolute right-full mr-2 flex items-center gap-1.5">
+                  <Filter className="w-3.5 h-3.5 text-neutral-500" />
+                  <span className="text-[10px] text-neutral-500 uppercase tracking-wide whitespace-nowrap">FILTER BY:</span>
+                </div>
+                {pills.map(pill => (
+                  <button
+                    key={pill.value}
+                    type="button"
+                    onClick={() => onPillChange(pill.value)}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+                      activePill === pill.value
+                        ? 'bg-white/10 text-white border border-white/20 shadow-sm'
+                        : 'text-neutral-500 border border-transparent hover:text-neutral-300 hover:border-neutral-700'
+                    }`}
+                  >
+                    {pill.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -253,11 +301,12 @@ export function AreaBar({
           }}
         />
       )}
+
     </>
   )
 }
 
-// ─── Desktop Dropdown (unchanged pattern) ───
+// ─── Desktop Dropdown (context selector) ───
 
 function DesktopDropdown({
   label,

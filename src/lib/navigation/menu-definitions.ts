@@ -73,6 +73,7 @@ import {
   GraduationCap,
   Share2,
   Lightbulb,
+  Library,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -157,7 +158,7 @@ export const userNavigation: (NavItem | NavGroup)[] = [
   {
     name: 'Stories',
     href: '/story',
-    icon: FileText,
+    icon: Library,
     description: 'Focus Stories',
   },
   {

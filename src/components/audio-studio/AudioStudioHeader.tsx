@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Heart, Wand2, Compass, ChevronDown, Check } from 'lucide-react'
+import { Headphones, Wand2, Compass, ChevronDown, Check } from 'lucide-react'
 import { useAudioStudio } from './AudioStudioContext'
 
 interface StudioTab {
@@ -13,14 +13,14 @@ interface StudioTab {
 }
 
 const TABS: StudioTab[] = [
-  { label: 'Ritual', path: '/audio/ritual', icon: Heart },
+  { label: 'Listen', path: '/audio', icon: Headphones },
   { label: 'Create', path: '/audio/create', icon: Wand2 },
   { label: 'Explore', path: '/audio/explore', icon: Compass },
 ]
 
 function isTabActive(pathname: string, tabPath: string): boolean {
-  if (tabPath === '/audio/ritual') {
-    return pathname === '/audio/ritual' || pathname === '/audio' || pathname === '/audio/'
+  if (tabPath === '/audio') {
+    return pathname === '/audio' || pathname === '/audio/'
   }
   return pathname.startsWith(tabPath)
 }

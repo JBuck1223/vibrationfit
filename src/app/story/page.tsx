@@ -114,26 +114,19 @@ export default function StoryHubPage() {
                   >
                     <div className="flex items-start justify-between gap-3 mb-3">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className={`w-6 h-6 rounded flex items-center justify-center flex-shrink-0 ${meta.color}`}>
-                            <IconComponent className="w-3.5 h-3.5" />
-                          </div>
-                          <Text size="xs" className={meta.color.split(' ')[0]}>
-                            {meta.label}
-                          </Text>
-                        </div>
-                        <div className="flex items-center gap-2 mb-1">
-                          {story.source === 'ai_generated' && <Sparkles className="w-3 h-3 text-purple-400" />}
-                          {story.source === 'ai_assisted' && <Sparkles className="w-3 h-3 text-teal-400" />}
-                          {story.source === 'user_written' && <FileText className="w-3 h-3 text-neutral-400" />}
-                          <Text className="text-white font-medium truncate">
-                            {story.title || 'Untitled Story'}
-                          </Text>
+                        <Text className="text-white font-medium truncate mb-1">
+                          {story.title || 'Untitled Story'}
+                        </Text>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <Text size="xs" className="text-neutral-500">Source:</Text>
+                          <Badge variant="secondary">{meta.label}</Badge>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Badge variant={story.status === 'completed' ? 'success' : story.status === 'generating' ? 'warning' : 'secondary'}>
-                            {story.status === 'completed' ? 'Complete' : story.status === 'generating' ? 'Generating' : 'Draft'}
-                          </Badge>
+                          {story.status !== 'completed' && (
+                            <Badge variant={story.status === 'generating' ? 'warning' : 'secondary'}>
+                              {story.status === 'generating' ? 'Generating' : 'Draft'}
+                            </Badge>
+                          )}
                           {wordCount > 0 && (
                             <Text size="xs" className="text-neutral-500">
                               {wordCount.toLocaleString()} words

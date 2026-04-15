@@ -13,6 +13,11 @@ import {
   Image,
   PenLine,
   FileText,
+  Info,
+  Target,
+  Cpu,
+  RefreshCw,
+  StickyNote,
 } from 'lucide-react'
 import {
   Container,
@@ -20,9 +25,9 @@ import {
   Card,
   Button,
   Spinner,
-  Text,
   Badge,
   Heading,
+  Text,
 } from '@/lib/design-system/components'
 import { useStory, StoryEditor } from '@/lib/stories'
 import type { UpdateStoryPayload } from '@/lib/stories'
@@ -70,17 +75,19 @@ export default function StoryDetailPage({
 
   if (loading || !storyId) {
     return (
-      <Container size="xl" className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-        <Spinner size="lg" />
+      <Container size="xl">
+        <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+          <Spinner size="lg" />
+        </div>
       </Container>
     )
   }
 
   if (error || !story) {
     return (
-      <Container size="xl" className="py-6">
+      <Container size="xl">
         <Card className="text-center p-4 md:p-6 lg:p-8">
-          <Text className="text-red-400 mb-4">{error || 'Story not found'}</Text>
+          <p className="text-red-400 mb-4">{error || 'Story not found'}</p>
           <Button asChild variant="outline">
             <Link href="/story">
               <ChevronLeft className="w-4 h-4 mr-2" />
@@ -100,10 +107,10 @@ export default function StoryDetailPage({
   const readTime = Math.max(1, Math.ceil(wordCount / 200))
 
   return (
-    <Container size="xl" className="py-6">
-      <Stack gap="lg">
+    <Container size="xl">
+      <Stack gap="lg" className="py-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <h2 className="text-xl font-semibold text-white">{story.title || 'Untitled Story'}</h2>
+          <Heading level={2} className="text-white">{story.title || 'Untitled Story'}</Heading>
           <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="premium">
               <EntityIcon className="w-3 h-3 mr-1" />
@@ -122,7 +129,7 @@ export default function StoryDetailPage({
         </div>
 
         {/* Stats Row */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="p-4 text-center">
             <Text size="xs" className="text-neutral-500 uppercase tracking-wide mb-1">Words</Text>
             <Text className="text-2xl font-bold text-white">{wordCount.toLocaleString()}</Text>
@@ -141,45 +148,105 @@ export default function StoryDetailPage({
           </Card>
         </div>
 
+        {/* Generation Details */}
+        {story.metadata && (story.metadata.selected_categories || story.metadata.model_used || story.metadata.focus_notes) && (
+          <Card className="p-4 md:p-6 lg:p-8">
+            <div className="flex items-center gap-2 mb-4">
+              <Info className="w-4 h-4 text-neutral-400" />
+              <Heading level={3} className="text-white">Generation Details</Heading>
+            </div>
+            <div className="space-y-4">
+              {story.metadata.selected_categories && story.metadata.selected_categories.length > 0 && (
+                <div className="flex items-start gap-3">
+                  <Target className="w-4 h-4 text-neutral-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <Text size="xs" className="text-neutral-500 uppercase tracking-wide mb-1.5">Focus Areas</Text>
+                    <div className="flex flex-wrap gap-1.5">
+                      {story.metadata.selected_categories.map((cat: string) => (
+                        <Badge key={cat} variant="secondary">
+                          {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+              {story.metadata.model_used && (
+                <div className="flex items-start gap-3">
+                  <Cpu className="w-4 h-4 text-neutral-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <Text size="xs" className="text-neutral-500 uppercase tracking-wide mb-1">Model</Text>
+                    <Text size="sm" className="text-neutral-300">{story.metadata.model_used}</Text>
+                  </div>
+                </div>
+              )}
+              {story.generation_count > 1 && (
+                <div className="flex items-start gap-3">
+                  <RefreshCw className="w-4 h-4 text-neutral-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <Text size="xs" className="text-neutral-500 uppercase tracking-wide mb-1">Regenerations</Text>
+                    <Text size="sm" className="text-neutral-300">Generated {story.generation_count} times</Text>
+                  </div>
+                </div>
+              )}
+              {story.metadata.focus_notes && (
+                <div className="flex items-start gap-3">
+                  <StickyNote className="w-4 h-4 text-neutral-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <Text size="xs" className="text-neutral-500 uppercase tracking-wide mb-1">Focus Notes</Text>
+                    <Text size="sm" className="text-neutral-300 whitespace-pre-wrap">{String(story.metadata.focus_notes)}</Text>
+                  </div>
+                </div>
+              )}
+            </div>
+          </Card>
+        )}
+
         {/* Audio Actions */}
-        <Card className="p-4 md:p-6 lg:p-8">
-          <Heading level={3} className="text-white mb-4">Audio Options</Heading>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card variant="glass" className="p-4 md:p-6">
+          <div className="flex flex-col items-center text-center mb-4">
+            <div className="w-10 h-10 bg-primary-500/20 rounded-full flex items-center justify-center mb-2">
+              <Volume2 className="w-5 h-5 text-primary-500" />
+            </div>
+            <h3 className="text-base md:text-lg font-semibold text-white">Audio Options</h3>
+            <p className="text-sm text-neutral-400">Listen, generate, or record audio for this story</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <Link href={`/story/${storyId}/audio`}>
-              <Card variant="elevated" hover className="p-4 cursor-pointer h-full">
+              <Card variant="default" hover className="p-4 cursor-pointer h-full">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center">
+                  <div className="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                     <Volume2 className="w-5 h-5 text-primary-500" />
                   </div>
                   <div>
-                    <Text className="text-white font-medium">Audio Studio</Text>
-                    <Text size="xs" className="text-neutral-400">Manage all audio</Text>
+                    <p className="text-white font-medium text-sm md:text-base">Audio Studio</p>
+                    <p className="text-xs text-neutral-400">Manage all audio</p>
                   </div>
                 </div>
               </Card>
             </Link>
             <Link href={`/story/${storyId}/audio/generate`}>
-              <Card variant="elevated" hover className="p-4 cursor-pointer h-full">
+              <Card variant="default" hover className="p-4 cursor-pointer h-full">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                  <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                     <Wand2 className="w-5 h-5 text-purple-400" />
                   </div>
                   <div>
-                    <Text className="text-white font-medium">Generate Audio</Text>
-                    <Text size="xs" className="text-neutral-400">AI voice narration</Text>
+                    <p className="text-white font-medium text-sm md:text-base">Generate Audio</p>
+                    <p className="text-xs text-neutral-400">VIVA voice narration</p>
                   </div>
                 </div>
               </Card>
             </Link>
             <Link href={`/story/${storyId}/audio/record`}>
-              <Card variant="elevated" hover className="p-4 cursor-pointer h-full">
+              <Card variant="default" hover className="p-4 cursor-pointer h-full">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-teal-500/20 rounded-lg flex items-center justify-center">
+                  <div className="w-10 h-10 bg-teal-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                     <Mic className="w-5 h-5 text-teal-400" />
                   </div>
                   <div>
-                    <Text className="text-white font-medium">Record Voice</Text>
-                    <Text size="xs" className="text-neutral-400">Your own voice</Text>
+                    <p className="text-white font-medium text-sm md:text-base">Record Voice</p>
+                    <p className="text-xs text-neutral-400">Your own voice</p>
                   </div>
                 </div>
               </Card>
@@ -188,10 +255,13 @@ export default function StoryDetailPage({
         </Card>
 
         {/* Story Editor */}
-        <Card className="p-4 md:p-6 lg:p-8">
-          <div className="flex items-center justify-between mb-6">
-            <Heading level={3} className="text-white">Story Content</Heading>
-            {saving && <Text size="xs" className="text-neutral-400">Saving...</Text>}
+        <Card variant="glass" className="p-4 md:p-6">
+          <div className="flex flex-col items-center text-center mb-4">
+            <div className="w-10 h-10 bg-[#39FF14]/20 rounded-full flex items-center justify-center mb-2">
+              <PenLine className="w-5 h-5 text-[#39FF14]" />
+            </div>
+            <h3 className="text-base md:text-lg font-semibold text-white">Story Content</h3>
+            {saving && <p className="text-xs text-neutral-400 mt-1">Saving...</p>}
           </div>
           <StoryEditor
             story={story}
@@ -203,16 +273,15 @@ export default function StoryDetailPage({
         </Card>
 
         {/* Danger Zone */}
-        <Card className="p-4 md:p-6 lg:p-8 border-red-500/20">
-          <Heading level={4} className="text-red-400 mb-4">Danger Zone</Heading>
-          <div className="flex items-center justify-between">
+        <Card variant="glass" className="p-4 md:p-6 border-red-500/20">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <Text className="text-white font-medium">Delete Story</Text>
-              <Text size="sm" className="text-neutral-400">
+              <p className="text-red-400 font-semibold text-sm md:text-base mb-1">Danger Zone</p>
+              <p className="text-sm text-neutral-400">
                 Permanently delete this story and all associated audio.
-              </Text>
+              </p>
             </div>
-            <Button variant="danger" size="sm" onClick={handleDelete} disabled={deleting}>
+            <Button variant="danger" size="sm" onClick={handleDelete} disabled={deleting} className="flex-shrink-0">
               <Trash2 className="w-4 h-4 mr-2" />
               {deleting ? 'Deleting...' : 'Delete'}
             </Button>

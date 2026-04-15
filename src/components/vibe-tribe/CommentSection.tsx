@@ -250,7 +250,7 @@ export function CommentSection({
       {/* Top-level Comment Input - hidden when replying to someone */}
       {!replyingToId && (
         <form onSubmit={handleSubmitTopLevel} className="mb-4">
-          <div className="flex items-end gap-2 relative">
+          <div className="flex items-center gap-2 relative">
             <div className="flex-1 relative">
               <MentionDropdown
                 results={topMention.mentionResults}
@@ -625,7 +625,7 @@ function CommentItem({
           {/* Inline Reply Input */}
           {isReplying && (
             <div className="mt-3">
-              <div className="flex items-end gap-2 relative">
+              <div className="flex items-center gap-2 relative">
                 <div className="flex-1 relative">
                   <MentionDropdown
                     results={replyMention.mentionResults}
