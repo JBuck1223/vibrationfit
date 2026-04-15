@@ -212,27 +212,6 @@ export interface CallSettings {
 }
 
 // ============================================================================
-// WEBHOOK TYPES
-// ============================================================================
-
-export interface DailyWebhookPayload {
-  event: DailyWebhookEventType
-  timestamp: number
-  room: string
-  data: Record<string, unknown>
-}
-
-export type DailyWebhookEventType =
-  | 'meeting.started'
-  | 'meeting.ended'
-  | 'participant.joined'
-  | 'participant.left'
-  | 'recording.started'
-  | 'recording.stopped'
-  | 'recording.ready-to-download'
-  | 'recording.error'
-
-// ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
 

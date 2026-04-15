@@ -92,12 +92,6 @@ export interface DailyRecording {
   download_link?: string
 }
 
-export interface DailyWebhookEvent {
-  event: string
-  timestamp: number
-  payload: Record<string, unknown>
-}
-
 // ============================================================================
 // API HELPERS
 // ============================================================================
@@ -399,23 +393,6 @@ export function getRoomUrl(roomName: string): string {
  */
 export function getDefaultExpiration(hoursFromNow = 24): number {
   return Math.floor(Date.now() / 1000) + (hoursFromNow * 3600)
-}
-
-/**
- * Verify a webhook signature from Daily.co
- */
-export function verifyWebhookSignature(
-  payload: string,
-  signature: string,
-  secret: string
-): boolean {
-  // Daily.co uses HMAC-SHA256 for webhook signatures
-  // This requires the webhook secret from your Daily.co dashboard
-  const crypto = require('crypto')
-  const hmac = crypto.createHmac('sha256', secret)
-  hmac.update(payload)
-  const expectedSignature = hmac.digest('hex')
-  return signature === expectedSignature
 }
 
 // ============================================================================

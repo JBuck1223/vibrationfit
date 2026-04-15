@@ -22,6 +22,5 @@ export type {
   DailyMeetingToken,
   DailyMeetingTokenConfig,
   DailyRecording,
-  DailyWebhookEvent,
 } from './daily'
 

@@ -34,7 +34,6 @@ import {
   TrendingUp,
   BarChart3,
   RefreshCw,
-  Link2,
   Sparkles,
   ClipboardCopy
 } from 'lucide-react'
@@ -82,9 +81,6 @@ export default function AdminSessionDetailPage() {
   const [sendingEmail, setSendingEmail] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
   const [syncingRecording, setSyncingRecording] = useState(false)
-  const [importingRecording, setImportingRecording] = useState(false)
-  const [dailyUrl, setDailyUrl] = useState('')
-  const [importSteps, setImportSteps] = useState<string[]>([])
   
   // Transcription state
   const [transcribing, setTranscribing] = useState(false)
@@ -185,7 +181,7 @@ export default function AdminSessionDetailPage() {
 
   const syncRecording = async () => {
     setSyncingRecording(true)
-    const toastId = toast.loading('Syncing recording from Daily.co — downloading then uploading to S3. This may take a minute...')
+    const toastId = toast.loading('Checking Daily.co for recording...')
     try {
       const res = await fetch('/api/admin/recordings/sync', {
         method: 'POST',
@@ -195,9 +191,7 @@ export default function AdminSessionDetailPage() {
 
       const contentType = res.headers.get('content-type') || ''
       if (!contentType.includes('application/json')) {
-        const text = await res.text()
-        console.error('Sync returned non-JSON response:', res.status, text.slice(0, 500))
-        toast.error(`Sync failed (HTTP ${res.status}). The server may have timed out — try again.`, { id: toastId })
+        toast.error(`Sync failed (HTTP ${res.status}).`, { id: toastId })
         return
       }
 
@@ -209,20 +203,18 @@ export default function AdminSessionDetailPage() {
       }
 
       if (data.synced > 0) {
-        toast.success(`Recording synced. Refreshing session...`, { id: toastId })
+        toast.success('Recording synced!', { id: toastId })
         await fetchSession()
       } else if (data.already_synced > 0) {
-        toast.success('Recording already in S3. Refreshing session...', { id: toastId })
+        toast.success('Recording already synced.', { id: toastId })
         await fetchSession()
       } else {
         const errorResults = data.results?.filter((r: { action: string }) => r.action === 'error') || []
         if (errorResults.length > 0) {
-          toast.error('Daily.co returned an error for this room. The recording may not be available yet.', { id: toastId })
+          const detail = errorResults[0]?.error_detail || 'Unknown error'
+          toast.error(`Sync error: ${detail}`, { id: toastId })
         } else {
-          const msg = data.results?.length
-            ? 'No ready recording found for this session in Daily.co yet. Try again in a few minutes.'
-            : 'No recordings to sync for this session.'
-          toast.info(msg, { id: toastId })
+          toast.info('Recording not ready yet on Daily.co. The cron will pick it up automatically, or try again in a few minutes.', { id: toastId })
         }
       }
     } catch (err) {
@@ -230,40 +222,6 @@ export default function AdminSessionDetailPage() {
       toast.error('Sync failed — check console for details', { id: toastId })
     } finally {
       setSyncingRecording(false)
-    }
-  }
-
-  const importFromDaily = async () => {
-    if (!dailyUrl.trim()) {
-      toast.error('Please paste a Daily.co URL or recording ID')
-      return
-    }
-    setImportingRecording(true)
-    setImportSteps([])
-    const toastId = toast.loading('Importing recording from Daily.co...')
-    try {
-      const res = await fetch('/api/admin/recordings/import-from-daily', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ daily_url: dailyUrl.trim(), session_id: sessionId }),
-      })
-      const data = await res.json()
-      if (data.steps) setImportSteps(data.steps)
-
-      if (!res.ok) {
-        toast.error(data.error || 'Import failed', { id: toastId })
-        return
-      }
-
-      toast.success('Recording imported successfully!', { id: toastId })
-      setDailyUrl('')
-      setImportSteps([])
-      await fetchSession()
-    } catch (err) {
-      console.error('Error importing recording:', err)
-      toast.error(err instanceof Error ? err.message : 'Import failed', { id: toastId })
-    } finally {
-      setImportingRecording(false)
     }
   }
 
@@ -671,83 +629,24 @@ export default function AdminSessionDetailPage() {
                 </>
               ) : (
                 <div className="space-y-4">
-                  {(importingRecording || syncingRecording) ? (
-                    <div className="flex items-center gap-3 rounded-lg bg-primary-500/10 border border-primary-500/20 p-3">
-                      <Spinner size="sm" />
-                      <div>
-                        <p className="text-primary-400 font-medium">
-                          {importingRecording ? 'Importing...' : 'Syncing...'}
-                        </p>
-                        <p className="text-neutral-400 text-xs mt-0.5">
-                          Downloading from Daily.co and uploading to S3. Do not close this page.
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-neutral-400 text-sm">
-                      No recording URL yet. Import from a Daily.co link, or try the auto-sync below.
-                    </p>
-                  )}
+                  <p className="text-neutral-400 text-sm">
+                    No recording yet. Recordings sync automatically every 5 minutes after a session ends.
+                  </p>
 
-                  {/* Import from Daily URL */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-neutral-300">
-                      Import from Daily.co
-                    </label>
-                    <div className="flex gap-2">
-                      <Input
-                        value={dailyUrl}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDailyUrl(e.target.value)}
-                        placeholder="Paste Daily.co session URL or recording ID"
-                        className="flex-1 bg-neutral-800 border-neutral-700 text-sm"
-                        disabled={importingRecording}
-                      />
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={importFromDaily}
-                        disabled={importingRecording || !dailyUrl.trim()}
-                      >
-                        {importingRecording ? (
-                          <Spinner size="sm" className="mr-2" />
-                        ) : (
-                          <Link2 className="w-4 h-4 mr-2" />
-                        )}
-                        {importingRecording ? 'Importing...' : 'Import'}
-                      </Button>
-                    </div>
-                    <p className="text-xs text-neutral-500">
-                      Supports: dashboard.daily.co/sessions/... or a recording UUID
-                    </p>
-                  </div>
-
-                  {/* Import step log */}
-                  {importSteps.length > 0 && (
-                    <div className="rounded-lg bg-neutral-800/50 border border-neutral-700 p-3 max-h-40 overflow-y-auto">
-                      <p className="text-xs font-medium text-neutral-400 mb-1">Import log:</p>
-                      {importSteps.map((s, i) => (
-                        <p key={i} className="text-xs text-neutral-500 font-mono">{s}</p>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Existing auto-sync */}
                   {session.daily_room_name && (
-                    <div className="pt-3 border-t border-neutral-800">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={syncRecording}
-                        disabled={syncingRecording || importingRecording}
-                      >
-                        {syncingRecording ? (
-                          <Spinner size="sm" className="mr-2" />
-                        ) : (
-                          <RefreshCw className="w-4 h-4 mr-2" />
-                        )}
-                        {syncingRecording ? 'Syncing...' : 'Auto-sync from room name'}
-                      </Button>
-                    </div>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={syncRecording}
+                      disabled={syncingRecording}
+                    >
+                      {syncingRecording ? (
+                        <Spinner size="sm" className="mr-2" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                      )}
+                      {syncingRecording ? 'Checking...' : 'Sync Now'}
+                    </Button>
                   )}
                 </div>
               )}

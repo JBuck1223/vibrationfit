@@ -14,7 +14,7 @@
     },
     {
       "path": "/api/cron/recording-sync",
-      "schedule": "0 * * * *"
+      "schedule": "*/5 * * * *"
     },
     {
       "path": "/api/cron/recurring-emails",
