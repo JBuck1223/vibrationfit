@@ -23,7 +23,9 @@ import {
   ExternalLink,
   Play,
   RefreshCw,
-  FlaskConical
+  FlaskConical,
+  EyeOff,
+  Eye
 } from 'lucide-react'
 import { 
   PageHero, 
@@ -55,11 +57,11 @@ function AdminSessionsContent() {
 
   const [syncRunning, setSyncRunning] = useState(false)
 
-  // Fetch sessions
+  // Fetch sessions (include hidden for admin view)
   const fetchSessions = useCallback(async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/video/sessions')
+      const response = await fetch('/api/video/sessions?include_hidden=true')
       const data = await response.json()
 
       if (!response.ok) {
@@ -120,9 +122,31 @@ function AdminSessionsContent() {
     return true
   })
 
-  // Handle delete
-  const handleDelete = async (sessionId: string) => {
-    if (!confirm('Are you sure you want to delete this session?')) return
+  // Handle hide/unhide toggle
+  const handleToggleHidden = async (sessionId: string, currentlyHidden: boolean) => {
+    try {
+      const response = await fetch(`/api/video/sessions/${sessionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hidden_from_users: !currentlyHidden }),
+      })
+
+      if (response.ok) {
+        setSessions(prev => prev.map(s =>
+          s.id === sessionId ? { ...s, hidden_from_users: !currentlyHidden } : s
+        ))
+      }
+    } catch (err) {
+      console.error('Error toggling session visibility:', err)
+    }
+  }
+
+  // Handle delete (permanently removes session, recording from S3, and all related data)
+  const handleDelete = async (sessionId: string, hasRecording: boolean) => {
+    const msg = hasRecording
+      ? 'Permanently delete this session?\n\nThis will also delete the recording from S3 storage. This cannot be undone.'
+      : 'Permanently delete this session?\n\nAll related data (participants, messages) will be removed. This cannot be undone.'
+    if (!confirm(msg)) return
 
     try {
       const response = await fetch(`/api/video/sessions/${sessionId}`, {
@@ -344,9 +368,11 @@ function AdminSessionsContent() {
                     const scheduledDate = new Date(session.scheduled_at)
                     const participant = session.participants?.find(p => !p.is_host)
                     const joinable = isSessionJoinable(session)
+                    const isHidden = session.hidden_from_users
+                    const hasRecording = !!(session.recording_url || session.recording_s3_key)
                     
                     return (
-                      <tr key={session.id} className="hover:bg-neutral-800/30 transition-colors">
+                      <tr key={session.id} className={`hover:bg-neutral-800/30 transition-colors ${isHidden ? 'opacity-50' : ''}`}>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-lg bg-neutral-800 flex items-center justify-center">
@@ -358,7 +384,15 @@ function AdminSessionsContent() {
                               }
                             </div>
                             <div>
-                              <p className="text-white font-medium">{session.title}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="text-white font-medium">{session.title}</p>
+                                {isHidden && (
+                                  <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 border text-[10px]">
+                                    <EyeOff className="w-3 h-3 mr-1" />
+                                    Hidden
+                                  </Badge>
+                                )}
+                              </div>
                               <p className="text-xs text-neutral-500">
                                 {getSessionTypeLabel(session.session_type)} · {session.scheduled_duration_minutes}min
                               </p>
@@ -407,15 +441,26 @@ function AdminSessionsContent() {
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-end gap-2">
                             {(joinable || session.status === 'live') && (
-            <Button
-                variant="primary"
-                size="sm"
-                onClick={() => router.push(`/session/${session.id}`)}
-              >
-                <Play className="w-3 h-3 mr-1" />
-                Join
-              </Button>
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={() => router.push(`/session/${session.id}`)}
+                              >
+                                <Play className="w-3 h-3 mr-1" />
+                                Join
+                              </Button>
                             )}
+                            <button
+                              onClick={() => handleToggleHidden(session.id, !!isHidden)}
+                              className={`p-2 rounded-lg transition-colors ${
+                                isHidden
+                                  ? 'hover:bg-green-500/20 text-yellow-400 hover:text-green-400'
+                                  : 'hover:bg-yellow-500/20 text-neutral-400 hover:text-yellow-400'
+                              }`}
+                              title={isHidden ? 'Show to members' : 'Hide from members'}
+                            >
+                              {isHidden ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                            </button>
                             <button
                               onClick={() => router.push(`/admin/sessions/${session.id}`)}
                               className="p-2 rounded-lg hover:bg-neutral-700 text-neutral-400 hover:text-white transition-colors"
@@ -424,9 +469,9 @@ function AdminSessionsContent() {
                               <ExternalLink className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => handleDelete(session.id)}
+                              onClick={() => handleDelete(session.id, hasRecording)}
                               className="p-2 rounded-lg hover:bg-red-500/20 text-neutral-400 hover:text-red-400 transition-colors"
-                              title="Delete"
+                              title={hasRecording ? 'Delete session + S3 recording' : 'Delete session'}
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>

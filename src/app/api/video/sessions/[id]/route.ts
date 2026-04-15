@@ -10,8 +10,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { deleteRoom } from '@/lib/video/daily'
+import { S3Client, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3'
 import type { UpdateSessionRequest, VideoSession } from '@/lib/video/types'
 import { isAlignmentGymDirectorySession } from '@/lib/video/alignment-gym-directory'
+
+const BUCKET_NAME = process.env.AWS_S3_BUCKET || 'vibration-fit-client-storage'
+
+function getS3Client() {
+  return new S3Client({
+    region: process.env.AWS_REGION || 'us-east-2',
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+    },
+  })
+}
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -160,6 +173,10 @@ export async function PATCH(
       updates.recording_playback_start_seconds = v
     }
 
+    if ((body as Record<string, unknown>).hidden_from_users !== undefined) {
+      (updates as Record<string, unknown>).hidden_from_users = (body as Record<string, unknown>).hidden_from_users
+    }
+
     // Recording management fields (admin use: remove/reassign recordings)
     if ((body as Record<string, unknown>).recording_url !== undefined) {
       (updates as Record<string, unknown>).recording_url = (body as Record<string, unknown>).recording_url
@@ -221,10 +238,10 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get session to verify ownership and get room name
+    // Get session to verify ownership and get room name + recording info
     const { data: session, error: fetchError } = await supabase
       .from('video_sessions')
-      .select('host_user_id, daily_room_name, status')
+      .select('host_user_id, daily_room_name, status, recording_s3_key, recording_url')
       .eq('id', id)
       .single()
 
@@ -270,6 +287,36 @@ export async function DELETE(
         await deleteRoom(session.daily_room_name)
       } catch (dailyError) {
         console.warn('Failed to delete Daily.co room:', dailyError)
+      }
+    }
+
+    // Delete S3 recording files if they exist
+    if (session.recording_s3_key) {
+      try {
+        const s3 = getS3Client()
+        // The base key may have related files (e.g. -1080p.mp4, -720p.mp4, -thumb.0000000.jpg)
+        // Derive the base prefix from the s3 key to clean up all transcoded variants
+        const baseKey = session.recording_s3_key.replace(/(-\d+p\.mp4|-original\.mp4|-thumb\.\d+\.jpg)$/, '')
+        
+        // List all objects with the base prefix to catch all transcoded variants
+        const listCmd = new ListObjectsV2Command({
+          Bucket: BUCKET_NAME,
+          Prefix: baseKey,
+        })
+        const listed = await s3.send(listCmd)
+        
+        const keysToDelete = listed.Contents?.map(obj => obj.Key).filter(Boolean) || []
+        // Also include the exact key if it wasn't in the listing
+        if (!keysToDelete.includes(session.recording_s3_key)) {
+          keysToDelete.push(session.recording_s3_key)
+        }
+
+        for (const key of keysToDelete) {
+          await s3.send(new DeleteObjectCommand({ Bucket: BUCKET_NAME, Key: key }))
+        }
+        console.log(`[video/sessions] Deleted ${keysToDelete.length} S3 object(s) for session ${id}`)
+      } catch (s3Error) {
+        console.warn('Failed to delete S3 recording files:', s3Error)
       }
     }
 

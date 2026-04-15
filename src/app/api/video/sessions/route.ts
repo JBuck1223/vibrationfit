@@ -336,6 +336,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
     const type = searchParams.get('type')
+    const includeHidden = searchParams.get('include_hidden') === 'true'
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = parseInt(searchParams.get('offset') || '0')
 
@@ -347,6 +348,10 @@ export async function GET(request: NextRequest) {
       `)
       .order('scheduled_at', { ascending: false })
       .range(offset, offset + limit - 1)
+
+    if (!includeHidden) {
+      query = query.eq('hidden_from_users', false)
+    }
 
     if (status) {
       query = query.eq('status', status)
