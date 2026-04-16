@@ -22,7 +22,7 @@ const GROUP_COLORS: Record<string, string> = {
   'Members': 'text-primary-500',
   'Communication': 'text-secondary-500',
   'Leads & Growth': 'text-[#FFB701]',
-  'Scheduling': 'text-[#00FFFF]',
+  'Sessions': 'text-[#00FFFF]',
   'Content & Audio': 'text-[#8B5CF6]',
   'VIVA & Models': 'text-accent-500',
   'Homeschool': 'text-[#FFB701]',
