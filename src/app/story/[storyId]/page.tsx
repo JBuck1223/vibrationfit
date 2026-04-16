@@ -296,7 +296,7 @@ export default function StoryDetailPage({
   const EntityIcon = meta.icon
   const wordCount = story.word_count || 0
   const readTime = Math.max(1, Math.ceil(wordCount / 200))
-  const focusAreas = story.metadata?.selected_categories || []
+  const focusAreas = (story.metadata?.selected_categories as string[] | undefined) || []
   const selectedOption = audioOptions.find(o => o.id === selectedAudioId)
   const SelectedAudioIcon = selectedOption?.icon || Headphones
 
@@ -557,7 +557,7 @@ export default function StoryDetailPage({
         </Card>
 
         {/* Original Input toggle (collapsed by default, below the card) */}
-        {!isEditing && story.metadata?.source_input && (
+        {!isEditing && !!story.metadata?.source_input && (
           <div className="rounded-2xl bg-neutral-900/50 border border-neutral-800">
             <button
               type="button"
