@@ -450,10 +450,10 @@ export const adminNavigation: NavItem[] = [
   },
 
   // ============================================================================
-  // SCHEDULING
+  // SESSIONS (availability, bookings, calendar)
   // ============================================================================
   {
-    name: 'Scheduling',
+    name: 'Sessions',
     href: '/admin/scheduling',
     icon: Calendar,
     requiresAdmin: true,

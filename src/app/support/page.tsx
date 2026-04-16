@@ -3,9 +3,14 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Button, Card, Input, Textarea, Container, Stack, PageHero, Badge, Spinner, Select } from '@/lib/design-system/components'
-import { CheckCircle, User, Mail, Calendar, Hash } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Button, Card, Input, Textarea, Container, Stack, PageHero, Badge, Spinner, Select, Video } from '@/lib/design-system/components'
+import { CheckCircle, User, Mail, Calendar, Hash, Paperclip, Monitor, Trash2, FileText } from 'lucide-react'
+import { MediaRecorderComponent } from '@/components/MediaRecorder'
+import { RecordingTextarea } from '@/components/RecordingTextarea'
+import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
+import { getSupportAttachmentKind, getSupportAttachmentDisplayName } from '@/lib/support/attachment-utils'
+import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import Image from 'next/image'
 
@@ -29,6 +34,11 @@ export default function SupportPage() {
     description: '',
     category: 'account',
   })
+  const [attachmentUrls, setAttachmentUrls] = useState<string[]>([])
+  const [showRecorder, setShowRecorder] = useState(false)
+  const [recorderKey, setRecorderKey] = useState(0)
+  const [uploadingFile, setUploadingFile] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const supabase = createClient()
 
@@ -99,6 +109,24 @@ export default function SupportPage() {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
+  async function handleFileUpload(files: FileList | null) {
+    if (!files || files.length === 0) return
+    setUploadingFile(true)
+    try {
+      for (const file of Array.from(files)) {
+        const { url } = await uploadUserFile('supportAttachments', file)
+        setAttachmentUrls((prev) => [...prev, url])
+      }
+      toast.success(files.length > 1 ? 'Files attached' : 'File attached')
+    } catch (error) {
+      console.error('File upload error:', error)
+      toast.error('Failed to upload file')
+    } finally {
+      setUploadingFile(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     console.log('Form submitted with data:', formData)
@@ -129,6 +157,26 @@ export default function SupportPage() {
 
       const { ticket } = await response.json()
       console.log('Ticket created:', ticket)
+
+      if (userInfo && attachmentUrls.length > 0) {
+        const attachRes = await fetch(`/api/support/tickets/${ticket.id}/replies`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            reply: '',
+            is_internal: false,
+            attachments: attachmentUrls,
+          }),
+        })
+        if (!attachRes.ok) {
+          toast.error(
+            'Your ticket was created, but some attachments could not be linked. Open the ticket to add them.'
+          )
+        }
+      }
+
+      setAttachmentUrls([])
+      setShowRecorder(false)
       setTicketNumber(ticket.ticket_number)
       setSubmitted(true)
     } catch (error: any) {
@@ -329,14 +377,143 @@ export default function SupportPage() {
 
           <div>
             <label className="block text-xs md:text-sm font-medium mb-2">Description *</label>
-            <Textarea
-              value={formData.description}
-              onChange={(e) => handleChange('description', e.target.value)}
-              placeholder="Please provide as much detail as possible..."
-              rows={8}
-              required
-            />
+            {userInfo ? (
+              <RecordingTextarea
+                value={formData.description}
+                onChange={(v) => handleChange('description', v)}
+                placeholder="Please provide as much detail as possible... or use the mic for a voice memo"
+                rows={8}
+                recordingPurpose="quick"
+                storageFolder="journal"
+                category="support-new-ticket"
+                instanceId="support-new-ticket-description"
+                onAudioSaved={(audioUrl) => {
+                  setAttachmentUrls((prev) => [...prev, audioUrl])
+                }}
+              />
+            ) : (
+              <Textarea
+                value={formData.description}
+                onChange={(e) => handleChange('description', e.target.value)}
+                placeholder="Please provide as much detail as possible..."
+                rows={8}
+                required
+              />
+            )}
           </div>
+
+          {userInfo && (
+            <div className="space-y-3 rounded-xl border border-[#333] p-4">
+              <p className="text-sm font-medium text-neutral-300">Screen recording and files (optional)</p>
+              <p className="text-xs text-neutral-500">
+                Attach images, documents, or a short screen recording. Signed-in members only.
+              </p>
+
+              {attachmentUrls.length > 0 && (
+                <div className="space-y-2">
+                  {attachmentUrls.map((url, idx) => {
+                    const kind = getSupportAttachmentKind(url)
+                    return (
+                      <div key={idx} className="flex items-start gap-3 rounded-xl border border-[#333] bg-neutral-900 p-3">
+                        {kind === 'audio' ? (
+                          <div className="min-w-0 flex-1">
+                            <audio src={url} controls className="w-full" preload="metadata" />
+                          </div>
+                        ) : kind === 'image' ? (
+                          <div className="w-40 shrink-0">
+                            <img src={url} alt="Attachment" className="w-full rounded-lg object-cover" />
+                          </div>
+                        ) : kind === 'document' ? (
+                          <div className="flex min-w-0 flex-1 items-center gap-2">
+                            <FileText className="h-5 w-5 shrink-0 text-neutral-400" />
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="truncate text-sm text-secondary-400 hover:underline"
+                            >
+                              {getSupportAttachmentDisplayName(url)}
+                            </a>
+                          </div>
+                        ) : (
+                          <div className="w-40 shrink-0">
+                            <Video src={url} variant="card" preload="metadata" />
+                          </div>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          type="button"
+                          onClick={() => setAttachmentUrls((prev) => prev.filter((_, i) => i !== idx))}
+                          className="shrink-0 text-red-400 hover:text-red-300"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {showRecorder && (
+                <div className="rounded-xl border border-[#333] p-4">
+                  <MediaRecorderComponent
+                    key={`support-new-screen-${recorderKey}`}
+                    instanceId={`support-new-screen-${recorderKey}`}
+                    mode="screen"
+                    recordingPurpose="support"
+                    storageFolder="supportVideoRecordings"
+                    submitLabel="Attach to Ticket"
+                    fullscreenVideo={false}
+                    maxDuration={300}
+                    showSaveOption={false}
+                    onRecordingComplete={(_blob, _transcript, _save, s3Url) => {
+                      if (s3Url) {
+                        setAttachmentUrls((prev) => [...prev, s3Url])
+                        setShowRecorder(false)
+                      }
+                    }}
+                  />
+                </div>
+              )}
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+                onChange={(e) => handleFileUpload(e.target.files)}
+                className="hidden"
+              />
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingFile}
+                  className="flex items-center gap-2 text-neutral-400 hover:text-white"
+                >
+                  {uploadingFile ? <Spinner size="sm" /> : <Paperclip className="h-4 w-4" />}
+                  {uploadingFile ? 'Uploading...' : 'Attach File'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  type="button"
+                  onClick={() => {
+                    if (!showRecorder) setRecorderKey((k) => k + 1)
+                    setShowRecorder(!showRecorder)
+                  }}
+                  className="flex items-center gap-2 text-neutral-400 hover:text-white"
+                >
+                  <Monitor className="h-4 w-4" />
+                  {showRecorder ? 'Hide Recorder' : 'Record Screen'}
+                </Button>
+              </div>
+            </div>
+          )}
 
           <button
             type="submit"

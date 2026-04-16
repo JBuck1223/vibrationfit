@@ -330,6 +330,20 @@ export default function AudioHubPage({ params }: { params: Promise<{ id: string 
           </div>
         </Card>
 
+        {/* Global Audio Studio CTA */}
+        <Card variant="glass" className="p-5 text-center">
+          <p className="text-sm text-neutral-400 mb-3">
+            Use the full Audio Studio to generate, record, and mix audio from all your Life Visions and Stories in one place.
+          </p>
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/audio/generate?source=life_vision&sourceId=${visionId}`}>
+              <Headphones className="w-4 h-4 mr-2" />
+              Open in Audio Studio
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Link>
+          </Button>
+        </Card>
+
       </Stack>
     </Container>
   )

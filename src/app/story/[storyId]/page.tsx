@@ -15,6 +15,7 @@ import {
   BookOpen,
   Lightbulb,
   ChevronDown,
+  ChevronUp,
   Play,
   Pause,
   Headphones,
@@ -75,6 +76,7 @@ export default function StoryDetailPage({
   const [editTitle, setEditTitle] = useState('')
   const [editContent, setEditContent] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [showSourceInput, setShowSourceInput] = useState(false)
 
   // Audio state
   const [audioOptions, setAudioOptions] = useState<AudioOption[]>([])
@@ -503,12 +505,20 @@ export default function StoryDetailPage({
                       <p className="text-sm text-neutral-400">
                         {audioOptions.length > 0 ? 'Generate more tracks or record your voice' : 'Generate your first track or record your voice'}
                       </p>
-                      <Button asChild variant="outline" size="sm" className="rounded-full">
-                        <Link href={`/story/${storyId}/audio`}>
-                          Audio Studio
-                          <ArrowRight className="w-4 h-4 ml-2" />
-                        </Link>
-                      </Button>
+                      <div className="flex flex-wrap gap-2 justify-center">
+                        <Button asChild variant="primary" size="sm" className="rounded-full">
+                          <Link href={`/audio/generate?source=story&sourceId=${storyId}`}>
+                            <Headphones className="w-3.5 h-3.5 mr-1.5" />
+                            Generate Audio
+                          </Link>
+                        </Button>
+                        <Button asChild variant="outline" size="sm" className="rounded-full">
+                          <Link href={`/audio/record?source=story&sourceId=${storyId}`}>
+                            <Mic className="w-3.5 h-3.5 mr-1.5" />
+                            Record
+                          </Link>
+                        </Button>
+                      </div>
                     </div>
                   </div>
 
@@ -518,18 +528,6 @@ export default function StoryDetailPage({
                     <p className="text-neutral-500 italic">No content yet. Click Edit to add your story.</p>
                   )}
                 </section>
-
-                {/* Original Input (what the user submitted to VIVA) */}
-                {story.metadata?.source_input && (
-                  <section className="space-y-3">
-                    <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-                      Your Original Input
-                    </Text>
-                    <div className="rounded-xl bg-neutral-900/50 border border-neutral-800 p-4">
-                      <p className="text-neutral-400 whitespace-pre-wrap leading-relaxed text-sm">{String(story.metadata.source_input)}</p>
-                    </div>
-                  </section>
-                )}
 
                 {/* Edit / Delete actions */}
                 <div className="flex flex-row items-center gap-2 sm:gap-3 sm:justify-end pt-2">
@@ -557,6 +555,28 @@ export default function StoryDetailPage({
             )}
           </Stack>
         </Card>
+
+        {/* Original Input toggle (collapsed by default, below the card) */}
+        {!isEditing && story.metadata?.source_input && (
+          <div className="rounded-2xl bg-neutral-900/50 border border-neutral-800">
+            <button
+              type="button"
+              onClick={() => setShowSourceInput(!showSourceInput)}
+              className="w-full flex items-center justify-between px-5 py-3 hover:bg-neutral-800/50 transition-colors rounded-2xl"
+            >
+              <span className="text-sm text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">Your Original Input</span>
+              {showSourceInput
+                ? <ChevronUp className="w-4 h-4 text-neutral-500" />
+                : <ChevronDown className="w-4 h-4 text-neutral-500" />
+              }
+            </button>
+            {showSourceInput && (
+              <div className="px-5 pb-4">
+                <p className="text-neutral-400 whitespace-pre-wrap leading-relaxed text-sm">{String(story.metadata.source_input)}</p>
+              </div>
+            )}
+          </div>
+        )}
 
       </Stack>
     </Container>

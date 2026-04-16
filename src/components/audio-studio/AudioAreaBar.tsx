@@ -4,8 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import {
   Headphones, Wand2, Compass, ListMusic, Library,
-  Target, BookOpen, Music2, ChevronDown, Check,
-  Image, Lightbulb, Clock,
+  Target, BookOpen, Music2, ChevronDown, Check, Search,
+  Image, Lightbulb, Clock, FileText, AudioLines, Mic, Music,
 } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { AreaBar } from '@/components/area-studio'
@@ -13,12 +13,18 @@ import { useAudioStudio } from './AudioStudioContext'
 
 const TABS = [
   { label: 'Listen', path: '/audio', icon: Headphones },
-  { label: 'Create', path: '/audio/create', icon: Wand2, matchPaths: ['/audio/generate', '/audio/mix', '/audio/record', '/audio/queue'] },
+  { label: 'Create', path: '/audio/create', icon: Wand2 },
   { label: 'Explore', path: '/audio/explore', icon: Compass },
 ]
 
-const CREATE_ROUTES = ['/audio/create', '/audio/generate', '/audio/mix', '/audio/record']
-const QUEUE_ROUTES = ['/audio/queue']
+const CREATE_AREA_ROUTES = ['/audio/create', '/audio/generate', '/audio/mix', '/audio/record', '/audio/queue']
+
+const SECONDARY_TABS = [
+  { label: 'Generate', path: '/audio/generate', icon: AudioLines },
+  { label: 'Record', path: '/audio/record', icon: Mic },
+  { label: 'Mix', path: '/audio/mix', icon: Music },
+  { label: 'Queue', path: '/audio/queue', icon: Clock },
+]
 
 const CONTENT_TYPES = [
   { value: 'life-vision', label: 'Life Vision', icon: Target },
@@ -207,41 +213,36 @@ function ListenFilterBar() {
   )
 }
 
-function CreateQueueToggle() {
+function CreateSecondaryNav() {
   const pathname = usePathname()
   const { activeBatchCount } = useAudioStudio()
-  const isQueue = QUEUE_ROUTES.some(r => pathname.startsWith(r))
-  const isCreate = !isQueue
 
   return (
     <div className="flex items-center justify-center gap-1 p-1 rounded-xl bg-neutral-900/60 mx-auto">
-      <Link
-        href="/audio/create"
-        className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium rounded-lg transition-all ${
-          isCreate
-            ? 'bg-primary-500/20 text-primary-500'
-            : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
-        }`}
-      >
-        <Wand2 className="w-3.5 h-3.5" />
-        Create
-      </Link>
-      <Link
-        href="/audio/queue"
-        className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium rounded-lg transition-all ${
-          isQueue
-            ? 'bg-primary-500/20 text-primary-500'
-            : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
-        }`}
-      >
-        <ListMusic className="w-3.5 h-3.5" />
-        Queue
-        {activeBatchCount > 0 && (
-          <span className="w-4 h-4 flex items-center justify-center rounded-full bg-[#39FF14] text-black text-[9px] font-bold">
-            {activeBatchCount}
-          </span>
-        )}
-      </Link>
+      {SECONDARY_TABS.map(tab => {
+        const isActive = pathname === tab.path || pathname.startsWith(tab.path + '/')
+        const TabIcon = tab.icon
+        const isQueue = tab.path === '/audio/queue'
+        return (
+          <Link
+            key={tab.path}
+            href={tab.path}
+            className={`flex items-center gap-1.5 px-3 md:px-4 py-1.5 text-xs font-medium rounded-lg transition-all ${
+              isActive
+                ? 'bg-primary-500/20 text-primary-500'
+                : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
+            }`}
+          >
+            <TabIcon className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{tab.label}</span>
+            {isQueue && activeBatchCount > 0 && (
+              <span className="w-4 h-4 flex items-center justify-center rounded-full bg-[#39FF14] text-black text-[9px] font-bold">
+                {activeBatchCount}
+              </span>
+            )}
+          </Link>
+        )
+      })}
     </div>
   )
 }
@@ -250,21 +251,23 @@ export function AudioAreaBar() {
   const pathname = usePathname()
 
   const isListen = pathname === '/audio' || pathname === '/audio/'
-  const isCreateArea = [...CREATE_ROUTES, ...QUEUE_ROUTES].some(r => pathname.startsWith(r))
+  const isCreateArea = CREATE_AREA_ROUTES.some(r => pathname === r || pathname.startsWith(r + '/'))
 
   let contextBar: React.ReactNode = undefined
   if (isListen) {
     contextBar = <ListenFilterBar />
   } else if (isCreateArea) {
-    contextBar = <CreateQueueToggle />
+    contextBar = <CreateSecondaryNav />
   }
+
+  const isOnSecondaryPage = SECONDARY_TABS.some(t => pathname === t.path || pathname.startsWith(t.path + '/'))
 
   return (
     <AreaBar
       area={{ name: 'Audio Studio', icon: Headphones }}
       tabs={TABS}
       contextBar={contextBar}
-      keepTabActive
+      keepTabActive={!isOnSecondaryPage}
       variant="default"
     />
   )

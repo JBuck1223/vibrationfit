@@ -379,12 +379,12 @@ function UsersAdminContent() {
           
           <div className="space-y-4">
             {adminUsers.map((user) => (
-              <div key={user.id} className="p-4 md:p-6 bg-primary-500/10 rounded-xl border border-primary-500/30 space-y-4 md:space-y-6">
+              <div key={user.id} className="p-4 md:p-6 bg-gradient-to-r from-neutral-800 to-neutral-800/80 rounded-xl border border-neutral-600 space-y-4 md:space-y-6">
                 {/* Header Row */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:justify-between">
                   <div className="flex items-center gap-3 md:gap-4 w-full sm:w-auto">
                     {(user.profile_photo_url || user.profile_picture_url) ? (
-                      <div className="w-12 h-12 md:w-16 md:h-16 rounded-full overflow-hidden flex-shrink-0 shadow-lg border-2 border-primary-500/30">
+                      <div className="w-12 h-12 md:w-16 md:h-16 rounded-full overflow-hidden flex-shrink-0 shadow-lg border-2 border-neutral-500/30">
                         <Image
                           src={user.profile_photo_url || user.profile_picture_url || ''}
                           alt={`${user.email} profile`}
@@ -394,8 +394,8 @@ function UsersAdminContent() {
                         />
                       </div>
                     ) : (
-                      <div className="w-12 h-12 md:w-16 md:h-16 bg-primary-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
-                        <Shield className="w-6 h-6 md:w-8 md:h-8 text-black" />
+                      <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-neutral-600 to-neutral-700 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
+                        <Shield className="w-6 h-6 md:w-8 md:h-8 text-neutral-300" />
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
@@ -564,7 +564,7 @@ function UsersAdminContent() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="whitespace-nowrap text-primary-400 border-primary-500/50 hover:bg-primary-500/10"
+                      className="whitespace-nowrap"
                       onClick={() => router.push(`/admin/users/${user.id}`)}
                     >
                       <FileText className="w-4 h-4 mr-1" />
@@ -573,7 +573,7 @@ function UsersAdminContent() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="whitespace-nowrap text-secondary-400 border-secondary-500/50 hover:bg-secondary-500/10"
+                      className="whitespace-nowrap"
                       onClick={() => viewAsUser(user.id)}
                     >
                       <Eye className="w-4 h-4 mr-1" />
@@ -583,14 +583,14 @@ function UsersAdminContent() {
                       variant="outline"
                       size="sm"
                       onClick={() => toggleAdminStatus(user.id, user.is_admin)}
-                      className="text-red-400 border-red-400/50 hover:bg-red-400/10"
+                      className="whitespace-nowrap"
                     >
                       Remove Admin
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-red-400 border-red-500/50 hover:bg-red-500/10"
+                      className="whitespace-nowrap !border-[#FF0040] !text-[#FF0040] hover:!bg-[rgba(255,0,64,0.12)] hover:!text-[#FF0040]"
                       disabled={deletingUserId === user.id}
                       onClick={() => setShowDeleteConfirm(user.id)}
                     >
@@ -828,7 +828,7 @@ function UsersAdminContent() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="whitespace-nowrap text-primary-400 border-primary-500/50 hover:bg-primary-500/10"
+                      className="whitespace-nowrap"
                       onClick={() => router.push(`/admin/users/${user.id}`)}
                     >
                       <FileText className="w-4 h-4 mr-1" />
@@ -947,7 +947,7 @@ function UsersAdminContent() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="whitespace-nowrap text-secondary-400 border-secondary-500/50 hover:bg-secondary-500/10"
+                      className="whitespace-nowrap"
                       onClick={() => viewAsUser(user.id)}
                     >
                       <Eye className="w-4 h-4 mr-1" />
@@ -964,7 +964,7 @@ function UsersAdminContent() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-red-400 border-red-500/50 hover:bg-red-500/10 whitespace-nowrap"
+                      className="whitespace-nowrap !border-[#FF0040] !text-[#FF0040] hover:!bg-[rgba(255,0,64,0.12)] hover:!text-[#FF0040]"
                       disabled={deletingUserId === user.id}
                       onClick={() => setShowDeleteConfirm(user.id)}
                     >

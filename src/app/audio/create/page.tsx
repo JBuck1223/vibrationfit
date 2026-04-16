@@ -2,8 +2,8 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { Container, Stack, Card, Button } from '@/lib/design-system/components'
-import { Headphones, BookOpen, ArrowRight, Mic, Wand2, Sliders } from 'lucide-react'
+import { Container, Stack, Card } from '@/lib/design-system/components'
+import { AudioLines, ArrowRight, Mic, Sliders, Clock } from 'lucide-react'
 
 interface CreateTile {
   title: string
@@ -17,21 +17,21 @@ interface CreateTile {
 
 const CREATE_TILES: CreateTile[] = [
   {
-    title: 'Generate Vision Audio',
-    description: 'Generate voice narration of your life vision, add background music and binaural beats.',
-    icon: Headphones,
+    title: 'Generate Voice Audio',
+    description: 'Generate voice narration from your Life Vision or Stories with professional voices.',
+    icon: AudioLines,
     iconColor: 'text-[#39FF14]',
     iconBg: 'bg-[#39FF14]/15',
     href: '/audio/generate',
     primary: true,
   },
   {
-    title: 'Create Story Audio',
-    description: 'Turn a vision board item, journal entry, or life vision into an immersive audio story.',
-    icon: BookOpen,
-    iconColor: 'text-purple-400',
-    iconBg: 'bg-purple-500/15',
-    href: '/story/new',
+    title: 'Record in Your Voice',
+    description: 'Read your Life Vision or Story aloud and create a personal voice recording.',
+    icon: Mic,
+    iconColor: 'text-cyan-400',
+    iconBg: 'bg-cyan-500/15',
+    href: '/audio/record',
   },
   {
     title: 'Mix Audio',
@@ -42,12 +42,12 @@ const CREATE_TILES: CreateTile[] = [
     href: '/audio/mix',
   },
   {
-    title: 'Record in Your Voice',
-    description: 'Read your life vision aloud and create a personal recording for each section.',
-    icon: Mic,
-    iconColor: 'text-cyan-400',
-    iconBg: 'bg-cyan-500/15',
-    href: '/audio/record',
+    title: 'Generation Queue',
+    description: 'Track the progress of your audio generation and mixing jobs.',
+    icon: Clock,
+    iconColor: 'text-purple-400',
+    iconBg: 'bg-purple-500/15',
+    href: '/audio/queue',
   },
 ]
 
