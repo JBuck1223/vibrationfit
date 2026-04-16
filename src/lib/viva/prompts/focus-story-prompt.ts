@@ -746,13 +746,17 @@ Write in flowing paragraphs suitable for audio narration.`
 /**
  * Builds the user prompt for generating a story from user-provided content.
  * Designed to be used with FOCUS_STORY_SYSTEM_PROMPT as the system message.
+ * When categoryData is provided, VIVA weaves the user's life vision context into the narrative.
  */
 export function buildCustomStoryPrompt(
   content: string,
   title?: string,
-  perspective: 'singular' | 'plural' = 'singular'
+  perspective: 'singular' | 'plural' = 'singular',
+  categoryData?: Record<string, CategoryContent>
 ): string {
   const pronoun = perspective === 'plural' ? 'we/us/our' : 'I/me/my'
+
+  const visionSection = categoryData ? buildVisionContextSection(categoryData) : ''
 
   return `PERSPECTIVE: ${pronoun}
 
@@ -763,7 +767,7 @@ SOURCE: USER-PROVIDED CONTENT
 ${title ? `Title: ${title}\n` : ''}
 Content (PRIMARY — preserve their words, names, and details):
 ${content}
-
+${visionSection}
 ═══════════════════════════════════════════════════════════════
 TASK
 ═══════════════════════════════════════════════════════════════
@@ -771,7 +775,7 @@ TASK
 Transform this content into an immersive first-person narrative.
 Take what they wrote and EXPAND it into a vivid, sensory-rich day-in-the-life story
 where everything described is happening NOW in its ideal form.
-
+${visionSection ? '\nWeave the Life Vision context naturally into the narrative — let the vision language enrich the story without overriding the user\'s original content.\n' : ''}
 REQUIREMENTS:
 1. Use their content as primary source — their words, names, and details are sacred
 2. Write in first person, present tense — embodied, certain, alive
@@ -789,4 +793,133 @@ LENGTH: Scale with input richness.
 OUTPUT:
 Return ONLY the narrative text. No titles, headers, formatting, or commentary.
 Write in flowing paragraphs suitable for audio narration.`
+}
+
+
+// ============================================================================
+// STORY FLIP PROMPT
+// ============================================================================
+
+/**
+ * Builds the user prompt for transforming a limiting/negative story into an
+ * empowering narrative. Bridges the Flip the Frequency philosophy (contrast -> clarity)
+ * with Focus Story narrative craft.
+ *
+ * When categoryData is provided, the flipped story is woven with the user's
+ * actual life vision language for deeper resonance.
+ */
+export function buildStoryFlipPrompt(
+  limitingStory: string,
+  title?: string,
+  perspective: 'singular' | 'plural' = 'singular',
+  categoryData?: Record<string, CategoryContent>
+): string {
+  const pronoun = perspective === 'plural' ? 'we/us/our' : 'I/me/my'
+
+  const visionSection = categoryData ? buildVisionContextSection(categoryData) : ''
+
+  return `PERSPECTIVE: ${pronoun}
+
+═══════════════════════════════════════════════════════════════
+SOURCE: STORY FLIP — CONTRAST TO CLARITY
+═══════════════════════════════════════════════════════════════
+
+${title ? `Title: ${title}\n` : ''}
+Limiting Story (ANALYZE but DO NOT reproduce):
+${limitingStory}
+${visionSection}
+═══════════════════════════════════════════════════════════════
+YOUR PROCESS (internal — do not narrate this to the reader)
+═══════════════════════════════════════════════════════════════
+
+1. IDENTIFY the core contrast: what pain, frustration, or limitation is being expressed?
+2. EXTRACT the desire underneath: what is this person actually wanting? What would they feel if this story dissolved?
+3. FLIP to the presence of what's wanted — not the absence of what's unwanted
+4. ${visionSection ? 'WEAVE in their Life Vision language — let their own vision words become the fabric of this new story' : 'EXPAND into a vivid, embodied narrative of living the opposite reality'}
+5. CRAFT into an immersive first-person present-tense story
+
+═══════════════════════════════════════════════════════════════
+CRITICAL RULES
+═══════════════════════════════════════════════════════════════
+
+ZERO TRACES OF THE OLD STORY:
+- The output must contain ZERO references to the limiting story
+- No "I used to...", "I no longer...", "unlike before...", "I overcame..."
+- No comparisons, no journey language, no transformation arc
+- The reader should have NO IDEA this story was born from a negative one
+- Write as if this empowered reality is the ONLY reality that has ever existed
+
+VOICE PRESERVATION:
+- Preserve the person's authentic voice and specifics from the limiting story
+- Real names, places, and details get carried into the new story (in their positive context)
+- If they mentioned "Jordan" or "my kids" or "Lake Nona" — those appear in the flipped version
+- Keep their diction and rhythm — casual stays casual, poetic stays poetic
+
+${visionSection ? `VISION INTEGRATION:
+- The Life Vision categories are the NORTH STAR for the flipped narrative
+- Use their actual vision language as primary phrasing source
+- Let the vision text inform the emotional tone and specific details
+- Every real name, place, and routine from their vision text appears in the story
+` : ''}
+═══════════════════════════════════════════════════════════════
+TASK
+═══════════════════════════════════════════════════════════════
+
+Create an immersive first-person narrative that embodies the OPPOSITE of the limiting story.
+This is not a rebuttal — it is a wholly new story where the desired reality is fully lived.
+${visionSection ? 'Ground the narrative in their Life Vision language for maximum resonance.\n' : ''}
+REQUIREMENTS:
+1. First person, present tense — embodied, certain, alive
+2. Zero traces of the original limiting story in the output
+3. Preserve real names, places, and specifics (in their empowered context)
+4. Add sensory grounding — what they see, hear, feel, taste, smell
+5. Create a flowing narrative suitable for audio listening
+6. End with a scene of deep satisfaction (not a declaration)
+7. Apply all vibrational integrity rules — zero forbidden patterns in output
+
+LENGTH: Scale with input richness.
+- Brief limiting story (1-2 sentences): 400-600 words
+- Moderate limiting story (paragraph): 600-900 words
+- Rich limiting story (multiple paragraphs): 900-1200 words
+
+OUTPUT:
+Return ONLY the narrative text. No titles, headers, formatting, or commentary.
+Write in flowing paragraphs suitable for audio narration.`
+}
+
+
+// ============================================================================
+// SHARED HELPER: Vision Context Section Builder
+// ============================================================================
+
+function buildVisionContextSection(
+  categoryData: Record<string, CategoryContent>
+): string {
+  const entries = Object.entries(categoryData).filter(
+    ([_, content]) => content.visionText.trim()
+  )
+  if (entries.length === 0) return ''
+
+  const sections = entries
+    .map(([category, content]) => {
+      const tuning = STORY_CATEGORY_TUNING[category] || ''
+      let section = `### ${category.charAt(0).toUpperCase() + category.slice(1)}\n`
+      section += `Vision Text: ${content.visionText}\n`
+      if (content.focusNotes?.trim()) {
+        section += `Focus Notes: ${content.focusNotes}\n`
+      }
+      if (tuning) {
+        section += `Emotional Tuning: ${tuning.split('\n')[0].replace('Emotional tone: ', '')}\n`
+      }
+      return section
+    })
+    .join('\n')
+
+  return `
+═══════════════════════════════════════════════════════════════
+LIFE VISION CONTEXT (weave naturally into the narrative)
+═══════════════════════════════════════════════════════════════
+
+${sections}
+`
 }

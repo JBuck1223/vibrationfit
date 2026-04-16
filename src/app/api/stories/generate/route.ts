@@ -20,6 +20,7 @@ import {
   buildVisionBoardStoryPrompt,
   buildJournalStoryPrompt,
   buildCustomStoryPrompt,
+  buildStoryFlipPrompt,
   type CategoryContent,
 } from '@/lib/viva/prompts/focus-story-prompt'
 import type { StoryEntityType } from '@/lib/stories/types'
@@ -35,6 +36,7 @@ interface GenerateBody {
   focusNotes?: string
   selectedCategories?: string[]
   categoryData?: Record<string, CategoryContent>
+  customMode?: 'tell' | 'flip'
 }
 
 async function buildPromptForEntity(
@@ -101,9 +103,16 @@ async function buildPromptForEntity(
 
     case 'custom': {
       if (!body.content) throw new Error('custom stories require content')
-      const prompt = buildCustomStoryPrompt(body.content, body.title, perspective)
       const customId = entityId || crypto.randomUUID()
-      return { prompt, entityId: customId, title: body.title || 'Custom Story' }
+
+      let prompt: string
+      if (body.customMode === 'flip') {
+        prompt = buildStoryFlipPrompt(body.content, body.title, perspective, body.categoryData)
+      } else {
+        prompt = buildCustomStoryPrompt(body.content, body.title, perspective, body.categoryData)
+      }
+
+      return { prompt, entityId: customId, title: body.title || (body.customMode === 'flip' ? 'Story Flip' : 'Custom Story') }
     }
 
     default:
@@ -192,6 +201,8 @@ export async function POST(request: NextRequest) {
           ...(body.selectedCategories ? { selected_categories: body.selectedCategories } : {}),
           ...(body.categoryData ? { category_data: body.categoryData } : {}),
           ...(body.focusNotes ? { focus_notes: body.focusNotes } : {}),
+          ...(body.customMode ? { custom_mode: body.customMode } : {}),
+          ...(body.customMode === 'flip' && body.content ? { source_story: body.content } : {}),
           prompt_version: 'universal-v1',
           model_used: response?.modelId || VISION_MODEL,
         }
