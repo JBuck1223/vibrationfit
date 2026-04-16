@@ -9,7 +9,7 @@ import {
   Headphones, Moon, Zap, Flame, Shield,
   Sparkles, Mic, Music, Trash2, BookOpen, Image,
   Volume2, Plus, Music2, ChevronDown, CheckCircle, Target, Lightbulb,
-  Clock, ChevronRight, FileText,
+  Clock, ChevronRight, Library,
 } from 'lucide-react'
 import { useAudioStudio, type AudioSetItem } from '@/components/audio-studio'
 import { useAreaStats } from '@/hooks/useAreaStats'
@@ -33,6 +33,7 @@ export default function AudioListenPage() {
     visionId, visionLoading,
     audioSets, audioSetsLoading, refreshAudioSets,
     listenContentType: contentType,
+    listenStoryFilter,
     storiesWithAudio: stories, storiesWithAudioLoading: storiesLoading,
     playTracks, player, pausePlayer, resumePlayer, currentTime: playerCurrentTime, duration: playerDuration,
   } = useAudioStudio()
@@ -84,10 +85,15 @@ export default function AudioListenPage() {
   const VOICE_NAMES: Record<string, string> = { alloy: 'Alloy', shimmer: 'Shimmer', ash: 'Ash', coral: 'Coral', echo: 'Echo', fable: 'Fable', onyx: 'Onyx', nova: 'Nova', sage: 'Sage' }
 
   useEffect(() => {
-    if (!storiesLoading && stories.length > 0 && !selectedStoryId) {
-      setSelectedStoryId(stories[0].id)
+    if (storiesLoading) return
+    const visible = listenStoryFilter === 'all'
+      ? stories
+      : stories.filter(s => s.entity_type === listenStoryFilter)
+    if (visible.length === 0) { setSelectedStoryId(null); return }
+    if (!selectedStoryId || !visible.some(s => s.id === selectedStoryId)) {
+      setSelectedStoryId(visible[0].id)
     }
-  }, [stories, storiesLoading])
+  }, [stories, storiesLoading, listenStoryFilter])
 
   useEffect(() => {
     if (selectedStoryId) loadStoryAudio(selectedStoryId)
@@ -119,13 +125,12 @@ export default function AudioListenPage() {
         const { data: audioSet } = await supabase
           .from('audio_sets').select('name, voice_id, variant')
           .eq('id', story.audio_set_id).maybeSingle()
-        const voiceName = audioSet?.voice_id ? (VOICE_NAMES[audioSet.voice_id] || audioSet.voice_id) : 'VIVA'
-        const setName = audioSet?.name || 'Generated Audio'
+        const storyTitle = story.title || 'Untitled Story'
         tracks.forEach((track, idx) => {
           options.push({
             id: `generated-${track.id}`,
-            label: tracks.length > 1 ? `${setName} (${idx + 1}/${tracks.length})` : setName,
-            sublabel: `${voiceName} narration`,
+            label: tracks.length > 1 ? `${storyTitle} (${idx + 1}/${tracks.length})` : storyTitle,
+            sublabel: '',
             url: track.audio_url,
             icon: Headphones,
             iconColor: 'bg-primary-500/20 text-primary-500',
@@ -241,7 +246,9 @@ export default function AudioListenPage() {
     return map[voiceId] || voiceId
   }
 
-  const filteredStories = stories
+  const filteredStories = listenStoryFilter === 'all'
+    ? stories
+    : stories.filter(s => s.entity_type === listenStoryFilter)
 
   const { stats: practiceStats } = useAreaStats('vision-audio')
   const totalSets = audioSets.length
@@ -467,7 +474,7 @@ export default function AudioListenPage() {
             ) : (
               <Stack gap="md">
                 {/* Story audio player */}
-                <Card variant="elevated" className="bg-[#0A0A0A]">
+                <div className="rounded-2xl bg-[#0A0A0A] border border-neutral-800 p-4 md:p-6 lg:p-8">
                   <div className="mb-6">
                     <h2 className="text-lg md:text-xl font-semibold text-white mb-4 text-center">Play My Stories</h2>
                     <div className="relative max-w-2xl mx-auto" ref={storyDropdownRef}>
@@ -577,111 +584,25 @@ export default function AudioListenPage() {
                             url: t.url,
                             thumbnail: '',
                           }))}
-                          setIcon={(() => {
-                            if (!selectedStoryAudio) return undefined
-                            const Icon = selectedStoryAudio.icon
-                            return <div className={`p-2 rounded-lg ${selectedStoryAudio.iconColor}`}><Icon className="w-5 h-5" /></div>
-                          })()}
                           setName={selectedStory?.title || 'Story Audio'}
-                          voiceName={selectedStoryAudio?.sublabel || ''}
                           trackCount={storyAudioTracks.length}
                           createdDate={selectedStory ? new Date(selectedStory.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+                          hideCurrentTrack
                         />
+                        {selectedStory && (
+                          <div className="flex justify-center mt-6">
+                            <Button variant="ghost" size="sm" asChild>
+                              <Link href={`/story/${selectedStory.id}`}>
+                                <Library className="w-4 h-4 mr-2" />
+                                View Story
+                                <ChevronRight className="w-4 h-4 ml-1" />
+                              </Link>
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     )
                   )}
-                </Card>
-
-                {/* Story list */}
-                <div className="rounded-2xl border border-white/[0.06] bg-[#111] overflow-hidden divide-y divide-white/[0.06]">
-                  {filteredStories.map(story => {
-                    const meta = ENTITY_META[story.entity_type] || ENTITY_META.custom!
-                    const wordCount = story.word_count || 0
-                    const readTime = Math.max(1, Math.ceil(wordCount / 200))
-                    const hasAudio = !!story.audio_set_id
-                    const hasRecording = !!story.user_audio_url
-                    const dateObj = new Date(story.created_at)
-                    const dayNum = dateObj.getDate()
-                    const monthStr = dateObj.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()
-                    const weekday = dateObj.toLocaleDateString('en-US', { weekday: 'short' })
-                    const storyCategories = (story.metadata?.selected_categories || []) as string[]
-                    const isActive = story.id === selectedStoryId
-
-                    return (
-                      <button
-                        key={story.id}
-                        type="button"
-                        onClick={() => setSelectedStoryId(story.id)}
-                        className={`block w-full text-left cursor-pointer transition-colors group ${isActive ? 'bg-[#39FF14]/[0.04]' : 'hover:bg-white/[0.03]'}`}
-                      >
-                        <div className="px-4 py-3.5 md:px-5 md:py-4">
-                          <div className="flex items-center gap-4">
-                            <div className="flex-shrink-0 w-11 text-center">
-                              <p className="text-[10px] uppercase tracking-wider text-neutral-500 leading-none">{weekday}</p>
-                              <p className="text-xl font-semibold text-white leading-tight">{dayNum}</p>
-                              <p className="text-[10px] uppercase tracking-wider text-neutral-500 leading-none">{monthStr}</p>
-                            </div>
-
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap mb-0.5 min-w-0">
-                                <p className={`text-sm font-medium truncate ${isActive ? 'text-[#39FF14]' : 'text-white'}`}>
-                                  {story.title || 'Untitled Story'}
-                                </p>
-                                <span className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border font-semibold flex-shrink-0 ${meta.badgeColor}`}>
-                                  <meta.icon className="w-3 h-3" />
-                                  {meta.label}
-                                </span>
-                                {storyCategories.map(key => {
-                                  const cat = VISION_CATEGORIES.find(c => c.key === key)
-                                  if (!cat) return null
-                                  return (
-                                    <span key={key} className="inline-flex items-center text-[11px] px-2 py-0.5 rounded-full border border-neutral-600/50 text-neutral-300 bg-neutral-800/50 font-medium flex-shrink-0">
-                                      {cat.label}
-                                    </span>
-                                  )
-                                })}
-                              </div>
-                              {story.content && (
-                                <p className="hidden md:line-clamp-1 text-[13px] text-neutral-300 leading-relaxed mb-1.5">
-                                  {story.content}
-                                </p>
-                              )}
-                              <div className="flex items-center gap-2.5">
-                                {wordCount > 0 && (
-                                  <span className="text-[11px] text-neutral-500 flex items-center gap-1">
-                                    <FileText className="w-3 h-3" />
-                                    {wordCount.toLocaleString()} words
-                                  </span>
-                                )}
-                                <span className="text-[11px] text-neutral-500 flex items-center gap-1">
-                                  <Clock className="w-3 h-3" />
-                                  {readTime} min read
-                                </span>
-                                {hasAudio && (
-                                  <span className="text-[11px] text-purple-400 flex items-center gap-1">
-                                    <Volume2 className="w-3 h-3" />
-                                    Audio
-                                  </span>
-                                )}
-                                {hasRecording && (
-                                  <span className="text-[11px] text-teal-400 flex items-center gap-1">
-                                    <Mic className="w-3 h-3" />
-                                    Recording
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-
-                            {isActive ? (
-                              <Volume2 className="w-4 h-4 text-[#39FF14] flex-shrink-0" />
-                            ) : (
-                              <ChevronRight className="w-4 h-4 text-neutral-600 flex-shrink-0 group-hover:text-neutral-400 transition-colors" />
-                            )}
-                          </div>
-                        </div>
-                      </button>
-                    )
-                  })}
                 </div>
               </Stack>
             )}

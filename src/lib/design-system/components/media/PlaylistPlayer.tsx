@@ -20,6 +20,7 @@ interface PlaylistPlayerProps {
   mixRatio?: string
   onRename?: (newName: string) => void
   onDurationCalculated?: (duration: number) => void
+  hideCurrentTrack?: boolean
 }
 
 export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({ 
@@ -34,7 +35,8 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
   backgroundTrack,
   mixRatio,
   onRename,
-  onDurationCalculated
+  onDurationCalculated,
+  hideCurrentTrack = false,
 }) => {
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -440,7 +442,7 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
         </div>
       )}
 
-      {currentTrack && (
+      {currentTrack && !hideCurrentTrack && (
         <div className="mt-6 mb-3 text-center">
           <h4 className="text-white font-semibold text-lg">{currentTrack.title}</h4>
           {currentTrack.artist && <p className="text-neutral-400 text-sm">{currentTrack.artist}</p>}
