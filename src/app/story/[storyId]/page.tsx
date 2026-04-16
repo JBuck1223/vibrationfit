@@ -526,7 +526,7 @@ export default function StoryDetailPage({
                       Your Original Input
                     </Text>
                     <div className="rounded-xl bg-neutral-900/50 border border-neutral-800 p-4">
-                      <p className="text-neutral-400 whitespace-pre-wrap leading-relaxed text-sm">{story.metadata.source_input}</p>
+                      <p className="text-neutral-400 whitespace-pre-wrap leading-relaxed text-sm">{String(story.metadata.source_input)}</p>
                     </div>
                   </section>
                 )}
