@@ -7,33 +7,37 @@ import { PlaylistPlayer, type AudioTrack as BaseAudioTrack } from '@/lib/design-
 import { createClient } from '@/lib/supabase/client'
 import {
   Headphones, Moon, Zap, Flame, Shield,
-  Sparkles, Mic, Music, Trash2, BookOpen, Image, PenLine, FileText,
-  Volume2, Plus, Music2, ChevronDown, CheckCircle,
+  Sparkles, Mic, Music, Trash2, BookOpen, Image,
+  Volume2, Plus, Music2, ChevronDown, CheckCircle, Target, Lightbulb,
+  Clock, ChevronRight, FileText,
 } from 'lucide-react'
 import { useAudioStudio, type AudioSetItem } from '@/components/audio-studio'
 import { useAreaStats } from '@/hooks/useAreaStats'
-import type { Story, StoryEntityType } from '@/lib/stories/types'
+import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
 interface AudioTrack extends BaseAudioTrack {
   sectionKey: string
 }
 
-const ENTITY_META: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  life_vision: { label: 'Life Vision', color: 'text-purple-400 bg-purple-500/20', icon: Sparkles },
-  vision_board_item: { label: 'Vision Board', color: 'text-cyan-400 bg-cyan-500/20', icon: Image },
-  journal_entry: { label: 'Journal', color: 'text-teal-400 bg-teal-500/20', icon: PenLine },
-  custom: { label: 'Custom', color: 'text-yellow-400 bg-yellow-500/20', icon: FileText },
-  goal: { label: 'Goal', color: 'text-green-400 bg-green-500/20', icon: BookOpen },
+const ENTITY_META: Record<string, { label: string; badgeColor: string; icon: React.ElementType }> = {
+  life_vision: { label: 'Life Vision', badgeColor: 'text-purple-400 bg-purple-500/20 border-purple-500/30', icon: Target },
+  vision_board_item: { label: 'Vision Board', badgeColor: 'text-cyan-400 bg-cyan-500/20 border-cyan-500/30', icon: Image },
+  journal_entry: { label: 'Journal', badgeColor: 'text-teal-400 bg-teal-500/20 border-teal-500/30', icon: BookOpen },
+  custom: { label: 'Custom', badgeColor: 'text-yellow-400 bg-yellow-500/20 border-yellow-500/30', icon: Lightbulb },
+  goal: { label: 'Goal', badgeColor: 'text-green-400 bg-green-500/20 border-green-500/30', icon: BookOpen },
+  schedule_block: { label: 'Schedule', badgeColor: 'text-orange-400 bg-orange-500/20 border-orange-500/30', icon: Clock },
 }
-
-type StoryFilter = 'all' | StoryEntityType
 
 export default function AudioListenPage() {
   const {
-    visionId, vision, visionLoading, audioSets, audioSetsLoading, refreshAudioSets,
-    activePill,
+    visionId, visionLoading,
+    audioSets, audioSetsLoading, refreshAudioSets,
+    listenContentType: contentType,
+    storiesWithAudio: stories, storiesWithAudioLoading: storiesLoading,
+    playTracks, player, pausePlayer, resumePlayer, currentTime: playerCurrentTime, duration: playerDuration,
   } = useAudioStudio()
 
+  // Vision state
   const [selectedAudioSetId, setSelectedAudioSetId] = useState<string | null>(null)
   const [audioTracks, setAudioTracks] = useState<AudioTrack[]>([])
   const [loadingTracks, setLoadingTracks] = useState(false)
@@ -43,9 +47,15 @@ export default function AudioListenPage() {
   const [setToDelete, setSetToDelete] = useState<{ id: string; name: string } | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
 
-  const [stories, setStories] = useState<Story[]>([])
-  const [storiesLoading, setStoriesLoading] = useState(true)
-  const [storyFilter, setStoryFilter] = useState<StoryFilter>('all')
+  // Story audio state
+  const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null)
+  const [storyAudioTracks, setStoryAudioTracks] = useState<{ id: string; label: string; sublabel: string; url: string; icon: React.ElementType; iconColor: string }[]>([])
+  const [storyAudioLoading, setStoryAudioLoading] = useState(false)
+  const [selectedStoryAudioId, setSelectedStoryAudioId] = useState<string | null>(null)
+  const [storyDropdownOpen, setStoryDropdownOpen] = useState(false)
+  const storyDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Stats
   const [totalPlays, setTotalPlays] = useState(0)
   const [statsExpanded, setStatsExpanded] = useState(false)
   const [freezeOpen, setFreezeOpen] = useState(false)
@@ -54,48 +64,92 @@ export default function AudioListenPage() {
   useEffect(() => {
     if (!freezeOpen) return
     function handleOutside(e: MouseEvent | TouchEvent) {
-      if (freezeRef.current && !freezeRef.current.contains(e.target as Node)) {
-        setFreezeOpen(false)
-      }
+      if (freezeRef.current && !freezeRef.current.contains(e.target as Node)) setFreezeOpen(false)
     }
     document.addEventListener('mousedown', handleOutside)
     document.addEventListener('touchstart', handleOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleOutside)
-      document.removeEventListener('touchstart', handleOutside)
-    }
+    return () => { document.removeEventListener('mousedown', handleOutside); document.removeEventListener('touchstart', handleOutside) }
   }, [freezeOpen])
 
-  useEffect(() => {
-    loadStories()
-    loadTotalPlays()
-  }, [])
+  useEffect(() => { loadTotalPlays() }, [])
 
   useEffect(() => {
     if (audioSetsLoading || audioSets.length === 0) return
     const saved = visionId ? localStorage.getItem(`audioSetSelection_${visionId}`) : null
     let target = saved ? audioSets.find(s => s.id === saved && s.isReady) : null
     if (!target) target = audioSets.find(s => s.isReady) || null
-    if (target) {
-      setSelectedAudioSetId(target.id)
-      loadAudioTracks(target.id)
-    }
+    if (target) { setSelectedAudioSetId(target.id); loadAudioTracks(target.id) }
   }, [audioSets, audioSetsLoading, visionId])
 
-  async function loadStories() {
+  const VOICE_NAMES: Record<string, string> = { alloy: 'Alloy', shimmer: 'Shimmer', ash: 'Ash', coral: 'Coral', echo: 'Echo', fable: 'Fable', onyx: 'Onyx', nova: 'Nova', sage: 'Sage' }
+
+  useEffect(() => {
+    if (!storiesLoading && stories.length > 0 && !selectedStoryId) {
+      setSelectedStoryId(stories[0].id)
+    }
+  }, [stories, storiesLoading])
+
+  useEffect(() => {
+    if (selectedStoryId) loadStoryAudio(selectedStoryId)
+  }, [selectedStoryId])
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (storyDropdownRef.current && !storyDropdownRef.current.contains(e.target as Node)) setStoryDropdownOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  async function loadStoryAudio(storyId: string) {
+    setStoryAudioLoading(true)
+    setStoryAudioTracks([])
+    setSelectedStoryAudioId(null)
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setStoriesLoading(false); return }
-    const { data } = await supabase
-      .from('stories')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('status', 'completed')
-      .or('audio_set_id.not.is.null,user_audio_url.not.is.null')
-      .order('updated_at', { ascending: false })
-    if (data) setStories(data)
-    setStoriesLoading(false)
+    const story = stories.find(s => s.id === storyId)
+    if (!story) { setStoryAudioLoading(false); return }
+    const options: typeof storyAudioTracks = []
+
+    if (story.audio_set_id) {
+      const { data: tracks } = await supabase
+        .from('audio_tracks').select('id, audio_url, voice_id, section_key')
+        .eq('audio_set_id', story.audio_set_id).eq('status', 'completed')
+        .order('created_at', { ascending: false })
+      if (tracks && tracks.length > 0) {
+        const { data: audioSet } = await supabase
+          .from('audio_sets').select('name, voice_id, variant')
+          .eq('id', story.audio_set_id).maybeSingle()
+        const voiceName = audioSet?.voice_id ? (VOICE_NAMES[audioSet.voice_id] || audioSet.voice_id) : 'VIVA'
+        const setName = audioSet?.name || 'Generated Audio'
+        tracks.forEach((track, idx) => {
+          options.push({
+            id: `generated-${track.id}`,
+            label: tracks.length > 1 ? `${setName} (${idx + 1}/${tracks.length})` : setName,
+            sublabel: `${voiceName} narration`,
+            url: track.audio_url,
+            icon: Headphones,
+            iconColor: 'bg-primary-500/20 text-primary-500',
+          })
+        })
+      }
+    }
+    if (story.user_audio_url) {
+      options.push({
+        id: 'user-recording',
+        label: 'Personal Recording',
+        sublabel: 'Your voice',
+        url: story.user_audio_url,
+        icon: Mic,
+        iconColor: 'bg-teal-500/20 text-teal-400',
+      })
+    }
+    setStoryAudioTracks(options)
+    if (options.length > 0) setSelectedStoryAudioId(options[0].id)
+    setStoryAudioLoading(false)
   }
+
+  const selectedStory = stories.find(s => s.id === selectedStoryId)
+  const selectedStoryAudio = storyAudioTracks.find(t => t.id === selectedStoryAudioId)
 
   async function loadTotalPlays() {
     const supabase = createClient()
@@ -110,26 +164,16 @@ export default function AudioListenPage() {
     const supabase = createClient()
     const { data: audioSet } = await supabase.from('audio_sets').select('variant').eq('id', audioSetId).single()
     const { data: tracks } = await supabase
-      .from('audio_tracks')
-      .select('*')
-      .eq('audio_set_id', audioSetId)
-      .eq('status', 'completed')
-      .not('audio_url', 'is', null)
-      .order('section_key')
+      .from('audio_tracks').select('*').eq('audio_set_id', audioSetId).eq('status', 'completed')
+      .not('audio_url', 'is', null).order('section_key')
 
     const sectionMap = new Map<string, string>([
-      ['forward', 'Forward'], ['fun', 'Fun'], ['health', 'Health'],
-      ['travel', 'Travel'], ['love', 'Love'], ['family', 'Family'],
-      ['social', 'Social'], ['home', 'Home'], ['work', 'Work'],
-      ['money', 'Money'], ['stuff', 'Stuff'], ['giving', 'Giving'],
-      ['spirituality', 'Spirituality'], ['conclusion', 'Conclusion'],
-      ['full', 'Full Life Vision'],
+      ['forward', 'Forward'], ['fun', 'Fun'], ['health', 'Health'], ['travel', 'Travel'],
+      ['love', 'Love'], ['family', 'Family'], ['social', 'Social'], ['home', 'Home'],
+      ['work', 'Work'], ['money', 'Money'], ['stuff', 'Stuff'], ['giving', 'Giving'],
+      ['spirituality', 'Spirituality'], ['conclusion', 'Conclusion'], ['full', 'Full Life Vision'],
     ])
-    const canonicalOrder = [
-      'forward', 'fun', 'health', 'travel', 'love', 'family',
-      'social', 'home', 'work', 'money', 'stuff', 'giving',
-      'spirituality', 'conclusion',
-    ]
+    const canonicalOrder = ['forward', 'fun', 'health', 'travel', 'love', 'family', 'social', 'home', 'work', 'money', 'stuff', 'giving', 'spirituality', 'conclusion']
     const formatted: AudioTrack[] = (tracks || [])
       .map(t => {
         const useDirectAudio = audioSet?.variant === 'standard' || audioSet?.variant === 'personal'
@@ -159,10 +203,7 @@ export default function AudioListenPage() {
     setDeleting(setToDelete.id); setShowDeleteDialog(false)
     const supabase = createClient()
     const { error } = await supabase.from('audio_sets').delete().eq('id', setToDelete.id)
-    if (!error) {
-      await refreshAudioSets()
-      if (selectedAudioSetId === setToDelete.id) { setSelectedAudioSetId(null); setAudioTracks([]) }
-    }
+    if (!error) { await refreshAudioSets(); if (selectedAudioSetId === setToDelete.id) { setSelectedAudioSetId(null); setAudioTracks([]) } }
     setDeleting(null); setSetToDelete(null)
   }
 
@@ -200,96 +241,89 @@ export default function AudioListenPage() {
     return map[voiceId] || voiceId
   }
 
-  const filteredStories = storyFilter === 'all' ? stories : stories.filter(s => s.entity_type === storyFilter)
+  const filteredStories = stories
 
   const { stats: practiceStats } = useAreaStats('vision-audio')
   const totalSets = audioSets.length
   const totalTracks = audioSets.reduce((sum, s) => sum + s.track_count, 0)
+  const selectedSet = audioSets.find(s => s.id === selectedAudioSetId)
 
   if (visionLoading) {
     return <Container size="xl" className="py-8"><div className="flex min-h-[40vh] items-center justify-center"><Spinner size="lg" /></div></Container>
   }
 
-  const selectedSet = audioSets.find(s => s.id === selectedAudioSetId)
-
   return (
     <Container size="xl" className="py-6">
       <Stack gap="lg">
 
-        {/* ── Vision Audio Stats ── */}
-        <div className="relative rounded-2xl border border-white/[0.06] bg-gradient-to-br from-[#39FF14]/[0.04] via-[#111] to-[#111]">
-          <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(ellipse_at_top_left,_rgba(57,255,20,0.08)_0%,_transparent_50%)] pointer-events-none" />
-          <div className="relative p-5 md:p-6">
-            <div className="flex items-center justify-center gap-2.5 mb-4">
-              <Headphones className="w-4 h-4 text-[#39FF14]" />
-              <h3 className="text-neutral-300 font-medium text-sm tracking-wide uppercase">Vision Audio</h3>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-              <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-3">
-                <p className="text-neutral-500 text-[11px] leading-tight mb-1.5">Current Streak</p>
-                <div className="flex items-center gap-1.5">
-                  <p className="text-white font-semibold text-lg leading-none flex items-center gap-1.5">
-                    {(practiceStats?.currentStreak ?? 0) >= 1 && <Flame className="w-4 h-4 text-orange-400" />}
-                    {practiceStats?.currentStreak ?? 0}
-                    <span className="font-normal text-neutral-500">{(practiceStats?.currentStreak ?? 0) === 1 ? 'day' : 'days'}</span>
-                  </p>
-                  {(practiceStats?.streakFreezeAvailable || practiceStats?.streakFreezeUsedThisWeek) && (
-                    <div className="relative ml-auto flex items-center" ref={freezeRef}>
-                      <button type="button" className="flex items-center" onClick={() => setFreezeOpen(prev => !prev)}>
-                        <Shield className={`w-3.5 h-3.5 cursor-help ${practiceStats?.streakFreezeUsedThisWeek ? 'text-blue-500/40' : 'text-blue-400'}`} />
-                      </button>
-                      <div className={`absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-56 rounded-xl bg-neutral-900 border border-blue-500/20 p-3 shadow-xl transition-all duration-200 z-[100] ${freezeOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
-                        <p className="text-sm font-semibold text-blue-400 mb-1">
-                          Streak Freeze <span className="font-normal text-blue-400/70">({practiceStats?.streakFreezeUsedThisWeek ? 'Used this week' : 'Available'})</span>
-                        </p>
-                        <p className="text-xs text-neutral-400 leading-relaxed">
-                          {practiceStats?.streakFreezeUsedThisWeek
-                            ? 'Your streak was saved this week. You get 1 free grace day per week for each habit.'
-                            : 'You get 1 free grace day per week. If you miss a day, your streak stays alive so one off-day doesn\'t wipe out your progress.'}
-                        </p>
+        {/* ── Vision Audio Stats (shown for life-vision) ── */}
+        {contentType === 'life-vision' && (
+          <div className="relative rounded-2xl border border-white/[0.06] bg-gradient-to-br from-[#39FF14]/[0.04] via-[#111] to-[#111]">
+            <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(ellipse_at_top_left,_rgba(57,255,20,0.08)_0%,_transparent_50%)] pointer-events-none" />
+            <div className="relative p-5 md:p-6">
+              <div className="flex items-center justify-center gap-2.5 mb-4">
+                <Headphones className="w-4 h-4 text-[#39FF14]" />
+                <h3 className="text-neutral-300 font-medium text-sm tracking-wide uppercase">Vision Audio</h3>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+                <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-3">
+                  <p className="text-neutral-500 text-[11px] leading-tight mb-1.5">Current Streak</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-white font-semibold text-lg leading-none flex items-center gap-1.5">
+                      {(practiceStats?.currentStreak ?? 0) >= 1 && <Flame className="w-4 h-4 text-orange-400" />}
+                      {practiceStats?.currentStreak ?? 0}
+                      <span className="font-normal text-neutral-500">{(practiceStats?.currentStreak ?? 0) === 1 ? 'day' : 'days'}</span>
+                    </p>
+                    {(practiceStats?.streakFreezeAvailable || practiceStats?.streakFreezeUsedThisWeek) && (
+                      <div className="relative ml-auto flex items-center" ref={freezeRef}>
+                        <button type="button" className="flex items-center" onClick={() => setFreezeOpen(prev => !prev)}>
+                          <Shield className={`w-3.5 h-3.5 cursor-help ${practiceStats?.streakFreezeUsedThisWeek ? 'text-blue-500/40' : 'text-blue-400'}`} />
+                        </button>
+                        <div className={`absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-56 rounded-xl bg-neutral-900 border border-blue-500/20 p-3 shadow-xl transition-all duration-200 z-[100] ${freezeOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
+                          <p className="text-sm font-semibold text-blue-400 mb-1">
+                            Streak Freeze <span className="font-normal text-blue-400/70">({practiceStats?.streakFreezeUsedThisWeek ? 'Used this week' : 'Available'})</span>
+                          </p>
+                          <p className="text-xs text-neutral-400 leading-relaxed">
+                            {practiceStats?.streakFreezeUsedThisWeek
+                              ? 'Your streak was saved this week. You get 1 free grace day per week for each habit.'
+                              : 'You get 1 free grace day per week. If you miss a day, your streak stays alive so one off-day doesn\'t wipe out your progress.'}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
-              <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-3">
-                <p className="text-neutral-500 text-[11px] leading-tight mb-1.5">Reps this Week</p>
-                <p className="text-white font-semibold text-lg leading-none">{practiceStats?.countLast7 ?? 0}<span className="font-normal text-neutral-500">/7</span></p>
-              </div>
-
-              {[
-                {
-                  label: 'Reps this Month',
-                  value: <>{practiceStats?.countLast30 ?? 0}<span className="font-normal text-neutral-500">/30</span></>,
-                },
-                {
-                  label: 'Total Rep Days',
-                  value: (practiceStats?.countAllTime ?? 0).toLocaleString(),
-                },
-                { label: 'Sets Generated', value: totalSets.toLocaleString() },
-                { label: 'Tracks Generated', value: totalTracks.toLocaleString() },
-                { label: 'All-Time Plays', value: totalPlays.toLocaleString() },
-              ].map((stat) => (
-                <div key={stat.label} className={`rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-3 ${statsExpanded ? '' : 'hidden'} sm:block`}>
-                  <p className="text-neutral-500 text-[11px] leading-tight mb-1.5">{stat.label}</p>
-                  <p className="text-white font-semibold text-lg leading-none">{stat.value}</p>
+                <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-3">
+                  <p className="text-neutral-500 text-[11px] leading-tight mb-1.5">Reps this Week</p>
+                  <p className="text-white font-semibold text-lg leading-none">{practiceStats?.countLast7 ?? 0}<span className="font-normal text-neutral-500">/7</span></p>
                 </div>
-              ))}
+                {[
+                  { label: 'Reps this Month', value: <>{practiceStats?.countLast30 ?? 0}<span className="font-normal text-neutral-500">/30</span></> },
+                  { label: 'Total Rep Days', value: (practiceStats?.countAllTime ?? 0).toLocaleString() },
+                  { label: 'Sets Generated', value: totalSets.toLocaleString() },
+                  { label: 'Tracks Generated', value: totalTracks.toLocaleString() },
+                  { label: 'All-Time Plays', value: totalPlays.toLocaleString() },
+                ].map((stat) => (
+                  <div key={stat.label} className={`rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-3 ${statsExpanded ? '' : 'hidden'} sm:block`}>
+                    <p className="text-neutral-500 text-[11px] leading-tight mb-1.5">{stat.label}</p>
+                    <p className="text-white font-semibold text-lg leading-none">{stat.value}</p>
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setStatsExpanded(prev => !prev)}
+                className="flex items-center justify-center gap-1.5 w-full mt-3 py-1.5 text-xs text-neutral-400 hover:text-neutral-300 transition-colors sm:hidden"
+              >
+                {statsExpanded ? 'Show less' : 'View all stats'}
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${statsExpanded ? 'rotate-180' : ''}`} />
+              </button>
             </div>
-
-            <button
-              type="button"
-              onClick={() => setStatsExpanded(prev => !prev)}
-              className="flex items-center justify-center gap-1.5 w-full mt-3 py-1.5 text-xs text-neutral-400 hover:text-neutral-300 transition-colors sm:hidden"
-            >
-              {statsExpanded ? 'Show less' : 'View all stats'}
-              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${statsExpanded ? 'rotate-180' : ''}`} />
-            </button>
           </div>
-        </div>
+        )}
 
-        {/* ── Play My Main Vision ── */}
-        {activePill !== 'life-vision' ? null : audioSets.length > 0 ? (
+        {/* ── Life Vision Player ── */}
+        {contentType === 'life-vision' && (audioSets.length > 0 ? (
           <Card variant="elevated" className="bg-[#0A0A0A]">
             <div className="mb-6">
               <h2 className="text-lg md:text-xl font-semibold text-white mb-4 text-center">Play My Vision</h2>
@@ -411,115 +445,259 @@ export default function AudioListenPage() {
               <Link href="/audio/create"><Plus className="w-4 h-4 mr-2" />Create Vision Audio</Link>
             </Button>
           </Card>
-        ) : null}
+        ) : null)}
 
-        {/* ── Focus Stories ── */}
-        {activePill === 'focus-stories' && <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-purple-400" />
-              Focus Stories
-            </h2>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/story">View All</Link>
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
-            {([
-              { value: 'all' as StoryFilter, label: 'All' },
-              { value: 'life_vision' as StoryFilter, label: 'Life Vision' },
-              { value: 'vision_board_item' as StoryFilter, label: 'Vision Board' },
-              { value: 'journal_entry' as StoryFilter, label: 'Journal' },
-            ]).map(pill => (
-              <button
-                key={pill.value}
-                type="button"
-                onClick={() => setStoryFilter(pill.value)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-                  storyFilter === pill.value
-                    ? 'bg-white/10 text-white border border-white/20'
-                    : 'text-neutral-500 border border-transparent hover:text-neutral-300'
-                }`}
-              >
-                {pill.label}
-              </button>
-            ))}
-          </div>
-
-          {storiesLoading ? (
-            <div className="flex items-center justify-center py-8"><Spinner size="md" /></div>
-          ) : filteredStories.length === 0 ? (
-            <Card variant="glass" className="p-6 text-center">
-              <BookOpen className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
-              <p className="text-neutral-400 mb-4">
-                {stories.length === 0 ? 'No focus stories with audio yet. Create one to immerse in your vision.' : 'No stories match this filter.'}
-              </p>
-              {stories.length === 0 && (
-                <Button variant="primary" size="sm" asChild>
-                  <Link href="/story/new"><Plus className="w-4 h-4 mr-2" />Create Story</Link>
-                </Button>
-              )}
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {filteredStories.slice(0, 6).map(story => {
-                const meta = ENTITY_META[story.entity_type] || ENTITY_META.custom!
-                const MetaIcon = meta.icon
-                const hasAudio = !!story.audio_set_id
-                const hasRecording = !!story.user_audio_url
-                return (
-                  <Link key={story.id} href={`/story/${story.id}`} className="block group">
-                    <Card variant="outlined" className="p-4 hover:border-neutral-600 transition-all duration-200 hover:-translate-y-0.5">
-                      <div className="flex items-start justify-between gap-3 mb-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1.5">
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${meta.color}`}>
-                              <MetaIcon className="w-3 h-3" />
-                              {meta.label}
-                            </span>
-                            {story.status === 'completed' && <span className="text-[10px] text-green-400 font-medium">Complete</span>}
-                          </div>
-                          <p className="text-sm text-white font-medium truncate group-hover:text-[#39FF14] transition-colors">
-                            {story.title || 'Untitled Story'}
-                          </p>
+        {/* ── Stories ── */}
+        {contentType === 'stories' && (
+          <section>
+            {storiesLoading ? (
+              <div className="flex items-center justify-center py-8"><Spinner size="md" /></div>
+            ) : filteredStories.length === 0 ? (
+              <Card variant="glass" className="p-6 text-center">
+                <BookOpen className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
+                <p className="text-neutral-400 mb-4">
+                  {stories.length === 0 ? 'No stories with audio yet. Create one to immerse in your vision.' : 'No stories match this filter.'}
+                </p>
+                {stories.length === 0 && (
+                  <Button variant="primary" size="sm" asChild>
+                    <Link href="/story/new"><Plus className="w-4 h-4 mr-2" />Create Story</Link>
+                  </Button>
+                )}
+              </Card>
+            ) : (
+              <Stack gap="md">
+                {/* Story audio player */}
+                <Card variant="elevated" className="bg-[#0A0A0A]">
+                  <div className="mb-6">
+                    <h2 className="text-lg md:text-xl font-semibold text-white mb-4 text-center">Play My Stories</h2>
+                    <div className="relative max-w-2xl mx-auto" ref={storyDropdownRef}>
+                      <button
+                        type="button"
+                        onClick={() => setStoryDropdownOpen(prev => !prev)}
+                        className="w-full px-4 md:px-6 py-3 rounded-full bg-[#1F1F1F] text-white border-2 border-[#333] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer flex items-center justify-between"
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          {selectedStory ? (
+                            <>
+                              {(() => {
+                                const meta = ENTITY_META[selectedStory.entity_type] || ENTITY_META.custom!
+                                return (
+                                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${meta.badgeColor.split(' ').slice(0, 2).join(' ')}`}>
+                                    <meta.icon className="w-5 h-5" />
+                                  </div>
+                                )
+                              })()}
+                              <span className="font-semibold truncate">{selectedStory.title || 'Untitled Story'}</span>
+                              {(() => {
+                                const meta = ENTITY_META[selectedStory.entity_type] || ENTITY_META.custom!
+                                return (
+                                  <span className={`hidden md:inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border font-semibold flex-shrink-0 ${meta.badgeColor}`}>
+                                    <meta.icon className="w-3 h-3" />
+                                    {meta.label}
+                                  </span>
+                                )
+                              })()}
+                            </>
+                          ) : (
+                            <span className="text-neutral-400">Select a story...</span>
+                          )}
                         </div>
-                      </div>
-                      {story.content && (
-                        <p className="text-xs text-neutral-500 line-clamp-2 mb-3">{story.content.slice(0, 120)}</p>
-                      )}
-                      <div className="flex items-center gap-3 text-[11px] text-neutral-500">
-                        {hasAudio && <span className="flex items-center gap-1 text-purple-400"><Volume2 className="w-3 h-3" />Audio</span>}
-                        {hasRecording && <span className="flex items-center gap-1 text-teal-400"><Mic className="w-3 h-3" />Recording</span>}
-                        {story.word_count && story.word_count > 0 && <span>{story.word_count} words</span>}
-                      </div>
-                    </Card>
-                  </Link>
-                )
-              })}
-            </div>
-          )}
-          {filteredStories.length > 6 && (
-            <div className="flex justify-center mt-4">
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/story">View all {filteredStories.length} stories</Link>
-              </Button>
-            </div>
-          )}
-        </section>}
+                        <ChevronDown className={`w-5 h-5 text-neutral-400 transition-transform flex-shrink-0 ml-2 ${storyDropdownOpen ? 'rotate-180' : ''}`} />
+                      </button>
 
-        {/* ── Vibe Music (placeholder) ── */}
-        {activePill === 'music' && <section>
-          <h2 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
-            <Music2 className="w-5 h-5 text-cyan-400" />
-            Vibe Music
-          </h2>
-          <Card variant="glass" className="p-6 text-center">
-            <Music2 className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
-            <p className="text-sm text-neutral-400">Curated high-vibe music playlists are coming soon.</p>
-            <p className="text-xs text-neutral-500 mt-1">Conscious music, frequency tracks, and more.</p>
-          </Card>
-        </section>}
+                      {storyDropdownOpen && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setStoryDropdownOpen(false)} />
+                          <div className="absolute z-20 w-full mt-2 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-[60vh] overflow-y-auto">
+                            {filteredStories.map(story => {
+                              const isSelected = story.id === selectedStoryId
+                              const meta = ENTITY_META[story.entity_type] || ENTITY_META.custom!
+                              const cats = (story.metadata?.selected_categories || []) as string[]
+                              return (
+                                <div
+                                  key={story.id}
+                                  onClick={() => { setSelectedStoryId(story.id); setStoryDropdownOpen(false) }}
+                                  className={`px-4 py-3 transition-colors border-b border-[#333] last:border-b-0 hover:bg-[#2A2A2A] cursor-pointer ${isSelected ? 'bg-primary-500/10' : ''}`}
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${meta.badgeColor.split(' ').slice(0, 2).join(' ')}`}>
+                                      <meta.icon className="w-5 h-5" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                                        <h4 className="font-semibold text-white truncate">{story.title || 'Untitled Story'}</h4>
+                                        <span className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border font-semibold flex-shrink-0 ${meta.badgeColor}`}>
+                                          <meta.icon className="w-3 h-3" />
+                                          {meta.label}
+                                        </span>
+                                        {cats.map(key => {
+                                          const cat = VISION_CATEGORIES.find(c => c.key === key)
+                                          if (!cat) return null
+                                          return (
+                                            <span key={key} className="inline-flex items-center text-[11px] px-2 py-0.5 rounded-full border border-neutral-600/50 text-neutral-300 bg-neutral-800/50 font-medium flex-shrink-0">
+                                              {cat.label}
+                                            </span>
+                                          )
+                                        })}
+                                      </div>
+                                      <p className="text-xs text-neutral-500">
+                                        {story.word_count ? `${story.word_count} words` : ''} &middot; {new Date(story.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                      </p>
+                                    </div>
+                                    {isSelected && <CheckCircle className="w-5 h-5 text-[#39FF14] flex-shrink-0" />}
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {selectedStoryId && (
+                    storyAudioLoading ? (
+                      <div className="flex items-center justify-center py-8"><Spinner size="md" /></div>
+                    ) : storyAudioTracks.length === 0 ? (
+                      <div className="text-center py-6">
+                        <Volume2 className="w-8 h-8 text-neutral-600 mx-auto mb-2" />
+                        <p className="text-sm text-neutral-400">No audio available for this story</p>
+                        <Button variant="primary" size="sm" className="mt-3" asChild>
+                          <Link href="/audio/create">Create Audio</Link>
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="max-w-2xl mx-auto">
+                        <PlaylistPlayer
+                          tracks={storyAudioTracks.map(t => ({
+                            id: t.id,
+                            title: t.label,
+                            artist: t.sublabel,
+                            duration: 0,
+                            url: t.url,
+                            thumbnail: '',
+                          }))}
+                          setIcon={(() => {
+                            if (!selectedStoryAudio) return undefined
+                            const Icon = selectedStoryAudio.icon
+                            return <div className={`p-2 rounded-lg ${selectedStoryAudio.iconColor}`}><Icon className="w-5 h-5" /></div>
+                          })()}
+                          setName={selectedStory?.title || 'Story Audio'}
+                          voiceName={selectedStoryAudio?.sublabel || ''}
+                          trackCount={storyAudioTracks.length}
+                          createdDate={selectedStory ? new Date(selectedStory.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+                        />
+                      </div>
+                    )
+                  )}
+                </Card>
+
+                {/* Story list */}
+                <div className="rounded-2xl border border-white/[0.06] bg-[#111] overflow-hidden divide-y divide-white/[0.06]">
+                  {filteredStories.map(story => {
+                    const meta = ENTITY_META[story.entity_type] || ENTITY_META.custom!
+                    const wordCount = story.word_count || 0
+                    const readTime = Math.max(1, Math.ceil(wordCount / 200))
+                    const hasAudio = !!story.audio_set_id
+                    const hasRecording = !!story.user_audio_url
+                    const dateObj = new Date(story.created_at)
+                    const dayNum = dateObj.getDate()
+                    const monthStr = dateObj.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()
+                    const weekday = dateObj.toLocaleDateString('en-US', { weekday: 'short' })
+                    const storyCategories = (story.metadata?.selected_categories || []) as string[]
+                    const isActive = story.id === selectedStoryId
+
+                    return (
+                      <button
+                        key={story.id}
+                        type="button"
+                        onClick={() => setSelectedStoryId(story.id)}
+                        className={`block w-full text-left cursor-pointer transition-colors group ${isActive ? 'bg-[#39FF14]/[0.04]' : 'hover:bg-white/[0.03]'}`}
+                      >
+                        <div className="px-4 py-3.5 md:px-5 md:py-4">
+                          <div className="flex items-center gap-4">
+                            <div className="flex-shrink-0 w-11 text-center">
+                              <p className="text-[10px] uppercase tracking-wider text-neutral-500 leading-none">{weekday}</p>
+                              <p className="text-xl font-semibold text-white leading-tight">{dayNum}</p>
+                              <p className="text-[10px] uppercase tracking-wider text-neutral-500 leading-none">{monthStr}</p>
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap mb-0.5 min-w-0">
+                                <p className={`text-sm font-medium truncate ${isActive ? 'text-[#39FF14]' : 'text-white'}`}>
+                                  {story.title || 'Untitled Story'}
+                                </p>
+                                <span className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border font-semibold flex-shrink-0 ${meta.badgeColor}`}>
+                                  <meta.icon className="w-3 h-3" />
+                                  {meta.label}
+                                </span>
+                                {storyCategories.map(key => {
+                                  const cat = VISION_CATEGORIES.find(c => c.key === key)
+                                  if (!cat) return null
+                                  return (
+                                    <span key={key} className="inline-flex items-center text-[11px] px-2 py-0.5 rounded-full border border-neutral-600/50 text-neutral-300 bg-neutral-800/50 font-medium flex-shrink-0">
+                                      {cat.label}
+                                    </span>
+                                  )
+                                })}
+                              </div>
+                              {story.content && (
+                                <p className="hidden md:line-clamp-1 text-[13px] text-neutral-300 leading-relaxed mb-1.5">
+                                  {story.content}
+                                </p>
+                              )}
+                              <div className="flex items-center gap-2.5">
+                                {wordCount > 0 && (
+                                  <span className="text-[11px] text-neutral-500 flex items-center gap-1">
+                                    <FileText className="w-3 h-3" />
+                                    {wordCount.toLocaleString()} words
+                                  </span>
+                                )}
+                                <span className="text-[11px] text-neutral-500 flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {readTime} min read
+                                </span>
+                                {hasAudio && (
+                                  <span className="text-[11px] text-purple-400 flex items-center gap-1">
+                                    <Volume2 className="w-3 h-3" />
+                                    Audio
+                                  </span>
+                                )}
+                                {hasRecording && (
+                                  <span className="text-[11px] text-teal-400 flex items-center gap-1">
+                                    <Mic className="w-3 h-3" />
+                                    Recording
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {isActive ? (
+                              <Volume2 className="w-4 h-4 text-[#39FF14] flex-shrink-0" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-neutral-600 flex-shrink-0 group-hover:text-neutral-400 transition-colors" />
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </Stack>
+            )}
+          </section>
+        )}
+
+        {/* ── Music (placeholder) ── */}
+        {contentType === 'music' && (
+          <section>
+            <Card variant="glass" className="p-6 text-center">
+              <Music2 className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
+              <p className="text-sm text-neutral-400">Curated high-vibe music playlists are coming soon.</p>
+              <p className="text-xs text-neutral-500 mt-1">Conscious music, frequency tracks, and more.</p>
+            </Card>
+          </section>
+        )}
 
       </Stack>
 
