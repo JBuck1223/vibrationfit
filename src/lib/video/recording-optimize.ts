@@ -196,12 +196,12 @@ export async function checkOptimizationJob(
   const status = job.Status || 'UNKNOWN'
 
   if (status === 'COMPLETE') {
-    const outputUri = (
-      job.OutputGroupDetails?.[0]?.OutputDetails?.[0] as Record<string, unknown>
-    )?.OutputFilePaths?.[0] as string | undefined
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const jobAny = job as any
+    const resolvedUri = jobAny.OutputGroupDetails?.[0]?.OutputDetails?.[0]?.OutputFilePaths?.[0] as string | undefined
 
-    if (outputUri) {
-      const s3Key = outputUri.replace(new RegExp(`s3://${BUCKET_NAME}/`, 'i'), '')
+    if (resolvedUri) {
+      const s3Key = resolvedUri.replace(new RegExp(`s3://${BUCKET_NAME}/`, 'i'), '')
       const optimizedUrl = `${CDN_URL}/${s3Key}`
 
       const supabase = createServiceClient()
