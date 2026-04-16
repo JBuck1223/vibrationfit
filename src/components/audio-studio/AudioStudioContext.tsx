@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { AudioTrack } from '@/lib/design-system/components/media/types'
+import type { Story } from '@/lib/stories/types'
 
 interface VisionData {
   id: string
@@ -74,6 +75,12 @@ interface AudioStudioContextValue {
   refreshBatches: () => Promise<void>
   activePill: string
   setActivePill: (value: string) => void
+  listenContentType: string
+  setListenContentType: (value: string) => void
+  listenStoryFilter: string
+  setListenStoryFilter: (value: string) => void
+  storiesWithAudio: Story[]
+  storiesWithAudioLoading: boolean
   player: PlayerState
   playTracks: (tracks: AudioTrack[], startIndex?: number, setName?: string) => void
   pausePlayer: () => void
@@ -109,6 +116,10 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
     hasPersonalRecording: false,
   })
   const [activePill, setActivePill] = useState('life-vision')
+  const [listenContentType, setListenContentType] = useState('life-vision')
+  const [listenStoryFilter, setListenStoryFilter] = useState('all')
+  const [storiesWithAudio, setStoriesWithAudio] = useState<Story[]>([])
+  const [storiesWithAudioLoading, setStoriesWithAudioLoading] = useState(true)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
 
@@ -241,6 +252,7 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
       .from('audio_sets')
       .select('*, audio_tracks(count)')
       .eq('vision_id', visionId)
+      .eq('content_type', 'life_vision')
       .order('created_at', { ascending: false })
 
     if (!sets) {
@@ -328,6 +340,21 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
     }
   }
 
+  async function loadStoriesWithAudio() {
+    setStoriesWithAudioLoading(true)
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setStoriesWithAudioLoading(false); return }
+    const { data } = await supabase
+      .from('stories').select('*').eq('user_id', user.id).eq('status', 'completed')
+      .or('audio_set_id.not.is.null,user_audio_url.not.is.null')
+      .order('updated_at', { ascending: false })
+    if (data) setStoriesWithAudio(data as Story[])
+    setStoriesWithAudioLoading(false)
+  }
+
+  useEffect(() => { loadStoriesWithAudio() }, [])
+
   const playTracks = useCallback((tracks: AudioTrack[], startIndex = 0, setName?: string) => {
     if (!audioRef.current || tracks.length === 0) return
 
@@ -412,6 +439,12 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
         refreshBatches: loadBatches,
         activePill,
         setActivePill,
+        listenContentType,
+        setListenContentType,
+        listenStoryFilter,
+        setListenStoryFilter,
+        storiesWithAudio,
+        storiesWithAudioLoading,
         player,
         playTracks,
         pausePlayer,

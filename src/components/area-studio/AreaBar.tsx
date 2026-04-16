@@ -12,6 +12,7 @@ export interface AreaBarTab {
   label: string
   path: string
   icon?: LucideIcon
+  matchPaths?: string[]
 }
 
 export interface AreaBarPill {
@@ -49,21 +50,25 @@ export interface AreaBarProps {
   }
   menuItems?: React.ReactNode
   breadcrumb?: AreaBarBreadcrumb
-  /** Rich context bar rendered as a second row (also suppresses tab highlighting like breadcrumb) */
+  /** Rich context bar rendered as a second row */
   contextBar?: React.ReactNode
+  /** When true, keep tab highlighting active even when contextBar is present */
+  keepTabActive?: boolean
   /** "default" = neutral dark card, "hero" = PageHero-style gradient border & bg */
   variant?: 'default' | 'hero'
 }
 
 // ─── Tab active detection ───
 
-function isTabActive(pathname: string, tabPath: string, allTabs: AreaBarTab[]): boolean {
-  if (pathname === tabPath) return true
+function isTabActive(pathname: string, tab: AreaBarTab, allTabs: AreaBarTab[]): boolean {
+  if (tab.matchPaths?.some(p => pathname === p || pathname.startsWith(p + '/'))) return true
 
-  if (pathname.startsWith(tabPath + '/')) {
+  if (pathname === tab.path) return true
+
+  if (pathname.startsWith(tab.path + '/')) {
     const hasMoreSpecificMatch = allTabs.some(
-      t => t.path !== tabPath &&
-        t.path.startsWith(tabPath + '/') &&
+      t => t.path !== tab.path &&
+        t.path.startsWith(tab.path + '/') &&
         (pathname === t.path || pathname.startsWith(t.path + '/'))
     )
     if (!hasMoreSpecificMatch) return true
@@ -93,6 +98,7 @@ export function AreaBar({
   menuItems,
   breadcrumb,
   contextBar,
+  keepTabActive = false,
   variant = 'default',
 }: AreaBarProps) {
   const pathname = usePathname()
@@ -101,7 +107,7 @@ export function AreaBar({
   const AreaIcon = area.icon
   const gridCols = GRID_COLS[tabs.length] || 'grid-cols-3'
   const isHero = variant === 'hero'
-  const suppressActiveTab = !!(breadcrumb || contextBar)
+  const suppressActiveTab = !!(breadcrumb || (contextBar && !keepTabActive))
 
   return (
     <>
@@ -147,7 +153,7 @@ export function AreaBar({
                 <div className="px-3 pb-2">
                   <nav className={`grid ${gridCols} p-1 gap-1 rounded-xl bg-black/30 backdrop-blur-sm`}>
                     {tabs.map(tab => {
-                      const active = !suppressActiveTab && isTabActive(pathname, tab.path, tabs)
+                      const active = !suppressActiveTab && isTabActive(pathname, tab, tabs)
                       const TabIcon = tab.icon
                       return (
                         <Link
@@ -261,7 +267,7 @@ export function AreaBar({
               <div className="px-3 pb-2.5">
                 <nav className={`grid ${gridCols} p-1 gap-1 rounded-xl bg-neutral-900/60`}>
                   {tabs.map(tab => {
-                    const active = !suppressActiveTab && isTabActive(pathname, tab.path, tabs)
+                    const active = !suppressActiveTab && isTabActive(pathname, tab, tabs)
                     const TabIcon = tab.icon
                     return (
                       <Link
@@ -351,7 +357,7 @@ export function AreaBar({
                 <nav className="flex items-center gap-1 p-1.5 rounded-xl bg-black/30 backdrop-blur-sm">
                   {tabs.map(tab => {
                     const TabIcon = tab.icon
-                    const active = !suppressActiveTab && isTabActive(pathname, tab.path, tabs)
+                    const active = !suppressActiveTab && isTabActive(pathname, tab, tabs)
                     return (
                       <Link
                         key={tab.path}
@@ -453,7 +459,7 @@ export function AreaBar({
               <nav className="flex items-center gap-1 p-1.5 rounded-xl bg-neutral-900/60">
                 {tabs.map(tab => {
                   const TabIcon = tab.icon
-                  const active = !suppressActiveTab && isTabActive(pathname, tab.path, tabs)
+                  const active = !suppressActiveTab && isTabActive(pathname, tab, tabs)
                   return (
                     <Link
                       key={tab.path}
