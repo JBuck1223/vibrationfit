@@ -13,11 +13,15 @@ type SessionReplayVideoProps = {
 }
 
 /**
- * Uses the design-system <Video> player (thumbnail + play overlay),
- * while supporting an optional playback start offset for recordings.
+ * Optimised replay player for session recordings (often 60+ min fragmented
+ * MP4 files from Daily.co served via S3/CloudFront).
  *
- * Mobile-optimised: uses preload="none" to avoid stalling on large
- * session MP4s, and includes error/retry handling.
+ * Key optimisations for large files:
+ *  - preload="metadata" so the browser fetches just enough to enable seeking
+ *    without downloading the entire file up-front.
+ *  - Seeks to playbackStartSeconds on first play rather than on canplay, so
+ *    the initial load stays lightweight.
+ *  - Includes error/retry handling for flaky mobile connections.
  */
 export function SessionReplayVideo({
   src,
@@ -34,14 +38,22 @@ export function SessionReplayVideo({
   const seekToStart = useCallback(() => {
     const el = videoRef.current
     if (!el || start <= 0 || hasSeeked.current) return
-    const d = el.duration
-    if (!Number.isFinite(d) || d <= 0) return
-    const t = Math.min(start, Math.max(0, d - 0.25))
-    el.currentTime = t
     hasSeeked.current = true
+
+    // If duration is known (MP4 with moov at front), seek immediately.
+    // For WebM files where duration is Infinity, seek anyway — the browser
+    // will resolve it via byte-range requests without downloading everything.
+    const d = el.duration
+    if (Number.isFinite(d) && d > 0) {
+      el.currentTime = Math.min(start, Math.max(0, d - 0.25))
+    } else {
+      el.currentTime = start
+    }
   }, [start])
 
-  const handleCanPlay = useCallback(() => {
+  // Seek on first play rather than on canplay — avoids buffering the start
+  // offset before the user even clicks play.
+  const handlePlay = useCallback(() => {
     seekToStart()
   }, [seekToStart])
 
@@ -79,11 +91,11 @@ export function SessionReplayVideo({
       ref={videoRef}
       src={src}
       poster={poster}
-      preload="none"
+      preload="metadata"
       controls
       playsInline
       className={className}
-      onCanPlay={handleCanPlay}
+      onPlay={handlePlay}
       onError={handleError}
     />
   )

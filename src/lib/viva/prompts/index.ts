@@ -83,6 +83,7 @@ export {
   buildVisionBoardStoryPrompt,
   buildJournalStoryPrompt,
   buildCustomStoryPrompt,
+  buildStoryFlipPrompt,
   type FocusHighlight,
   type VisionSections,
   type CategoryContent,

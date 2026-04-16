@@ -19,6 +19,7 @@ import {
   Wand2,
   CheckCircle,
   Search,
+  RefreshCw,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -124,6 +125,20 @@ export default function NewStoryWizardPage() {
   const [categoryData, setCategoryData] = useState<CategoryFocusData[]>([])
   const [vision, setVision] = useState<any>(null)
 
+  // Custom sub-mode state
+  type CustomMode = 'tell' | 'flip'
+  const [customMode, setCustomMode] = useState<CustomMode>('tell')
+
+  // Custom vision tagging state (shared across tell & flip)
+  const [showVisionTagging, setShowVisionTagging] = useState(false)
+  const [customVisionEntities, setCustomVisionEntities] = useState<any[]>([])
+  const [customVisionLoading, setCustomVisionLoading] = useState(false)
+  const [customVisionId, setCustomVisionId] = useState<string | null>(null)
+  const [customVision, setCustomVision] = useState<any>(null)
+  const [customSelectedCategories, setCustomSelectedCategories] = useState<LifeCategoryKey[]>([])
+  const [customCategoryData, setCustomCategoryData] = useState<CategoryFocusData[]>([])
+  const [isCustomVisionDropdownOpen, setIsCustomVisionDropdownOpen] = useState(false)
+
   // Generation state
   const [generating, setGenerating] = useState(false)
   const [streamingText, setStreamingText] = useState('')
@@ -165,6 +180,20 @@ export default function NewStoryWizardPage() {
     }))
   }, [selectedCategories, vision])
 
+  // Custom vision category data syncing
+  useEffect(() => {
+    if (!customVision) return
+    setCustomCategoryData(customSelectedCategories.map(key => {
+      const existing = customCategoryData.find(c => c.key === key)
+      return {
+        key,
+        visionText: existing?.visionText ?? (customVision[key] || ''),
+        focusNotes: existing?.focusNotes ?? '',
+        isExpanded: existing?.isExpanded ?? true,
+      }
+    }))
+  }, [customSelectedCategories, customVision])
+
   // ── Step handlers ──
 
   function handleSourceSelect(source: SourceType) {
@@ -176,6 +205,14 @@ export default function NewStoryWizardPage() {
     setSelectedEntity(null)
     setEntities([])
     setEntitySearchQuery('')
+
+    // Reset custom-specific state
+    setCustomMode('tell')
+    setShowVisionTagging(false)
+    setCustomVisionId(null)
+    setCustomVision(null)
+    setCustomSelectedCategories([])
+    setCustomCategoryData([])
 
     if (source.skipEntity) {
       setStep('create')
@@ -271,6 +308,61 @@ export default function NewStoryWizardPage() {
     setCategoryData(prev => prev.map(c => c.key === key ? { ...c, isExpanded: !c.isExpanded } : c))
   }
 
+  // ── Custom vision tagging handlers ──
+
+  async function loadCustomVisionEntities() {
+    if (customVisionEntities.length > 0) return
+    setCustomVisionLoading(true)
+    try {
+      const response = await fetch('/api/vision?includeVersions=true')
+      if (!response.ok) {
+        if (response.status === 401) { router.push('/auth/login'); return }
+        throw new Error('Failed to fetch visions')
+      }
+      const data = await response.json()
+      const versions = (data.versions || []).filter((v: any) => !v.is_draft)
+      if (data.vision?.id) {
+        const alreadyIncluded = versions.some((v: any) => v.id === data.vision.id)
+        if (!alreadyIncluded) versions.unshift(data.vision)
+      }
+      setCustomVisionEntities(versions)
+    } catch (err) {
+      console.error('Error loading visions for tagging:', err)
+    }
+    setCustomVisionLoading(false)
+  }
+
+  async function handleCustomVisionSelect(entity: any) {
+    setCustomVisionId(entity.id)
+    setIsCustomVisionDropdownOpen(false)
+    const { data } = await supabase
+      .from('vision_versions')
+      .select('*')
+      .eq('id', entity.id)
+      .single()
+    if (data) setCustomVision(data)
+  }
+
+  function handleCustomCategoryToggle(key: string) {
+    setCustomSelectedCategories(prev =>
+      prev.includes(key as LifeCategoryKey)
+        ? prev.filter(k => k !== key)
+        : [...prev, key as LifeCategoryKey]
+    )
+  }
+
+  function updateCustomVisionText(key: LifeCategoryKey, text: string) {
+    setCustomCategoryData(prev => prev.map(c => c.key === key ? { ...c, visionText: text } : c))
+  }
+
+  function updateCustomFocusNotes(key: LifeCategoryKey, notes: string) {
+    setCustomCategoryData(prev => prev.map(c => c.key === key ? { ...c, focusNotes: notes } : c))
+  }
+
+  function toggleCustomExpanded(key: LifeCategoryKey) {
+    setCustomCategoryData(prev => prev.map(c => c.key === key ? { ...c, isExpanded: !c.isExpanded } : c))
+  }
+
   // ── VIVA generation ──
 
   async function handleGenerate() {
@@ -298,6 +390,15 @@ export default function NewStoryWizardPage() {
       } else if (selectedSource.entityType === 'custom') {
         body.content = storyContent || focusNotes
         body.title = storyTitle || undefined
+        body.customMode = customMode
+
+        if (customSelectedCategories.length > 0 && customCategoryData.length > 0) {
+          body.selectedCategories = customSelectedCategories
+          body.categoryData = customCategoryData.reduce((acc, cat) => {
+            acc[cat.key] = { visionText: cat.visionText, focusNotes: cat.focusNotes }
+            return acc
+          }, {} as Record<string, { visionText: string; focusNotes: string }>)
+        }
       }
 
       const response = await fetch('/api/stories/generate', {
@@ -473,9 +574,12 @@ export default function NewStoryWizardPage() {
             className={`w-full px-4 py-3 text-left hover:bg-[#2A2A2A] transition-colors border-b border-[#333] last:border-b-0 ${isSelected ? 'bg-primary-500/10' : ''}`}
           >
             <div className="flex items-center justify-between">
-              <div>
+              <div className="flex items-center gap-2">
                 <span className="text-white font-medium">Version {entity.version_number}</span>
-                {entity.title && <span className="text-xs text-neutral-400 ml-2">{entity.title}</span>}
+                {entity.title && <span className="text-xs text-neutral-400">{entity.title}</span>}
+                {entity.is_active && (
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#39FF14]/15 text-[#39FF14] border border-[#39FF14]/30">Active</span>
+                )}
               </div>
               {isSelected && <CheckCircle className="w-5 h-5 text-primary-500" />}
             </div>
@@ -857,29 +961,252 @@ export default function NewStoryWizardPage() {
                           </div>
                         )}
 
-                        {/* Custom content input */}
+                        {/* Custom content input with sub-mode toggle */}
                         {isCustom && (
-                          <div className="max-w-2xl mx-auto space-y-4">
-                            <div>
-                              <h4 className="text-white font-semibold mb-1">Your Content</h4>
-                              <p className="text-sm text-neutral-400 mb-4">
-                                Describe the reality you want to live. VIVA will weave it into an immersive story.
-                              </p>
+                          <div className="space-y-6">
+                            {/* Sub-mode toggle: Tell vs Flip */}
+                            <div className="flex justify-center">
+                              <Toggle
+                                value={customMode}
+                                onChange={setCustomMode}
+                                options={[
+                                  { value: 'tell' as CustomMode, label: 'Tell a Story' },
+                                  { value: 'flip' as CustomMode, label: 'Flip a Story' },
+                                ]}
+                                size="sm"
+                                activeColor={customMode === 'flip' ? '#BF00FF' : '#39FF14'}
+                              />
                             </div>
-                            <Input
-                              value={storyTitle}
-                              onChange={e => setStoryTitle(e.target.value)}
-                              placeholder="Story title (optional)"
-                            />
-                            <RecordingTextarea
-                              value={storyContent}
-                              onChange={setStoryContent}
-                              placeholder="Describe your vision, experience, or idea. Be specific with names, places, and details..."
-                              rows={6}
-                              recordingPurpose="quick"
-                              storageFolder="lifeVision"
-                              category="story"
-                            />
+
+                            {/* Mode description */}
+                            <div className="text-center">
+                              {customMode === 'tell' ? (
+                                <p className="text-sm text-neutral-400">
+                                  Describe the reality you want to live. VIVA will weave it into an immersive story.
+                                </p>
+                              ) : (
+                                <p className="text-sm text-purple-400">
+                                  Paste a limiting story you want to transform. VIVA will flip it into an empowering narrative.
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Title + Content */}
+                            <div className="space-y-4">
+                              <Input
+                                value={storyTitle}
+                                onChange={e => setStoryTitle(e.target.value)}
+                                placeholder="Story title (optional)"
+                              />
+                              <RecordingTextarea
+                                value={storyContent}
+                                onChange={setStoryContent}
+                                placeholder={
+                                  customMode === 'tell'
+                                    ? 'Describe your vision, experience, or idea. Be specific with names, places, and details...'
+                                    : 'Paste or describe the limiting story you want to transform. What narrative do you want to replace?'
+                                }
+                                rows={6}
+                                recordingPurpose="quick"
+                                storageFolder="lifeVision"
+                                category="story"
+                              />
+                            </div>
+
+                            {/* Life Vision Category Tagging (shared by both modes) */}
+                            <div className="rounded-2xl bg-neutral-800/50 border border-neutral-700/50">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const opening = !showVisionTagging
+                                  setShowVisionTagging(opening)
+                                  if (opening) loadCustomVisionEntities()
+                                }}
+                                className="w-full flex items-center justify-between p-4 hover:bg-neutral-800 transition-colors"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                                    <Target className="w-5 h-5 text-purple-400" />
+                                  </div>
+                                  <div className="text-left">
+                                    <span className="text-white font-semibold">Connect to your Life Vision</span>
+                                    <p className="text-xs text-neutral-400">
+                                      {customSelectedCategories.length > 0
+                                        ? `${customSelectedCategories.length} ${customSelectedCategories.length === 1 ? 'category' : 'categories'} tagged`
+                                        : 'Optional: tag life areas for richer context'}
+                                    </p>
+                                  </div>
+                                </div>
+                                {showVisionTagging ? (
+                                  <ChevronUp className="w-5 h-5 text-neutral-400" />
+                                ) : (
+                                  <ChevronDown className="w-5 h-5 text-neutral-400" />
+                                )}
+                              </button>
+
+                              {showVisionTagging && (
+                                <div className="p-4 md:p-6 border-t border-neutral-700/50 space-y-6">
+                                  {/* Vision version dropdown selector */}
+                                  {customVisionLoading ? (
+                                    <div className="flex items-center justify-center py-4">
+                                      <Spinner size="sm" />
+                                      <span className="text-sm text-neutral-400 ml-2">Loading visions...</span>
+                                    </div>
+                                  ) : customVisionEntities.length === 0 ? (
+                                    <p className="text-sm text-neutral-400 text-center py-4">
+                                      No life visions found. Create a Life Vision first to use this feature.
+                                    </p>
+                                  ) : (
+                                    <>
+                                      <div className="relative">
+                                        <button
+                                          type="button"
+                                          onClick={() => setIsCustomVisionDropdownOpen(!isCustomVisionDropdownOpen)}
+                                          className="w-full pl-6 pr-12 py-3 rounded-full bg-[#1F1F1F] text-white text-sm border-2 border-[#333] hover:border-purple-500 focus:border-purple-500 focus:outline-none transition-colors cursor-pointer text-left"
+                                        >
+                                          {customVision ? (
+                                            <div className="flex items-center gap-3">
+                                              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-purple-500/20 text-purple-400">
+                                                <Target className="w-4 h-4" />
+                                              </div>
+                                              <span>
+                                                Version {customVision.version_number}
+                                                {customVision.title && <span className="text-xs text-neutral-400 ml-2">{customVision.title}</span>}
+                                              </span>
+                                            </div>
+                                          ) : (
+                                            <span className="text-neutral-400">Choose a life vision version...</span>
+                                          )}
+                                        </button>
+                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                          <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isCustomVisionDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                          </svg>
+                                        </div>
+                                        {isCustomVisionDropdownOpen && (
+                                          <>
+                                            <div className="fixed inset-0 z-10" onClick={() => setIsCustomVisionDropdownOpen(false)} />
+                                            <div className="absolute z-20 w-full mt-2 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-60 overflow-y-auto">
+                                              {customVisionEntities.map((entity: any) => {
+                                                const isSelected = customVisionId === entity.id
+                                                return (
+                                                  <button
+                                                    key={entity.id}
+                                                    onClick={() => handleCustomVisionSelect(entity)}
+                                                    className={`w-full px-4 py-3 text-left hover:bg-[#2A2A2A] transition-colors border-b border-[#333] last:border-b-0 ${isSelected ? 'bg-purple-500/10' : ''}`}
+                                                  >
+                                                    <div className="flex items-center justify-between">
+                                                      <div className="flex items-center gap-2">
+                                                        <span className="text-white font-medium">Version {entity.version_number}</span>
+                                                        {entity.title && <span className="text-xs text-neutral-400">{entity.title}</span>}
+                                                        {entity.is_active && (
+                                                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#39FF14]/15 text-[#39FF14] border border-[#39FF14]/30">Active</span>
+                                                        )}
+                                                      </div>
+                                                      {isSelected && <CheckCircle className="w-5 h-5 text-purple-400" />}
+                                                    </div>
+                                                  </button>
+                                                )
+                                              })}
+                                            </div>
+                                          </>
+                                        )}
+                                      </div>
+
+                                      {/* Category selection grid (shown once a vision is selected) */}
+                                      {customVision && (
+                                        <>
+                                          <div className="rounded-2xl bg-neutral-800/50 border border-neutral-700/50 p-4 md:p-6">
+                                            <div className="flex flex-col items-center gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between">
+                                              <div className="text-center sm:text-left">
+                                                <h4 className="text-white font-semibold">Tag Life Areas</h4>
+                                                <p className="text-sm text-neutral-400">
+                                                  Select the life areas this story pertains to
+                                                </p>
+                                              </div>
+                                              <Badge variant="info">{customSelectedCategories.length} selected</Badge>
+                                            </div>
+                                            <CategoryGrid
+                                              categories={LIFE_CATEGORIES}
+                                              selectedCategories={customSelectedCategories}
+                                              onCategoryClick={handleCustomCategoryToggle}
+                                              layout="12-column"
+                                              mode="selection"
+                                              variant="outlined"
+                                              withCard={false}
+                                            />
+                                          </div>
+
+                                          {/* Expandable category cards with vision text + focus notes */}
+                                          {customSelectedCategories.length > 0 && (
+                                            <div className="rounded-2xl bg-neutral-800/50 border border-neutral-700/50 p-4 md:p-6 space-y-3">
+                                              <div>
+                                                <h4 className="text-white font-semibold">Review & Add Focus Notes</h4>
+                                                <p className="text-sm text-neutral-400">
+                                                  Your vision text is pre-filled. Add optional notes to highlight specific details.
+                                                </p>
+                                              </div>
+                                              {customCategoryData.map(cat => {
+                                                const category = LIFE_CATEGORIES.find(c => c.key === cat.key)
+                                                if (!category) return null
+                                                const CatIcon = category.icon
+                                                return (
+                                                  <div key={cat.key} className="border border-neutral-700 rounded-xl overflow-hidden">
+                                                    <button
+                                                      onClick={() => toggleCustomExpanded(cat.key)}
+                                                      className="w-full flex items-center justify-between p-4 bg-neutral-800/50 hover:bg-neutral-800 transition-colors"
+                                                    >
+                                                      <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                                                          <CatIcon className="w-5 h-5 text-purple-400" />
+                                                        </div>
+                                                        <div className="text-left">
+                                                          <span className="text-purple-400 font-medium">{category.label}</span>
+                                                          {cat.focusNotes && <p className="text-xs text-purple-400/60">Has focus notes</p>}
+                                                        </div>
+                                                      </div>
+                                                      {cat.isExpanded ? <ChevronUp className="w-5 h-5 text-neutral-400" /> : <ChevronDown className="w-5 h-5 text-neutral-400" />}
+                                                    </button>
+                                                    {cat.isExpanded && (
+                                                      <div className="p-4 space-y-4 bg-neutral-900/50">
+                                                        <div>
+                                                          <div className="flex items-center gap-2 mb-2">
+                                                            <span className="text-sm text-neutral-400 font-medium">Vision Text</span>
+                                                            <Edit3 className="w-3 h-3 text-neutral-500" />
+                                                          </div>
+                                                          <AutoResizeTextarea
+                                                            value={cat.visionText}
+                                                            onChange={value => updateCustomVisionText(cat.key, value)}
+                                                            className="w-full min-h-[100px] text-sm"
+                                                            placeholder={`Your ${category.label.toLowerCase()} vision...`}
+                                                          />
+                                                        </div>
+                                                        <div>
+                                                          <div className="flex items-center gap-2 mb-2">
+                                                            <span className="text-sm text-purple-400 font-medium">Key Details to Focus On</span>
+                                                            <span className="text-xs text-neutral-500">(optional)</span>
+                                                          </div>
+                                                          <AutoResizeTextarea
+                                                            value={cat.focusNotes}
+                                                            onChange={value => updateCustomFocusNotes(cat.key, value)}
+                                                            className="w-full min-h-[60px] text-sm border-purple-500/30 focus:border-purple-500"
+                                                            placeholder="Any specific moments, feelings, or details you want highlighted..."
+                                                          />
+                                                        </div>
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                )
+                                              })}
+                                            </div>
+                                          )}
+                                        </>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         )}
 
@@ -893,12 +1220,16 @@ export default function NewStoryWizardPage() {
                             {generating ? (
                               <>
                                 <Spinner size="sm" className="mr-2" />
-                                Writing Story...
+                                {isCustom && customMode === 'flip' ? 'Flipping Story...' : 'Writing Story...'}
                               </>
                             ) : (
                               <>
-                                <Sparkles className="w-5 h-5 mr-2" />
-                                Generate Story
+                                {isCustom && customMode === 'flip' ? (
+                                  <RefreshCw className="w-5 h-5 mr-2" />
+                                ) : (
+                                  <Sparkles className="w-5 h-5 mr-2" />
+                                )}
+                                {isCustom && customMode === 'flip' ? 'Flip Story' : 'Generate Story'}
                               </>
                             )}
                           </Button>
