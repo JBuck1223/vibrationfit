@@ -44,7 +44,7 @@ async function buildPromptForEntity(
   userId: string,
   body: GenerateBody,
   perspective: 'singular' | 'plural'
-): Promise<{ prompt: string; entityId: string; title: string | null }> {
+): Promise<{ prompt: string; entityId: string; title: string | null; sourceInput: string }> {
   const { entityType, entityId, focusNotes } = body
 
   switch (entityType) {
@@ -57,7 +57,11 @@ async function buildPromptForEntity(
         c => c.charAt(0).toUpperCase() + c.slice(1)
       )
       const generatedTitle = `Life Vision Focus – ${categoryLabels.join(' | ')}`
-      return { prompt, entityId, title: generatedTitle }
+      const sourceInput = Object.entries(body.categoryData)
+        .filter(([_, v]) => v.visionText.trim())
+        .map(([k, v]) => `[${k}] ${v.visionText}${v.focusNotes ? `\nFocus: ${v.focusNotes}` : ''}`)
+        .join('\n\n')
+      return { prompt, entityId, title: generatedTitle, sourceInput }
     }
 
     case 'vision_board_item': {
@@ -75,7 +79,8 @@ async function buildPromptForEntity(
         focusNotes,
         perspective
       )
-      return { prompt, entityId, title: item.name }
+      const sourceInput = [item.name, item.description, focusNotes].filter(Boolean).join('\n\n')
+      return { prompt, entityId, title: item.name, sourceInput }
     }
 
     case 'journal_entry': {
@@ -98,7 +103,8 @@ async function buildPromptForEntity(
         focusNotes,
         perspective
       )
-      return { prompt, entityId, title: entry.title || 'Journal Story' }
+      const sourceInput = [entry.title, entry.content, focusNotes].filter(Boolean).join('\n\n')
+      return { prompt, entityId, title: entry.title || 'Journal Story', sourceInput }
     }
 
     case 'custom': {
@@ -112,7 +118,7 @@ async function buildPromptForEntity(
         prompt = buildCustomStoryPrompt(body.content, body.title, perspective, body.categoryData)
       }
 
-      return { prompt, entityId: customId, title: body.title || (body.customMode === 'flip' ? 'Story Flip' : 'Custom Story') }
+      return { prompt, entityId: customId, title: body.title || (body.customMode === 'flip' ? 'Story Flip' : 'Custom Story'), sourceInput: body.content }
     }
 
     default:
@@ -155,7 +161,7 @@ export async function POST(request: NextRequest) {
 
     const perspective = (profile?.perspective as 'singular' | 'plural') || 'singular'
 
-    const { prompt, entityId, title } = await buildPromptForEntity(supabase, user.id, body, perspective)
+    const { prompt, entityId, title, sourceInput } = await buildPromptForEntity(supabase, user.id, body, perspective)
 
     let toolConfig
     try {
@@ -202,7 +208,7 @@ export async function POST(request: NextRequest) {
           ...(body.categoryData ? { category_data: body.categoryData } : {}),
           ...(body.focusNotes ? { focus_notes: body.focusNotes } : {}),
           ...(body.customMode ? { custom_mode: body.customMode } : {}),
-          ...(body.customMode === 'flip' && body.content ? { source_story: body.content } : {}),
+          ...(sourceInput ? { source_input: sourceInput } : {}),
           prompt_version: 'universal-v1',
           model_used: response?.modelId || VISION_MODEL,
         }
