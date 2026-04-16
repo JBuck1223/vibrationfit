@@ -519,6 +519,18 @@ export default function StoryDetailPage({
                   )}
                 </section>
 
+                {/* Original Input (what the user submitted to VIVA) */}
+                {story.metadata?.source_input && (
+                  <section className="space-y-3">
+                    <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                      Your Original Input
+                    </Text>
+                    <div className="rounded-xl bg-neutral-900/50 border border-neutral-800 p-4">
+                      <p className="text-neutral-400 whitespace-pre-wrap leading-relaxed text-sm">{story.metadata.source_input}</p>
+                    </div>
+                  </section>
+                )}
+
                 {/* Edit / Delete actions */}
                 <div className="flex flex-row items-center gap-2 sm:gap-3 sm:justify-end pt-2">
                   <Button
