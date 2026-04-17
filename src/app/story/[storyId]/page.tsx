@@ -599,7 +599,7 @@ export default function StoryDetailPage({
         </Card>
 
         {/* Generation Details (collapsed by default) */}
-        {!isEditing && (story.metadata?.source_input || story.source === 'ai_generated') && (
+        {!isEditing && (!!story.metadata?.source_input || story.source === 'ai_generated') && (
           <div className="rounded-2xl bg-neutral-900/50 border border-neutral-800">
             <button
               type="button"
@@ -626,7 +626,7 @@ export default function StoryDetailPage({
                       <span className="text-neutral-300">{story.generation_count}</span>
                     </div>
                   )}
-                  {story.metadata?.custom_mode && (
+                  {!!story.metadata?.custom_mode && (
                     <div>
                       <span className="text-neutral-500">Mode: </span>
                       <span className="text-neutral-300">{story.metadata.custom_mode === 'flip' ? 'Flip a Story' : 'Tell a Story'}</span>
@@ -643,7 +643,7 @@ export default function StoryDetailPage({
                 )}
 
                 {/* Selected categories with vision text previews */}
-                {story.metadata?.category_data && (
+                {!!story.metadata?.category_data && (
                   <div className="space-y-2">
                     <p className="text-xs text-neutral-500 uppercase tracking-widest">Life Areas Used</p>
                     <div className="space-y-2">
@@ -663,7 +663,7 @@ export default function StoryDetailPage({
                 )}
 
                 {/* Focus notes (non-life-vision stories) */}
-                {!story.metadata?.category_data && story.metadata?.focus_notes && (
+                {!story.metadata?.category_data && !!story.metadata?.focus_notes && (
                   <div>
                     <p className="text-xs text-neutral-500 uppercase tracking-widest mb-1">Focus Notes</p>
                     <p className="text-sm text-neutral-300 leading-relaxed">{String(story.metadata.focus_notes)}</p>
@@ -671,7 +671,7 @@ export default function StoryDetailPage({
                 )}
 
                 {/* Raw source input */}
-                {story.metadata?.source_input && (
+                {!!story.metadata?.source_input && (
                   <div>
                     <p className="text-xs text-neutral-500 uppercase tracking-widest mb-1">Original Input</p>
                     <p className="text-neutral-400 whitespace-pre-wrap leading-relaxed text-sm">{String(story.metadata.source_input)}</p>
