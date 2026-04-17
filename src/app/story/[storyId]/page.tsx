@@ -15,6 +15,7 @@ import {
   BookOpen,
   Lightbulb,
   ChevronDown,
+  ChevronUp,
   Play,
   Pause,
   Headphones,
@@ -75,6 +76,8 @@ export default function StoryDetailPage({
   const [editTitle, setEditTitle] = useState('')
   const [editContent, setEditContent] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [showSourceInput, setShowSourceInput] = useState(false)
+  const [visionVersionLabel, setVisionVersionLabel] = useState<string | null>(null)
 
   // Audio state
   const [audioOptions, setAudioOptions] = useState<AudioOption[]>([])
@@ -105,6 +108,21 @@ export default function StoryDetailPage({
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  // Resolve vision version label for life_vision stories
+  useEffect(() => {
+    if (!story || story.entity_type !== 'life_vision' || !story.entity_id) return
+    supabase
+      .from('vision_versions')
+      .select('version_number, is_active')
+      .eq('id', story.entity_id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setVisionVersionLabel(`Version ${data.version_number}${data.is_active ? ' (active)' : ''}`)
+        }
+      })
+  }, [story?.id, story?.entity_type, story?.entity_id, supabase])
 
   // Load audio options when story is available
   useEffect(() => {
@@ -251,9 +269,17 @@ export default function StoryDetailPage({
     setIsSaving(true)
     const payload: UpdateStoryPayload = { content: editContent }
     if (editTitle !== story.title) payload.title = editTitle
+    if (story.status === 'draft' && editContent.trim().length > 0) {
+      payload.status = 'completed'
+    }
     const success = await updateStory(payload)
     setIsSaving(false)
     if (success) setIsEditing(false)
+  }
+
+  async function handleMarkComplete() {
+    if (!story) return
+    await updateStory({ status: 'completed' })
   }
 
   const handleDelete = async () => {
@@ -294,7 +320,7 @@ export default function StoryDetailPage({
   const EntityIcon = meta.icon
   const wordCount = story.word_count || 0
   const readTime = Math.max(1, Math.ceil(wordCount / 200))
-  const focusAreas = story.metadata?.selected_categories || []
+  const focusAreas = (story.metadata?.selected_categories as string[] | undefined) || []
   const selectedOption = audioOptions.find(o => o.id === selectedAudioId)
   const SelectedAudioIcon = selectedOption?.icon || Headphones
 
@@ -333,6 +359,24 @@ export default function StoryDetailPage({
             </div>
           </div>
         </PageHero>
+
+        {story.status === 'draft' && (
+          <div className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
+            <Text size="sm" className="text-amber-400">
+              This story is a draft. Edit and save to mark it complete, or click the button.
+            </Text>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleMarkComplete}
+              disabled={saving || !story.content?.trim()}
+              className="shrink-0 border-amber-500/50 text-amber-400 hover:bg-amber-500/10"
+            >
+              <Check className="w-4 h-4 mr-1.5" />
+              Mark Complete
+            </Button>
+          </div>
+        )}
 
         {/* Story Content */}
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
@@ -503,12 +547,20 @@ export default function StoryDetailPage({
                       <p className="text-sm text-neutral-400">
                         {audioOptions.length > 0 ? 'Generate more tracks or record your voice' : 'Generate your first track or record your voice'}
                       </p>
-                      <Button asChild variant="outline" size="sm" className="rounded-full">
-                        <Link href={`/story/${storyId}/audio`}>
-                          Audio Studio
-                          <ArrowRight className="w-4 h-4 ml-2" />
-                        </Link>
-                      </Button>
+                      <div className="flex flex-wrap gap-2 justify-center">
+                        <Button asChild variant="primary" size="sm" className="rounded-full">
+                          <Link href={`/audio/generate?source=story&sourceId=${storyId}`}>
+                            <Headphones className="w-3.5 h-3.5 mr-1.5" />
+                            Generate Audio
+                          </Link>
+                        </Button>
+                        <Button asChild variant="outline" size="sm" className="rounded-full">
+                          <Link href={`/audio/record?source=story&sourceId=${storyId}`}>
+                            <Mic className="w-3.5 h-3.5 mr-1.5" />
+                            Record
+                          </Link>
+                        </Button>
+                      </div>
                     </div>
                   </div>
 
@@ -518,18 +570,6 @@ export default function StoryDetailPage({
                     <p className="text-neutral-500 italic">No content yet. Click Edit to add your story.</p>
                   )}
                 </section>
-
-                {/* Original Input (what the user submitted to VIVA) */}
-                {story.metadata?.source_input && (
-                  <section className="space-y-3">
-                    <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-                      Your Original Input
-                    </Text>
-                    <div className="rounded-xl bg-neutral-900/50 border border-neutral-800 p-4">
-                      <p className="text-neutral-400 whitespace-pre-wrap leading-relaxed text-sm">{String(story.metadata.source_input)}</p>
-                    </div>
-                  </section>
-                )}
 
                 {/* Edit / Delete actions */}
                 <div className="flex flex-row items-center gap-2 sm:gap-3 sm:justify-end pt-2">
@@ -557,6 +597,90 @@ export default function StoryDetailPage({
             )}
           </Stack>
         </Card>
+
+        {/* Generation Details (collapsed by default) */}
+        {!isEditing && (!!story.metadata?.source_input || story.source === 'ai_generated') && (
+          <div className="rounded-2xl bg-neutral-900/50 border border-neutral-800">
+            <button
+              type="button"
+              onClick={() => setShowSourceInput(!showSourceInput)}
+              className="w-full flex items-center justify-between px-5 py-3 hover:bg-neutral-800/50 transition-colors rounded-2xl"
+            >
+              <span className="text-sm text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">Generation Details</span>
+              {showSourceInput
+                ? <ChevronUp className="w-4 h-4 text-neutral-500" />
+                : <ChevronDown className="w-4 h-4 text-neutral-500" />
+              }
+            </button>
+            {showSourceInput && (
+              <div className="px-5 pb-5 space-y-4">
+                {/* Quick facts row */}
+                <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                  <div>
+                    <span className="text-neutral-500">Source: </span>
+                    <span className="text-neutral-300">{story.source === 'ai_generated' ? 'VIVA Generated' : story.source === 'user_written' ? 'User Written' : story.source || '—'}</span>
+                  </div>
+                  {story.generation_count > 1 && (
+                    <div>
+                      <span className="text-neutral-500">Generations: </span>
+                      <span className="text-neutral-300">{story.generation_count}</span>
+                    </div>
+                  )}
+                  {!!story.metadata?.custom_mode && (
+                    <div>
+                      <span className="text-neutral-500">Mode: </span>
+                      <span className="text-neutral-300">{story.metadata.custom_mode === 'flip' ? 'Flip a Story' : 'Tell a Story'}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Vision version (life_vision stories) */}
+                {story.entity_type === 'life_vision' && visionVersionLabel && (
+                  <div className="text-sm">
+                    <span className="text-neutral-500">Life Vision: </span>
+                    <span className="text-neutral-300">{visionVersionLabel}</span>
+                  </div>
+                )}
+
+                {/* Selected categories with vision text previews */}
+                {!!story.metadata?.category_data && (
+                  <div className="space-y-2">
+                    <p className="text-xs text-neutral-500 uppercase tracking-widest">Life Areas Used</p>
+                    <div className="space-y-2">
+                      {Object.entries(story.metadata.category_data as Record<string, { visionText?: string; focusNotes?: string }>).map(([cat, data]) => (
+                        <div key={cat} className="rounded-xl bg-neutral-800/50 border border-neutral-700/50 px-4 py-3">
+                          <p className="text-xs font-semibold text-purple-400 uppercase tracking-wider mb-1">{cat}</p>
+                          {data.visionText && (
+                            <p className="text-sm text-neutral-300 leading-relaxed line-clamp-3">{data.visionText}</p>
+                          )}
+                          {data.focusNotes && (
+                            <p className="text-xs text-teal-400 mt-1.5">Focus: {data.focusNotes}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Focus notes (non-life-vision stories) */}
+                {!story.metadata?.category_data && !!story.metadata?.focus_notes && (
+                  <div>
+                    <p className="text-xs text-neutral-500 uppercase tracking-widest mb-1">Focus Notes</p>
+                    <p className="text-sm text-neutral-300 leading-relaxed">{String(story.metadata.focus_notes)}</p>
+                  </div>
+                )}
+
+                {/* Raw source input */}
+                {!!story.metadata?.source_input && (
+                  <div>
+                    <p className="text-xs text-neutral-500 uppercase tracking-widest mb-1">Original Input</p>
+                    <p className="text-neutral-400 whitespace-pre-wrap leading-relaxed text-sm">{String(story.metadata.source_input)}</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
       </Stack>
     </Container>

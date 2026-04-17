@@ -5,7 +5,7 @@ import Link from 'next/link'
 import {
   Headphones, Wand2, Compass, ListMusic, Library,
   Target, BookOpen, Music2, ChevronDown, Check, Search,
-  Image, Lightbulb, Clock, FileText,
+  Image, Lightbulb, Clock, FileText, AudioLines, Mic, Music,
 } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { AreaBar } from '@/components/area-studio'
@@ -13,27 +13,24 @@ import { useAudioStudio } from './AudioStudioContext'
 
 const TABS = [
   { label: 'Listen', path: '/audio', icon: Headphones },
-  { label: 'Create', path: '/audio/create', icon: Wand2, matchPaths: ['/audio/generate', '/audio/mix', '/audio/record', '/audio/queue'] },
+  { label: 'Create', path: '/audio/create', icon: Wand2 },
   { label: 'Explore', path: '/audio/explore', icon: Compass },
 ]
 
-const CREATE_ROUTES = ['/audio/create', '/audio/generate', '/audio/mix', '/audio/record']
-const QUEUE_ROUTES = ['/audio/queue']
+const CREATE_AREA_ROUTES = ['/audio/create', '/audio/generate', '/audio/mix', '/audio/record', '/audio/queue']
+
+const SECONDARY_TABS = [
+  { label: 'Generate', path: '/audio/generate', icon: AudioLines },
+  { label: 'Record', path: '/audio/record', icon: Mic },
+  { label: 'Mix', path: '/audio/mix', icon: Music },
+  { label: 'Queue', path: '/audio/queue', icon: Clock },
+]
 
 const CONTENT_TYPES = [
   { value: 'life-vision', label: 'Life Vision', icon: Target },
   { value: 'stories', label: 'Stories', icon: Library },
   { value: 'music', label: 'Music', icon: Music2 },
 ]
-
-const ENTITY_ICONS: Record<string, React.ElementType> = {
-  life_vision: Target,
-  vision_board_item: Image,
-  journal_entry: BookOpen,
-  custom: Lightbulb,
-  goal: BookOpen,
-  schedule_block: Clock,
-}
 
 const BTN = 'w-full h-9 md:h-8 px-3 rounded-xl md:rounded-lg bg-neutral-900/80 md:bg-black/40 border border-neutral-700/50 hover:border-neutral-600 active:bg-neutral-800 transition-colors flex items-center gap-2.5 text-left'
 
@@ -50,7 +47,7 @@ function useClickOutside(ref: React.RefObject<HTMLDivElement | null>, onClose: (
 }
 
 const SOURCE_FILTERS = [
-  { label: 'All Types', value: 'all', icon: BookOpen },
+  { label: 'All Types', value: 'all', icon: Library },
   { label: 'Life Vision', value: 'life_vision', icon: Target },
   { label: 'Vision Board', value: 'vision_board_item', icon: Image },
   { label: 'Journal', value: 'journal_entry', icon: BookOpen },
@@ -60,27 +57,22 @@ const SOURCE_FILTERS = [
 function ListenFilterBar() {
   const {
     listenContentType, setListenContentType,
+    listenStoryFilter, setListenStoryFilter,
     vision, allVisions, switchVision,
     storiesWithAudio,
   } = useAudioStudio()
 
   const [contentTypeOpen, setContentTypeOpen] = useState(false)
   const [secondaryOpen, setSecondaryOpen] = useState(false)
-  const [storyOpen, setStoryOpen] = useState(false)
-  const [storySearch, setStorySearch] = useState('')
-  const [storySourceFilter, setStorySourceFilter] = useState('all')
   const contentTypeRef = useRef<HTMLDivElement>(null)
   const secondaryRef = useRef<HTMLDivElement>(null)
-  const storyRef = useRef<HTMLDivElement>(null)
 
   const closeContentType = useCallback(() => setContentTypeOpen(false), [])
   const closeSecondary = useCallback(() => setSecondaryOpen(false), [])
-  const closeStory = useCallback(() => { setStoryOpen(false); setStorySearch('') }, [])
   useClickOutside(contentTypeRef, closeContentType, contentTypeOpen)
   useClickOutside(secondaryRef, closeSecondary, secondaryOpen)
-  useClickOutside(storyRef, closeStory, storyOpen)
 
-  const closeAll = () => { setContentTypeOpen(false); setSecondaryOpen(false); setStoryOpen(false); setStorySearch('') }
+  const closeAll = () => { setContentTypeOpen(false); setSecondaryOpen(false) }
 
   const activeContentObj = CONTENT_TYPES.find(c => c.value === listenContentType) || CONTENT_TYPES[0]
   const ActiveContentIcon = activeContentObj.icon
@@ -89,16 +81,12 @@ function ListenFilterBar() {
     ? `Version ${vision.version_number}`
     : 'Select Vision'
 
-  const activeSourceObj = SOURCE_FILTERS.find(f => f.value === storySourceFilter) || SOURCE_FILTERS[0]
+  const activeSourceObj = SOURCE_FILTERS.find(f => f.value === listenStoryFilter) || SOURCE_FILTERS[0]
   const ActiveSourceIcon = activeSourceObj.icon
 
-  const filteredByType = storySourceFilter === 'all'
+  const filteredByType = listenStoryFilter === 'all'
     ? storiesWithAudio
-    : storiesWithAudio.filter(s => s.entity_type === storySourceFilter)
-
-  const filteredStories = storySearch.trim()
-    ? filteredByType.filter(s => (s.title || '').toLowerCase().includes(storySearch.toLowerCase()))
-    : filteredByType
+    : storiesWithAudio.filter(s => s.entity_type === listenStoryFilter)
 
   return (
     <div className="flex flex-col gap-2 w-full md:flex-row md:items-center md:max-w-2xl md:mx-auto">
@@ -106,7 +94,7 @@ function ListenFilterBar() {
       <div className="relative md:flex-1 md:min-w-0" ref={contentTypeRef}>
         <button
           type="button"
-          onClick={() => { setContentTypeOpen(prev => !prev); setSecondaryOpen(false); setStoryOpen(false); setStorySearch('') }}
+          onClick={() => { setContentTypeOpen(prev => !prev); setSecondaryOpen(false) }}
           className={BTN}
         >
           <ActiveContentIcon className="w-4 h-4 md:w-3.5 md:h-3.5 text-[#39FF14] flex-shrink-0" />
@@ -187,7 +175,7 @@ function ListenFilterBar() {
         <div className="relative md:flex-1 md:min-w-0" ref={secondaryRef}>
           <button
             type="button"
-            onClick={() => { setSecondaryOpen(prev => !prev); setContentTypeOpen(false); setStoryOpen(false); setStorySearch('') }}
+            onClick={() => { setSecondaryOpen(prev => !prev); setContentTypeOpen(false) }}
             className={BTN}
           >
             <ActiveSourceIcon className="w-4 h-4 md:w-3.5 md:h-3.5 text-[#39FF14] flex-shrink-0" />
@@ -200,13 +188,13 @@ function ListenFilterBar() {
             <div className="absolute z-50 right-0 left-0 mt-1.5 py-1 bg-[#1A1A1A] border border-neutral-700 rounded-xl shadow-2xl">
               {SOURCE_FILTERS.map(filter => {
                 const Icon = filter.icon
-                const isActive = storySourceFilter === filter.value
+                const isActive = listenStoryFilter === filter.value
                 const count = filter.value === 'all' ? storiesWithAudio.length : storiesWithAudio.filter(s => s.entity_type === filter.value).length
                 return (
                   <button
                     key={filter.value}
                     type="button"
-                    onClick={() => { setStorySourceFilter(filter.value); setSecondaryOpen(false) }}
+                    onClick={() => { setListenStoryFilter(filter.value); setSecondaryOpen(false) }}
                     className={`w-full px-3.5 py-2.5 md:px-3 md:py-2 flex items-center gap-2.5 text-left transition-colors ${isActive ? 'bg-[#39FF14]/10' : 'hover:bg-neutral-800 active:bg-neutral-800'}`}
                   >
                     <Icon className={`w-4 h-4 md:w-3.5 md:h-3.5 flex-shrink-0 ${isActive ? 'text-[#39FF14]' : 'text-neutral-500'}`} />
@@ -221,112 +209,40 @@ function ListenFilterBar() {
         </div>
       )}
 
-      {/* Story selector with search (when Stories selected) */}
-      {listenContentType === 'stories' && (
-        <div className="relative md:flex-1 md:min-w-0" ref={storyRef}>
-          <button
-            type="button"
-            onClick={() => { setStoryOpen(prev => !prev); setContentTypeOpen(false); setSecondaryOpen(false) }}
-            className={BTN}
-          >
-            <Search className="w-3.5 h-3.5 text-neutral-500 flex-shrink-0" />
-            <span className="text-xs text-neutral-400 font-medium flex-1">Select a story...</span>
-            <ChevronDown className={`w-3.5 h-3.5 md:w-3 md:h-3 text-neutral-400 transition-transform flex-shrink-0 ${storyOpen ? 'rotate-180' : ''}`} />
-          </button>
-
-          {storyOpen && (
-            <div className="absolute z-50 right-0 left-0 mt-1.5 bg-[#1A1A1A] border border-neutral-700 rounded-xl shadow-2xl overflow-hidden">
-              {filteredByType.length > 3 && (
-                <div className="p-2 border-b border-neutral-700/50">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
-                    <input
-                      type="text"
-                      value={storySearch}
-                      onChange={(e) => setStorySearch(e.target.value)}
-                      placeholder="Search stories..."
-                      className="w-full pl-9 pr-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#39FF14]/50"
-                      autoFocus
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </div>
-                </div>
-              )}
-              <div className="py-1 max-h-64 overflow-y-auto">
-                {filteredStories.length === 0 ? (
-                  <div className="px-4 py-3 text-center">
-                    <p className="text-sm md:text-xs text-neutral-500">
-                      {storySearch.trim() ? `No results for "${storySearch}"` : 'No stories with audio yet'}
-                    </p>
-                  </div>
-                ) : (
-                  filteredStories.map(story => {
-                    const Icon = ENTITY_ICONS[story.entity_type] || FileText
-                    return (
-                      <button
-                        key={story.id}
-                        type="button"
-                        onClick={() => closeStory()}
-                        className="w-full px-3.5 py-2.5 md:px-3 md:py-2 flex items-center gap-2.5 text-left transition-colors hover:bg-neutral-800 active:bg-neutral-800"
-                      >
-                        <Icon className="w-4 h-4 md:w-3.5 md:h-3.5 flex-shrink-0 text-neutral-500" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm md:text-xs font-medium text-neutral-300 truncate">
-                            {story.title || 'Untitled Story'}
-                          </p>
-                          <p className="text-xs md:text-[10px] text-neutral-500">
-                            {story.word_count && story.word_count > 0 ? `${story.word_count.toLocaleString()} words · ` : ''}
-                            {new Date(story.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                          </p>
-                        </div>
-                      </button>
-                    )
-                  })
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   )
 }
 
-function CreateQueueToggle() {
+function CreateSecondaryNav() {
   const pathname = usePathname()
   const { activeBatchCount } = useAudioStudio()
-  const isQueue = QUEUE_ROUTES.some(r => pathname.startsWith(r))
-  const isCreate = !isQueue
 
   return (
     <div className="flex items-center justify-center gap-1 p-1 rounded-xl bg-neutral-900/60 mx-auto">
-      <Link
-        href="/audio/create"
-        className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium rounded-lg transition-all ${
-          isCreate
-            ? 'bg-primary-500/20 text-primary-500'
-            : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
-        }`}
-      >
-        <Wand2 className="w-3.5 h-3.5" />
-        Create
-      </Link>
-      <Link
-        href="/audio/queue"
-        className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium rounded-lg transition-all ${
-          isQueue
-            ? 'bg-primary-500/20 text-primary-500'
-            : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
-        }`}
-      >
-        <ListMusic className="w-3.5 h-3.5" />
-        Queue
-        {activeBatchCount > 0 && (
-          <span className="w-4 h-4 flex items-center justify-center rounded-full bg-[#39FF14] text-black text-[9px] font-bold">
-            {activeBatchCount}
-          </span>
-        )}
-      </Link>
+      {SECONDARY_TABS.map(tab => {
+        const isActive = pathname === tab.path || pathname.startsWith(tab.path + '/')
+        const TabIcon = tab.icon
+        const isQueue = tab.path === '/audio/queue'
+        return (
+          <Link
+            key={tab.path}
+            href={tab.path}
+            className={`flex items-center gap-1.5 px-3 md:px-4 py-1.5 text-xs font-medium rounded-lg transition-all ${
+              isActive
+                ? 'bg-primary-500/20 text-primary-500'
+                : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
+            }`}
+          >
+            <TabIcon className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{tab.label}</span>
+            {isQueue && activeBatchCount > 0 && (
+              <span className="w-4 h-4 flex items-center justify-center rounded-full bg-[#39FF14] text-black text-[9px] font-bold">
+                {activeBatchCount}
+              </span>
+            )}
+          </Link>
+        )
+      })}
     </div>
   )
 }
@@ -335,21 +251,23 @@ export function AudioAreaBar() {
   const pathname = usePathname()
 
   const isListen = pathname === '/audio' || pathname === '/audio/'
-  const isCreateArea = [...CREATE_ROUTES, ...QUEUE_ROUTES].some(r => pathname.startsWith(r))
+  const isCreateArea = CREATE_AREA_ROUTES.some(r => pathname === r || pathname.startsWith(r + '/'))
 
   let contextBar: React.ReactNode = undefined
   if (isListen) {
     contextBar = <ListenFilterBar />
   } else if (isCreateArea) {
-    contextBar = <CreateQueueToggle />
+    contextBar = <CreateSecondaryNav />
   }
+
+  const isOnSecondaryPage = SECONDARY_TABS.some(t => pathname === t.path || pathname.startsWith(t.path + '/'))
 
   return (
     <AreaBar
       area={{ name: 'Audio Studio', icon: Headphones }}
       tabs={TABS}
       contextBar={contextBar}
-      keepTabActive
+      keepTabActive={!isOnSecondaryPage}
       variant="default"
     />
   )

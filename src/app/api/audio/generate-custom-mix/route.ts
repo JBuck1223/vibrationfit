@@ -22,16 +22,21 @@ export async function POST(request: NextRequest) {
     console.log('[CUSTOM MIX] Received request body:', JSON.stringify(body, null, 2))
     
     const {
-      visionId, sections, voice, batchId,
+      visionId, storyId, contentType,
+      sections, voice, batchId,
       backgroundTrackUrl, voiceVolume, bgVolume,
       binauralTrackUrl, binauralVolume,
       outputFormat,
       sourceAudioSetId
     } = body
 
-    if (!visionId || !sections || !voice || !batchId) {
+    const entityId = visionId || storyId
+    const resolvedContentType = contentType || (storyId ? 'story' : 'life_vision')
+    const isStory = resolvedContentType === 'story'
+
+    if (!entityId || !sections || !voice || !batchId) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Missing required fields (visionId or storyId, sections, voice, batchId)' },
         { status: 400 }
       )
     }
@@ -75,7 +80,7 @@ export async function POST(request: NextRequest) {
       : 'individual'
 
     console.log('[CUSTOM MIX] Starting custom mix generation:', {
-      visionId, voice, batchId, backgroundTrackUrl,
+      entityId, contentType: resolvedContentType, voice, batchId, backgroundTrackUrl,
       voiceVolume, bgVolume,
       binauralTrackUrl: binauralTrackUrl || 'none',
       binauralVolume: binauralVolume || 0,
@@ -171,26 +176,32 @@ export async function POST(request: NextRequest) {
       // Personal recordings: use existing tracks directly, create a new mix set
       console.log('[CUSTOM MIX] Using source audio set (personal recording):', sourceAudioSetId)
 
+      const setInsert: any = {
+        user_id: user.id,
+        name: audioSetName,
+        description: audioSetDescription,
+        variant: uniqueVariant,
+        voice_id: voice,
+        is_active: true,
+        content_type: resolvedContentType,
+        metadata: {
+          source_audio_set_id: sourceAudioSetId,
+          voice_volume: adjustedVoiceVol,
+          bg_volume: adjustedBgVol,
+          frequency_volume: binauralVolume || 0,
+          background_track_name: bgTrack?.display_name,
+          frequency_track_name: frequencyTrackName || undefined,
+          frequency_type: frequencyType || undefined,
+        }
+      }
+      if (isStory) {
+        setInsert.content_id = entityId
+      } else {
+        setInsert.vision_id = entityId
+      }
       const { data: newSet, error: setErr } = await supabase
         .from('audio_sets')
-        .insert({
-          vision_id: visionId,
-          user_id: user.id,
-          name: audioSetName,
-          description: audioSetDescription,
-          variant: uniqueVariant,
-          voice_id: voice,
-          is_active: true,
-          metadata: {
-            source_audio_set_id: sourceAudioSetId,
-            voice_volume: adjustedVoiceVol,
-            bg_volume: adjustedBgVol,
-            frequency_volume: binauralVolume || 0,
-            background_track_name: bgTrack?.display_name,
-            frequency_track_name: frequencyTrackName || undefined,
-            frequency_type: frequencyType || undefined,
-          }
-        })
+        .insert(setInsert)
         .select('id')
         .single()
 
@@ -217,23 +228,25 @@ export async function POST(request: NextRequest) {
 
       // Copy tracks into the new mix set and prepare for Lambda mixing
       for (const track of sourceTracks) {
+        const trackInsert: any = {
+          user_id: user.id,
+          audio_set_id: audioSetId,
+          section_key: track.section_key,
+          content_hash: track.content_hash,
+          text_content: track.text_content,
+          voice_id: track.voice_id,
+          s3_bucket: track.s3_bucket,
+          s3_key: track.s3_key,
+          audio_url: track.audio_url,
+          duration_seconds: track.duration_seconds,
+          status: 'completed',
+          mix_status: 'pending',
+          content_type: resolvedContentType,
+        }
+        if (!isStory) trackInsert.vision_id = entityId
         const { data: newTrack } = await supabase
           .from('audio_tracks')
-          .insert({
-            user_id: user.id,
-            vision_id: visionId,
-            audio_set_id: audioSetId,
-            section_key: track.section_key,
-            content_hash: track.content_hash,
-            text_content: track.text_content,
-            voice_id: track.voice_id,
-            s3_bucket: track.s3_bucket,
-            s3_key: track.s3_key,
-            audio_url: track.audio_url,
-            duration_seconds: track.duration_seconds,
-            status: 'completed',
-            mix_status: 'pending'
-          })
+          .insert(trackInsert)
           .select('id')
           .single()
 
@@ -253,7 +266,9 @@ export async function POST(request: NextRequest) {
       // Standard TTS flow: generate voice-only tracks first (or reuse existing ones)
       results = await generateAudioTracks({
         userId: user.id,
-        visionId,
+        visionId: isStory ? undefined : entityId,
+        contentType: resolvedContentType,
+        contentId: isStory ? entityId : undefined,
         sections,
         voice,
         format: 'mp3',
@@ -274,13 +289,17 @@ export async function POST(request: NextRequest) {
 
       console.log('[CUSTOM MIX] Voice generation results:', results)
 
-      const { data: audioSetData } = await supabase
+      let audioSetQuery = supabase
         .from('audio_sets')
         .select('id')
-        .eq('vision_id', visionId)
         .eq('variant', uniqueVariant)
         .eq('voice_id', voice)
-        .single()
+      if (isStory) {
+        audioSetQuery = audioSetQuery.eq('content_type', 'story').eq('content_id', entityId)
+      } else {
+        audioSetQuery = audioSetQuery.eq('vision_id', entityId)
+      }
+      const { data: audioSetData } = await audioSetQuery.single()
 
       if (!audioSetData?.id) {
         console.error('[CUSTOM MIX] Could not find audio set for variant:', uniqueVariant)
@@ -327,9 +346,10 @@ export async function POST(request: NextRequest) {
     let combinedOutputKey: string | null = null
 
     if ((effectiveOutputFormat === 'combined' || effectiveOutputFormat === 'both') && lambdaSections.length > 1) {
-      combinedOutputKey = `user-uploads/${user.id}/life-vision/audio/${visionId}/full-mixed-${audioSetId}.mp3`
+      const s3Folder = isStory ? `story/audio/${entityId}` : `life-vision/audio/${entityId}`
+      combinedOutputKey = `user-uploads/${user.id}/${s3Folder}/full-mixed-${audioSetId}.mp3`
       const combinedAudioUrl = `https://media.vibrationfit.com/${combinedOutputKey}`
-      const contentHash = hashContent(`full-vision-audio-${audioSetId}`).substring(0, 16)
+      const contentHash = hashContent(`full-audio-${audioSetId}`).substring(0, 16)
 
       try {
         // Check for existing full track
@@ -358,22 +378,24 @@ export async function POST(request: NextRequest) {
             combinedTrackId = existing.id
           }
         } else {
+          const fullTrackInsert: any = {
+            audio_set_id: audioSetId,
+            user_id: user.id,
+            section_key: 'full',
+            content_hash: contentHash,
+            text_content: isStory ? 'Full Story Audio - Combined' : 'Full Vision Audio - All Sections Combined',
+            voice_id: voice,
+            s3_bucket: BUCKET_NAME,
+            s3_key: combinedOutputKey,
+            audio_url: combinedAudioUrl,
+            status: 'processing',
+            mix_status: 'mixing',
+            content_type: resolvedContentType,
+          }
+          if (!isStory) fullTrackInsert.vision_id = entityId
           const { data: newTrack, error: insertError } = await supabase
             .from('audio_tracks')
-            .insert({
-              audio_set_id: audioSetId,
-              user_id: user.id,
-              vision_id: visionId,
-              section_key: 'full',
-              content_hash: contentHash,
-              text_content: 'Full Vision Audio - All Sections Combined',
-              voice_id: voice,
-              s3_bucket: BUCKET_NAME,
-              s3_key: combinedOutputKey,
-              audio_url: combinedAudioUrl,
-              status: 'processing',
-              mix_status: 'mixing'
-            })
+            .insert(fullTrackInsert)
             .select('id')
             .single()
 

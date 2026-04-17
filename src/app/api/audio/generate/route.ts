@@ -14,8 +14,10 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await request.json()
-    const { visionId, sections, voice = 'alloy', format = 'mp3', force = false, variant, audioSetId, audioSetName, batchId } = body as {
-      visionId: string
+    const { visionId, storyId, contentType, sections, voice = 'alloy', format = 'mp3', force = false, variant, audioSetId, audioSetName, batchId } = body as {
+      visionId?: string
+      storyId?: string
+      contentType?: string
       sections: { sectionKey: string; text: string }[]
       voice?: VoiceId | string
       format?: 'mp3' | 'wav'
@@ -26,10 +28,13 @@ export async function POST(request: NextRequest) {
       batchId?: string
     }
 
-    console.log('[API] Received generation request:', { visionId, voice, variant: variant || 'standard', sectionCount: sections.length })
+    const entityId = visionId || storyId
+    const resolvedContentType = contentType || (storyId ? 'story' : 'life_vision')
 
-    if (!visionId || !Array.isArray(sections)) {
-      return NextResponse.json({ error: 'visionId and sections are required' }, { status: 400 })
+    console.log('[API] Received generation request:', { visionId, storyId, contentType: resolvedContentType, voice, variant: variant || 'standard', sectionCount: sections?.length })
+
+    if (!entityId || !Array.isArray(sections)) {
+      return NextResponse.json({ error: 'visionId or storyId, and sections are required' }, { status: 400 })
     }
 
     // Calculate total text length for token estimation
@@ -74,7 +79,9 @@ export async function POST(request: NextRequest) {
 
     const results = await generateAudioTracks({
       userId: user.id,
-      visionId,
+      visionId: visionId || undefined,
+      contentType: resolvedContentType,
+      contentId: storyId || undefined,
       sections,
       voice,
       format,

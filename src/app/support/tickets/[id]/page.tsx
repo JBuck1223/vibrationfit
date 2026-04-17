@@ -3,7 +3,7 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   Button,
@@ -13,10 +13,14 @@ import {
   Container,
   Spinner,
   Stack,
-  Textarea,
   Video,
 } from '@/lib/design-system/components'
-import { ArrowLeft, Send } from 'lucide-react'
+import { ArrowLeft, Send, Paperclip, Monitor, Trash2, FileText } from 'lucide-react'
+import { MediaRecorderComponent } from '@/components/MediaRecorder'
+import { RecordingTextarea } from '@/components/RecordingTextarea'
+import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
+import { getSupportAttachmentKind, getSupportAttachmentDisplayName } from '@/lib/support/attachment-utils'
+import { toast } from 'sonner'
 
 interface Ticket {
   id: string
@@ -50,6 +54,11 @@ export default function TicketDetailPage() {
   const [replies, setReplies] = useState<Reply[]>([])
   const [replyText, setReplyText] = useState('')
   const [sending, setSending] = useState(false)
+  const [showRecorder, setShowRecorder] = useState(false)
+  const [recorderKey, setRecorderKey] = useState(0)
+  const [attachmentUrls, setAttachmentUrls] = useState<string[]>([])
+  const [uploadingFile, setUploadingFile] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (ticketId) {
@@ -67,14 +76,33 @@ export default function TicketDetailPage() {
       setReplies(data.replies.filter((r: Reply) => !r.is_internal) || [])
     } catch (error) {
       console.error('Error fetching ticket:', error)
-      alert('Failed to load ticket')
+      toast.error('Failed to load ticket')
     } finally {
       setLoading(false)
     }
   }
 
+  async function handleFileUpload(files: FileList | null) {
+    if (!files || files.length === 0) return
+    setUploadingFile(true)
+    try {
+      for (const file of Array.from(files)) {
+        const { url } = await uploadUserFile('supportAttachments', file)
+        setAttachmentUrls((prev) => [...prev, url])
+      }
+      toast.success(files.length > 1 ? 'Files attached' : 'File attached')
+    } catch (error) {
+      console.error('File upload error:', error)
+      toast.error('Failed to upload file')
+    } finally {
+      setUploadingFile(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
   async function handleSendReply() {
-    if (!replyText.trim()) return
+    const trimmed = replyText.trim()
+    if (!trimmed && attachmentUrls.length === 0) return
 
     setSending(true)
     try {
@@ -82,18 +110,22 @@ export default function TicketDetailPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          reply: replyText,
+          reply: trimmed,
           is_internal: false,
+          attachments: attachmentUrls,
         }),
       })
 
       if (!response.ok) throw new Error('Failed to send reply')
 
       setReplyText('')
+      setAttachmentUrls([])
+      setShowRecorder(false)
       await fetchTicket()
+      toast.success('Reply sent')
     } catch (error) {
       console.error('Error sending reply:', error)
-      alert('Failed to send reply')
+      toast.error('Failed to send reply')
     } finally {
       setSending(false)
     }
@@ -107,12 +139,6 @@ export default function TicketDetailPage() {
       hour: 'numeric',
       minute: '2-digit',
     })
-  }
-
-  function isAudioAttachment(url: string) {
-    const lower = url.toLowerCase()
-    return lower.includes('audio-recording') || lower.endsWith('.mp3') ||
-      lower.endsWith('.wav') || lower.endsWith('.ogg') || lower.endsWith('.m4a')
   }
 
   function getStatusVariant(status: string): BadgeProps['variant'] {
@@ -232,13 +258,31 @@ export default function TicketDetailPage() {
                       </div>
                       {hasVideo && (
                         <div className="space-y-3">
-                          {reply.attachments.map((url, idx) =>
-                            isAudioAttachment(url) ? (
-                              <audio key={idx} src={url} controls className="w-full" preload="metadata" />
-                            ) : (
-                              <Video key={idx} src={url} variant="card" preload="metadata" />
-                            )
-                          )}
+                          {reply.attachments.map((url, idx) => {
+                            const kind = getSupportAttachmentKind(url)
+                            if (kind === 'audio') {
+                              return <audio key={idx} src={url} controls className="w-full" preload="metadata" />
+                            }
+                            if (kind === 'image') {
+                              return <img key={idx} src={url} alt="Attachment" className="w-full rounded-lg object-cover" />
+                            }
+                            if (kind === 'document') {
+                              return (
+                                <div key={idx} className="flex items-center gap-2 p-3 bg-neutral-800 rounded-lg">
+                                  <FileText className="w-5 h-5 text-neutral-400 shrink-0" />
+                                  <a
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm text-secondary-400 hover:underline truncate"
+                                  >
+                                    {getSupportAttachmentDisplayName(url)}
+                                  </a>
+                                </div>
+                              )
+                            }
+                            return <Video key={idx} src={url} variant="card" preload="metadata" />
+                          })}
                         </div>
                       )}
                     </div>
@@ -258,20 +302,132 @@ export default function TicketDetailPage() {
             </h2>
 
             <div className="space-y-4">
-              <Textarea
+              <RecordingTextarea
                 value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
-                placeholder="Type your reply here..."
+                onChange={setReplyText}
+                placeholder="Type your reply here... or use the mic for a voice memo"
                 rows={6}
-                className="w-full"
+                recordingPurpose="quick"
+                storageFolder="journal"
+                category="support-reply"
+                instanceId={`member-support-reply-${ticketId}`}
+                onAudioSaved={(audioUrl) => {
+                  setAttachmentUrls((prev) => [...prev, audioUrl])
+                }}
               />
 
-              <div className="flex justify-end">
+              {attachmentUrls.length > 0 && (
+                <div className="space-y-2">
+                  {attachmentUrls.map((url, idx) => {
+                    const kind = getSupportAttachmentKind(url)
+                    return (
+                      <div key={idx} className="flex items-start gap-3 p-3 bg-neutral-900 rounded-xl border border-[#333]">
+                        {kind === 'audio' ? (
+                          <div className="flex-1 min-w-0">
+                            <audio src={url} controls className="w-full" preload="metadata" />
+                          </div>
+                        ) : kind === 'image' ? (
+                          <div className="w-48 shrink-0">
+                            <img src={url} alt="Attachment" className="w-full rounded-lg object-cover" />
+                          </div>
+                        ) : kind === 'document' ? (
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <FileText className="w-5 h-5 text-neutral-400 shrink-0" />
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-secondary-400 hover:underline truncate"
+                            >
+                              {getSupportAttachmentDisplayName(url)}
+                            </a>
+                          </div>
+                        ) : (
+                          <div className="w-48 shrink-0">
+                            <Video src={url} variant="card" preload="metadata" />
+                          </div>
+                        )}
+                        <div className="shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setAttachmentUrls((prev) => prev.filter((_, i) => i !== idx))}
+                            className="text-red-400 hover:text-red-300 flex items-center gap-1"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {showRecorder && (
+                <div className="border border-[#333] rounded-xl p-4">
+                  <MediaRecorderComponent
+                    key={`member-reply-recorder-${recorderKey}`}
+                    instanceId={`member-support-screen-${recorderKey}`}
+                    mode="screen"
+                    recordingPurpose="support"
+                    storageFolder="supportVideoRecordings"
+                    submitLabel="Attach to Reply"
+                    fullscreenVideo={false}
+                    maxDuration={300}
+                    showSaveOption={false}
+                    onRecordingComplete={(_blob, _transcript, _save, s3Url) => {
+                      if (s3Url) {
+                        setAttachmentUrls((prev) => [...prev, s3Url])
+                        setShowRecorder(false)
+                      }
+                    }}
+                  />
+                </div>
+              )}
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+                onChange={(e) => handleFileUpload(e.target.files)}
+                className="hidden"
+              />
+
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingFile}
+                    className="flex items-center gap-2 text-neutral-400 hover:text-white"
+                  >
+                    {uploadingFile ? <Spinner size="sm" /> : <Paperclip className="w-4 h-4" />}
+                    {uploadingFile ? 'Uploading...' : 'Attach File'}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    type="button"
+                    onClick={() => {
+                      if (!showRecorder) setRecorderKey((k) => k + 1)
+                      setShowRecorder(!showRecorder)
+                    }}
+                    className="flex items-center gap-2 text-neutral-400 hover:text-white"
+                  >
+                    <Monitor className="w-4 h-4" />
+                    {showRecorder ? 'Hide Recorder' : 'Record Screen'}
+                  </Button>
+                </div>
+
                 <Button
                   variant="primary"
                   onClick={handleSendReply}
-                  disabled={sending || !replyText.trim()}
-                  className="flex items-center gap-2"
+                  disabled={sending || (!replyText.trim() && attachmentUrls.length === 0)}
+                  className="flex items-center gap-2 shrink-0"
                 >
                   {sending ? (
                     <>

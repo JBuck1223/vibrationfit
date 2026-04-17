@@ -122,18 +122,28 @@ export async function POST(
     const body = await request.json()
     const { reply, is_internal, attachments } = body
 
-    if (!reply || !reply.trim()) {
-      return NextResponse.json({ error: 'Reply cannot be empty' }, { status: 400 })
+    const attachmentList = Array.isArray(attachments) ? attachments : []
+    const trimmed = typeof reply === 'string' ? reply.trim() : ''
+
+    if (!trimmed && attachmentList.length === 0) {
+      return NextResponse.json(
+        { error: 'Add a message or at least one attachment' },
+        { status: 400 }
+      )
     }
+
+    const message =
+      trimmed ||
+      'Attached files and recordings for this conversation.'
 
     const insertData: Record<string, unknown> = {
       ticket_id: ticketId,
       user_id: user.id,
-      message: reply,
+      message,
       is_staff: isAdmin,
     }
-    if (attachments && Array.isArray(attachments) && attachments.length > 0) {
-      insertData.attachments = attachments
+    if (attachmentList.length > 0) {
+      insertData.attachments = attachmentList
     }
 
     const { data: newReply, error: replyError } = await adminClient

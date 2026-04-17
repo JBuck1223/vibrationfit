@@ -1,10 +1,13 @@
 "use client"
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Spinner, Badge, Container, Stack, Toggle, Select } from '@/lib/design-system/components'
-import { useAudioStudio, QueueStatusBanner } from '@/components/audio-studio'
+import { Button, Card, Spinner, Badge, Container, Stack, Toggle, Select, PageHero } from '@/lib/design-system/components'
+import { useAudioStudio, QueueStatusBanner, AudioSourceSelector } from '@/components/audio-studio'
+import type { AudioSourceSelection } from '@/components/audio-studio'
+import type { VisionData } from '@/components/audio-studio'
+import type { Story } from '@/lib/stories/types'
 import { createClient } from '@/lib/supabase/client'
-import { Headphones, CheckCircle, Play, Moon, Zap, Sparkles, Music, X, Wand2, Mic, Clock, Music2, Plus, ChevronDown, ChevronUp, Waves } from 'lucide-react'
+import { Headphones, CheckCircle, Play, Moon, Zap, Sparkles, Music, X, Wand2, Mic, Clock, Music2, Plus, ChevronDown, ChevronUp, Waves, Search } from 'lucide-react'
 import Link from 'next/link'
 import { getVisionCategoryKeys, VISION_CATEGORIES } from '@/lib/design-system'
 import { SectionSelector } from '@/components/SectionSelector'
@@ -63,8 +66,16 @@ function calculateAdjustedVolumes(voiceVol: number, bgVol: number, binauralVol: 
 
 export default function AudioMixPage() {
   const router = useRouter()
-  const { visionId, vision, visionLoading, refreshAudioSets, refreshBatches } = useAudioStudio()
-  const [loading, setLoading] = useState(true)
+  const { refreshAudioSets, refreshBatches, sourceType, sourceId } = useAudioStudio()
+
+  // Source selection
+  const [selectedSource, setSelectedSource] = useState<AudioSourceSelection | null>(null)
+  const selectedVision = selectedSource?.vision || null
+  const selectedStory = selectedSource?.story || null
+  const activeSourceType = selectedSource?.sourceType || null
+  const activeSourceId = selectedSource?.sourceId || null
+
+  const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [generatingComboId, setGeneratingComboId] = useState<string | null>(null)
   const [voices, setVoices] = useState<Voice[]>([])
@@ -72,11 +83,13 @@ export default function AudioMixPage() {
   
   // Selected base voice for mixing
   const [selectedBaseVoice, setSelectedBaseVoice] = useState<string>('')
+  const [baseVoiceSearch, setBaseVoiceSearch] = useState('')
   
   // Background Track Selection
   const [backgroundTracks, setBackgroundTracks] = useState<BackgroundTrack[]>([])
   const [selectedBackgroundTrack, setSelectedBackgroundTrack] = useState<string>('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [bgTrackSearch, setBgTrackSearch] = useState('')
   
   // Mix Ratio Selection
   const [mixRatios, setMixRatios] = useState<MixRatio[]>([])
@@ -87,6 +100,7 @@ export default function AudioMixPage() {
   const [selectedBinauralTrack, setSelectedBinauralTrack] = useState<string>('')
   const [binauralVolume, setBinauralVolume] = useState<number>(0)
   const [binauralFilter, setBinauralFilter] = useState<string>('all')
+  const [binauralSearch, setBinauralSearch] = useState('')
   
   // Intensive mode: hide Binaural Enhancement until user completes intensive (graduate unlock)
   const [isIntensiveMode, setIsIntensiveMode] = useState(false)
@@ -190,13 +204,20 @@ export default function AudioMixPage() {
   const [selectedMixSections, setSelectedMixSections] = useState<string[]>([])
   const [mixOutputFormat, setMixOutputFormat] = useState<OutputFormat>('both')
   
+  function handleSourceSelected(selection: AudioSourceSelection) {
+    setSelectedSource(selection)
+    setExistingVoiceSets([])
+    setSelectedBaseVoice('')
+    setLoading(true)
+  }
+
   useEffect(() => {
-    if (!visionId || visionLoading) return
+    if (!selectedSource) return
     loadData()
-  }, [visionId, visionLoading])
+  }, [selectedSource?.sourceId])
 
   async function loadData() {
-    if (!visionId) return
+    if (!activeSourceId) return
     const supabase = createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -224,7 +245,7 @@ export default function AudioMixPage() {
     } catch {}
 
     // Load existing voice-only (standard + personal) sets with their actual tracks
-    const { data: sets } = await supabase
+    let setsQuery = supabase
       .from('audio_sets')
       .select(`
         id,
@@ -233,9 +254,16 @@ export default function AudioMixPage() {
         created_at,
         audio_tracks(section_key, status, audio_url)
       `)
-      .eq('vision_id', visionId)
       .in('variant', ['standard', 'personal'])
       .order('created_at', { ascending: false })
+
+    if (activeSourceType === 'life_vision') {
+      setsQuery = setsQuery.eq('vision_id', activeSourceId)
+    } else if (activeSourceType === 'story') {
+      setsQuery = setsQuery.eq('content_type', 'story').eq('content_id', activeSourceId)
+    }
+
+    const { data: sets } = await setsQuery
 
     const orderedKeys = VISION_CATEGORIES.map(c => c.key) as string[]
     const voiceSets: ExistingVoiceSet[] = (sets || []).map((set: any) => {
@@ -354,69 +382,93 @@ export default function AudioMixPage() {
         return
       }
 
-      const { data: vv } = await supabase
-        .from('vision_versions')
-        .select('*')
-        .eq('id', visionId)
-        .single()
+      let sectionsPayload: { sectionKey: string; text: string }[] = []
 
-      if (!vv) {
-        alert('Vision not found')
+      if (activeSourceType === 'life_vision') {
+        const { data: vv } = await supabase
+          .from('vision_versions')
+          .select('*')
+          .eq('id', activeSourceId)
+          .single()
+
+        if (!vv) {
+          alert('Vision not found')
+          setGeneratingComboId(null)
+          return
+        }
+
+        const selectedVoiceSetData = existingVoiceSets.find(set => set.voice_id === selectedBaseVoice)
+        const availableSections = selectedVoiceSetData?.available_sections || []
+        
+        if (availableSections.length === 0) {
+          alert('No voice-only tracks available for mixing. Please generate voice-only tracks first.')
+          setGeneratingComboId(null)
+          return
+        }
+        
+        const catOrder = VISION_CATEGORIES.map(c => c.key) as string[]
+        const sections = [...availableSections]
+          .sort((a, b) => catOrder.indexOf(a) - catOrder.indexOf(b))
+          .map(key => ({ key, text: vv[key] || '' }))
+          .filter(s => s.text.trim().length > 0)
+
+        sectionsPayload = sections.map(s => ({ sectionKey: s.key, text: s.text }))
+      } else if (activeSourceType === 'story' && selectedStory) {
+        const content = selectedStory.content || ''
+        if (!content.trim()) {
+          alert('Story has no content.')
+          setGeneratingComboId(null)
+          return
+        }
+        sectionsPayload = [{ sectionKey: 'full', text: content }]
+      }
+
+      if (sectionsPayload.length === 0) {
+        alert('No content found for mixing.')
         setGeneratingComboId(null)
         return
       }
 
-      // Get only sections that have voice-only tracks available for the selected voice
       const selectedVoiceSetData = existingVoiceSets.find(set => set.voice_id === selectedBaseVoice)
-      const availableSections = selectedVoiceSetData?.available_sections || []
-      
-      if (availableSections.length === 0) {
-        alert('No voice-only tracks available for mixing. Please generate voice-only tracks first.')
-        setGeneratingComboId(null)
-        return
-      }
-      
-      // Build sections only for tracks that actually exist, sorted by vision category order
-      const catOrder = VISION_CATEGORIES.map(c => c.key) as string[]
-      const sections = [...availableSections]
-        .sort((a, b) => catOrder.indexOf(a) - catOrder.indexOf(b))
-        .map(key => ({ key, text: vv[key] || '' }))
-        .filter(s => s.text.trim().length > 0)
-
-      const sectionsPayload = sections.map(s => ({
-        sectionKey: s.key,
-        text: s.text
-      }))
 
       const selectedTrack = combo.background_track
       const selectedRatio = combo.mix_ratio
       const selectedBinaural = combo.binaural_track
 
+      const batchInsert: any = {
+        user_id: user.id,
+        variant_ids: ['custom'],
+        voice_id: selectedBaseVoice,
+        sections_requested: sectionsPayload,
+        total_tracks_expected: sectionsPayload.length + (sectionsPayload.length > 1 ? 1 : 0),
+        status: 'pending',
+        metadata: {
+          custom_mix: true,
+          output_format: 'both',
+          source_type: activeSourceType,
+          background_track_id: combo.background_track_id,
+          background_track_url: selectedTrack?.file_url,
+          mix_ratio_id: combo.mix_ratio_id,
+          voice_volume: selectedRatio.voice_volume,
+          bg_volume: selectedRatio.bg_volume,
+          ...(combo.binaural_track_id && {
+            binaural_track_id: combo.binaural_track_id,
+            binaural_track_url: selectedBinaural.file_url,
+            binaural_volume: combo.binaural_volume || 15
+          }),
+          ...(activeSourceType === 'story' && { story_id: activeSourceId, content_type: 'story' })
+        }
+      }
+      if (activeSourceType === 'life_vision') {
+        batchInsert.vision_id = activeSourceId
+      } else if (activeSourceType === 'story') {
+        batchInsert.content_type = 'story'
+        batchInsert.content_id = activeSourceId
+      }
+
       const { data: batch, error: batchError } = await supabase
         .from('audio_generation_batches')
-        .insert({
-          user_id: user.id,
-          vision_id: visionId,
-          variant_ids: ['custom'],
-          voice_id: selectedBaseVoice,
-          sections_requested: sectionsPayload,
-          total_tracks_expected: sectionsPayload.length + (sectionsPayload.length > 1 ? 1 : 0),
-          status: 'pending',
-          metadata: {
-            custom_mix: true,
-            output_format: 'both',
-            background_track_id: combo.background_track_id,
-            background_track_url: selectedTrack?.file_url,
-            mix_ratio_id: combo.mix_ratio_id,
-            voice_volume: selectedRatio.voice_volume,
-            bg_volume: selectedRatio.bg_volume,
-            ...(combo.binaural_track_id && {
-              binaural_track_id: combo.binaural_track_id,
-              binaural_track_url: selectedBinaural.file_url,
-              binaural_volume: combo.binaural_volume || 15
-            })
-          }
-        })
+        .insert(batchInsert)
         .select()
         .single()
 
@@ -428,7 +480,6 @@ export default function AudioMixPage() {
       }
 
       const comboPayload: any = {
-        visionId,
         batchId: batch.id,
         voice: selectedBaseVoice,
         sections: sectionsPayload,
@@ -440,7 +491,15 @@ export default function AudioMixPage() {
         outputFormat: 'both'
       }
 
-      if (selectedVoiceSet.variant === 'personal') {
+      if (activeSourceType === 'life_vision') {
+        comboPayload.visionId = activeSourceId
+      } else if (activeSourceType === 'story') {
+        comboPayload.storyId = activeSourceId
+        comboPayload.contentType = 'story'
+      }
+
+      const selectedVoiceSet = selectedVoiceSetData
+      if (selectedVoiceSet?.variant === 'personal') {
         comboPayload.sourceAudioSetId = selectedVoiceSet.id
       }
 
@@ -498,54 +557,53 @@ export default function AudioMixPage() {
         return
       }
 
-      const { data: vv } = await supabase
-        .from('vision_versions')
-        .select('*')
-        .eq('id', visionId)
-        .single()
-
-      if (!vv) {
-        alert('Vision not found')
-        setGenerating(false)
-        return
-      }
-
-      // Get only sections that have voice-only tracks available for the selected voice
       const selectedVoiceSetData = existingVoiceSets.find(set => set.voice_id === selectedBaseVoice)
       const availableSections = selectedVoiceSetData?.available_sections || []
-      
-      if (availableSections.length === 0) {
-        alert('No voice-only tracks available for mixing. Please generate voice-only tracks first.')
-        setGenerating(false)
-        return
+
+      let sections: { key: string; text: string }[] = []
+
+      if (activeSourceType === 'life_vision') {
+        const { data: vv } = await supabase
+          .from('vision_versions')
+          .select('*')
+          .eq('id', activeSourceId)
+          .single()
+
+        if (!vv) {
+          alert('Vision not found')
+          setGenerating(false)
+          return
+        }
+
+        if (availableSections.length === 0) {
+          alert('No voice-only tracks available for mixing.')
+          setGenerating(false)
+          return
+        }
+
+        const catOrderKeys = VISION_CATEGORIES.map(c => c.key) as string[]
+
+        if (mixAllSections) {
+          sections = [...availableSections]
+            .sort((a, b) => catOrderKeys.indexOf(a) - catOrderKeys.indexOf(b))
+            .map(key => ({ key, text: vv[key] || '' }))
+        } else {
+          const validSelections = selectedMixSections.filter(key => availableSections.includes(key))
+          const sortedSelectedSections = [...validSelections].sort(
+            (a, b) => catOrderKeys.indexOf(a) - catOrderKeys.indexOf(b)
+          )
+          sections = sortedSelectedSections.map(key => ({ key, text: vv[key] || '' }))
+        }
+        sections = sections.filter(s => s.text.trim().length > 0)
+      } else if (activeSourceType === 'story' && selectedStory) {
+        const content = selectedStory.content || ''
+        if (!content.trim()) {
+          alert('Story has no content.')
+          setGenerating(false)
+          return
+        }
+        sections = [{ key: 'full', text: content }]
       }
-      
-      // Build sections based on user selection, but only include sections that exist
-      let sectionsToMix: { key: string; text: string }[] = []
-      const catOrderKeys = VISION_CATEGORIES.map(c => c.key) as string[]
-      
-      if (mixAllSections) {
-        // Use all available sections, sorted by vision category order
-        sectionsToMix = [...availableSections]
-          .sort((a, b) => catOrderKeys.indexOf(a) - catOrderKeys.indexOf(b))
-          .map(key => ({
-            key,
-            text: vv[key] || ''
-          }))
-      } else {
-        // Filter selected sections to only include those that are actually available
-        const orderedKeys = VISION_CATEGORIES.map(c => c.key) as string[]
-        const validSelections = selectedMixSections.filter(key => availableSections.includes(key))
-        const sortedSelectedSections = [...validSelections].sort(
-          (a, b) => orderedKeys.indexOf(a) - orderedKeys.indexOf(b)
-        )
-        sectionsToMix = sortedSelectedSections.map(key => ({
-          key,
-          text: vv[key] || ''
-        }))
-      }
-      
-      const sections = sectionsToMix.filter(s => s.text.trim().length > 0)
       
       if (sections.length === 0) {
         alert('No content found for the selected sections.')
@@ -591,42 +649,51 @@ export default function AudioMixPage() {
       const effectiveOutputFormat = sections.length === 1 ? 'individual' : mixOutputFormat
       const includesCombinedTrack = (effectiveOutputFormat === 'both' || effectiveOutputFormat === 'combined') && sectionsPayload.length > 1
 
+      const batchMeta: any = {
+        custom_mix: true,
+        output_format: effectiveOutputFormat,
+        source_type: activeSourceType,
+        mix_all_sections: mixAllSections,
+        selected_sections: mixAllSections ? null : selectedMixSections,
+        audio_set_name: mixSetName || null,
+        background_track_id: selectedBackgroundTrack,
+        background_track_url: selectedTrack?.file_url,
+        mix_ratio_id: selectedMixRatio,
+        voice_volume: selectedBinaural && binauralVolume > 0
+          ? Math.round((selectedRatio.voice_volume / (selectedRatio.voice_volume + selectedRatio.bg_volume)) * (100 - binauralVolume))
+          : selectedRatio.voice_volume,
+        bg_volume: selectedBinaural && binauralVolume > 0
+          ? Math.round((selectedRatio.bg_volume / (selectedRatio.voice_volume + selectedRatio.bg_volume)) * (100 - binauralVolume))
+          : selectedRatio.bg_volume,
+        original_voice_volume: selectedRatio.voice_volume,
+        original_bg_volume: selectedRatio.bg_volume,
+        ...(selectedBinaural && {
+          binaural_track_id: selectedBinauralTrack,
+          binaural_track_url: selectedBinaural.file_url,
+          binaural_volume: binauralVolume
+        }),
+        ...(activeSourceType === 'story' && { story_id: activeSourceId, content_type: 'story' })
+      }
+
+      const batchRow: any = {
+        user_id: user.id,
+        variant_ids: ['custom'],
+        voice_id: selectedBaseVoice,
+        sections_requested: sectionsPayload,
+        total_tracks_expected: sectionsPayload.length + (includesCombinedTrack ? 1 : 0),
+        status: 'pending',
+        metadata: batchMeta,
+      }
+      if (activeSourceType === 'life_vision') {
+        batchRow.vision_id = activeSourceId
+      } else if (activeSourceType === 'story') {
+        batchRow.content_type = 'story'
+        batchRow.content_id = activeSourceId
+      }
+
       const { data: batch, error: batchError } = await supabase
         .from('audio_generation_batches')
-        .insert({
-          user_id: user.id,
-          vision_id: visionId,
-          variant_ids: ['custom'],
-          voice_id: selectedBaseVoice,
-          sections_requested: sectionsPayload,
-          total_tracks_expected: sectionsPayload.length + (includesCombinedTrack ? 1 : 0),
-          status: 'pending',
-          metadata: {
-            custom_mix: true,
-            output_format: effectiveOutputFormat,
-            mix_all_sections: mixAllSections,
-            selected_sections: mixAllSections ? null : selectedMixSections,
-            audio_set_name: mixSetName || null,
-            background_track_id: selectedBackgroundTrack,
-            background_track_url: selectedTrack?.file_url,
-            mix_ratio_id: selectedMixRatio,
-            // Store ADJUSTED volumes (accounting for binaural if present)
-            voice_volume: selectedBinaural && binauralVolume > 0
-              ? Math.round((selectedRatio.voice_volume / (selectedRatio.voice_volume + selectedRatio.bg_volume)) * (100 - binauralVolume))
-              : selectedRatio.voice_volume,
-            bg_volume: selectedBinaural && binauralVolume > 0
-              ? Math.round((selectedRatio.bg_volume / (selectedRatio.voice_volume + selectedRatio.bg_volume)) * (100 - binauralVolume))
-              : selectedRatio.bg_volume,
-            // Also store original ratio for reference
-            original_voice_volume: selectedRatio.voice_volume,
-            original_bg_volume: selectedRatio.bg_volume,
-            ...(selectedBinaural && {
-              binaural_track_id: selectedBinauralTrack,
-              binaural_track_url: selectedBinaural.file_url,
-              binaural_volume: binauralVolume
-            })
-          }
-        })
+        .insert(batchRow)
         .select()
         .single()
 
@@ -638,7 +705,6 @@ export default function AudioMixPage() {
       }
 
       const generatePayload: any = {
-        visionId,
         sections: sectionsPayload,
         voice: selectedBaseVoice,
         batchId: batch.id,
@@ -647,6 +713,13 @@ export default function AudioMixPage() {
         bgVolume: selectedRatio.bg_volume,
         audioSetName: mixSetName || undefined,
         outputFormat: effectiveOutputFormat
+      }
+
+      if (activeSourceType === 'life_vision') {
+        generatePayload.visionId = activeSourceId
+      } else if (activeSourceType === 'story') {
+        generatePayload.storyId = activeSourceId
+        generatePayload.contentType = 'story'
       }
       
       if (selectedVoiceSet?.variant === 'personal') {
@@ -670,7 +743,7 @@ export default function AudioMixPage() {
         console.error('Generation API error:', err)
       })
 
-      router.push(`/audio/listen`)
+      router.push(`/audio`)
     } catch (error) {
       console.error('Generation error:', error)
       alert('An error occurred during generation. Please try again.')
@@ -678,21 +751,30 @@ export default function AudioMixPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <Container size="xl">
-        <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-          <Spinner size="lg" />
-        </div>
-      </Container>
-    )
-  }
+  return (
+    <Container size="xl" className="py-6">
+      <Stack gap="lg">
+        <PageHero
+          title="Mix Audio"
+          subtitle="Add background music and binaural beats to your existing voice tracks."
+        />
 
-  if (existingVoiceSets.length === 0) {
-    return (
-      <Container size="xl" className="py-6">
-        <Stack gap="lg">
-          <QueueStatusBanner />
+        <QueueStatusBanner />
+
+        {/* Source Selector */}
+        <AudioSourceSelector
+          onSourceSelected={handleSourceSelected}
+          initialSourceType={sourceType}
+          initialSourceId={sourceId}
+        />
+
+        {loading && (
+          <div className="flex min-h-[20vh] items-center justify-center">
+            <Spinner size="lg" />
+          </div>
+        )}
+
+        {selectedSource && !loading && existingVoiceSets.length === 0 && (
           <Card variant="glass" className="p-6 md:p-8 text-center">
             <div className="w-16 h-16 bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
               <Mic className="w-8 h-8 text-neutral-500" />
@@ -702,21 +784,16 @@ export default function AudioMixPage() {
               You need to generate voice-only tracks first before you can create mixes with background music.
             </p>
             <Button variant="primary" asChild>
-              <Link href="/audio/generate">
+              <Link href={activeSourceType && activeSourceId ? `/audio/generate?source=${activeSourceType}&sourceId=${activeSourceId}` : '/audio/generate'}>
                 <Plus className="w-4 h-4 mr-2" />
                 Generate Voice Tracks
               </Link>
             </Button>
           </Card>
-        </Stack>
-      </Container>
-    )
-  }
+        )}
 
-  return (
-    <Container size="xl" className="py-6">
-      <Stack gap="lg">
-        <QueueStatusBanner />
+        {selectedSource && !loading && existingVoiceSets.length > 0 && (
+          <>
 
         {/* Step 1: Select Base Voice */}
         <Card variant="glass" className="p-4 md:p-6">
@@ -728,8 +805,31 @@ export default function AudioMixPage() {
             <p className="text-sm text-neutral-400">Choose which voice recording to mix</p>
           </div>
 
+          {existingVoiceSets.length > 5 && (
+            <div className="relative max-w-md mx-auto mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
+              <input
+                type="text"
+                value={baseVoiceSearch}
+                onChange={(e) => setBaseVoiceSearch(e.target.value)}
+                placeholder="Search by voice name or type..."
+                className="w-full pl-9 pr-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#39FF14]/50"
+              />
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {existingVoiceSets.map((set) => {
+            {(baseVoiceSearch.trim()
+              ? existingVoiceSets.filter(set => {
+                  const q = baseVoiceSearch.toLowerCase()
+                  return (
+                    set.voice_name.toLowerCase().includes(q) ||
+                    set.variant.toLowerCase().includes(q) ||
+                    (set.variant === 'personal' && 'recorded'.includes(q))
+                  )
+                })
+              : existingVoiceSets
+            ).map((set) => {
               const isPreviewing = previewingTrack === set.voice_id
               return (
                 <Card 
@@ -1115,9 +1215,30 @@ export default function AudioMixPage() {
                   ))}
                 </div>
 
+                {backgroundTracks.length > 6 && (
+                  <div className="relative max-w-md mx-auto mb-4">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
+                    <input
+                      type="text"
+                      value={bgTrackSearch}
+                      onChange={(e) => setBgTrackSearch(e.target.value)}
+                      placeholder="Search tracks by name or description..."
+                      className="w-full pl-9 pr-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#39FF14]/50"
+                    />
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {backgroundTracks
                     .filter(track => selectedCategory === 'all' || track.category === selectedCategory)
+                    .filter(track => {
+                      if (!bgTrackSearch.trim()) return true
+                      const q = bgTrackSearch.toLowerCase()
+                      return (
+                        track.display_name.toLowerCase().includes(q) ||
+                        (track.description || '').toLowerCase().includes(q)
+                      )
+                    })
                     .map((track) => {
                       const isSelected = selectedBackgroundTrack === track.id
                       const isPreviewing = previewingTrack === track.id
@@ -1227,6 +1348,19 @@ export default function AudioMixPage() {
                     <Button size="sm" variant={binauralFilter === 'alpha' ? 'primary' : 'outline'} onClick={() => setBinauralFilter('alpha')}>Alpha (Focus)</Button>
                     <Button size="sm" variant={binauralFilter === 'beta' ? 'primary' : 'outline'} onClick={() => setBinauralFilter('beta')}>Beta (Alert)</Button>
                   </div>
+
+                  {binauralTracks.length > 6 && (
+                    <div className="relative max-w-md mx-auto mb-4">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
+                      <input
+                        type="text"
+                        value={binauralSearch}
+                        onChange={(e) => setBinauralSearch(e.target.value)}
+                        placeholder="Search binaural tracks..."
+                        className="w-full pl-9 pr-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#39FF14]/50"
+                      />
+                    </div>
+                  )}
                   
                   <div className="space-y-2 mb-4 max-h-80 overflow-y-auto">
                     <div
@@ -1252,6 +1386,14 @@ export default function AudioMixPage() {
                         if (binauralFilter === 'all') return true
                         if (binauralFilter === 'pure') return track.name.includes('-pure')
                         return track.name.includes(`-${binauralFilter}`)
+                      })
+                      .filter(track => {
+                        if (!binauralSearch.trim()) return true
+                        const q = binauralSearch.toLowerCase()
+                        return (
+                          track.display_name.toLowerCase().includes(q) ||
+                          (track.description || '').toLowerCase().includes(q)
+                        )
                       })
                       .map((track) => {
                         const isSelected = selectedBinauralTrack === track.id
@@ -1508,6 +1650,8 @@ export default function AudioMixPage() {
             </>
           )}
         </Card>
+        </>
+        )}
       </Stack>
     </Container>
   )

@@ -1,9 +1,12 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react'
+import React, { createContext, useContext, useEffect, useState, useRef, useCallback, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { AudioTrack } from '@/lib/design-system/components/media/types'
 import type { Story } from '@/lib/stories/types'
+
+type AudioSourceType = 'life_vision' | 'story' | null
 
 interface VisionData {
   id: string
@@ -44,6 +47,9 @@ interface QueueBatch {
   voice_id: string
   variant_ids: string[]
   created_at: string
+  metadata?: Record<string, any>
+  content_type?: string
+  content_id?: string
 }
 
 interface PlayerState {
@@ -92,6 +98,14 @@ interface AudioStudioContextValue {
   audioRef: React.RefObject<HTMLAudioElement | null>
   currentTime: number
   duration: number
+  sourceType: AudioSourceType
+  sourceId: string | null
+  setSource: (type: AudioSourceType, id: string | null) => void
+  allStories: Story[]
+  allStoriesLoading: boolean
+  allBatches: QueueBatch[]
+  allBatchesLoading: boolean
+  refreshAllBatches: () => Promise<void>
 }
 
 const AudioStudioContext = createContext<AudioStudioContextValue | null>(null)
@@ -122,6 +136,14 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
   const [storiesWithAudioLoading, setStoriesWithAudioLoading] = useState(true)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
+  const [sourceType, setSourceType] = useState<AudioSourceType>(null)
+  const [sourceId, setSourceId] = useState<string | null>(null)
+  const [allStories, setAllStories] = useState<Story[]>([])
+  const [allStoriesLoading, setAllStoriesLoading] = useState(true)
+  const [allBatches, setAllBatches] = useState<QueueBatch[]>([])
+  const [allBatchesLoading, setAllBatchesLoading] = useState(false)
+
+  const searchParams = useSearchParams()
 
   const [player, setPlayer] = useState<PlayerState>({
     tracks: [],
@@ -355,6 +377,67 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
 
   useEffect(() => { loadStoriesWithAudio() }, [])
 
+  // Read source from URL params on mount
+  useEffect(() => {
+    const urlSource = searchParams.get('source') as AudioSourceType
+    const urlSourceId = searchParams.get('sourceId')
+    if (urlSource && urlSourceId) {
+      setSourceType(urlSource)
+      setSourceId(urlSourceId)
+    }
+  }, [searchParams])
+
+  const setSource = useCallback((type: AudioSourceType, id: string | null) => {
+    setSourceType(type)
+    setSourceId(id)
+  }, [])
+
+  // Load all completed stories (for source selectors)
+  useEffect(() => { loadAllStories() }, [])
+
+  async function loadAllStories() {
+    setAllStoriesLoading(true)
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setAllStoriesLoading(false); return }
+    const { data } = await supabase
+      .from('stories')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('status', 'completed')
+      .order('updated_at', { ascending: false })
+    if (data) setAllStories(data as Story[])
+    setAllStoriesLoading(false)
+  }
+
+  // Load all batches across all sources (for unified queue)
+  async function loadAllBatches() {
+    setAllBatchesLoading(true)
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setAllBatchesLoading(false); return }
+    const { data: batches } = await supabase
+      .from('audio_generation_batches')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(50)
+    if (batches) setAllBatches(batches)
+    setAllBatchesLoading(false)
+  }
+
+  const refreshAllBatches = useCallback(async () => {
+    await loadAllBatches()
+  }, [])
+
+  // Poll for all-batch updates when active batches exist
+  useEffect(() => {
+    const hasActive = allBatches.some(b => ['pending', 'processing'].includes(b.status))
+    if (!hasActive) return
+    const interval = setInterval(loadAllBatches, 5000)
+    return () => clearInterval(interval)
+  }, [allBatches])
+
   const playTracks = useCallback((tracks: AudioTrack[], startIndex = 0, setName?: string) => {
     if (!audioRef.current || tracks.length === 0) return
 
@@ -456,6 +539,14 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
         audioRef,
         currentTime,
         duration,
+        sourceType,
+        sourceId,
+        setSource,
+        allStories,
+        allStoriesLoading,
+        allBatches,
+        allBatchesLoading,
+        refreshAllBatches,
       }}
     >
       {children}
@@ -463,4 +554,4 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
   )
 }
 
-export type { VisionData, AudioSetItem, QueueBatch, PlayerState, ActivationChecklist }
+export type { VisionData, AudioSetItem, QueueBatch, PlayerState, ActivationChecklist, AudioSourceType }
