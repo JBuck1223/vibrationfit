@@ -47,6 +47,9 @@ interface QueueBatch {
   voice_id: string
   variant_ids: string[]
   created_at: string
+  metadata?: Record<string, any>
+  content_type?: string
+  content_id?: string
 }
 
 interface PlayerState {

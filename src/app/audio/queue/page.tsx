@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Container, Stack, Card, Spinner, Button, DeleteConfirmationDialog } from '@/lib/design-system/components'
+import { Container, Stack, Card, Spinner, Button, DeleteConfirmationDialog, PageHero } from '@/lib/design-system/components'
 import { Clock, CheckCircle, AlertCircle, Loader2, ListMusic, Trash2, Target, BookOpen } from 'lucide-react'
 import { useAudioStudio } from '@/components/audio-studio'
 import { createClient } from '@/lib/supabase/client'
@@ -22,6 +22,8 @@ const STATUS_META: Record<string, { label: string; icon: React.ElementType; colo
 export default function AudioQueuePage() {
   const { allBatches, allBatchesLoading, refreshAllBatches } = useAudioStudio()
   const [voices, setVoices] = useState<Voice[]>([])
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [sourceFilter, setSourceFilter] = useState<string>('all')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [batchToDelete, setBatchToDelete] = useState<any>(null)
   const [deleting, setDeleting] = useState(false)
@@ -73,16 +75,43 @@ export default function AudioQueuePage() {
     )
   }
 
-  const active = allBatches.filter(b => ['pending', 'processing'].includes(b.status))
-  const completed = allBatches.filter(b => !['pending', 'processing'].includes(b.status))
+  const STATUS_CHIPS = [
+    { key: 'all', label: 'All' },
+    { key: 'in_progress', label: 'In Progress' },
+    { key: 'completed', label: 'Completed' },
+    { key: 'failed', label: 'Failed' },
+  ]
+  const SOURCE_CHIPS = [
+    { key: 'all', label: 'All Sources' },
+    { key: 'life_vision', label: 'Life Vision' },
+    { key: 'story', label: 'Story' },
+  ]
+
+  const filteredBatches = allBatches.filter(b => {
+    if (statusFilter === 'in_progress' && !['pending', 'processing'].includes(b.status)) return false
+    if (statusFilter === 'completed' && b.status !== 'completed') return false
+    if (statusFilter === 'failed' && !['failed', 'partial_success'].includes(b.status)) return false
+
+    if (sourceFilter !== 'all') {
+      const batchSource = b.metadata?.source_type || (b.vision_id ? 'life_vision' : 'unknown')
+      const isStory = batchSource === 'story' || b.metadata?.content_type === 'story'
+      if (sourceFilter === 'story' && !isStory) return false
+      if (sourceFilter === 'life_vision' && isStory) return false
+    }
+
+    return true
+  })
+
+  const active = filteredBatches.filter(b => ['pending', 'processing'].includes(b.status))
+  const completed = filteredBatches.filter(b => !['pending', 'processing'].includes(b.status))
 
   return (
     <Container size="xl" className="py-6">
       <Stack gap="lg">
-        <div className="text-center">
-          <h2 className="text-xl md:text-2xl font-bold text-white mb-2">Generation Queue</h2>
-          <p className="text-sm text-neutral-400">Track the progress of all your audio generation and mixing jobs.</p>
-        </div>
+        <PageHero
+          title="Generation Queue"
+          subtitle="Track the progress of your audio generation and mixing jobs."
+        />
 
         {allBatches.length === 0 ? (
           <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] text-center py-12">
@@ -92,32 +121,76 @@ export default function AudioQueuePage() {
           </Card>
         ) : (
           <>
-            {active.length > 0 && (
-              <section className="space-y-3">
-                <h3 className="text-sm font-semibold text-white uppercase tracking-wider">In Progress</h3>
-                {active.map(batch => (
-                  <BatchCard
-                    key={batch.id}
-                    batch={batch}
-                    voices={voices}
-                    onDelete={(b) => { setBatchToDelete(b); setShowDeleteConfirm(true) }}
-                  />
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                {STATUS_CHIPS.map(chip => (
+                  <button
+                    key={chip.key}
+                    type="button"
+                    onClick={() => setStatusFilter(chip.key)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                      statusFilter === chip.key
+                        ? 'bg-[#39FF14]/20 text-[#39FF14] border border-[#39FF14]/30'
+                        : 'bg-neutral-800 text-neutral-400 border border-neutral-700 hover:border-neutral-600'
+                    }`}
+                  >
+                    {chip.label}
+                  </button>
                 ))}
-              </section>
-            )}
+              </div>
+              <div className="w-px h-5 bg-neutral-700 hidden sm:block" />
+              <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                {SOURCE_CHIPS.map(chip => (
+                  <button
+                    key={chip.key}
+                    type="button"
+                    onClick={() => setSourceFilter(chip.key)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                      sourceFilter === chip.key
+                        ? 'bg-[#39FF14]/20 text-[#39FF14] border border-[#39FF14]/30'
+                        : 'bg-neutral-800 text-neutral-400 border border-neutral-700 hover:border-neutral-600'
+                    }`}
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-            {completed.length > 0 && (
-              <section className="space-y-3">
-                <h3 className="text-sm font-semibold text-neutral-500 uppercase tracking-wider">Recent</h3>
-                {completed.map(batch => (
-                  <BatchCard
-                    key={batch.id}
-                    batch={batch}
-                    voices={voices}
-                    onDelete={(b) => { setBatchToDelete(b); setShowDeleteConfirm(true) }}
-                  />
-                ))}
-              </section>
+            {filteredBatches.length === 0 ? (
+              <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] text-center py-8">
+                <p className="text-neutral-400 text-sm">No jobs match the selected filters.</p>
+              </Card>
+            ) : (
+              <>
+                {active.length > 0 && (
+                  <section className="space-y-3">
+                    <h3 className="text-sm font-semibold text-white uppercase tracking-wider">In Progress</h3>
+                    {active.map(batch => (
+                      <BatchCard
+                        key={batch.id}
+                        batch={batch}
+                        voices={voices}
+                        onDelete={(b) => { setBatchToDelete(b); setShowDeleteConfirm(true) }}
+                      />
+                    ))}
+                  </section>
+                )}
+
+                {completed.length > 0 && (
+                  <section className="space-y-3">
+                    <h3 className="text-sm font-semibold text-neutral-500 uppercase tracking-wider">Recent</h3>
+                    {completed.map(batch => (
+                      <BatchCard
+                        key={batch.id}
+                        batch={batch}
+                        voices={voices}
+                        onDelete={(b) => { setBatchToDelete(b); setShowDeleteConfirm(true) }}
+                      />
+                    ))}
+                  </section>
+                )}
+              </>
             )}
           </>
         )}
