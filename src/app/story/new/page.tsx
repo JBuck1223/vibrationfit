@@ -492,6 +492,8 @@ export default function NewStoryWizardPage() {
       const entityType = selectedSource?.entityType || 'custom'
       const entityId = selectedEntityId || crypto.randomUUID()
 
+      const hasContent = storyContent.trim().length > 0
+
       const { data: storyData, error: storyError } = await supabase
         .from('stories')
         .insert({
@@ -500,8 +502,8 @@ export default function NewStoryWizardPage() {
           entity_id: entityId,
           title: storyTitle || 'Custom Story',
           content: storyContent || '',
-          source: storyContent ? 'user_written' : 'user_written',
-          status: 'draft',
+          source: 'user_written',
+          status: hasContent ? 'completed' : 'draft',
           word_count: storyContent.trim().split(/\s+/).filter(Boolean).length,
         })
         .select()

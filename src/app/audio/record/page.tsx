@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Container, StatusBadge, Icon, Spinner, Stack, IntensiveStepCompleteModal } from '@/lib/design-system/components'
+import { Button, Card, Container, StatusBadge, Icon, Spinner, Stack, IntensiveStepCompleteModal, PageHero } from '@/lib/design-system/components'
 import { useAudioStudio, AudioSourceSelector } from '@/components/audio-studio'
 import type { AudioSourceSelection } from '@/components/audio-studio'
 import type { VisionData } from '@/components/audio-studio'
@@ -223,7 +223,7 @@ export default function RecordVisionAudioPage() {
         .from('audio_sets')
         .select('id')
         .eq('content_type', 'story')
-        .eq('entity_id', activeSourceId)
+        .eq('content_id', activeSourceId)
         .eq('variant', 'personal')
         .maybeSingle()
 
@@ -267,7 +267,7 @@ export default function RecordVisionAudioPage() {
           insertData.vision_id = activeSourceId
         } else if (activeSourceType === 'story') {
           insertData.content_type = 'story'
-          insertData.entity_id = activeSourceId
+          insertData.content_id = activeSourceId
         }
 
         const { data: newSet, error: setError } = await supabase
@@ -424,14 +424,18 @@ export default function RecordVisionAudioPage() {
 
   return (
     <Container size="xl" className="py-6">
-      {/* Source Selector */}
-      <div className="mb-6">
+      <Stack gap="lg">
+        <PageHero
+          title="Record Audio"
+          subtitle="Read your Life Vision or Story aloud and create a personal voice recording."
+        />
+
+        {/* Source Selector */}
         <AudioSourceSelector
           onSourceSelected={handleSourceSelected}
           initialSourceType={sourceType}
           initialSourceId={sourceId}
         />
-      </div>
 
       {loading && (
         <div className="flex min-h-[calc(100vh-16rem)] items-center justify-center">
@@ -699,6 +703,7 @@ export default function RecordVisionAudioPage() {
           )}
         </>
       )}
+    </Stack>
     </Container>
   )
 }

@@ -403,18 +403,16 @@ export default function SupportPage() {
           </div>
 
           {userInfo && (
-            <div className="space-y-3 rounded-xl border border-[#333] p-4">
-              <p className="text-sm font-medium text-neutral-300">Screen recording and files (optional)</p>
-              <p className="text-xs text-neutral-500">
-                Attach images, documents, or a short screen recording. Signed-in members only.
-              </p>
-
+            <div className="space-y-4 rounded-xl border border-[#333] p-4">
               {attachmentUrls.length > 0 && (
-                <div className="space-y-2">
+                <div className="mx-auto flex w-full max-w-2xl flex-col items-center space-y-2">
                   {attachmentUrls.map((url, idx) => {
                     const kind = getSupportAttachmentKind(url)
                     return (
-                      <div key={idx} className="flex items-start gap-3 rounded-xl border border-[#333] bg-neutral-900 p-3">
+                      <div
+                        key={idx}
+                        className="flex w-full max-w-xl items-start justify-center gap-3 rounded-xl border border-[#333] bg-neutral-900 p-3"
+                      >
                         {kind === 'audio' ? (
                           <div className="min-w-0 flex-1">
                             <audio src={url} controls className="w-full" preload="metadata" />
@@ -456,7 +454,7 @@ export default function SupportPage() {
               )}
 
               {showRecorder && (
-                <div className="rounded-xl border border-[#333] p-4">
+                <div className="mx-auto w-full max-w-2xl rounded-xl border border-[#333] p-4">
                   <MediaRecorderComponent
                     key={`support-new-screen-${recorderKey}`}
                     instanceId={`support-new-screen-${recorderKey}`}
@@ -486,7 +484,7 @@ export default function SupportPage() {
                 className="hidden"
               />
 
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center justify-center gap-3">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -515,13 +513,15 @@ export default function SupportPage() {
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full inline-flex items-center justify-center rounded-full transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap bg-primary-500 text-black font-semibold border-2 border-transparent hover:bg-primary-500/80 active:opacity-80 px-6 py-3.5 text-base"
-          >
-            {loading ? 'Submitting...' : 'Submit Ticket'}
-          </button>
+          <div className="flex justify-center">
+            <button
+              type="submit"
+              disabled={loading}
+              className="inline-flex w-full max-w-sm items-center justify-center rounded-full border-2 border-transparent bg-primary-500 px-8 py-3.5 text-base font-semibold whitespace-nowrap text-black transition-all duration-300 hover:bg-primary-500/80 active:opacity-80 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:min-w-[280px]"
+            >
+              {loading ? 'Submitting...' : 'Submit Ticket'}
+            </button>
+          </div>
 
           <p className="text-xs md:text-sm text-neutral-500 text-center">
             We typically respond within 24 hours

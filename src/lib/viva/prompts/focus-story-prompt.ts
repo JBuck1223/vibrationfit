@@ -208,11 +208,12 @@ RULE #1: THEIR SPECIFICS ARE THE STORY
 If they named a person, that person appears in the narrative BY NAME.
 If they described a specific routine, that routine appears in the day.
 If they mentioned a real place, the scene happens THERE.
-- "Miss Kelly watches the kids" beats "our caregiver helps out"
-- "Oliver, Adeline, and Eloise" beats "the kids"
-- "our house in Lake Nona" beats "our beautiful home"
-- "zip lining in Florida" beats "thrilling adventures"
+- "[their nanny's name] watches the kids" beats "our caregiver helps out"
+- "[their children by name]" beats "the kids"
+- "our house in [their neighborhood]" beats "our beautiful home"
+- "[their specific activity] in [their specific place]" beats "thrilling adventures"
 Every real name, place, and detail from the vision text MUST survive into the story.
+CRITICAL: ONLY use names, places, and details that appear in the PROVIDED vision text. NEVER invent or assume names.
 
 RULE #2: SENSORY EXPANSION ON THEIR MOMENTS
 Add sensory texture to scenes THEY described — do not invent new scenes.
@@ -223,8 +224,7 @@ Add sensory texture to scenes THEY described — do not invent new scenes.
 
 RULE #3: KEEP THEIR RAW VOICE
 If their vision text uses powerful or authentic phrasing, let it ring in the narrative.
-"Our sex life is incredible" is MORE powerful than "our intimate connection deepens."
-"I eat pizza and desserts and don't make any food wrong" beats "I nourish myself wisely."
+A bold, direct statement from the member is MORE powerful than a polished rewrite.
 Preserve authentic phrasing. Their words carry more charge than polished ones.
 
 EXPANSION DOES NOT MEAN:
@@ -241,7 +241,7 @@ NARRATIVE CRAFT
 SHOW, DON'T TELL:
 Every moment should be a lived experience, not a declaration.
 "I feel warm mist on my face as I step outside" — not "I am grateful for the morning."
-"Jordan grabs my hand and we walk toward the water" — not "My relationship is loving."
+"[partner] grabs my hand and we walk toward the water" — not "My relationship is loving."
 
 TRANSITIONS:
 Smooth, cinematic transitions between moments and life areas.
@@ -852,7 +852,7 @@ ZERO TRACES OF THE OLD STORY:
 VOICE PRESERVATION:
 - Preserve the person's authentic voice and specifics from the limiting story
 - Real names, places, and details get carried into the new story (in their positive context)
-- If they mentioned "Jordan" or "my kids" or "Lake Nona" — those appear in the flipped version
+- If they mentioned specific people, places, or details — those appear in the flipped version
 - Keep their diction and rhythm — casual stays casual, poetic stays poetic
 
 ${visionSection ? `VISION INTEGRATION:

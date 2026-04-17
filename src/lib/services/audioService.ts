@@ -339,43 +339,50 @@ function processTextForVariant(text: string, variant?: string): string {
 
 export async function generateAudioTracks(params: {
   userId: string
-  visionId: string
+  visionId?: string
+  contentType?: string
+  contentId?: string
   sections: SectionInput[]
   voice?: VoiceId | string
   format?: 'mp3' | 'wav'
   force?: boolean
-  audioSetId?: string // Optional: specify which audio set to generate for
-  audioSetName?: string // Optional: name for new audio set if creating one
-  audioSetDescription?: string // Optional: description for new audio set
-  variant?: string // Optional: variant type (standard, sleep, energy, etc.)
-  batchId?: string // Optional: batch tracking ID for progress updates
-  audioSetMetadata?: { // Optional: mix metadata to store on the audio set
+  audioSetId?: string
+  audioSetName?: string
+  audioSetDescription?: string
+  variant?: string
+  batchId?: string
+  audioSetMetadata?: {
     voice_volume?: number
     bg_volume?: number
-    frequency_volume?: number // Volume for solfeggio/binaural enhancement track
+    frequency_volume?: number
     background_track_id?: string
     background_track_name?: string
-    frequency_track_id?: string // Can be pure solfeggio OR binaural
+    frequency_track_id?: string
     frequency_track_name?: string
-    frequency_type?: 'pure' | 'solfeggio_binaural' | 'binaural' // pure=solfeggio tone, solfeggio_binaural=solfeggio+brainwave, binaural=non-solfeggio
+    frequency_type?: 'pure' | 'solfeggio_binaural' | 'binaural'
     mix_ratio_id?: string
     output_format?: string
   }
 }): Promise<GeneratedTrackResult[]> {
-  const { userId, visionId, sections, voice = 'alloy', format = 'mp3', force = false, audioSetId, audioSetName, audioSetDescription, variant, batchId, audioSetMetadata } = params
+  const { userId, visionId, contentType = 'life_vision', contentId, sections, voice = 'alloy', format = 'mp3', force = false, audioSetId, audioSetName, audioSetDescription, variant, batchId, audioSetMetadata } = params
   const supabase = await createClient()
   const s3 = getS3Client()
+
+  const isStory = contentType === 'story'
+  const entityId = visionId || contentId
+  if (!entityId) throw new Error('Either visionId or contentId is required')
+  const s3Folder = isStory ? `story/audio/${entityId}` : `life-vision/audio/${entityId}`
 
   const results: GeneratedTrackResult[] = []
   let totalCharactersProcessed = 0
   const sectionCharacterCounts: { [key: string]: number } = {}
 
-  console.log(`\n🎬 [Generation Start] ========================================`)
-  console.log(`🎬 Vision ID: ${visionId}`)
-  console.log(`🎬 Voice: ${voice}`)
-  console.log(`🎬 Variant: ${variant || 'standard'}`)
-  console.log(`🎬 Sections to process: ${sections.length}`)
-  console.log(`🎬 ========================================\n`)
+  console.log(`\n[Generation Start] ========================================`)
+  console.log(`Entity ID: ${entityId} (${contentType})`)
+  console.log(`Voice: ${voice}`)
+  console.log(`Variant: ${variant || 'standard'}`)
+  console.log(`Sections to process: ${sections.length}`)
+  console.log(`========================================\n`)
 
   // Helper to update batch progress
   const updateBatchProgress = async () => {
@@ -415,21 +422,26 @@ export async function generateAudioTracks(params: {
     targetAudioSetId = audioSetId
     console.log(`[Audio Set] Using specified audio set: ${targetAudioSetId}`)
   } else if (audioSetName) {
-    // Custom named set (focused/partial sections like "Work + Money Focus")
-    // ALWAYS create a new set for these - don't reuse existing ones
     console.log(`[Audio Set] Creating new focused set: "${audioSetName}" for voice: ${voice}`)
     
+    const setInsert: any = {
+      user_id: userId,
+      name: audioSetName,
+      description: audioSetDescription || getDescription(variant),
+      variant: variant || 'standard',
+      voice_id: voice,
+      metadata: audioSetMetadata || null,
+      content_type: contentType,
+    }
+    if (isStory) {
+      setInsert.content_id = entityId
+    } else {
+      setInsert.vision_id = entityId
+    }
+
     const { data: newSet, error: setError } = await supabase
       .from('audio_sets')
-      .insert({
-        vision_id: visionId,
-        user_id: userId,
-        name: audioSetName,
-        description: audioSetDescription || getDescription(variant),
-        variant: variant || 'standard',
-        voice_id: voice,
-        metadata: audioSetMetadata || null,
-      })
+      .insert(setInsert)
       .select()
       .single()
     
@@ -439,38 +451,48 @@ export async function generateAudioTracks(params: {
     targetAudioSetId = newSet.id
     console.log(`[Audio Set] Created focused audio set: ${targetAudioSetId}`)
   } else {
-    // Full set (all 14 sections) - reuse existing if available
     console.log(`[Audio Set] Looking for existing set with variant="${variant || 'standard'}", voice_id="${voice}"`)
     
-    // Look for existing full set (one with the default name pattern, not a focused set)
     const defaultSetName = `${variant || 'Standard'} Version`
-    const { data: existingSet } = await supabase
+    let existingSetQuery = supabase
       .from('audio_sets')
       .select('id, voice_id, variant')
-      .eq('vision_id', visionId)
       .eq('variant', variant || 'standard')
       .eq('voice_id', voice)
-      .eq('name', defaultSetName) // Only match default-named sets, not focused sets
-      .maybeSingle()
+      .eq('name', defaultSetName)
+
+    if (isStory) {
+      existingSetQuery = existingSetQuery.eq('content_type', 'story').eq('content_id', entityId)
+    } else {
+      existingSetQuery = existingSetQuery.eq('vision_id', entityId)
+    }
+
+    const { data: existingSet } = await existingSetQuery.maybeSingle()
     
     if (existingSet) {
       targetAudioSetId = existingSet.id
       console.log(`[Audio Set] Reusing existing audio set: ${targetAudioSetId}`)
     } else {
-      // Create new audio set for full generation
       console.log(`[Audio Set] Creating new audio set for voice: ${voice}, variant: ${variant || 'standard'}`)
+
+      const setInsert: any = {
+        user_id: userId,
+        name: `${variant || 'Standard'} Version`,
+        description: audioSetDescription || getDescription(variant),
+        variant: variant || 'standard',
+        voice_id: voice,
+        metadata: audioSetMetadata || null,
+        content_type: contentType,
+      }
+      if (isStory) {
+        setInsert.content_id = entityId
+      } else {
+        setInsert.vision_id = entityId
+      }
 
       const { data: newSet, error: setError } = await supabase
         .from('audio_sets')
-        .insert({
-          vision_id: visionId,
-          user_id: userId,
-          name: `${variant || 'Standard'} Version`,
-          description: audioSetDescription || getDescription(variant),
-          variant: variant || 'standard',
-          voice_id: voice,
-          metadata: audioSetMetadata || null,
-        })
+        .insert(setInsert)
         .select()
         .single()
       
@@ -506,7 +528,6 @@ export async function generateAudioTracks(params: {
       .from('audio_tracks')
       .select('*')
       .eq('user_id', userId)
-      .eq('vision_id', visionId)
       .eq('audio_set_id', targetAudioSetId)
       .eq('section_key', section.sectionKey)
       .maybeSingle()
@@ -547,24 +568,26 @@ export async function generateAudioTracks(params: {
 
     // If a completed track exists elsewhere, copy it to this set (free, instant!)
     if (existingElsewhere && !force) {
-      console.log(`[Track] ✨ Reusing existing track from another set for ${section.sectionKey} (same voice: ${voice})`)
+      console.log(`[Track] Reusing existing track from another set for ${section.sectionKey} (same voice: ${voice})`)
+      const copyInsert: any = {
+        user_id: userId,
+        audio_set_id: targetAudioSetId,
+        section_key: section.sectionKey,
+        content_hash: contentHash,
+        text_content: section.text,
+        voice_id: voice,
+        s3_bucket: existingElsewhere.s3_bucket,
+        s3_key: existingElsewhere.s3_key,
+        audio_url: existingElsewhere.audio_url,
+        status: 'completed',
+        duration_seconds: existingElsewhere.duration_seconds,
+        mix_status: 'pending',
+        content_type: contentType,
+      }
+      if (!isStory) copyInsert.vision_id = entityId
       const { data: copiedTrack, error: copyError } = await supabase
         .from('audio_tracks')
-        .insert({
-          user_id: userId,
-          vision_id: visionId,
-          audio_set_id: targetAudioSetId,
-          section_key: section.sectionKey,
-          content_hash: contentHash,
-          text_content: section.text,
-          voice_id: voice,
-          s3_bucket: existingElsewhere.s3_bucket,
-          s3_key: existingElsewhere.s3_key,
-          audio_url: existingElsewhere.audio_url,
-          status: 'completed',
-          duration_seconds: existingElsewhere.duration_seconds,
-          mix_status: 'pending'
-        })
+        .insert(copyInsert)
         .select()
         .single()
       
@@ -596,22 +619,23 @@ export async function generateAudioTracks(params: {
       recordId = existingInSet.id
     } else {
       console.log(`[Track] Creating new track record for ${section.sectionKey}`)
-      // Insert new row
+      const trackInsert: any = {
+        user_id: userId,
+        audio_set_id: targetAudioSetId,
+        section_key: section.sectionKey,
+        content_hash: contentHash,
+        text_content: section.text,
+        voice_id: voice,
+        s3_bucket: BUCKET_NAME,
+        s3_key: '',
+        audio_url: '',
+        status: 'processing',
+        content_type: contentType,
+      }
+      if (!isStory) trackInsert.vision_id = entityId
       const { data: inserted, error: insertError } = await supabase
         .from('audio_tracks')
-        .insert({
-          user_id: userId,
-          vision_id: visionId,
-          audio_set_id: targetAudioSetId,
-          section_key: section.sectionKey,
-          content_hash: contentHash,
-          text_content: section.text,
-          voice_id: voice,
-          s3_bucket: BUCKET_NAME,
-          s3_key: '',
-          audio_url: '',
-          status: 'processing',
-        })
+        .insert(trackInsert)
         .select()
         .single()
       if (insertError || !inserted) {
@@ -629,18 +653,21 @@ export async function generateAudioTracks(params: {
       
       if (variant && variant !== 'standard') {
         // Mix variants MUST have an existing voice track to mix from
-        // Look for existing standard (voice-only) track for this section with the SAME voice
-        const { data: standardTrack } = await supabase
+        let standardTrackQuery = supabase
           .from('audio_tracks')
           .select('audio_url, voice_id, s3_key')
           .eq('user_id', userId)
-          .eq('vision_id', visionId)
           .eq('section_key', section.sectionKey)
-          .eq('voice_id', voice) // MUST be same voice
+          .eq('voice_id', voice)
           .eq('status', 'completed')
           .not('audio_url', 'is', null)
           .limit(1)
-          .maybeSingle()
+        if (!isStory && visionId) {
+          standardTrackQuery = standardTrackQuery.eq('vision_id', visionId)
+        } else {
+          standardTrackQuery = standardTrackQuery.eq('content_type', contentType)
+        }
+        const { data: standardTrack } = await standardTrackQuery.maybeSingle()
         
         if (!standardTrack?.audio_url) {
           // CRITICAL: Mix variants require a pre-existing voice track
@@ -685,9 +712,9 @@ export async function generateAudioTracks(params: {
         const audioBuffer = Buffer.concat(buffers)
         
         const ext = format === 'wav' ? 'wav' : 'mp3'
-        const timestamp = Date.now().toString(36) // Base-36 timestamp for cache-busting
+        const timestamp = Date.now().toString(36)
         const fileName = `${section.sectionKey}-${contentHash.slice(0, 12)}-${timestamp}.${ext}`
-        s3Key = `user-uploads/${userId}/life-vision/audio/${visionId}/${fileName}`
+        s3Key = `user-uploads/${userId}/${s3Folder}/${fileName}`
 
         const put = new PutObjectCommand({
           Bucket: BUCKET_NAME,
@@ -754,10 +781,12 @@ export async function generateAudioTracks(params: {
     }
   }
 
-  await supabase
-    .from('vision_versions')
-    .update({ last_audio_generated_at: new Date().toISOString() })
-    .eq('id', visionId)
+  if (visionId && !isStory) {
+    await supabase
+      .from('vision_versions')
+      .update({ last_audio_generated_at: new Date().toISOString() })
+      .eq('id', visionId)
+  }
 
   // Mark audio_generated in intensive_checklist if user is in intensive mode and at least one track succeeded
   const successfulTracks = results.filter(r => r.status === 'generated' || r.status === 'skipped' || r.status === 'reused').length

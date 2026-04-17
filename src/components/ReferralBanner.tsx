@@ -7,10 +7,13 @@ import { Gift, X } from 'lucide-react'
 const BANNER_MIN_HEIGHT = 48
 const DISMISSED_KEY = 'vf_ref_banner_dismissed'
 
+const NON_REFERRAL_SOURCE_VALUES = new Set(['story', 'life_vision'])
+
 function getRefFromUrl(): string | null {
   if (typeof window === 'undefined') return null
   const params = new URLSearchParams(window.location.search)
-  return params.get('ref') || params.get('source') || params.get('affiliate')
+  const source = params.get('source')
+  return params.get('ref') || (source && !NON_REFERRAL_SOURCE_VALUES.has(source) ? source : null) || params.get('affiliate')
 }
 
 export function ReferralBanner() {
@@ -27,7 +30,12 @@ export function ReferralBanner() {
       sessionStorage.setItem('vf_ref_active', urlRef)
     }
 
-    const activeRef = urlRef || sessionStorage.getItem('vf_ref_active')
+    const storedRef = sessionStorage.getItem('vf_ref_active')
+    if (storedRef && NON_REFERRAL_SOURCE_VALUES.has(storedRef)) {
+      sessionStorage.removeItem('vf_ref_active')
+    }
+
+    const activeRef = urlRef || (storedRef && !NON_REFERRAL_SOURCE_VALUES.has(storedRef) ? storedRef : null)
 
     if (!activeRef) return
 

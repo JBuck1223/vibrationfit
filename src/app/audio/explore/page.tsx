@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Container, Stack, Card, Spinner } from '@/lib/design-system/components'
+import { Container, Stack, Card, Spinner, PageHero } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
 import { Compass, Music, Waves, TreePine, Cloud, Sparkles, Play, Pause } from 'lucide-react'
 
@@ -71,16 +71,10 @@ export default function ExplorePage() {
   return (
     <Container size="xl" className="py-6">
       <Stack gap="lg">
-        <div className="text-center">
-          <div className="w-12 h-12 bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-3">
-            <Compass className="w-6 h-6 text-neutral-400" />
-          </div>
-          <h2 className="text-xl md:text-2xl font-bold text-white mb-2">Explore Sounds</h2>
-          <p className="text-sm text-neutral-400 max-w-md mx-auto">
-            Preview the background tracks and frequencies available for mixing with your vision audio.
-            Full music playlists and community tracks are coming soon.
-          </p>
-        </div>
+        <PageHero
+          title="Explore Sounds"
+          subtitle="Preview the background tracks and frequencies available for mixing with your vision audio. Full music playlists and community tracks are coming soon."
+        />
 
         {loading ? (
           <div className="flex items-center justify-center py-12"><Spinner size="lg" /></div>

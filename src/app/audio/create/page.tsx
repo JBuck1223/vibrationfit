@@ -2,7 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { Container, Stack, Card } from '@/lib/design-system/components'
+import { Container, Stack, Card, PageHero } from '@/lib/design-system/components'
 import { AudioLines, ArrowRight, Mic, Sliders, Clock } from 'lucide-react'
 
 interface CreateTile {
@@ -18,7 +18,7 @@ interface CreateTile {
 const CREATE_TILES: CreateTile[] = [
   {
     title: 'Generate Voice Audio',
-    description: 'Generate voice narration from your Life Vision or Stories with professional voices.',
+    description: 'Generate voice narration from your Life Vision or Stories with VIVA voices.',
     icon: AudioLines,
     iconColor: 'text-[#39FF14]',
     iconBg: 'bg-[#39FF14]/15',
@@ -55,12 +55,12 @@ export default function CreatePage() {
   return (
     <Container size="xl" className="py-6">
       <Stack gap="lg">
-        <div className="text-center">
-          <h2 className="text-xl md:text-2xl font-bold text-white mb-2">What do you want to create?</h2>
-          <p className="text-sm text-neutral-400">Choose a creation flow to get started.</p>
-        </div>
+        <PageHero
+          title="Create Audio"
+          subtitle="Choose a creation flow to get started."
+        />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto w-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {CREATE_TILES.map(tile => {
             const TileIcon = tile.icon
             return (

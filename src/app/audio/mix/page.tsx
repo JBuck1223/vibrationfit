@@ -1,13 +1,13 @@
 "use client"
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Spinner, Badge, Container, Stack, Toggle, Select } from '@/lib/design-system/components'
+import { Button, Card, Spinner, Badge, Container, Stack, Toggle, Select, PageHero } from '@/lib/design-system/components'
 import { useAudioStudio, QueueStatusBanner, AudioSourceSelector } from '@/components/audio-studio'
 import type { AudioSourceSelection } from '@/components/audio-studio'
 import type { VisionData } from '@/components/audio-studio'
 import type { Story } from '@/lib/stories/types'
 import { createClient } from '@/lib/supabase/client'
-import { Headphones, CheckCircle, Play, Moon, Zap, Sparkles, Music, X, Wand2, Mic, Clock, Music2, Plus, ChevronDown, ChevronUp, Waves } from 'lucide-react'
+import { Headphones, CheckCircle, Play, Moon, Zap, Sparkles, Music, X, Wand2, Mic, Clock, Music2, Plus, ChevronDown, ChevronUp, Waves, Search } from 'lucide-react'
 import Link from 'next/link'
 import { getVisionCategoryKeys, VISION_CATEGORIES } from '@/lib/design-system'
 import { SectionSelector } from '@/components/SectionSelector'
@@ -83,11 +83,13 @@ export default function AudioMixPage() {
   
   // Selected base voice for mixing
   const [selectedBaseVoice, setSelectedBaseVoice] = useState<string>('')
+  const [baseVoiceSearch, setBaseVoiceSearch] = useState('')
   
   // Background Track Selection
   const [backgroundTracks, setBackgroundTracks] = useState<BackgroundTrack[]>([])
   const [selectedBackgroundTrack, setSelectedBackgroundTrack] = useState<string>('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [bgTrackSearch, setBgTrackSearch] = useState('')
   
   // Mix Ratio Selection
   const [mixRatios, setMixRatios] = useState<MixRatio[]>([])
@@ -98,6 +100,7 @@ export default function AudioMixPage() {
   const [selectedBinauralTrack, setSelectedBinauralTrack] = useState<string>('')
   const [binauralVolume, setBinauralVolume] = useState<number>(0)
   const [binauralFilter, setBinauralFilter] = useState<string>('all')
+  const [binauralSearch, setBinauralSearch] = useState('')
   
   // Intensive mode: hide Binaural Enhancement until user completes intensive (graduate unlock)
   const [isIntensiveMode, setIsIntensiveMode] = useState(false)
@@ -257,7 +260,7 @@ export default function AudioMixPage() {
     if (activeSourceType === 'life_vision') {
       setsQuery = setsQuery.eq('vision_id', activeSourceId)
     } else if (activeSourceType === 'story') {
-      setsQuery = setsQuery.eq('content_type', 'story').eq('entity_id', activeSourceId)
+      setsQuery = setsQuery.eq('content_type', 'story').eq('content_id', activeSourceId)
     }
 
     const { data: sets } = await setsQuery
@@ -458,6 +461,9 @@ export default function AudioMixPage() {
       }
       if (activeSourceType === 'life_vision') {
         batchInsert.vision_id = activeSourceId
+      } else if (activeSourceType === 'story') {
+        batchInsert.content_type = 'story'
+        batchInsert.content_id = activeSourceId
       }
 
       const { data: batch, error: batchError } = await supabase
@@ -680,6 +686,9 @@ export default function AudioMixPage() {
       }
       if (activeSourceType === 'life_vision') {
         batchRow.vision_id = activeSourceId
+      } else if (activeSourceType === 'story') {
+        batchRow.content_type = 'story'
+        batchRow.content_id = activeSourceId
       }
 
       const { data: batch, error: batchError } = await supabase
@@ -745,6 +754,11 @@ export default function AudioMixPage() {
   return (
     <Container size="xl" className="py-6">
       <Stack gap="lg">
+        <PageHero
+          title="Mix Audio"
+          subtitle="Add background music and binaural beats to your existing voice tracks."
+        />
+
         <QueueStatusBanner />
 
         {/* Source Selector */}
@@ -791,8 +805,31 @@ export default function AudioMixPage() {
             <p className="text-sm text-neutral-400">Choose which voice recording to mix</p>
           </div>
 
+          {existingVoiceSets.length > 5 && (
+            <div className="relative max-w-md mx-auto mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
+              <input
+                type="text"
+                value={baseVoiceSearch}
+                onChange={(e) => setBaseVoiceSearch(e.target.value)}
+                placeholder="Search by voice name or type..."
+                className="w-full pl-9 pr-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#39FF14]/50"
+              />
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {existingVoiceSets.map((set) => {
+            {(baseVoiceSearch.trim()
+              ? existingVoiceSets.filter(set => {
+                  const q = baseVoiceSearch.toLowerCase()
+                  return (
+                    set.voice_name.toLowerCase().includes(q) ||
+                    set.variant.toLowerCase().includes(q) ||
+                    (set.variant === 'personal' && 'recorded'.includes(q))
+                  )
+                })
+              : existingVoiceSets
+            ).map((set) => {
               const isPreviewing = previewingTrack === set.voice_id
               return (
                 <Card 
@@ -1178,9 +1215,30 @@ export default function AudioMixPage() {
                   ))}
                 </div>
 
+                {backgroundTracks.length > 6 && (
+                  <div className="relative max-w-md mx-auto mb-4">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
+                    <input
+                      type="text"
+                      value={bgTrackSearch}
+                      onChange={(e) => setBgTrackSearch(e.target.value)}
+                      placeholder="Search tracks by name or description..."
+                      className="w-full pl-9 pr-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#39FF14]/50"
+                    />
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {backgroundTracks
                     .filter(track => selectedCategory === 'all' || track.category === selectedCategory)
+                    .filter(track => {
+                      if (!bgTrackSearch.trim()) return true
+                      const q = bgTrackSearch.toLowerCase()
+                      return (
+                        track.display_name.toLowerCase().includes(q) ||
+                        (track.description || '').toLowerCase().includes(q)
+                      )
+                    })
                     .map((track) => {
                       const isSelected = selectedBackgroundTrack === track.id
                       const isPreviewing = previewingTrack === track.id
@@ -1290,6 +1348,19 @@ export default function AudioMixPage() {
                     <Button size="sm" variant={binauralFilter === 'alpha' ? 'primary' : 'outline'} onClick={() => setBinauralFilter('alpha')}>Alpha (Focus)</Button>
                     <Button size="sm" variant={binauralFilter === 'beta' ? 'primary' : 'outline'} onClick={() => setBinauralFilter('beta')}>Beta (Alert)</Button>
                   </div>
+
+                  {binauralTracks.length > 6 && (
+                    <div className="relative max-w-md mx-auto mb-4">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
+                      <input
+                        type="text"
+                        value={binauralSearch}
+                        onChange={(e) => setBinauralSearch(e.target.value)}
+                        placeholder="Search binaural tracks..."
+                        className="w-full pl-9 pr-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#39FF14]/50"
+                      />
+                    </div>
+                  )}
                   
                   <div className="space-y-2 mb-4 max-h-80 overflow-y-auto">
                     <div
@@ -1315,6 +1386,14 @@ export default function AudioMixPage() {
                         if (binauralFilter === 'all') return true
                         if (binauralFilter === 'pure') return track.name.includes('-pure')
                         return track.name.includes(`-${binauralFilter}`)
+                      })
+                      .filter(track => {
+                        if (!binauralSearch.trim()) return true
+                        const q = binauralSearch.toLowerCase()
+                        return (
+                          track.display_name.toLowerCase().includes(q) ||
+                          (track.description || '').toLowerCase().includes(q)
+                        )
                       })
                       .map((track) => {
                         const isSelected = selectedBinauralTrack === track.id
