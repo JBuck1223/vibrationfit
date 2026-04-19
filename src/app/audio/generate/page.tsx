@@ -3,9 +3,8 @@
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Card, Spinner, Container, Stack, PageHero } from '@/lib/design-system/components'
-import { PlaylistPlayer } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
-import { CheckCircle, Play, Mic, Clock, Music, Waves, X, ChevronDown, ChevronUp, Search } from 'lucide-react'
+import { CheckCircle, Play, Waves, X, ChevronDown, ChevronUp } from 'lucide-react'
 import { getVisionCategoryKeys, VISION_CATEGORIES } from '@/lib/design-system'
 import { SectionSelector } from '@/components/SectionSelector'
 import { useAudioStudio, QueueStatusBanner, AudioSourceSelector } from '@/components/audio-studio'
@@ -17,16 +16,6 @@ interface Voice {
   id: string
   name: string
   previewUrl?: string
-}
-
-interface ExistingVoiceSet {
-  id: string
-  voice_id: string
-  voice_name: string
-  created_at: string
-  track_count: number
-  name?: string
-  section_keys?: string[]
 }
 
 export default function AudioGeneratePage() {
@@ -43,7 +32,6 @@ export default function AudioGeneratePage() {
   const [generating, setGenerating] = useState(false)
   const [storyContentExpanded, setStoryContentExpanded] = useState(false)
   const [voices, setVoices] = useState<Voice[]>([])
-  const [existingVoiceSets, setExistingVoiceSets] = useState<ExistingVoiceSet[]>([])
   const [dataLoading, setDataLoading] = useState(false)
 
   const [selectedVoiceForNew, setSelectedVoiceForNew] = useState<string>('alloy')
@@ -54,17 +42,10 @@ export default function AudioGeneratePage() {
 
   const [generateAllSections, setGenerateAllSections] = useState(true)
   const [selectedVoiceSections, setSelectedVoiceSections] = useState<string[]>([])
-  const [isVoiceSetDropdownOpen, setIsVoiceSetDropdownOpen] = useState(false)
-  const [voiceSetSearch, setVoiceSetSearch] = useState('')
-  const [selectedVoiceSetId, setSelectedVoiceSetId] = useState<string | null>(null)
-  const [selectedSetTracks, setSelectedSetTracks] = useState<any[]>([])
-  const [loadingTracks, setLoadingTracks] = useState(false)
+
 
   function handleSourceSelected(selection: AudioSourceSelection) {
     setSelectedSource(selection)
-    setExistingVoiceSets([])
-    setSelectedVoiceSetId(null)
-    setSelectedSetTracks([])
     setDataLoading(true)
   }
 
@@ -72,33 +53,6 @@ export default function AudioGeneratePage() {
     if (!selectedSource) return
     loadPageData()
   }, [selectedSource?.sourceId])
-
-  async function loadSetTracks(setId: string) {
-    setLoadingTracks(true)
-    const supabase = createClient()
-    const { data: tracks } = await supabase
-      .from('audio_tracks')
-      .select('*')
-      .eq('audio_set_id', setId)
-      .eq('status', 'completed')
-      .not('audio_url', 'is', null)
-      .order('section_key')
-
-    if (tracks) {
-      setSelectedSetTracks(tracks.map(t => {
-        const category = VISION_CATEGORIES.find(c => c.key === t.section_key)
-        return {
-          id: t.id,
-          title: category?.label || t.section_key || 'Full Track',
-          artist: '',
-          duration: t.duration_seconds || 0,
-          url: t.audio_url,
-          sectionKey: t.section_key,
-        }
-      }))
-    }
-    setLoadingTracks(false)
-  }
 
   async function loadPageData() {
     if (!activeSourceId) return
@@ -115,43 +69,6 @@ export default function AudioGeneratePage() {
       }))
       setVoices(voiceList)
     } catch {}
-
-    if (activeSourceType === 'life_vision') {
-      const { data: sets } = await supabase
-        .from('audio_sets')
-        .select('id, voice_id, name, created_at, audio_tracks(section_key)')
-        .eq('vision_id', activeSourceId)
-        .eq('variant', 'standard')
-        .order('created_at', { ascending: false })
-
-      setExistingVoiceSets((sets || []).map((set: any) => ({
-        id: set.id,
-        voice_id: set.voice_id,
-        voice_name: voiceList.find(v => v.id === set.voice_id)?.name || set.voice_id,
-        created_at: set.created_at,
-        track_count: set.audio_tracks?.length || 0,
-        name: set.name,
-        section_keys: set.audio_tracks?.map((t: any) => t.section_key).filter(Boolean) || [],
-      })))
-    } else if (activeSourceType === 'story') {
-      const { data: sets } = await supabase
-        .from('audio_sets')
-        .select('id, voice_id, name, created_at, audio_tracks(section_key)')
-        .eq('content_type', 'story')
-        .eq('content_id', activeSourceId)
-        .eq('variant', 'standard')
-        .order('created_at', { ascending: false })
-
-      setExistingVoiceSets((sets || []).map((set: any) => ({
-        id: set.id,
-        voice_id: set.voice_id,
-        voice_name: voiceList.find(v => v.id === set.voice_id)?.name || set.voice_id,
-        created_at: set.created_at,
-        track_count: set.audio_tracks?.length || 0,
-        name: set.name,
-        section_keys: set.audio_tracks?.map((t: any) => t.section_key).filter(Boolean) || [],
-      })))
-    }
 
     setDataLoading(false)
   }
@@ -460,154 +377,6 @@ export default function AudioGeneratePage() {
               </div>
             </Card>
 
-            {/* Existing Voice Sets */}
-            {existingVoiceSets.length > 0 && (
-              <Card variant="elevated" className="bg-[#0A0A0A] relative z-50 overflow-visible">
-                <div className={selectedVoiceSetId && selectedSetTracks.length > 0 ? 'mb-8' : ''}>
-                  <h2 className="text-xl md:text-2xl font-semibold text-white mb-6 text-center">Your Voice-Only Sets</h2>
-                  <div className="relative max-w-2xl mx-auto">
-                    <button
-                      type="button"
-                      onClick={() => setIsVoiceSetDropdownOpen(!isVoiceSetDropdownOpen)}
-                      className="w-full px-4 md:px-6 py-3 md:py-3.5 rounded-full bg-[#1F1F1F] text-white border-2 border-[#333] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        {selectedVoiceSetId ? (
-                          <>
-                            <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary-500/20 text-primary-500">
-                              <Waves className="w-5 h-5 md:w-6 md:h-6" />
-                            </div>
-                            <div className="text-left flex-1 min-w-0">
-                              <div className="font-semibold truncate">
-                                {existingVoiceSets.find(s => s.id === selectedVoiceSetId)?.name ||
-                                  existingVoiceSets.find(s => s.id === selectedVoiceSetId)?.voice_name || 'Voice Set'}
-                              </div>
-                            </div>
-                          </>
-                        ) : (
-                          <span className="text-neutral-400">Select a voice set to listen...</span>
-                        )}
-                      </div>
-                      <ChevronDown className={`w-5 h-5 text-neutral-400 transition-transform flex-shrink-0 ml-2 ${isVoiceSetDropdownOpen ? 'rotate-180' : ''}`} />
-                    </button>
-
-                    {isVoiceSetDropdownOpen && (() => {
-                      const filteredSets = voiceSetSearch.trim()
-                        ? existingVoiceSets.filter(set => {
-                            const q = voiceSetSearch.toLowerCase()
-                            return (
-                              (set.name || '').toLowerCase().includes(q) ||
-                              set.voice_name.toLowerCase().includes(q)
-                            )
-                          })
-                        : existingVoiceSets
-                      return (
-                        <>
-                          <div className="fixed inset-0 z-[100]" onClick={() => { setIsVoiceSetDropdownOpen(false); setVoiceSetSearch('') }} />
-                          <div className="absolute z-[110] w-full mt-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl overflow-hidden">
-                            {existingVoiceSets.length > 5 && (
-                              <div className="p-2 border-b border-[#333]">
-                                <div className="relative">
-                                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
-                                  <input
-                                    type="text"
-                                    value={voiceSetSearch}
-                                    onChange={(e) => setVoiceSetSearch(e.target.value)}
-                                    placeholder="Search by voice or set name..."
-                                    className="w-full pl-9 pr-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#39FF14]/50"
-                                    autoFocus
-                                    onClick={(e) => e.stopPropagation()}
-                                  />
-                                </div>
-                              </div>
-                            )}
-                            <div className="py-2 max-h-[60vh] overflow-y-auto">
-                              {filteredSets.length === 0 ? (
-                                <div className="px-4 py-3 text-center">
-                                  <p className="text-sm text-neutral-500">No voice sets match &ldquo;{voiceSetSearch}&rdquo;</p>
-                                </div>
-                              ) : (
-                                filteredSets.map(set => (
-                                  <div
-                                    key={set.id}
-                                    onClick={() => {
-                                      setSelectedVoiceSetId(set.id)
-                                      setIsVoiceSetDropdownOpen(false)
-                                      setVoiceSetSearch('')
-                                      loadSetTracks(set.id)
-                                    }}
-                                    className={`px-4 py-3 transition-colors border-b border-[#333] last:border-b-0 hover:bg-[#2A2A2A] cursor-pointer ${selectedVoiceSetId === set.id ? 'bg-primary-500/10' : ''}`}
-                                  >
-                                    <div className="flex items-start gap-4">
-                                      <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary-500/20 text-primary-500">
-                                        <Waves className="w-6 h-6" />
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center justify-between mb-1">
-                                          <h4 className="font-semibold text-white pr-2">{set.name || set.voice_name}</h4>
-                                          {selectedVoiceSetId === set.id && <CheckCircle className="w-5 h-5 text-primary-500 flex-shrink-0" />}
-                                        </div>
-                                        <div className="space-y-1 text-xs text-neutral-400">
-                                          <div><span className="text-neutral-500">Voice:</span> {set.voice_name}</div>
-                                          <div className="flex items-center gap-2 pt-1">
-                                            <span>{set.track_count} tracks</span>
-                                            <span>&bull;</span>
-                                            <span>{new Date(set.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))
-                              )}
-                            </div>
-                          </div>
-                        </>
-                      )
-                    })()}
-                  </div>
-                </div>
-
-                {selectedVoiceSetId && selectedSetTracks.length > 0 && (
-                  <div className="max-w-2xl mx-auto">
-                    <PlaylistPlayer
-                      tracks={selectedSetTracks}
-                      setIcon={<div className="p-2 rounded-lg bg-primary-500/20 text-primary-500"><Waves className="w-6 h-6" /></div>}
-                      setName={existingVoiceSets.find(s => s.id === selectedVoiceSetId)?.name || existingVoiceSets.find(s => s.id === selectedVoiceSetId)?.voice_name || 'Voice Set'}
-                      trackCount={selectedSetTracks.length}
-                      createdDate={new Date(existingVoiceSets.find(s => s.id === selectedVoiceSetId)?.created_at || '').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    />
-                  </div>
-                )}
-
-                {loadingTracks && (
-                  <div className="max-w-2xl mx-auto mt-8 text-center">
-                    <Spinner size="md" />
-                    <p className="text-sm text-neutral-400 mt-2">Loading tracks...</p>
-                  </div>
-                )}
-              </Card>
-            )}
-
-            {/* CTA to Mix */}
-            {existingVoiceSets.length > 0 && (
-              <Card variant="glass">
-                <div className="flex flex-col items-center text-center mb-6">
-                  <div className="w-12 h-12 bg-[#14B8A6]/20 rounded-full flex items-center justify-center mb-3">
-                    <Music className="w-6 h-6 text-[#14B8A6]" />
-                  </div>
-                  <h2 className="text-xl md:text-2xl font-semibold text-white">Add Background Sounds</h2>
-                  <p className="text-sm text-neutral-400 mt-2">Choose how you want to create your mix</p>
-                </div>
-                <div className="flex justify-center">
-                  <Button variant="primary" asChild>
-                    <a href={activeSourceType && activeSourceId ? `/audio/mix?source=${activeSourceType}&sourceId=${activeSourceId}` : '/audio/mix'}>
-                      <Music className="w-4 h-4 mr-2" />Create Audio Mix
-                    </a>
-                  </Button>
-                </div>
-              </Card>
-            )}
           </>
         )}
 
