@@ -518,6 +518,18 @@ export async function generateAudioTracks(params: {
       .catch(err => console.error('Failed to update batch with audio set ID:', err))
   }
 
+  // Link the audio set back to the story record so it shows on the listen page
+  if (isStory && entityId && targetAudioSetId) {
+    await supabase
+      .from('stories')
+      .update({ audio_set_id: targetAudioSetId })
+      .eq('id', entityId)
+      .then(({ error }) => {
+        if (error) console.error('Failed to link audio set to story:', error)
+        else console.log(`[Story] Linked audio_set_id ${targetAudioSetId} to story ${entityId}`)
+      })
+  }
+
   for (const section of sections) {
     console.log(`\n📝 [Section Start] ${section.sectionKey} ========================================`)
     

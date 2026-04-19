@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button, Card, Spinner, Container, Stack, PageHero } from '@/lib/design-system/components'
 import { PlaylistPlayer } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
-import { CheckCircle, Play, Mic, Clock, Music, Waves, X, ChevronDown, Search } from 'lucide-react'
+import { CheckCircle, Play, Mic, Clock, Music, Waves, X, ChevronDown, ChevronUp, Search } from 'lucide-react'
 import { getVisionCategoryKeys, VISION_CATEGORIES } from '@/lib/design-system'
 import { SectionSelector } from '@/components/SectionSelector'
 import { useAudioStudio, QueueStatusBanner, AudioSourceSelector } from '@/components/audio-studio'
@@ -41,6 +41,7 @@ export default function AudioGeneratePage() {
   const activeSourceId = selectedSource?.sourceId || null
 
   const [generating, setGenerating] = useState(false)
+  const [storyContentExpanded, setStoryContentExpanded] = useState(false)
   const [voices, setVoices] = useState<Voice[]>([])
   const [existingVoiceSets, setExistingVoiceSets] = useState<ExistingVoiceSet[]>([])
   const [dataLoading, setDataLoading] = useState(false)
@@ -257,22 +258,17 @@ export default function AudioGeneratePage() {
         generatePayload.contentType = 'story'
       }
 
-      const resp = await fetch('/api/audio/generate', {
+      fetch('/api/audio/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(generatePayload),
+      }).then(res => {
+        if (!res.ok) console.error('Generation API returned error:', res.status)
+      }).catch(err => {
+        console.error('Generation API error:', err)
       })
 
-      if (!resp.ok) {
-        const errData = await resp.json().catch(() => ({}))
-        console.error('Generation API error:', resp.status, errData)
-        alert(errData.error || 'Generation failed. Please try again.')
-        setGenerating(false)
-        return
-      }
-
       await refreshBatches()
-      setGenerating(false)
       router.push('/audio/queue')
 
     } catch (error) {
@@ -411,20 +407,32 @@ export default function AudioGeneratePage() {
                       </div>
                       <h3 className="text-lg md:text-xl font-semibold text-white">Story Content</h3>
                     </div>
-                    <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg overflow-hidden max-w-2xl mx-auto">
-                      <div className="flex items-center gap-2 p-4 pb-3 border-b border-neutral-700">
-                        <span className="text-xs uppercase tracking-wider text-neutral-500 font-semibold">
-                          {selectedStory.title || 'Story'}
-                        </span>
-                        <span className="text-xs text-neutral-400">
-                          ({selectedStory.word_count?.toLocaleString() || 0} words)
-                        </span>
-                      </div>
-                      <div className="p-4 max-h-48 overflow-y-auto">
-                        <p className="text-neutral-300 text-sm leading-relaxed whitespace-pre-wrap line-clamp-6">
-                          {selectedStory.content}
-                        </p>
-                      </div>
+                    <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setStoryContentExpanded(!storyContentExpanded)}
+                        className="w-full flex items-center justify-between p-4 hover:bg-neutral-700/20 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs uppercase tracking-wider text-neutral-500 font-semibold">
+                            {selectedStory.title || 'Story'}
+                          </span>
+                          <span className="text-xs text-neutral-400">
+                            ({selectedStory.word_count?.toLocaleString() || 0} words)
+                          </span>
+                        </div>
+                        {storyContentExpanded
+                          ? <ChevronUp className="w-4 h-4 text-neutral-400" />
+                          : <ChevronDown className="w-4 h-4 text-neutral-400" />
+                        }
+                      </button>
+                      {storyContentExpanded && (
+                        <div className="p-4 pt-0 border-t border-neutral-700 max-h-[60vh] overflow-y-auto">
+                          <p className="text-neutral-300 text-sm leading-relaxed whitespace-pre-wrap pt-4">
+                            {selectedStory.content}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

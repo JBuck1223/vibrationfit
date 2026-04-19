@@ -116,15 +116,26 @@ export default function AudioListenPage() {
     if (!story) { setStoryAudioLoading(false); return }
     const options: typeof storyAudioTracks = []
 
-    if (story.audio_set_id) {
+    // Find audio set: prefer direct link, fall back to content_id lookup
+    let audioSetId = story.audio_set_id
+    if (!audioSetId) {
+      const { data: linkedSet } = await supabase
+        .from('audio_sets')
+        .select('id')
+        .eq('content_type', 'story')
+        .eq('content_id', storyId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (linkedSet) audioSetId = linkedSet.id
+    }
+
+    if (audioSetId) {
       const { data: tracks } = await supabase
         .from('audio_tracks').select('id, audio_url, voice_id, section_key')
-        .eq('audio_set_id', story.audio_set_id).eq('status', 'completed')
+        .eq('audio_set_id', audioSetId).eq('status', 'completed')
         .order('created_at', { ascending: false })
       if (tracks && tracks.length > 0) {
-        const { data: audioSet } = await supabase
-          .from('audio_sets').select('name, voice_id, variant')
-          .eq('id', story.audio_set_id).maybeSingle()
         const storyTitle = story.title || 'Untitled Story'
         tracks.forEach((track, idx) => {
           options.push({
