@@ -367,11 +367,36 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setStoriesWithAudioLoading(false); return }
-    const { data } = await supabase
+
+    // Get stories with direct audio links
+    const { data: directStories } = await supabase
       .from('stories').select('*').eq('user_id', user.id).eq('status', 'completed')
       .or('audio_set_id.not.is.null,user_audio_url.not.is.null')
       .order('updated_at', { ascending: false })
-    if (data) setStoriesWithAudio(data as Story[])
+
+    // Also find stories referenced by audio_sets via content_id
+    const { data: audioSetStoryIds } = await supabase
+      .from('audio_sets')
+      .select('content_id')
+      .eq('user_id', user.id)
+      .eq('content_type', 'story')
+      .not('content_id', 'is', null)
+
+    const directIds = new Set((directStories || []).map(s => s.id))
+    const extraIds = (audioSetStoryIds || [])
+      .map(r => r.content_id)
+      .filter((id): id is string => !!id && !directIds.has(id))
+
+    let allStories = (directStories || []) as Story[]
+
+    if (extraIds.length > 0) {
+      const { data: extraStories } = await supabase
+        .from('stories').select('*').in('id', extraIds).eq('status', 'completed')
+        .order('updated_at', { ascending: false })
+      if (extraStories) allStories = [...allStories, ...(extraStories as Story[])]
+    }
+
+    setStoriesWithAudio(allStories)
     setStoriesWithAudioLoading(false)
   }
 
