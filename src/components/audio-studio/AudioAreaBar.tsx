@@ -268,6 +268,7 @@ export function AudioAreaBar() {
       tabs={TABS}
       contextBar={contextBar}
       keepTabActive={!isOnSecondaryPage}
+      activeParentPath={isOnSecondaryPage ? '/audio/create' : undefined}
       variant="default"
     />
   )

@@ -54,6 +54,8 @@ export interface AreaBarProps {
   contextBar?: React.ReactNode
   /** When true, keep tab highlighting active even when contextBar is present */
   keepTabActive?: boolean
+  /** Show a small caret indicator under this tab path (used when a child page is active but the parent tab shouldn't be highlighted) */
+  activeParentPath?: string
   /** "default" = neutral dark card, "hero" = PageHero-style gradient border & bg */
   variant?: 'default' | 'hero'
 }
@@ -99,6 +101,7 @@ export function AreaBar({
   breadcrumb,
   contextBar,
   keepTabActive = false,
+  activeParentPath,
   variant = 'default',
 }: AreaBarProps) {
   const pathname = usePathname()
@@ -154,19 +157,25 @@ export function AreaBar({
                   <nav className={`grid ${gridCols} p-1 gap-1 rounded-xl bg-black/30 backdrop-blur-sm`}>
                     {tabs.map(tab => {
                       const active = !suppressActiveTab && isTabActive(pathname, tab, tabs)
+                      const isParent = activeParentPath === tab.path
                       const TabIcon = tab.icon
                       return (
                         <Link
                           key={tab.path}
                           href={tab.path}
-                          className={`flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg transition-all ${
+                          className={`relative flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg transition-all ${
                             active
                               ? 'bg-primary-500/20 text-primary-500'
-                              : 'text-neutral-400 active:text-neutral-200 active:bg-white/5'
+                              : isParent
+                                ? 'text-neutral-200'
+                                : 'text-neutral-400 active:text-neutral-200 active:bg-white/5'
                           }`}
                         >
                           {TabIcon && <TabIcon className="w-3.5 h-3.5" />}
                           <span>{tab.label}</span>
+                          {isParent && (
+                            <ChevronDown className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 text-primary-500/60" />
+                          )}
                         </Link>
                       )
                     })}
@@ -268,19 +277,25 @@ export function AreaBar({
                 <nav className={`grid ${gridCols} p-1 gap-1 rounded-xl bg-neutral-900/60`}>
                   {tabs.map(tab => {
                     const active = !suppressActiveTab && isTabActive(pathname, tab, tabs)
+                    const isParent = activeParentPath === tab.path
                     const TabIcon = tab.icon
                     return (
                       <Link
                         key={tab.path}
                         href={tab.path}
-                        className={`flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg transition-all ${
+                        className={`relative flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg transition-all ${
                           active
                             ? 'bg-primary-500/20 text-primary-500'
-                            : 'text-neutral-500 active:text-neutral-300 active:bg-white/5'
+                            : isParent
+                              ? 'text-neutral-300'
+                              : 'text-neutral-500 active:text-neutral-300 active:bg-white/5'
                         }`}
                       >
                         {TabIcon && <TabIcon className="w-3.5 h-3.5" />}
                         <span>{tab.label}</span>
+                        {isParent && (
+                          <ChevronDown className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 text-primary-500/60" />
+                        )}
                       </Link>
                     )
                   })}
@@ -358,6 +373,7 @@ export function AreaBar({
                   {tabs.map(tab => {
                     const TabIcon = tab.icon
                     const active = !suppressActiveTab && isTabActive(pathname, tab, tabs)
+                    const isParent = activeParentPath === tab.path
                     return (
                       <Link
                         key={tab.path}
@@ -365,11 +381,16 @@ export function AreaBar({
                         className={`relative flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
                           active
                             ? 'bg-primary-500/20 text-primary-500'
-                            : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
+                            : isParent
+                              ? 'text-neutral-200'
+                              : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
                         }`}
                       >
                         {TabIcon && <TabIcon className="w-4 h-4" />}
                         <span>{tab.label}</span>
+                        {isParent && (
+                          <ChevronDown className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3.5 h-3.5 text-primary-500/60" />
+                        )}
                       </Link>
                     )
                   })}
@@ -460,6 +481,7 @@ export function AreaBar({
                 {tabs.map(tab => {
                   const TabIcon = tab.icon
                   const active = !suppressActiveTab && isTabActive(pathname, tab, tabs)
+                  const isParent = activeParentPath === tab.path
                   return (
                     <Link
                       key={tab.path}
@@ -467,11 +489,16 @@ export function AreaBar({
                       className={`relative flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
                         active
                           ? 'bg-primary-500/20 text-primary-500'
-                          : 'text-neutral-500 hover:text-neutral-300 hover:bg-white/5'
+                          : isParent
+                            ? 'text-neutral-300'
+                            : 'text-neutral-500 hover:text-neutral-300 hover:bg-white/5'
                       }`}
                     >
                       {TabIcon && <TabIcon className="w-4 h-4" />}
                       <span>{tab.label}</span>
+                      {isParent && (
+                        <ChevronDown className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3.5 h-3.5 text-primary-500/60" />
+                      )}
                     </Link>
                   )
                 })}

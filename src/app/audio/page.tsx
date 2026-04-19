@@ -342,7 +342,7 @@ export default function AudioListenPage() {
 
         {/* ── Life Vision Player ── */}
         {contentType === 'life-vision' && (audioSets.length > 0 ? (
-          <Card variant="elevated" className="bg-[#0A0A0A]">
+          <div className="rounded-2xl bg-[#0A0A0A] border border-neutral-800 p-4 md:p-6 lg:p-8">
             <div className="mb-6">
               <h2 className="text-lg md:text-xl font-semibold text-white mb-4 text-center">Play My Vision</h2>
               <div className="relative max-w-2xl mx-auto">
@@ -453,7 +453,7 @@ export default function AudioListenPage() {
                 )}
               </div>
             )}
-          </Card>
+          </div>
         ) : !audioSetsLoading ? (
           <Card variant="elevated" className="p-8 md:p-12 text-center">
             <Headphones className="w-16 h-16 text-neutral-600 mx-auto mb-4" />

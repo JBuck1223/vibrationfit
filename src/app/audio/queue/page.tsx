@@ -1,20 +1,164 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Container, Stack, Card, Badge, Spinner, Button, DeleteConfirmationDialog, PageHero, Icon } from '@/lib/design-system/components'
-import { Clock, CheckCircle, AlertCircle, Loader2, ListMusic, Trash2, Target, BookOpen, Mic, Moon, Zap, Sparkles, Music, Plus, AudioLines, Headphones } from 'lucide-react'
+import { Container, Stack, Card, Spinner, Button, DeleteConfirmationDialog, PageHero } from '@/lib/design-system/components'
+import { Clock, CheckCircle, AlertCircle, Loader2, ListMusic, Trash2, Target, BookOpen } from 'lucide-react'
 import { useAudioStudio } from '@/components/audio-studio'
 import { createClient } from '@/lib/supabase/client'
-import Link from 'next/link'
+import { getVisionCategoryLabel, isValidVisionCategory } from '@/lib/design-system/vision-categories'
 
 interface Voice {
   id: string
   name: string
 }
 
+const STATUS_META: Record<string, { label: string; icon: React.ElementType; color: string; bg: string }> = {
+  pending: { label: 'Pending', icon: Clock, color: 'text-yellow-400', bg: 'bg-yellow-500/15' },
+  processing: { label: 'Processing', icon: Loader2, color: 'text-blue-400', bg: 'bg-blue-500/15' },
+  completed: { label: 'Complete', icon: CheckCircle, color: 'text-[#39FF14]', bg: 'bg-[#39FF14]/15' },
+  partial_success: { label: 'Partial', icon: AlertCircle, color: 'text-orange-400', bg: 'bg-orange-500/15' },
+  failed: { label: 'Failed', icon: AlertCircle, color: 'text-red-400', bg: 'bg-red-500/15' },
+}
+
+/**
+ * Story jobs set `content_type` on the batch row; metadata alone is not always present.
+ * Keeps source filters and badges consistent.
+ */
+function isStoryBatch(batch: {
+  content_type?: string | null
+  metadata?: Record<string, unknown> | null
+}): boolean {
+  const ct = batch.content_type
+  if (ct === 'story' || ct === 'focus_story') return true
+  const meta = batch.metadata
+  if (!meta) return false
+  if (meta.source_type === 'story') return true
+  if (meta.content_type === 'story') return true
+  return false
+}
+
+/** Single variant id -> user-facing label (aligned with /audio listen set names). */
+function formatVariantIdLabel(variantId: string): string {
+  if (variantId === 'standard') return 'Voice Only'
+  if (variantId === 'personal') return 'Personal Recording'
+  if (variantId === 'custom' || variantId.startsWith('custom-')) return 'Custom mix'
+  return variantId.charAt(0).toUpperCase() + variantId.slice(1)
+}
+
+function formatVariantIdsList(variantIds: string[] | undefined): string {
+  if (!variantIds?.length) return 'Audio Generation'
+  return variantIds.map(formatVariantIdLabel).join(', ')
+}
+
+/**
+ * Prefer stored audio_set_name (same as generated audio set titles), then custom-mix ratio hint, then variant labels.
+ */
+function getBatchDisplayTitle(batch: { metadata?: Record<string, unknown>; variant_ids?: string[] }): string {
+  const raw = batch.metadata?.audio_set_name
+  if (typeof raw === 'string' && raw.trim()) return raw.trim()
+
+  const meta = batch.metadata
+  if (meta && meta.custom_mix === true) {
+    const vv = meta.voice_volume
+    const bv = meta.bg_volume
+    const bin = meta.binaural_volume
+    if (vv !== undefined && bv !== undefined) {
+      // Order: voice %, background %, optional frequency %
+      const parts = [Math.round(Number(vv)), Math.round(Number(bv))]
+      if (bin !== undefined && Number(bin) > 0) parts.push(Math.round(Number(bin)))
+      return `Custom mix (${parts.join('/')})`
+    }
+    return 'Custom mix'
+  }
+
+  return formatVariantIdsList(batch.variant_ids)
+}
+
+function sectionKeyLabel(key: string): string {
+  if (key === 'full') return 'Full narrative'
+  if (isValidVisionCategory(key)) return getVisionCategoryLabel(key)
+  return key.charAt(0).toUpperCase() + key.slice(1)
+}
+
+/**
+ * Custom-mix summary: Voice, then Background, then Frequency (if any); then · then scope (e.g. All vision sections & Combined Full Track).
+ */
+function formatCustomMixDetailLine(
+  meta: Record<string, unknown>,
+  sectionsRequested: Array<{ sectionKey: string }> | undefined,
+  trackNames: { backgrounds: Record<string, string>; binaurals: Record<string, string> },
+  isStoryScope: boolean,
+): string {
+  const bgId = meta.background_track_id as string | undefined
+  const binId = meta.binaural_track_id as string | undefined
+  const vv = meta.voice_volume
+  const bv = meta.bg_volume
+  const binVol = meta.binaural_volume
+  const bgName = bgId ? trackNames.backgrounds[bgId] : undefined
+  const binName = binId ? trackNames.binaurals[binId] : undefined
+
+  const mixChunks: string[] = []
+
+  if (vv !== undefined) {
+    mixChunks.push(`Voice: ${Math.round(Number(vv))}% voice`)
+  }
+
+  if (bv !== undefined && Number(bv) > 0) {
+    const pct = Math.round(Number(bv))
+    if (bgName) {
+      mixChunks.push(`Background: ${pct}% ${bgName}`)
+    } else {
+      mixChunks.push(`Background: ${pct}%`)
+    }
+  }
+
+  if (binName && binVol !== undefined && Number(binVol) > 0) {
+    mixChunks.push(`Frequency: ${Math.round(Number(binVol))}% ${binName}`)
+  }
+
+  const scopeChunks: string[] = []
+  if (isStoryScope) {
+    scopeChunks.push('Full story')
+  } else if (meta.mix_all_sections === true) {
+    scopeChunks.push('All vision sections')
+  } else {
+    const sel = meta.selected_sections as string[] | null | undefined
+    if (Array.isArray(sel) && sel.length > 0) {
+      scopeChunks.push(`Sections: ${sel.map(sectionKeyLabel).join(', ')}`)
+    } else if (sectionsRequested?.length) {
+      const keys = sectionsRequested.map(s => s.sectionKey)
+      if (keys.length === 1 && keys[0] === 'full') {
+        scopeChunks.push('Full narrative')
+      } else {
+        scopeChunks.push(`Sections: ${keys.map(sectionKeyLabel).join(', ')}`)
+      }
+    }
+  }
+
+  const fmt = meta.output_format as string | undefined
+  const multiSection = !!(sectionsRequested && sectionsRequested.length > 1)
+  if (fmt === 'combined') {
+    scopeChunks.push('Combined Full Track')
+  } else if (fmt === 'both' && multiSection) {
+    scopeChunks.push('Combined Full Track')
+  } else if (fmt === 'individual' && multiSection) {
+    scopeChunks.push('Individual sections')
+  }
+
+  const mixStr = mixChunks.join(' + ')
+  const scopeStr = scopeChunks.join(' & ')
+  if (mixStr && scopeStr) return `${mixStr} · ${scopeStr}`
+  if (mixStr) return mixStr
+  return scopeStr
+}
+
 export default function AudioQueuePage() {
   const { allBatches, allBatchesLoading, refreshAllBatches } = useAudioStudio()
   const [voices, setVoices] = useState<Voice[]>([])
+  const [mixTrackNames, setMixTrackNames] = useState<{
+    backgrounds: Record<string, string>
+    binaurals: Record<string, string>
+  }>({ backgrounds: {}, binaurals: {} })
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [sourceFilter, setSourceFilter] = useState<string>('all')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -25,6 +169,37 @@ export default function AudioQueuePage() {
     loadVoices()
     refreshAllBatches()
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadMixTrackNames() {
+      const custom = allBatches.filter(b => b.metadata?.custom_mix)
+      const bgIds = [...new Set(custom.map(b => b.metadata?.background_track_id).filter(Boolean) as string[])]
+      const binIds = [...new Set(custom.map(b => b.metadata?.binaural_track_id).filter(Boolean) as string[])]
+      if (bgIds.length === 0 && binIds.length === 0) {
+        if (!cancelled) setMixTrackNames({ backgrounds: {}, binaurals: {} })
+        return
+      }
+      const supabase = createClient()
+      const backgrounds: Record<string, string> = {}
+      const binaurals: Record<string, string> = {}
+      if (bgIds.length > 0) {
+        const { data } = await supabase.from('audio_background_tracks').select('id, display_name').in('id', bgIds)
+        data?.forEach((row: { id: string; display_name: string }) => {
+          backgrounds[row.id] = row.display_name
+        })
+      }
+      if (binIds.length > 0) {
+        const { data } = await supabase.from('audio_background_tracks').select('id, display_name').in('id', binIds)
+        data?.forEach((row: { id: string; display_name: string }) => {
+          binaurals[row.id] = row.display_name
+        })
+      }
+      if (!cancelled) setMixTrackNames({ backgrounds, binaurals })
+    }
+    loadMixTrackNames()
+    return () => { cancelled = true }
+  }, [allBatches])
 
   async function loadVoices() {
     try {
@@ -86,16 +261,14 @@ export default function AudioQueuePage() {
     if (statusFilter === 'failed' && !['failed', 'partial_success'].includes(b.status)) return false
 
     if (sourceFilter !== 'all') {
-      const batchSource = b.metadata?.source_type || (b.vision_id ? 'life_vision' : 'unknown')
-      const isStory = batchSource === 'story' || b.metadata?.content_type === 'story'
-      if (sourceFilter === 'story' && !isStory) return false
-      if (sourceFilter === 'life_vision' && isStory) return false
+      const story = isStoryBatch(b)
+      if (sourceFilter === 'story' && !story) return false
+      if (sourceFilter === 'life_vision' && story) return false
     }
 
     return true
   })
 
-  const hasActiveBatches = filteredBatches.some(b => ['pending', 'processing'].includes(b.status))
   const active = filteredBatches.filter(b => ['pending', 'processing'].includes(b.status))
   const completed = filteredBatches.filter(b => !['pending', 'processing'].includes(b.status))
 
@@ -104,60 +277,17 @@ export default function AudioQueuePage() {
       <Stack gap="lg">
         <PageHero
           title="Generation Queue"
-          subtitle={hasActiveBatches
-            ? 'Monitor your in-progress audio generations'
-            : 'View your recent audio generation history'}
+          subtitle="Track the progress of your audio generation and mixing jobs."
         />
 
-        {/* Quick Action Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Link href="/audio/generate">
-            <Card variant="elevated" hover className="bg-gradient-to-br from-[#199D67]/20 via-[#14B8A6]/10 to-[#8B5CF6]/20 border-[#39FF14]/30 cursor-pointer">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#39FF14]/20 rounded-full flex items-center justify-center flex-shrink-0">
-                  <AudioLines className="w-6 h-6 text-[#39FF14]" />
-                </div>
-                <p className="text-white text-lg">Generate Audio</p>
-              </div>
-            </Card>
-          </Link>
-          <Link href="/audio/record">
-            <Card variant="elevated" hover className="bg-gradient-to-br from-[#D03739]/20 via-[#8B5CF6]/10 to-[#14B8A6]/20 border-[#D03739]/30 cursor-pointer">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#D03739]/20 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Mic className="w-6 h-6 text-[#D03739]" />
-                </div>
-                <p className="text-white text-lg">Record Audio</p>
-              </div>
-            </Card>
-          </Link>
-          <Link href="/audio">
-            <Card variant="elevated" hover className="bg-gradient-to-br from-[#8B5CF6]/20 via-[#14B8A6]/10 to-[#199D67]/20 border-[#8B5CF6]/30 cursor-pointer">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#8B5CF6]/20 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Headphones className="w-6 h-6 text-[#8B5CF6]" />
-                </div>
-                <p className="text-white text-lg">Listen</p>
-              </div>
-            </Card>
-          </Link>
-        </div>
-
         {allBatches.length === 0 ? (
-          <Card variant="elevated" className="p-8 md:p-12 text-center">
-            <CheckCircle className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">No Generations Yet</h3>
-            <p className="text-neutral-400 mb-6">Start generating audio to see your queue here.</p>
-            <Button variant="primary" asChild>
-              <Link href="/audio/generate">
-                <Plus className="w-4 h-4 mr-2" />
-                Generate Audio
-              </Link>
-            </Button>
+          <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] text-center py-12">
+            <ListMusic className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
+            <p className="text-neutral-400 text-sm">No generation jobs yet.</p>
+            <p className="text-neutral-500 text-xs mt-1">Jobs will appear here when you generate or mix audio.</p>
           </Card>
         ) : (
           <>
-            {/* Filter Chips */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <div className="flex items-center gap-1.5 flex-wrap justify-center">
                 {STATUS_CHIPS.map(chip => (
@@ -200,45 +330,34 @@ export default function AudioQueuePage() {
               </Card>
             ) : (
               <>
-                {/* Active Batches */}
                 {active.length > 0 && (
-                  <Card variant="elevated" className="bg-blue-500/5 border-blue-500/30">
-                    <div className="flex flex-col items-center text-center mb-4">
-                      <h2 className="text-xl font-semibold text-white">Generation Queue</h2>
-                      <p className="text-sm text-neutral-400 mt-1">
-                        {active.length} job{active.length !== 1 ? 's' : ''} in progress
-                      </p>
-                    </div>
-                    <div className="flex flex-col gap-4">
-                      {active.map(batch => (
-                        <BatchCard
-                          key={batch.id}
-                          batch={batch}
-                          voices={voices}
-                          onDelete={(b) => { setBatchToDelete(b); setShowDeleteConfirm(true) }}
-                        />
-                      ))}
-                    </div>
-                  </Card>
+                  <section className="space-y-3">
+                    <h3 className="text-sm font-semibold text-white uppercase tracking-wider">In Progress</h3>
+                    {active.map(batch => (
+                      <BatchCard
+                        key={batch.id}
+                        batch={batch}
+                        voices={voices}
+                        mixTrackNames={mixTrackNames}
+                        onDelete={(b) => { setBatchToDelete(b); setShowDeleteConfirm(true) }}
+                      />
+                    ))}
+                  </section>
                 )}
 
-                {/* Completed Batches */}
                 {completed.length > 0 && (
-                  <Card variant="elevated">
-                    <div className="flex flex-col items-center text-center mb-4">
-                      <h2 className="text-xl font-semibold text-white">Recent Generations</h2>
-                    </div>
-                    <div className="flex flex-col gap-4">
-                      {completed.map(batch => (
-                        <BatchCard
-                          key={batch.id}
-                          batch={batch}
-                          voices={voices}
-                          onDelete={(b) => { setBatchToDelete(b); setShowDeleteConfirm(true) }}
-                        />
-                      ))}
-                    </div>
-                  </Card>
+                  <section className="space-y-3">
+                    <h3 className="text-sm font-semibold text-neutral-500 uppercase tracking-wider">Recent</h3>
+                    {completed.map(batch => (
+                      <BatchCard
+                        key={batch.id}
+                        batch={batch}
+                        voices={voices}
+                        mixTrackNames={mixTrackNames}
+                        onDelete={(b) => { setBatchToDelete(b); setShowDeleteConfirm(true) }}
+                      />
+                    ))}
+                  </section>
                 )}
               </>
             )}
@@ -258,155 +377,94 @@ export default function AudioQueuePage() {
   )
 }
 
-function getVariantIcon(variantId: string) {
-  if (variantId === 'standard') return (
-    <div className="p-1.5 rounded-lg bg-primary-500/20">
-      <Mic className="w-4 h-4 text-primary-500" />
-    </div>
-  )
-  if (variantId === 'sleep') return (
-    <div className="p-1.5 rounded-lg bg-blue-500/20">
-      <Moon className="w-4 h-4 text-blue-400" />
-    </div>
-  )
-  if (variantId === 'energy') return (
-    <div className="p-1.5 rounded-lg bg-yellow-500/20">
-      <Zap className="w-4 h-4 text-yellow-400" />
-    </div>
-  )
-  if (variantId === 'meditation') return (
-    <div className="p-1.5 rounded-lg bg-purple-500/20">
-      <Sparkles className="w-4 h-4 text-purple-400" />
-    </div>
-  )
-  return (
-    <div className="p-1.5 rounded-lg bg-neutral-500/20">
-      <Music className="w-4 h-4 text-neutral-400" />
-    </div>
-  )
-}
-
 function BatchCard({
   batch,
   voices,
+  mixTrackNames,
   onDelete,
 }: {
   batch: any
   voices: Voice[]
+  mixTrackNames: { backgrounds: Record<string, string>; binaurals: Record<string, string> }
   onDelete: (batch: any) => void
 }) {
-  const isActive = ['pending', 'processing'].includes(batch.status)
-  const progressPercent = batch.total_tracks_expected > 0
+  const meta = STATUS_META[batch.status] || STATUS_META.pending
+  const StatusIcon = meta.icon
+  const progress = batch.total_tracks_expected > 0
     ? Math.round((batch.tracks_completed / batch.total_tracks_expected) * 100)
     : 0
+  const isActive = ['pending', 'processing'].includes(batch.status)
+  const dateStr = new Date(batch.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
   const voiceName = voices.find(v => v.id === batch.voice_id)?.name || batch.voice_id
-  const sourceType = batch.metadata?.source_type || (batch.vision_id ? 'life_vision' : 'unknown')
-  const isStory = sourceType === 'story' || batch.metadata?.content_type === 'story'
-  const isCustomMix = batch.metadata?.custom_mix
-  const variantLabel = isCustomMix
-    ? 'Custom Mix'
-    : (batch.variant_ids || []).map((v: string) => v === 'standard' ? 'Voice Only' : v.charAt(0).toUpperCase() + v.slice(1)).join(', ') || 'Audio Generation'
+  const story = isStoryBatch(batch)
+  const batchLabel = getBatchDisplayTitle(batch)
+  const customMixDetail =
+    batch.metadata?.custom_mix === true
+      ? formatCustomMixDetailLine(
+          batch.metadata as Record<string, unknown>,
+          batch.sections_requested as Array<{ sectionKey: string }> | undefined,
+          mixTrackNames,
+          story,
+        )
+      : ''
 
   return (
-    <div className="relative">
-      <Card variant="default" hover className="cursor-default !py-4 !px-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-3 flex-1 min-w-0">
-            {getVariantIcon(batch.variant_ids?.[0] || 'standard')}
-
-            <div className="flex-1 space-y-2 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <p className="text-white font-medium">{variantLabel}</p>
-                <span className="inline-flex md:hidden">
-                  <Badge
-                    variant={
-                      batch.status === 'completed' ? 'success' :
-                      batch.status === 'failed' ? 'error' :
-                      batch.status === 'partial_success' ? 'warning' :
-                      'info'
-                    }
-                    className="text-xs"
-                  >
-                    {batch.status === 'processing' ? 'In Progress' :
-                     batch.status === 'pending' ? 'Queued' :
-                     batch.status === 'completed' ? 'Complete' :
-                     batch.status === 'failed' ? 'Failed' :
-                     batch.status === 'partial_success' ? 'Partial' :
-                     batch.status}
-                  </Badge>
-                </span>
-                {isStory ? (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-teal-500/15 text-teal-400">
-                    <BookOpen className="w-2.5 h-2.5" />
-                    Story
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-purple-500/15 text-purple-400">
-                    <Target className="w-2.5 h-2.5" />
-                    Life Vision
-                  </span>
-                )}
-              </div>
-
-              <div className="text-sm text-neutral-400">
-                Tracks: {batch.tracks_completed}/{batch.total_tracks_expected}
-                {batch.tracks_failed > 0 && (
-                  <span className="text-red-400 ml-2">({batch.tracks_failed} failed)</span>
-                )}
-              </div>
-
-              <div className="text-xs text-neutral-500">
-                {new Date(batch.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} {' \u2022 '} {new Date(batch.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-              </div>
-
-              <div className="text-xs text-neutral-400">
-                Voice: {voiceName}
-              </div>
-
-              {isActive && (
-                <div className="w-full bg-neutral-800 rounded-full h-1.5 mt-2">
-                  <div
-                    className="bg-blue-500 h-1.5 rounded-full transition-all duration-300"
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="hidden md:flex md:flex-col md:items-end md:gap-2">
-            <Badge
-              variant={
-                batch.status === 'completed' ? 'success' :
-                batch.status === 'failed' ? 'error' :
-                batch.status === 'partial_success' ? 'warning' :
-                'info'
-              }
-              className="text-xs"
-            >
-              {batch.status === 'processing' ? 'In Progress' :
-               batch.status === 'pending' ? 'Queued' :
-               batch.status === 'completed' ? 'Complete' :
-               batch.status === 'failed' ? 'Failed' :
-               batch.status === 'partial_success' ? 'Partial' :
-               batch.status}
-            </Badge>
-          </div>
+    <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-4">
+      <div className="flex items-start gap-3">
+        <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${meta.bg}`}>
+          <StatusIcon className={`w-4 h-4 ${meta.color} ${isActive && batch.status === 'processing' ? 'animate-spin' : ''}`} />
         </div>
-      </Card>
-
-      <button
-        type="button"
-        onClick={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          onDelete(batch)
-        }}
-        className="absolute top-3 right-3 md:bottom-3 md:top-auto p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors z-10"
-        aria-label="Delete generation"
-      >
-        <Trash2 className="w-4 h-4" />
-      </button>
-    </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+            <span className="text-sm font-medium text-white">{batchLabel}</span>
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${meta.bg} ${meta.color}`}>
+              {meta.label}
+            </span>
+            {story ? (
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-teal-500/15 text-teal-400">
+                <BookOpen className="w-2.5 h-2.5" />
+                Story
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-purple-500/15 text-purple-400">
+                <Target className="w-2.5 h-2.5" />
+                Life Vision
+              </span>
+            )}
+          </div>
+          {customMixDetail ? (
+            <p className="text-xs text-neutral-400 mt-1 leading-relaxed line-clamp-3">{customMixDetail}</p>
+          ) : null}
+          <p className="text-xs text-neutral-500">
+            Voice: {voiceName} &middot; {dateStr}
+          </p>
+          <div className="flex items-center gap-3 mt-2">
+            <div className="flex-1 bg-neutral-800 rounded-full h-1.5">
+              <div
+                className={`h-1.5 rounded-full transition-all duration-500 ${
+                  batch.status === 'failed' ? 'bg-red-500' :
+                  batch.status === 'completed' ? 'bg-[#39FF14]' : 'bg-blue-500'
+                }`}
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <span className="text-[10px] text-neutral-500 flex-shrink-0">
+              {batch.tracks_completed}/{batch.total_tracks_expected}
+            </span>
+          </div>
+          {batch.tracks_failed > 0 && (
+            <p className="text-[10px] text-red-400 mt-1">{batch.tracks_failed} track{batch.tracks_failed !== 1 ? 's' : ''} failed</p>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => onDelete(batch)}
+          className="w-8 h-8 rounded-full flex items-center justify-center text-neutral-600 hover:text-red-400 hover:bg-red-500/10 transition-colors flex-shrink-0"
+          title="Delete batch"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </Card>
   )
 }
