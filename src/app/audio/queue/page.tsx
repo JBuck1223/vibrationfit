@@ -5,6 +5,7 @@ import { Container, Stack, Card, Spinner, Button, DeleteConfirmationDialog, Page
 import { Clock, CheckCircle, AlertCircle, Loader2, ListMusic, Trash2, Target, BookOpen } from 'lucide-react'
 import { useAudioStudio } from '@/components/audio-studio'
 import { createClient } from '@/lib/supabase/client'
+import { getVisionCategoryLabel, isValidVisionCategory } from '@/lib/design-system/vision-categories'
 
 interface Voice {
   id: string
@@ -19,9 +20,145 @@ const STATUS_META: Record<string, { label: string; icon: React.ElementType; colo
   failed: { label: 'Failed', icon: AlertCircle, color: 'text-red-400', bg: 'bg-red-500/15' },
 }
 
+/**
+ * Story jobs set `content_type` on the batch row; metadata alone is not always present.
+ * Keeps source filters and badges consistent.
+ */
+function isStoryBatch(batch: {
+  content_type?: string | null
+  metadata?: Record<string, unknown> | null
+}): boolean {
+  const ct = batch.content_type
+  if (ct === 'story' || ct === 'focus_story') return true
+  const meta = batch.metadata
+  if (!meta) return false
+  if (meta.source_type === 'story') return true
+  if (meta.content_type === 'story') return true
+  return false
+}
+
+/** Single variant id -> user-facing label (aligned with /audio listen set names). */
+function formatVariantIdLabel(variantId: string): string {
+  if (variantId === 'standard') return 'Voice Only'
+  if (variantId === 'personal') return 'Personal Recording'
+  if (variantId === 'custom' || variantId.startsWith('custom-')) return 'Custom mix'
+  return variantId.charAt(0).toUpperCase() + variantId.slice(1)
+}
+
+function formatVariantIdsList(variantIds: string[] | undefined): string {
+  if (!variantIds?.length) return 'Audio Generation'
+  return variantIds.map(formatVariantIdLabel).join(', ')
+}
+
+/**
+ * Prefer stored audio_set_name (same as generated audio set titles), then custom-mix ratio hint, then variant labels.
+ */
+function getBatchDisplayTitle(batch: { metadata?: Record<string, unknown>; variant_ids?: string[] }): string {
+  const raw = batch.metadata?.audio_set_name
+  if (typeof raw === 'string' && raw.trim()) return raw.trim()
+
+  const meta = batch.metadata
+  if (meta && meta.custom_mix === true) {
+    const vv = meta.voice_volume
+    const bv = meta.bg_volume
+    const bin = meta.binaural_volume
+    if (vv !== undefined && bv !== undefined) {
+      // Order: voice %, background %, optional frequency %
+      const parts = [Math.round(Number(vv)), Math.round(Number(bv))]
+      if (bin !== undefined && Number(bin) > 0) parts.push(Math.round(Number(bin)))
+      return `Custom mix (${parts.join('/')})`
+    }
+    return 'Custom mix'
+  }
+
+  return formatVariantIdsList(batch.variant_ids)
+}
+
+function sectionKeyLabel(key: string): string {
+  if (key === 'full') return 'Full narrative'
+  if (isValidVisionCategory(key)) return getVisionCategoryLabel(key)
+  return key.charAt(0).toUpperCase() + key.slice(1)
+}
+
+/**
+ * Custom-mix summary: Voice, then Background, then Frequency (if any); then · then scope (e.g. All vision sections & Combined Full Track).
+ */
+function formatCustomMixDetailLine(
+  meta: Record<string, unknown>,
+  sectionsRequested: Array<{ sectionKey: string }> | undefined,
+  trackNames: { backgrounds: Record<string, string>; binaurals: Record<string, string> },
+  isStoryScope: boolean,
+): string {
+  const bgId = meta.background_track_id as string | undefined
+  const binId = meta.binaural_track_id as string | undefined
+  const vv = meta.voice_volume
+  const bv = meta.bg_volume
+  const binVol = meta.binaural_volume
+  const bgName = bgId ? trackNames.backgrounds[bgId] : undefined
+  const binName = binId ? trackNames.binaurals[binId] : undefined
+
+  const mixChunks: string[] = []
+
+  if (vv !== undefined) {
+    mixChunks.push(`Voice: ${Math.round(Number(vv))}% voice`)
+  }
+
+  if (bv !== undefined && Number(bv) > 0) {
+    const pct = Math.round(Number(bv))
+    if (bgName) {
+      mixChunks.push(`Background: ${pct}% ${bgName}`)
+    } else {
+      mixChunks.push(`Background: ${pct}%`)
+    }
+  }
+
+  if (binName && binVol !== undefined && Number(binVol) > 0) {
+    mixChunks.push(`Frequency: ${Math.round(Number(binVol))}% ${binName}`)
+  }
+
+  const scopeChunks: string[] = []
+  if (isStoryScope) {
+    scopeChunks.push('Full story')
+  } else if (meta.mix_all_sections === true) {
+    scopeChunks.push('All vision sections')
+  } else {
+    const sel = meta.selected_sections as string[] | null | undefined
+    if (Array.isArray(sel) && sel.length > 0) {
+      scopeChunks.push(`Sections: ${sel.map(sectionKeyLabel).join(', ')}`)
+    } else if (sectionsRequested?.length) {
+      const keys = sectionsRequested.map(s => s.sectionKey)
+      if (keys.length === 1 && keys[0] === 'full') {
+        scopeChunks.push('Full narrative')
+      } else {
+        scopeChunks.push(`Sections: ${keys.map(sectionKeyLabel).join(', ')}`)
+      }
+    }
+  }
+
+  const fmt = meta.output_format as string | undefined
+  const multiSection = !!(sectionsRequested && sectionsRequested.length > 1)
+  if (fmt === 'combined') {
+    scopeChunks.push('Combined Full Track')
+  } else if (fmt === 'both' && multiSection) {
+    scopeChunks.push('Combined Full Track')
+  } else if (fmt === 'individual' && multiSection) {
+    scopeChunks.push('Individual sections')
+  }
+
+  const mixStr = mixChunks.join(' + ')
+  const scopeStr = scopeChunks.join(' & ')
+  if (mixStr && scopeStr) return `${mixStr} · ${scopeStr}`
+  if (mixStr) return mixStr
+  return scopeStr
+}
+
 export default function AudioQueuePage() {
   const { allBatches, allBatchesLoading, refreshAllBatches } = useAudioStudio()
   const [voices, setVoices] = useState<Voice[]>([])
+  const [mixTrackNames, setMixTrackNames] = useState<{
+    backgrounds: Record<string, string>
+    binaurals: Record<string, string>
+  }>({ backgrounds: {}, binaurals: {} })
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [sourceFilter, setSourceFilter] = useState<string>('all')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -32,6 +169,37 @@ export default function AudioQueuePage() {
     loadVoices()
     refreshAllBatches()
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadMixTrackNames() {
+      const custom = allBatches.filter(b => b.metadata?.custom_mix)
+      const bgIds = [...new Set(custom.map(b => b.metadata?.background_track_id).filter(Boolean) as string[])]
+      const binIds = [...new Set(custom.map(b => b.metadata?.binaural_track_id).filter(Boolean) as string[])]
+      if (bgIds.length === 0 && binIds.length === 0) {
+        if (!cancelled) setMixTrackNames({ backgrounds: {}, binaurals: {} })
+        return
+      }
+      const supabase = createClient()
+      const backgrounds: Record<string, string> = {}
+      const binaurals: Record<string, string> = {}
+      if (bgIds.length > 0) {
+        const { data } = await supabase.from('audio_background_tracks').select('id, display_name').in('id', bgIds)
+        data?.forEach((row: { id: string; display_name: string }) => {
+          backgrounds[row.id] = row.display_name
+        })
+      }
+      if (binIds.length > 0) {
+        const { data } = await supabase.from('audio_background_tracks').select('id, display_name').in('id', binIds)
+        data?.forEach((row: { id: string; display_name: string }) => {
+          binaurals[row.id] = row.display_name
+        })
+      }
+      if (!cancelled) setMixTrackNames({ backgrounds, binaurals })
+    }
+    loadMixTrackNames()
+    return () => { cancelled = true }
+  }, [allBatches])
 
   async function loadVoices() {
     try {
@@ -93,10 +261,9 @@ export default function AudioQueuePage() {
     if (statusFilter === 'failed' && !['failed', 'partial_success'].includes(b.status)) return false
 
     if (sourceFilter !== 'all') {
-      const batchSource = b.metadata?.source_type || (b.vision_id ? 'life_vision' : 'unknown')
-      const isStory = batchSource === 'story' || b.metadata?.content_type === 'story'
-      if (sourceFilter === 'story' && !isStory) return false
-      if (sourceFilter === 'life_vision' && isStory) return false
+      const story = isStoryBatch(b)
+      if (sourceFilter === 'story' && !story) return false
+      if (sourceFilter === 'life_vision' && story) return false
     }
 
     return true
@@ -171,6 +338,7 @@ export default function AudioQueuePage() {
                         key={batch.id}
                         batch={batch}
                         voices={voices}
+                        mixTrackNames={mixTrackNames}
                         onDelete={(b) => { setBatchToDelete(b); setShowDeleteConfirm(true) }}
                       />
                     ))}
@@ -185,6 +353,7 @@ export default function AudioQueuePage() {
                         key={batch.id}
                         batch={batch}
                         voices={voices}
+                        mixTrackNames={mixTrackNames}
                         onDelete={(b) => { setBatchToDelete(b); setShowDeleteConfirm(true) }}
                       />
                     ))}
@@ -211,10 +380,12 @@ export default function AudioQueuePage() {
 function BatchCard({
   batch,
   voices,
+  mixTrackNames,
   onDelete,
 }: {
   batch: any
   voices: Voice[]
+  mixTrackNames: { backgrounds: Record<string, string>; binaurals: Record<string, string> }
   onDelete: (batch: any) => void
 }) {
   const meta = STATUS_META[batch.status] || STATUS_META.pending
@@ -225,10 +396,17 @@ function BatchCard({
   const isActive = ['pending', 'processing'].includes(batch.status)
   const dateStr = new Date(batch.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
   const voiceName = voices.find(v => v.id === batch.voice_id)?.name || batch.voice_id
-  const sourceType = batch.metadata?.source_type || (batch.vision_id ? 'life_vision' : 'unknown')
-  const isStory = sourceType === 'story' || batch.metadata?.content_type === 'story'
-  const isCustomMix = batch.metadata?.custom_mix
-  const batchLabel = isCustomMix ? 'Custom Mix' : batch.variant_ids?.join(', ') || 'Audio Generation'
+  const story = isStoryBatch(batch)
+  const batchLabel = getBatchDisplayTitle(batch)
+  const customMixDetail =
+    batch.metadata?.custom_mix === true
+      ? formatCustomMixDetailLine(
+          batch.metadata as Record<string, unknown>,
+          batch.sections_requested as Array<{ sectionKey: string }> | undefined,
+          mixTrackNames,
+          story,
+        )
+      : ''
 
   return (
     <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-4">
@@ -242,7 +420,7 @@ function BatchCard({
             <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${meta.bg} ${meta.color}`}>
               {meta.label}
             </span>
-            {isStory ? (
+            {story ? (
               <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-teal-500/15 text-teal-400">
                 <BookOpen className="w-2.5 h-2.5" />
                 Story
@@ -254,6 +432,9 @@ function BatchCard({
               </span>
             )}
           </div>
+          {customMixDetail ? (
+            <p className="text-xs text-neutral-400 mt-1 leading-relaxed line-clamp-3">{customMixDetail}</p>
+          ) : null}
           <p className="text-xs text-neutral-500">
             Voice: {voiceName} &middot; {dateStr}
           </p>

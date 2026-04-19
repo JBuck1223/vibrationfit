@@ -22,6 +22,7 @@ export async function POST(
 ) {
   const startTime = Date.now()
   const { id: storyId } = await params
+  let batchId: string | undefined
 
   try {
     const supabase = await createClient()
@@ -61,6 +62,44 @@ export async function POST(
       }, { status: tokenValidation.status })
     }
 
+    const sectionsPayload = [{ sectionKey: 'focus_story', text: story.content }]
+
+    const { data: batchRow, error: batchInsertError } = await supabase
+      .from('audio_generation_batches')
+      .insert({
+        user_id: user.id,
+        content_type: 'story',
+        content_id: story.id,
+        variant_ids: ['standard'],
+        voice_id: voice,
+        sections_requested: sectionsPayload,
+        total_tracks_expected: 1,
+        status: 'pending',
+        metadata: {
+          source_type: 'story',
+          story_id: story.id,
+          audio_set_name: story.title || null,
+          content_type: 'story',
+        },
+      })
+      .select('id')
+      .single()
+
+    if (batchInsertError || !batchRow) {
+      console.error('[StoryAudio] Failed to create generation batch:', batchInsertError)
+      return NextResponse.json({ error: 'Failed to create generation batch' }, { status: 500 })
+    }
+
+    batchId = batchRow.id
+
+    await supabase
+      .from('audio_generation_batches')
+      .update({
+        status: 'processing',
+        started_at: new Date().toISOString(),
+      })
+      .eq('id', batchId)
+
     let audioSetId = story.audio_set_id
 
     if (!audioSetId) {
@@ -81,6 +120,14 @@ export async function POST(
         .single()
 
       if (audioSetError || !audioSet) {
+        await supabase
+          .from('audio_generation_batches')
+          .update({
+            status: 'failed',
+            error_message: audioSetError?.message || 'Failed to create audio set',
+            completed_at: new Date().toISOString(),
+          })
+          .eq('id', batchId)
         console.error('[StoryAudio] Failed to create audio_set:', audioSetError)
         throw audioSetError || new Error('Failed to create audio set')
       }
@@ -91,13 +138,15 @@ export async function POST(
 
     const audioResults = await generateAudioTracks({
       userId: user.id,
-      visionId: story.entity_id,
-      sections: [{ sectionKey: 'focus_story', text: story.content }],
+      contentType: 'story',
+      contentId: story.id,
+      sections: sectionsPayload,
       voice,
       format: 'mp3',
       audioSetId,
       audioSetName: story.title || 'Story Audio',
       variant: 'standard',
+      batchId,
     })
 
     const result = audioResults[0]
@@ -120,10 +169,27 @@ export async function POST(
       audioSetId,
       audioUrl: result.audioUrl,
       elapsedMs,
+      batchId,
     })
   } catch (err) {
     const elapsedMs = Date.now() - startTime
     console.error(`[StoryAudio] Error after ${elapsedMs}ms:`, err)
+
+    if (batchId) {
+      try {
+        const supabase = await createClient()
+        await supabase
+          .from('audio_generation_batches')
+          .update({
+            status: 'failed',
+            error_message: err instanceof Error ? err.message : 'Failed to generate audio',
+            completed_at: new Date().toISOString(),
+          })
+          .eq('id', batchId)
+      } catch (e) {
+        console.error('[StoryAudio] Failed to mark batch failed:', e)
+      }
+    }
 
     return NextResponse.json({
       error: err instanceof Error ? err.message : 'Failed to generate audio',
