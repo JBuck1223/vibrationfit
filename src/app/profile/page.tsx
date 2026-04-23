@@ -558,7 +558,7 @@ export default function ProfileDashboardPage() {
   }
 
   return (
-    <Container size="xl">
+    <Container size="xl" className="py-6">
       <Stack gap="lg">
         {/* Completion Banner - Shows above PageHero when step is already complete in intensive mode */}
         {isIntensiveMode && isAlreadyCompleted && completedAt && (

@@ -483,7 +483,7 @@ export default function VisionListPage() {
   }
 
   return (
-    <Container size="xl">
+    <Container size="xl" className="py-6">
       <Stack gap="lg">
         {/* Page Hero - All Life Visions */}
         <PageHero

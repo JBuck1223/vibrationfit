@@ -10,6 +10,7 @@ import { PixelScripts } from '@/components/PixelScripts'
 import { Toaster } from 'sonner'
 import { ImpersonationBanner } from '@/components/ImpersonationBanner'
 import { ReferralBanner } from '@/components/ReferralBanner'
+import { GlobalAudioPlayerShell } from '@/components/audio-player/GlobalAudioPlayerShell'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -71,6 +72,7 @@ export default function RootLayout({
           <GlobalLayout>
             {children}
           </GlobalLayout>
+          <GlobalAudioPlayerShell />
           </AppErrorHandling>
           </TrackingProvider>
           <Toaster 

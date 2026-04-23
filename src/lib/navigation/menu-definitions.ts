@@ -139,7 +139,7 @@ export const userNavigation: (NavItem | NavGroup)[] = [
   },
   {
     name: 'Audio',
-    href: '/life-vision/audio',
+    href: '/audio',
     icon: Headphones,
     description: 'Key AM/PM/Sleep audio sets',
   },
@@ -257,11 +257,12 @@ export const userNavigationGroups: NavGroup[] = [
       },
       {
         name: 'Audio Studio',
-        href: '/life-vision/audio',
+        href: '/audio',
         icon: Headphones,
         hasDropdown: true,
         children: [
-          { name: 'All Vision Audios', href: '/life-vision/audio', icon: Music },
+          { name: 'Listen', href: '/audio', icon: Music },
+          { name: 'Create', href: '/audio/create', icon: Wand2 },
         ],
       },
       {
@@ -563,9 +564,9 @@ export const mobileNavigation: NavItem[] = [
   },
   {
     name: 'Audio',
-    href: '/life-vision/active/audio/sets',
+    href: '/audio',
     icon: Headphones,
-    description: 'Vision Audio Sets',
+    description: 'Audio Studio',
   },
   {
     name: 'Board',
@@ -777,10 +778,9 @@ export function isNavItemActive(
       }
     }
     
-    // Special handling for dynamic Audio link (mobile nav)
-    // Match /life-vision/[uuid]/audio/sets or /life-vision/[uuid]/audio/*
-    if (item.href.match(/^\/life-vision\/[a-f0-9-]{36}\/audio\/sets$/)) {
-      if (pathname.match(/^\/life-vision\/[a-f0-9-]{36}\/audio/)) {
+    // Audio hub: /audio matches all audio sub-routes
+    if (item.href === '/audio') {
+      if (pathname.startsWith('/audio/')) {
         return true
       }
     }
@@ -788,6 +788,13 @@ export function isNavItemActive(
     // Special handling for /profile/active - match any profile route
     if (item.href === '/profile/active') {
       if (pathname.startsWith('/profile')) {
+        return true
+      }
+    }
+    
+    // Special handling for /life-vision/active - match any life-vision route
+    if (item.href === '/life-vision/active') {
+      if (pathname.startsWith('/life-vision')) {
         return true
       }
     }
