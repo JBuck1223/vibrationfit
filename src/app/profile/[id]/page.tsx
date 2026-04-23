@@ -1453,7 +1453,7 @@ export default function ProfileDetailPage() {
   }
 
   return (
-    <>
+    <div className="py-6">
         {/* Intensive Completion Banner */}
         {isIntensiveMode && isAlreadyCompleted && completedAt && (
           <Container size="xl" className="mb-8">
@@ -1576,31 +1576,6 @@ export default function ProfileDetailPage() {
             </div>
           )}
 
-          {/* Action Buttons - Enhanced with Hover Effects */}
-          <div className="flex flex-row flex-wrap lg:flex-nowrap justify-center gap-2 md:gap-4 max-w-2xl mx-auto">
-            <Button
-              onClick={() => router.push(`/profile/${profileId}/edit`)}
-              variant="outline"
-              size="sm"
-              className="flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-            >
-              <Edit className="w-4 h-4 shrink-0" />
-              <span>Edit Profile</span>
-            </Button>
-            {/* Voice Profile button hidden - feature preserved for future use */}
-            {/* Hide See All Profiles in intensive mode */}
-            {!isIntensiveMode && (
-              <Button
-                onClick={() => router.push('/profile')}
-                variant="outline"
-                size="sm"
-                className="flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-              >
-                <Eye className="w-4 h-4 shrink-0" />
-                <span>See All Profiles</span>
-              </Button>
-            )}
-          </div>
         </PageHero>
 
         {/* Main Content */}
@@ -2044,6 +2019,6 @@ export default function ProfileDetailPage() {
         isLoading={deletingVersion === versionToDelete?.id}
         loadingText="Deleting version..."
       />
-    </>
+    </div>
   )
 }

@@ -31,6 +31,9 @@ export const PAGE_CLASSIFICATIONS = {
       '/tracking',
       '/viva',
     
+    // Audio Studio (global hub)
+    '/audio',
+    
     // Life Vision System
     '/life-vision',
     '/life-vision/new',
@@ -50,12 +53,17 @@ export const PAGE_CLASSIFICATIONS = {
     // Vision Board & Gallery
     '/vision-board',
     '/vision-board/new',
+    '/vision-board/create',
+    '/vision-board/ideas',
+    '/vision-board/queue',
+    '/vision-board/export',
     '/vision-board/gallery',
     '/vision-board/[id]',
     
     // Journal System
     '/journal',
     '/journal/new',
+    '/journal/resources',
     '/journal/[id]',
     '/journal/[id]/edit',
     
@@ -77,8 +85,10 @@ export const PAGE_CLASSIFICATIONS = {
     
     // Profile & Account
     '/profile',
+    '/profile/create',
     '/profile/active/edit',
     '/profile/new',
+    '/profile/compare',
     '/profile/[id]',
     '/profile/[id]/edit',
     '/account',

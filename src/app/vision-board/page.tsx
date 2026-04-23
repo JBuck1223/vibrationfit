@@ -1091,7 +1091,7 @@ export default function VisionBoardPage() {
   }
 
   return (
-    <Container size="xl" className="overflow-x-hidden">
+    <Container size="xl" className="py-6 overflow-x-hidden">
       <Stack gap="lg">
         {/* Header */}
         <PageHero

@@ -13,6 +13,14 @@ import { getPageType } from '@/lib/navigation'
 import { getActiveIntensiveClient, IntensiveData } from '@/lib/intensive/utils-client'
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
 import { createClient } from '@/lib/supabase/client'
+import { useGlobalAudioStore } from '@/lib/stores/global-audio-store'
+
+function PlayerSpacer() {
+  const hasActive = useGlobalAudioStore(s => s.tracks.length > 0)
+  if (!hasActive) return null
+  return <div className="h-20" />
+}
+
 
 interface GlobalLayoutProps {
   children: React.ReactNode
@@ -234,6 +242,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
             <div className="md:ml-[280px]">
               <PageLayout>
                 {children}
+                <PlayerSpacer />
               </PageLayout>
               {!isAccessible && !isSuperAdmin && <IntensiveLockedOverlay />}
             </div>
@@ -246,6 +255,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
         <SidebarLayout isAdmin={false}>
           <PageLayout>
             {children}
+            <PlayerSpacer />
           </PageLayout>
         </SidebarLayout>
       )
@@ -257,6 +267,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
         <SidebarLayout isAdmin={true}>
           <PageLayout>
             {children}
+            <PlayerSpacer />
           </PageLayout>
         </SidebarLayout>
       )
@@ -279,6 +290,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
       {!hideHeaderFooter && <Header />}
       <PageLayout className={pageLayoutClass}>
         {children}
+        <PlayerSpacer />
       </PageLayout>
       {!hideHeaderFooter && <Footer />}
     </div>
