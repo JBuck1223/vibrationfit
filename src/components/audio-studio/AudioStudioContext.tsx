@@ -402,13 +402,17 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
 
   useEffect(() => { loadStoriesWithAudio() }, [])
 
-  // Read source from URL params on mount
+  // Read source and listen params from URL on mount
   useEffect(() => {
     const urlSource = searchParams.get('source') as AudioSourceType
     const urlSourceId = searchParams.get('sourceId')
     if (urlSource && urlSourceId) {
       setSourceType(urlSource)
       setSourceId(urlSourceId)
+    }
+    const urlListen = searchParams.get('listen')
+    if (urlListen) {
+      setListenContentType(urlListen)
     }
   }, [searchParams])
 

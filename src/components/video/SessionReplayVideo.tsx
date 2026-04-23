@@ -1,8 +1,12 @@
 'use client'
 
-import React, { useCallback, useRef, useState } from 'react'
+import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react'
 import { Video } from '@/lib/design-system/components'
 import { AlertCircle, RotateCcw } from 'lucide-react'
+import {
+  buildAdaptiveVideoUrlCandidates,
+  type VideoQualityRendition,
+} from '@/components/OptimizedVideo'
 
 type SessionReplayVideoProps = {
   src: string
@@ -13,15 +17,18 @@ type SessionReplayVideoProps = {
 }
 
 /**
- * Optimised replay player for session recordings (often 60+ min fragmented
- * MP4 files from Daily.co served via S3/CloudFront).
+ * Replay player for session recordings with adaptive quality selection.
  *
- * Key optimisations for large files:
- *  - preload="metadata" so the browser fetches just enough to enable seeking
- *    without downloading the entire file up-front.
- *  - Seeks to playbackStartSeconds on first play rather than on canplay, so
- *    the initial load stays lightweight.
- *  - Includes error/retry handling for flaky mobile connections.
+ * Once MediaConvert has processed a recording the DB stores the 1080p URL.
+ * This component derives 720p / original variants from that URL (via the
+ * standard -{quality}.mp4 naming convention) and picks the best one based on
+ * screen width and network conditions — identical to OptimizedVideo.
+ *
+ * Additional session-recording specifics:
+ *  - preload="metadata" for fast initial load
+ *  - Seeks to playbackStartSeconds on first play
+ *  - Error/retry handling for flaky connections
+ *  - Falls through quality candidates if a variant 404s
  */
 export function SessionReplayVideo({
   src,
@@ -35,14 +42,50 @@ export function SessionReplayVideo({
   const [error, setError] = useState(false)
   const [retryKey, setRetryKey] = useState(0)
 
+  // Adaptive quality based on screen width
+  const [quality, setQuality] = useState<VideoQualityRendition>('1080p')
+  const [mounted, setMounted] = useState(false)
+  const [candidateIndex, setCandidateIndex] = useState(0)
+
+  useEffect(() => { setMounted(true) }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+    const update = () => {
+      const w = window.innerWidth
+      setQuality(w < 768 ? '720p' : w < 1440 ? '1080p' : 'original')
+    }
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [mounted])
+
+  // Network-aware downgrade
+  useEffect(() => {
+    if (!mounted) return
+    // @ts-expect-error Network Information API
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection
+    if (!conn) return
+    const update = () => {
+      if (['3g', '2g', 'slow-2g'].includes(conn.effectiveType)) setQuality('720p')
+    }
+    update()
+    conn.addEventListener('change', update)
+    return () => conn.removeEventListener('change', update)
+  }, [mounted])
+
+  const candidates = useMemo(
+    () => buildAdaptiveVideoUrlCandidates(src, quality),
+    [src, quality],
+  )
+  const activeSrc = candidates[Math.min(candidateIndex, candidates.length - 1)] ?? src
+
+  useEffect(() => { setCandidateIndex(0) }, [src, quality])
+
   const seekToStart = useCallback(() => {
     const el = videoRef.current
     if (!el || start <= 0 || hasSeeked.current) return
     hasSeeked.current = true
-
-    // If duration is known (MP4 with moov at front), seek immediately.
-    // For WebM files where duration is Infinity, seek anyway — the browser
-    // will resolve it via byte-range requests without downloading everything.
     const d = el.duration
     if (Number.isFinite(d) && d > 0) {
       el.currentTime = Math.min(start, Math.max(0, d - 0.25))
@@ -51,19 +94,20 @@ export function SessionReplayVideo({
     }
   }, [start])
 
-  // Seek on first play rather than on canplay — avoids buffering the start
-  // offset before the user even clicks play.
-  const handlePlay = useCallback(() => {
-    seekToStart()
-  }, [seekToStart])
+  const handlePlay = useCallback(() => { seekToStart() }, [seekToStart])
 
   const handleError = useCallback(() => {
-    setError(true)
-  }, [])
+    if (candidateIndex < candidates.length - 1) {
+      setCandidateIndex(i => i + 1)
+    } else {
+      setError(true)
+    }
+  }, [candidateIndex, candidates.length])
 
   const handleRetry = useCallback(() => {
     setError(false)
     hasSeeked.current = false
+    setCandidateIndex(0)
     setRetryKey(k => k + 1)
   }, [])
 
@@ -87,9 +131,9 @@ export function SessionReplayVideo({
 
   return (
     <Video
-      key={retryKey}
+      key={`${retryKey}-${activeSrc}`}
       ref={videoRef}
-      src={src}
+      src={activeSrc}
       poster={poster}
       preload="metadata"
       controls

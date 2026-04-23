@@ -204,6 +204,9 @@ async function handleBatchMix(eventData) {
 
     // ── INDIVIDUAL MIXES (for 'individual' and 'both') ──
     const individualMixPaths = []
+    const needsCombinedEarly = (outputFormat === 'combined' || outputFormat === 'both') && combinedOutputKey && combinedTrackId
+    const totalExpectedTracks = needsCombinedEarly ? sections.length + 1 : sections.length
+
     if (outputFormat === 'individual' || outputFormat === 'both') {
       console.log(`[BatchMix] Mixing ${sections.length} individual sections...`)
       for (let i = 0; i < sections.length; i++) {
@@ -225,6 +228,11 @@ async function handleBatchMix(eventData) {
           await updateMixStatus(section.trackId, 'failed', null, null, err.message)
           mixResults.push({ trackId: section.trackId, status: 'failed', error: err.message })
           mixFailCount++
+        }
+
+        if (batchId) {
+          const remaining = totalExpectedTracks - mixSuccessCount - mixFailCount
+          await updateBatchProgress(batchId, mixSuccessCount, mixFailCount, remaining)
         }
       }
 
@@ -254,8 +262,8 @@ async function handleBatchMix(eventData) {
         const concatVoicePath = `/tmp/batch-voiceconcat-${timestamp}.mp3`
         filesToClean.push(concatVoicePath)
 
-        const concatCommand = `${ffmpegPath} -f concat -safe 0 -i "${concatListPath}" -c copy -y "${concatVoicePath}"`
-        console.log('[BatchMix] Concatenating voices...')
+        const concatCommand = `${ffmpegPath} -f concat -safe 0 -i "${concatListPath}" -codec:a libmp3lame -b:a 192k -y "${concatVoicePath}"`
+        console.log('[BatchMix] Concatenating voices (re-encoding to MP3)...')
         await execAsync(concatCommand)
 
         const concatStats = fs.statSync(concatVoicePath)
@@ -297,6 +305,7 @@ async function handleBatchMix(eventData) {
             await updateMixStatus(section.trackId, 'completed', null, null)
             mixResults.push({ trackId: section.trackId, status: 'completed' })
           }
+          if (batchId) await updateBatchProgress(batchId, mixSuccessCount, mixFailCount, 0)
         }
       } catch (concatError) {
         console.error('[BatchMix] Combined track failed:', concatError.message)
@@ -364,7 +373,7 @@ async function handleBatchMix(eventData) {
 // ─── CONCATENATION ───────────────────────────────────────────────────────────
 //
 // Concatenates multiple audio tracks into a single file using FFmpeg stream
-// copy (-c copy). No re-encoding, so it's fast even for 60+ minute files.
+// Re-encodes to MP3 via libmp3lame (required because OpenAI TTS outputs Opus codec).
 //
 // Payload: { action: 'concatenate', trackUrls: string[], outputKey: string, trackId: string }
 
@@ -409,8 +418,8 @@ async function handleConcatenate(eventData) {
     const outputPath = `/tmp/concat-${timestamp}-output.mp3`
     filesToClean.push(outputPath)
 
-    const concatCommand = `${ffmpegPath} -f concat -safe 0 -i "${concatListPath}" -c copy -y "${outputPath}"`
-    console.log(`[Concat] Running FFmpeg concat...`)
+    const concatCommand = `${ffmpegPath} -f concat -safe 0 -i "${concatListPath}" -codec:a libmp3lame -b:a 192k -y "${outputPath}"`
+    console.log(`[Concat] Running FFmpeg concat (re-encoding to MP3)...`)
     await execAsync(concatCommand)
 
     const outputStats = fs.statSync(outputPath)
@@ -636,6 +645,34 @@ async function updateTrackStatus(trackId, status, audioUrl, s3Key, durationSecon
     console.log(`[TrackStatus] Updated ${trackId}: status=${status}, mix_status=${mixStatus}, duration=${durationSeconds}s, httpStatus=${resp.status}`)
   } catch (error) {
     console.error('Failed to update Supabase:', error)
+  }
+}
+
+/**
+ * Incremental batch progress update (called after each track finishes mixing)
+ */
+async function updateBatchProgress(batchId, completed, failed, pending) {
+  const supabaseUrl = process.env.SUPABASE_URL
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!supabaseUrl || !supabaseKey) return
+  
+  try {
+    await fetch(`${supabaseUrl}/rest/v1/audio_generation_batches?id=eq.${batchId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({
+        tracks_completed: completed,
+        tracks_failed: failed,
+        tracks_pending: pending,
+      }),
+    })
+  } catch (error) {
+    console.warn('Failed to update batch progress:', error.message)
   }
 }
 

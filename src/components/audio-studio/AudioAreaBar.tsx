@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import {
-  Headphones, Wand2, Compass, ListMusic, Library,
+  Headphones, Wand2, ListMusic, Library,
   Target, BookOpen, Music2, ChevronDown, Check, Search,
   Image, Lightbulb, Clock, FileText, AudioLines, Mic, Music,
 } from 'lucide-react'
@@ -14,7 +14,6 @@ import { useAudioStudio } from './AudioStudioContext'
 const TABS = [
   { label: 'Listen', path: '/audio', icon: Headphones },
   { label: 'Create', path: '/audio/create', icon: Wand2 },
-  { label: 'Explore', path: '/audio/explore', icon: Compass },
 ]
 
 const CREATE_AREA_ROUTES = ['/audio/create', '/audio/generate', '/audio/mix', '/audio/record', '/audio/queue']
@@ -268,6 +267,7 @@ export function AudioAreaBar() {
       tabs={TABS}
       contextBar={contextBar}
       keepTabActive={!isOnSecondaryPage}
+      activeParentPath={isOnSecondaryPage ? '/audio/create' : undefined}
       variant="default"
     />
   )

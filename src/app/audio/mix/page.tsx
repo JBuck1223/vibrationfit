@@ -515,7 +515,7 @@ export default function AudioMixPage() {
         console.error('Generation API error:', err)
       })
 
-      router.push(`/audio/listen`)
+      router.push('/audio/queue')
       
     } catch (err) {
       console.error('Error generating custom mix:', err)
@@ -743,7 +743,7 @@ export default function AudioMixPage() {
         console.error('Generation API error:', err)
       })
 
-      router.push(`/audio`)
+      router.push('/audio/queue')
     } catch (error) {
       console.error('Generation error:', error)
       alert('An error occurred during generation. Please try again.')
