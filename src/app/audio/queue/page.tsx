@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { Container, Stack, Card, Spinner, Button, DeleteConfirmationDialog, PageHero } from '@/lib/design-system/components'
 import { Clock, CheckCircle, AlertCircle, Loader2, ListMusic, Trash2, Target, BookOpen } from 'lucide-react'
+import Link from 'next/link'
 import { useAudioStudio } from '@/components/audio-studio'
 import { createClient } from '@/lib/supabase/client'
 import { getVisionCategoryLabel, isValidVisionCategory } from '@/lib/design-system/vision-categories'
@@ -334,13 +335,14 @@ export default function AudioQueuePage() {
                   <section className="space-y-3">
                     <h3 className="text-sm font-semibold text-white uppercase tracking-wider">In Progress</h3>
                     {active.map(batch => (
-                      <BatchCard
-                        key={batch.id}
-                        batch={batch}
-                        voices={voices}
-                        mixTrackNames={mixTrackNames}
-                        onDelete={(b) => { setBatchToDelete(b); setShowDeleteConfirm(true) }}
-                      />
+                      <Link key={batch.id} href={`/audio/queue/${batch.id}`} className="block">
+                        <BatchCard
+                          batch={batch}
+                          voices={voices}
+                          mixTrackNames={mixTrackNames}
+                          onDelete={(b) => { setBatchToDelete(b); setShowDeleteConfirm(true) }}
+                        />
+                      </Link>
                     ))}
                   </section>
                 )}
@@ -349,13 +351,14 @@ export default function AudioQueuePage() {
                   <section className="space-y-3">
                     <h3 className="text-sm font-semibold text-neutral-500 uppercase tracking-wider">Recent</h3>
                     {completed.map(batch => (
-                      <BatchCard
-                        key={batch.id}
-                        batch={batch}
-                        voices={voices}
-                        mixTrackNames={mixTrackNames}
-                        onDelete={(b) => { setBatchToDelete(b); setShowDeleteConfirm(true) }}
-                      />
+                      <Link key={batch.id} href={`/audio/queue/${batch.id}`} className="block">
+                        <BatchCard
+                          batch={batch}
+                          voices={voices}
+                          mixTrackNames={mixTrackNames}
+                          onDelete={(b) => { setBatchToDelete(b); setShowDeleteConfirm(true) }}
+                        />
+                      </Link>
                     ))}
                   </section>
                 )}
@@ -409,7 +412,7 @@ function BatchCard({
       : ''
 
   return (
-    <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-4">
+    <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-4 hover:border-neutral-600 transition-colors cursor-pointer">
       <div className="flex items-start gap-3">
         <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${meta.bg}`}>
           <StatusIcon className={`w-4 h-4 ${meta.color} ${isActive && batch.status === 'processing' ? 'animate-spin' : ''}`} />
@@ -458,7 +461,7 @@ function BatchCard({
         </div>
         <button
           type="button"
-          onClick={() => onDelete(batch)}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(batch) }}
           className="w-8 h-8 rounded-full flex items-center justify-center text-neutral-600 hover:text-red-400 hover:bg-red-500/10 transition-colors flex-shrink-0"
           title="Delete batch"
         >

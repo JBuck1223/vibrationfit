@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
-import { Container, Stack, Card, Button, Spinner, Toggle, DeleteConfirmationDialog } from '@/lib/design-system/components'
+import { Container, Stack, Card, Button, Spinner, Toggle, DeleteConfirmationDialog, PageHero } from '@/lib/design-system/components'
 import { PlaylistPlayer, type AudioTrack as BaseAudioTrack } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import { useAudioStudio, type AudioSetItem } from '@/components/audio-studio'
 import { useAreaStats } from '@/hooks/useAreaStats'
-import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
+import { VISION_CATEGORIES, LIFE_CATEGORY_KEYS } from '@/lib/design-system/vision-categories'
 
 interface AudioTrack extends BaseAudioTrack {
   sectionKey: string
@@ -55,6 +55,13 @@ export default function AudioListenPage() {
   const [selectedStoryAudioId, setSelectedStoryAudioId] = useState<string | null>(null)
   const [storyDropdownOpen, setStoryDropdownOpen] = useState(false)
   const storyDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Music catalog state
+  const [musicTracks, setMusicTracks] = useState<any[]>([])
+  const [musicLoading, setMusicLoading] = useState(false)
+  const [musicPreviewId, setMusicPreviewId] = useState<string | null>(null)
+  const [musicCategoryFilter, setMusicCategoryFilter] = useState<string>('all')
+  const musicAudioRef = useRef<HTMLAudioElement | null>(null)
 
   // Stats
   const [totalPlays, setTotalPlays] = useState(0)
@@ -106,6 +113,43 @@ export default function AudioListenPage() {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
+
+  useEffect(() => {
+    if (contentType === 'music' && musicTracks.length === 0 && !musicLoading) loadMusicCatalog()
+    if (contentType !== 'music' && musicAudioRef.current) {
+      musicAudioRef.current.pause()
+      setMusicPreviewId(null)
+    }
+  }, [contentType])
+
+  async function loadMusicCatalog() {
+    setMusicLoading(true)
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('music_catalog')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order')
+      .order('album')
+      .order('track_number')
+    if (data) setMusicTracks(data)
+    setMusicLoading(false)
+  }
+
+  function handleMusicPreview(track: any) {
+    if (musicPreviewId === track.id) {
+      musicAudioRef.current?.pause()
+      setMusicPreviewId(null)
+      return
+    }
+    if (musicAudioRef.current) musicAudioRef.current.pause()
+    if (!track.preview_url) return
+    const audio = new Audio(track.preview_url)
+    audio.addEventListener('ended', () => setMusicPreviewId(null))
+    musicAudioRef.current = audio
+    audio.play()
+    setMusicPreviewId(track.id)
+  }
 
   async function loadStoryAudio(storyId: string) {
     setStoryAudioLoading(true)
@@ -273,6 +317,19 @@ export default function AudioListenPage() {
   return (
     <Container size="xl" className="py-6">
       <Stack gap="lg">
+
+        <PageHero
+          title={
+            contentType === 'stories' ? 'Listen to Stories' :
+            contentType === 'music' ? 'Listen to Music' :
+            'Listen to Your Vision'
+          }
+          subtitle={
+            contentType === 'stories' ? 'Play narrated audio from your completed stories.' :
+            contentType === 'music' ? 'Stream VibrationFit original music on your favorite platform.' :
+            'Play your Life Vision audio sets and voice recordings.'
+          }
+        />
 
         {/* ── Vision Audio Stats (shown for life-vision) ── */}
         {contentType === 'life-vision' && (
@@ -620,14 +677,225 @@ export default function AudioListenPage() {
           </section>
         )}
 
-        {/* ── Music (placeholder) ── */}
+        {/* ── Music Catalog ── */}
         {contentType === 'music' && (
           <section>
-            <Card variant="glass" className="p-6 text-center">
-              <Music2 className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
-              <p className="text-sm text-neutral-400">Curated high-vibe music playlists are coming soon.</p>
-              <p className="text-xs text-neutral-500 mt-1">Conscious music, frequency tracks, and more.</p>
-            </Card>
+            {musicLoading ? (
+              <div className="flex items-center justify-center py-12"><Spinner size="lg" /></div>
+            ) : musicTracks.length === 0 ? (
+              <Card variant="glass" className="p-6 text-center">
+                <Music2 className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
+                <p className="text-sm text-neutral-400">No music available yet.</p>
+                <p className="text-xs text-neutral-500 mt-1">Check back soon for VibrationFit original music.</p>
+              </Card>
+            ) : (() => {
+              const filtered = musicCategoryFilter === 'all'
+                ? musicTracks
+                : musicTracks.filter(t => (t.tags || []).includes(musicCategoryFilter))
+              const albums = Array.from(new Set(filtered.map(t => t.album).filter(Boolean))) as string[]
+              const ungrouped = filtered.filter(t => !t.album)
+              const featured = filtered.filter(t => t.is_featured)
+
+              const allTaggedCategories = Array.from(
+                new Set(musicTracks.flatMap(t => (t.tags || []) as string[]))
+              ).filter(tag => LIFE_CATEGORY_KEYS.includes(tag as any))
+
+              const StreamingLinks = ({ track }: { track: any }) => {
+                const links = [
+                  { key: 'spotify', url: track.spotify_url, label: 'Spotify', color: 'hover:text-[#1DB954]' },
+                  { key: 'apple', url: track.apple_music_url, label: 'Apple Music', color: 'hover:text-[#FC3C44]' },
+                  { key: 'amazon', url: track.amazon_music_url, label: 'Amazon', color: 'hover:text-[#25D1DA]' },
+                  { key: 'youtube', url: track.youtube_music_url, label: 'YouTube', color: 'hover:text-[#FF0000]' },
+                  { key: 'tidal', url: track.tidal_url, label: 'Tidal', color: 'hover:text-white' },
+                  { key: 'deezer', url: track.deezer_url, label: 'Deezer', color: 'hover:text-[#A238FF]' },
+                  { key: 'soundcloud', url: track.soundcloud_url, label: 'SoundCloud', color: 'hover:text-[#FF5500]' },
+                ].filter(l => l.url)
+                if (links.length === 0) return null
+                return (
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {links.map(l => (
+                      <a
+                        key={l.key}
+                        href={l.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`px-2 py-1 rounded-full text-[10px] font-medium bg-neutral-800 border border-neutral-700 text-neutral-400 ${l.color} hover:border-neutral-500 transition-colors`}
+                      >
+                        {l.label}
+                      </a>
+                    ))}
+                  </div>
+                )
+              }
+
+              const fmtDur = (s: number) => !s || !isFinite(s) ? '' : `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`
+
+              const TrackRow = ({ track }: { track: any }) => {
+                const isPlaying = musicPreviewId === track.id
+                return (
+                  <div className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-white/[0.03] transition-colors group">
+                    {track.artwork_url ? (
+                      <img src={track.artwork_url} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-lg bg-neutral-800 flex items-center justify-center flex-shrink-0">
+                        <Music2 className="w-5 h-5 text-neutral-600" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <p className="text-sm font-medium text-white truncate">{track.title}</p>
+                        {track.duration_seconds && (
+                          <span className="text-[10px] text-neutral-500 flex-shrink-0">{fmtDur(track.duration_seconds)}</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-neutral-500 mb-1.5">{track.artist}{track.genre ? ` \u2022 ${track.genre}` : ''}</p>
+                      {track.tags && track.tags.length > 0 && (
+                        <div className="flex items-center gap-1 mb-1.5 flex-wrap">
+                          {(track.tags as string[]).map(tag => {
+                            const cat = VISION_CATEGORIES.find(c => c.key === tag)
+                            if (!cat) return null
+                            const CatIcon = cat.icon
+                            return (
+                              <span key={tag} className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-neutral-800/80 border border-neutral-700/50 text-neutral-400 font-medium">
+                                <CatIcon className="w-2.5 h-2.5" />
+                                {cat.label}
+                              </span>
+                            )
+                          })}
+                        </div>
+                      )}
+                      <StreamingLinks track={track} />
+                    </div>
+                    {track.preview_url && (
+                      <button
+                        type="button"
+                        onClick={() => handleMusicPreview(track)}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+                          isPlaying
+                            ? 'bg-[#39FF14]/20 text-[#39FF14]'
+                            : 'bg-neutral-800 text-neutral-400 opacity-0 group-hover:opacity-100 hover:text-white'
+                        }`}
+                      >
+                        {isPlaying ? (
+                          <Volume2 className="w-4 h-4" />
+                        ) : (
+                          <svg className="w-4 h-4 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                )
+              }
+
+              return (
+                <Stack gap="md">
+                  {/* Life category filter chips */}
+                  {allTaggedCategories.length > 0 && (
+                    <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                      <button
+                        type="button"
+                        onClick={() => setMusicCategoryFilter('all')}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                          musicCategoryFilter === 'all'
+                            ? 'bg-[#39FF14]/20 text-[#39FF14] border border-[#39FF14]/30'
+                            : 'bg-neutral-800 text-neutral-400 border border-neutral-700 hover:border-neutral-600'
+                        }`}
+                      >
+                        All
+                      </button>
+                      {allTaggedCategories
+                        .sort((a, b) => {
+                          const catA = VISION_CATEGORIES.find(c => c.key === a)
+                          const catB = VISION_CATEGORIES.find(c => c.key === b)
+                          return (catA?.order ?? 99) - (catB?.order ?? 99)
+                        })
+                        .map(tag => {
+                          const cat = VISION_CATEGORIES.find(c => c.key === tag)
+                          const CatIcon = cat?.icon
+                          return (
+                            <button
+                              key={tag}
+                              type="button"
+                              onClick={() => setMusicCategoryFilter(tag)}
+                              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors inline-flex items-center gap-1.5 ${
+                                musicCategoryFilter === tag
+                                  ? 'bg-[#39FF14]/20 text-[#39FF14] border border-[#39FF14]/30'
+                                  : 'bg-neutral-800 text-neutral-400 border border-neutral-700 hover:border-neutral-600'
+                              }`}
+                            >
+                              {CatIcon && <CatIcon className="w-3 h-3" />}
+                              {cat?.label || tag}
+                            </button>
+                          )
+                        })}
+                    </div>
+                  )}
+
+                  {filtered.length === 0 ? (
+                    <Card variant="glass" className="p-6 text-center">
+                      <Music2 className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
+                      <p className="text-sm text-neutral-400">No music matches this category.</p>
+                    </Card>
+                  ) : (<>
+
+                  {/* Featured tracks */}
+                  {featured.length > 0 && (
+                    <div className="rounded-2xl bg-gradient-to-br from-[#39FF14]/[0.04] via-[#111] to-[#111] border border-white/[0.06] p-4 md:p-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Sparkles className="w-4 h-4 text-[#39FF14]" />
+                        <h3 className="text-sm font-semibold text-neutral-300 uppercase tracking-wide">Featured</h3>
+                      </div>
+                      <div className="divide-y divide-neutral-800/50">
+                        {featured.map(track => <TrackRow key={track.id} track={track} />)}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Albums */}
+                  {albums.map(album => {
+                    const albumTracks = filtered.filter(t => t.album === album)
+                    const albumArt = albumTracks.find(t => t.artwork_url)?.artwork_url
+                    return (
+                      <div key={album} className="rounded-2xl bg-[#0A0A0A] border border-neutral-800 p-4 md:p-6">
+                        <div className="flex items-center gap-3 mb-4">
+                          {albumArt ? (
+                            <img src={albumArt} alt="" className="w-10 h-10 rounded-lg object-cover" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-neutral-800 flex items-center justify-center">
+                              <Music className="w-5 h-5 text-neutral-600" />
+                            </div>
+                          )}
+                          <div>
+                            <h3 className="text-base font-semibold text-white">{album}</h3>
+                            <p className="text-xs text-neutral-500">{albumTracks.length} track{albumTracks.length !== 1 ? 's' : ''}</p>
+                          </div>
+                        </div>
+                        <div className="divide-y divide-neutral-800/50">
+                          {albumTracks.map(track => <TrackRow key={track.id} track={track} />)}
+                        </div>
+                      </div>
+                    )
+                  })}
+
+                  {/* Ungrouped tracks (no album) */}
+                  {ungrouped.length > 0 && (
+                    <div className="rounded-2xl bg-[#0A0A0A] border border-neutral-800 p-4 md:p-6">
+                      {albums.length > 0 && (
+                        <div className="flex items-center gap-2 mb-4">
+                          <Music2 className="w-4 h-4 text-neutral-500" />
+                          <h3 className="text-base font-semibold text-white">Singles</h3>
+                        </div>
+                      )}
+                      <div className="divide-y divide-neutral-800/50">
+                        {ungrouped.map(track => <TrackRow key={track.id} track={track} />)}
+                      </div>
+                    </div>
+                  )}
+
+                  </>)}
+                </Stack>
+              )
+            })()}
           </section>
         )}
 
