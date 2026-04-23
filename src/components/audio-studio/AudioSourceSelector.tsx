@@ -258,7 +258,7 @@ export function StoryDropdown({
   const ActiveTypeIcon = activeTypeObj.icon
 
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
       {/* Left: Source type dropdown */}
       <div className="relative" ref={typeRef}>
         <button
@@ -480,14 +480,20 @@ export function AudioSourceSelector({
   }
 
   return (
-    <Card variant="glass" className="p-4 md:p-6">
+    <Card variant="glass" className="p-4 md:p-6 relative z-10">
       <div className="flex flex-col items-center text-center mb-4">
         <h3 className="text-lg font-semibold text-white">Select Source</h3>
         <p className="text-sm text-neutral-400">Choose what content to use for your audio.</p>
       </div>
 
       {/* Source Type Cards */}
-      <div className={`grid gap-3 mb-4 ${sourceTypes.length === 1 ? 'grid-cols-1 max-w-sm mx-auto' : 'grid-cols-2'}`}>
+      <div
+        className={`grid gap-3 mb-4 ${
+          sourceTypes.length === 1
+            ? 'grid-cols-1 max-w-sm mx-auto'
+            : 'grid-cols-1 md:grid-cols-2'
+        }`}
+      >
         {sourceTypes.map(st => {
           const Icon = st.icon
           const isSelected = selectedType === st.type

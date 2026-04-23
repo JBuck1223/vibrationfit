@@ -3,22 +3,28 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Container, Stack, Card, Button, Spinner, DeleteConfirmationDialog, PageHero } from '@/lib/design-system/components'
-import { type AudioTrack as BaseAudioTrack } from '@/lib/design-system'
+import { Container, Stack, Card, Button, Spinner, Toggle, DeleteConfirmationDialog } from '@/lib/design-system/components'
+import { PlaylistPlayer, type AudioTrack as BaseAudioTrack } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import {
   Headphones, Moon, Zap, Flame, Shield,
-  Sparkles, Mic, Music, Trash2, BookOpen, Image,
+  Sparkles, Mic, Music, Trash2, BookOpen, Image, Edit2,
   Volume2, Plus, Music2, ChevronDown, CheckCircle, Target, Lightbulb,
   Clock, ChevronRight, Library,
 } from 'lucide-react'
 import { useAudioStudio, type AudioSetItem } from '@/components/audio-studio'
 import { useAreaStats } from '@/hooks/useAreaStats'
 import { VISION_CATEGORIES, LIFE_CATEGORY_KEYS } from '@/lib/design-system/vision-categories'
-import { InlineTrackList } from '@/components/audio-player'
 
 interface AudioTrack extends BaseAudioTrack {
   sectionKey: string
+}
+
+/** In-app display for `music_catalog.artist` (legacy one-word value from seed). */
+function formatMusicArtistLabel(artist: string | null | undefined) {
+  if (!artist) return ''
+  if (artist === 'VibrationFit' || artist.toLowerCase() === 'vibrationfit') return 'Vibration Fit'
+  return artist
 }
 
 const ENTITY_META: Record<string, { label: string; badgeColor: string; icon: React.ElementType }> = {
@@ -46,9 +52,12 @@ export default function AudioListenPage() {
   const [loadingTracks, setLoadingTracks] = useState(false)
   
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [isEditingAudioSetName, setIsEditingAudioSetName] = useState(false)
+  const [audioSetNameDraft, setAudioSetNameDraft] = useState('')
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [setToDelete, setSetToDelete] = useState<{ id: string; name: string } | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [playMode, setPlayMode] = useState<'sections' | 'full'>('sections')
 
   // Story audio state
   const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null)
@@ -98,6 +107,8 @@ export default function AudioListenPage() {
     if (!target) target = audioSets.find(s => s.isReady) || null
     if (target) { setSelectedAudioSetId(target.id); loadAudioTracks(target.id) }
   }, [audioSets, audioSetsLoading, visionId, urlAudioSetId])
+
+  useEffect(() => { setIsEditingAudioSetName(false) }, [selectedAudioSetId])
 
   const VOICE_NAMES: Record<string, string> = { alloy: 'Alloy', shimmer: 'Shimmer', ash: 'Ash', coral: 'Coral', echo: 'Echo', fable: 'Fable', onyx: 'Onyx', nova: 'Nova', sage: 'Sage' }
 
@@ -315,6 +326,16 @@ export default function AudioListenPage() {
     return map[voiceId] || voiceId
   }
 
+  /** Split "Voice + mix" style names for a compact two-line app picker. */
+  const getAudioSetPickerLines = (label: string) => {
+    const s = label.trim()
+    const parts = s.split(/\s+\+\s+/)
+    if (parts.length >= 2) {
+      return { primary: parts[0]!.trim(), secondary: parts.slice(1).join(' + ').trim() }
+    }
+    return { primary: s }
+  }
+
   const filteredStories = listenStoryFilter === 'all'
     ? stories
     : stories.filter(s => s.entity_type === listenStoryFilter)
@@ -324,6 +345,23 @@ export default function AudioListenPage() {
   const totalTracks = audioSets.reduce((sum, s) => sum + s.track_count, 0)
   const selectedSet = audioSets.find(s => s.id === selectedAudioSetId)
 
+  const saveAudioSetName = async () => {
+    if (!selectedSet) return
+    const name = audioSetNameDraft.trim()
+    if (!name) {
+      setIsEditingAudioSetName(false)
+      return
+    }
+    if (name === (selectedSet.name || '').trim()) {
+      setIsEditingAudioSetName(false)
+      return
+    }
+    const supabase = createClient()
+    const { error } = await supabase.from('audio_sets').update({ name }).eq('id', selectedSet.id)
+    if (!error) await refreshAudioSets()
+    setIsEditingAudioSetName(false)
+  }
+
   if (visionLoading) {
     return <Container size="xl" className="py-8"><div className="flex min-h-[40vh] items-center justify-center"><Spinner size="lg" /></div></Container>
   }
@@ -331,19 +369,13 @@ export default function AudioListenPage() {
   return (
     <Container size="xl" className="py-6">
       <Stack gap="lg">
-
-        <PageHero
-          title={
-            contentType === 'stories' ? 'Listen to Stories' :
-            contentType === 'music' ? 'Listen to Music' :
-            'Listen to Your Vision'
-          }
-          subtitle={
-            contentType === 'stories' ? 'Play narrated audio from your completed stories.' :
-            contentType === 'music' ? 'Stream VibrationFit original music on your favorite platform.' :
-            'Play your Life Vision audio sets and voice recordings.'
-          }
-        />
+        <h1 className="sr-only">
+          {contentType === 'stories'
+            ? 'Listen to Stories'
+            : contentType === 'music'
+              ? 'Listen to Music'
+              : 'Listen to Your Vision'}
+        </h1>
 
         {/* ── Vision Audio Stats (shown for life-vision) ── */}
         {contentType === 'life-vision' && (
@@ -411,96 +443,211 @@ export default function AudioListenPage() {
           </div>
         )}
 
-        {/* ── Life Vision Player ── */}
+        {/* ── Life Vision Player (selector = card top; player body below, no duplicate set header) ── */}
         {contentType === 'life-vision' && (audioSets.length > 0 ? (
-          <div className="rounded-2xl bg-[#0A0A0A] border border-neutral-800 p-4 md:p-6 lg:p-8">
-            <div className="mb-6">
-              <h2 className="text-lg md:text-xl font-semibold text-white mb-4 text-center">Play My Vision</h2>
-              <div className="relative max-w-2xl mx-auto">
-                <button
-                  type="button"
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="w-full px-4 md:px-6 py-3 rounded-full bg-[#1F1F1F] text-white border-2 border-[#333] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    {selectedSet ? (
-                      <>
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${getVariantColor(selectedSet)}`}>
-                          {getVariantIcon(selectedSet)}
-                        </div>
-                        <span className="font-semibold truncate">{getSetDisplayName(selectedSet)}</span>
-                      </>
-                    ) : (
-                      <span className="text-neutral-400">Select an audio set...</span>
+          <div className="w-full overflow-hidden rounded-xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-black/20 ring-1 ring-inset ring-white/[0.04] shadow-sm backdrop-blur-md">
+            <div className="border-b border-white/[0.08] px-3 py-3 md:px-4">
+              <p className="text-center text-[10px] font-medium uppercase tracking-wider text-neutral-500">Play my vision</p>
+              <div className="relative mt-2">
+                {isEditingAudioSetName && selectedSet ? (
+                  <input
+                    type="text"
+                    className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                    value={audioSetNameDraft}
+                    onChange={e => setAudioSetNameDraft(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        void saveAudioSetName()
+                      }
+                      if (e.key === 'Escape' && selectedSet) {
+                        e.preventDefault()
+                        setAudioSetNameDraft(getSetDisplayName(selectedSet))
+                        setIsEditingAudioSetName(false)
+                      }
+                    }}
+                    onBlur={() => { void saveAudioSetName() }}
+                    autoFocus
+                    aria-label="Audio set name"
+                  />
+                ) : (
+                  <div className="flex items-stretch gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      className="flex min-h-11 min-w-0 flex-1 items-center justify-between gap-2 rounded-[10px] border border-white/10 bg-white/[0.04] px-2.5 py-2 text-left text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] transition-[background-color,border-color] active:bg-white/[0.08] focus:outline-none focus:ring-2 focus:ring-primary-500/25 focus:ring-offset-0 sm:px-3"
+                    >
+                      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
+                        {selectedSet ? (
+                          <>
+                            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] sm:h-9 sm:w-9 sm:rounded-lg ${getVariantColor(selectedSet)}`}>
+                              {getVariantIcon(selectedSet)}
+                            </div>
+                            {(() => {
+                              const label = getSetDisplayName(selectedSet)
+                              const { primary, secondary } = getAudioSetPickerLines(label)
+                              return (
+                                <div className="min-w-0 flex-1 text-left">
+                                  {secondary ? (
+                                    <>
+                                      <p className="line-clamp-1 text-[13px] font-semibold leading-tight text-white/95 sm:text-sm">
+                                        {primary}
+                                      </p>
+                                      <p className="mt-0.5 line-clamp-1 text-[11px] leading-snug text-neutral-500 sm:text-xs">
+                                        {secondary}
+                                      </p>
+                                    </>
+                                  ) : (
+                                    <p className="line-clamp-2 text-[13px] font-semibold leading-snug text-white/95 sm:text-sm sm:leading-tight">
+                                      {primary}
+                                    </p>
+                                  )}
+                                </div>
+                              )
+                            })()}
+                          </>
+                        ) : (
+                          <span className="text-sm text-neutral-500">Select an audio set</span>
+                        )}
+                      </div>
+                      <ChevronDown
+                        className={`h-3.5 w-3.5 shrink-0 self-center text-neutral-500 sm:h-4 sm:w-4 ${isDropdownOpen ? 'rotate-180' : ''} transition-transform duration-200`}
+                        aria-hidden
+                      />
+                    </button>
+                    {selectedSet && (
+                      <button
+                        type="button"
+                        onClick={() => { setIsDropdownOpen(false); setIsEditingAudioSetName(true); setAudioSetNameDraft(getSetDisplayName(selectedSet)) }}
+                        className="flex w-11 min-w-11 shrink-0 items-center justify-center self-stretch rounded-[10px] border border-white/10 bg-white/[0.04] text-neutral-500 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] transition-[color,background-color,border-color] active:bg-white/[0.08] hover:border-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/25"
+                        aria-label="Rename audio set"
+                      >
+                        <Edit2 className="h-3.5 w-3.5" />
+                      </button>
                     )}
                   </div>
-                  <ChevronDown className={`w-5 h-5 text-neutral-400 transition-transform flex-shrink-0 ml-2 ${isDropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
+                )}
 
-                {isDropdownOpen && (
+                {isDropdownOpen && !isEditingAudioSetName && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setIsDropdownOpen(false)} />
-                    <div className="absolute z-20 w-full mt-2 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-[60vh] overflow-y-auto">
+                    <div className="absolute left-0 right-0 z-20 mt-2 max-h-64 overflow-hidden rounded-xl border border-neutral-700/80 bg-[#1A1A1A] shadow-2xl">
+                      <div className="max-h-[min(50vh,16rem)] overflow-y-auto overscroll-contain py-1">
                       {[...audioSets].sort((a, b) => {
                         if (a.id === selectedAudioSetId) return -1
                         if (b.id === selectedAudioSetId) return 1
                         return 0
-                      }).map(set => (
+                      }).map(set => {
+                        const isSelected = selectedAudioSetId === set.id
+                        return (
                         <div
                           key={set.id}
                           onClick={() => { if (set.isReady) { handleSelectSet(set.id); setIsDropdownOpen(false) } }}
-                          className={`px-4 py-3 transition-colors border-b border-[#333] last:border-b-0 ${
-                            selectedAudioSetId === set.id ? 'bg-primary-500/10' : ''
-                          } ${set.isReady ? 'hover:bg-[#2A2A2A] cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
+                          className={[
+                            'group/row flex w-full items-center gap-2.5 px-3 py-1.5 text-left transition-colors',
+                            isSelected
+                              ? 'bg-[#39FF14]/10'
+                              : 'hover:bg-neutral-800',
+                            set.isReady ? 'cursor-pointer' : 'cursor-not-allowed opacity-45',
+                          ].join(' ')}
                         >
-                          <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${getVariantColor(set)}`}>
-                              {getVariantIcon(set)}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-semibold text-white truncate">{getSetDisplayName(set)}</h4>
-                              <p className="text-xs text-neutral-500">
-                                {set.variant === 'personal' ? 'Personal' : getVoiceDisplayName(set.voice_id)} &middot; {set.track_count} tracks &middot; {new Date(set.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                              {selectedAudioSetId === set.id && <CheckCircle className="w-5 h-5 text-[#39FF14]" />}
-                              <button onClick={e => { e.stopPropagation(); handleDelete(set.id, set.name); setIsDropdownOpen(false) }} className="p-1 hover:bg-[#FF0040]/20 rounded transition-colors">
-                                <Trash2 className="w-4 h-4 text-[#FF0040]" />
-                              </button>
-                            </div>
+                          <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded ${getVariantColor(set)}`}>
+                            {getVariantIcon(set)}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium text-white">
+                              {getSetDisplayName(set)}
+                            </p>
+                            <p className="text-xs text-neutral-500 leading-tight">
+                              <span className="text-neutral-400">{set.variant === 'personal' ? 'Personal' : getVoiceDisplayName(set.voice_id)}</span>
+                              {' · '}
+                              {set.track_count} {set.track_count === 1 ? 'track' : 'tracks'}
+                              {' · '}
+                              {new Date(set.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </p>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-0.5">
+                            {isSelected && <CheckCircle className="h-4 w-4 text-[#39FF14] flex-shrink-0" />}
+                            <button
+                              type="button"
+                              onClick={e => { e.stopPropagation(); handleDelete(set.id, set.name); setIsDropdownOpen(false) }}
+                              className="rounded p-0.5 text-[#FF0040]/50 transition-colors hover:bg-[#FF0040]/10 hover:text-[#FF0040]"
+                              aria-label="Delete audio set"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
                           </div>
                         </div>
-                      ))}
+                        )
+                      })}
+                      </div>
                     </div>
                   </>
                 )}
               </div>
+              {selectedSet && !isEditingAudioSetName && (
+                <p className="mt-2 text-center text-balance text-[11px] leading-relaxed text-neutral-500">
+                  {selectedSet.variant === 'personal' ? 'Personal' : getVoiceDisplayName(selectedSet.voice_id)}
+                  {' '}
+                  &middot; {selectedSet.track_count} {selectedSet.track_count === 1 ? 'track' : 'tracks'}
+                  {' '}
+                  &middot; {new Date(selectedSet.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  {selectedSet.backgroundTrack && (
+                    <>
+                      {' '}
+                      <span className="text-neutral-600">|</span>
+                      {' '}
+                      {selectedSet.backgroundTrack}
+                    </>
+                  )}
+                  {selectedSet.mixRatio && (
+                    <>
+                      {' '}
+                      <span className="text-neutral-600">|</span>
+                      {' '}
+                      {(() => { const m = selectedSet.mixRatio!.match(/(\d+)%\s*\/\s*(\d+)%/); return m ? `${m[1]}% / ${m[2]}%` : selectedSet.mixRatio })()}
+                    </>
+                  )}
+                </p>
+              )}
             </div>
 
             {selectedAudioSetId && selectedSet && (
-              <div className="max-w-2xl mx-auto">
+              <div className="px-3 py-3 md:px-4">
                 {loadingTracks ? (
-                  <div className="flex items-center justify-center py-12"><Spinner size="lg" /></div>
-                ) : audioTracks.length > 0 ? (
-                  <InlineTrackList
-                    tracks={audioTracks}
-                    setIcon={<div className={`p-2 rounded-lg ${getVariantColor(selectedSet)}`}>{getVariantIcon(selectedSet)}</div>}
-                    setName={getSetDisplayName(selectedSet)}
-                    setIconKey="life_vision"
-                    trackCount={audioTracks.length}
-                    createdDate={new Date(selectedSet.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    onRename={async (newName: string) => {
-                      const supabase = createClient()
-                      const { error } = await supabase.from('audio_sets').update({ name: newName }).eq('id', selectedSet.id)
-                      if (!error) await refreshAudioSets()
-                    }}
-                  />
-                ) : (
-                  <Card variant="glass" className="p-8 text-center">
-                    <Music className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
-                    <p className="text-neutral-400">No audio tracks available for this set</p>
-                  </Card>
+                  <div className="flex min-h-[200px] items-center justify-center py-8">
+                    <Spinner size="lg" />
+                  </div>
+                ) : audioTracks.length > 0 ? (() => {
+                  const sectionTracks = audioTracks.filter(t => t.sectionKey !== 'full')
+                  const fullTrack = audioTracks.find(t => t.sectionKey === 'full')
+                  const hasFullTrack = !!fullTrack
+                  const effectivePlayMode = (playMode === 'sections' && sectionTracks.length === 0 && hasFullTrack) ? 'full' : playMode
+                  const displayTracks = effectivePlayMode === 'sections' ? sectionTracks : (fullTrack ? [fullTrack] : [])
+                  const fmtDur = (s: number) => !s || !isFinite(s) ? '0:00' : `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`
+                  return (
+                    <>
+                      {hasFullTrack && sectionTracks.length > 0 && (
+                        <div className="mb-4 flex justify-center">
+                          <Toggle value={playMode} onChange={setPlayMode} options={[
+                            { value: 'sections', label: `${sectionTracks.length} Sections` },
+                            { value: 'full', label: `Full (${fullTrack!.duration ? fmtDur(fullTrack!.duration) : '~15 min'})` },
+                          ]} />
+                        </div>
+                      )}
+                      <PlaylistPlayer
+                        variant="app"
+                        embedded
+                        hideSetHeader
+                        tracks={displayTracks}
+                      />
+                    </>
+                  )
+                })() : (
+                  <div className="py-6 text-center">
+                    <Music className="w-10 h-10 text-neutral-600 mx-auto mb-2" />
+                    <p className="text-sm text-neutral-400">No audio tracks available for this set</p>
+                  </div>
                 )}
               </div>
             )}
@@ -536,10 +683,10 @@ export default function AudioListenPage() {
             ) : (
               <Stack gap="md">
                 {/* Story audio player */}
-                <div className="rounded-2xl bg-[#0A0A0A] border border-neutral-800 p-4 md:p-6 lg:p-8">
+                <div className="w-full rounded-2xl bg-[#0A0A0A] border border-neutral-800 p-4 md:p-6 lg:p-8">
                   <div className="mb-6">
                     <h2 className="text-lg md:text-xl font-semibold text-white mb-4 text-center">Play My Stories</h2>
-                    <div className="relative max-w-2xl mx-auto" ref={storyDropdownRef}>
+                    <div className="relative w-full" ref={storyDropdownRef}>
                       <button
                         type="button"
                         onClick={() => setStoryDropdownOpen(prev => !prev)}
@@ -636,8 +783,8 @@ export default function AudioListenPage() {
                         </Button>
                       </div>
                     ) : (
-                      <div className="max-w-2xl mx-auto">
-                        <InlineTrackList
+                      <div className="w-full">
+                        <PlaylistPlayer
                           tracks={storyAudioTracks.map(t => ({
                             id: t.id,
                             title: t.label,
@@ -686,9 +833,26 @@ export default function AudioListenPage() {
               const filtered = musicCategoryFilter === 'all'
                 ? musicTracks
                 : musicTracks.filter(t => (t.tags || []).includes(musicCategoryFilter))
-              const albums = Array.from(new Set(filtered.map(t => t.album).filter(Boolean))) as string[]
+              const isHolidayAlbum = (name: string) => {
+                const t = filtered.find(x => x.album === name)
+                return t?.genre === 'Holiday'
+              }
+              const albums = (Array.from(new Set(filtered.map(t => t.album).filter(Boolean))) as string[]).sort(
+                (a, b) => {
+                  const ha = isHolidayAlbum(a) ? 1 : 0
+                  const hb = isHolidayAlbum(b) ? 1 : 0
+                  if (ha !== hb) return ha - hb
+                  return a.localeCompare(b, undefined, { sensitivity: 'base' })
+                }
+              )
+              // Non-holiday albums first in layout; holiday (e.g. High Vibe Christmas) rendered last
+              // so a single Christmas EP is not above year-round singles (no album).
+              const mainAlbums = albums.filter(a => !isHolidayAlbum(a))
+              const holidayAlbums = albums.filter(a => isHolidayAlbum(a))
               const ungrouped = filtered.filter(t => !t.album)
-              const featured = filtered.filter(t => t.is_featured)
+              const featured = filtered
+                .filter(t => t.is_featured)
+                .sort((a, b) => (a.genre === 'Holiday' ? 1 : 0) - (b.genre === 'Holiday' ? 1 : 0))
 
               const allTaggedCategories = Array.from(
                 new Set(musicTracks.flatMap(t => (t.tags || []) as string[]))
@@ -742,7 +906,10 @@ export default function AudioListenPage() {
                           <span className="text-[10px] text-neutral-500 flex-shrink-0">{fmtDur(track.duration_seconds)}</span>
                         )}
                       </div>
-                      <p className="text-xs text-neutral-500 mb-1.5">{track.artist}{track.genre ? ` \u2022 ${track.genre}` : ''}</p>
+                      <p className="text-xs text-neutral-500 mb-1.5">
+                        {formatMusicArtistLabel(track.artist)}
+                        {track.genre ? ` \u2022 ${track.genre}` : ''}
+                      </p>
                       {track.tags && track.tags.length > 0 && (
                         <div className="flex items-center gap-1 mb-1.5 flex-wrap">
                           {(track.tags as string[]).map(tag => {
@@ -845,8 +1012,21 @@ export default function AudioListenPage() {
                     </div>
                   )}
 
-                  {/* Albums */}
-                  {albums.map(album => {
+                  {/* Year-round tracks (no album) first so holiday EPs are not above the main catalog */}
+                  {ungrouped.length > 0 && (
+                    <div className="rounded-2xl bg-[#0A0A0A] border border-neutral-800 p-4 md:p-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Music2 className="w-4 h-4 text-neutral-500" />
+                        <h3 className="text-base font-semibold text-white">Singles</h3>
+                      </div>
+                      <div className="divide-y divide-neutral-800/50">
+                        {ungrouped.map(track => <TrackRow key={track.id} track={track} />)}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Other albums, then holiday EPs (High Vibe Christmas) last among albums */}
+                  {[...mainAlbums, ...holidayAlbums].map(album => {
                     const albumTracks = filtered.filter(t => t.album === album)
                     const albumArt = albumTracks.find(t => t.artwork_url)?.artwork_url
                     return (
@@ -870,21 +1050,6 @@ export default function AudioListenPage() {
                       </div>
                     )
                   })}
-
-                  {/* Ungrouped tracks (no album) */}
-                  {ungrouped.length > 0 && (
-                    <div className="rounded-2xl bg-[#0A0A0A] border border-neutral-800 p-4 md:p-6">
-                      {albums.length > 0 && (
-                        <div className="flex items-center gap-2 mb-4">
-                          <Music2 className="w-4 h-4 text-neutral-500" />
-                          <h3 className="text-base font-semibold text-white">Singles</h3>
-                        </div>
-                      )}
-                      <div className="divide-y divide-neutral-800/50">
-                        {ungrouped.map(track => <TrackRow key={track.id} track={track} />)}
-                      </div>
-                    </div>
-                  )}
 
                   </>)}
                 </Stack>

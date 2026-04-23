@@ -438,8 +438,8 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
       )}
 
       {/* Feed */}
-      <div className="flex-1 overflow-y-auto pb-8">
-        <div className="max-w-[772px] mx-auto px-4 py-4">
+      <div className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden pb-8">
+        <div className="max-w-[772px] min-w-0 mx-auto px-4 py-4">
           {(loading || refreshing) ? (
             <div className="flex justify-center py-12">
               <Spinner size="lg" />

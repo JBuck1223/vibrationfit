@@ -197,8 +197,12 @@ export const Video = React.forwardRef<HTMLVideoElement, VideoProps>(
     }
 
     const handlePlayButtonClick = () => {
-      if (videoRef.current) {
-        videoRef.current.play()
+      if (!videoRef.current) return
+      const p = videoRef.current.play()
+      if (p !== undefined) {
+        p.catch(() => {
+          // Benign: play() can reject with AbortError if interrupted (e.g. seek/navigation)
+        })
       }
     }
 

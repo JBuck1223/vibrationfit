@@ -4,9 +4,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Container, Card, Badge, Button, Spinner, Stack, PageHero } from '@/lib/design-system/components'
+import { Container, Card, Badge, Button, Spinner, Stack, PageHero, Modal } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
-import { Mail, Send, Calendar, User, ArrowRight, ArrowDown, ArrowUp, ArrowLeft, RefreshCw } from 'lucide-react'
+import { Mail, Send, Calendar, User, ArrowRight, ArrowDown, ArrowUp, ArrowLeft, RefreshCw, FileText, Code2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface EmailLog {
@@ -15,7 +15,8 @@ interface EmailLog {
   from_email: string
   to_email: string
   subject: string
-  body_text: string
+  body_text: string | null
+  body_html: string | null
   direction: string
   status: string
   created_at: string
@@ -28,6 +29,8 @@ function SentEmailsContent() {
   const [syncing, setSyncing] = useState(false)
   const [syncingSMS, setSyncingSMS] = useState(false)
   const [filter, setFilter] = useState<'all' | 'outbound' | 'inbound'>('all')
+  const [selectedEmail, setSelectedEmail] = useState<EmailLog | null>(null)
+  const [detailView, setDetailView] = useState<'html' | 'text'>('html')
 
   useEffect(() => {
     fetchEmails()
@@ -115,6 +118,11 @@ function SentEmailsContent() {
   const filteredEmails = filter === 'all' 
     ? emails 
     : emails.filter(e => e.direction === filter)
+
+  function openEmailDetail(email: EmailLog) {
+    setDetailView(email.body_html?.trim() ? 'html' : 'text')
+    setSelectedEmail(email)
+  }
 
   if (loading) {
     return (
@@ -217,7 +225,16 @@ function SentEmailsContent() {
             {filteredEmails.map((email) => (
               <Card
                 key={email.id}
-                className="p-4 hover:border-primary-500 transition-colors"
+                role="button"
+                tabIndex={0}
+                onClick={() => openEmailDetail(email)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    openEmailDetail(email)
+                  }
+                }}
+                className="p-4 hover:border-primary-500 transition-colors cursor-pointer text-left w-full"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
@@ -268,6 +285,81 @@ function SentEmailsContent() {
             ))}
           </div>
         )}
+
+        <Modal
+          isOpen={!!selectedEmail}
+          onClose={() => setSelectedEmail(null)}
+          title={selectedEmail?.subject || 'Email'}
+          size="full"
+        >
+          {selectedEmail && (
+            <div className="space-y-4 -m-2">
+              <div className="flex flex-wrap items-center gap-2 text-sm text-neutral-400">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Send className="w-4 h-4 flex-shrink-0" />
+                  <span className="truncate" title={selectedEmail.from_email}>
+                    From: {selectedEmail.from_email}
+                  </span>
+                </div>
+                <ArrowRight className="w-4 h-4 flex-shrink-0 hidden sm:block" />
+                <div className="flex items-center gap-2 min-w-0">
+                  <User className="w-4 h-4 flex-shrink-0" />
+                  <span className="truncate" title={selectedEmail.to_email}>
+                    To: {selectedEmail.to_email}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-neutral-500 w-full sm:w-auto sm:ml-auto">
+                  <Calendar className="w-4 h-4" />
+                  <span>{formatDate(selectedEmail.created_at)}</span>
+                </div>
+              </div>
+
+              {selectedEmail.body_html?.trim() && selectedEmail.body_text?.trim() && (
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={detailView === 'html' ? 'primary' : 'ghost'}
+                    onClick={() => setDetailView('html')}
+                    className="inline-flex items-center gap-1.5"
+                  >
+                    <Code2 className="w-4 h-4" />
+                    Formatted
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={detailView === 'text' ? 'primary' : 'ghost'}
+                    onClick={() => setDetailView('text')}
+                    className="inline-flex items-center gap-1.5"
+                  >
+                    <FileText className="w-4 h-4" />
+                    Plain text
+                  </Button>
+                </div>
+              )}
+
+              <div className="rounded-xl border border-neutral-800 bg-[#0a0a0a] min-h-[320px] max-h-[min(70vh,720px)] overflow-hidden flex flex-col">
+                {selectedEmail.body_html?.trim() && detailView === 'html' ? (
+                  <iframe
+                    title="Email body (HTML)"
+                    className="w-full flex-1 min-h-[min(70vh,720px)] bg-white"
+                    sandbox="allow-same-origin"
+                    srcDoc={selectedEmail.body_html}
+                  />
+                ) : selectedEmail.body_text?.trim() ? (
+                  <div className="p-4 overflow-y-auto text-sm text-neutral-200 whitespace-pre-wrap break-words">
+                    {selectedEmail.body_text}
+                  </div>
+                ) : (
+                  <div className="p-4 text-sm text-neutral-500">
+                    No body content was stored for this message.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </Modal>
       </Stack>
     </Container>
   )

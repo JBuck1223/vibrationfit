@@ -58,6 +58,11 @@ export interface AreaBarProps {
   activeParentPath?: string
   /** "default" = neutral dark card, "hero" = PageHero-style gradient border & bg */
   variant?: 'default' | 'hero'
+  /**
+   * Primary area tabs (e.g. Listen/Create) use a compact segmented control and no parent-path chevron.
+   * Used for Audio Studio across routes so mobile matches Create tool tabs.
+   */
+  appLikePrimaryTabs?: boolean
 }
 
 // ─── Tab active detection ───
@@ -103,6 +108,7 @@ export function AreaBar({
   keepTabActive = false,
   activeParentPath,
   variant = 'default',
+  appLikePrimaryTabs = false,
 }: AreaBarProps) {
   const pathname = usePathname()
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -154,26 +160,42 @@ export function AreaBar({
 
                 {/* Tabs */}
                 <div className="px-3 pb-2">
-                  <nav className={`grid ${gridCols} p-1 gap-1 rounded-xl bg-black/30 backdrop-blur-sm`}>
+                  <nav
+                    className={
+                      appLikePrimaryTabs
+                        ? `grid ${gridCols} w-full gap-0.5 rounded-2xl p-0.5 sm:p-1 bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08]`
+                        : `grid ${gridCols} p-1 gap-1 rounded-xl bg-black/30 backdrop-blur-sm`
+                    }
+                  >
                     {tabs.map(tab => {
                       const active = !suppressActiveTab && isTabActive(pathname, tab, tabs)
                       const isParent = activeParentPath === tab.path
+                      const isSelected = appLikePrimaryTabs ? active || isParent : active
+                      const showParentCaret = isParent && !appLikePrimaryTabs
                       const TabIcon = tab.icon
                       return (
                         <Link
                           key={tab.path}
                           href={tab.path}
-                          className={`relative flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg transition-all ${
-                            active
-                              ? 'bg-primary-500/20 text-primary-500'
-                              : isParent
-                                ? 'text-neutral-200'
-                                : 'text-neutral-400 active:text-neutral-200 active:bg-white/5'
-                          }`}
+                          className={
+                            appLikePrimaryTabs
+                              ? `flex min-w-0 items-center justify-center gap-1.5 py-2 text-xs font-medium transition-all ${
+                                  isSelected
+                                    ? 'max-sm:rounded-full sm:rounded-xl bg-zinc-800/95 text-primary-400 shadow-sm'
+                                    : 'rounded-xl text-zinc-500 active:bg-white/5 active:text-zinc-300'
+                                }`
+                              : `relative flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg transition-all ${
+                                  active
+                                    ? 'bg-primary-500/20 text-primary-500'
+                                    : isParent
+                                      ? 'text-neutral-200'
+                                      : 'text-neutral-400 active:text-neutral-200 active:bg-white/5'
+                                }`
+                          }
                         >
                           {TabIcon && <TabIcon className="w-3.5 h-3.5" />}
                           <span>{tab.label}</span>
-                          {isParent && (
+                          {showParentCaret && (
                             <ChevronDown className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 text-primary-500/60" />
                           )}
                         </Link>
@@ -274,26 +296,42 @@ export function AreaBar({
               </div>
 
               <div className="px-3 pb-2.5">
-                <nav className={`grid ${gridCols} p-1 gap-1 rounded-xl bg-neutral-900/60`}>
+                <nav
+                  className={
+                    appLikePrimaryTabs
+                      ? `grid ${gridCols} w-full gap-0.5 rounded-2xl p-0.5 sm:p-1 bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08]`
+                      : `grid ${gridCols} p-1 gap-1 rounded-xl bg-neutral-900/60`
+                  }
+                >
                   {tabs.map(tab => {
                     const active = !suppressActiveTab && isTabActive(pathname, tab, tabs)
                     const isParent = activeParentPath === tab.path
+                    const isSelected = appLikePrimaryTabs ? active || isParent : active
+                    const showParentCaret = isParent && !appLikePrimaryTabs
                     const TabIcon = tab.icon
                     return (
                       <Link
                         key={tab.path}
                         href={tab.path}
-                        className={`relative flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg transition-all ${
-                          active
-                            ? 'bg-primary-500/20 text-primary-500'
-                            : isParent
-                              ? 'text-neutral-300'
-                              : 'text-neutral-500 active:text-neutral-300 active:bg-white/5'
-                        }`}
+                        className={
+                          appLikePrimaryTabs
+                            ? `flex min-w-0 items-center justify-center gap-1.5 py-2 text-xs font-medium transition-all ${
+                                isSelected
+                                  ? 'max-sm:rounded-full sm:rounded-xl bg-zinc-800/95 text-primary-400 shadow-sm'
+                                  : 'rounded-xl text-zinc-500 active:bg-white/5 active:text-zinc-300'
+                              }`
+                            : `relative flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg transition-all ${
+                                active
+                                  ? 'bg-primary-500/20 text-primary-500'
+                                  : isParent
+                                    ? 'text-neutral-300'
+                                    : 'text-neutral-500 active:text-neutral-300 active:bg-white/5'
+                              }`
+                        }
                       >
                         {TabIcon && <TabIcon className="w-3.5 h-3.5" />}
                         <span>{tab.label}</span>
-                        {isParent && (
+                        {showParentCaret && (
                           <ChevronDown className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 text-primary-500/60" />
                         )}
                       </Link>
@@ -369,26 +407,42 @@ export function AreaBar({
                   </h1>
                 </div>
 
-                <nav className="flex items-center gap-1 p-1.5 rounded-xl bg-black/30 backdrop-blur-sm">
+                <nav
+                  className={
+                    appLikePrimaryTabs
+                      ? `grid ${gridCols} w-full min-w-[12rem] max-w-sm gap-0.5 rounded-2xl p-0.5 sm:p-1 bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08]`
+                      : 'flex items-center gap-1 p-1.5 rounded-xl bg-black/30 backdrop-blur-sm'
+                  }
+                >
                   {tabs.map(tab => {
                     const TabIcon = tab.icon
                     const active = !suppressActiveTab && isTabActive(pathname, tab, tabs)
                     const isParent = activeParentPath === tab.path
+                    const isSelected = appLikePrimaryTabs ? active || isParent : active
+                    const showParentCaret = isParent && !appLikePrimaryTabs
                     return (
                       <Link
                         key={tab.path}
                         href={tab.path}
-                        className={`relative flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
-                          active
-                            ? 'bg-primary-500/20 text-primary-500'
-                            : isParent
-                              ? 'text-neutral-200'
-                              : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
-                        }`}
+                        className={
+                          appLikePrimaryTabs
+                            ? `flex min-w-0 items-center justify-center gap-1.5 px-2 py-2 text-sm font-medium transition-all ${
+                                isSelected
+                                  ? 'rounded-xl bg-zinc-800/95 text-primary-400 shadow-sm'
+                                  : 'rounded-xl text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-300'
+                              }`
+                            : `relative flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
+                                active
+                                  ? 'bg-primary-500/20 text-primary-500'
+                                  : isParent
+                                    ? 'text-neutral-200'
+                                    : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
+                              }`
+                        }
                       >
                         {TabIcon && <TabIcon className="w-4 h-4" />}
                         <span>{tab.label}</span>
-                        {isParent && (
+                        {showParentCaret && (
                           <ChevronDown className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3.5 h-3.5 text-primary-500/60" />
                         )}
                       </Link>
@@ -477,26 +531,42 @@ export function AreaBar({
                 </h1>
               </div>
 
-              <nav className="flex items-center gap-1 p-1.5 rounded-xl bg-neutral-900/60">
+              <nav
+                className={
+                  appLikePrimaryTabs
+                    ? `grid ${gridCols} w-full min-w-[12rem] max-w-sm gap-0.5 rounded-2xl p-0.5 sm:p-1 bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08]`
+                    : 'flex items-center gap-1 p-1.5 rounded-xl bg-neutral-900/60'
+                }
+              >
                 {tabs.map(tab => {
                   const TabIcon = tab.icon
                   const active = !suppressActiveTab && isTabActive(pathname, tab, tabs)
                   const isParent = activeParentPath === tab.path
+                  const isSelected = appLikePrimaryTabs ? active || isParent : active
+                  const showParentCaret = isParent && !appLikePrimaryTabs
                   return (
                     <Link
                       key={tab.path}
                       href={tab.path}
-                      className={`relative flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
-                        active
-                          ? 'bg-primary-500/20 text-primary-500'
-                          : isParent
-                            ? 'text-neutral-300'
-                            : 'text-neutral-500 hover:text-neutral-300 hover:bg-white/5'
-                      }`}
+                      className={
+                        appLikePrimaryTabs
+                          ? `flex min-w-0 items-center justify-center gap-1.5 px-2 py-2 text-sm font-medium transition-all ${
+                              isSelected
+                                ? 'rounded-xl bg-zinc-800/95 text-primary-400 shadow-sm'
+                                : 'rounded-xl text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-300'
+                            }`
+                          : `relative flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
+                              active
+                                ? 'bg-primary-500/20 text-primary-500'
+                                : isParent
+                                  ? 'text-neutral-300'
+                                  : 'text-neutral-500 hover:text-neutral-300 hover:bg-white/5'
+                            }`
+                      }
                     >
                       {TabIcon && <TabIcon className="w-4 h-4" />}
                       <span>{tab.label}</span>
-                      {isParent && (
+                      {showParentCaret && (
                         <ChevronDown className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3.5 h-3.5 text-primary-500/60" />
                       )}
                     </Link>

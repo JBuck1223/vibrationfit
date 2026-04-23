@@ -295,7 +295,7 @@ export function PostCard({
           </div>
           
           {post.content && (
-            <p className="text-sm text-neutral-300 line-clamp-2 mb-2">
+            <p className="text-sm text-neutral-300 line-clamp-2 mb-2 min-w-0 max-w-full break-words [overflow-wrap:anywhere]">
               {renderContentWithMentions(post.content, mentionedUsers)}
             </p>
           )}
@@ -519,7 +519,7 @@ export function PostCard({
             </div>
           ) : (
             post.content && (
-              <p className="text-sm md:text-base text-white whitespace-pre-wrap leading-normal mt-1.5">
+              <p className="text-sm md:text-base text-white whitespace-pre-wrap leading-normal mt-1.5 min-w-0 max-w-full break-words [overflow-wrap:anywhere]">
                 {renderContentWithMentions(post.content, mentionedUsers)}
               </p>
             )

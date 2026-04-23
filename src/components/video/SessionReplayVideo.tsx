@@ -94,7 +94,12 @@ export function SessionReplayVideo({
     }
   }, [start])
 
-  const handlePlay = useCallback(() => { seekToStart() }, [seekToStart])
+  // Seek on first *playing* (not *play*). Seeking in `play` runs while the
+  // browser's play() promise is still pending and can cause AbortError:
+  // "The play() request was interrupted by a call to pause()."
+  const handlePlaying = useCallback(() => {
+    seekToStart()
+  }, [seekToStart])
 
   const handleError = useCallback(() => {
     if (candidateIndex < candidates.length - 1) {
@@ -139,7 +144,7 @@ export function SessionReplayVideo({
       controls
       playsInline
       className={className}
-      onPlay={handlePlay}
+      onPlaying={handlePlaying}
       onError={handleError}
     />
   )
