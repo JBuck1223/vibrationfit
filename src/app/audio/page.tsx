@@ -3,8 +3,8 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Container, Stack, Card, Button, Spinner, Toggle, DeleteConfirmationDialog } from '@/lib/design-system/components'
-import { PlaylistPlayer, type AudioTrack as BaseAudioTrack } from '@/lib/design-system'
+import { Container, Stack, Card, Button, Spinner, DeleteConfirmationDialog } from '@/lib/design-system/components'
+import { type AudioTrack as BaseAudioTrack } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import {
   Headphones, Moon, Zap, Flame, Shield,
@@ -15,6 +15,7 @@ import {
 import { useAudioStudio, type AudioSetItem } from '@/components/audio-studio'
 import { useAreaStats } from '@/hooks/useAreaStats'
 import { VISION_CATEGORIES, LIFE_CATEGORY_KEYS } from '@/lib/design-system/vision-categories'
+import { InlineTrackList } from '@/components/audio-player'
 
 interface AudioTrack extends BaseAudioTrack {
   sectionKey: string
@@ -57,7 +58,6 @@ export default function AudioListenPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [setToDelete, setSetToDelete] = useState<{ id: string; name: string } | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
-  const [playMode, setPlayMode] = useState<'sections' | 'full'>('sections')
 
   // Story audio state
   const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null)
@@ -613,41 +613,28 @@ export default function AudioListenPage() {
             </div>
 
             {selectedAudioSetId && selectedSet && (
-              <div className="px-3 py-3 md:px-4">
+              <div className="max-w-2xl mx-auto">
                 {loadingTracks ? (
-                  <div className="flex min-h-[200px] items-center justify-center py-8">
-                    <Spinner size="lg" />
-                  </div>
-                ) : audioTracks.length > 0 ? (() => {
-                  const sectionTracks = audioTracks.filter(t => t.sectionKey !== 'full')
-                  const fullTrack = audioTracks.find(t => t.sectionKey === 'full')
-                  const hasFullTrack = !!fullTrack
-                  const effectivePlayMode = (playMode === 'sections' && sectionTracks.length === 0 && hasFullTrack) ? 'full' : playMode
-                  const displayTracks = effectivePlayMode === 'sections' ? sectionTracks : (fullTrack ? [fullTrack] : [])
-                  const fmtDur = (s: number) => !s || !isFinite(s) ? '0:00' : `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`
-                  return (
-                    <>
-                      {hasFullTrack && sectionTracks.length > 0 && (
-                        <div className="mb-4 flex justify-center">
-                          <Toggle value={playMode} onChange={setPlayMode} options={[
-                            { value: 'sections', label: `${sectionTracks.length} Sections` },
-                            { value: 'full', label: `Full (${fullTrack!.duration ? fmtDur(fullTrack!.duration) : '~15 min'})` },
-                          ]} />
-                        </div>
-                      )}
-                      <PlaylistPlayer
-                        variant="app"
-                        embedded
-                        hideSetHeader
-                        tracks={displayTracks}
-                      />
-                    </>
-                  )
-                })() : (
-                  <div className="py-6 text-center">
-                    <Music className="w-10 h-10 text-neutral-600 mx-auto mb-2" />
-                    <p className="text-sm text-neutral-400">No audio tracks available for this set</p>
-                  </div>
+                  <div className="flex items-center justify-center py-12"><Spinner size="lg" /></div>
+                ) : audioTracks.length > 0 ? (
+                  <InlineTrackList
+                    tracks={audioTracks}
+                    setIcon={<div className={`p-2 rounded-lg ${getVariantColor(selectedSet)}`}>{getVariantIcon(selectedSet)}</div>}
+                    setName={getSetDisplayName(selectedSet)}
+                    setIconKey="life_vision"
+                    trackCount={audioTracks.length}
+                    createdDate={new Date(selectedSet.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    onRename={async (newName: string) => {
+                      const supabase = createClient()
+                      const { error } = await supabase.from('audio_sets').update({ name: newName }).eq('id', selectedSet.id)
+                      if (!error) await refreshAudioSets()
+                    }}
+                  />
+                ) : (
+                  <Card variant="glass" className="p-8 text-center">
+                    <Music className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
+                    <p className="text-neutral-400">No audio tracks available for this set</p>
+                  </Card>
                 )}
               </div>
             )}
@@ -783,8 +770,8 @@ export default function AudioListenPage() {
                         </Button>
                       </div>
                     ) : (
-                      <div className="w-full">
-                        <PlaylistPlayer
+                      <div className="max-w-2xl mx-auto">
+                        <InlineTrackList
                           tracks={storyAudioTracks.map(t => ({
                             id: t.id,
                             title: t.label,
