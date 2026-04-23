@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Container, Stack, Card, Button, Spinner, Toggle, DeleteConfirmationDialog, PageHero } from '@/lib/design-system/components'
 import { PlaylistPlayer, type AudioTrack as BaseAudioTrack } from '@/lib/design-system'
@@ -79,15 +80,23 @@ export default function AudioListenPage() {
     return () => { document.removeEventListener('mousedown', handleOutside); document.removeEventListener('touchstart', handleOutside) }
   }, [freezeOpen])
 
+  const searchParams = useSearchParams()
+  const urlAudioSetId = searchParams.get('audioSetId')
+  const urlStoryId = searchParams.get('storyId')
+
   useEffect(() => { loadTotalPlays() }, [])
 
   useEffect(() => {
     if (audioSetsLoading || audioSets.length === 0) return
+    if (urlAudioSetId) {
+      const urlTarget = audioSets.find(s => s.id === urlAudioSetId && s.isReady)
+      if (urlTarget) { setSelectedAudioSetId(urlTarget.id); loadAudioTracks(urlTarget.id); return }
+    }
     const saved = visionId ? localStorage.getItem(`audioSetSelection_${visionId}`) : null
     let target = saved ? audioSets.find(s => s.id === saved && s.isReady) : null
     if (!target) target = audioSets.find(s => s.isReady) || null
     if (target) { setSelectedAudioSetId(target.id); loadAudioTracks(target.id) }
-  }, [audioSets, audioSetsLoading, visionId])
+  }, [audioSets, audioSetsLoading, visionId, urlAudioSetId])
 
   const VOICE_NAMES: Record<string, string> = { alloy: 'Alloy', shimmer: 'Shimmer', ash: 'Ash', coral: 'Coral', echo: 'Echo', fable: 'Fable', onyx: 'Onyx', nova: 'Nova', sage: 'Sage' }
 
@@ -97,10 +106,14 @@ export default function AudioListenPage() {
       ? stories
       : stories.filter(s => s.entity_type === listenStoryFilter)
     if (visible.length === 0) { setSelectedStoryId(null); return }
+    if (urlStoryId && visible.some(s => s.id === urlStoryId)) {
+      setSelectedStoryId(urlStoryId)
+      return
+    }
     if (!selectedStoryId || !visible.some(s => s.id === selectedStoryId)) {
       setSelectedStoryId(visible[0].id)
     }
-  }, [stories, storiesLoading, listenStoryFilter])
+  }, [stories, storiesLoading, listenStoryFilter, urlStoryId])
 
   useEffect(() => {
     if (selectedStoryId) loadStoryAudio(selectedStoryId)

@@ -862,7 +862,11 @@ export default function AudioQueueBatchPage({
           {batch.audio_set_ids.length > 0 &&
             ['completed', 'partial_success'].includes(batch.status) && (
               <Button variant="primary" asChild>
-                <Link href="/audio">
+                <Link href={
+                  isStory
+                    ? `/audio?listen=stories&storyId=${batch.content_id || ''}`
+                    : `/audio?listen=life-vision&audioSetId=${batch.audio_set_ids[0]}`
+                }>
                   <Play className="w-4 h-4 mr-2" />
                   Listen to Audio
                 </Link>
