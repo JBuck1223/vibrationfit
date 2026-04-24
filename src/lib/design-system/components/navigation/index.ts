@@ -10,6 +10,11 @@ export type {
   AreaBarBreadcrumb,
   ContextOption,
 } from './AreaBar'
+export {
+  AreaBarSecondaryTabStrip,
+  areaBarSecondaryTabLinkClassName,
+} from './AreaBarSecondaryTabStrip'
+export type { AreaBarSecondaryTabItem } from './AreaBarSecondaryTabStrip'
 
 // Sidebar, MobileBottomNav, and SidebarLayout remain in backup due to external dependencies
 // They can be extracted once dependencies are resolved

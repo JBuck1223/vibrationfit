@@ -1,9 +1,8 @@
 'use client'
 
-import Link from 'next/link'
 import { Image, PenLine, Plus, Sparkles, Clock } from 'lucide-react'
 import { usePathname } from 'next/navigation'
-import { AreaBar } from '@/lib/design-system/components'
+import { AreaBar, AreaBarSecondaryTabStrip } from '@/lib/design-system/components'
 
 const TABS = [
   { label: 'My Board', path: '/vision-board', icon: Image },
@@ -20,29 +19,17 @@ const SECONDARY_TABS = [
 
 function CreateSecondaryNav() {
   const pathname = usePathname()
-
-  return (
-    <div className="flex items-center justify-center gap-1 p-1 rounded-xl bg-neutral-900/60 mx-auto">
-      {SECONDARY_TABS.map(tab => {
-        const isActive = pathname === tab.path || pathname.startsWith(tab.path + '/')
-        const TabIcon = tab.icon
-        return (
-          <Link
-            key={tab.path}
-            href={tab.path}
-            className={`flex items-center gap-1.5 px-3 md:px-4 py-1.5 text-xs font-medium rounded-lg transition-all ${
-              isActive
-                ? 'bg-primary-500/20 text-primary-500'
-                : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
-            }`}
-          >
-            <TabIcon className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{tab.label}</span>
-          </Link>
-        )
-      })}
-    </div>
-  )
+  const items = SECONDARY_TABS.map((tab) => {
+    const isActive = pathname === tab.path || pathname.startsWith(tab.path + '/')
+    return {
+      key: tab.path,
+      href: tab.path,
+      label: tab.label,
+      icon: tab.icon,
+      isActive,
+    }
+  })
+  return <AreaBarSecondaryTabStrip aria-label="Vision Board create tools" items={items} />
 }
 
 export function VisionBoardAreaBar() {
@@ -64,6 +51,7 @@ export function VisionBoardAreaBar() {
       keepTabActive={!isOnSecondaryPage}
       activeParentPath={isOnSecondaryPage ? '/vision-board/create' : undefined}
       variant="default"
+      appLikePrimaryTabs
     />
   )
 }
