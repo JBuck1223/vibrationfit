@@ -239,6 +239,7 @@ export function StoryAreaBar() {
       tabs={TABS}
       contextBar={contextBar}
       variant="default"
+      appLikePrimaryTabs
     />
   )
 }

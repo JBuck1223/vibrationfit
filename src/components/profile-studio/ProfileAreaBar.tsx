@@ -1,10 +1,9 @@
 'use client'
 
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { User, PenLine, Eye, Edit, GitCompare } from 'lucide-react'
+import { User, PenLine, Eye, Edit } from 'lucide-react'
 import { usePathname } from 'next/navigation'
-import { AreaBar, type ContextOption } from '@/lib/design-system/components'
+import { AreaBar, AreaBarSecondaryTabStrip, type ContextOption } from '@/lib/design-system/components'
 import { useProfileStudio } from './ProfileStudioContext'
 
 const TABS = [
@@ -16,32 +15,15 @@ const CREATE_AREA_ROUTES = ['/profile/create', '/profile/new', '/profile/compare
 
 function ProfileDetailSecondaryNav({ profileId }: { profileId: string }) {
   const pathname = usePathname()
-
-  const actions = [
-    { label: 'Edit Profile', path: `/profile/${profileId}/edit`, icon: Edit },
-  ]
-
+  const path = `/profile/${profileId}/edit`
+  const isActive = pathname === path || pathname.startsWith(path + '/')
   return (
-    <div className="flex items-center justify-center gap-1 p-1 rounded-xl bg-neutral-900/60 mx-auto">
-      {actions.map(action => {
-        const isActive = pathname === action.path || pathname.startsWith(action.path + '/')
-        const ActionIcon = action.icon
-        return (
-          <Link
-            key={action.label}
-            href={action.path}
-            className={`flex items-center gap-1.5 px-3 md:px-4 py-1.5 text-xs font-medium rounded-lg transition-all ${
-              isActive
-                ? 'bg-primary-500/20 text-primary-500'
-                : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
-            }`}
-          >
-            <ActionIcon className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{action.label}</span>
-          </Link>
-        )
-      })}
-    </div>
+    <AreaBarSecondaryTabStrip
+      aria-label="Profile actions"
+      items={[
+        { key: 'edit', href: path, label: 'Edit Profile', icon: Edit, isActive },
+      ]}
+    />
   )
 }
 
@@ -61,6 +43,8 @@ export function ProfileAreaBar() {
 
   let contextSelector: { label: string; options: ContextOption[]; selectedId: string; onSelect: (id: string) => void } | undefined
   let contextBar: React.ReactNode = undefined
+
+  const isOnCreateSubPage = isCreateArea && pathname !== '/profile/create'
 
   if (isProfileDetail) {
     const segments = pathname.split('/')
@@ -98,8 +82,10 @@ export function ProfileAreaBar() {
       tabs={TABS}
       contextSelector={contextSelector}
       contextBar={contextBar}
-      keepTabActive={!isProfileDetail}
+      keepTabActive={!isProfileDetail && !isOnCreateSubPage}
+      activeParentPath={isOnCreateSubPage ? '/profile/create' : undefined}
       variant="default"
+      appLikePrimaryTabs
     />
   )
 }

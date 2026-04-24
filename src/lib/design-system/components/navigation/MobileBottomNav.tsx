@@ -74,17 +74,7 @@ export const MobileBottomNav = React.forwardRef<HTMLDivElement, MobileBottomNavP
       fetchActiveVision()
     }, [])
     
-    // Use centralized mobile navigation and resolve dynamic Audio link
     const mobileNavItems = centralMobileNav.map((item: CentralNavItem) => {
-      // Dynamically resolve Audio link to active vision's audio sets page
-      if (item.name === 'Audio' && activeVisionId) {
-        return {
-          ...item,
-          href: `/life-vision/${activeVisionId}/audio/sets`,
-          isAction: false,
-        }
-      }
-      
       return {
         ...item,
         isAction: item.href === '#', // "Align" button is an action

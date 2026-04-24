@@ -154,6 +154,7 @@ export function JournalAreaBar() {
       tabs={TABS}
       contextBar={contextBar}
       variant="default"
+      appLikePrimaryTabs
     />
   )
 }
