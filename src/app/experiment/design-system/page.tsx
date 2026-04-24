@@ -377,6 +377,7 @@ function ColorPaletteDropdown({ onCopy, copiedColor }: { onCopy: (hex: string) =
       <div className="space-y-1">
         <h6 className="text-xs font-semibold text-neutral-400 mb-1.5">Neutrals</h6>
         <ColorRow hex="#000000" name="Pure Black" description="Primary bg" />
+        <ColorRow hex="#111111" name="Embedded Panel" tokens="embeddedPanel, bg-embedded-panel" description="Deep insets, EmbeddedPlayer" />
         <ColorRow hex="#1F1F1F" name="Dark Gray" description="Cards" />
         <ColorRow hex="#404040" name="Medium Gray" description="Borders" />
         <ColorRow hex="#666666" name="Light Gray" description="Borders" />

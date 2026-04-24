@@ -10,7 +10,7 @@ import { PixelScripts } from '@/components/PixelScripts'
 import { Toaster } from 'sonner'
 import { ImpersonationBanner } from '@/components/ImpersonationBanner'
 import { ReferralBanner } from '@/components/ReferralBanner'
-import { GlobalAudioPlayerShell } from '@/components/audio-player/GlobalAudioPlayerShell'
+import { GlobalAudioPlayerShell } from '@/lib/design-system/components'
 
 export const viewport: Viewport = {
   width: 'device-width',

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { BookOpen, PenLine, ChevronDown, Check, Search, Calendar } from 'lucide-react'
 import { usePathname } from 'next/navigation'
-import { AreaBar } from '@/components/area-studio'
+import { AreaBar } from '@/lib/design-system/components'
 import { useJournalStudio } from './JournalStudioContext'
 
 const TABS = [

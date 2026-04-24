@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { Image, PenLine, Plus, Sparkles, Clock } from 'lucide-react'
 import { usePathname } from 'next/navigation'
-import { AreaBar } from '@/components/area-studio'
+import { AreaBar } from '@/lib/design-system/components'
 
 const TABS = [
   { label: 'My Board', path: '/vision-board', icon: Image },

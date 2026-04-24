@@ -1,5 +1,11 @@
 'use client'
 
+/**
+ * Single-track, in-place player with local progress in storage.
+ * For the app-wide playlist (mini bar, drawer, embedded list), use the global-audio suite
+ * from the same barrel: `EmbeddedPlayer`, `PersistentMiniPlayer`, `GlobalAudioPlayerShell`, etc.
+ * See `docs/design-system/global-playlist-audio.md`.
+ */
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Play, Pause, Volume2, VolumeX, Download, CheckCircle, Loader2 } from 'lucide-react'
 import { cn } from '../shared-utils'

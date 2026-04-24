@@ -3110,6 +3110,7 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                       <h5 className="text-xs font-semibold text-neutral-400">Neutrals</h5>
                       <div className="space-y-0.5">
                         <ColorRow hex="#000000" name="Pure Black" tokens="0" description="Primary background" color="#000000" />
+                        <ColorRow hex="#111111" name="Embedded Panel" tokens="embeddedPanel, bg-embedded-panel" description="Deep insets; colors.neutral.embeddedPanel, --color-embedded-panel" color="#111111" />
                         <ColorRow hex="#1F1F1F" name="Dark Gray" tokens="800, cardBg" description="Cards, elevated surfaces" color="#1F1F1F" />
                         <ColorRow hex="#404040" name="Medium Gray" tokens="inputBg" description="Borders, input backgrounds" color="#404040" />
                         <ColorRow hex="#666666" name="Light Gray" tokens="border" description="Borders" color="#666666" />

@@ -9,6 +9,7 @@ import { Footer } from '@/components/Footer'
 import { SidebarLayout, UserSidebar } from '@/components/Sidebar'
 import { IntensiveSidebar } from '@/components/IntensiveSidebar'
 import { IntensiveLockedOverlay } from '@/components/IntensiveLockedOverlay'
+import { cn } from '@/lib/utils'
 import { getPageType } from '@/lib/navigation'
 import { getActiveIntensiveClient, IntensiveData } from '@/lib/intensive/utils-client'
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
@@ -186,6 +187,10 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
   }
   
   const pageType = getPageType(pathname)
+
+  /** PageLayout adds pt-6 + horizontal padding; /audio area bar must paint edge-to-edge on small screens. */
+  const isAudioRoute = !!pathname?.startsWith('/audio')
+  const audioPageLayoutClass = isAudioRoute ? 'max-md:!pt-0 max-md:!px-0' : undefined
   
   // Authenticated users on public pages (except /auth/*) see the sidebar layout
   const effectivePageType = (pageType === 'PUBLIC' && isAuthenticated && !pathname?.startsWith('/auth'))
@@ -240,7 +245,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
           <div className="min-h-screen bg-black text-white">
             <IntensiveSidebar />
             <div className="md:ml-[280px]">
-              <PageLayout>
+              <PageLayout className={audioPageLayoutClass}>
                 {children}
                 <PlayerSpacer />
               </PageLayout>
@@ -253,7 +258,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
       // Regular mode: Full sidebar
       return (
         <SidebarLayout isAdmin={false}>
-          <PageLayout>
+          <PageLayout className={audioPageLayoutClass}>
             {children}
             <PlayerSpacer />
           </PageLayout>
@@ -265,7 +270,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
     if (effectivePageType === 'ADMIN') {
       return (
         <SidebarLayout isAdmin={true}>
-          <PageLayout>
+          <PageLayout className={audioPageLayoutClass}>
             {children}
             <PlayerSpacer />
           </PageLayout>
@@ -288,7 +293,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
   return (
     <div className="min-h-screen bg-black text-white">
       {!hideHeaderFooter && <Header />}
-      <PageLayout className={pageLayoutClass}>
+      <PageLayout className={cn(pageLayoutClass, audioPageLayoutClass)}>
         {children}
         <PlayerSpacer />
       </PageLayout>

@@ -8,7 +8,7 @@ import {
   Image, Lightbulb, Clock, FileText, AudioLines, Mic, Music,
 } from 'lucide-react'
 import { usePathname } from 'next/navigation'
-import { AreaBar } from '@/components/area-studio'
+import { AreaBar } from '@/lib/design-system/components'
 import { useAudioStudio } from './AudioStudioContext'
 
 const TABS = [
@@ -70,8 +70,13 @@ const SOURCE_FILTERS = [
   { label: 'Custom', value: 'custom', icon: Lightbulb },
 ]
 
-const SEGMENT_BASE =
-  'flex min-w-0 flex-1 items-center justify-center gap-1.5 px-1.5 py-2 sm:px-2 sm:py-1.5 text-[11px] sm:text-xs font-medium transition-all duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40'
+function createToolLinkClassName(isActive: boolean) {
+  return `flex min-h-[2.75rem] w-full min-w-0 flex-col items-center justify-center gap-0.5 border-b-2 px-0.5 py-2 sm:min-h-11 sm:flex-row sm:gap-1 sm:px-1.5 ${
+    isActive
+      ? 'border-primary-500 bg-zinc-900/85 font-semibold text-primary-400'
+      : 'border-transparent bg-transparent text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'
+  } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40`
+}
 
 function ListenFilterBar() {
   const {
@@ -110,12 +115,12 @@ function ListenFilterBar() {
   return (
     <div className="w-full sm:max-w-2xl sm:mx-auto">
       <div
-        className="w-full rounded-2xl bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08]"
+        className="w-full overflow-hidden rounded-2xl bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08]"
         role="region"
         aria-label="Listen content"
       >
         <nav
-          className="grid w-full grid-cols-3 border-b border-white/[0.06] p-0.5 sm:p-1"
+          className="grid w-full grid-cols-3"
           aria-label="What to play"
         >
           {CONTENT_TYPES.map(ct => {
@@ -129,23 +134,27 @@ function ListenFilterBar() {
                   setListenContentType(ct.value)
                   closeAll()
                 }}
-                className={`min-w-0 ${SEGMENT_BASE} ${
+                className={`flex min-h-[2.75rem] w-full flex-col items-center justify-center gap-0.5 border-b-2 px-1.5 py-2 sm:min-h-11 sm:flex-row sm:gap-2 ${
                   isActive
-                    ? 'max-sm:rounded-full sm:rounded-xl bg-zinc-800/95 text-primary-400 shadow-sm'
-                    : 'rounded-xl text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-300'
+                    ? 'border-primary-500 bg-zinc-900/85 font-semibold text-primary-400'
+                    : 'border-transparent bg-transparent text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'
                 }`}
                 aria-pressed={isActive}
                 title={ct.label}
               >
-                <ContentIcon className="h-3.5 w-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
-                <span className="sr-only sm:not-sr-only sm:inline sm:min-w-0 sm:truncate">
+                <ContentIcon
+                  className={`h-4 w-4 shrink-0 sm:h-3.5 sm:w-3.5 ${isActive ? 'text-primary-400' : ''}`}
+                  strokeWidth={2.25}
+                  aria-hidden
+                />
+                <span className="min-w-0 text-center text-[11px] font-medium leading-tight sm:text-xs">
                   {ct.label}
                 </span>
               </button>
             )
           })}
         </nav>
-        <div className="bg-zinc-950/40 px-3 py-2.5 sm:py-3">
+        <div className="border-t border-white/[0.08] bg-zinc-950/40 px-3 py-2.5 sm:py-3">
           <p className="text-center text-sm font-semibold text-white sm:hidden">
             {activeContentObj.label}
           </p>
@@ -272,71 +281,56 @@ function CreateSecondaryNav() {
     ? CREATE_TOOL_SUBTEXT[activeCreateTool.path] ?? null
     : null
 
-  const segmentLinks = SECONDARY_TABS.map(tab => {
-    const isActive = pathname === tab.path || pathname.startsWith(tab.path + '/')
-    const TabIcon = tab.icon
-    const isQueue = tab.path === '/audio/queue'
-    return (
-      <Link
-        key={tab.path}
-        href={tab.path}
-        title={tab.label}
-        className={`${SEGMENT_BASE} ${
-          isActive
-            ? 'max-sm:rounded-full sm:rounded-xl bg-zinc-800/95 text-primary-400 shadow-sm'
-            : 'rounded-xl text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-300'
-        }`}
-        aria-current={isActive ? 'page' : undefined}
-      >
-        <TabIcon className="h-3.5 w-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
-        <span className="sr-only sm:not-sr-only sm:inline sm:min-w-0 sm:truncate">
-          {tab.label}
-        </span>
-        {isQueue && activeBatchCount > 0 && (
-          <span
-            className="flex h-3.5 min-w-[0.95rem] shrink-0 items-center justify-center rounded-full bg-primary-500 px-0.5 text-[9px] font-bold text-black"
-            aria-label={`${activeBatchCount} in queue`}
-          >
-            {activeBatchCount}
-          </span>
-        )}
-      </Link>
-    )
-  })
-
-  const tabRow = (
-    <nav
-      className="flex w-full p-0.5 sm:p-1 rounded-2xl bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08] sm:max-w-2xl sm:mx-auto"
-      aria-label="Create tools"
-    >
-      {segmentLinks}
-    </nav>
-  )
-
-  if (!activeCreateTool || !createToolSubtext) {
-    return <div className="w-full sm:px-0">{tabRow}</div>
-  }
-
-  // Single card: segment bar + title (mobile) + hint share one rounded-2xl shell; tab labels are sr-only under sm.
   return (
-    <div
-      className="w-full overflow-hidden rounded-2xl bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08] sm:max-w-2xl sm:mx-auto"
-      role="region"
-      aria-label="What to do on this page"
-    >
-      <nav
-        className="flex w-full border-b border-white/[0.06] p-0.5 sm:p-1"
-        aria-label="Create tools"
+    <div className="w-full sm:max-w-2xl sm:mx-auto">
+      <div
+        className="w-full overflow-hidden rounded-2xl bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08]"
+        role="region"
+        aria-label="What to do on this page"
       >
-        {segmentLinks}
-      </nav>
-      <div className="bg-zinc-950/40 px-3 py-2.5 sm:py-3">
-        <p className="text-center text-sm font-semibold text-white sm:hidden">
-          {activeCreateTool.label}
-        </p>
-        <p className="mt-1 text-center text-[12px] leading-relaxed text-balance text-zinc-400 sm:mt-0 sm:text-[13px] sm:leading-normal">
-          {createToolSubtext}
-        </p>
+        <nav className="grid w-full grid-cols-4" aria-label="Create tools">
+          {SECONDARY_TABS.map(tab => {
+            const isActive = pathname === tab.path || pathname.startsWith(tab.path + '/')
+            const TabIcon = tab.icon
+            const isQueue = tab.path === '/audio/queue'
+            return (
+              <Link
+                key={tab.path}
+                href={tab.path}
+                title={tab.label}
+                className={createToolLinkClassName(isActive)}
+                aria-current={isActive ? 'page' : undefined}
+              >
+                <TabIcon
+                  className={`h-3.5 w-3.5 shrink-0 sm:h-3.5 sm:w-3.5 ${isActive ? 'text-primary-400' : ''}`}
+                  strokeWidth={2.25}
+                  aria-hidden
+                />
+                <span className="min-w-0 text-center text-[10px] font-medium leading-tight sm:text-xs">
+                  {tab.label}
+                </span>
+                {isQueue && activeBatchCount > 0 && (
+                  <span
+                    className="mt-0.5 flex h-3.5 min-w-[0.95rem] shrink-0 items-center justify-center rounded-full bg-primary-500 px-0.5 text-[9px] font-bold text-black sm:ml-0 sm:mt-0"
+                    aria-label={`${activeBatchCount} in queue`}
+                  >
+                    {activeBatchCount}
+                  </span>
+                )}
+              </Link>
+            )
+          })}
+        </nav>
+        {activeCreateTool && createToolSubtext && (
+          <div className="border-t border-white/[0.08] bg-zinc-950/40 px-3 py-2.5 sm:py-3">
+            <p className="text-center text-sm font-semibold text-white sm:hidden">
+              {activeCreateTool.label}
+            </p>
+            <p className="mt-1 text-center text-[12px] leading-relaxed text-balance text-zinc-400 sm:mt-0 sm:text-[13px] sm:leading-normal">
+              {createToolSubtext}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )

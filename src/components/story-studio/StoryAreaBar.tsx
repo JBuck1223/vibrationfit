@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Library, PenLine, Target, Image, FileText, BookOpen, Clock, ChevronDown, Check, Lightbulb, Search } from 'lucide-react'
 import { usePathname } from 'next/navigation'
-import { AreaBar } from '@/components/area-studio'
+import { AreaBar } from '@/lib/design-system/components'
 import { useStoryStudio } from './StoryStudioContext'
 import type { Story } from '@/lib/stories/types'
 

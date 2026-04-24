@@ -3,8 +3,9 @@
 import React, { useRef, useCallback, useEffect, useState } from 'react'
 import { Play, Pause, SkipBack, SkipForward, ChevronDown, X, Shuffle, Repeat } from 'lucide-react'
 import { useGlobalAudioStore } from '@/lib/stores/global-audio-store'
+import { colors } from '../../../tokens'
 import { TrackArtwork } from './TrackArtwork'
-import { cn } from '@/lib/design-system/components/shared-utils'
+import { cn } from '../../shared-utils'
 
 function formatTime(seconds: number): string {
   if (!seconds || !isFinite(seconds)) return '0:00'
@@ -35,6 +36,7 @@ export function AudioDrawerPlayer() {
   const toggleShuffle = useGlobalAudioStore(s => s.toggleShuffle)
 
   const [showPlaylist, setShowPlaylist] = useState(false)
+  const [trackDurations, setTrackDurations] = useState<Map<string, number>>(new Map())
   const drawerRef = useRef<HTMLDivElement>(null)
   const touchStartY = useRef(0)
   const touchCurrentY = useRef(0)
@@ -63,6 +65,24 @@ export function AudioDrawerPlayer() {
     return () => window.removeEventListener('keydown', handleEsc)
   }, [isDrawerOpen, closeDrawer])
 
+  useEffect(() => {
+    tracks.forEach(track => {
+      if (track.url && !trackDurations.has(track.id)) {
+        const tempAudio = new Audio()
+        tempAudio.src = track.url
+        tempAudio.addEventListener('loadedmetadata', () => {
+          if (tempAudio.duration && !isNaN(tempAudio.duration) && isFinite(tempAudio.duration)) {
+            setTrackDurations(prev => {
+              const newMap = new Map(prev)
+              newMap.set(track.id, tempAudio.duration)
+              return newMap
+            })
+          }
+        })
+      }
+    })
+  }, [tracks, trackDurations])
+
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY
     isDragging.current = false
@@ -85,11 +105,7 @@ export function AudioDrawerPlayer() {
       drawerRef.current.style.transform = ''
     }
     if (isDragging.current && diff > 100) {
-      if (showPlaylist) {
-        setShowPlaylist(false)
-      } else {
-        closeDrawer()
-      }
+      closeDrawer()
     }
     isDragging.current = false
   }, [closeDrawer, showPlaylist])
@@ -119,7 +135,7 @@ export function AudioDrawerPlayer() {
 
       <div
         ref={drawerRef}
-        className="absolute inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[420px] md:max-h-[85vh] md:rounded-2xl bg-[#111] md:border md:border-neutral-800 flex flex-col transition-transform duration-300"
+        className="absolute inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[420px] md:max-h-[85vh] md:rounded-2xl bg-zinc-950 md:border md:border-neutral-800 flex flex-col transition-transform duration-300"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -137,7 +153,7 @@ export function AudioDrawerPlayer() {
             <ChevronDown className="w-6 h-6" />
           </button>
           <p className="text-xs text-neutral-500 uppercase tracking-wider font-medium">
-            {showPlaylist ? 'Playlist' : 'Now Playing'}
+            Now Playing
           </p>
           <button
             onClick={closeDrawer}
@@ -149,8 +165,8 @@ export function AudioDrawerPlayer() {
           <div className="w-10 md:hidden" />
         </div>
 
-        {!showPlaylist ? (
-          <div className="flex-1 flex flex-col items-center justify-center px-8 pb-8 min-h-0">
+        <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+          <div className="flex flex-col items-center px-8 pb-4">
             <TrackArtwork
               track={currentTrack}
               iconKey={setIconKey}
@@ -176,7 +192,7 @@ export function AudioDrawerPlayer() {
                 onChange={handleSeek}
                 className="w-full h-1.5 bg-neutral-700 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-lg"
                 style={{
-                  background: `linear-gradient(to right, #39FF14 ${progress}%, #404040 ${progress}%)`,
+                  background: `linear-gradient(to right, ${colors.primary[500]} ${progress}%, ${colors.neutral.inputBg} ${progress}%)`,
                 }}
               />
               <div className="flex justify-between text-xs text-neutral-500 mt-1.5">
@@ -220,68 +236,71 @@ export function AudioDrawerPlayer() {
             <div className="flex items-center justify-center gap-4 mb-4">
               <button
                 onClick={toggleShuffle}
-                className={cn('p-2 rounded-lg transition-colors', isShuffled ? 'text-[#39FF14] bg-[#39FF14]/20' : 'text-neutral-400 hover:text-white')}
+                className={cn('p-2 rounded-lg transition-colors', isShuffled ? 'text-primary-500 bg-primary-500/20' : 'text-neutral-400 hover:text-white')}
               >
                 <Shuffle className="w-4 h-4" />
               </button>
               <button
                 onClick={handleToggleRepeat}
-                className={cn('relative p-2 rounded-lg transition-colors', repeatMode !== 'off' ? 'text-[#39FF14] bg-[#39FF14]/20' : 'text-neutral-400 hover:text-white')}
+                className={cn('relative p-2 rounded-lg transition-colors', repeatMode !== 'off' ? 'text-primary-500 bg-primary-500/20' : 'text-neutral-400 hover:text-white')}
               >
                 <Repeat className="w-4 h-4" />
-                {repeatMode === 'one' && <span className="absolute -top-0.5 -right-0.5 text-[9px] font-bold leading-none text-[#39FF14]">1</span>}
+                {repeatMode === 'one' && <span className="absolute -top-0.5 -right-0.5 text-[9px] font-bold leading-none text-primary-500">1</span>}
               </button>
             </div>
 
             {tracks.length > 1 && (
               <button
-                onClick={() => setShowPlaylist(true)}
-                className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
+                onClick={() => setShowPlaylist(prev => !prev)}
+                className="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
               >
-                {currentIndex + 1} of {tracks.length} &middot; View Playlist
+                {currentIndex + 1} of {tracks.length} &middot; {showPlaylist ? 'Hide Playlist' : 'View Playlist'}
+                <ChevronDown className={cn('w-3 h-3 transition-transform duration-200', showPlaylist && 'rotate-180')} />
               </button>
             )}
           </div>
-        ) : (
-          <div className="flex-1 overflow-y-auto px-4 pb-6 min-h-0">
-            <div className="space-y-1">
-              {tracks.map((track, index) => {
-                const isActive = index === currentIndex
-                return (
-                  <button
-                    key={track.id}
-                    onClick={() => {
-                      playTrack(index)
-                      setShowPlaylist(false)
-                    }}
-                    className={cn(
-                      'w-full text-left px-3 py-2.5 rounded-lg transition-colors flex items-center gap-3',
-                      isActive ? 'bg-[#39FF14]/20 text-[#39FF14]' : 'text-neutral-300 hover:bg-[#222]'
-                    )}
-                  >
-                    <TrackArtwork
-                      track={track}
-                      iconKey={setIconKey}
-                      size={36}
-                      className="rounded-md overflow-hidden flex-shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="truncate text-sm font-medium">{track.title}</p>
-                      {track.artist && <p className="truncate text-xs text-neutral-500">{track.artist}</p>}
-                    </div>
-                    {isActive && isPlaying && (
-                      <div className="flex items-center gap-0.5 flex-shrink-0">
-                        <span className="w-0.5 h-3 bg-[#39FF14] rounded-full animate-pulse" />
-                        <span className="w-0.5 h-4 bg-[#39FF14] rounded-full animate-pulse [animation-delay:150ms]" />
-                        <span className="w-0.5 h-2.5 bg-[#39FF14] rounded-full animate-pulse [animation-delay:300ms]" />
+
+          {showPlaylist && tracks.length > 1 && (
+            <div className="border-t border-neutral-800/60 px-4 py-3">
+              <div className="space-y-1">
+                {tracks.map((track, index) => {
+                  const isActive = index === currentIndex
+                  return (
+                    <button
+                      key={track.id}
+                      onClick={() => playTrack(index)}
+                      className={cn(
+                        'w-full text-left px-3 py-2.5 rounded-lg transition-colors flex items-center gap-3',
+                        isActive ? 'bg-primary-500/20 text-primary-500' : 'text-neutral-300 hover:bg-neutral-800'
+                      )}
+                    >
+                      <TrackArtwork
+                        track={track}
+                        iconKey={setIconKey}
+                        size={36}
+                        className="rounded-md overflow-hidden flex-shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="truncate text-sm font-medium">{track.title}</p>
+                        {track.artist && <p className="truncate text-xs text-neutral-500">{track.artist}</p>}
                       </div>
-                    )}
-                  </button>
-                )
-              })}
+                      <span className="text-xs text-neutral-500 flex-shrink-0 tabular-nums">
+                        {formatTime(trackDurations.get(track.id) || track.duration || 0)}
+                      </span>
+                      {isActive && isPlaying && (
+                        <div className="flex items-center gap-0.5 flex-shrink-0">
+                          <span className="w-0.5 h-3 bg-primary-500 rounded-full animate-pulse" />
+                          <span className="w-0.5 h-4 bg-primary-500 rounded-full animate-pulse [animation-delay:150ms]" />
+                          <span className="w-0.5 h-2.5 bg-primary-500 rounded-full animate-pulse [animation-delay:300ms]" />
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   )
