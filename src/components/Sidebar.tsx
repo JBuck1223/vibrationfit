@@ -288,9 +288,7 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
       {/* Navigation */}
       <nav className="flex-1 min-h-0 p-4 space-y-2 overflow-y-auto">
         {navigation.map((item) => {
-          const itemHref = item.name === 'Audio' && activeVisionId 
-            ? `/life-vision/${activeVisionId}/audio/sets`
-            : item.href
+          const itemHref = item.href
           
           const isActive = isNavItemActive(item, pathname, profile?.id)
           const isExpanded = expandedItems.includes(item.name)
@@ -616,17 +614,7 @@ export function MobileBottomNav({ className }: MobileBottomNavProps) {
     fetchActiveVision()
   }, [])
   
-  // Use centralized mobile navigation and resolve dynamic Audio link
   const mobileNavItems = mobileNavigation.map(item => {
-    // Dynamically resolve Audio link to active vision's audio sets page
-    if (item.name === 'Audio' && activeVisionId) {
-      return {
-        ...item,
-        href: `/life-vision/${activeVisionId}/audio/sets`,
-        isAction: false,
-      }
-    }
-    
     return {
       ...item,
       isAction: item.href === '#', // "More" button is an action
