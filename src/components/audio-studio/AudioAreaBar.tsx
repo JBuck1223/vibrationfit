@@ -8,7 +8,7 @@ import {
   Image, Lightbulb, Clock, FileText, AudioLines, Mic, Music,
 } from 'lucide-react'
 import { usePathname } from 'next/navigation'
-import { AreaBar } from '@/lib/design-system/components'
+import { AreaBar, areaBarSecondaryTabLinkClassName } from '@/lib/design-system/components'
 import { useAudioStudio } from './AudioStudioContext'
 
 const TABS = [
@@ -70,14 +70,6 @@ const SOURCE_FILTERS = [
   { label: 'Custom', value: 'custom', icon: Lightbulb },
 ]
 
-function createToolLinkClassName(isActive: boolean) {
-  return `flex min-h-[2.75rem] w-full min-w-0 flex-col items-center justify-center gap-0.5 border-b-2 px-0.5 py-2 sm:min-h-11 sm:flex-row sm:gap-1 sm:px-1.5 ${
-    isActive
-      ? 'border-primary-500 bg-zinc-900/85 font-semibold text-primary-400'
-      : 'border-transparent bg-transparent text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'
-  } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40`
-}
-
 function ListenFilterBar() {
   const {
     listenContentType, setListenContentType,
@@ -134,11 +126,7 @@ function ListenFilterBar() {
                   setListenContentType(ct.value)
                   closeAll()
                 }}
-                className={`flex min-h-[2.75rem] w-full flex-col items-center justify-center gap-0.5 border-b-2 px-1.5 py-2 sm:min-h-11 sm:flex-row sm:gap-2 ${
-                  isActive
-                    ? 'border-primary-500 bg-zinc-900/85 font-semibold text-primary-400'
-                    : 'border-transparent bg-transparent text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'
-                }`}
+                className={areaBarSecondaryTabLinkClassName(isActive)}
                 aria-pressed={isActive}
                 title={ct.label}
               >
@@ -298,7 +286,7 @@ function CreateSecondaryNav() {
                 key={tab.path}
                 href={tab.path}
                 title={tab.label}
-                className={createToolLinkClassName(isActive)}
+                className={areaBarSecondaryTabLinkClassName(isActive)}
                 aria-current={isActive ? 'page' : undefined}
               >
                 <TabIcon

@@ -1,10 +1,9 @@
 'use client'
 
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Target, PenLine, Eye, Volume2, FileText, Download, Gem, Home } from 'lucide-react'
 import { usePathname } from 'next/navigation'
-import { AreaBar, type ContextOption } from '@/lib/design-system/components'
+import { AreaBar, AreaBarSecondaryTabStrip, type ContextOption } from '@/lib/design-system/components'
 import { useLifeVisionStudio } from './LifeVisionStudioContext'
 
 const TABS = [
@@ -36,28 +35,23 @@ function VisionDetailSecondaryNav({ visionId, isDraft }: { visionId: string; isD
   const pathname = usePathname()
   const actions = isDraft ? DRAFT_VISION_ACTIONS : ACTIVE_VISION_ACTIONS
 
+  const items = actions.map((action) => {
+    const href = action.absolute ? action.path : `/life-vision/${visionId}/${action.path}`
+    const isActive = pathname === href || pathname.startsWith(href + '/')
+    return {
+      key: action.label,
+      href,
+      label: action.label,
+      icon: action.icon,
+      isActive,
+    }
+  })
+
   return (
-    <div className="flex items-center justify-center gap-1 p-1 rounded-xl bg-neutral-900/60 mx-auto">
-      {actions.map(action => {
-        const href = action.absolute ? action.path : `/life-vision/${visionId}/${action.path}`
-        const isActive = pathname === href || pathname.startsWith(href + '/')
-        const ActionIcon = action.icon
-        return (
-          <Link
-            key={action.label}
-            href={href}
-            className={`flex items-center gap-1.5 px-3 md:px-4 py-1.5 text-xs font-medium rounded-lg transition-all ${
-              isActive
-                ? 'bg-primary-500/20 text-primary-500'
-                : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
-            }`}
-          >
-            <ActionIcon className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{action.label}</span>
-          </Link>
-        )
-      })}
-    </div>
+    <AreaBarSecondaryTabStrip
+      aria-label="Vision quick actions"
+      items={items}
+    />
   )
 }
 
@@ -116,6 +110,7 @@ export function LifeVisionAreaBar() {
       keepTabActive={!isOnCreateSubPage && !isVisionDetail}
       activeParentPath={isOnCreateSubPage ? '/life-vision/create' : undefined}
       variant="default"
+      appLikePrimaryTabs
     />
   )
 }
