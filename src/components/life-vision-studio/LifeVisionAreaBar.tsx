@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Target, PenLine, Eye, Volume2, FileText, Download, Gem, Home } from 'lucide-react'
 import { usePathname } from 'next/navigation'
-import { AreaBar, type ContextOption } from '@/components/area-studio'
+import { AreaBar, type ContextOption } from '@/lib/design-system/components'
 import { useLifeVisionStudio } from './LifeVisionStudioContext'
 
 const TABS = [

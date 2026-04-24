@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Container, Stack, Card, Spinner, Button, DeleteConfirmationDialog, PageHero } from '@/lib/design-system/components'
+import { Container, Stack, Card, Spinner, Button, DeleteConfirmationDialog } from '@/lib/design-system/components'
 import { Clock, CheckCircle, AlertCircle, Loader2, ListMusic, Trash2, Target, BookOpen } from 'lucide-react'
 import Link from 'next/link'
 import { useAudioStudio } from '@/components/audio-studio'
@@ -276,10 +276,7 @@ export default function AudioQueuePage() {
   return (
     <Container size="xl" className="py-6">
       <Stack gap="lg">
-        <PageHero
-          title="Generation Queue"
-          subtitle="Track the progress of your audio generation and mixing jobs."
-        />
+        <h1 className="sr-only">Generation Queue</h1>
 
         {allBatches.length === 0 ? (
           <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] text-center py-12">

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Container, StatusBadge, Icon, Spinner, Stack, IntensiveStepCompleteModal, PageHero } from '@/lib/design-system/components'
+import { Button, Card, Container, StatusBadge, Icon, Spinner, Stack, IntensiveStepCompleteModal } from '@/lib/design-system/components'
 import { useAudioStudio, AudioSourceSelector } from '@/components/audio-studio'
 import type { AudioSourceSelection } from '@/components/audio-studio'
 import type { VisionData } from '@/components/audio-studio'
@@ -425,10 +425,7 @@ export default function RecordVisionAudioPage() {
   return (
     <Container size="xl" className="py-6">
       <Stack gap="lg">
-        <PageHero
-          title="Record Audio"
-          subtitle="Read your Life Vision or Story aloud and create a personal voice recording."
-        />
+        <h1 className="sr-only">Record Audio</h1>
 
         {/* Source Selector */}
         <AudioSourceSelector

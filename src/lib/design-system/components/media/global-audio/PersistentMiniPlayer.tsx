@@ -74,16 +74,16 @@ export function PersistentMiniPlayer() {
         onClick={handleProgressClick}
       >
         <div
-          className="h-full bg-[#39FF14] transition-all duration-150 group-hover:h-1.5"
+          className="h-full bg-primary-500 transition-all duration-150 group-hover:h-1.5"
           style={{ width: `${progress}%` }}
         />
       </div>
 
       <div
-        className="bg-[#111]/95 backdrop-blur-xl border-t border-neutral-800/50 cursor-pointer"
+        className="bg-zinc-950/95 backdrop-blur-xl border-t border-neutral-800/50 cursor-pointer"
         onClick={handleBarClick}
       >
-        <div className="flex items-center gap-3 px-3 py-2 md:px-6 md:py-2.5 pb-[env(safe-area-inset-bottom,0px)]">
+        <div className="flex items-center gap-3 px-3 py-2 md:px-6 md:py-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom,0.5rem))]">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <TrackArtwork
               track={currentTrack}
@@ -104,7 +104,7 @@ export function PersistentMiniPlayer() {
           <div className="flex items-center gap-0.5 md:gap-1 flex-shrink-0">
             <button
               onClick={(e) => { e.stopPropagation(); skipPrev() }}
-              className="p-2 text-neutral-400 hover:text-white transition-colors hidden md:block"
+              className="p-2 text-neutral-400 hover:text-white transition-colors"
               disabled={currentIndex === 0 && currentTime < 3}
               aria-label="Previous track"
             >

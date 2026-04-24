@@ -55,6 +55,8 @@ export const colors = {
   
   // Neutral Colors
   neutral: {
+    /** Deep insets (e.g. EmbeddedPlayer): matches `--color-embedded-panel` in globals. */
+    embeddedPanel: '#111111',
     0: '#000000',    // Pure Black
     50: '#F9F9F9',   // Very Light Gray
     100: '#F3F4F6',  // Light Gray

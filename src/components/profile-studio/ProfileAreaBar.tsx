@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { User, PenLine, Eye, Edit, GitCompare } from 'lucide-react'
 import { usePathname } from 'next/navigation'
-import { AreaBar, type ContextOption } from '@/components/area-studio'
+import { AreaBar, type ContextOption } from '@/lib/design-system/components'
 import { useProfileStudio } from './ProfileStudioContext'
 
 const TABS = [

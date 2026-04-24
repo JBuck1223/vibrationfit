@@ -46,6 +46,15 @@ function setCachedProfile(userId: string, data: ActiveProfileFields | null): voi
   })
 }
 
+/** True when the browser could not complete the HTTP request (unreachable host, CORS, offline, etc.). */
+function isLikelyNetworkFailure(err: unknown): boolean {
+  if (!err) return false
+  const msg = err instanceof Error ? err.message : String(err)
+  if (/failed to fetch|networkerror|load failed|network request failed|aborted/i.test(msg)) return true
+  if (err instanceof TypeError && /fetch|network|load failed/i.test(msg)) return true
+  return false
+}
+
 /**
  * Clear cached profile for a user (useful after profile updates)
  */
@@ -130,17 +139,23 @@ export async function getActiveProfileClient(userId: string): Promise<ActiveProf
     
     return data
   } catch (err: any) {
-    // Handle timeout or other errors
     if (err instanceof Error && err.message === 'Profile fetch timeout') {
       console.warn('Profile fetch timed out after 10 seconds for user:', userId)
-      console.warn('This may indicate a database/RLS issue. Check Supabase logs.')
-      // Don't cache null on timeout - might be a temporary issue
+      console.warn(
+        'Often network latency, cold Supabase, or auth/session slowness. RLS would usually return a PostgREST error in the response, not a timeout.',
+      )
       return null
     }
-    
-    // Handle Supabase errors
+
+    if (isLikelyNetworkFailure(err)) {
+      console.warn('Profile fetch network error for user:', userId, err instanceof Error ? err.message : err)
+      console.warn(
+        'TypeError/Failed to fetch means the request never completed. Check NEXT_PUBLIC_SUPABASE_URL, paused project, VPN, and that this origin can reach Supabase.',
+      )
+      return null
+    }
+
     if (err?.code) {
-      // Only log if it's not a "no rows" error
       if (err.code !== 'PGRST116') {
         console.error('Error fetching active profile:', {
           code: err.code,
@@ -150,13 +165,11 @@ export async function getActiveProfileClient(userId: string): Promise<ActiveProf
         })
       }
     } else if (err && typeof err === 'object' && Object.keys(err).length === 0) {
-      // Empty error object - likely from Supabase when no error details
       console.warn('Empty error object when fetching profile for user:', userId)
     } else {
       console.error('Unexpected error fetching profile:', err instanceof Error ? err.message : err)
     }
-    
-    // Cache null result to prevent repeated errors
+
     setCachedProfile(userId, null)
     return null
   }

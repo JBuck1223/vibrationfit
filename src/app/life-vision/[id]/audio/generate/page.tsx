@@ -1,14 +1,13 @@
 "use client"
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Card, Spinner, Badge, Container, Stack, VersionBadge, StatusBadge, PageHero, TrackingMilestoneCard, Icon } from '@/lib/design-system/components'
 import { PlaylistPlayer } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
-import { CheckCircle, Play, CalendarDays, Mic, Clock, Music, Waves, X, ListMusic, Eye } from 'lucide-react'
+import { CheckCircle, Play, CalendarDays, Mic, Clock, Music, Waves, X, ListMusic, Eye, AudioLines, Search } from 'lucide-react'
 import Link from 'next/link'
 import { getVisionCategoryKeys, VISION_CATEGORIES } from '@/lib/design-system'
 import { ChevronDown } from 'lucide-react'
-import { SectionSelector } from '@/components/SectionSelector'
 
 interface Voice {
   id: string
@@ -52,14 +51,11 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
   
   // Voice Only Generation Form
   const [selectedVoiceForNew, setSelectedVoiceForNew] = useState<string>('alloy')
-  const [isVoiceDropdownOpen, setIsVoiceDropdownOpen] = useState(false)
-  const [isPreviewing, setIsPreviewing] = useState(false)
+  const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null)
   const [previewProgress, setPreviewProgress] = useState<number>(0)
-  const previewAudioRef = React.useRef<HTMLAudioElement | null>(null)
+  const [voiceSearch, setVoiceSearch] = useState('')
+  const audioRef = React.useRef<HTMLAudioElement | null>(null)
   
-  // Section Selection for Voice Generation
-  const [generateAllSections, setGenerateAllSections] = useState(true)
-  const [selectedVoiceSections, setSelectedVoiceSections] = useState<string[]>([])
   const [isVoiceSetDropdownOpen, setIsVoiceSetDropdownOpen] = useState(false)
   const [selectedVoiceSetId, setSelectedVoiceSetId] = useState<string | null>(null)
   const [selectedSetTracks, setSelectedSetTracks] = useState<any[]>([])
@@ -100,6 +96,61 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
 
     return () => clearInterval(interval)
   }, [visionId, activeBatches])
+
+  // Voice preview (same pattern as binaural list on /audio/mix)
+  useEffect(() => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio()
+      audioRef.current.addEventListener('ended', () => {
+        setPreviewingVoiceId(null)
+        setPreviewProgress(0)
+      })
+    }
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current.src = ''
+      }
+    }
+  }, [])
+
+  const handleVoicePreview = (e: React.MouseEvent, trackUrl: string, voiceId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!audioRef.current) return
+    if (previewingVoiceId === voiceId) {
+      audioRef.current.pause()
+      audioRef.current.currentTime = 0
+      setPreviewingVoiceId(null)
+      setPreviewProgress(0)
+    } else {
+      if (previewingVoiceId) {
+        audioRef.current.pause()
+        audioRef.current.currentTime = 0
+      }
+      audioRef.current.src = trackUrl
+      audioRef.current.currentTime = 0
+      const updateProgress = () => {
+        if (!audioRef.current) return
+        const progress = (audioRef.current.currentTime / 30) * 100
+        setPreviewProgress(Math.min(progress, 100))
+        if (audioRef.current.currentTime >= 30) {
+          audioRef.current.pause()
+          audioRef.current.currentTime = 0
+          setPreviewingVoiceId(null)
+          setPreviewProgress(0)
+          audioRef.current.removeEventListener('timeupdate', updateProgress)
+        }
+      }
+      audioRef.current.addEventListener('timeupdate', updateProgress)
+      audioRef.current.play().catch(err => {
+        console.error('Voice preview play error:', err)
+        setPreviewingVoiceId(null)
+        setPreviewProgress(0)
+      })
+      setPreviewingVoiceId(voiceId)
+    }
+  }
 
   async function loadSetTracks(setId: string) {
     setLoadingTracks(true)
@@ -261,29 +312,13 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
         return
       }
 
-      // Build sections based on user selection
-      let sectionsToGenerate: { key: string; text: string }[] = []
-      
-      if (generateAllSections) {
-        // All 14 sections
-        const categoryKeys = getVisionCategoryKeys().filter(k => k !== 'forward' && k !== 'conclusion')
-        sectionsToGenerate = [
-          { key: 'forward', text: vv.forward || '' },
-          ...categoryKeys.map(key => ({ key, text: vv[key] || '' })),
-          { key: 'conclusion', text: vv.conclusion || '' }
-        ]
-      } else {
-        // Only selected sections (maintain order from VISION_CATEGORIES)
-        const orderedKeys = VISION_CATEGORIES.map(c => c.key) as string[]
-        const sortedSelectedSections = [...selectedVoiceSections].sort(
-          (a, b) => orderedKeys.indexOf(a) - orderedKeys.indexOf(b)
-        )
-        sectionsToGenerate = sortedSelectedSections.map(key => ({
-          key,
-          text: vv[key] || ''
-        }))
-      }
-      
+      const categoryKeys = getVisionCategoryKeys().filter(k => k !== 'forward' && k !== 'conclusion')
+      const sectionsToGenerate: { key: string; text: string }[] = [
+        { key: 'forward', text: vv.forward || '' },
+        ...categoryKeys.map(key => ({ key, text: vv[key] || '' })),
+        { key: 'conclusion', text: vv.conclusion || '' }
+      ]
+
       const sections = sectionsToGenerate.filter(s => s.text.trim().length > 0)
       
       if (sections.length === 0) {
@@ -297,22 +332,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
         text: s.text
       }))
       
-      // Build descriptive set name based on selection
-      let audioSetName = ''
-      if (!generateAllSections && sections.length < 14) {
-        if (sections.length === 1) {
-          const cat = VISION_CATEGORIES.find(c => c.key === sections[0].key)
-          audioSetName = `${cat?.label || sections[0].key} Focus`
-        } else if (sections.length <= 3) {
-          const labels = sections.map(s => {
-            const cat = VISION_CATEGORIES.find(c => c.key === s.key)
-            return cat?.label || s.key
-          })
-          audioSetName = `${labels.join(' + ')} Focus`
-        } else {
-          audioSetName = `Custom ${sections.length} Sections`
-        }
-      }
+      const audioSetName = ''
 
       // Create batch with metadata
       const { data: batch, error: batchError } = await supabase
@@ -326,8 +346,8 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
           total_tracks_expected: sectionsPayload.length,
           status: 'pending',
           metadata: {
-            generate_all_sections: generateAllSections,
-            selected_sections: generateAllSections ? null : selectedVoiceSections,
+            generate_all_sections: true,
+            selected_sections: null,
             audio_set_name: audioSetName || null
           }
         })
@@ -370,6 +390,16 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
       setGenerating(false)
     }
   }
+
+  const filteredVoices = useMemo(
+    () =>
+      voices.filter(v => {
+        if (!voiceSearch.trim()) return true
+        const q = voiceSearch.toLowerCase()
+        return v.name.toLowerCase().includes(q) || v.id.toLowerCase().includes(q)
+      }),
+    [voices, voiceSearch]
+  )
 
   if (loading) {
     return (
@@ -474,183 +504,117 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
         {/* Generate New Voice Set */}
         <Card variant="glass" className="p-4 md:p-6">
           <div className="space-y-6">
-              {/* Voice Selection */}
-              <div className="py-4">
-                <div className="flex flex-col items-center mb-4">
-                  <div className="w-12 h-12 rounded-full bg-primary-500/20 flex items-center justify-center mb-2">
-                    <span className="text-primary-500 font-bold text-2xl">1</span>
-                  </div>
-                  <h3 className="text-lg md:text-xl font-semibold text-white">Select Voice</h3>
+              <div className="py-2">
+                <div className="flex flex-col items-center text-center mb-4">
+                  <h3 className="text-lg font-semibold text-white">Select Voice</h3>
+                  <p className="text-sm text-neutral-400">Preview samples, select a voice, then click the Generate button below.</p>
                 </div>
-                <div className="flex flex-col md:flex-row gap-4">
-                  <div className="relative flex-1">
-                    <button
-                      type="button"
-                      onClick={() => setIsVoiceDropdownOpen(!isVoiceDropdownOpen)}
-                      className="w-full pl-6 pr-12 py-3 rounded-full bg-[#1F1F1F] text-white text-sm border-2 border-[#333] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left"
-                    >
-                      {voices.find(v => v.id === selectedVoiceForNew)?.name || selectedVoiceForNew}
-                    </button>
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                      <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isVoiceDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
-                    {isVoiceDropdownOpen && (
-                      <>
-                        <div 
-                          className="fixed inset-0 z-10" 
-                          onClick={() => setIsVoiceDropdownOpen(false)}
-                        />
-                        <div className="absolute z-20 w-full mt-2 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-60 overflow-y-auto">
-                          {voices.map((voice) => (
-                            <button
-                              key={voice.id}
-                              onClick={() => {
-                                setSelectedVoiceForNew(voice.id)
-                                setIsVoiceDropdownOpen(false)
-                                if (previewAudioRef.current) {
-                                  previewAudioRef.current.pause()
-                                  previewAudioRef.current.currentTime = 0
-                                }
-                                setIsPreviewing(false)
-                                setPreviewProgress(0)
-                              }}
-                              className={`w-full px-4 py-3 text-left hover:bg-[#2A2A2A] transition-colors border-b border-[#333] last:border-b-0 ${
-                                selectedVoiceForNew === voice.id ? 'bg-primary-500/10' : ''
-                              }`}
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className="text-white font-medium">{voice.name}</span>
-                                {selectedVoiceForNew === voice.id && (
-                                  <CheckCircle className="w-5 h-5 text-primary-500" />
-                                )}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      </>
-                    )}
+                {voices.length > 6 && (
+                  <div className="relative max-w-md mx-auto mb-4">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
+                    <input
+                      type="text"
+                      value={voiceSearch}
+                      onChange={e => setVoiceSearch(e.target.value)}
+                      placeholder="Search voices..."
+                      className="w-full pl-9 pr-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#39FF14]/50"
+                    />
                   </div>
-                  
-                  <Button 
-                    variant="primary"
-                    onClick={async () => {
-                      if (!selectedVoiceForNew) return
-                      
-                      const selectedVoice = voices.find(v => v.id === selectedVoiceForNew)
-                      if (!selectedVoice?.previewUrl) return
-
-                      if (isPreviewing) {
-                        if (previewAudioRef.current) {
-                          previewAudioRef.current.pause()
-                          previewAudioRef.current.currentTime = 0
-                        }
-                        setIsPreviewing(false)
-                        setPreviewProgress(0)
-                      } else {
-                        setIsPreviewing(true)
-                        if (!previewAudioRef.current) {
-                          previewAudioRef.current = new Audio(selectedVoice.previewUrl)
-                        } else {
-                          previewAudioRef.current.src = selectedVoice.previewUrl
-                        }
-                        
-                        previewAudioRef.current.addEventListener('timeupdate', () => {
-                          if (previewAudioRef.current) {
-                            const progress = (previewAudioRef.current.currentTime / previewAudioRef.current.duration) * 100
-                            setPreviewProgress(progress)
+                )}
+                <div className="space-y-2 max-h-80 overflow-y-auto pr-0.5">
+                  {voices.length > 0 && filteredVoices.length === 0 && (
+                    <p className="text-sm text-neutral-500 text-center py-6">No voices match your search.</p>
+                  )}
+                  {filteredVoices.map(voice => {
+                    const isSelected = selectedVoiceForNew === voice.id
+                    const isThisPreviewing = previewingVoiceId === voice.id
+                    const canPreview = Boolean(voice.previewUrl)
+                    return (
+                      <div
+                        key={voice.id}
+                        className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${
+                          isSelected
+                            ? 'bg-primary-500/10 border border-primary-500'
+                            : 'bg-neutral-800/50 border border-transparent hover:bg-neutral-800'
+                        }`}
+                        onClick={() => {
+                          if (selectedVoiceForNew !== voice.id && audioRef.current) {
+                            audioRef.current.pause()
+                            audioRef.current.currentTime = 0
+                            setPreviewingVoiceId(null)
+                            setPreviewProgress(0)
                           }
-                        })
-                        
-                        previewAudioRef.current.addEventListener('ended', () => {
-                          setIsPreviewing(false)
-                          setPreviewProgress(0)
-                        })
-                        
-                        await previewAudioRef.current.play()
-                      }
-                    }}
-                    disabled={!selectedVoiceForNew || !voices.find(v => v.id === selectedVoiceForNew)?.previewUrl}
-                    className="relative group"
-                  >
-                    <div className="relative flex items-center">
-                      <div className="relative w-5 h-5 mr-2">
-                        {/* Circular progress indicator */}
-                        {isPreviewing && (
-                          <svg className="absolute inset-0 w-5 h-5 -rotate-90 pointer-events-none" viewBox="0 0 20 20">
-                            {/* Background track */}
-                            <circle
-                              cx="10"
-                              cy="10"
-                              r="8"
-                              fill="none"
-                              stroke="rgba(0,0,0,0.2)"
-                              strokeWidth="2"
-                              className="group-hover:stroke-[rgba(57,255,20,0.3)] transition-all duration-200"
-                            />
-                            {/* Progress */}
-                            <circle
-                              cx="10"
-                              cy="10"
-                              r="8"
-                              fill="none"
-                              stroke="black"
-                              strokeWidth="2"
-                              strokeDasharray="50.27"
-                              strokeDashoffset={50.27 - (50.27 * (isNaN(previewProgress) ? 0 : previewProgress) / 100)}
-                              className="transition-all duration-200 group-hover:stroke-[#39FF14]"
-                            />
-                          </svg>
+                          setSelectedVoiceForNew(voice.id)
+                        }}
+                      >
+                        {isSelected && (
+                          <CheckCircle className="w-5 h-5 text-primary-500 flex-shrink-0" />
                         )}
-                        {isPreviewing ? (
-                          <X className="w-3 h-3 absolute inset-0 m-auto z-10" />
-                        ) : (
-                          <Play className="w-5 h-5" />
-                        )}
+                        <div className="flex-1 min-w-0 text-left">
+                          <p className="text-white font-medium text-sm md:text-base">{voice.name}</p>
+                        </div>
+                        <div className="relative flex-shrink-0 w-9 h-9">
+                          {isThisPreviewing && (
+                            <svg className="absolute inset-0 w-9 h-9 -rotate-90 pointer-events-none" viewBox="0 0 36 36" style={{ zIndex: 10 }}>
+                              <circle
+                                cx="18"
+                                cy="18"
+                                r="16"
+                                fill="none"
+                                stroke="rgba(31,31,31,0.3)"
+                                strokeWidth="2"
+                              />
+                              <circle
+                                cx="18"
+                                cy="18"
+                                r="16"
+                                fill="none"
+                                stroke="#1F1F1F"
+                                strokeWidth="2"
+                                strokeDasharray="100.53"
+                                strokeDashoffset={100.53 - (100.53 * previewProgress / 100)}
+                                className="transition-all duration-100"
+                              />
+                            </svg>
+                          )}
+                          <button
+                            type="button"
+                            disabled={!canPreview}
+                            onClick={e => { if (canPreview && voice.previewUrl) handleVoicePreview(e, voice.previewUrl, voice.id) }}
+                            className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
+                              isThisPreviewing
+                                ? 'bg-primary-500'
+                                : canPreview
+                                  ? 'bg-neutral-800 hover:bg-neutral-700'
+                                  : 'bg-neutral-800/50 cursor-not-allowed opacity-50'
+                            }`}
+                          >
+                            {isThisPreviewing ? <X className="w-4 h-4 text-[#1F1F1F]" /> : <Play className="w-4 h-4 text-neutral-400" />}
+                          </button>
+                        </div>
                       </div>
-                      {isPreviewing ? 'Stop Preview' : 'Preview Voice'}
-                    </div>
-                  </Button>
+                    )
+                  })}
                 </div>
               </div>
 
-              {/* Divider */}
-              <div className="border-t border-[#333]" />
-
-              {/* Section Selection */}
-              <div className="py-4">
-                <div className="flex flex-col items-center mb-4">
-                  <div className="w-12 h-12 rounded-full bg-primary-500/20 flex items-center justify-center mb-2">
-                    <span className="text-primary-500 font-bold text-2xl">2</span>
-                  </div>
-                  <h3 className="text-lg md:text-xl font-semibold text-white">Select Sections</h3>
-                </div>
-                <SectionSelector
-                  allSelected={generateAllSections}
-                  onAllSelectedChange={setGenerateAllSections}
-                  selectedSections={selectedVoiceSections}
-                  onSelectedSectionsChange={setSelectedVoiceSections}
-                />
-              </div>
-
-              {/* Action Button */}
               <div className="flex justify-center pb-2">
                 <Button 
                   variant="primary" 
                   onClick={handleGenerateVoiceOnly}
-                  disabled={generating || !selectedVoiceForNew || (!generateAllSections && selectedVoiceSections.length === 0)}
+                  disabled={generating || !selectedVoiceForNew}
+                  className="min-w-[12rem] justify-center"
                 >
                   {generating ? (
-                    <>
-                      <Spinner size="sm" className="mr-2" />
+                    <span className="inline-flex items-center gap-2">
+                      <Spinner size="sm" />
                       Generating...
-                    </>
+                    </span>
                   ) : (
-                    <>
-                      <Waves className="w-5 h-5 mr-2" />
-                      Generate {generateAllSections ? 'All 14 Sections' : `${selectedVoiceSections.length} Section${selectedVoiceSections.length !== 1 ? 's' : ''}`}
-                    </>
+                    <span className="inline-flex items-center gap-2">
+                      <AudioLines className="w-5 h-5" />
+                      Generate
+                    </span>
                   )}
                 </Button>
               </div>

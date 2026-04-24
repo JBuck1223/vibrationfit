@@ -1,5 +1,12 @@
-export { PersistentMiniPlayer } from './PersistentMiniPlayer'
-export { AudioDrawerPlayer } from './AudioDrawerPlayer'
-export { GlobalAudioPlayerShell } from './GlobalAudioPlayerShell'
-export { InlineTrackList } from './InlineTrackList'
-export { TrackArtwork } from './TrackArtwork'
+/**
+ * @deprecated Import from `@/lib/design-system/components` instead.
+ */
+export {
+  PersistentMiniPlayer,
+  AudioDrawerPlayer,
+  GlobalAudioPlayerShell,
+  InlineTrackList,
+  EmbeddedPlayer,
+  type MixDetails,
+  TrackArtwork,
+} from '@/lib/design-system/components'

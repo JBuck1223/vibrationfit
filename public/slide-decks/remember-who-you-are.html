@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Remember Who You Are — Disney Stories</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #000000;
+        --fg: #ffffff;
+        --muted: rgba(255, 255, 255, 0.72);
+        --accent: rgba(255, 255, 255, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: "Poppins", system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .deck {
+        min-height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .slide {
+        display: none;
+        flex: 1;
+        padding: clamp(1.5rem, 4vw, 3rem);
+        max-width: 1100px;
+        margin: 0 auto;
+        width: 100%;
+        align-items: stretch;
+        justify-content: center;
+        gap: clamp(1.5rem, 3vw, 2.5rem);
+      }
+
+      .slide.active {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        box-sizing: border-box;
+      }
+
+      .slide--split.active {
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+
+      @media (min-width: 800px) {
+        .slide--split.active {
+          flex-wrap: nowrap;
+          align-items: center;
+        }
+      }
+
+      .poster-wrap {
+        flex: 0 1 340px;
+        max-width: 100%;
+      }
+
+      .poster {
+        width: 100%;
+        border-radius: 16px;
+        border: 1px solid var(--accent);
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+        display: block;
+        aspect-ratio: 2 / 3;
+        object-fit: cover;
+        object-position: center top;
+        background: #111;
+        image-rendering: auto;
+      }
+
+      .content {
+        flex: 1 1 380px;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 1rem;
+      }
+
+      h1 {
+        font-size: clamp(1.75rem, 4vw, 2.75rem);
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        margin: 0;
+        line-height: 1.15;
+      }
+
+      h2 {
+        font-size: clamp(1.35rem, 3vw, 2rem);
+        font-weight: 600;
+        margin: 0 0 0.25rem;
+        letter-spacing: -0.02em;
+      }
+
+      .subtitle {
+        font-size: clamp(1rem, 2vw, 1.15rem);
+        color: var(--muted);
+        font-weight: 400;
+        margin: 0;
+        max-width: 36ch;
+      }
+
+      .lead {
+        font-size: clamp(1rem, 2.2vw, 1.125rem);
+        line-height: 1.55;
+        margin: 0;
+        color: var(--fg);
+      }
+
+      ul {
+        margin: 0;
+        padding-left: 1.25rem;
+        color: var(--muted);
+        font-size: clamp(0.95rem, 2vw, 1.05rem);
+        line-height: 1.55;
+      }
+
+      li + li {
+        margin-top: 0.35rem;
+      }
+
+      .callout {
+        margin-top: 0.25rem;
+        padding: 0.85rem 1rem;
+        border-left: 3px solid var(--fg);
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: 0 10px 10px 0;
+      }
+
+      .callout-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--muted);
+        margin-bottom: 0.35rem;
+        font-weight: 600;
+      }
+
+      .callout p {
+        margin: 0;
+        font-size: clamp(0.95rem, 2vw, 1.05rem);
+        line-height: 1.5;
+        color: var(--fg);
+      }
+
+      .title-slide {
+        text-align: center;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .title-slide h1 {
+        max-width: none;
+        white-space: nowrap;
+        font-size: clamp(1.05rem, 4.2vw, 2.75rem);
+      }
+
+      .title-slide .subtitle {
+        max-width: 42ch;
+        margin: 0 auto;
+      }
+
+      nav.dots {
+        position: fixed;
+        bottom: 2.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 0.45rem;
+        z-index: 2;
+      }
+
+      nav.dots button {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        border: none;
+        padding: 0;
+        background: rgba(255, 255, 255, 0.25);
+        cursor: pointer;
+      }
+
+      nav.dots button[aria-current="true"] {
+        background: var(--fg);
+        transform: scale(1.15);
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="deck" id="deck">
+      <!-- Slide 0 -->
+      <section class="slide title-slide active" data-index="0" aria-label="Title">
+        <h1>Remember who you are</h1>
+        <p class="subtitle" style="margin-top: 1rem">
+          A theme that shows up across many Disney stories: you already carry something powerful; you
+          only forgot. Here are some of the strongest examples.
+        </p>
+      </section>
+
+      <!-- Slide 1: The Lion King -->
+      <section class="slide slide--split" data-index="1" aria-label="The Lion King">
+        <div class="poster-wrap">
+          <img
+            class="poster"
+            src="https://image.tmdb.org/t/p/original/2bXbqYdUdNVa8VIWXVfclP2ICtT.jpg"
+            alt="The Lion King theatrical poster"
+          />
+        </div>
+        <div class="content">
+          <h2>The Lion King</h2>
+          <p class="lead">The iconic version of the message. Mufasa tells Simba: &ldquo;Remember who you are.&rdquo;</p>
+          <ul>
+            <li>Simba forgets his identity after trauma</li>
+            <li>Lives in avoidance (&ldquo;Hakuna Matata&rdquo;)</li>
+            <li>Reclaims his truth and steps into leadership</li>
+          </ul>
+          <div class="callout">
+            <div class="callout-label">Core message</div>
+            <p>You did not lose who you are; you disconnected from it.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 2: Moana -->
+      <section class="slide slide--split" data-index="2" aria-label="Moana">
+        <div class="poster-wrap">
+          <img
+            class="poster"
+            src="https://image.tmdb.org/t/p/original/iVFLfGxVOU262e6SElxhPTqlcDL.jpg"
+            alt="Moana theatrical poster"
+          />
+        </div>
+        <div class="content">
+          <h2>Moana</h2>
+          <p class="lead">
+            Moana&rsquo;s turning point is a self-remembrance moment: she doubts herself after failure,
+            then sings &ldquo;I am Moana!&rdquo; and reconnects with her purpose.
+          </p>
+          <ul>
+            <li>She doubts herself after failure</li>
+            <li>Then sings: &ldquo;I am Moana!&rdquo;</li>
+            <li>Reconnects with her purpose and identity</li>
+          </ul>
+          <div class="callout">
+            <div class="callout-label">Core message</div>
+            <p>Your calling has not changed; you realign with it.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 3: Frozen II -->
+      <section class="slide slide--split" data-index="3" aria-label="Frozen II">
+        <div class="poster-wrap">
+          <img
+            class="poster"
+            src="https://image.tmdb.org/t/p/original/1njAgIYkM67Y1fgpARRE5iQCx4M.jpg"
+            alt="Frozen II theatrical poster"
+          />
+        </div>
+        <div class="content">
+          <h2>Frozen II</h2>
+          <p class="lead">Elsa&rsquo;s arc is about uncovering a deeper identity beyond what she was told.</p>
+          <ul>
+            <li>She feels a pull she does not understand</li>
+            <li>Follows it into truth about her past</li>
+            <li>Discovers she is the &ldquo;fifth spirit&rdquo;</li>
+          </ul>
+          <div class="callout">
+            <div class="callout-label">Core message</div>
+            <p>Who you are is bigger than who you have been told you are.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 4: Mulan -->
+      <section class="slide slide--split" data-index="4" aria-label="Mulan">
+        <div class="poster-wrap">
+          <img
+            class="poster"
+            src="https://image.tmdb.org/t/p/original/bj3iSjLlkwHtJrPmvHXa8P7edI9.jpg"
+            alt="Mulan theatrical poster"
+          />
+        </div>
+        <div class="content">
+          <h2>Mulan</h2>
+          <p class="lead">Mulan wrestles with identity from the start: fitting expectations, hiding, then choosing truth.</p>
+          <ul>
+            <li>Feels like she does not fit expectations</li>
+            <li>Hides who she is to be accepted</li>
+            <li>Ultimately succeeds by being fully herself</li>
+          </ul>
+          <div class="callout">
+            <div class="callout-label">Core message</div>
+            <p>You do not become worthy; you reveal who you already are.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <nav class="dots" id="dots" aria-label="Slides"></nav>
+
+    <script>
+      (function () {
+        var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+        var index = 0;
+        var dotsNav = document.getElementById("dots");
+
+        function renderDots() {
+          dotsNav.innerHTML = "";
+          slides.forEach(function (_, i) {
+            var b = document.createElement("button");
+            b.type = "button";
+            b.setAttribute("aria-label", "Go to slide " + (i + 1));
+            if (i === index) b.setAttribute("aria-current", "true");
+            b.addEventListener("click", function (ev) {
+              ev.stopPropagation();
+              go(i);
+            });
+            dotsNav.appendChild(b);
+          });
+        }
+
+        function go(i) {
+          index = Math.max(0, Math.min(slides.length - 1, i));
+          slides.forEach(function (s, j) {
+            s.classList.toggle("active", j === index);
+          });
+          renderDots();
+        }
+
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") {
+            e.preventDefault();
+            go(index + 1);
+          } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+            e.preventDefault();
+            go(index - 1);
+          } else if (e.key === "Home") {
+            go(0);
+          } else if (e.key === "End") {
+            go(slides.length - 1);
+          }
+        });
+
+        document.body.addEventListener("click", function () {
+          go(index + 1);
+        });
+
+        renderDots();
+      })();
+    </script>
+  </body>
+</html>

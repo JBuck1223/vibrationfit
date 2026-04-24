@@ -1,7 +1,7 @@
 "use client"
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Spinner, Badge, Container, Stack, Toggle, Select, PageHero } from '@/lib/design-system/components'
+import { Button, Card, Spinner, Badge, Container, Stack, Toggle, Select } from '@/lib/design-system/components'
 import { useAudioStudio, QueueStatusBanner, AudioSourceSelector } from '@/components/audio-studio'
 import type { AudioSourceSelection } from '@/components/audio-studio'
 import type { VisionData } from '@/components/audio-studio'
@@ -24,7 +24,10 @@ interface ExistingVoiceSet {
   voice_name: string
   variant: string
   created_at: string
+  /** Per-section (category) files only; excludes combined `section_key: full` */
   track_count: number
+  /** True when this set has a completed combined full-vision file (all sections in one track). */
+  hasFullCombinedTrack: boolean
   available_sections: string[]
   sample_audio_url?: string
 }
@@ -81,9 +84,12 @@ export default function AudioMixPage() {
   const [voices, setVoices] = useState<Voice[]>([])
   const [existingVoiceSets, setExistingVoiceSets] = useState<ExistingVoiceSet[]>([])
   
-  // Selected base voice for mixing
-  const [selectedBaseVoice, setSelectedBaseVoice] = useState<string>('')
+  /** `audio_sets.id` — a voice can appear in multiple sets, so we key on set id, not `voice_id`. */
+  const [selectedBaseVoiceSetId, setSelectedBaseVoiceSetId] = useState<string>('')
   const [baseVoiceSearch, setBaseVoiceSearch] = useState('')
+
+  const selectedBaseVoiceSet = existingVoiceSets.find((s) => s.id === selectedBaseVoiceSetId) ?? null
+  const selectedVoiceId = selectedBaseVoiceSet?.voice_id ?? ''
   
   // Background Track Selection
   const [backgroundTracks, setBackgroundTracks] = useState<BackgroundTrack[]>([])
@@ -202,12 +208,12 @@ export default function AudioMixPage() {
   // Section Selection for Custom Mixing
   const [mixAllSections, setMixAllSections] = useState(true)
   const [selectedMixSections, setSelectedMixSections] = useState<string[]>([])
-  const [mixOutputFormat, setMixOutputFormat] = useState<OutputFormat>('both')
+  const [mixOutputFormat, setMixOutputFormat] = useState<OutputFormat>('individual')
   
   function handleSourceSelected(selection: AudioSourceSelection) {
     setSelectedSource(selection)
     setExistingVoiceSets([])
-    setSelectedBaseVoice('')
+    setSelectedBaseVoiceSetId('')
     setLoading(true)
   }
 
@@ -267,16 +273,22 @@ export default function AudioMixPage() {
 
     const orderedKeys = VISION_CATEGORIES.map(c => c.key) as string[]
     const voiceSets: ExistingVoiceSet[] = (sets || []).map((set: any) => {
-      const completedTracks = (set.audio_tracks || []).filter(
-        (t: any) => t.status === 'completed' && t.audio_url && t.section_key !== 'full'
+      const rawTracks = (set.audio_tracks || []) as { section_key: string; status: string; audio_url?: string }[]
+      const fullTrack = rawTracks.find(
+        (t) => t.status === 'completed' && t.audio_url && t.section_key === 'full'
+      )
+      const hasFullCombinedTrack = Boolean(fullTrack)
+      const completedTracks = rawTracks.filter(
+        (t) => t.status === 'completed' && t.audio_url && t.section_key !== 'full'
       )
       const availableSections = completedTracks
-        .map((t: any) => t.section_key)
+        .map((t) => t.section_key)
         .sort((a: string, b: string) => orderedKeys.indexOf(a) - orderedKeys.indexOf(b))
-      const sampleUrl = completedTracks.length > 0 ? completedTracks[0].audio_url : undefined
-      
+      const sampleUrl =
+        completedTracks.length > 0 ? completedTracks[0].audio_url : fullTrack?.audio_url
+
       const isPersonal = set.variant === 'personal'
-      
+
       return {
         id: set.id,
         voice_id: set.voice_id,
@@ -286,6 +298,7 @@ export default function AudioMixPage() {
         variant: set.variant,
         created_at: set.created_at,
         track_count: completedTracks.length,
+        hasFullCombinedTrack,
         available_sections: availableSections,
         sample_audio_url: sampleUrl
       }
@@ -294,8 +307,8 @@ export default function AudioMixPage() {
     setExistingVoiceSets(voiceSets)
     
     // Auto-select first voice if available
-    if (voiceSets.length > 0 && !selectedBaseVoice) {
-      setSelectedBaseVoice(voiceSets[0].voice_id)
+    if (voiceSets.length > 0 && !selectedBaseVoiceSetId) {
+      setSelectedBaseVoiceSetId(voiceSets[0].id)
     }
 
     // Load background tracks (excluding frequency enhancement tracks)
@@ -360,13 +373,13 @@ export default function AudioMixPage() {
   }
 
   async function applyRecommendedCombo(combo: any) {
-    if (!selectedBaseVoice) {
+    if (!selectedBaseVoiceSetId) {
       alert('Please select a base voice first')
       return
     }
     
-    const selectedVoiceSet = existingVoiceSets.find(set => set.voice_id === selectedBaseVoice)
-    if (!selectedVoiceSet || selectedVoiceSet.track_count === 0) {
+    const selectedVoiceSet = existingVoiceSets.find((set) => set.id === selectedBaseVoiceSetId)
+    if (!selectedVoiceSet || (selectedVoiceSet.track_count === 0 && !selectedVoiceSet.hasFullCombinedTrack)) {
       alert('No voice-only tracks found. Please generate voice-only tracks first.')
       return
     }
@@ -397,7 +410,7 @@ export default function AudioMixPage() {
           return
         }
 
-        const selectedVoiceSetData = existingVoiceSets.find(set => set.voice_id === selectedBaseVoice)
+        const selectedVoiceSetData = existingVoiceSets.find((set) => set.id === selectedBaseVoiceSetId)
         const availableSections = selectedVoiceSetData?.available_sections || []
         
         if (availableSections.length === 0) {
@@ -429,7 +442,7 @@ export default function AudioMixPage() {
         return
       }
 
-      const selectedVoiceSetData = existingVoiceSets.find(set => set.voice_id === selectedBaseVoice)
+      const selectedVoiceSetData = existingVoiceSets.find((set) => set.id === selectedBaseVoiceSetId)
 
       const selectedTrack = combo.background_track
       const selectedRatio = combo.mix_ratio
@@ -438,13 +451,15 @@ export default function AudioMixPage() {
       const batchInsert: any = {
         user_id: user.id,
         variant_ids: ['custom'],
-        voice_id: selectedBaseVoice,
+        voice_id: selectedVoiceId,
         sections_requested: sectionsPayload,
-        total_tracks_expected: sectionsPayload.length + (sectionsPayload.length > 1 ? 1 : 0),
+        total_tracks_expected:
+          sectionsPayload.length +
+          (mixOutputFormat === 'combined' && sectionsPayload.length > 1 ? 1 : 0),
         status: 'pending',
         metadata: {
           custom_mix: true,
-          output_format: 'both',
+          output_format: mixOutputFormat,
           source_type: activeSourceType,
           background_track_id: combo.background_track_id,
           background_track_url: selectedTrack?.file_url,
@@ -481,14 +496,14 @@ export default function AudioMixPage() {
 
       const comboPayload: any = {
         batchId: batch.id,
-        voice: selectedBaseVoice,
+        voice: selectedVoiceId,
         sections: sectionsPayload,
         backgroundTrackUrl: selectedTrack?.file_url,
         voiceVolume: selectedRatio.voice_volume,
         bgVolume: selectedRatio.bg_volume,
         binauralTrackUrl: selectedBinaural?.file_url || null,
         binauralVolume: combo.binaural_volume || 0,
-        outputFormat: 'both'
+        outputFormat: mixOutputFormat
       }
 
       if (activeSourceType === 'life_vision') {
@@ -535,13 +550,13 @@ export default function AudioMixPage() {
       return
     }
 
-    if (!selectedBaseVoice) {
+    if (!selectedBaseVoiceSetId) {
       alert('Please select a base voice')
       return
     }
     
-    const selectedVoiceSet = existingVoiceSets.find(set => set.voice_id === selectedBaseVoice)
-    if (!selectedVoiceSet || selectedVoiceSet.track_count === 0) {
+    const selectedVoiceSet = existingVoiceSets.find((set) => set.id === selectedBaseVoiceSetId)
+    if (!selectedVoiceSet || (selectedVoiceSet.track_count === 0 && !selectedVoiceSet.hasFullCombinedTrack)) {
       alert('No voice-only tracks found for this voice. Please generate voice-only tracks first.')
       return
     }
@@ -557,7 +572,7 @@ export default function AudioMixPage() {
         return
       }
 
-      const selectedVoiceSetData = existingVoiceSets.find(set => set.voice_id === selectedBaseVoice)
+      const selectedVoiceSetData = existingVoiceSets.find((set) => set.id === selectedBaseVoiceSetId)
       const availableSections = selectedVoiceSetData?.available_sections || []
 
       let sections: { key: string; text: string }[] = []
@@ -647,7 +662,7 @@ export default function AudioMixPage() {
       
       // Force 'individual' format when only 1 section (no point in combined)
       const effectiveOutputFormat = sections.length === 1 ? 'individual' : mixOutputFormat
-      const includesCombinedTrack = (effectiveOutputFormat === 'both' || effectiveOutputFormat === 'combined') && sectionsPayload.length > 1
+      const includesCombinedTrack = effectiveOutputFormat === 'combined' && sectionsPayload.length > 1
 
       const batchMeta: any = {
         custom_mix: true,
@@ -678,7 +693,7 @@ export default function AudioMixPage() {
       const batchRow: any = {
         user_id: user.id,
         variant_ids: ['custom'],
-        voice_id: selectedBaseVoice,
+        voice_id: selectedVoiceId,
         sections_requested: sectionsPayload,
         total_tracks_expected: sectionsPayload.length + (includesCombinedTrack ? 1 : 0),
         status: 'pending',
@@ -706,7 +721,7 @@ export default function AudioMixPage() {
 
       const generatePayload: any = {
         sections: sectionsPayload,
-        voice: selectedBaseVoice,
+        voice: selectedVoiceId,
         batchId: batch.id,
         backgroundTrackUrl: selectedTrack?.file_url,
         voiceVolume: selectedRatio.voice_volume,
@@ -754,10 +769,7 @@ export default function AudioMixPage() {
   return (
     <Container size="xl" className="py-6">
       <Stack gap="lg">
-        <PageHero
-          title="Mix Audio"
-          subtitle="Add background music and binaural beats to your existing voice tracks."
-        />
+        <h1 className="sr-only">Mix Audio</h1>
 
         <QueueStatusBanner />
 
@@ -830,21 +842,21 @@ export default function AudioMixPage() {
                 })
               : existingVoiceSets
             ).map((set) => {
-              const isPreviewing = previewingTrack === set.voice_id
+              const isPreviewing = previewingTrack === set.id
               return (
                 <Card 
                   key={set.id} 
                   variant="default" 
                   hover
                   className={`cursor-pointer ${
-                    selectedBaseVoice === set.voice_id
+                    selectedBaseVoiceSetId === set.id
                       ? 'border-primary-500 bg-primary-500/10'
                       : ''
                   }`}
-                  onClick={() => setSelectedBaseVoice(set.voice_id)}
+                  onClick={() => setSelectedBaseVoiceSetId(set.id)}
                 >
                   <div className="flex items-center gap-3">
-                    {selectedBaseVoice === set.voice_id ? (
+                    {selectedBaseVoiceSetId === set.id ? (
                       <CheckCircle className="w-5 h-5 text-primary-500 flex-shrink-0" />
                     ) : set.variant === 'personal' ? (
                       <Mic className="w-5 h-5 text-[#BF00FF] flex-shrink-0" />
@@ -852,8 +864,24 @@ export default function AudioMixPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-white font-medium">{set.voice_name}</p>
                       <p className="text-xs text-neutral-400">
-                        {set.track_count} section{set.track_count !== 1 ? 's' : ''} available
-                        {set.track_count < 14 && <span className="text-yellow-400 ml-1">(partial)</span>}
+                        {(() => {
+                          const t = VISION_CATEGORIES.length
+                          const n = set.track_count
+                          const hasFull = set.hasFullCombinedTrack
+                          if (hasFull) {
+                            if (n === 0) {
+                              return 'Full life vision in one combined file'
+                            }
+                            if (n < t) {
+                              return `Full combined file + ${n} per-section file${n === 1 ? '' : 's'}`
+                            }
+                            return `Full combined + ${n} per-section files`
+                          }
+                          if (n < t) {
+                            return `${n} of ${t} per-section files (not a full 14 set)`
+                          }
+                          return `${n} per-section files (full 14 set)`
+                        })()}
                       </p>
                     </div>
                     {set.sample_audio_url && (
@@ -885,7 +913,7 @@ export default function AudioMixPage() {
                           </svg>
                         )}
                         <button
-                          onClick={(e) => handlePreview(e, set.sample_audio_url!, set.voice_id)}
+                          onClick={(e) => handlePreview(e, set.sample_audio_url!, set.id)}
                           className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
                             isPreviewing 
                               ? 'bg-primary-500' 
@@ -1087,7 +1115,7 @@ export default function AudioMixPage() {
                         variant="primary"
                         size="sm"
                         className="w-full"
-                        disabled={generatingComboId !== null || !selectedBaseVoice}
+                        disabled={generatingComboId !== null || !selectedBaseVoiceSetId}
                         onClick={(e) => {
                           e.stopPropagation()
                           applyRecommendedCombo(combo)
@@ -1527,7 +1555,7 @@ export default function AudioMixPage() {
                   selectedSections={selectedMixSections}
                   onSelectedSectionsChange={setSelectedMixSections}
                   label="Mix All Sections"
-                  availableSections={existingVoiceSets.find(s => s.voice_id === selectedBaseVoice)?.available_sections}
+                  availableSections={selectedBaseVoiceSet?.available_sections}
                 />
                 </>
                 )}
@@ -1535,7 +1563,7 @@ export default function AudioMixPage() {
 
               {/* Output Format - only show if more than 1 section available */}
               {(() => {
-                const availableSectionsForVoice = existingVoiceSets.find(s => s.voice_id === selectedBaseVoice)?.available_sections || []
+                const availableSectionsForVoice = selectedBaseVoiceSet?.available_sections || []
                 const effectiveSectionCount = mixAllSections 
                   ? availableSectionsForVoice.length 
                   : selectedMixSections.filter(s => availableSectionsForVoice.includes(s)).length
@@ -1552,9 +1580,7 @@ export default function AudioMixPage() {
                       <h3 className="text-base font-semibold text-white">Output Format</h3>
                       {!showOutputFormatSection && (
                         <p className="text-xs text-neutral-400 mt-1">
-                          {mixOutputFormat === 'individual' ? 'Individual Sections' 
-                            : mixOutputFormat === 'combined' ? 'Combined Full Track'
-                            : 'Both'}
+                          {mixOutputFormat === 'individual' ? 'Individual Sections' : 'Combined Full Track'}
                         </p>
                       )}
                       <div className="absolute right-0 top-1/2 -translate-y-1/2">
@@ -1631,7 +1657,7 @@ export default function AudioMixPage() {
                 <Button 
                   variant="primary" 
                   onClick={handleGenerateCustomMix}
-                  disabled={generating || !selectedMixRatio || !selectedBaseVoice || (!isVoiceOnly && !selectedBackgroundTrack) || (!mixAllSections && selectedMixSections.length === 0)}
+                  disabled={generating || !selectedMixRatio || !selectedBaseVoiceSetId || (!isVoiceOnly && !selectedBackgroundTrack) || (!mixAllSections && selectedMixSections.length === 0)}
                   className="w-full md:w-auto"
                 >
                   {generating ? (

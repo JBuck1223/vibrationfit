@@ -27,7 +27,7 @@ import {
   Info,
 } from 'lucide-react'
 import { Button } from '@/lib/design-system/components'
-import { type AreaBarTab, type AreaBarPill, type ContextOption } from '@/components/area-studio'
+import { type AreaBarTab, type AreaBarPill, type ContextOption } from '@/lib/design-system/components'
 
 // ─── Area configurations ───
 

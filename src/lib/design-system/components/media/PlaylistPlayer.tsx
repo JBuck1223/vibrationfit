@@ -10,6 +10,8 @@ import type { AudioTrack } from './types'
 interface PlaylistPlayerProps {
   tracks: AudioTrack[]
   className?: string
+  /** 'glass' = binaural-style card; 'app' = compact top-bar layout (music-app density) */
+  variant?: 'default' | 'glass' | 'app'
   autoPlay?: boolean
   setIcon?: React.ReactNode
   setName?: string
@@ -21,11 +23,16 @@ interface PlaylistPlayerProps {
   onRename?: (newName: string) => void
   onDurationCalculated?: (duration: number) => void
   hideCurrentTrack?: boolean
+  /** Omit set title/icon/meta row (parent shows the same, e.g. a card header) */
+  hideSetHeader?: boolean
+  /** Flatten outer chrome (use inside a parent card) */
+  embedded?: boolean
 }
 
 export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({ 
   tracks, 
   className = '',
+  variant = 'default',
   autoPlay = false,
   setIcon,
   setName,
@@ -37,7 +44,12 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
   onRename,
   onDurationCalculated,
   hideCurrentTrack = false,
+  hideSetHeader = false,
+  embedded = false,
 }) => {
+  const isGlass = variant === 'glass'
+  const isApp = variant === 'app'
+  const isCompact = isGlass || isApp
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
@@ -356,20 +368,150 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
     setEditingName('')
   }
 
+  const headerTitleBlock = setName && (
+    <div className={cn('min-w-0', isApp ? 'flex-1' : 'flex justify-center items-center mb-2')}>
+      {isEditingName ? (
+        <input
+          type="text"
+          value={editingName}
+          onChange={(e) => setEditingName(e.target.value)}
+          onBlur={handleSaveEdit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleSaveEdit()
+            if (e.key === 'Escape') handleCancelEdit()
+          }}
+          autoFocus
+          className={cn(
+            'bg-[#2A2A2A] text-white px-3 py-1 rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500 w-full',
+            isApp ? 'text-left text-sm md:text-base' : 'text-base md:text-lg text-center max-w-md',
+          )}
+        />
+      ) : (
+        <h3
+          className={cn(
+            'group/title font-semibold text-white',
+            isApp ? 'text-left text-sm font-medium leading-tight' : 'text-center',
+            !isApp && (isCompact ? 'text-base' : 'text-lg'),
+            onRename && 'cursor-pointer',
+          )}
+          onClick={onRename ? handleStartEdit : undefined}
+          role={onRename ? 'button' : undefined}
+          tabIndex={onRename ? 0 : undefined}
+        >
+          <span className="line-clamp-2">{setName}</span>
+          {onRename && (
+            <Edit2
+              className="inline-block w-3 h-3 ml-1 -translate-y-0.5 text-neutral-400 hover:text-white cursor-pointer opacity-100 md:opacity-0 md:group-hover/title:opacity-100 transition-opacity"
+              onClick={handleStartEdit}
+            />
+          )}
+        </h3>
+      )}
+    </div>
+  )
+
+  const headerMeta = (trackCount || createdDate || totalDuration > 0) && (
+    <div
+      className={cn(
+        'flex items-center gap-2 text-xs text-neutral-500',
+        isApp ? 'mt-0.5 flex-wrap' : 'justify-center',
+        !isApp && 'text-neutral-400',
+      )}
+    >
+      {trackCount && <span>{trackCount} {trackCount === 1 ? 'track' : 'tracks'}</span>}
+      {trackCount && (createdDate || totalDuration > 0) && <span className="text-neutral-600">|</span>}
+      {createdDate && <span>{createdDate}</span>}
+      {createdDate && totalDuration > 0 && <span className="text-neutral-600">|</span>}
+      {totalDuration > 0 && <span>{formatTime(totalDuration)}</span>}
+    </div>
+  )
+
+  const downloadAllButton = (
+    <button
+      type="button"
+      onClick={() => (allCached ? tracks.forEach(t => removeTrack(t.id)) : downloadAllTracks(tracks))}
+      disabled={anyDownloading}
+      title={allCached ? 'Remove offline copies' : anyDownloading ? 'Downloading...' : 'Download for offline'}
+      className={cn(
+        'flex items-center transition-colors',
+        isApp
+          ? cn(
+              isApp && hideSetHeader
+                ? 'gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium disabled:opacity-50'
+                : 'justify-center rounded-lg p-2 disabled:opacity-50',
+              allCached
+                ? 'text-[#39FF14] hover:bg-[#39FF14]/10'
+                : anyDownloading
+                  ? 'cursor-wait text-neutral-600'
+                  : 'text-neutral-400 hover:bg-white/5 hover:text-white',
+            )
+          : cn(
+              'gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium',
+              allCached
+                ? 'text-[#39FF14] bg-[#39FF14]/10 hover:bg-[#39FF14]/20'
+                : anyDownloading
+                  ? 'bg-neutral-800 text-neutral-500 cursor-wait'
+                  : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700',
+            ),
+      )}
+    >
+      {anyDownloading ? <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" /> : allCached ? <CheckCircle className="h-3.5 w-3.5 shrink-0" /> : <Download className="h-3.5 w-3.5 shrink-0" />}
+      {!isApp && (allCached ? 'Available Offline' : anyDownloading ? 'Downloading...' : 'Download for Offline')}
+      {isApp && hideSetHeader && (allCached ? 'Saved' : anyDownloading ? 'Saving' : 'Save offline')}
+    </button>
+  )
+
   return (
-    <div className={cn('bg-[#1F1F1F] border-2 border-[#333] rounded-2xl p-4 md:p-6 overflow-hidden', className)}>
+    <div
+      className={cn(
+        'overflow-hidden',
+        isApp
+          ? embedded
+            ? 'border-0 bg-transparent p-0 ring-0 shadow-none backdrop-blur-0'
+            : 'rounded-xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-black/20 p-3 ring-1 ring-inset ring-white/[0.04] backdrop-blur-md md:p-4'
+          : isGlass
+            ? 'rounded-2xl border border-[#333]/50 bg-[#1F1F1F]/50 p-4 backdrop-blur-lg ring-1 ring-inset ring-white/[0.05] md:p-5'
+            : 'rounded-2xl border-2 border-[#333] bg-[#1F1F1F] p-4 md:p-6',
+        className,
+      )}
+    >
       <audio ref={audioRef} autoPlay={autoPlay} />
 
-      {(setIcon || setName) && (
-        <div className="-mx-4 md:-mx-6 -mt-4 md:-mt-6 mb-4 pb-4 px-4 md:px-6 pt-4 md:pt-6 bg-gradient-to-b from-[#2A2A2A] to-[#1F1F1F] rounded-t-2xl border-b border-[#333]">
-          {/* Icon - Centered */}
+      {isApp && hideSetHeader && tracks.length > 0 && (
+        <div className="mb-3 flex justify-end border-b border-white/[0.06] pb-2">{downloadAllButton}</div>
+      )}
+
+      {(setIcon || setName) && isApp && !hideSetHeader && (
+        <div className="mb-3 flex gap-3 border-b border-white/[0.06] pb-3">
+          {setIcon && <div className="mt-0.5 shrink-0 scale-90">{setIcon}</div>}
+          <div className="min-w-0 flex flex-1 flex-col gap-0.5">
+            {headerTitleBlock}
+            {headerMeta}
+            {(voiceName || backgroundTrack || mixRatio) && (
+              <p className="text-[11px] leading-snug text-neutral-600">
+                {[voiceName, backgroundTrack, mixRatio].filter(Boolean).join(' | ')}
+              </p>
+            )}
+          </div>
+          <div className="shrink-0 self-start pt-0.5">{downloadAllButton}</div>
+        </div>
+      )}
+
+      {(setIcon || setName) && !isApp && (
+        <div
+          className={cn(
+            'mb-4',
+            isGlass
+              ? 'border-b border-white/[0.08] pb-4'
+              : '-mx-4 -mt-4 mb-4 rounded-t-2xl border-b border-[#333] bg-gradient-to-b from-[#2A2A2A] to-[#1F1F1F] px-4 pb-4 pt-4 md:-mx-6 md:-mt-6 md:px-6 md:pb-4 md:pt-6',
+          )}
+        >
           {setIcon && (
-            <div className="flex justify-center mb-3">
+            <div className="mb-3 flex justify-center">
               {setIcon}
             </div>
           )}
-          
-          {/* Title - Centered with edit functionality */}
+
           {setName && (
             <div className="flex justify-center items-center mb-2">
               {isEditingName ? (
@@ -383,11 +525,15 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
                     if (e.key === 'Escape') handleCancelEdit()
                   }}
                   autoFocus
-                  className="bg-[#2A2A2A] text-white px-3 py-1 rounded-lg text-base md:text-lg font-semibold text-center focus:outline-none focus:ring-2 focus:ring-primary-500 max-w-md w-full"
+                  className="w-full max-w-md rounded-lg bg-[#2A2A2A] px-3 py-1 text-center text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-primary-500 md:text-lg"
                 />
               ) : (
                 <h3
-                  className={`group/title text-white font-semibold text-lg text-center${onRename ? ' cursor-pointer' : ''}`}
+                  className={cn(
+                    'group/title text-center font-semibold text-white',
+                    isGlass ? 'text-base' : 'text-lg',
+                    onRename && 'cursor-pointer',
+                  )}
                   onClick={onRename ? handleStartEdit : undefined}
                   role={onRename ? 'button' : undefined}
                   tabIndex={onRename ? 0 : undefined}
@@ -395,7 +541,7 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
                   {setName}
                   {onRename && (
                     <Edit2
-                      className="inline-block w-3 h-3 ml-1 -translate-y-1 text-neutral-400 hover:text-white cursor-pointer opacity-100 md:opacity-0 md:group-hover/title:opacity-100 transition-opacity"
+                      className="inline-block w-3 h-3 ml-1 -translate-y-1 text-neutral-400 transition-opacity hover:text-white cursor-pointer opacity-100 md:opacity-0 md:group-hover/title:opacity-100"
                       onClick={handleStartEdit}
                     />
                   )}
@@ -403,8 +549,7 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
               )}
             </div>
           )}
-          
-          {/* Tracks/Date/Duration - Under title */}
+
           {(trackCount || createdDate || totalDuration > 0) && (
             <div className="flex items-center justify-center gap-2 text-xs text-neutral-400">
               {trackCount && <span>{trackCount} {trackCount === 1 ? 'track' : 'tracks'}</span>}
@@ -415,52 +560,57 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
             </div>
           )}
 
-          {/* Download All for offline */}
-          <div className="flex justify-center mt-3">
-            <button
-              onClick={() => allCached ? tracks.forEach(t => removeTrack(t.id)) : downloadAllTracks(tracks)}
-              disabled={anyDownloading}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
-                allCached
-                  ? 'text-[#39FF14] bg-[#39FF14]/10 hover:bg-[#39FF14]/20'
-                  : anyDownloading
-                    ? 'text-neutral-500 bg-neutral-800 cursor-wait'
-                    : 'text-neutral-300 bg-neutral-800 hover:bg-neutral-700'
-              )}
-            >
-              {anyDownloading ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : allCached ? (
-                <CheckCircle className="w-3.5 h-3.5" />
-              ) : (
-                <Download className="w-3.5 h-3.5" />
-              )}
-              {allCached ? 'Available Offline' : anyDownloading ? 'Downloading...' : 'Download for Offline'}
-            </button>
-          </div>
+          <div className="mt-3 flex justify-center">{downloadAllButton}</div>
         </div>
       )}
 
       {currentTrack && !hideCurrentTrack && (
-        <div className="mt-6 mb-3 text-center">
-          <h4 className="text-white font-semibold text-lg">{currentTrack.title}</h4>
-          {currentTrack.artist && <p className="text-neutral-400 text-sm">{currentTrack.artist}</p>}
+        <div
+          className={cn(
+            'mb-3',
+            isApp && 'text-left',
+            !isApp && 'text-center',
+            isApp ? 'mt-0' : isGlass ? 'mt-3' : 'mt-6',
+            isApp && 'mb-2',
+          )}
+        >
+          <h4 className={cn('font-semibold text-white', isApp ? 'text-sm' : isCompact ? 'text-base' : 'text-lg')}>
+            {currentTrack.title}
+          </h4>
+          {currentTrack.artist && (
+            <p className={cn('text-neutral-400', isApp ? 'text-[11px]' : isCompact ? 'text-xs' : 'text-sm')}>
+              {currentTrack.artist}
+            </p>
+          )}
         </div>
       )}
 
       {/* Shuffle and Repeat - Below title */}
-      <div className="flex items-center justify-center gap-2 mb-3">
-        <button onClick={toggleShuffle} className={cn('p-2 rounded-lg transition-colors', isShuffled ? 'text-[#39FF14] bg-[#39FF14]/20' : 'text-neutral-400 hover:text-white')}>
-          <Shuffle className="w-4 h-4" />
+      <div className={cn('mb-3 flex items-center justify-center gap-2', isApp && 'mb-2')}>
+        <button
+          type="button"
+          onClick={toggleShuffle}
+          className={cn(
+            'rounded-lg p-2 transition-colors',
+            isShuffled ? 'bg-[#39FF14]/20 text-[#39FF14]' : isCompact ? 'text-neutral-500 hover:bg-neutral-800/50 hover:text-white' : 'text-neutral-400 hover:text-white',
+          )}
+        >
+          <Shuffle className={cn(isApp ? 'h-3.5 w-3.5' : 'h-4 w-4')} />
         </button>
-        <button onClick={toggleRepeat} className={cn('relative p-2 rounded-lg transition-colors', repeatMode !== 'off' ? 'text-[#39FF14] bg-[#39FF14]/20' : 'text-neutral-400 hover:text-white')}>
-          <Repeat className="w-4 h-4" />
+        <button
+          type="button"
+          onClick={toggleRepeat}
+          className={cn(
+            'relative rounded-lg p-2 transition-colors',
+            repeatMode !== 'off' ? 'bg-[#39FF14]/20 text-[#39FF14]' : isCompact ? 'text-neutral-500 hover:bg-neutral-800/50 hover:text-white' : 'text-neutral-400 hover:text-white',
+          )}
+        >
+          <Repeat className={cn(isApp ? 'h-3.5 w-3.5' : 'h-4 w-4')} />
           {repeatMode === 'one' && <span className="absolute -top-0.5 -right-0.5 text-[9px] font-bold leading-none">1</span>}
         </button>
       </div>
 
-      <div className="space-y-3">
+      <div className={cn(isApp ? 'space-y-2' : 'space-y-3')}>
         <div>
           <input
             type="range"
@@ -468,9 +618,12 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
             max={duration || 0}
             value={currentTime}
             onChange={handleSeek}
-            className="w-full h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer"
+            className={cn(
+              'h-1.5 w-full cursor-pointer appearance-none rounded-full',
+              isCompact ? 'bg-neutral-800/80 accent-primary-500' : 'h-2 rounded-lg bg-neutral-700',
+            )}
           />
-          <div className="flex justify-between text-xs text-neutral-400 mt-1">
+          <div className={cn('mt-1 flex justify-between text-xs text-neutral-400', isApp && 'text-[10px] tabular-nums text-neutral-500')}>
             <span>{formatTime(currentTime)}</span>
             <span>{formatTime(duration)}</span>
           </div>
@@ -478,18 +631,52 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
 
         {/* Playback controls */}
         <div className="flex items-center justify-center gap-2">
-          <button onClick={handlePrevious} className="p-2 text-neutral-400 hover:text-white transition-colors">
-            <SkipBack className="w-5 h-5" />
+          <button
+            type="button"
+            onClick={handlePrevious}
+            className={cn(
+              'p-2 transition-colors',
+              isCompact ? 'text-neutral-500 hover:text-white' : 'text-neutral-400 hover:text-white',
+            )}
+          >
+            <SkipBack className={isCompact ? 'h-4 w-4' : 'h-5 w-5'} />
           </button>
-          <button onClick={togglePlayPause} className="w-12 h-12 rounded-full bg-[#39FF14] hover:bg-[#00CC44] transition-colors flex items-center justify-center">
-            {isPlaying ? <Pause className="w-6 h-6 text-black" fill="black" /> : <Play className="w-6 h-6 text-black" fill="black" />}
+          <button
+            type="button"
+            onClick={togglePlayPause}
+            className={cn(
+              'flex items-center justify-center rounded-full bg-[#39FF14] transition-colors hover:bg-[#00CC44]',
+              isApp ? 'h-11 w-11' : isCompact ? 'h-10 w-10' : 'h-12 w-12',
+            )}
+          >
+            {isPlaying ? (
+              <Pause
+                className={cn('text-black', isApp || isCompact ? 'h-5 w-5' : 'h-6 w-6')}
+                fill="black"
+              />
+            ) : (
+              <Play className={cn('text-black', isApp || isCompact ? 'h-5 w-5' : 'h-6 w-6')} fill="black" />
+            )}
           </button>
-          <button onClick={handleNext} className="p-2 text-neutral-400 hover:text-white transition-colors">
-            <SkipForward className="w-5 h-5" />
+          <button
+            type="button"
+            onClick={handleNext}
+            className={cn(
+              'p-2 transition-colors',
+              isCompact ? 'text-neutral-500 hover:text-white' : 'text-neutral-400 hover:text-white',
+            )}
+          >
+            <SkipForward className={isCompact ? 'h-4 w-4' : 'h-5 w-5'} />
           </button>
         </div>
 
-        <div className="space-y-1 max-h-48 overflow-y-auto mt-4">
+        <div
+          className={cn(
+            'mt-4 max-h-48 space-y-0.5 overflow-y-auto',
+            isApp && 'max-h-40 text-sm',
+            isCompact && 'rounded-xl border border-white/[0.06] bg-black/20 p-1.5',
+          )}
+        >
           {tracks.map((track, index) => {
             const trackCached = cachedTrackIds.has(track.id)
             const trackDownloading = downloadingTrackIds.has(track.id)
@@ -508,13 +695,20 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
                     }, 300)
                   }}
                   className={cn(
-                    'flex-1 text-left px-3 py-2 rounded-lg transition-colors min-w-0',
-                    index === currentTrackIndex ? 'bg-[#39FF14]/20 text-[#39FF14]' : 'text-neutral-300 hover:bg-[#333]'
+                    'min-w-0 flex-1 rounded-lg px-3 text-left transition-colors',
+                    isApp ? 'py-1.5' : 'py-2',
+                    index === currentTrackIndex
+                      ? isCompact
+                        ? 'border border-primary-500/30 bg-primary-500/10 text-primary-500'
+                        : 'bg-[#39FF14]/20 text-[#39FF14]'
+                      : isCompact
+                        ? 'border border-transparent text-neutral-300 hover:border-white/[0.08] hover:bg-neutral-800/50'
+                        : 'text-neutral-300 hover:bg-[#333]',
                   )}
                 >
-                  <div className="flex justify-between items-center">
+                  <div className="flex items-center justify-between">
                     <span className="truncate">{track.title}</span>
-                    <span className="text-xs text-neutral-500 ml-2 flex-shrink-0">{formatTime(trackDurations.get(track.id) || track.duration || 0)}</span>
+                    <span className="ml-2 flex-shrink-0 text-xs text-neutral-500 tabular-nums">{formatTime(trackDurations.get(track.id) || track.duration || 0)}</span>
                   </div>
                 </button>
                 <button

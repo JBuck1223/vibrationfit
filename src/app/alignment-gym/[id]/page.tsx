@@ -42,6 +42,7 @@ export default function AlignmentGymSessionPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null as string | null)
   const [recapOpen, setRecapOpen] = useState(false)
+  const [transcriptOpen, setTranscriptOpen] = useState(false)
 
   const fetchSession = useCallback(async () => {
     try {
@@ -117,6 +118,7 @@ export default function AlignmentGymSessionPage() {
   const canJoin = isSessionJoinable(session) || isLive
   const skip = session.recording_playback_start_seconds ?? 0
   const hasSummaryContent = Boolean(session.session_summary?.trim())
+  const hasTranscript = Boolean(session.transcript_text?.trim())
 
   return (
     <Container size="xl">
@@ -264,6 +266,42 @@ export default function AlignmentGymSessionPage() {
           </div>
         )}
 
+        {hasTranscript && (
+          <div className="rounded-2xl border-2 border-[#333] bg-[#1F1F1F] overflow-hidden transition-all duration-300 hover:border-[#444]">
+            <button
+              type="button"
+              onClick={() => setTranscriptOpen(o => !o)}
+              aria-expanded={transcriptOpen}
+              className="w-full flex items-center justify-between gap-4 py-6 md:p-8 px-6 text-left group"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-1 h-8 rounded-full bg-[#39FF14] shrink-0" />
+                <h2 className="text-lg md:text-xl font-bold text-white">
+                  Full transcript
+                </h2>
+              </div>
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 ${transcriptOpen ? 'bg-[#39FF14]/20' : 'bg-neutral-700/50 group-hover:bg-neutral-700'}`}
+              >
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform duration-300 ${transcriptOpen ? 'rotate-180 text-[#39FF14]' : 'text-neutral-400'}`}
+                />
+              </div>
+            </button>
+            <div
+              className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${transcriptOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
+            >
+              <div className="overflow-hidden min-h-0">
+                <div className="px-6 md:px-8 pb-6 md:pb-8 max-h-[min(70vh,40rem)] overflow-y-auto">
+                  <p className="text-sm md:text-base text-neutral-300 whitespace-pre-wrap leading-relaxed">
+                    {session.transcript_text}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {session.host_notes?.trim() && (
           <Card className="p-6 border-neutral-700">
             <h2 className="text-base font-semibold text-white mb-3">Coach notes</h2>
@@ -273,13 +311,17 @@ export default function AlignmentGymSessionPage() {
           </Card>
         )}
 
-        {!hasSummaryContent && !session.host_notes?.trim() && hasReplay && (
-          <Card className="p-6 border-neutral-700 bg-neutral-900/30">
-            <p className="text-sm text-neutral-500">
-              Session recap and highlights can be added to this session and will show here for quick review.
-            </p>
-          </Card>
-        )}
+        {!hasSummaryContent &&
+          !session.host_notes?.trim() &&
+          !hasTranscript &&
+          hasReplay && (
+            <Card className="p-6 border-neutral-700 bg-neutral-900/30">
+              <p className="text-sm text-neutral-500">
+                Session recap and highlights can be added to this session and will show here for quick
+                review.
+              </p>
+            </Card>
+          )}
 
         {/* Personal Notes (private) */}
         {userId && (

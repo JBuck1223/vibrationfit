@@ -560,7 +560,7 @@ function CommentItem({
               </div>
             </div>
           ) : (
-            <p className="text-sm text-neutral-200 whitespace-pre-wrap">
+            <p className="text-sm text-neutral-200 whitespace-pre-wrap min-w-0 max-w-full break-words [overflow-wrap:anywhere]">
               {renderContentWithMentions(comment.content, allMentionedUsers)}
               {comment.edited_at && (
                 <span className="text-xs text-neutral-500 ml-2">(edited)</span>

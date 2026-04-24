@@ -1,11 +1,11 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Shuffle, Repeat, Edit2, Download, CheckCircle, Loader2, Play, Pause } from 'lucide-react'
-import { cn } from '@/lib/design-system/components/shared-utils'
+import { Shuffle, Repeat, Edit2, Download, CheckCircle, Loader2 } from 'lucide-react'
+import { cn } from '../../shared-utils'
 import { useAudioOffline } from '@/hooks/useAudioOffline'
 import { useGlobalAudioStore } from '@/lib/stores/global-audio-store'
-import type { AudioTrack } from '@/lib/design-system/components/media/types'
+import type { AudioTrack } from '../types'
 
 interface InlineTrackListProps {
   tracks: AudioTrack[]
@@ -128,9 +128,9 @@ export function InlineTrackList({
   }
 
   return (
-    <div className={cn('bg-[#1F1F1F] border-2 border-[#333] rounded-2xl p-4 md:p-6 overflow-hidden', className)}>
+    <div className={cn('bg-neutral-800 border-2 border-neutral-700 rounded-2xl p-4 md:p-6 overflow-hidden', className)}>
       {(setIcon || setName) && (
-        <div className="-mx-4 md:-mx-6 -mt-4 md:-mt-6 mb-4 pb-4 px-4 md:px-6 pt-4 md:pt-6 bg-gradient-to-b from-[#2A2A2A] to-[#1F1F1F] rounded-t-2xl border-b border-[#333]">
+        <div className="-mx-4 md:-mx-6 -mt-4 md:-mt-6 mb-4 pb-4 px-4 md:px-6 pt-4 md:pt-6 bg-gradient-to-b from-neutral-700/80 to-neutral-800 rounded-t-2xl border-b border-neutral-700">
           {setIcon && (
             <div className="flex justify-center mb-3">
               {setIcon}
@@ -150,7 +150,7 @@ export function InlineTrackList({
                     if (e.key === 'Escape') handleCancelEdit()
                   }}
                   autoFocus
-                  className="bg-[#2A2A2A] text-white px-3 py-1 rounded-lg text-base md:text-lg font-semibold text-center focus:outline-none focus:ring-2 focus:ring-primary-500 max-w-md w-full"
+                  className="bg-neutral-700 text-white px-3 py-1 rounded-lg text-base md:text-lg font-semibold text-center focus:outline-none focus:ring-2 focus:ring-primary-500 max-w-md w-full"
                 />
               ) : (
                 <h3
@@ -188,7 +188,7 @@ export function InlineTrackList({
               className={cn(
                 'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
                 allCached
-                  ? 'text-[#39FF14] bg-[#39FF14]/10 hover:bg-[#39FF14]/20'
+                  ? 'text-primary-500 bg-primary-500/10 hover:bg-primary-500/20'
                   : anyDownloading
                     ? 'text-neutral-500 bg-neutral-800 cursor-wait'
                     : 'text-neutral-300 bg-neutral-800 hover:bg-neutral-700'
@@ -217,20 +217,20 @@ export function InlineTrackList({
       <div className="flex items-center justify-center gap-2 mb-3 mt-4">
         <button
           onClick={() => { if (isThisSetActive) toggleShuffle(); }}
-          className={cn('p-2 rounded-lg transition-colors', isShuffled && isThisSetActive ? 'text-[#39FF14] bg-[#39FF14]/20' : 'text-neutral-400 hover:text-white')}
+          className={cn('p-2 rounded-lg transition-colors', isShuffled && isThisSetActive ? 'text-primary-500 bg-primary-500/20' : 'text-neutral-400 hover:text-white')}
         >
           <Shuffle className="w-4 h-4" />
         </button>
         <button
           onClick={handleToggleRepeat}
-          className={cn('relative p-2 rounded-lg transition-colors', repeatMode !== 'off' && isThisSetActive ? 'text-[#39FF14] bg-[#39FF14]/20' : 'text-neutral-400 hover:text-white')}
+          className={cn('relative p-2 rounded-lg transition-colors', repeatMode !== 'off' && isThisSetActive ? 'text-primary-500 bg-primary-500/20' : 'text-neutral-400 hover:text-white')}
         >
           <Repeat className="w-4 h-4" />
           {repeatMode === 'one' && isThisSetActive && <span className="absolute -top-0.5 -right-0.5 text-[9px] font-bold leading-none">1</span>}
         </button>
       </div>
 
-      <div className="space-y-1 mt-2">
+      <div className="space-y-1 mt-2 max-h-[45vh] overflow-y-auto scrollbar-thin scrollbar-thumb-neutral-700 scrollbar-track-transparent">
         {tracks.map((track, index) => {
           const isActive = index === activeIndex
           const trackCached = cachedTrackIds.has(track.id)
@@ -241,22 +241,11 @@ export function InlineTrackList({
                 onClick={() => handleTrackClick(index)}
                 className={cn(
                   'flex-1 text-left px-3 py-2.5 rounded-lg transition-colors min-w-0',
-                  isActive ? 'bg-[#39FF14]/20 text-[#39FF14]' : 'text-neutral-300 hover:bg-[#333]'
+                  isActive ? 'bg-primary-500/20 text-primary-500' : 'text-neutral-300 hover:bg-neutral-800'
                 )}
               >
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
-                    {isActive && isActivePlaying ? (
-                      <div className="flex items-center gap-0.5 flex-shrink-0 w-4">
-                        <span className="w-0.5 h-3 bg-[#39FF14] rounded-full animate-pulse" />
-                        <span className="w-0.5 h-4 bg-[#39FF14] rounded-full animate-pulse [animation-delay:150ms]" />
-                        <span className="w-0.5 h-2.5 bg-[#39FF14] rounded-full animate-pulse [animation-delay:300ms]" />
-                      </div>
-                    ) : isActive ? (
-                      <Pause className="w-4 h-4 flex-shrink-0 text-[#39FF14]" />
-                    ) : (
-                      <Play className="w-4 h-4 flex-shrink-0 opacity-40" />
-                    )}
                     <span className="truncate">{track.title}</span>
                   </div>
                   <span className="text-xs text-neutral-500 ml-2 flex-shrink-0">
@@ -273,7 +262,7 @@ export function InlineTrackList({
                 title={trackCached ? 'Remove offline copy' : trackDownloading ? 'Downloading...' : 'Download for offline'}
                 className={cn(
                   'p-1.5 rounded-lg transition-colors flex-shrink-0',
-                  trackCached ? 'text-[#39FF14]/70 hover:text-[#39FF14]' : 'text-neutral-500 hover:text-neutral-300',
+                  trackCached ? 'text-primary-500/70 hover:text-primary-500' : 'text-neutral-500 hover:text-neutral-300',
                   trackDownloading && 'cursor-wait'
                 )}
               >
