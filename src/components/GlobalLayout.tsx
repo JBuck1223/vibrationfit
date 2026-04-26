@@ -10,7 +10,7 @@ import { SidebarLayout, UserSidebar } from '@/components/Sidebar'
 import { IntensiveSidebar } from '@/components/IntensiveSidebar'
 import { IntensiveLockedOverlay } from '@/components/IntensiveLockedOverlay'
 import { cn } from '@/lib/utils'
-import { getPageType } from '@/lib/navigation'
+import { getPageType, isStudioRoute } from '@/lib/navigation'
 import { getActiveIntensiveClient, IntensiveData } from '@/lib/intensive/utils-client'
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
 import { createClient } from '@/lib/supabase/client'
@@ -188,8 +188,8 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
   
   const pageType = getPageType(pathname)
 
-  const isStudioRoute = !!pathname?.startsWith('/audio') || !!pathname?.startsWith('/life-vision') || !!pathname?.startsWith('/journal') || !!pathname?.startsWith('/profile')
-  const audioPageLayoutClass = isStudioRoute ? 'max-md:!pt-0 max-md:!px-0' : undefined
+  const studioRoute = isStudioRoute(pathname)
+  const audioPageLayoutClass = studioRoute ? 'max-md:!pt-0 max-md:!px-0' : undefined
   
   // Authenticated users on public pages (except /auth/*) see the sidebar layout
   const effectivePageType = (pageType === 'PUBLIC' && isAuthenticated && !pathname?.startsWith('/auth'))

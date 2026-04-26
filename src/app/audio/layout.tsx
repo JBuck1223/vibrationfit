@@ -8,12 +8,13 @@ export default function AudioStudioLayout({ children }: { children: React.ReactN
   return (
     <Suspense fallback={null}>
       <AudioStudioProvider>
-        <div className="min-h-screen flex flex-col bg-black">
-          <AudioAreaBar />
-          <main className="flex-1 pt-6 pb-3 md:pt-12 md:pb-3 lg:pt-8 px-4 sm:px-6 lg:px-8">
-            {children}
-          </main>
-        </div>
+        <AudioAreaBar />
+        <main
+          className="flex-1 pt-6 pb-3 md:pt-8 md:pb-3 lg:pt-6 px-4 md:px-0"
+          style={{ '--content-px': '1rem' } as React.CSSProperties}
+        >
+          {children}
+        </main>
       </AudioStudioProvider>
     </Suspense>
   )
