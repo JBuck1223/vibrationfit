@@ -9,14 +9,21 @@ interface ProfileVersion {
   is_draft: boolean
   first_name?: string
   last_name?: string
+  parent_id?: string | null
   created_at: string
+  updated_at?: string
 }
 
 interface ProfileStudioContextValue {
   versions: ProfileVersion[]
   loading: boolean
   activeProfileId: string | null
+  activeProfileVersion: number | null
+  activeProfileDate: string | null
   draftId: string | null
+  draftParentId: string | null
+  draftParentVersion: number | null
+  draftCreatedAt: string | null
   refreshVersions: () => Promise<void>
 }
 
@@ -51,8 +58,18 @@ export function ProfileStudioProvider({ children }: { children: React.ReactNode 
     loadVersions()
   }, [loadVersions])
 
-  const activeProfileId = versions.find(v => v.is_active && !v.is_draft)?.id ?? null
-  const draftId = versions.find(v => v.is_draft)?.id ?? null
+  const activeProfile = versions.find(v => v.is_active && !v.is_draft)
+  const activeProfileId = activeProfile?.id ?? null
+  const activeProfileVersion = activeProfile?.version_number ?? null
+  const activeProfileDate = activeProfile?.updated_at ?? activeProfile?.created_at ?? null
+
+  const draft = versions.find(v => v.is_draft)
+  const draftId = draft?.id ?? null
+  const draftParentId = draft?.parent_id ?? null
+  const draftCreatedAt = draft?.created_at ?? null
+
+  const draftParent = draftParentId ? versions.find(v => v.id === draftParentId) : null
+  const draftParentVersion = draftParent?.version_number ?? null
 
   return (
     <ProfileStudioContext.Provider
@@ -60,7 +77,12 @@ export function ProfileStudioProvider({ children }: { children: React.ReactNode 
         versions,
         loading,
         activeProfileId,
+        activeProfileVersion,
+        activeProfileDate,
         draftId,
+        draftParentId,
+        draftParentVersion,
+        draftCreatedAt,
         refreshVersions: loadVersions,
       }}
     >
