@@ -12,19 +12,23 @@ Regular pages follow PAGE_BUILDING_RULES.md. Studio pages follow these rules.
 
 ### How GlobalLayout Handles Studio Routes
 
-GlobalLayout detects studio routes and strips PageLayout's mobile padding:
+Studio routes are defined in `STUDIO_ROUTE_PREFIXES` inside `src/lib/navigation/page-classifications.ts` — the single source of truth for all page routing. GlobalLayout imports `isStudioRoute()` from there and strips PageLayout's mobile padding:
 
 ```tsx
-const isStudioRoute = pathname?.startsWith('/audio') || pathname?.startsWith('/life-vision') || ...
-const audioPageLayoutClass = isStudioRoute ? 'max-md:!pt-0 max-md:!px-0' : undefined
+import { isStudioRoute } from '@/lib/navigation'
+
+const studioRoute = isStudioRoute(pathname)
+const audioPageLayoutClass = studioRoute ? 'max-md:!pt-0 max-md:!px-0' : undefined
 ```
+
+To add a new studio route, add its prefix to `STUDIO_ROUTE_PREFIXES` in `page-classifications.ts`. Do NOT hardcode pathname checks in GlobalLayout.
 
 This hands layout control to the studio's own `<main>` element on mobile.
 
 ### Studio Layout Structure
 
 ```
-GlobalLayout
+GlobalLayout FaceTime
   PageLayout (padding stripped on mobile for studio routes)
     StudioLayout
       StudioProvider
@@ -64,7 +68,7 @@ export default function YourStudioLayout({ children }: { children: React.ReactNo
 - `<main>` provides `px-4` on mobile (re-applying what PageLayout stripped)
 - `<main>` provides `md:px-0` on desktop (PageLayout handles desktop padding)
 - `<main>` provides `pt-6` for the gap between AreaBar and content
-- `--content-px: 1rem` CSS variable enables the FullBleed component (see below)
+- `--content-px: 1rem` CSS variable is **required** -- without it, FullBleed components will not expand
 
 ### Wrong Patterns
 
@@ -186,26 +190,10 @@ FullBleed removes the parent's horizontal padding on mobile. If you need content
 
 ---
 
-## Adding --content-px to Other Studio Layouts
-
-If you want FullBleed to work in other studio layouts (audio, life-vision, profile, etc.), add the CSS variable to their `<main>` element:
-
-```tsx
-<main
-  className="flex-1 pt-6 pb-3 md:pt-8 md:pb-3 lg:pt-6 px-4 md:px-0"
-  style={{ '--content-px': '1rem' } as React.CSSProperties}
->
-  {children}
-</main>
-```
-
-The value of `--content-px` must match the `px-4` class (1rem = 16px). If you change the padding class, update the variable to match.
-
----
-
 ## Reference Files
 
-- **Studio Layouts**: `src/app/journal/layout.tsx`, `src/app/audio/layout.tsx`, `src/app/life-vision/layout.tsx`, `src/app/profile/layout.tsx`
+- **Studio Route Prefixes**: `src/lib/navigation/page-classifications.ts` (`STUDIO_ROUTE_PREFIXES`)
+- **Studio Layouts**: `src/app/journal/layout.tsx`, `src/app/audio/layout.tsx`, `src/app/life-vision/layout.tsx`, `src/app/profile/layout.tsx`, `src/app/story/layout.tsx`, `src/app/vision-board/layout.tsx`
 - **FullBleed Component**: `src/lib/design-system/components/layout/FullBleed.tsx`
 - **AreaBar Component**: `src/lib/design-system/components/navigation/AreaBar.tsx`
 - **GlobalLayout**: `src/components/GlobalLayout.tsx`

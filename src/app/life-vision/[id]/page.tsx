@@ -22,7 +22,8 @@ import {
   Inline,
   Heading,
   Text,
-  WarningConfirmationDialog
+  WarningConfirmationDialog,
+  FullBleed
 } from '@/lib/design-system/components'
 import { VersionCard } from '@/app/profile/components/VersionCard'
 import { VisionVersionCard } from '../components/VisionVersionCard'
@@ -964,12 +965,13 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
           )}
 
         {/* Category Filter Strip */}
-        <div>
-          <div className="flex items-center justify-between mb-1.5 md:hidden px-1">
-            <span className="text-[10px] uppercase tracking-wide text-neutral-500">Life Areas</span>
-            <span className="text-[10px] text-neutral-600">Scroll to see all &rarr;</span>
-          </div>
-          <div className="flex items-center md:justify-center gap-2 overflow-x-auto pb-1 px-1 scrollbar-hide">
+        <FullBleed>
+          <div>
+            <div className="flex items-center justify-between mb-1.5 md:hidden px-4">
+              <span className="text-[10px] uppercase tracking-wide text-neutral-500">Life Areas</span>
+              <span className="text-[10px] text-neutral-600">Scroll to see all &rarr;</span>
+            </div>
+            <div className="flex items-center md:justify-center gap-2 overflow-x-auto pb-1 px-4 md:px-0 scrollbar-hide">
             <button
               type="button"
               onClick={handleSelectAll}
@@ -1000,8 +1002,9 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                 </button>
               )
             })}
+            </div>
           </div>
-        </div>
+        </FullBleed>
 
 
         {/* Vision Cards */}

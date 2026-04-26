@@ -8,7 +8,9 @@
 // Page Classifications
 export {
   PAGE_CLASSIFICATIONS,
+  STUDIO_ROUTE_PREFIXES,
   getPageType,
+  isStudioRoute,
   requiresAuth,
   requiresAdmin,
   getPagesByType,

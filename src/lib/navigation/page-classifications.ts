@@ -350,6 +350,27 @@ export function getPagesByType(type: PageType): readonly string[] {
 }
 
 /**
+ * Studio route prefixes — routes that use a studio layout (AreaBar + own padding).
+ * GlobalLayout reads this to strip PageLayout's mobile padding on these routes.
+ */
+export const STUDIO_ROUTE_PREFIXES = [
+  '/audio',
+  '/life-vision',
+  '/journal',
+  '/profile',
+  '/story',
+  '/vision-board',
+] as const
+
+/**
+ * Check if a pathname is a studio route (uses studio layout with AreaBar).
+ */
+export function isStudioRoute(pathname: string): boolean {
+  const normalized = pathname.split('?')[0]
+  return STUDIO_ROUTE_PREFIXES.some(prefix => normalized.startsWith(prefix))
+}
+
+/**
  * Get total page count
  */
 export function getTotalPageCount(): number {
