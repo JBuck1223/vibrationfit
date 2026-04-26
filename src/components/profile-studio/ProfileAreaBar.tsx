@@ -1,13 +1,13 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { User, PenLine, Eye, Edit } from 'lucide-react'
+import { User, PenLine, Eye, HelpCircle } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { AreaBar, type AreaBarContextNavItem, type AreaBarVersionSelector } from '@/lib/design-system/components'
 import { useProfileStudio } from './ProfileStudioContext'
 
 const TABS = [
-  { label: 'My Profile', path: '/profile', icon: Eye },
+  { label: 'View', path: '/profile', icon: Eye },
   { label: 'Create', path: '/profile/create', icon: PenLine },
 ]
 
@@ -21,62 +21,72 @@ export function ProfileAreaBar() {
   const isProfileDashboard = pathname === '/profile' || pathname === '/profile/'
   const isCreateArea = CREATE_AREA_ROUTES.some(r => pathname === r || pathname.startsWith(r + '/'))
   const isActive = pathname === '/profile/active' || pathname.startsWith('/profile/active/')
+  const isHowItWorks = pathname === '/profile/new' || pathname === '/profile/new/'
 
   const isProfileDetail = !isProfileDashboard
     && !isCreateArea
     && !isActive
+    && !isHowItWorks
     && /^\/profile\/[^/]+/.test(pathname)
+
+  // Edit/draft/refine sub-routes under a profile ID fall into the create area
+  const isEditSubRoute = /^\/profile\/[^/]+\/(edit|draft|refine|new)/.test(pathname)
+  const isViewOverview = isProfileDashboard || isHowItWorks || (isProfileDetail && !isEditSubRoute)
 
   let versionSelectors: AreaBarVersionSelector[] | undefined
   let contextNav: AreaBarContextNavItem[] | undefined
+  let contextText: string | undefined
 
-  const isOnCreateSubPage = isCreateArea && pathname !== '/profile/create'
+  if (isViewOverview) {
+    const detailProfileId = isProfileDetail ? pathname.split('/')[2] : undefined
 
-  if (isProfileDetail) {
-    const segments = pathname.split('/')
-    const profileId = segments[2] || ''
-    if (/^[a-f0-9-]{36}$/.test(profileId)) {
-      const nonDrafts = versions.filter(v => !v.is_draft)
+    contextNav = [
+      { label: 'My Profile', path: '/profile', icon: User, isActive: isProfileDashboard || isProfileDetail },
+      { label: 'How It Works', path: '/profile/new', icon: HelpCircle, isActive: isHowItWorks },
+    ]
 
-      versionSelectors = [{
-        id: 'profile-version',
-        label: 'Profile',
-        position: 'topRight',
-        options: versions.map(v => {
-          const label = v.is_draft
-            ? 'Draft'
-            : v.version_number
-              ? `Version ${v.version_number}`
-              : `Version ${nonDrafts.length - nonDrafts.indexOf(v)}`
-          return {
+    if (isHowItWorks) {
+      contextText = 'Learn how the Profile process works.'
+    } else {
+      contextText = 'View your profile information.'
+
+      const nonDraftVersions = versions.filter(v => !v.is_draft)
+      const selectedProfileId = detailProfileId || nonDraftVersions.find(v => v.is_active)?.id || nonDraftVersions[0]?.id
+
+      if (nonDraftVersions.length > 0) {
+        versionSelectors = [{
+          id: 'profile-version',
+          label: 'Profile',
+          position: 'contextRow',
+          options: nonDraftVersions.map(v => ({
             id: v.id,
-            label,
+            label: v.version_number
+              ? `Version ${v.version_number}`
+              : `Version ${nonDraftVersions.length - nonDraftVersions.indexOf(v)}`,
             sublabel: new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-            badge: v.is_active ? 'Active' : v.is_draft ? 'Draft' : undefined,
+            badge: v.is_active ? 'Active' : undefined,
             isActive: v.is_active,
-          }
-        }),
-        selectedId: profileId,
-        onSelect: (id: string) => router.push(`/profile/${id}`),
-      }]
-
-      const editPath = `/profile/${profileId}/edit`
-      contextNav = [{
-        label: 'Edit Profile',
-        path: editPath,
-        icon: Edit,
-        isActive: pathname === editPath || pathname.startsWith(editPath + '/'),
-      }]
+          })),
+          selectedId: selectedProfileId || nonDraftVersions[0].id,
+          onSelect: (id: string) => router.push(`/profile/${id}`),
+        }]
+      }
     }
+  } else if (isCreateArea || isEditSubRoute) {
+    // Create area: no additional context nav on the landing
+    // Sub-routes (edit/draft/refine) will use the Create tab highlight
   }
+
+  const isOnCreateSubPage = (isCreateArea && pathname !== '/profile/create') || isEditSubRoute
 
   return (
     <AreaBar
       area={{ name: 'My Profile', icon: User }}
       tabs={TABS}
       contextNav={contextNav}
+      contextText={contextText}
       versionSelectors={versionSelectors}
-      keepTabActive={!isProfileDetail && !isOnCreateSubPage}
+      keepTabActive={!isOnCreateSubPage}
       activeParentPath={isOnCreateSubPage ? '/profile/create' : undefined}
       variant="default"
       appLikePrimaryTabs
