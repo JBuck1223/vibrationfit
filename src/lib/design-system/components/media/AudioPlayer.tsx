@@ -54,10 +54,11 @@ interface AudioPlayerProps {
   className?: string
   onTrackEnd?: () => void
   showInfo?: boolean
+  compact?: boolean
 }
 
 export const AudioPlayer = React.forwardRef<HTMLAudioElement, AudioPlayerProps>(
-  ({ track, autoPlay = false, className = '', onTrackEnd, showInfo = true }, ref) => {
+  ({ track, autoPlay = false, className = '', onTrackEnd, showInfo = true, compact = false }, ref) => {
     const [isPlaying, setIsPlaying] = useState(false)
     const [currentTime, setCurrentTime] = useState(0)
     const [duration, setDuration] = useState(0)
@@ -244,6 +245,67 @@ export const AudioPlayer = React.forwardRef<HTMLAudioElement, AudioPlayerProps>(
       const minutes = Math.floor(time / 60)
       const seconds = Math.floor(time % 60)
       return `${minutes}:${seconds.toString().padStart(2, '0')}`
+    }
+
+    const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0
+
+    if (compact) {
+      // Play button and download are 32px tall. Bar is 4px.
+      // To center the bar with buttons: (32 - 4) / 2 = 14px top margin on the bar column.
+      return (
+        <div className={cn('', className)}>
+          <audio ref={audioRef} src={resolvedUrl} autoPlay={autoPlay} preload="metadata" />
+          <div className="flex items-start gap-2.5">
+            <button
+              onClick={togglePlayPause}
+              className="w-8 h-8 rounded-full bg-[#39FF14] hover:bg-[#00CC44] transition-colors flex items-center justify-center shrink-0"
+            >
+              {isPlaying ? (
+                <Pause className="w-4 h-4 text-black" fill="black" />
+              ) : (
+                <Play className="w-4 h-4 text-black ml-0.5" fill="black" />
+              )}
+            </button>
+            <div className="flex-1 min-w-0" style={{ paddingTop: 14 }}>
+              <div
+                className="h-1 bg-neutral-700 rounded-full cursor-pointer relative"
+                onClick={(e) => {
+                  if (!duration) return
+                  const rect = e.currentTarget.getBoundingClientRect()
+                  const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+                  const time = pct * duration
+                  const audio = audioRef.current
+                  if (audio) { audio.currentTime = time; setCurrentTime(time); saveProgress(track.id, time) }
+                }}
+              >
+                <div className="absolute inset-y-0 left-0 bg-[#39FF14] rounded-full" style={{ width: `${progressPct}%` }} />
+              </div>
+              <div className="flex justify-between mt-1">
+                <span className="text-[10px] text-neutral-500 tabular-nums leading-none">{formatTime(currentTime)}</span>
+                <span className="text-[10px] text-neutral-500 tabular-nums leading-none">{formatTime(duration)}</span>
+              </div>
+            </div>
+            <button
+              onClick={() => isCached ? removeTrack(track.id) : downloadTrack(track)}
+              disabled={isDownloading}
+              title={isCached ? 'Remove offline copy' : isDownloading ? 'Downloading...' : 'Download for offline'}
+              className={cn(
+                'w-8 h-8 flex items-center justify-center rounded-lg shrink-0 transition-colors',
+                isCached ? 'text-[#39FF14] hover:text-[#39FF14]/70' : 'text-neutral-500 hover:text-white',
+                isDownloading && 'cursor-wait'
+              )}
+            >
+              {isDownloading ? (
+                <Loader2 className="w-[18px] h-[18px] animate-spin" />
+              ) : isCached ? (
+                <CheckCircle className="w-[18px] h-[18px]" />
+              ) : (
+                <Download className="w-[18px] h-[18px]" />
+              )}
+            </button>
+          </div>
+        </div>
+      )
     }
 
     return (

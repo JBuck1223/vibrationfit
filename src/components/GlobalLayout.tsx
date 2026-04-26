@@ -188,9 +188,8 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
   
   const pageType = getPageType(pathname)
 
-  /** PageLayout adds pt-6 + horizontal padding; /audio area bar must paint edge-to-edge on small screens. */
-  const isAudioRoute = !!pathname?.startsWith('/audio')
-  const audioPageLayoutClass = isAudioRoute ? 'max-md:!pt-0 max-md:!px-0' : undefined
+  const isStudioRoute = !!pathname?.startsWith('/audio') || !!pathname?.startsWith('/life-vision') || !!pathname?.startsWith('/journal') || !!pathname?.startsWith('/profile')
+  const audioPageLayoutClass = isStudioRoute ? 'max-md:!pt-0 max-md:!px-0' : undefined
   
   // Authenticated users on public pages (except /auth/*) see the sidebar layout
   const effectivePageType = (pageType === 'PUBLIC' && isAuthenticated && !pathname?.startsWith('/auth'))
@@ -200,7 +199,8 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
   // Render based on effective page type
   if (effectivePageType === 'USER' || effectivePageType === 'ADMIN') {
     // Print pages: No sidebar, no padding (full-screen interface)
-    if (pathname?.includes('/print') && !pathname?.endsWith('/html')) {
+    // Exception: life-vision print pages use their own studio layout with AreaBar
+    if (pathname?.includes('/print') && !pathname?.endsWith('/html') && !pathname?.startsWith('/life-vision')) {
       return <>{children}</>
     }
     

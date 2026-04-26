@@ -54,33 +54,59 @@ export function VisionCategoryCard({
     <Card className="transition-all duration-300 hover:shadow-lg">
       <div className="px-1 py-2 md:px-0 md:py-0">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-4">
-          <div 
-            className={`w-10 h-10 rounded-xl flex items-center justify-center ${!isRefined ? (isCompleted ? 'bg-primary-500' : 'bg-neutral-700') : ''}`}
-            style={isRefined ? { backgroundColor: `${NEON_YELLOW}33`, border: `2px solid ${NEON_YELLOW}` } : undefined}
-          >
-            <Icon 
-              icon={category.icon} 
-              size="sm" 
-              color={isRefined ? NEON_YELLOW : "#000000"} 
-            />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-white">{category.label}</h3>
-            <p className="text-sm text-neutral-400">{category.description}</p>
-          </div>
-          {!isEditing && editable && (
-            <Button
-              onClick={() => onEditCategory?.(category.key)}
-              variant="ghost"
-              size="sm"
-              className="flex items-center gap-2"
+        <div className={`flex flex-col md:flex-row md:items-center gap-2 md:gap-3 ${editable ? 'mb-4' : 'mb-2'}`}>
+          <div className={`flex items-center gap-3 ${editable ? 'flex-1 min-w-0' : 'w-full md:flex-1 md:min-w-0 justify-center md:justify-start'}`}>
+            <div 
+              className={`${editable ? 'w-10 h-10 rounded-xl' : 'w-7 h-7 md:w-8 md:h-8 rounded-lg'} flex items-center justify-center shrink-0 ${!isRefined ? (isCompleted ? 'bg-primary-500' : 'bg-neutral-700') : ''}`}
+              style={isRefined ? { backgroundColor: `${NEON_YELLOW}33`, border: `2px solid ${NEON_YELLOW}` } : undefined}
             >
-              <Edit3 className="w-4 h-4" />
-              <span className="hidden md:inline">Edit</span>
-            </Button>
+              <Icon 
+                icon={category.icon} 
+                size={editable ? 'sm' : 'xs'} 
+                color={isRefined ? NEON_YELLOW : "#000000"} 
+              />
+            </div>
+            <div className={editable ? 'flex-1 min-w-0' : ''}>
+              {editable ? (
+                <>
+                  <h3 className="text-lg font-semibold text-white">{category.label}</h3>
+                  <p className="text-sm text-neutral-400">{category.description}</p>
+                </>
+              ) : (
+                <h3 className="text-sm font-medium text-neutral-400 uppercase tracking-[0.25em]">{category.label}</h3>
+              )}
+            </div>
+            {!isEditing && editable && (
+              <Button
+                onClick={() => onEditCategory?.(category.key)}
+                variant="ghost"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Edit3 className="w-4 h-4" />
+                <span className="hidden md:inline">Edit</span>
+              </Button>
+            )}
+          </div>
+          {!isEditing && audioTrack && audioTrack.url && audioTrack.id && (
+            <div className="w-full md:w-72 shrink-0">
+              <AudioPlayer
+                track={{
+                  id: audioTrack.id,
+                  title: audioTrack.title || category.label,
+                  artist: '',
+                  duration: 0,
+                  url: audioTrack.url,
+                  thumbnail: ''
+                }}
+                compact
+                showInfo={false}
+              />
+            </div>
           )}
         </div>
+
+        {!editable && !isEditing && <div className="border-b border-neutral-800 mb-2" />}
 
         {/* Content Display */}
         {isEditing ? (
@@ -125,40 +151,24 @@ export function VisionCategoryCard({
           </div>
         ) : (
           <>
-            {/* Audio Player */}
-            {audioTrack && audioTrack.url && audioTrack.id && (
-              <div className="mb-4">
-                {(audioTrack.setName || audioTrack.voiceName) && (
-                  <div className="flex items-center gap-2 mb-1.5 px-1">
-                    <span className="text-xs text-neutral-500 truncate">
-                      {audioTrack.setName}{audioTrack.voiceName ? ` · ${audioTrack.voiceName}` : ''}
-                    </span>
-                  </div>
-                )}
-                <AudioPlayer
-                  track={{
-                    id: audioTrack.id,
-                    title: audioTrack.title || category.label,
-                    artist: '',
-                    duration: 180,
-                    url: audioTrack.url,
-                    thumbnail: ''
-                  }}
-                  showInfo={false}
-                />
-              </div>
-            )}
-
-            <div className="mb-4">
+            <div className={editable ? 'mb-4' : 'mb-2'}>
               {content?.trim() ? (
-                <div 
-                  className={`bg-neutral-800/50 border rounded-lg px-1 py-3 md:p-4 ${!isRefined ? 'border-neutral-700' : ''}`}
-                  style={isRefined ? { border: `2px solid ${NEON_YELLOW}80` } : undefined}
-                >
-                  <p className="text-neutral-300 leading-relaxed whitespace-pre-wrap text-sm">
-                    {content}
-                  </p>
-                </div>
+                editable ? (
+                  <div 
+                    className={`bg-neutral-800/50 border rounded-lg px-1 py-3 md:p-4 ${!isRefined ? 'border-neutral-700' : ''}`}
+                    style={isRefined ? { border: `2px solid ${NEON_YELLOW}80` } : undefined}
+                  >
+                    <p className="text-neutral-300 leading-relaxed whitespace-pre-wrap text-sm">
+                      {content}
+                    </p>
+                  </div>
+                ) : (
+                  <div className={`pt-2 ${isRefined ? 'border-l-2 pl-3' : ''}`} style={isRefined ? { borderColor: `${NEON_YELLOW}80` } : undefined}>
+                    <p className="text-neutral-300 leading-relaxed whitespace-pre-wrap text-sm">
+                      {content}
+                    </p>
+                  </div>
+                )
               ) : (
                 <div className="bg-neutral-800/30 border border-neutral-700 border-dashed rounded-lg px-2 py-4 md:p-8 text-center">
                   <p className="text-neutral-500 mb-3">No content for this section yet</p>

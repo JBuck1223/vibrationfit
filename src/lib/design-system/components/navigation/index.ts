@@ -9,6 +9,9 @@ export type {
   AreaBarPill,
   AreaBarBreadcrumb,
   ContextOption,
+  AreaBarContextNavItem,
+  AreaBarVersionSelector,
+  VersionOption,
 } from './AreaBar'
 export {
   AreaBarSecondaryTabStrip,
