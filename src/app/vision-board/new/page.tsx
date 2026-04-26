@@ -2,16 +2,15 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Card, Input, Button, Badge, CategoryCard, PageHero, Container, Stack, Modal, IntensiveStepCompleteModal } from '@/lib/design-system'
+import { Card, Input, Button, Container, Stack, Modal, FullBleed, IntensiveStepCompleteModal } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
-import { Sparkles, Upload, CheckCircle, XCircle, Filter, ImageIcon } from 'lucide-react'
+import { Sparkles, Upload, CheckCircle, XCircle, ImageIcon } from 'lucide-react'
 import { VISION_CATEGORIES, LIFE_CATEGORY_KEYS } from '@/lib/design-system/vision-categories'
-import { colors } from '@/lib/design-system/tokens'
 
 const STATUS_OPTIONS = [
   { value: 'active', label: 'Active' },
@@ -36,6 +35,8 @@ export default function NewVisionBoardItemPage() {
   const [actualizedFile, setActualizedFile] = useState<File | null>(null)
   const [actualizedAiGeneratedImageUrl, setActualizedAiGeneratedImageUrl] = useState<string | null>(null)
   const [actualizedImageSource, setActualizedImageSource] = useState<'upload' | 'ai' | null>(null)
+  const [visionUploadRevealed, setVisionUploadRevealed] = useState(false)
+  const [evidenceUploadRevealed, setEvidenceUploadRevealed] = useState(false)
   const [audioRecordings, setAudioRecordings] = useState<any[]>([])
   const [showImageReminderModal, setShowImageReminderModal] = useState(false)
   const [imageReminderMessage, setImageReminderMessage] = useState('')
@@ -234,53 +235,33 @@ export default function NewVisionBoardItemPage() {
 
   return (
     <Container size="xl">
-      <Stack gap="lg">
-        <PageHero
-          title="Add to Vision Board"
-          subtitle="Create a visual representation of your vision."
-        />
-
-        <Card>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Name */}
-              <Input
-                label="Creation Name"
-                type="text"
-                placeholder="What do you want to create?"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-              />
-
-              {/* Description */}
-              <RecordingTextarea
-                label="Description"
-                value={formData.description}
-                onChange={(value) => setFormData({ ...formData, description: value })}
-                placeholder="Describe this creation. Click the microphone icon to record audio."
-                rows={4}
-                storageFolder="visionBoard"
-                recordingPurpose="quick"
-                category="vision-board"
-                onAudioSaved={(audioUrl, transcript) => {
-                  setAudioRecordings(prev => [...prev, {
-                    url: audioUrl,
-                    transcript,
-                    type: 'audio' as const,
-                    category: 'vision-board',
-                    created_at: new Date().toISOString(),
-                  }])
-                }}
-              />
+      <form onSubmit={handleSubmit}>
+        <Stack gap="md">
+          <Card variant="outlined" className="!p-0 md:!p-6 lg:!p-8 !bg-transparent !border-transparent !rounded-none md:!rounded-2xl md:!bg-[#101010] md:!border-[#1F1F1F]">
+            <Stack gap="lg">
+              {/* Creation Name */}
+              <section className="space-y-3 text-center">
+                <div className="flex items-center gap-3">
+                  <div className="h-px flex-1 bg-[#2A2A2A]" />
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">Creation name</p>
+                  <div className="h-px flex-1 bg-[#2A2A2A]" />
+                </div>
+                <Input
+                  type="text"
+                  placeholder="What do you choose to create?"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="!bg-[#1A1A1A] !border-[#282828] !text-base !font-medium !text-center"
+                  required
+                />
+              </section>
 
               {/* Image Source Toggle */}
-              <div>
-                <label className="block text-sm font-medium text-neutral-200 mb-3">
-                  Vision Image (Optional)
-                </label>
+              <section className="space-y-3">
+                <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">Vision image</p>
                 
                 {/* Toggle Buttons */}
-                <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                <div className="flex flex-row gap-2 items-center justify-center">
                   <Button
                     type="button"
                     variant={imageSource === 'upload' ? 'primary' : 'outline'}
@@ -288,42 +269,31 @@ export default function NewVisionBoardItemPage() {
                     onClick={() => {
                       setImageSource('upload')
                       setAiGeneratedImageUrl(null)
+                      setVisionUploadRevealed(true)
                     }}
-                    className="w-full sm:flex-1"
+                    className="flex-1 max-w-[180px]"
                   >
                     <Upload className="w-4 h-4 mr-2" />
-                    Upload Image
+                    Upload
                   </Button>
-                  <button
+                  <Button
                     type="button"
+                    variant={imageSource === 'ai' ? 'accent' : 'outline-purple'}
+                    size="sm"
                     onClick={() => {
                       setImageSource('ai')
                       setFile(null)
+                      setVisionUploadRevealed(false)
                     }}
-                    style={
-                      imageSource === 'ai'
-                        ? {
-                            backgroundColor: colors.semantic.premium,
-                            borderColor: colors.semantic.premium,
-                          }
-                        : {
-                            borderColor: colors.semantic.premium,
-                            color: colors.semantic.premium,
-                          }
-                    }
-                    className={`w-full sm:flex-1 inline-flex items-center justify-center rounded-full transition-all duration-300 py-3.5 px-7 text-sm font-medium border-2 ${
-                      imageSource === 'ai'
-                        ? 'text-white hover:opacity-90'
-                        : 'bg-transparent hover:bg-[#BF00FF]/10'
-                    }`}
+                    className="flex-1 max-w-[180px]"
                   >
                     <Sparkles className="w-4 h-4 mr-2" />
-                    Generate with VIVA
-                  </button>
+                    VIVA Generate
+                  </Button>
                 </div>
 
                 {/* Enhanced FileUpload Component */}
-                {imageSource === 'upload' && (
+                {imageSource === 'upload' && (visionUploadRevealed || file) && (
                   <FileUpload
                     dragDrop
                     accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
@@ -383,17 +353,117 @@ export default function NewVisionBoardItemPage() {
                     )}
                   </>
                 )}
-              </div>
+              </section>
+
+              {/* Status */}
+              <section className="space-y-2">
+                <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">Status</p>
+                {/* Status Buttons - Single Line, Equal Width */}
+                <div className="flex gap-1">
+                  {STATUS_OPTIONS.map((status) => (
+                    <button
+                      key={status.value}
+                      type="button"
+                      onClick={() => setFormData({ 
+                        ...formData, 
+                        status: status.value,
+                        actualization_story: status.value === 'actualized' ? formData.actualization_story : ''
+                      })}
+                      className={`px-2 py-2 rounded-full text-xs font-medium transition-all flex items-center justify-center gap-2 flex-1 ${
+                        formData.status === status.value
+                          ? status.value === 'active' 
+                            ? 'bg-green-600 text-white shadow-lg'
+                            : status.value === 'actualized'
+                            ? 'bg-purple-500 text-white shadow-lg'
+                            : 'bg-gray-600 text-white shadow-lg'
+                          : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+                      }`}
+                    >
+                      {status.value === 'active' && <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>}
+                      {status.value === 'actualized' && <CheckCircle className="w-3 h-3 text-white" />}
+                      {status.value === 'inactive' && <XCircle className="w-3 h-3 text-white" />}
+                      {status.label}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              {/* Life Categories */}
+              <FullBleed>
+                <section className="space-y-2">
+                  <p className="hidden md:block text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">
+                    Tag life categories
+                  </p>
+                  <div className="flex items-center justify-between gap-3 mb-1.5 md:hidden px-4">
+                    <p className="text-[10px] uppercase tracking-wide text-neutral-500">Tag life categories</p>
+                    <span className="text-[10px] text-neutral-600">Scroll to see all &rarr;</span>
+                  </div>
+                  {isUserInIntensive && categoriesNeeded.length > 0 && (
+                    <p className="text-xs text-neutral-500 text-center px-4 md:px-0">
+                      Intensive mode: add at least one image for each life area. Still need: <strong className="text-primary-500">{categoriesNeeded.join(', ')}</strong>
+                    </p>
+                  )}
+
+                  <div className="flex items-center gap-2 pb-1 px-4 md:px-0 max-md:flex-nowrap max-md:overflow-x-auto max-md:justify-start max-md:scrollbar-hide md:flex-wrap md:justify-center">
+                    {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => {
+                      const isNeeded = isUserInIntensive && categoriesNeeded.includes(category.key)
+                      const isSelected = formData.categories.includes(category.key)
+                      const CatIcon = category.icon
+                      return (
+                        <button
+                          key={category.key}
+                          type="button"
+                          onClick={() => handleCategoryToggle(category.key)}
+                          className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                            isSelected
+                              ? 'bg-primary-500/20 border-primary-500/50 text-primary-400'
+                              : isNeeded
+                                ? 'bg-primary-500/10 border-primary-500/50 text-primary-300'
+                                : 'bg-neutral-900 border-neutral-800 text-neutral-500 hover:border-neutral-600 hover:text-neutral-300'
+                          }`}
+                        >
+                          <CatIcon className="w-3.5 h-3.5" />
+                          {category.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </section>
+              </FullBleed>
+
+              {/* Description */}
+              <section className="space-y-3">
+                <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">Description</p>
+                <div className="[&_textarea]:!bg-[#1A1A1A] [&_textarea]:!border-[#282828]">
+                  <RecordingTextarea
+                    label=""
+                    value={formData.description}
+                    onChange={(value) => setFormData({ ...formData, description: value })}
+                    placeholder="Describe this creation. Tap the mic to record."
+                    rows={4}
+                    storageFolder="visionBoard"
+                    recordingPurpose="quick"
+                    category="vision-board"
+                    onAudioSaved={(audioUrl, transcript) => {
+                      setAudioRecordings(prev => [...prev, {
+                        url: audioUrl,
+                        transcript,
+                        type: 'audio' as const,
+                        category: 'vision-board',
+                        created_at: new Date().toISOString(),
+                      }])
+                    }}
+                  />
+                </div>
+              </section>
 
               {/* Actualized Image - Only show when status is actualized */}
               {formData.status === 'actualized' && (
-                <div>
-                  <label className="block text-sm font-medium text-neutral-200 mb-3">
-                    Evidence of Actualization (Optional)
-                  </label>
+                <section className="space-y-3">
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">Evidence image</p>
                   
                   {/* Toggle Buttons */}
-                  <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                  <div className="flex flex-row gap-2 items-center justify-center">
                     <Button
                       type="button"
                       variant={actualizedImageSource === 'upload' ? 'primary' : 'outline'}
@@ -401,42 +471,31 @@ export default function NewVisionBoardItemPage() {
                       onClick={() => {
                         setActualizedImageSource('upload')
                         setActualizedAiGeneratedImageUrl(null)
+                        setEvidenceUploadRevealed(true)
                       }}
-                      className="w-full sm:flex-1"
+                      className="flex-1 max-w-[180px]"
                     >
                       <Upload className="w-4 h-4 mr-2" />
-                      Upload Evidence
+                      Upload
                     </Button>
-                    <button
+                    <Button
                       type="button"
+                      variant={actualizedImageSource === 'ai' ? 'accent' : 'outline-purple'}
+                      size="sm"
                       onClick={() => {
                         setActualizedImageSource('ai')
                         setActualizedFile(null)
+                        setEvidenceUploadRevealed(false)
                       }}
-                      style={
-                        actualizedImageSource === 'ai'
-                          ? {
-                              backgroundColor: colors.semantic.premium,
-                              borderColor: colors.semantic.premium,
-                            }
-                          : {
-                              borderColor: colors.semantic.premium,
-                              color: colors.semantic.premium,
-                            }
-                      }
-                      className={`w-full sm:flex-1 inline-flex items-center justify-center rounded-full transition-all duration-300 py-3.5 px-7 text-sm font-medium border-2 ${
-                        actualizedImageSource === 'ai'
-                          ? 'text-white hover:opacity-90'
-                          : 'bg-transparent hover:bg-[#BF00FF]/10'
-                      }`}
+                      className="flex-1 max-w-[180px]"
                     >
                       <Sparkles className="w-4 h-4 mr-2" />
-                      Generate with VIVA
-                    </button>
+                      VIVA Generate
+                    </Button>
                   </div>
 
                   {/* Enhanced FileUpload Component for Actualized Image */}
-                  {actualizedImageSource === 'upload' && (
+                  {actualizedImageSource === 'upload' && (evidenceUploadRevealed || actualizedFile) && (
                     <FileUpload
                       dragDrop
                       accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
@@ -495,30 +554,35 @@ export default function NewVisionBoardItemPage() {
                       )}
                     </>
                   )}
-                </div>
+                </section>
               )}
 
               {/* Actualization Story - Only show when status is actualized */}
               {formData.status === 'actualized' && (
-                <RecordingTextarea
-                  label="Actualization Story"
-                  value={formData.actualization_story}
-                  onChange={(value) => setFormData({ ...formData, actualization_story: value })}
-                  placeholder="Tell the story of how this vision was actualized. Click the microphone icon to record audio."
-                  rows={6}
-                  storageFolder="visionBoard"
-                  recordingPurpose="quick"
-                  category="vision-board-actualization"
-                  onAudioSaved={(audioUrl, transcript) => {
-                    setAudioRecordings(prev => [...prev, {
-                      url: audioUrl,
-                      transcript,
-                      type: 'audio' as const,
-                      category: 'vision-board-actualization',
-                      created_at: new Date().toISOString(),
-                    }])
-                  }}
-                />
+                <section className="space-y-3">
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">Actualization story</p>
+                  <div className="[&_textarea]:!bg-[#1A1A1A] [&_textarea]:!border-[#282828]">
+                    <RecordingTextarea
+                      label=""
+                      value={formData.actualization_story}
+                      onChange={(value) => setFormData({ ...formData, actualization_story: value })}
+                      placeholder="Tell the story of how this was actualized. Tap the mic to record."
+                      rows={6}
+                      storageFolder="visionBoard"
+                      recordingPurpose="quick"
+                      category="vision-board-actualization"
+                      onAudioSaved={(audioUrl, transcript) => {
+                        setAudioRecordings(prev => [...prev, {
+                          url: audioUrl,
+                          transcript,
+                          type: 'audio' as const,
+                          category: 'vision-board-actualization',
+                          created_at: new Date().toISOString(),
+                        }])
+                      }}
+                    />
+                  </div>
+                </section>
               )}
 
               {audioRecordings.length > 0 && (
@@ -527,73 +591,6 @@ export default function NewVisionBoardItemPage() {
                   onDelete={(index) => setAudioRecordings(prev => prev.filter((_, i) => i !== index))}
                 />
               )}
-
-              {/* Status */}
-              <div>
-                <p className="text-sm text-neutral-400 mb-3 text-center">
-                  Select the status for your vision item
-                </p>
-                {/* Status Buttons - Single Line, Equal Width */}
-                <div className="flex gap-1">
-                  {STATUS_OPTIONS.map((status) => (
-                    <button
-                      key={status.value}
-                      type="button"
-                      onClick={() => setFormData({ 
-                        ...formData, 
-                        status: status.value,
-                        actualization_story: status.value === 'actualized' ? formData.actualization_story : ''
-                      })}
-                      className={`px-2 py-2 rounded-full text-xs font-medium transition-all flex items-center justify-center gap-2 flex-1 ${
-                        formData.status === status.value
-                          ? status.value === 'active' 
-                            ? 'bg-green-600 text-white shadow-lg'
-                            : status.value === 'actualized'
-                            ? 'bg-purple-500 text-white shadow-lg'
-                            : 'bg-gray-600 text-white shadow-lg'
-                          : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
-                      }`}
-                    >
-                      {status.value === 'active' && <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>}
-                      {status.value === 'actualized' && <CheckCircle className="w-3 h-3 text-white" />}
-                      {status.value === 'inactive' && <XCircle className="w-3 h-3 text-white" />}
-                      {status.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Life Categories */}
-              <div>
-                <p className="text-sm text-neutral-400 mb-3 text-center">
-                  Select categories for your vision item
-                </p>
-
-                {isUserInIntensive && categoriesNeeded.length > 0 && (
-                  <p className="text-sm text-neutral-400 mb-3 text-center">
-                    ✨ Intensive: Add at least one image for each life area. Still need: <strong className="text-primary-500">{categoriesNeeded.join(', ')}</strong>
-                  </p>
-                )}
-                <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
-                  {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => {
-                    const isNeeded = isUserInIntensive && categoriesNeeded.includes(category.key)
-                    const isSelected = formData.categories.includes(category.key)
-                    return (
-                      <CategoryCard 
-                        key={category.key} 
-                        category={category} 
-                        selected={isSelected} 
-                        onClick={() => handleCategoryToggle(category.key)}
-                        variant="outlined"
-                        selectionStyle="border"
-                        iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
-                        selectedIconColor="#39FF14"
-                        className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : isNeeded ? 'ring-2 ring-primary-500 bg-primary-500/10 !bg-transparent !border-[#333]' : '!bg-transparent !border-[#333]'}
-                      />
-                    )
-                  })}
-                </div>
-              </div>
 
               {/* Submit */}
               <div className="flex flex-row gap-2 sm:gap-3 sm:justify-end">
@@ -616,9 +613,10 @@ export default function NewVisionBoardItemPage() {
                   {loading ? 'Creating...' : 'Add to Vision Board'}
                 </Button>
               </div>
-            </form>
+            </Stack>
           </Card>
-      </Stack>
+        </Stack>
+      </form>
 
       {/* Image Reminder Modal */}
       <Modal

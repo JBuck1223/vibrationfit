@@ -3,12 +3,14 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
-import { Card, Button, Badge, CategoryCard, DeleteConfirmationDialog, ActionButtons, Icon, PageHero, Container, Stack, Spinner, Input, FileUpload } from '@/lib/design-system'
+import { Card, Button, Badge, CategoryCard, DeleteConfirmationDialog, ActionButtons, Icon, Container, Stack, FullBleed, Spinner, Input, Textarea, FileUpload, ImageLightbox, type ImageLightboxImage } from '@/lib/design-system'
+import { RecordingTextarea } from '@/components/RecordingTextarea'
+import { SavedRecordings } from '@/components/SavedRecordings'
 import { useAreaStats } from '@/hooks/useAreaStats'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Calendar, CheckCircle, XCircle, Filter, Grid3X3, X, ChevronLeft, ChevronRight, Eye, List, Grid, Lightbulb, Download, Edit3, Save, ChevronUp, Trash2, BookOpen, Upload, Sparkles, CheckSquare, Square, ListChecks, Image as ImageIcon, Flame, Shield, ChevronDown } from 'lucide-react'
+import { Plus, Calendar, CheckCircle, XCircle, Filter, Grid3X3, X, ChevronLeft, ChevronRight, Eye, List, Grid, Lightbulb, Download, Edit3, Save, ChevronUp, Trash2, Upload, Sparkles, CheckSquare, Square, ListChecks, Flame, Shield, ChevronDown } from 'lucide-react'
 import { useDeleteItem } from '@/hooks/useDeleteItem'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { BeforeAfterSlider } from '@/components/BeforeAfterSlider'
@@ -40,6 +42,95 @@ const STATUS_OPTIONS = [
   { value: 'actualized', label: 'Actualized', color: 'warning' },
   { value: 'inactive', label: 'Inactive', color: 'neutral' },
 ]
+
+function VisionBoardPracticeStatsRow({
+  practiceStats,
+  statsExpanded,
+  setStatsExpanded,
+  freezeOpen,
+  setFreezeOpen,
+  freezeRef,
+  activeItems,
+  actualizedItems,
+  totalItems,
+}: {
+  practiceStats: ReturnType<typeof useAreaStats>['stats']
+  statsExpanded: boolean
+  setStatsExpanded: React.Dispatch<React.SetStateAction<boolean>>
+  freezeOpen: boolean
+  setFreezeOpen: React.Dispatch<React.SetStateAction<boolean>>
+  freezeRef: React.RefObject<HTMLDivElement | null>
+  activeItems: number
+  actualizedItems: number
+  totalItems: number
+}) {
+  return (
+    <div className="flex items-center justify-center gap-2 flex-wrap text-[11px] leading-none">
+      <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 text-white font-medium">
+        <Flame className={`w-3 h-3 ${(practiceStats?.currentStreak ?? 0) >= 1 ? 'text-orange-400' : 'text-orange-400/40'}`} />
+        {practiceStats?.currentStreak ?? 0}
+        <span className="text-neutral-500">{(practiceStats?.currentStreak ?? 0) === 1 ? 'day' : 'days'}</span>
+        <span className="relative ml-0.5" ref={freezeRef}>
+          <button
+            type="button"
+            onClick={() => setFreezeOpen(prev => !prev)}
+            className="inline-flex items-center"
+            aria-label="Streak freeze info"
+          >
+            <Shield className={`w-3 h-3 ${
+              practiceStats?.streakFreezeUsedThisWeek
+                ? 'text-blue-500/40'
+                : practiceStats?.streakFreezeAvailable
+                  ? 'text-blue-400'
+                  : 'text-blue-400/40'
+            }`} />
+          </button>
+          <div className={`absolute top-full mt-2 left-1/2 -translate-x-1/2 w-56 rounded-xl bg-neutral-900 border border-blue-500/20 p-3 shadow-xl transition-all duration-200 z-[400] ${freezeOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
+            <p className="text-sm font-semibold text-blue-400 mb-1">
+              Streak Freeze <span className="font-normal text-blue-400/70">({practiceStats?.streakFreezeUsedThisWeek ? 'Used this week' : practiceStats?.streakFreezeAvailable ? 'Available' : 'Not available yet'})</span>
+            </p>
+            <p className="text-xs text-neutral-400 leading-relaxed">
+              {practiceStats?.streakFreezeUsedThisWeek
+                ? 'Your streak was saved this week. You get 1 free grace day per week for each habit.'
+                : 'You get 1 free grace day per week. If you miss a day, your streak stays alive so one off-day does not wipe out your progress.'}
+            </p>
+          </div>
+        </span>
+      </span>
+      <span className="inline-flex items-center rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 text-white font-medium">
+        {actualizedItems.toLocaleString()} <span className="text-neutral-500 ml-1">actualized</span>
+      </span>
+      <span className="inline-flex items-center rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 text-white font-medium">
+        {practiceStats?.countLast7 ?? 0}<span className="text-neutral-500 ml-1">/7 week</span>
+      </span>
+      {statsExpanded && (
+        <>
+          <span className="inline-flex items-center rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 text-white font-medium">
+            {practiceStats?.countLast30 ?? 0}<span className="text-neutral-500 ml-1">/30 month</span>
+          </span>
+          <span className="inline-flex items-center rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 text-white font-medium">
+            {activeItems.toLocaleString()} <span className="text-neutral-500 ml-1">active</span>
+          </span>
+          <span className="inline-flex items-center rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 text-white font-medium">
+            {totalItems.toLocaleString()} <span className="text-neutral-500 ml-1">total items</span>
+          </span>
+          <span className="inline-flex items-center rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 text-white font-medium">
+            {(practiceStats?.countAllTime ?? 0).toLocaleString()} <span className="text-neutral-500 ml-1">total days</span>
+          </span>
+        </>
+      )}
+      <button
+        type="button"
+        onClick={() => setStatsExpanded(prev => !prev)}
+        className="inline-flex items-center gap-1 rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 text-neutral-400 hover:text-neutral-300 transition-colors"
+        aria-expanded={statsExpanded}
+      >
+        {statsExpanded ? 'Less' : 'More'}
+        <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${statsExpanded ? 'rotate-180' : ''}`} />
+      </button>
+    </div>
+  )
+}
 
 export default function VisionBoardPage() {
   const router = useRouter()
@@ -73,6 +164,29 @@ export default function VisionBoardPage() {
   const [editActualizedAiImageUrl, setEditActualizedAiImageUrl] = useState<string | null>(null)
   const [showImageEditor, setShowImageEditor] = useState(false)
   const [showActualizedImageEditor, setShowActualizedImageEditor] = useState(false)
+  const [showEditVisionFileDrop, setShowEditVisionFileDrop] = useState(false)
+  const [showEditEvidenceFileDrop, setShowEditEvidenceFileDrop] = useState(false)
+  const [editAudioRecordings, setEditAudioRecordings] = useState<unknown[]>([])
+  const [editImagePreview, setEditImagePreview] = useState<{
+    open: boolean
+    images: ImageLightboxImage[]
+    index: number
+  }>({ open: false, images: [], index: 0 })
+
+  const editVisionFileUrl = useMemo(
+    () => (editFile ? URL.createObjectURL(editFile) : null),
+    [editFile]
+  )
+  const editEvidenceFileUrl = useMemo(
+    () => (editActualizedFile ? URL.createObjectURL(editActualizedFile) : null),
+    [editActualizedFile]
+  )
+  useEffect(() => {
+    return () => { if (editVisionFileUrl) URL.revokeObjectURL(editVisionFileUrl) }
+  }, [editVisionFileUrl])
+  useEffect(() => {
+    return () => { if (editEvidenceFileUrl) URL.revokeObjectURL(editEvidenceFileUrl) }
+  }, [editEvidenceFileUrl])
 
   const [statsExpanded, setStatsExpanded] = useState(false)
   const [freezeOpen, setFreezeOpen] = useState(false)
@@ -111,8 +225,8 @@ export default function VisionBoardPage() {
     cancelDelete
   } = useDeleteItem({
     onSuccess: () => {
-      // Update local state to remove deleted item
       setItems(prevItems => prevItems.filter(i => i.id !== itemToDelete?.id))
+      setDetailModalIndex(null)
     },
     onError: (error) => {
       alert(`Failed to delete vision board item: ${error.message}`)
@@ -508,6 +622,9 @@ export default function VisionBoardPage() {
       categories: item.categories || [],
       actualization_story: item.actualization_story || ''
     })
+    setEditAudioRecordings(
+      Array.isArray(item.audio_recordings) ? [...item.audio_recordings] : []
+    )
     setEditFile(null)
     setEditImageSource('upload')
     setEditAiImageUrl(null)
@@ -516,19 +633,17 @@ export default function VisionBoardPage() {
     setEditActualizedAiImageUrl(null)
     setShowImageEditor(false)
     setShowActualizedImageEditor(false)
+    setShowEditVisionFileDrop(false)
+    setShowEditEvidenceFileDrop(false)
   }
 
   const startEditing = (item: any) => {
-    const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768
-    if (isDesktop) {
-      const idx = filteredItems.findIndex(i => i.id === item.id)
-      if (idx !== -1) {
-        setExpandedItemId(null)
-        setLightboxOpen(true)
-        setLightboxIndex(item.originalIndex !== undefined ? item.originalIndex : idx)
-      }
-    } else {
-      setExpandedItemId(item.id)
+    setDetailModalIndex(null)
+    const idx = filteredItems.findIndex(i => i.id === item.id)
+    if (idx !== -1) {
+      setExpandedItemId(null)
+      setLightboxOpen(true)
+      setLightboxIndex(item.originalIndex !== undefined ? item.originalIndex : idx)
     }
     initEditState(item)
   }
@@ -536,12 +651,16 @@ export default function VisionBoardPage() {
   const cancelEditing = () => {
     setEditingItemId(null)
     setEditFormData(null)
+    setEditAudioRecordings([])
     setEditFile(null)
     setEditAiImageUrl(null)
     setEditActualizedFile(null)
     setEditActualizedAiImageUrl(null)
     setShowImageEditor(false)
     setShowActualizedImageEditor(false)
+    setShowEditVisionFileDrop(false)
+    setShowEditEvidenceFileDrop(false)
+    setEditImagePreview({ open: false, images: [], index: 0 })
   }
 
   const handleEditCategoryToggle = (categoryKey: string) => {
@@ -624,7 +743,8 @@ export default function VisionBoardPage() {
           actualization_story: editFormData.status === 'actualized' ? editFormData.actualization_story : null,
           actualized_at: editFormData.status === 'actualized' && currentItem?.status !== 'actualized'
             ? new Date().toISOString()
-            : currentItem?.actualized_at
+            : currentItem?.actualized_at,
+          audio_recordings: editAudioRecordings
         })
         .eq('id', itemId)
 
@@ -651,6 +771,7 @@ export default function VisionBoardPage() {
               actualized_at: editFormData.status === 'actualized' && i.status !== 'actualized'
                 ? new Date().toISOString()
                 : i.actualized_at,
+              audio_recordings: editAudioRecordings,
               updated_at: new Date().toISOString()
             }
           : i
@@ -658,6 +779,7 @@ export default function VisionBoardPage() {
 
       setEditingItemId(null)
       setEditFormData(null)
+      setEditAudioRecordings([])
       setEditFile(null)
       setEditAiImageUrl(null)
       setEditActualizedFile(null)
@@ -672,31 +794,461 @@ export default function VisionBoardPage() {
     }
   }
 
-  const renderInlineEditForm = (item: any) => {
+  const openEditImagePreview = (imageList: { url: string; caption?: string }[], startIndex = 0) => {
+    if (!imageList.length) return
+    setEditImagePreview({
+      open: true,
+      images: imageList.map((img) => ({
+        url: img.url,
+        alt: img.caption,
+        caption: img.caption
+      })),
+      index: startIndex
+    })
+  }
+
+  const closeEditImagePreview = () => {
+    setEditImagePreview({ open: false, images: [], index: 0 })
+  }
+
+  const renderInlineEditForm = (item: any, options?: { layout?: 'default' | 'newStyle' }) => {
     if (!editFormData) return null
+    const isNewStyle = options?.layout === 'newStyle'
+
+    if (isNewStyle) {
+      return (
+        <Card
+          variant="outlined"
+          className="!p-4 !pt-5 sm:!p-5 sm:!pt-6 md:!p-6 lg:!p-8 !bg-[#101010] !border-[#1F1F1F] !rounded-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Stack gap="lg">
+            <section className="space-y-3 text-center">
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-[#2A2A2A]" />
+                <p className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">Creation name</p>
+                <div className="h-px flex-1 bg-[#2A2A2A]" />
+              </div>
+              <Input
+                type="text"
+                placeholder="What do you choose to create?"
+                value={editFormData.name}
+                onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                className="!bg-[#1A1A1A] !border-[#282828] !text-base !font-medium !text-center"
+              />
+            </section>
+
+            <section className="space-y-3">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">Vision image</p>
+              <div className="flex flex-row gap-2 items-center justify-center">
+                <Button
+                  type="button"
+                  variant={editImageSource === 'upload' ? 'primary' : 'outline'}
+                  size="sm"
+                  onClick={() => {
+                    setEditImageSource('upload')
+                    setEditAiImageUrl(null)
+                    setShowEditVisionFileDrop(true)
+                  }}
+                  className="flex-1 max-w-[180px]"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload
+                </Button>
+                <Button
+                  type="button"
+                  variant={editImageSource === 'ai' ? 'accent' : 'outline-purple'}
+                  size="sm"
+                  onClick={() => {
+                    setEditImageSource('ai')
+                    setEditFile(null)
+                    setShowEditVisionFileDrop(false)
+                  }}
+                  className="flex-1 max-w-[180px]"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  VIVA Generate
+                </Button>
+              </div>
+              {item.image_url && !editFile && !editAiImageUrl && (
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => openEditImagePreview([{ url: item.image_url, caption: 'Vision image' }])}
+                    className="w-full p-3 bg-neutral-900/80 rounded-xl border border-neutral-800 text-left hover:border-primary-500/40 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                  >
+                    <div className="flex items-center justify-center gap-3">
+                      <img src={item.image_url} alt="" className="w-24 h-24 sm:w-28 sm:h-28 object-cover rounded-lg" />
+                      <p className="text-xs text-neutral-400">Current vision image — tap to preview full screen</p>
+                    </div>
+                  </button>
+                </div>
+              )}
+              {editImageSource === 'upload' && (showEditVisionFileDrop || editFile) && (
+                <FileUpload
+                  dragDrop
+                  accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
+                  multiple={false}
+                  maxFiles={1}
+                  maxSize={10}
+                  value={editFile ? [editFile] : []}
+                  onChange={(files) => setEditFile(files[0] || null)}
+                  onUpload={(files) => setEditFile(files[0] || null)}
+                  dragDropText="Click to upload or drag and drop"
+                  dragDropSubtext="PNG, JPG, WEBP, HEIC (max 10MB)"
+                  previewSize="lg"
+                />
+              )}
+              {editImageSource === 'ai' && (
+                <AIImageGenerator
+                  type="vision_board"
+                  onImageGenerated={(url) => setEditAiImageUrl(url)}
+                  title={editFormData.name}
+                  description={editFormData.description}
+                  visionText={
+                    editFormData.name && editFormData.description
+                      ? `${editFormData.name}. ${editFormData.description}`
+                      : editFormData.description || editFormData.name || ''
+                  }
+                />
+              )}
+              {editAiImageUrl && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    openEditImagePreview([{ url: editAiImageUrl, caption: 'New vision (VIVA, unsaved)' }])
+                  }
+                  className="w-full p-3 rounded-xl border border-primary-500/30 bg-neutral-900/50 hover:border-primary-500/50 transition-colors"
+                >
+                  <img src={editAiImageUrl} alt="" className="w-full max-h-48 object-contain rounded-lg mx-auto" />
+                  <p className="text-xs text-center text-primary-400 mt-2">Tap to preview full screen (save to apply)</p>
+                </button>
+              )}
+              {editVisionFileUrl && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    openEditImagePreview([{ url: editVisionFileUrl, caption: 'New vision (file, unsaved)' }])
+                  }
+                  className="w-full p-3 rounded-xl border border-primary-500/30 bg-neutral-900/50 hover:border-primary-500/50 transition-colors"
+                >
+                  <img
+                    src={editVisionFileUrl}
+                    alt=""
+                    className="w-full max-h-48 object-contain rounded-lg mx-auto"
+                  />
+                  <p className="text-xs text-center text-primary-400 mt-2">Tap to preview full screen (save to apply)</p>
+                </button>
+              )}
+            </section>
+
+            <section className="space-y-2">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">Status</p>
+              <div className="flex gap-1">
+                {STATUS_OPTIONS.map((status) => (
+                  <button
+                    key={status.value}
+                    type="button"
+                    onClick={() =>
+                      setEditFormData({
+                        ...editFormData,
+                        status: status.value,
+                        actualization_story:
+                          status.value === 'actualized' ? editFormData.actualization_story : ''
+                      })
+                    }
+                    className={`px-2 py-2 rounded-full text-xs font-medium transition-all flex items-center justify-center gap-2 flex-1 ${
+                      editFormData.status === status.value
+                        ? status.value === 'active'
+                          ? 'bg-green-600 text-white shadow-lg'
+                          : status.value === 'actualized'
+                            ? 'bg-purple-500 text-white shadow-lg'
+                            : 'bg-gray-600 text-white shadow-lg'
+                        : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+                    }`}
+                  >
+                    {status.value === 'active' && <div className="w-2 h-2 bg-white rounded-full animate-pulse" />}
+                    {status.value === 'actualized' && <CheckCircle className="w-3 h-3 text-white" />}
+                    {status.value === 'inactive' && <XCircle className="w-3 h-3 text-white" />}
+                    {status.label}
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            <FullBleed>
+              <section className="space-y-2">
+                <p className="hidden md:block text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">
+                  Tag life categories
+                </p>
+                <div className="flex items-center justify-between gap-3 md:hidden px-1">
+                  <p className="text-[10px] uppercase tracking-wide text-neutral-500">Tag life categories</p>
+                  <span className="text-[10px] text-neutral-600">Scroll to see all</span>
+                </div>
+                <div className="flex items-center justify-center gap-2 pb-1 px-4 md:px-0 max-md:flex-nowrap max-md:overflow-x-auto max-md:justify-start max-md:scrollbar-hide md:flex-wrap">
+                  {VISION_CATEGORIES.filter(c => c.key !== 'forward' && c.key !== 'conclusion').map((category) => {
+                    const isSelected = editFormData.categories.includes(category.key)
+                    const CatIcon = category.icon
+                    return (
+                      <button
+                        key={category.key}
+                        type="button"
+                        onClick={() => handleEditCategoryToggle(category.key)}
+                        className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                          isSelected
+                            ? 'bg-primary-500/20 border-primary-500/50 text-primary-400'
+                            : 'bg-neutral-900 border-neutral-800 text-neutral-500 hover:border-neutral-600 hover:text-neutral-300'
+                        }`}
+                      >
+                        <CatIcon className="w-3.5 h-3.5" />
+                        {category.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </section>
+            </FullBleed>
+
+            <section className="space-y-3">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">Description</p>
+              <div className="[&_textarea]:!bg-[#1A1A1A] [&_textarea]:!border-[#282828]">
+                <RecordingTextarea
+                  label=""
+                  value={editFormData.description}
+                  onChange={(value) => setEditFormData({ ...editFormData, description: value })}
+                  placeholder="Describe this creation. Tap the mic to record."
+                  rows={4}
+                  storageFolder="visionBoard"
+                  recordingPurpose="quick"
+                  category="vision-board"
+                  onAudioSaved={(audioUrl, transcript) => {
+                    setEditAudioRecordings((prev) => [
+                      ...prev,
+                      {
+                        url: audioUrl,
+                        transcript,
+                        type: 'audio' as const,
+                        category: 'vision-board',
+                        created_at: new Date().toISOString()
+                      }
+                    ])
+                  }}
+                />
+              </div>
+            </section>
+
+            {editFormData.status === 'actualized' && (
+              <>
+                <section className="space-y-3">
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">Evidence image</p>
+                  <div className="flex flex-row gap-2 items-center justify-center">
+                    <Button
+                      type="button"
+                      variant={editActualizedImageSource === 'upload' ? 'primary' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setEditActualizedImageSource('upload')
+                        setEditActualizedAiImageUrl(null)
+                        setShowEditEvidenceFileDrop(true)
+                      }}
+                      className="flex-1 max-w-[180px]"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={editActualizedImageSource === 'ai' ? 'accent' : 'outline-purple'}
+                      size="sm"
+                      onClick={() => {
+                        setEditActualizedImageSource('ai')
+                        setEditActualizedFile(null)
+                        setShowEditEvidenceFileDrop(false)
+                      }}
+                      className="flex-1 max-w-[180px]"
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      VIVA Generate
+                    </Button>
+                  </div>
+                  {item.actualized_image_url && !editActualizedFile && !editActualizedAiImageUrl && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openEditImagePreview([{ url: item.actualized_image_url, caption: 'Current evidence' }])
+                      }
+                      className="w-full p-3 bg-neutral-900/80 rounded-xl border border-neutral-800 text-left hover:border-purple-500/40 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                    >
+                      <div className="flex items-center justify-center gap-3">
+                        <img src={item.actualized_image_url} alt="" className="w-24 h-24 sm:w-28 sm:h-28 object-cover rounded-lg" />
+                        <p className="text-xs text-neutral-400">Current evidence image — tap to preview full screen</p>
+                      </div>
+                    </button>
+                  )}
+                  {editActualizedImageSource === 'upload' && (showEditEvidenceFileDrop || editActualizedFile) && (
+                    <FileUpload
+                      dragDrop
+                      accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
+                      multiple={false}
+                      maxFiles={1}
+                      maxSize={10}
+                      value={editActualizedFile ? [editActualizedFile] : []}
+                      onChange={(files) => setEditActualizedFile(files[0] || null)}
+                      onUpload={(files) => setEditActualizedFile(files[0] || null)}
+                      dragDropText="Click to upload or drag and drop"
+                      dragDropSubtext="PNG, JPG, WEBP, HEIC (max 10MB)"
+                      previewSize="lg"
+                    />
+                  )}
+                  {editActualizedImageSource === 'ai' && (
+                    <AIImageGenerator
+                      type="vision_board"
+                      onImageGenerated={(url) => setEditActualizedAiImageUrl(url)}
+                      title={`Actualized: ${editFormData.name}`}
+                      description={`Evidence: ${editFormData.description}`}
+                      visionText={`Actualized: ${editFormData.name}. ${editFormData.description}`}
+                    />
+                  )}
+                  {editActualizedAiImageUrl && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openEditImagePreview([{ url: editActualizedAiImageUrl, caption: 'New evidence (VIVA, unsaved)' }])
+                      }
+                      className="w-full p-3 rounded-xl border border-purple-500/30 bg-neutral-900/50"
+                    >
+                      <img
+                        src={editActualizedAiImageUrl}
+                        alt=""
+                        className="w-full max-h-48 object-contain rounded-lg mx-auto"
+                      />
+                      <p className="text-xs text-center text-purple-300 mt-2">Tap to preview (save to apply)</p>
+                    </button>
+                  )}
+                  {editEvidenceFileUrl && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openEditImagePreview([{ url: editEvidenceFileUrl, caption: 'New evidence (file, unsaved)' }])
+                      }
+                      className="w-full p-3 rounded-xl border border-purple-500/30 bg-neutral-900/50"
+                    >
+                      <img
+                        src={editEvidenceFileUrl}
+                        alt=""
+                        className="w-full max-h-48 object-contain rounded-lg mx-auto"
+                      />
+                      <p className="text-xs text-center text-purple-300 mt-2">Tap to preview (save to apply)</p>
+                    </button>
+                  )}
+                </section>
+                <section className="space-y-3">
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">Actualization story</p>
+                  <div className="[&_textarea]:!bg-[#1A1A1A] [&_textarea]:!border-[#282828]">
+                    <RecordingTextarea
+                      label=""
+                      value={editFormData.actualization_story}
+                      onChange={(value) => setEditFormData({ ...editFormData, actualization_story: value })}
+                      placeholder="Tell the story of how this was actualized. Tap the mic to record."
+                      rows={5}
+                      storageFolder="visionBoard"
+                      recordingPurpose="quick"
+                      category="vision-board-actualization"
+                      onAudioSaved={(audioUrl, transcript) => {
+                        setEditAudioRecordings((prev) => [
+                          ...prev,
+                          {
+                            url: audioUrl,
+                            transcript,
+                            type: 'audio' as const,
+                            category: 'vision-board-actualization',
+                            created_at: new Date().toISOString()
+                          }
+                        ])
+                      }}
+                    />
+                  </div>
+                </section>
+              </>
+            )}
+
+            {editAudioRecordings.length > 0 && (
+              <SavedRecordings
+                recordings={editAudioRecordings as any}
+                onDelete={(index) => setEditAudioRecordings((prev) => prev.filter((_, i) => i !== index))}
+              />
+            )}
+
+            <div className="flex flex-row gap-2 sm:gap-3 sm:justify-end pt-2">
+              <Button
+                type="button"
+                variant="danger"
+                size="sm"
+                onClick={cancelEditing}
+                className="flex-1 sm:flex-none sm:min-w-[100px]"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => handleInlineSave(item.id)}
+                loading={saving}
+                disabled={saving}
+                className="flex-1 sm:flex-none sm:min-w-[100px]"
+              >
+                {saving ? 'Saving...' : (
+                  <>
+                    <Save className="w-3.5 h-3.5 mr-1.5" />
+                    Save
+                  </>
+                )}
+              </Button>
+            </div>
+          </Stack>
+        </Card>
+      )
+    }
+
     return (
       <div className="space-y-4 pt-3">
-        <div>
-          <label className="block text-xs font-medium text-neutral-400 mb-1">Creation Name</label>
-          <input
-            type="text"
-            value={editFormData.name}
-            onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-            className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#39FF14] transition-colors"
-            placeholder="What do you want to create?"
-          />
+        <div className="space-y-2 pb-1 border-b border-neutral-700/50">
+          <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+            <Edit3 className="w-4 h-4 text-primary-500 flex-shrink-0" aria-hidden />
+            Edit creation
+          </h3>
+          <p className="text-xs text-neutral-500">
+            Update the fields below, then save. For audio notes and a larger workspace, use the full page editor.
+          </p>
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="w-full justify-center text-xs"
+          >
+            <Link href={`/vision-board/${item.id}?edit=1`}>
+              Open full page editor
+            </Link>
+          </Button>
         </div>
 
-        <div>
-          <label className="block text-xs font-medium text-neutral-400 mb-1">Description</label>
-          <textarea
-            value={editFormData.description}
-            onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
-            className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#39FF14] transition-colors resize-none"
-            rows={3}
-            placeholder="Describe this creation..."
-          />
-        </div>
+        <Input
+          label="Creation name"
+          type="text"
+          value={editFormData.name}
+          onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+          placeholder="What do you want to create?"
+          className="!text-sm py-2.5"
+        />
+
+        <Textarea
+          label="Description"
+          value={editFormData.description}
+          onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+          rows={3}
+          placeholder="Describe this creation..."
+          className="!text-sm resize-y min-h-[5rem]"
+        />
 
         {/* Vision Image */}
         <div>
@@ -706,7 +1258,13 @@ export default function VisionBoardPage() {
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setShowImageEditor(!showImageEditor)}
+              onClick={() => {
+                setShowImageEditor((prev) => {
+                  const next = !prev
+                  if (next) setShowEditVisionFileDrop(!!editFile)
+                  return next
+                })
+              }}
             >
               {showImageEditor ? 'Hide' : (item.image_url ? 'Change Image' : 'Add Image')}
             </Button>
@@ -735,7 +1293,11 @@ export default function VisionBoardPage() {
                   type="button"
                   variant={editImageSource === 'upload' ? 'primary' : 'outline'}
                   size="sm"
-                  onClick={() => { setEditImageSource('upload'); setEditAiImageUrl(null) }}
+                  onClick={() => {
+                    setEditImageSource('upload')
+                    setEditAiImageUrl(null)
+                    setShowEditVisionFileDrop(true)
+                  }}
                   className="flex-1"
                 >
                   <Upload className="w-3.5 h-3.5 mr-1.5" />
@@ -743,7 +1305,11 @@ export default function VisionBoardPage() {
                 </Button>
                 <button
                   type="button"
-                  onClick={() => { setEditImageSource('ai'); setEditFile(null) }}
+                  onClick={() => {
+                    setEditImageSource('ai')
+                    setEditFile(null)
+                    setShowEditVisionFileDrop(false)
+                  }}
                   style={editImageSource === 'ai'
                     ? { backgroundColor: colors.semantic.premium, borderColor: colors.semantic.premium }
                     : { borderColor: colors.semantic.premium, color: colors.semantic.premium }
@@ -757,19 +1323,21 @@ export default function VisionBoardPage() {
                 </button>
               </div>
               {editImageSource === 'upload' ? (
-                <FileUpload
-                  dragDrop
-                  accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
-                  multiple={false}
-                  maxFiles={1}
-                  maxSize={10}
-                  value={editFile ? [editFile] : []}
-                  onChange={(files) => setEditFile(files[0] || null)}
-                  onUpload={(files) => setEditFile(files[0] || null)}
-                  dragDropText="Click or drag to upload"
-                  dragDropSubtext="PNG, JPG, WEBP, HEIC (max 10MB)"
-                  previewSize="md"
-                />
+                (showEditVisionFileDrop || editFile) ? (
+                  <FileUpload
+                    dragDrop
+                    accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
+                    multiple={false}
+                    maxFiles={1}
+                    maxSize={10}
+                    value={editFile ? [editFile] : []}
+                    onChange={(files) => setEditFile(files[0] || null)}
+                    onUpload={(files) => setEditFile(files[0] || null)}
+                    dragDropText="Click or drag to upload"
+                    dragDropSubtext="PNG, JPG, WEBP, HEIC (max 10MB)"
+                    previewSize="md"
+                  />
+                ) : null
               ) : (
                 <AIImageGenerator
                   type="vision_board"
@@ -815,16 +1383,14 @@ export default function VisionBoardPage() {
         {/* Actualization Story + Evidence Image */}
         {editFormData.status === 'actualized' && (
           <>
-            <div>
-              <label className="block text-xs font-medium text-neutral-400 mb-1">Actualization Story</label>
-              <textarea
-                value={editFormData.actualization_story}
-                onChange={(e) => setEditFormData({ ...editFormData, actualization_story: e.target.value })}
-                className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#39FF14] transition-colors resize-none"
-                rows={4}
-                placeholder="Tell the story of how this vision was actualized..."
-              />
-            </div>
+            <Textarea
+              label="Actualization story"
+              value={editFormData.actualization_story}
+              onChange={(e) => setEditFormData({ ...editFormData, actualization_story: e.target.value })}
+              rows={4}
+              placeholder="Tell the story of how this vision was actualized..."
+              className="!text-sm resize-y min-h-[6rem]"
+            />
 
             {/* Actualized Evidence Image */}
             <div>
@@ -834,7 +1400,13 @@ export default function VisionBoardPage() {
                   type="button"
                   variant="accent"
                   size="sm"
-                  onClick={() => setShowActualizedImageEditor(!showActualizedImageEditor)}
+                  onClick={() => {
+                    setShowActualizedImageEditor((prev) => {
+                      const next = !prev
+                      if (next) setShowEditEvidenceFileDrop(!!editActualizedFile)
+                      return next
+                    })
+                  }}
                 >
                   {showActualizedImageEditor ? 'Hide' : (item.actualized_image_url ? 'Change Evidence' : 'Add Evidence')}
                 </Button>
@@ -863,7 +1435,11 @@ export default function VisionBoardPage() {
                       type="button"
                       variant={editActualizedImageSource === 'upload' ? 'primary' : 'outline'}
                       size="sm"
-                      onClick={() => { setEditActualizedImageSource('upload'); setEditActualizedAiImageUrl(null) }}
+                      onClick={() => {
+                        setEditActualizedImageSource('upload')
+                        setEditActualizedAiImageUrl(null)
+                        setShowEditEvidenceFileDrop(true)
+                      }}
                       className="flex-1"
                     >
                       <Upload className="w-3.5 h-3.5 mr-1.5" />
@@ -871,7 +1447,11 @@ export default function VisionBoardPage() {
                     </Button>
                     <button
                       type="button"
-                      onClick={() => { setEditActualizedImageSource('ai'); setEditActualizedFile(null) }}
+                      onClick={() => {
+                        setEditActualizedImageSource('ai')
+                        setEditActualizedFile(null)
+                        setShowEditEvidenceFileDrop(false)
+                      }}
                       style={editActualizedImageSource === 'ai'
                         ? { backgroundColor: colors.semantic.premium, borderColor: colors.semantic.premium }
                         : { borderColor: colors.semantic.premium, color: colors.semantic.premium }
@@ -885,19 +1465,21 @@ export default function VisionBoardPage() {
                     </button>
                   </div>
                   {editActualizedImageSource === 'upload' ? (
-                    <FileUpload
-                      dragDrop
-                      accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
-                      multiple={false}
-                      maxFiles={1}
-                      maxSize={10}
-                      value={editActualizedFile ? [editActualizedFile] : []}
-                      onChange={(files) => setEditActualizedFile(files[0] || null)}
-                      onUpload={(files) => setEditActualizedFile(files[0] || null)}
-                      dragDropText="Click or drag to upload"
-                      dragDropSubtext="PNG, JPG, WEBP, HEIC (max 10MB)"
-                      previewSize="md"
-                    />
+                    (showEditEvidenceFileDrop || editActualizedFile) ? (
+                      <FileUpload
+                        dragDrop
+                        accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
+                        multiple={false}
+                        maxFiles={1}
+                        maxSize={10}
+                        value={editActualizedFile ? [editActualizedFile] : []}
+                        onChange={(files) => setEditActualizedFile(files[0] || null)}
+                        onUpload={(files) => setEditActualizedFile(files[0] || null)}
+                        dragDropText="Click or drag to upload"
+                        dragDropSubtext="PNG, JPG, WEBP, HEIC (max 10MB)"
+                        previewSize="md"
+                      />
+                    ) : null
                   ) : (
                     <AIImageGenerator
                       type="vision_board"
@@ -915,7 +1497,7 @@ export default function VisionBoardPage() {
 
         <div>
           <label className="block text-xs font-medium text-neutral-400 mb-2">Categories</label>
-          <div className="grid grid-cols-5 md:grid-cols-12 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-56 overflow-y-auto pr-0.5">
             {VISION_CATEGORIES.filter(c => c.key !== 'forward' && c.key !== 'conclusion').map((category) => {
               const isSelected = editFormData.categories.includes(category.key)
               return (
@@ -980,8 +1562,13 @@ export default function VisionBoardPage() {
         <div className="flex flex-wrap gap-1.5">
           {item.categories.map((categoryKey: string) => {
             const categoryInfo = VISION_CATEGORIES.find(c => c.key === categoryKey)
+            const CategoryIcon = categoryInfo?.icon
             return (
-              <span key={categoryKey} className="text-xs bg-primary-500/20 text-primary-500 px-2.5 py-1 rounded-full">
+              <span
+                key={categoryKey}
+                className="inline-flex items-center gap-1.5 text-xs bg-primary-500/20 text-primary-500 px-2.5 py-1 rounded-full"
+              >
+                {CategoryIcon && <CategoryIcon className="w-3.5 h-3.5 shrink-0" aria-hidden />}
                 {categoryInfo ? categoryInfo.label : categoryKey}
               </span>
             )
@@ -996,26 +1583,30 @@ export default function VisionBoardPage() {
         )}
       </div>
 
-      <div className="flex items-center gap-2 pt-1">
-        <Button
-          asChild
-          variant="ghost"
-          size="sm"
-          className="text-xs"
-        >
-          <Link href={`/vision-board/${item.id}/story`}>
-            <BookOpen className="w-3.5 h-3.5 mr-1.5" />
-            Stories
-          </Link>
-        </Button>
+      <div className="grid grid-cols-2 gap-2 pt-1">
         <Button
           variant="danger"
           size="sm"
-          className="text-xs"
-          onClick={() => handleDeleteItem(item.id)}
+          className="text-xs w-full justify-center"
+          onClick={(e) => {
+            e.stopPropagation()
+            handleDeleteItem(item.id)
+          }}
         >
           <Trash2 className="w-3.5 h-3.5 mr-1.5" />
           Delete
+        </Button>
+        <Button
+          variant="primary"
+          size="sm"
+          className="text-xs w-full justify-center"
+          onClick={(e) => {
+            e.stopPropagation()
+            startEditing(item)
+          }}
+        >
+          <Edit3 className="w-3.5 h-3.5 mr-1.5" />
+          Edit
         </Button>
       </div>
     </div>
@@ -1091,130 +1682,19 @@ export default function VisionBoardPage() {
   }
 
   return (
-    <Container size="xl" className="py-6 overflow-x-hidden">
+    <Container size="xl" className="pt-1 pb-6 overflow-x-hidden">
       <Stack gap="lg">
-        {/* Header */}
-        <PageHero
-          title="Vision Board"
-          subtitle="Visualize and track your conscious creations"
-        >
-          <div className="grid grid-cols-3 gap-2 md:gap-3 max-w-lg mx-auto">
-            <Button
-              onClick={() => router.push('/vision-board/ideas')}
-              variant="primary"
-              size="sm"
-              className="w-full flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-            >
-              <Lightbulb className="w-4 h-4 shrink-0" />
-              <span>VIVA Ideas</span>
-            </Button>
-            <Button
-              onClick={() => router.push('/vision-board/new')}
-              variant="outline"
-              size="sm"
-              className="w-full flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-            >
-              <Plus className="w-4 h-4 shrink-0" />
-              <span>Add New</span>
-            </Button>
-            <Button
-              onClick={() => {
-                const params = new URLSearchParams()
-                if (!selectedCategories.includes('all') && selectedCategories.length > 0) {
-                  params.set('categories', selectedCategories.join(','))
-                }
-                if (!selectedStatuses.includes('all') && selectedStatuses.length > 0) {
-                  params.set('statuses', selectedStatuses.join(','))
-                }
-                router.push(`/vision-board/export${params.toString() ? '?' + params.toString() : ''}`)
-              }}
-              variant="secondary"
-              size="sm"
-              className="w-full flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-            >
-              <Download className="w-4 h-4 shrink-0" />
-              <span>PDF</span>
-            </Button>
-          </div>
-        </PageHero>
-
-        {/* Vision Board Stats */}
-        <div className="relative rounded-2xl border border-white/[0.06] bg-gradient-to-br from-[#39FF14]/[0.04] via-[#111] to-[#111]">
-          <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(ellipse_at_top_left,_rgba(57,255,20,0.08)_0%,_transparent_50%)] pointer-events-none" />
-          <div className="relative p-5 md:p-6">
-            <div className="flex items-center justify-center gap-2.5 mb-4">
-              <ImageIcon className="w-4 h-4 text-[#39FF14]" />
-              <h3 className="text-neutral-300 font-medium text-sm tracking-wide uppercase">Vision Board</h3>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-              {/* Current Streak */}
-              <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-3">
-                <p className="text-neutral-500 text-[11px] leading-tight mb-1.5">Current Streak</p>
-                <div className="flex items-center gap-1.5">
-                  <p className="text-white font-semibold text-lg leading-none flex items-center gap-1.5">
-                    {(practiceStats?.currentStreak ?? 0) >= 1 && <Flame className="w-4 h-4 text-orange-400" />}
-                    {practiceStats?.currentStreak ?? 0}
-                    <span className="font-normal text-neutral-500">{(practiceStats?.currentStreak ?? 0) === 1 ? 'day' : 'days'}</span>
-                  </p>
-                  {(practiceStats?.streakFreezeAvailable || practiceStats?.streakFreezeUsedThisWeek) && (
-                    <div className="relative ml-auto flex items-center" ref={freezeRef}>
-                      <button type="button" className="flex items-center" onClick={() => setFreezeOpen(prev => !prev)}>
-                        <Shield className={`w-3.5 h-3.5 cursor-help ${practiceStats?.streakFreezeUsedThisWeek ? 'text-blue-500/40' : 'text-blue-400'}`} />
-                      </button>
-                      <div className={`absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-56 rounded-xl bg-neutral-900 border border-blue-500/20 p-3 shadow-xl transition-all duration-200 z-[100] ${freezeOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
-                        <p className="text-sm font-semibold text-blue-400 mb-1">
-                          Streak Freeze <span className="font-normal text-blue-400/70">({practiceStats?.streakFreezeUsedThisWeek ? 'Used this week' : 'Available'})</span>
-                        </p>
-                        <p className="text-xs text-neutral-400 leading-relaxed">
-                          {practiceStats?.streakFreezeUsedThisWeek
-                            ? 'Your streak was saved this week. You get 1 free grace day per week for each habit.'
-                            : 'You get 1 free grace day per week. If you miss a day, your streak stays alive so one off-day doesn\'t wipe out your progress.'}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Reps this Week - always visible */}
-              <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-3">
-                <p className="text-neutral-500 text-[11px] leading-tight mb-1.5">Reps this Week</p>
-                <p className="text-white font-semibold text-lg leading-none">{practiceStats?.countLast7 ?? 0}<span className="font-normal text-neutral-500">/7</span></p>
-              </div>
-
-              {/* Remaining stats: always visible on sm+, toggled on mobile */}
-              {[
-                {
-                  label: 'Reps this Month',
-                  value: <>{practiceStats?.countLast30 ?? 0}<span className="font-normal text-neutral-500">/30</span></>,
-                },
-                {
-                  label: 'Total Rep Days',
-                  value: (practiceStats?.countAllTime ?? 0).toLocaleString(),
-                },
-                { label: 'Active', value: activeItems.toLocaleString() },
-                { label: 'Actualized', value: actualizedItems.toLocaleString() },
-                { label: 'Total Items', value: items.length.toLocaleString() },
-              ].map((stat) => (
-                <div key={stat.label} className={`rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-3 ${statsExpanded ? '' : 'hidden'} sm:block`}>
-                  <p className="text-neutral-500 text-[11px] leading-tight mb-1.5">{stat.label}</p>
-                  <p className="text-white font-semibold text-lg leading-none">{stat.value}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Mobile toggle */}
-            <button
-              type="button"
-              onClick={() => setStatsExpanded(prev => !prev)}
-              className="flex items-center justify-center gap-1.5 w-full mt-3 py-1.5 text-xs text-neutral-400 hover:text-neutral-300 transition-colors sm:hidden"
-            >
-              {statsExpanded ? 'Show less' : 'View all stats'}
-              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${statsExpanded ? 'rotate-180' : ''}`} />
-            </button>
-          </div>
-        </div>
+        <VisionBoardPracticeStatsRow
+          practiceStats={practiceStats}
+          statsExpanded={statsExpanded}
+          setStatsExpanded={setStatsExpanded}
+          freezeOpen={freezeOpen}
+          setFreezeOpen={setFreezeOpen}
+          freezeRef={freezeRef}
+          activeItems={activeItems}
+          actualizedItems={actualizedItems}
+          totalItems={totalItems}
+        />
 
         {/* Filter Toggle Button and View Toggle */}
         <div className="flex items-center justify-between">
@@ -1233,18 +1713,39 @@ export default function VisionBoardPage() {
               size="sm"
               onClick={toggleBulkMode}
               className="flex items-center gap-2"
+              aria-label={bulkMode ? 'Cancel selection mode' : 'Select items'}
             >
               <ListChecks className="w-4 h-4" />
-              <span>{bulkMode ? 'Cancel' : 'Select'}</span>
+              <span className="hidden sm:inline">{bulkMode ? 'Cancel' : 'Select'}</span>
             </Button>
             <Button
               variant="primary"
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
               className="flex items-center gap-2"
+              aria-label="Filter items"
             >
               <Filter className="w-4 h-4" />
-              <span>Filter</span>
+              <span className="hidden sm:inline">Filter</span>
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                const params = new URLSearchParams()
+                if (!selectedCategories.includes('all') && selectedCategories.length > 0) {
+                  params.set('categories', selectedCategories.join(','))
+                }
+                if (!selectedStatuses.includes('all') && selectedStatuses.length > 0) {
+                  params.set('statuses', selectedStatuses.join(','))
+                }
+                router.push(`/vision-board/export${params.toString() ? '?' + params.toString() : ''}`)
+              }}
+              className="flex items-center gap-2"
+              aria-label="Download PDF"
+            >
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">PDF</span>
             </Button>
           </div>
           <div className="flex-1 flex justify-end">
@@ -1403,7 +1904,8 @@ export default function VisionBoardPage() {
                     {column.map((item) => {
                       const isExpanded = expandedItemId === item.id
                       const isEditing = editingItemId === item.id
-                      const isOpen = isExpanded || isEditing
+                      const isOpen =
+                        (isExpanded || isEditing) && !(lightboxOpen && editingItemId === item.id)
 
                       if (boardMode === 'clean') {
                         const isSelected = selectedItemIds.has(item.id)
@@ -1488,7 +1990,11 @@ export default function VisionBoardPage() {
                             {!bulkMode && (
                               <>
                                 <button
-                                  onClick={() => toggleExpand(item.id)}
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    toggleExpand(item.id)
+                                  }}
                                   className={`p-1.5 rounded-full transition-colors ${
                                     isExpanded && !isEditing
                                       ? 'bg-[#39FF14]/20 text-[#39FF14]'
@@ -1499,7 +2005,12 @@ export default function VisionBoardPage() {
                                   {isExpanded && !isEditing ? <ChevronUp className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                 </button>
                                 <button
-                                  onClick={() => isEditing ? cancelEditing() : startEditing(item)}
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (isEditing) cancelEditing()
+                                    else startEditing(item)
+                                  }}
                                   className={`p-1.5 rounded-full transition-colors ${
                                     isEditing
                                       ? 'bg-[#39FF14]/20 text-[#39FF14]'
@@ -1520,7 +2031,7 @@ export default function VisionBoardPage() {
                             <div className="overflow-hidden min-h-0">
                               {isEditing && editFormData ? (
                                 <div className="px-4 pb-4 border-t border-neutral-700/50">
-                                  {renderInlineEditForm(item)}
+                                  {renderInlineEditForm(item, { layout: 'newStyle' })}
                                 </div>
                               ) : isExpanded ? (
                                 <div className="px-4 pb-4 border-t border-neutral-700/50">
@@ -1541,7 +2052,8 @@ export default function VisionBoardPage() {
                 {filteredItems.map((item) => {
                   const isExpanded = expandedItemId === item.id
                   const isEditing = editingItemId === item.id
-                  const isOpen = isExpanded || isEditing
+                  const isOpen =
+                    (isExpanded || isEditing) && !(lightboxOpen && editingItemId === item.id)
 
                   return (
                     <Card key={item.id} className={`transition-all duration-200 ${
@@ -1607,7 +2119,11 @@ export default function VisionBoardPage() {
                             {!bulkMode && (
                               <>
                                 <button
-                                  onClick={() => toggleExpand(item.id)}
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    toggleExpand(item.id)
+                                  }}
                                   className={`p-1.5 rounded-full transition-colors flex-shrink-0 ${
                                     isExpanded && !isEditing
                                       ? 'bg-[#39FF14]/20 text-[#39FF14]'
@@ -1621,7 +2137,12 @@ export default function VisionBoardPage() {
                                   }
                                 </button>
                                 <button
-                                  onClick={() => isEditing ? cancelEditing() : startEditing(item)}
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (isEditing) cancelEditing()
+                                    else startEditing(item)
+                                  }}
                                   className={`p-1.5 rounded-full transition-colors flex-shrink-0 ${
                                     isEditing
                                       ? 'bg-[#39FF14]/20 text-[#39FF14]'
@@ -1649,8 +2170,15 @@ export default function VisionBoardPage() {
                                 <div className="flex flex-wrap items-center gap-2">
                                   {item.categories.map((categoryKey: string) => {
                                     const categoryInfo = VISION_CATEGORIES.find(c => c.key === categoryKey)
+                                    const CategoryIcon = categoryInfo?.icon
                                     return (
-                                      <span key={categoryKey} className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full">
+                                      <span
+                                        key={categoryKey}
+                                        className="inline-flex items-center gap-1.5 text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full"
+                                      >
+                                        {CategoryIcon && (
+                                          <CategoryIcon className="w-3.5 h-3.5 shrink-0" aria-hidden />
+                                        )}
                                         {categoryInfo ? categoryInfo.label : categoryKey}
                                       </span>
                                     )
@@ -1669,7 +2197,7 @@ export default function VisionBoardPage() {
                         <div className="overflow-hidden min-h-0">
                           {isEditing && editFormData ? (
                             <div className="pt-2 border-t border-neutral-700/50 mt-3">
-                              {renderInlineEditForm(item)}
+                              {renderInlineEditForm(item, { layout: 'newStyle' })}
                             </div>
                           ) : isExpanded ? (
                             <div className="border-t border-neutral-700/50 mt-3">
@@ -1791,21 +2319,10 @@ export default function VisionBoardPage() {
 
               {editingItemId === currentItem.id && editFormData ? (
                 <div
-                  className="relative w-full md:w-[94vw] max-w-[700px] h-full md:max-h-[96vh] flex flex-row bg-neutral-900 rounded-2xl overflow-hidden shadow-2xl border border-neutral-700/50"
+                  className="relative w-full max-w-2xl md:max-w-3xl max-h-[96vh] overflow-y-auto px-3 pb-2 sm:px-4"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="flex-1 min-w-0 flex items-center justify-center bg-black/50">
-                    {imageUrl ? (
-                      <img src={imageUrl} alt={currentItem.name} className="max-w-full max-h-full object-contain" />
-                    ) : (
-                      <div className="w-full h-64 flex items-center justify-center">
-                        <Grid3X3 className="w-16 h-16 text-neutral-600" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="w-[420px] flex-shrink-0 border-l border-neutral-800 overflow-y-auto px-5 py-5">
-                    {renderInlineEditForm(currentItem)}
-                  </div>
+                  {renderInlineEditForm(currentItem, { layout: 'newStyle' })}
                 </div>
               ) : (
                 <div
@@ -1873,8 +2390,13 @@ export default function VisionBoardPage() {
                     <div className="flex flex-wrap items-center gap-2 pt-1">
                       {currentItem.categories && currentItem.categories.length > 0 && currentItem.categories.map((categoryKey: string) => {
                         const categoryInfo = VISION_CATEGORIES.find(c => c.key === categoryKey)
+                        const CategoryIcon = categoryInfo?.icon
                         return (
-                          <span key={categoryKey} className="text-xs bg-primary-500/20 text-primary-500 px-2.5 py-1 rounded-full">
+                          <span
+                            key={categoryKey}
+                            className="inline-flex items-center gap-1.5 text-xs bg-primary-500/20 text-primary-500 px-2.5 py-1 rounded-full"
+                          >
+                            {CategoryIcon && <CategoryIcon className="w-3.5 h-3.5 shrink-0" aria-hidden />}
                             {categoryInfo ? categoryInfo.label : categoryKey}
                           </span>
                         )
@@ -1890,13 +2412,27 @@ export default function VisionBoardPage() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 pt-1">
-                      <Button asChild variant="ghost" size="sm" className="text-xs w-full justify-center">
-                        <Link href={`/vision-board/${currentItem.id}/story`}>
-                          <BookOpen className="w-3.5 h-3.5 mr-1.5" />
-                          Stories
-                        </Link>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        className="text-xs w-full justify-center"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          initiateDelete(currentItem)
+                        }}
+                      >
+                        <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                        Delete
                       </Button>
-                      <Button variant="primary" size="sm" className="text-xs w-full justify-center" onClick={() => startEditing(currentItem)}>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        className="text-xs w-full justify-center"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          startEditing(currentItem)
+                        }}
+                      >
                         <Edit3 className="w-3.5 h-3.5 mr-1.5" />
                         Edit
                       </Button>
@@ -1989,7 +2525,7 @@ export default function VisionBoardPage() {
               >
                 {editingItemId === item.id && editFormData ? (
                   <div className="px-6 py-5">
-                    {renderInlineEditForm(item)}
+                    {renderInlineEditForm(item, { layout: 'newStyle' })}
                   </div>
                 ) : (
                   <>
@@ -2058,8 +2594,13 @@ export default function VisionBoardPage() {
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1">
                         {item.categories && item.categories.length > 0 && item.categories.map((categoryKey: string) => {
                           const categoryInfo = VISION_CATEGORIES.find(c => c.key === categoryKey)
+                          const CategoryIcon = categoryInfo?.icon
                           return (
-                            <span key={categoryKey} className="text-xs bg-primary-500/20 text-primary-500 px-2.5 py-1 rounded-full">
+                            <span
+                              key={categoryKey}
+                              className="inline-flex items-center gap-1.5 text-xs bg-primary-500/20 text-primary-500 px-2.5 py-1 rounded-full"
+                            >
+                              {CategoryIcon && <CategoryIcon className="w-3.5 h-3.5 shrink-0" aria-hidden />}
                               {categoryInfo ? categoryInfo.label : categoryKey}
                             </span>
                           )
@@ -2080,13 +2621,27 @@ export default function VisionBoardPage() {
                       </div>
 
                       <div className="grid grid-cols-2 gap-2 pt-1">
-                        <Button asChild variant="ghost" size="sm" className="w-full justify-center">
-                          <Link href={`/vision-board/${item.id}/story`}>
-                            <BookOpen className="w-4 h-4 mr-1.5" />
-                            Stories
-                          </Link>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          className="w-full justify-center"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            initiateDelete(item)
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4 mr-1.5" />
+                          Delete
                         </Button>
-                        <Button variant="primary" size="sm" className="w-full justify-center" onClick={() => initEditState(item)}>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          className="w-full justify-center"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            initEditState(item)
+                          }}
+                        >
                           <Edit3 className="w-4 h-4 mr-1.5" />
                           Edit
                         </Button>
@@ -2167,6 +2722,16 @@ export default function VisionBoardPage() {
           itemType="Creation"
           isLoading={deleting}
           loadingText="Deleting..."
+        />
+
+        <ImageLightbox
+          images={editImagePreview.images}
+          currentIndex={editImagePreview.index}
+          isOpen={editImagePreview.open}
+          onClose={closeEditImagePreview}
+          onNavigate={(i) => setEditImagePreview((p) => ({ ...p, index: i }))}
+          showCopyButton={false}
+          showThumbnails={editImagePreview.images.length > 1}
         />
       </Stack>
     </Container>
