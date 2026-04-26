@@ -256,7 +256,7 @@ export default function JournalPage() {
   }
 
   return (
-    <Container size="xl" className="py-6">
+    <Container size="xl">
       <Stack gap="lg">
         <PageHero
           title="Conscious Creation Journal"

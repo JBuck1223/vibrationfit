@@ -1,101 +1,195 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-import { Target, PenLine, Eye, Volume2, FileText, Download, Gem, Home } from 'lucide-react'
-import { usePathname } from 'next/navigation'
-import { AreaBar, AreaBarSecondaryTabStrip, type ContextOption } from '@/lib/design-system/components'
+import { useRouter, usePathname } from 'next/navigation'
+import { Target, PenLine, Eye, Download, HelpCircle, Users, Headphones, Plus, Edit3, Sparkles } from 'lucide-react'
+import { AreaBar, type AreaBarContextNavItem, type AreaBarVersionSelector } from '@/lib/design-system/components'
+import { createClient } from '@/lib/supabase/client'
 import { useLifeVisionStudio } from './LifeVisionStudioContext'
 
+const VOICE_DISPLAY_NAMES: Record<string, string> = {
+  alloy: 'Alloy', shimmer: 'Shimmer', ash: 'Ash', coral: 'Coral',
+  echo: 'Echo', fable: 'Fable', onyx: 'Onyx', nova: 'Nova', sage: 'Sage',
+}
+
 const TABS = [
-  { label: 'My Visions', path: '/life-vision', icon: Eye },
+  { label: 'View', path: '/life-vision', icon: Eye },
   { label: 'Create', path: '/life-vision/create', icon: PenLine },
 ]
 
 const CREATE_AREA_ROUTES = [
   '/life-vision/create',
-  '/life-vision/new',
+  '/life-vision/new/assembly',
+  '/life-vision/new/category',
   '/life-vision/manual',
   '/life-vision/refine',
   '/life-vision/refinements',
 ]
 
-const ACTIVE_VISION_ACTIONS = [
-  { label: 'Audio Tracks', path: 'audio', icon: Volume2 },
-  { label: 'Stories', path: '/story', icon: FileText, absolute: true },
-  { label: 'Download PDF', path: 'print', icon: Download },
-  { label: 'Refine', path: 'refine', icon: Gem },
-]
-
-const DRAFT_VISION_ACTIONS = [
-  { label: 'View Active', path: '/life-vision/active', icon: Eye, absolute: true },
-  { label: 'Continue Refining', path: 'refine', icon: Gem },
-]
-
-function VisionDetailSecondaryNav({ visionId, isDraft }: { visionId: string; isDraft: boolean }) {
-  const pathname = usePathname()
-  const actions = isDraft ? DRAFT_VISION_ACTIONS : ACTIVE_VISION_ACTIONS
-
-  const items = actions.map((action) => {
-    const href = action.absolute ? action.path : `/life-vision/${visionId}/${action.path}`
-    const isActive = pathname === href || pathname.startsWith(href + '/')
-    return {
-      key: action.label,
-      href,
-      label: action.label,
-      icon: action.icon,
-      isActive,
-    }
-  })
-
-  return (
-    <AreaBarSecondaryTabStrip
-      aria-label="Vision quick actions"
-      items={items}
-    />
-  )
-}
-
 export function LifeVisionAreaBar() {
   const pathname = usePathname()
   const router = useRouter()
-  const { visions } = useLifeVisionStudio()
+  const { visions, activeVisionId, draftId, audioSets, selectedAudioSetId, setSelectedAudioSetId } = useLifeVisionStudio()
 
   const isVisionList = pathname === '/life-vision' || pathname === '/life-vision/'
+  const isHowItWorks = pathname === '/life-vision/new' || pathname === '/life-vision/new/'
+  const isPrintPage = /^\/life-vision\/[^/]+\/print/.test(pathname)
   const isHousehold = pathname.startsWith('/life-vision/household')
   const isCreateArea = CREATE_AREA_ROUTES.some(r => pathname === r || pathname.startsWith(r + '/'))
+    || /^\/life-vision\/[^/]+\/refine/.test(pathname)
+    || /^\/life-vision\/[^/]+\/draft/.test(pathname)
 
   const isVisionDetail = !isVisionList
     && !isHousehold
     && !isCreateArea
+    && !isHowItWorks
+    && !isPrintPage
     && pathname !== '/life-vision/active'
     && /^\/life-vision\/[^/]+/.test(pathname)
     && !pathname.startsWith('/life-vision/audio')
 
-  let contextSelector: { label: string; options: ContextOption[]; selectedId: string; onSelect: (id: string) => void } | undefined
-  let contextBar: React.ReactNode = undefined
+  const isViewOverview = isVisionList || isHowItWorks || isPrintPage || isVisionDetail
 
-  if (isVisionDetail) {
-    const segments = pathname.split('/')
-    const visionId = segments[2] || ''
-    if (/^[a-f0-9-]{36}$/.test(visionId)) {
+  let versionSelectors: AreaBarVersionSelector[] | undefined
+  let contextNav: AreaBarContextNavItem[] | undefined
+  let contextText: string | undefined
+
+  if (isViewOverview) {
+    const detailVisionId = isVisionDetail ? pathname.split('/')[2] : undefined
+    const printVisionId = isPrintPage ? pathname.split('/')[2] : activeVisionId
+    const pdfVisionId = detailVisionId || printVisionId
+    const pdfPath = pdfVisionId ? `/life-vision/${pdfVisionId}/print` : undefined
+
+    contextNav = [
+      { label: 'My Visions', path: '/life-vision', icon: Target, isActive: isVisionList || isVisionDetail },
+      { label: 'How It Works', path: '/life-vision/new', icon: HelpCircle, isActive: isHowItWorks },
+      ...(pdfPath ? [{ label: 'Download PDF', path: pdfPath, icon: Download, isActive: isPrintPage }] : []),
+    ]
+
+    if (isPrintPage) {
+      contextText = 'Preview and download a printable PDF of your Life Vision.'
+
       const nonDraftVisions = visions.filter(v => !v.is_draft)
-      const currentVision = visions.find(v => v.id === visionId)
-      const isDraft = currentVision?.is_draft ?? false
-
-      contextSelector = {
-        label: 'Vision',
-        options: nonDraftVisions.map(v => ({
-          id: v.id,
-          label: `Version ${v.version_number}${v.household_id ? ' (Household)' : ''}`,
-          sublabel: new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-          badge: v.is_active ? 'Active' : undefined,
-          isActive: v.is_active,
-        })),
-        selectedId: visionId,
-        onSelect: (id: string) => router.push(`/life-vision/${id}`),
+      if (nonDraftVisions.length > 0) {
+        versionSelectors = [{
+          id: 'vision-version',
+          label: 'Vision',
+          position: 'contextRow',
+          options: nonDraftVisions.map(v => ({
+            id: v.id,
+            label: `Version ${v.version_number}`,
+            sublabel: new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            badge: v.is_active ? 'Active' : undefined,
+            isActive: v.is_active,
+            icon: v.household_id ? Users : undefined,
+            iconPosition: v.household_id ? 'right' as const : undefined,
+          })),
+          selectedId: printVisionId || nonDraftVisions[0].id,
+          onSelect: (id: string) => router.push(`/life-vision/${id}/print`),
+        }]
       }
+    } else if (isHowItWorks) {
+      contextText = 'Learn how the Life Vision process works.'
+    } else {
+      contextText = 'Read or listen to your Life Vision.'
 
-      contextBar = <VisionDetailSecondaryNav visionId={visionId} isDraft={isDraft} />
+      const nonDraftVisions = visions.filter(v => !v.is_draft)
+      const selectedVisionId = detailVisionId || activeVisionId || nonDraftVisions[0]?.id
+      if (nonDraftVisions.length > 0) {
+        const visionSelector: AreaBarVersionSelector = {
+          id: 'vision-version',
+          label: 'Vision',
+          position: 'contextRow',
+          options: nonDraftVisions.map(v => ({
+            id: v.id,
+            label: `Version ${v.version_number}`,
+            sublabel: new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            badge: v.is_active ? 'Active' : undefined,
+            isActive: v.is_active,
+            icon: v.household_id ? Users : undefined,
+            iconPosition: v.household_id ? 'right' as const : undefined,
+          })),
+          selectedId: selectedVisionId || nonDraftVisions[0].id,
+          onSelect: (id: string) => router.push(`/life-vision/${id}`),
+        }
+
+        if (isVisionDetail && audioSets.length > 0) {
+          const audioSelector: AreaBarVersionSelector = {
+            id: 'audio-set',
+            label: 'Audio',
+            icon: Headphones,
+            position: 'contextRow',
+            options: [
+              { id: '__newest__', label: 'Newest Per Section' },
+              ...audioSets.map(s => ({
+                id: s.id,
+                label: s.name,
+                sublabel: `${s.track_count} tracks · ${s.variant === 'personal' ? 'Personal' : VOICE_DISPLAY_NAMES[s.voice_id] || s.voice_id}`,
+              })),
+              { id: '__none__', label: 'No Audio' },
+            ],
+            selectedId: selectedAudioSetId === null ? '__newest__' : (selectedAudioSetId || '__newest__'),
+            onSelect: (id: string) => {
+              if (id === '__newest__') setSelectedAudioSetId(null)
+              else if (id === '__none__') setSelectedAudioSetId('none')
+              else setSelectedAudioSetId(id)
+            },
+          }
+          versionSelectors = [visionSelector, audioSelector]
+        } else {
+          versionSelectors = [visionSelector]
+        }
+      }
+    }
+  } else if (isCreateArea) {
+    const isStartNew = CREATE_AREA_ROUTES.some(r =>
+      (r === '/life-vision/new/assembly' || r === '/life-vision/new/category')
+      && (pathname === r || pathname.startsWith(r + '/'))
+    )
+    const isRefine = /^\/life-vision\/[^/]+\/refine/.test(pathname)
+      || pathname.startsWith('/life-vision/refine')
+      || pathname.startsWith('/life-vision/refinements')
+    const isEdit = /^\/life-vision\/[^/]+\/draft/.test(pathname)
+      || pathname.startsWith('/life-vision/manual')
+    const isCreateLanding = pathname === '/life-vision/create' || pathname === '/life-vision/create/'
+
+    const handleRefine = () => {
+      if (draftId) { router.push(`/life-vision/${draftId}/refine`); return }
+      if (activeVisionId) { router.push(`/life-vision/${activeVisionId}/refine`); return }
+      router.push('/life-vision/refine/new')
+    }
+
+    const handleEdit = async () => {
+      if (draftId) { router.push(`/life-vision/${draftId}/draft`); return }
+      if (activeVisionId) {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const { data: existingDraft } = await supabase
+          .from('vision_versions')
+          .select('id')
+          .eq('parent_id', activeVisionId)
+          .eq('is_draft', true)
+          .eq('user_id', user.id)
+          .maybeSingle()
+        if (existingDraft) { router.push(`/life-vision/${existingDraft.id}/draft`); return }
+        router.push(`/life-vision/${activeVisionId}/refine`)
+        return
+      }
+      router.push('/life-vision/manual')
+    }
+
+    contextNav = [
+      { label: 'Start New', path: '/life-vision/new', icon: Plus, isActive: isStartNew },
+      { label: 'Refine', icon: Sparkles, isActive: isRefine || isCreateLanding, onClick: handleRefine },
+      { label: 'Edit', icon: Edit3, isActive: isEdit, onClick: handleEdit },
+    ]
+
+    if (isStartNew) {
+      contextText = 'Build a new Life Vision from scratch with VIVA guiding you through each category.'
+    } else if (isRefine || isCreateLanding) {
+      contextText = 'Have a conversation with VIVA to elevate your vision through guided refinement.'
+    } else if (isEdit) {
+      contextText = 'Make direct edits to your vision categories in the draft editor.'
     }
   }
 
@@ -105,9 +199,10 @@ export function LifeVisionAreaBar() {
     <AreaBar
       area={{ name: 'Life Vision', icon: Target }}
       tabs={TABS}
-      contextSelector={contextSelector}
-      contextBar={contextBar}
-      keepTabActive={!isOnCreateSubPage && !isVisionDetail}
+      contextNav={contextNav}
+      contextText={contextText}
+      versionSelectors={versionSelectors}
+      keepTabActive={!isOnCreateSubPage}
       activeParentPath={isOnCreateSubPage ? '/life-vision/create' : undefined}
       variant="default"
       appLikePrimaryTabs

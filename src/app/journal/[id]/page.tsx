@@ -360,11 +360,11 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
 
   if (!entry) {
     return (
-      <>
+      <Container>
         <div className="text-center py-16">
           <div className="text-neutral-400">Entry not found</div>
         </div>
-      </>
+      </Container>
     )
   }
 

@@ -14,12 +14,24 @@ interface VisionVersion {
   title?: string
 }
 
+export interface AudioSetOption {
+  id: string
+  name: string
+  variant: string
+  voice_id: string
+  track_count: number
+}
+
 interface LifeVisionStudioContextValue {
   visions: VisionVersion[]
   loading: boolean
   activeVisionId: string | null
   draftId: string | null
   refreshVisions: () => Promise<void>
+  audioSets: AudioSetOption[]
+  setAudioSets: (sets: AudioSetOption[]) => void
+  selectedAudioSetId: string | null
+  setSelectedAudioSetId: (id: string | null) => void
 }
 
 const LifeVisionStudioContext = createContext<LifeVisionStudioContextValue | null>(null)
@@ -33,6 +45,8 @@ export function useLifeVisionStudio() {
 export function LifeVisionStudioProvider({ children }: { children: React.ReactNode }) {
   const [visions, setVisions] = useState<VisionVersion[]>([])
   const [loading, setLoading] = useState(true)
+  const [audioSets, setAudioSets] = useState<AudioSetOption[]>([])
+  const [selectedAudioSetId, setSelectedAudioSetId] = useState<string | null>(null)
 
   const loadVisions = useCallback(async () => {
     const supabase = createClient()
@@ -76,6 +90,10 @@ export function LifeVisionStudioProvider({ children }: { children: React.ReactNo
         activeVisionId,
         draftId,
         refreshVisions: loadVisions,
+        audioSets,
+        setAudioSets,
+        selectedAudioSetId,
+        setSelectedAudioSetId,
       }}
     >
       {children}

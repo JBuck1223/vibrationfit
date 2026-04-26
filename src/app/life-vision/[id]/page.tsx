@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Save, CheckCircle, Circle, Edit3, History, Sparkles, Trash2, Download, VolumeX, Gem, Check, Eye, FileText, ArrowUp, CalendarDays, Headphones, Moon, Zap, Music, Mic } from 'lucide-react'
+import { Save, CheckCircle, Circle, Edit3, History, Sparkles, Trash2, Download, Gem, Eye, FileText, ArrowUp, Headphones, Moon, Zap, Music, Mic } from 'lucide-react'
 import { commitDraft, getRefinedCategories } from '@/lib/life-vision/draft-helpers'
 import { 
   Button, 
@@ -20,13 +20,8 @@ import {
   Container,
   Stack,
   Inline,
-  StatusBadge,
-  VersionBadge,
   Heading,
   Text,
-  PageTitles,
-  CategoryGrid,
-  PageHero,
   WarningConfirmationDialog
 } from '@/lib/design-system/components'
 import { VersionCard } from '@/app/profile/components/VersionCard'
@@ -36,6 +31,7 @@ import { CategoryCard } from '@/lib/design-system'
 import { VISION_CATEGORIES, assessmentToVisionKey } from '@/lib/design-system/vision-categories'
 import { colors } from '@/lib/design-system/tokens'
 import { generateVisionPDF } from '@/lib/pdf'
+import { useLifeVisionStudio } from '@/components/life-vision-studio/LifeVisionStudioContext'
 
 interface VisionData {
   id: string
@@ -94,6 +90,7 @@ const VISION_SECTIONS = VISION_CATEGORIES
 export default function VisionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
   const supabase = createClient()
+  const { setAudioSets: setContextAudioSets, selectedAudioSetId, setSelectedAudioSetId } = useLifeVisionStudio()
   
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -113,8 +110,6 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   const [editingContent, setEditingContent] = useState('')
   const [audioTracks, setAudioTracks] = useState<Record<string, { id: string; url: string; title: string; setName?: string; voiceName?: string }>>({})
   const [availableAudioSets, setAvailableAudioSets] = useState<AudioSetOption[]>([])
-  const [selectedAudioSetId, setSelectedAudioSetId] = useState<string | null>(null) // null = "best per section"
-  const [isAudioDropdownOpen, setIsAudioDropdownOpen] = useState(false)
   const [userProfile, setUserProfile] = useState<{ first_name?: string; full_name?: string } | null>(null)
   const [isCommitting, setIsCommitting] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -232,6 +227,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
 
       if (!sets || sets.length === 0) {
         setAvailableAudioSets([])
+        setContextAudioSets([])
         return
       }
 
@@ -268,7 +264,9 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         } as AudioSetOption
       }))
 
-      setAvailableAudioSets(setsWithCounts.filter(s => s.track_count > 0))
+      const filtered = setsWithCounts.filter(s => s.track_count > 0)
+      setAvailableAudioSets(filtered)
+      setContextAudioSets(filtered)
     } catch (error) {
       console.error('Error loading audio sets:', error)
     }
@@ -371,46 +369,6 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     } catch (error) {
       console.error('Error loading audio tracks:', error)
     }
-  }
-
-  const handleAudioSetChange = async (audioSetId: string | null) => {
-    setSelectedAudioSetId(audioSetId)
-    setIsAudioDropdownOpen(false)
-    if (vision) {
-      await loadAudioTracks(vision.id, audioSetId)
-    }
-  }
-
-  const getSetIcon = (set: AudioSetOption) => {
-    if (set.variant === 'personal') return <Mic className="w-5 h-5" />
-
-    let voiceVolume = 100
-    let bgVolume = 0
-    if (set.mixRatio) {
-      const m = set.mixRatio.match(/(\d+)%\s*\/\s*(\d+)%/)
-      if (m) { voiceVolume = parseInt(m[1]); bgVolume = parseInt(m[2]) }
-    }
-
-    if (bgVolume === 0 || set.variant === 'standard') return <Headphones className="w-5 h-5" />
-    if (voiceVolume <= 30) return <Moon className="w-5 h-5" />
-    if (voiceVolume >= 40 && voiceVolume <= 60) return <Sparkles className="w-5 h-5" />
-    return <Zap className="w-5 h-5" />
-  }
-
-  const getSetColor = (set: AudioSetOption) => {
-    if (set.variant === 'personal') return 'bg-secondary-500/20 text-secondary-500'
-
-    let voiceVolume = 100
-    let bgVolume = 0
-    if (set.mixRatio) {
-      const m = set.mixRatio.match(/(\d+)%\s*\/\s*(\d+)%/)
-      if (m) { voiceVolume = parseInt(m[1]); bgVolume = parseInt(m[2]) }
-    }
-
-    if (bgVolume === 0 || set.variant === 'standard') return 'bg-primary-500/20 text-primary-500'
-    if (voiceVolume <= 30) return 'bg-blue-500/20 text-blue-400'
-    if (voiceVolume >= 40 && voiceVolume <= 60) return 'bg-purple-500/20 text-purple-400'
-    return 'bg-yellow-500/20 text-yellow-400'
   }
 
   // Load vision data
@@ -542,6 +500,18 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
       isMounted = false
     }
   }, [params, router, supabase, calculateCompletion, getCompletedSections])
+
+  // Reload audio tracks when the AreaBar audio set selector changes
+  useEffect(() => {
+    if (!vision) return
+    const effectiveId = selectedAudioSetId === 'none' ? undefined : (selectedAudioSetId ?? undefined)
+    if (selectedAudioSetId === 'none') {
+      setAudioTracks({})
+    } else {
+      loadAudioTracks(vision.id, effectiveId)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAudioSetId, vision?.id])
 
   // Fetch specific version (kept for backwards compatibility, but versions now navigate directly)
   const fetchVisionVersion = async (versionId: string) => {
@@ -871,55 +841,34 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   const displayStatus = getDisplayStatus()
 
   return (
-    <Container size="xl" className="py-6">
-      <Stack gap="lg">
-        {/* Header */}
-        <PageHero
-          eyebrow={vision.household_id ? "THE LIFE WE CHOOSE" : "THE LIFE I CHOOSE"}
-          title={displayStatus === 'draft' ? 'Refine Life Vision' : (vision.household_id ? 'The Life We Choose' : 'The Life I Choose')}
-          subtitle={displayStatus === 'draft' ? 'Refined categories will show in yellow. Once you are happy with your refinement(s), click "Commit as Active Vision".' : undefined}
-        >
-          {/* Version Info Badges */}
-          <div className="text-center">
-            <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-              <VersionBadge 
-                versionNumber={vision.version_number} 
-                status={displayStatus}
-                isHouseholdVision={!!vision.household_id}
-              />
-              <StatusBadge status={displayStatus} subtle={displayStatus !== 'active'} className="uppercase tracking-[0.25em]" />
-              <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
-                <CalendarDays className="w-4 h-4 text-neutral-500" />
-                <span className="font-medium">Created:</span>
-                <span>{new Date(vision.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-              </div>
-            </div>
-          </div>
-
-          {displayStatus === 'draft' && (
-            <div className="flex justify-center">
-              <Button
-                onClick={commitDraftAsActive}
-                disabled={isCommitting || getRefinedCategories(vision).length === 0}
-                variant="primary"
-                size="sm"
-                className="flex items-center justify-center gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-              >
-                {isCommitting ? (
-                  <>
-                    <Spinner variant="primary" size="sm" />
-                    <span>Committing...</span>
-                  </>
-                ) : (
-                  <>
-                    <Icon icon={CheckCircle} size="sm" className="shrink-0" />
-                    <span>Commit as Active Vision</span>
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
-        </PageHero>
+    <div className="pb-6">
+      <Stack gap="md">
+        {displayStatus === 'draft' && (
+          <Card className="p-4 text-center">
+            <p className="text-sm text-neutral-400 mb-3">
+              Refined categories will show in yellow. Once you are happy with your refinement(s), commit as your active vision.
+            </p>
+            <Button
+              onClick={commitDraftAsActive}
+              disabled={isCommitting || getRefinedCategories(vision).length === 0}
+              variant="primary"
+              size="sm"
+              className="flex items-center justify-center gap-2 mx-auto text-xs md:text-sm"
+            >
+              {isCommitting ? (
+                <>
+                  <Spinner variant="primary" size="sm" />
+                  <span>Committing...</span>
+                </>
+              ) : (
+                <>
+                  <Icon icon={CheckCircle} size="sm" className="shrink-0" />
+                  <span>Commit as Active Vision</span>
+                </>
+              )}
+            </Button>
+          </Card>
+        )}
 
         {/* Versions Dropdown */}
         {showVersions && (
@@ -1014,156 +963,46 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
             </Card>
           )}
 
-        {/* Compact Category Selection */}
-        <Card className="p-4">
-                <div className="text-center mb-4">
-                    <h3 className="text-lg font-semibold text-white">Select Life Areas</h3>
-                    <p className="text-sm text-neutral-400">
-                      Showing {selectedCategories.length} of {VISION_SECTIONS.length}
-                    </p>
-                </div>
+        {/* Category Filter Strip */}
+        <div>
+          <div className="flex items-center justify-between mb-1.5 md:hidden px-1">
+            <span className="text-[10px] uppercase tracking-wide text-neutral-500">Life Areas</span>
+            <span className="text-[10px] text-neutral-600">Scroll to see all &rarr;</span>
+          </div>
+          <div className="flex items-center md:justify-center gap-2 overflow-x-auto pb-1 px-1 scrollbar-hide">
+            <button
+              type="button"
+              onClick={handleSelectAll}
+              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                selectedCategories.length === VISION_SECTIONS.length
+                  ? 'bg-primary-500/20 border-primary-500/50 text-primary-400'
+                  : 'bg-neutral-900 border-neutral-700 text-neutral-400 hover:border-neutral-500'
+              }`}
+            >
+              All
+            </button>
+            {VISION_SECTIONS.map(cat => {
+              const CatIcon = cat.icon
+              const isSelected = selectedCategories.includes(cat.key)
+              return (
+                <button
+                  key={cat.key}
+                  type="button"
+                  onClick={() => handleCategoryToggle(cat.key)}
+                  className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                    isSelected
+                      ? 'bg-white/10 border-white/20 text-white'
+                      : 'bg-neutral-900 border-neutral-800 text-neutral-500 hover:border-neutral-600 hover:text-neutral-300'
+                  }`}
+                >
+                  <CatIcon className="w-3.5 h-3.5" />
+                  {cat.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
 
-                {/* Category Grid */}
-                <CategoryGrid
-                  categories={VISION_SECTIONS}
-                  selectedCategories={selectedCategories}
-                  onCategoryClick={handleCategoryToggle}
-                  layout="14-column"
-                  mode="selection"
-                  showSelectAll
-                  onSelectAll={handleSelectAll}
-                  variant="outlined"
-                  withCard={false}
-                />
-        </Card>
-
-        {/* Audio Set Selector */}
-        {availableAudioSets.length > 0 && (
-          <Card className="p-4">
-            <div className="text-center mb-3">
-              <h3 className="text-lg font-semibold text-white">Attached Audio</h3>
-              <p className="text-sm text-neutral-400">{availableAudioSets.length} {availableAudioSets.length === 1 ? 'set' : 'sets'} available</p>
-            </div>
-
-            <div className="relative max-w-xl mx-auto">
-              <button
-                type="button"
-                onClick={() => setIsAudioDropdownOpen(!isAudioDropdownOpen)}
-                className="w-full px-4 py-2.5 rounded-full bg-[#1F1F1F] text-white border-2 border-[#333] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer flex items-center justify-between"
-              >
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  {selectedAudioSetId === null ? (
-                    <>
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary-500/20 text-primary-500">
-                        <Music className="w-4 h-4" />
-                      </div>
-                      <div className="text-left flex-1 min-w-0">
-                        <div className="font-medium text-sm truncate">Newest Per Section</div>
-                        <div className="text-xs text-neutral-500">Most recent track for each category</div>
-                      </div>
-                    </>
-                  ) : (
-                    (() => {
-                      const set = availableAudioSets.find(s => s.id === selectedAudioSetId)
-                      if (!set) return <span className="text-neutral-400">Select audio set...</span>
-                      return (
-                        <>
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${getSetColor(set)}`}>
-                            {getSetIcon(set)}
-                          </div>
-                          <div className="text-left flex-1 min-w-0">
-                            <div className="font-medium text-sm truncate">{set.name}</div>
-                            <div className="text-xs text-neutral-500">{set.track_count} tracks</div>
-                          </div>
-                        </>
-                      )
-                    })()
-                  )}
-                </div>
-                <svg className={`w-4 h-4 text-neutral-400 transition-transform flex-shrink-0 ml-2 ${isAudioDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-
-              {isAudioDropdownOpen && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setIsAudioDropdownOpen(false)} />
-                  <div className="absolute z-20 w-full mt-2 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-[50vh] overflow-y-auto">
-                    {/* Best Per Section option */}
-                    <div
-                      onClick={() => handleAudioSetChange(null)}
-                      className={`px-4 py-3 hover:bg-[#2A2A2A] cursor-pointer transition-colors border-b border-[#333] ${selectedAudioSetId === null ? 'bg-primary-500/10' : ''}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary-500/20 text-primary-500">
-                          <Music className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm text-white">Newest Per Section</div>
-                          <div className="text-xs text-neutral-500">Most recent track for each category across all voice sets</div>
-                        </div>
-                        {selectedAudioSetId === null && (
-                          <Check className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Individual audio sets */}
-                    {availableAudioSets.map((set) => (
-                      <div
-                        key={set.id}
-                        onClick={() => handleAudioSetChange(set.id)}
-                        className={`px-4 py-3 hover:bg-[#2A2A2A] cursor-pointer transition-colors border-b border-[#333] last:border-b-0 ${selectedAudioSetId === set.id ? 'bg-primary-500/10' : ''}`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${getSetColor(set)}`}>
-                            {getSetIcon(set)}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm text-white truncate">{set.name}</div>
-                            <div className="text-xs text-neutral-500 space-x-2">
-                              <span>{set.track_count} tracks</span>
-                              <span>·</span>
-                              <span>{set.variant === 'personal' ? 'Personal Recording' : VOICE_DISPLAY_NAMES[set.voice_id] || set.voice_id}</span>
-                              {set.backgroundTrack && (
-                                <>
-                                  <span>·</span>
-                                  <span>{set.backgroundTrack}</span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                          {selectedAudioSetId === set.id && (
-                            <Check className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                          )}
-                        </div>
-                      </div>
-                    ))}
-
-                    {/* No audio link */}
-                    <div
-                      onClick={() => { setAudioTracks({}); setSelectedAudioSetId('none'); setIsAudioDropdownOpen(false) }}
-                      className={`px-4 py-3 hover:bg-[#2A2A2A] cursor-pointer transition-colors ${selectedAudioSetId === 'none' ? 'bg-primary-500/10' : ''}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-neutral-700/50 text-neutral-500">
-                          <VolumeX className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm text-neutral-400">No Audio</div>
-                          <div className="text-xs text-neutral-600">Hide audio players from categories</div>
-                        </div>
-                        {selectedAudioSetId === 'none' && (
-                          <Check className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </Card>
-        )}
 
         {/* Vision Cards */}
         {selectedCategories.length > 0 ? (
@@ -1190,19 +1029,16 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                   onEditCategory={handleEditCategory}
                   vision={vision}
                   audioTrack={audioTracks[categoryKey]}
-                  editable={!isViewingVersion}
+                  editable={false}
                   isRefined={isRefined}
                 />
               )
             })}
           </>
         ) : (
-          <Card className="p-8 text-center">
-            <p className="text-neutral-400 mb-4">Select categories above to view your life vision</p>
-            <Button onClick={handleSelectAll} variant="primary">
-              Select All Categories
-            </Button>
-          </Card>
+          <div className="text-center py-8 text-neutral-500 text-sm">
+            Tap a category above to view it.
+          </div>
         )}
 
         {/* Navigation */}
@@ -1243,6 +1079,6 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
           isLoading={!!deletingVersion}
         />
       </Stack>
-    </Container>
+    </div>
   )
 }

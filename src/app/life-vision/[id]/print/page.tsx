@@ -6,18 +6,8 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Download, Palette, RefreshCw, Loader2, Home, CalendarDays } from 'lucide-react'
-import { Button, VersionBadge, StatusBadge } from '@/lib/design-system/components'
-import { createClient } from '@/lib/supabase/client'
-
-interface VisionInfo {
-  id: string
-  household_id?: string | null
-  version_number: number
-  is_active: boolean
-  is_draft: boolean
-  created_at: string
-}
+import { Download, RefreshCw, Loader2 } from 'lucide-react'
+import { Button } from '@/lib/design-system/components'
 
 export default function PrintPreviewPage() {
   const params = useParams()
@@ -30,58 +20,6 @@ export default function PrintPreviewPage() {
   })
   const [iframeUrl, setIframeUrl] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
-  const [visionInfo, setVisionInfo] = useState<VisionInfo | null>(null)
-  const [loadingVisionInfo, setLoadingVisionInfo] = useState(true)
-
-  useEffect(() => {
-    // Fetch vision info
-    async function fetchVisionInfo() {
-      try {
-        setLoadingVisionInfo(true)
-        const supabase = createClient()
-        
-        console.log('[Print Page] Fetching vision:', visionId)
-        
-        const { data: vision, error } = await supabase
-          .from('vision_versions')
-          .select('id, household_id, is_active, is_draft, created_at')
-          .eq('id', visionId)
-          .single()
-        
-        console.log('[Print Page] Vision fetch result:', { 
-          success: !!vision, 
-          household_id: vision?.household_id,
-          error: error?.message 
-        })
-        
-        if (vision) {
-          // Get calculated version number
-          const { data: versionNumber, error: versionError } = await supabase
-            .rpc('get_vision_version_number', { p_vision_id: vision.id })
-          
-          console.log('[Print Page] Version number:', versionNumber, 'error:', versionError)
-          
-          const visionData = {
-            ...vision,
-            version_number: versionNumber || 1
-          }
-          
-          console.log('[Print Page] Setting vision info:', visionData)
-          setVisionInfo(visionData)
-        } else {
-          console.error('[Print Page] No vision data returned')
-        }
-      } catch (err) {
-        console.error('[Print Page] Error fetching vision:', err)
-      } finally {
-        setLoadingVisionInfo(false)
-      }
-    }
-    
-    if (visionId) {
-      fetchVisionInfo()
-    }
-  }, [visionId])
 
   useEffect(() => {
     // Build API URL with color parameters for preview
@@ -195,41 +133,80 @@ export default function PrintPreviewPage() {
     setColors(colorPresets[preset])
   }
 
+  const presetEntries: { key: keyof typeof colorPresets; label: string }[] = [
+    { key: 'default', label: 'B&W' },
+    { key: 'purple', label: 'Purple' },
+    { key: 'cyan', label: 'Cyan' },
+    { key: 'forestGreen', label: 'Green' },
+  ]
+
+  const colorFields: { key: keyof typeof colors; label: string }[] = [
+    { key: 'primary', label: 'Title' },
+    { key: 'accent', label: 'Lines' },
+    { key: 'text', label: 'Text' },
+    { key: 'background', label: 'Background' },
+  ]
+
   return (
-    <div className="min-h-screen">
+    <div className="flex flex-col">
       {/* Toolbar */}
-      <div className="sticky top-0 z-10 bg-neutral-800 border-b border-neutral-700 px-4 py-6 lg:py-8">
-        <div className="max-w-7xl mx-auto flex flex-col items-center justify-center gap-4">
-          <h1 className="text-xl lg:text-2xl font-bold text-white">PDF Preview & Editor</h1>
-          
-          {/* Vision Info */}
-          {loadingVisionInfo ? (
-            <div className="text-neutral-400 text-sm">Loading vision info...</div>
-          ) : visionInfo ? (
-            <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-              <VersionBadge 
-                versionNumber={visionInfo.version_number} 
-                status={visionInfo.is_active ? 'active' : visionInfo.is_draft ? 'draft' : 'complete'}
-                isHouseholdVision={!!visionInfo.household_id}
-              />
-              <StatusBadge 
-                status={visionInfo.is_active ? 'active' : visionInfo.is_draft ? 'draft' : 'complete'}
-                subtle={!visionInfo.is_active}
-                className="uppercase tracking-[0.25em]"
-              />
-              <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
-                <CalendarDays className="w-4 h-4 text-neutral-500" />
-                <span className="font-medium">Created:</span>
-                <span>{new Date(visionInfo.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-              </div>
-            </div>
-          ) : (
-            <div className="text-neutral-500 text-sm">Vision info unavailable</div>
-          )}
-          
+      <div className="rounded-2xl border-2 border-[#333] bg-[#1F1F1F] p-3 md:p-4 mb-6">
+        <div className="flex flex-wrap items-center gap-3 md:gap-4">
+          {/* Presets */}
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-medium uppercase tracking-wider text-neutral-500 mr-1">Theme</span>
+            {presetEntries.map(({ key, label }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => applyPreset(key)}
+                title={label}
+                className="group"
+              >
+                <div
+                  className="w-7 h-7 rounded-full border border-neutral-600 group-hover:border-neutral-400 transition-colors"
+                  style={{ backgroundColor: colorPresets[key].primary }}
+                />
+              </button>
+            ))}
+          </div>
+
+          <div className="w-px h-6 bg-neutral-700 hidden sm:block" />
+
+          {/* Custom Colors */}
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] font-medium uppercase tracking-wider text-neutral-500 mr-1">Custom</span>
+            {colorFields.map(({ key, label }) => (
+              <label key={key} className="flex items-center gap-1.5 cursor-pointer" title={label}>
+                <input
+                  type="color"
+                  value={colors[key]}
+                  onChange={(e) => updateColor(key, e.target.value)}
+                  className="w-7 h-7 rounded-full cursor-pointer border border-neutral-600 hover:border-neutral-400 bg-transparent p-0 transition-colors [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-0"
+                />
+                <span className="text-[11px] text-neutral-500 hidden md:inline">{label}</span>
+              </label>
+            ))}
+          </div>
+
+          <div className="w-px h-6 bg-neutral-700 hidden sm:block" />
+
+          {/* Reset */}
+          <button
+            type="button"
+            onClick={() => setColors({ primary: '#000000', accent: '#9CA3AF', text: '#1F1F1F', background: '#FFFFFF' })}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-neutral-500 hover:text-neutral-300 hover:bg-white/5 transition-colors"
+          >
+            <RefreshCw className="w-3 h-3" />
+            <span className="hidden sm:inline">Reset</span>
+          </button>
+
+          {/* Spacer + Download */}
+          <div className="flex-1" />
           <Button
             onClick={handleDownload}
             variant="primary"
+            size="sm"
             className="flex items-center gap-2"
             disabled={isGenerating}
           >
@@ -248,201 +225,24 @@ export default function PrintPreviewPage() {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row">
-        {/* Color Picker Sidebar */}
-        <div className="w-full lg:w-80 bg-neutral-800 border-r-0 lg:border-r border-b lg:border-b-0 border-neutral-700 p-4 lg:p-6 overflow-y-auto h-auto lg:h-[calc(100vh-73px)]">
-          <div className="flex items-center gap-2 mb-6">
-            <Palette className="w-5 h-5 text-neutral-500" />
-            <h2 className="text-lg font-semibold text-white">Color Theme</h2>
-          </div>
-
-          {/* Color Presets */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-neutral-300 mb-3">
-              Quick Presets
-            </label>
-            <div className="grid grid-cols-1 gap-2">
-              <Button
-                onClick={() => applyPreset('default')}
-                variant="outline"
-                size="sm"
-                className="w-full justify-start border-neutral-600 hover:border-primary-500 text-white"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: colorPresets.default.primary }} />
-                  <span>Black & White</span>
-                </div>
-              </Button>
-              <Button
-                onClick={() => applyPreset('purple')}
-                variant="outline"
-                size="sm"
-                className="w-full justify-start border-neutral-600 hover:border-primary-500 text-white"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: colorPresets.purple.primary }} />
-                  <span>Purple</span>
-                </div>
-              </Button>
-              <Button
-                onClick={() => applyPreset('cyan')}
-                variant="outline"
-                size="sm"
-                className="w-full justify-start border-neutral-600 hover:border-primary-500 text-white"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: colorPresets.cyan.primary }} />
-                  <span>Cyan</span>
-                </div>
-              </Button>
-              <Button
-                onClick={() => applyPreset('forestGreen')}
-                variant="outline"
-                size="sm"
-                className="w-full justify-start border-neutral-600 hover:border-primary-500 text-white"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: colorPresets.forestGreen.primary }} />
-                  <span>Green</span>
-                </div>
-              </Button>
-            </div>
-          </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-300 mb-2">
-                      Primary Color (Title)
-                    </label>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="color"
-                        value={colors.primary}
-                        onChange={(e) => updateColor('primary', e.target.value)}
-                        className="w-16 h-10 rounded cursor-pointer border border-neutral-600"
-                      />
-                      <input
-                        type="text"
-                        value={colors.primary}
-                        onChange={(e) => updateColor('primary', e.target.value)}
-                        className="flex-1 px-3 py-2 bg-neutral-700 border border-neutral-600 rounded text-white font-mono text-sm"
-                        placeholder="#199D67"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-300 mb-2">
-                      Accent Color (Lines)
-                    </label>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="color"
-                        value={colors.accent}
-                        onChange={(e) => updateColor('accent', e.target.value)}
-                        className="w-16 h-10 rounded cursor-pointer border border-neutral-600"
-                      />
-                      <input
-                        type="text"
-                        value={colors.accent}
-                        onChange={(e) => updateColor('accent', e.target.value)}
-                        className="flex-1 px-3 py-2 bg-neutral-700 border border-neutral-600 rounded text-white font-mono text-sm"
-                        placeholder="#8B5CF6"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-300 mb-2">
-                      Text Color
-                    </label>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="color"
-                        value={colors.text}
-                        onChange={(e) => updateColor('text', e.target.value)}
-                        className="w-16 h-10 rounded cursor-pointer border border-neutral-600"
-                      />
-                      <input
-                        type="text"
-                        value={colors.text}
-                        onChange={(e) => updateColor('text', e.target.value)}
-                        className="flex-1 px-3 py-2 bg-neutral-700 border border-neutral-600 rounded text-white font-mono text-sm"
-                        placeholder="#1F1F1F"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-300 mb-2">
-                      Background Color
-                    </label>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="color"
-                        value={colors.background}
-                        onChange={(e) => updateColor('background', e.target.value)}
-                        className="w-16 h-10 rounded cursor-pointer border border-neutral-600"
-                      />
-                      <input
-                        type="text"
-                        value={colors.background}
-                        onChange={(e) => updateColor('background', e.target.value)}
-                        className="flex-1 px-3 py-2 bg-neutral-700 border border-neutral-600 rounded text-white font-mono text-sm"
-                        placeholder="#FFFFFF"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="pt-4 border-t border-neutral-700">
-                    <Button
-                      onClick={() => setColors({
-                        primary: '#000000',
-                        accent: '#9CA3AF',
-                        text: '#1F1F1F',
-                        background: '#FFFFFF',
-                      })}
-                      variant="outline"
-                      size="sm"
-                      className="w-full flex items-center justify-center gap-2 border-neutral-600 hover:border-primary-500 text-white"
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                      Reset to Default
-                    </Button>
-                  </div>
-                </div>
-        </div>
-
-        {/* Preview Area */}
-        <div className="flex-1 bg-black overflow-auto h-auto lg:h-[calc(100vh-73px)]">
-          <div className="w-full">
-            
-            {/* Preview Container */}
-            <div className="w-full flex justify-center items-start min-h-[600px] py-4 lg:py-8">
-              <div className="w-full max-w-4xl px-4 lg:px-8">
-                {iframeUrl ? (
-                  <iframe
-                    src={iframeUrl}
-                    className="border-0 bg-white rounded-lg shadow-2xl w-full mx-auto block"
-                    style={{ 
-                      maxWidth: '100%',
-                      width: '100%',
-                      aspectRatio: '8.5 / 11',
-                      minHeight: '400px',
-                    }}
-                    title="PDF Preview"
-                  />
-                ) : (
-                  <div className="flex items-center justify-center w-full h-96 bg-neutral-100 rounded-lg">
-                    <div className="text-center text-neutral-500">
-                      <p className="text-lg font-medium mb-2">Loading preview...</p>
-                      <p className="text-sm">Preparing your PDF preview</p>
-                    </div>
-                  </div>
-                )}
+      {/* Preview */}
+      <div className="flex justify-center">
+        <div className="w-full max-w-4xl px-4 lg:px-8">
+          {iframeUrl ? (
+            <iframe
+              src={iframeUrl}
+              className="border-0 bg-white rounded-lg shadow-2xl w-full mx-auto block"
+              style={{ aspectRatio: '8.5 / 11', minHeight: '400px' }}
+              title="PDF Preview"
+            />
+          ) : (
+            <div className="flex items-center justify-center w-full bg-neutral-900 rounded-lg border border-neutral-800" style={{ aspectRatio: '8.5 / 11' }}>
+              <div className="text-center text-neutral-500">
+                <p className="text-sm font-medium mb-1">Loading preview...</p>
+                <p className="text-xs">Preparing your PDF</p>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

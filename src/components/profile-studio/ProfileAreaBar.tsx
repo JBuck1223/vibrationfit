@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { User, PenLine, Eye, Edit } from 'lucide-react'
 import { usePathname } from 'next/navigation'
-import { AreaBar, AreaBarSecondaryTabStrip, type ContextOption } from '@/lib/design-system/components'
+import { AreaBar, type AreaBarContextNavItem, type AreaBarVersionSelector } from '@/lib/design-system/components'
 import { useProfileStudio } from './ProfileStudioContext'
 
 const TABS = [
@@ -12,20 +12,6 @@ const TABS = [
 ]
 
 const CREATE_AREA_ROUTES = ['/profile/create', '/profile/new', '/profile/compare']
-
-function ProfileDetailSecondaryNav({ profileId }: { profileId: string }) {
-  const pathname = usePathname()
-  const path = `/profile/${profileId}/edit`
-  const isActive = pathname === path || pathname.startsWith(path + '/')
-  return (
-    <AreaBarSecondaryTabStrip
-      aria-label="Profile actions"
-      items={[
-        { key: 'edit', href: path, label: 'Edit Profile', icon: Edit, isActive },
-      ]}
-    />
-  )
-}
 
 export function ProfileAreaBar() {
   const pathname = usePathname()
@@ -41,8 +27,8 @@ export function ProfileAreaBar() {
     && !isActive
     && /^\/profile\/[^/]+/.test(pathname)
 
-  let contextSelector: { label: string; options: ContextOption[]; selectedId: string; onSelect: (id: string) => void } | undefined
-  let contextBar: React.ReactNode = undefined
+  let versionSelectors: AreaBarVersionSelector[] | undefined
+  let contextNav: AreaBarContextNavItem[] | undefined
 
   const isOnCreateSubPage = isCreateArea && pathname !== '/profile/create'
 
@@ -52,9 +38,11 @@ export function ProfileAreaBar() {
     if (/^[a-f0-9-]{36}$/.test(profileId)) {
       const nonDrafts = versions.filter(v => !v.is_draft)
 
-      contextSelector = {
+      versionSelectors = [{
+        id: 'profile-version',
         label: 'Profile',
-        options: versions.map((v, i) => {
+        position: 'topRight',
+        options: versions.map(v => {
           const label = v.is_draft
             ? 'Draft'
             : v.version_number
@@ -70,9 +58,15 @@ export function ProfileAreaBar() {
         }),
         selectedId: profileId,
         onSelect: (id: string) => router.push(`/profile/${id}`),
-      }
+      }]
 
-      contextBar = <ProfileDetailSecondaryNav profileId={profileId} />
+      const editPath = `/profile/${profileId}/edit`
+      contextNav = [{
+        label: 'Edit Profile',
+        path: editPath,
+        icon: Edit,
+        isActive: pathname === editPath || pathname.startsWith(editPath + '/'),
+      }]
     }
   }
 
@@ -80,8 +74,8 @@ export function ProfileAreaBar() {
     <AreaBar
       area={{ name: 'My Profile', icon: User }}
       tabs={TABS}
-      contextSelector={contextSelector}
-      contextBar={contextBar}
+      contextNav={contextNav}
+      versionSelectors={versionSelectors}
       keepTabActive={!isProfileDetail && !isOnCreateSubPage}
       activeParentPath={isOnCreateSubPage ? '/profile/create' : undefined}
       variant="default"
