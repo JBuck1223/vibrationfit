@@ -87,10 +87,10 @@ export default function ProfileCreatePage() {
 
       if (!source) { setNavigating(false); return }
 
-      const { id, created_at, updated_at, version_number, ...rest } = source
+      const { id, created_at, updated_at, version_number, parent_id: _parentId, ...rest } = source
       const { data: newDraft, error } = await supabase
         .from('user_profiles')
-        .insert({ ...rest, user_id: user.id, is_draft: true, is_active: false })
+        .insert({ ...rest, user_id: user.id, is_draft: true, is_active: false, parent_id: id })
         .select()
         .single()
 
@@ -137,10 +137,10 @@ export default function ProfileCreatePage() {
 
       if (!source) { setNavigating(false); return }
 
-      const { id, created_at, updated_at, version_number, ...rest } = source
+      const { id, created_at, updated_at, version_number, parent_id: _parentId, ...rest } = source
       const { data: newDraft, error } = await supabase
         .from('user_profiles')
-        .insert({ ...rest, user_id: user.id, is_draft: true, is_active: false })
+        .insert({ ...rest, user_id: user.id, is_draft: true, is_active: false, parent_id: id })
         .select()
         .single()
 

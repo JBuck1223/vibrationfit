@@ -23,58 +23,48 @@ export function ProfileAreaBar() {
   const isActive = pathname === '/profile/active' || pathname.startsWith('/profile/active/')
   const isHowItWorks = pathname === '/profile/new' || pathname === '/profile/new/'
 
-  const isProfileDetail = !isProfileDashboard
-    && !isCreateArea
-    && !isActive
-    && !isHowItWorks
-    && /^\/profile\/[^/]+/.test(pathname)
-
   // Edit/draft/refine sub-routes under a profile ID fall into the create area
   const isEditSubRoute = /^\/profile\/[^/]+\/(edit|draft|refine|new)/.test(pathname)
-  const isViewOverview = isProfileDashboard || isHowItWorks || (isProfileDetail && !isEditSubRoute)
+  const isProfileDetail = !isProfileDashboard && !isCreateArea && !isActive && !isHowItWorks
+    && !isEditSubRoute && /^\/profile\/[^/]+/.test(pathname)
 
   let versionSelectors: AreaBarVersionSelector[] | undefined
   let contextNav: AreaBarContextNavItem[] | undefined
   let contextText: string | undefined
 
-  if (isViewOverview) {
-    const detailProfileId = isProfileDetail ? pathname.split('/')[2] : undefined
+  const buildVersionSelectors = (selectedOverrideId?: string): AreaBarVersionSelector[] | undefined => {
+    const nonDraftVersions = versions.filter(v => !v.is_draft)
+    if (nonDraftVersions.length === 0) return undefined
+    const selectedId = selectedOverrideId || nonDraftVersions.find(v => v.is_active)?.id || nonDraftVersions[0]?.id
+    return [{
+      id: 'profile-version',
+      label: 'Profile',
+      position: 'contextRow' as const,
+      options: nonDraftVersions.map(v => ({
+        id: v.id,
+        label: v.version_number
+          ? `Version ${v.version_number}`
+          : `Version ${nonDraftVersions.length - nonDraftVersions.indexOf(v)}`,
+        sublabel: new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        badge: v.is_active ? 'Active' : undefined,
+        isActive: v.is_active,
+      })),
+      selectedId: selectedId || nonDraftVersions[0].id,
+      onSelect: (id: string) => router.push(`/profile/${id}`),
+    }]
+  }
 
+  if (isHowItWorks) {
     contextNav = [
-      { label: 'My Profile', path: '/profile', icon: User, isActive: isProfileDashboard || isProfileDetail },
-      { label: 'How It Works', path: '/profile/new', icon: HelpCircle, isActive: isHowItWorks },
+      { label: 'My Profile', path: '/profile', icon: User, isActive: false },
+      { label: 'How It Works', path: '/profile/new', icon: HelpCircle, isActive: true },
     ]
-
-    if (isHowItWorks) {
-      contextText = 'Learn how the Profile process works.'
-    } else {
-      contextText = 'View your profile information.'
-
-      const nonDraftVersions = versions.filter(v => !v.is_draft)
-      const selectedProfileId = detailProfileId || nonDraftVersions.find(v => v.is_active)?.id || nonDraftVersions[0]?.id
-
-      if (nonDraftVersions.length > 0) {
-        versionSelectors = [{
-          id: 'profile-version',
-          label: 'Profile',
-          position: 'contextRow',
-          options: nonDraftVersions.map(v => ({
-            id: v.id,
-            label: v.version_number
-              ? `Version ${v.version_number}`
-              : `Version ${nonDraftVersions.length - nonDraftVersions.indexOf(v)}`,
-            sublabel: new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-            badge: v.is_active ? 'Active' : undefined,
-            isActive: v.is_active,
-          })),
-          selectedId: selectedProfileId || nonDraftVersions[0].id,
-          onSelect: (id: string) => router.push(`/profile/${id}`),
-        }]
-      }
-    }
+    contextText = 'Learn how the Profile process works.'
+  } else if (isProfileDetail) {
+    const detailProfileId = pathname.split('/')[2]
+    versionSelectors = buildVersionSelectors(detailProfileId)
   } else if (isCreateArea || isEditSubRoute) {
-    // Create area: no additional context nav on the landing
-    // Sub-routes (edit/draft/refine) will use the Create tab highlight
+    // Create area: no additional context nav
   }
 
   const isOnCreateSubPage = (isCreateArea && pathname !== '/profile/create') || isEditSubRoute
