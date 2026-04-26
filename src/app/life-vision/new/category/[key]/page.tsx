@@ -268,7 +268,8 @@ export default function CategoryPage() {
           get_me_started_text: getMeStartedText.trim() || null,
           imagination_text: imaginationText.trim() || null,
           clarity_keys: stateValue ? [stateValue] : [],
-          category_vision_text: null
+          category_vision_text: null,
+          source_profile_id: fullProfile?.id || null,
         }, {
           onConflict: 'user_id,category'
         })

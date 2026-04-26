@@ -77,6 +77,15 @@ export async function POST(request: NextRequest) {
     // Standard activation message
     const activationMessage = `Your Life Vision is complete and ready for activation. This is your north star, your decision filter, and your reminder of what matters most. Return to it regularly to stay aligned with your most fun and satisfying life.`
 
+    // Get the active profile ID for lineage tracking
+    const { data: activeProfile } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .eq('is_draft', false)
+      .maybeSingle()
+
     // Deactivate any existing active personal visions (household_id IS NULL)
     // This ensures only one active personal vision per user
     await supabase
@@ -110,6 +119,7 @@ export async function POST(request: NextRequest) {
         is_draft: false,
         is_active: true,
         perspective: perspective,
+        source_profile_id: activeProfile?.id || null,
         richness_metadata: {
           assembly_method: 'queue',
           woo_level: wooLevel,

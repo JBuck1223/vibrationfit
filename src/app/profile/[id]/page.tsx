@@ -2,59 +2,29 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Card, Button, Badge, DeleteConfirmationDialog, Heading, Text, Stack, VersionBadge, StatusBadge, Container, PageHero, Spinner, IntensiveCompletionBanner } from '@/lib/design-system/components'
+import { Card, Button, DeleteConfirmationDialog, Heading, Text, Stack, VersionBadge, StatusBadge, Container, PageHero, Spinner, IntensiveCompletionBanner } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
-import { VersionCard } from '../components/VersionCard'
-import { VISION_CATEGORIES, getVisionCategory, getVisionCategoryLabel, getVisionCategoryKeys, convertCategoryKey, visionToRecordingKey } from '@/lib/design-system/vision-categories'
+import { VISION_CATEGORIES, getVisionCategory, getVisionCategoryLabel, convertCategoryKey, visionToRecordingKey } from '@/lib/design-system/vision-categories'
 import { UserProfile } from '@/lib/supabase/profile'
-import { ProfileField } from '../components/ProfileField'
 import { SavedRecordings } from '@/components/SavedRecordings'
-import { ProfilePictureUpload, DEFAULT_PROFILE_IMAGE_URL } from '../components/ProfilePictureUpload'
+import { DEFAULT_PROFILE_IMAGE_URL } from '../components/ProfilePictureUpload'
 import { formatPhoneDisplay, phoneToDigits } from '@/lib/phone-format'
+import { Icon } from '@/lib/design-system/components'
 import { 
   User, 
-  Heart, 
-  Users, 
-  Activity, 
-  MapPin, 
-  Briefcase, 
-  DollarSign,
-  Edit3,
-  Edit,
-  Palette,
-  FileText,
-  ArrowLeft,
-  Calendar,
   CalendarDays,
-  Phone,
-  Mail,
   Camera,
-  Clock,
-  Home,
-  Building,
-  GraduationCap,
-  Plus,
-  RefreshCw,
-  Trash2,
-  Eye,
-  History,
   X,
   ChevronLeft,
   ChevronRight,
   Play,
-  Pause,
-  Plane,
-  UserPlus,
-  Package,
-  CheckCircle2
+  Trash2,
 } from 'lucide-react'
 import NextImage from 'next/image'
 import { calculateProfileCompletion } from '@/lib/utils/profile-completion'
 
-// Helper function to get category info from design system
 const getCategoryInfo = (categoryId: string) => {
-  // Use centralized category mapping
-  const visionCategoryKey = convertCategoryKey(categoryId as any, 'vision', 'vision') // If already vision key
+  const visionCategoryKey = convertCategoryKey(categoryId as any, 'vision', 'vision')
   const category = getVisionCategory(visionCategoryKey || categoryId as any)
   
   if (category) {
@@ -68,19 +38,16 @@ const getCategoryInfo = (categoryId: string) => {
     }
   }
   
-  // Fallback for categories not in vision categories
   return {
     id: categoryId,
     title: categoryId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
     icon: User,
     color: 'text-primary-500',
-    order: 999, // High number to put unmapped categories at the end
+    order: 999,
     recordingCategory: categoryId
   }
 }
 
-// Helper function to get profile categories in design system order
-// Uses vision categories directly, filtering out forward/conclusion which aren't profile sections
 const getOrderedProfileCategories = () => {
   const profileCategoryKeys = ['love', 'family', 'health', 'home', 'work', 'money', 'fun', 'travel', 'social', 'stuff', 'spirituality', 'giving']
   
@@ -88,9 +55,6 @@ const getOrderedProfileCategories = () => {
     .map(categoryId => getCategoryInfo(categoryId))
     .sort((a, b) => a.order - b.order)
 }
-
-
-interface ProfileViewPageProps {}
 
 export default function ProfileDetailPage() {
   const router = useRouter()
@@ -100,40 +64,18 @@ export default function ProfileDetailPage() {
   const [completionPercentage, setCompletionPercentage] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [userId, setUserId] = useState<string | null>(null)
   const [versions, setVersions] = useState<any[]>([])
   const [deletingVersion, setDeletingVersion] = useState<string | null>(null)
-  const [currentVersionId, setCurrentVersionId] = useState<string | null>(null)
-  const [isViewingVersion, setIsViewingVersion] = useState(false)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
   
-  // Delete confirmation state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [versionToDelete, setVersionToDelete] = useState<any>(null)
-  const [showPhotoUpload, setShowPhotoUpload] = useState(false)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  
-  // Profile photo menu and lightbox state
-  const [showPhotoMenu, setShowPhotoMenu] = useState(false)
-  const [profilePhotoLightboxOpen, setProfilePhotoLightboxOpen] = useState(false)
-  const [profilePhotoIndex, setProfilePhotoIndex] = useState(0)
-  const photoButtonRef = useRef<HTMLButtonElement>(null)
-  const photoMenuRef = useRef<HTMLDivElement>(null)
-  
-  // Section-level editing state
-  const [editingSection, setEditingSection] = useState<string | null>(null)
-  const [editedFields, setEditedFields] = useState<Record<string, any>>({})
-  const [saving, setSaving] = useState(false)
 
-  // Intensive mode state
   const [isIntensiveMode, setIsIntensiveMode] = useState(false)
   const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
   const [completedAt, setCompletedAt] = useState<string | null>(null)
 
-  // Recalculate completion percentage whenever profile data changes
-  // Uses the single source of truth from profile-completion.ts (excludes media fields)
   useEffect(() => {
     if (Object.keys(profile).length > 0) {
       const newPercentage = calculateProfileCompletion(profile)
@@ -142,20 +84,16 @@ export default function ProfileDetailPage() {
   }, [profile])
 
   useEffect(() => {
-    fetchProfile()
     checkIntensiveMode()
   }, [])
 
   const checkIntensiveMode = async () => {
     try {
-      // Use centralized intensive check (source of truth: intensive_checklist.status)
       const { getActiveIntensiveClient } = await import('@/lib/intensive/utils-client')
       const intensiveData = await getActiveIntensiveClient()
 
       if (intensiveData) {
         setIsIntensiveMode(true)
-        
-        // Check if profile step is already completed (data is already in intensiveData)
         if (intensiveData.profile_completed) {
           setIsAlreadyCompleted(true)
           setCompletedAt(intensiveData.profile_completed_at || intensiveData.created_at)
@@ -166,91 +104,11 @@ export default function ProfileDetailPage() {
     }
   }
 
-  // Refresh profile when page becomes visible (user navigates back)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        fetchProfile()
-      }
-    }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }, [])
-
-  // Load profile version based on ID parameter
   useEffect(() => {
     if (profileId) {
-      setCurrentVersionId(profileId)
       fetchProfileVersion(profileId)
     }
   }, [profileId])
-
-  // Update version viewing state when versions data is available
-  useEffect(() => {
-    if (!profileId) {
-      setIsViewingVersion(false)
-      setCurrentVersionId(null)
-    } else {
-      // When viewing a specific profile ID, set the version ID but allow editing
-      setIsViewingVersion(false) // Allow editing on view pages
-      setCurrentVersionId(profileId)
-    }
-  }, [profileId])
-
-  const fetchProfile = async () => {
-    try {
-      // Add cache-busting parameter to force fresh data
-      const timestamp = Date.now()
-      const response = await fetch(`/api/profile?t=${timestamp}&includeVersions=true`)
-      if (!response.ok) {
-        throw new Error('Failed to fetch profile')
-      }
-      const data = await response.json()
-      console.log('Profile view: Fetched data:', data)
-      console.log('Profile view: Versions received:', data.versions?.length || 0)
-      setProfile(data.profile || {})
-      // Completion percentage will be calculated in real-time via useEffect
-      setVersions(data.versions || [])
-      
-      // Get user ID from Supabase
-      const { createClient } = await import('@/lib/supabase/client')
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        setUserId(user.id)
-      }
-    } catch (error) {
-      console.error('Error fetching profile:', error)
-      setError('Failed to load profile data')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const deleteVersion = async (versionId: string) => {
-    // Note: Confirmation is handled by confirmDeleteVersion via DeleteConfirmationDialog
-    // No browser confirm() needed here
-    setDeletingVersion(versionId)
-    try {
-      const response = await fetch(`/api/profile?versionId=${versionId}`, {
-        method: 'DELETE'
-      })
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to delete version' }))
-        throw new Error(errorData.error || 'Failed to delete version')
-      }
-
-      // Refresh the profile to get updated versions list
-      await fetchProfile()
-    } catch (error) {
-      console.error('Error deleting version:', error)
-      throw error // Re-throw so confirmDeleteVersion can handle it
-    } finally {
-      setDeletingVersion(null)
-    }
-  }
 
   const fetchProfileVersion = async (versionId: string) => {
     setLoading(true)
@@ -258,18 +116,11 @@ export default function ProfileDetailPage() {
       const response = await fetch(`/api/profile?versionId=${versionId}`)
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-        console.error('Failed to fetch profile version:', response.status, errorData)
         throw new Error(errorData.error || `Failed to fetch profile version (${response.status})`)
       }
       const data = await response.json()
       setProfile(data.profile || {})
-      // Completion percentage will be calculated in real-time via useEffect
-      setCurrentVersionId(versionId)
-      
-      // Always set as viewing version when viewing a specific ID
-      setIsViewingVersion(false) // Allow editing on view pages
-      
-      // Also fetch versions list to get full version info
+
       const versionsResponse = await fetch(`/api/profile?includeVersions=true`)
       if (versionsResponse.ok) {
         const versionsData = await versionsResponse.json()
@@ -284,127 +135,27 @@ export default function ProfileDetailPage() {
     }
   }
 
-  // Section-level editing functions
-  const handleSectionEdit = (sectionId: string) => {
-    setEditingSection(sectionId)
-    setEditedFields({}) // Reset edited fields when starting to edit a section
-  }
-
-  const handleFieldChange = async (fieldKey: string, newValue: any) => {
-    setEditedFields(prev => ({
-      ...prev,
-      [fieldKey]: newValue
-    }))
-  }
-
-  const handleSectionSave = async () => {
-    if (!editingSection || Object.keys(editedFields).length === 0) return
-
+  const deleteVersion = async (versionId: string) => {
+    setDeletingVersion(versionId)
     try {
-      setSaving(true)
-
-      // Save all edited fields at once
-      const response = await fetch(`/api/profile?profileId=${profileId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(editedFields),
+      const response = await fetch(`/api/profile?versionId=${versionId}`, {
+        method: 'DELETE'
       })
-
+      
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to save' }))
-        throw new Error(errorData.error || 'Failed to save')
+        const errorData = await response.json().catch(() => ({ error: 'Failed to delete version' }))
+        throw new Error(errorData.error || 'Failed to delete version')
       }
 
-      const data = await response.json()
-      
-      // Update the local profile state with all saved data
-      setProfile(prev => ({
-        ...prev,
-        ...editedFields,
-      }))
-      
-      // Exit editing mode
-      setEditingSection(null)
-      setEditedFields({})
-      
-      console.log('Section saved successfully:', editingSection, editedFields)
+      router.push('/profile')
     } catch (error) {
-      console.error('Error saving section:', error)
-      alert('Failed to save changes')
+      console.error('Error deleting version:', error)
+      throw error
     } finally {
-      setSaving(false)
+      setDeletingVersion(null)
     }
   }
 
-  const handleSectionCancel = () => {
-    setEditingSection(null)
-    setEditedFields({})
-  }
-
-  const handleFieldSave = async (fieldKey: string, newValue: any) => {
-    try {
-      // Save to database via API - include profileId to update the correct profile
-      const response = await fetch(`/api/profile?profileId=${profileId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          [fieldKey]: newValue
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to save field' }))
-        throw new Error(errorData.error || 'Failed to save field')
-      }
-
-      const data = await response.json()
-      
-      // Update the local profile state with the saved data
-      setProfile(prev => ({
-        ...prev,
-        [fieldKey]: newValue,
-      }))
-      
-      // Completion percentage will be recalculated automatically via useEffect when profile updates
-      
-      console.log('Field saved successfully:', fieldKey, newValue)
-    } catch (error) {
-      console.error('Error saving field:', error)
-      throw error // Re-throw so the ProfileField component can handle it
-    }
-  }
-
-  // Commit draft handler - uses API endpoint
-  const commitDraft = useCallback(async () => {
-    try {
-      const response = await fetch('/api/profile/versions', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          commitDraft: true
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to commit draft' }))
-        throw new Error(errorData.error || 'Failed to commit draft')
-      }
-
-      // Refresh the profile to get updated versions list
-      await fetchProfile()
-    } catch (error) {
-      console.error('Error committing draft:', error)
-      alert(error instanceof Error ? error.message : 'Failed to commit draft')
-    }
-  }, [])
-
-  // Delete confirmation handlers
   const handleDeleteVersion = (version: any) => {
     setVersionToDelete(version)
     setDeleteDialogOpen(true)
@@ -415,52 +166,22 @@ export default function ProfileDetailPage() {
     
     try {
       await deleteVersion(versionToDelete.id)
-      // Only close dialog on success
       setDeleteDialogOpen(false)
       setVersionToDelete(null)
     } catch (error) {
       console.error('Error deleting version:', error)
-      // Show error message to user
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete version. Please try again.'
       alert(errorMessage)
-      // Keep dialog open so user can try again or cancel
     }
-  }
-
-  const formatDate = (dateString: string) => {
-    if (!dateString) return 'Not specified'
-    // Parse as local date to avoid timezone issues
-    const [year, month, day] = dateString.split('T')[0].split('-')
-    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-  }
-
-  const formatAge = (dateOfBirth: string) => {
-    if (!dateOfBirth) return 'Not specified'
-    // Parse as local date to avoid timezone issues
-    const [year, month, day] = dateOfBirth.split('T')[0].split('-')
-    const birthDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
-    const today = new Date()
-    let age = today.getFullYear() - birthDate.getFullYear()
-    const monthDiff = today.getMonth() - birthDate.getMonth()
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--
-    }
-    return `${age} years old`
   }
 
   const formatPhoneNumber = (phone: string | null | undefined) => {
-    if (!phone) return phone
+    if (!phone) return null
     return formatPhoneDisplay(phoneToDigits(phone)) || phone
   }
 
   const formatDateOfBirth = (dateOfBirth: string | null | undefined) => {
-    if (!dateOfBirth) return dateOfBirth
-    // Parse date (format: YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss.sssZ)
+    if (!dateOfBirth) return null
     const dateStr = dateOfBirth.split('T')[0]
     const [year, month, day] = dateStr.split('-')
     if (year && month && day) {
@@ -469,47 +190,11 @@ export default function ProfileDetailPage() {
     return dateOfBirth
   }
 
-  const getCompletionColor = (percentage: number) => {
-    if (percentage >= 80) return 'text-green-400'
-    if (percentage >= 60) return 'text-yellow-400'
-    if (percentage >= 40) return 'text-orange-400'
-    return 'text-red-400'
-  }
-
-  const getCompletionBg = (percentage: number) => {
-    if (percentage >= 80) return 'bg-green-500'
-    if (percentage >= 60) return 'bg-yellow-500'
-    if (percentage >= 40) return 'bg-orange-500'
-    return 'bg-red-500'
-  }
-
-  // Collect all unique profile photos from all versions
-  const getAllProfilePhotos = useCallback(() => {
-    const photos: string[] = []
-    
-    // Add current profile photo if it exists
-    if (profile.profile_picture_url) {
-      photos.push(profile.profile_picture_url)
-    }
-    
-    // Add photos from all versions
-    versions.forEach((version: any) => {
-      if (version.profile_picture_url && !photos.includes(version.profile_picture_url)) {
-        photos.push(version.profile_picture_url)
-      }
-    })
-    
-    // Remove duplicates and filter out null/undefined
-    return photos.filter((url): url is string => Boolean(url))
-  }, [profile.profile_picture_url, versions])
-
   const getCurrentVersionInfo = () => {
     if (!profileId) return null
-    // Find the version info for the current profileId
     const versionInfo = versions.find(v => v.id === profileId)
     if (versionInfo) return versionInfo
     
-    // If not in versions list yet, use profile data directly
     if (profile && profile.id === profileId) {
       const profileAny = profile as any
       return {
@@ -550,849 +235,6 @@ export default function ProfileDetailPage() {
     return /\.(mp4|webm|quicktime)$/i.test(url) || url.includes('video/')
   }
 
-  // Handle profile photo menu actions
-  const handleSeeProfilePicture = () => {
-    const allPhotos = getAllProfilePhotos()
-    if (allPhotos.length > 0) {
-      // Find index of current profile photo
-      const currentIndex = allPhotos.findIndex(url => url === profile.profile_picture_url)
-      setProfilePhotoIndex(currentIndex >= 0 ? currentIndex : 0)
-      setProfilePhotoLightboxOpen(true)
-    }
-    setShowPhotoMenu(false)
-  }
-
-  const handleSelectProfilePicture = () => {
-    setShowPhotoMenu(false)
-    if (!isViewingVersion) {
-      fileInputRef.current?.click()
-    }
-  }
-
-  // Profile photo lightbox navigation
-  const nextProfilePhoto = useCallback(() => {
-    const allPhotos = getAllProfilePhotos()
-    if (allPhotos.length > 0) {
-      setProfilePhotoIndex((prev) => (prev + 1) % allPhotos.length)
-    }
-  }, [getAllProfilePhotos])
-
-  const prevProfilePhoto = useCallback(() => {
-    const allPhotos = getAllProfilePhotos()
-    if (allPhotos.length > 0) {
-      setProfilePhotoIndex((prev) => (prev - 1 + allPhotos.length) % allPhotos.length)
-    }
-  }, [getAllProfilePhotos])
-
-  // Close menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (showPhotoMenu) {
-        const target = event.target as Node
-        const isClickInsideButton = photoButtonRef.current?.contains(target)
-        const isClickInsideMenu = photoMenuRef.current?.contains(target)
-        
-        if (!isClickInsideButton && !isClickInsideMenu) {
-          setShowPhotoMenu(false)
-        }
-      }
-    }
-
-    if (showPhotoMenu) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside)
-      }
-    }
-  }, [showPhotoMenu])
-
-  // Keyboard navigation for profile photo lightbox
-  useEffect(() => {
-    if (!profilePhotoLightboxOpen) return
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setProfilePhotoLightboxOpen(false)
-      } else if (e.key === 'ArrowLeft') {
-        prevProfilePhoto()
-      } else if (e.key === 'ArrowRight') {
-        nextProfilePhoto()
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [profilePhotoLightboxOpen, prevProfilePhoto, nextProfilePhoto])
-
-  // Helper function to render fields for each category
-  const renderCategoryFields = (categoryId: string) => {
-    switch (categoryId) {
-      case 'love':
-        return (
-          <>
-            <ProfileField 
-              label="Status" 
-              value={editedFields.relationship_status !== undefined ? editedFields.relationship_status : profile.relationship_status}
-              editable={editingSection === 'love'}
-              fieldKey="relationship_status"
-              onSave={handleFieldChange}
-              type="select"
-              selectOptions={[
-                { value: 'Single', label: 'Single' },
-                { value: 'Dating', label: 'Dating' },
-                { value: 'In a Relationship', label: 'In a Relationship' },
-                { value: 'Engaged', label: 'Engaged' },
-                { value: 'Married', label: 'Married' },
-                { value: 'Separated', label: 'Separated' },
-                { value: 'Divorced', label: 'Divorced' },
-                { value: 'Widowed', label: 'Widowed' },
-              ]}
-            />
-            <ProfileField 
-              label="Partner" 
-              value={editedFields.partner_name !== undefined ? editedFields.partner_name : profile.partner_name}
-              editable={editingSection === 'love'}
-              fieldKey="partner_name"
-              onSave={handleFieldChange}
-            />
-            <ProfileField 
-              label="Relationship Length" 
-              value={editedFields.relationship_length !== undefined ? editedFields.relationship_length : profile.relationship_length}
-              editable={editingSection === 'love'}
-              fieldKey="relationship_length"
-              onSave={handleFieldChange}
-              type="select"
-              selectOptions={[
-                { value: 'Less than 1 year', label: 'Less than 1 year' },
-                { value: '1-2 years', label: '1-2 years' },
-                { value: '3-5 years', label: '3-5 years' },
-                { value: '6-10 years', label: '6-10 years' },
-                { value: '10+ years', label: '10+ years' },
-              ]}
-            />
-            <ProfileField 
-              label={`Current State of ${getVisionCategoryLabel('love')}`}
-              value={editedFields.state_love !== undefined ? editedFields.state_love : profile.state_love}
-              type="story"
-              editable={editingSection === 'love'}
-              fieldKey="state_love"
-              onSave={handleFieldChange}
-              collapsible={true}
-            /></>
-        )
-      
-      case 'family':
-        return (
-          <>
-            <ProfileField 
-              label="Has Children" 
-              value={editedFields.has_children !== undefined ? editedFields.has_children : profile.has_children} 
-              type="boolean"
-              editable={editingSection === 'family'}
-              fieldKey="has_children"
-              onSave={handleFieldChange}
-            />
-
-            {/* Children Table */}
-            {Array.isArray(profile.children) && profile.children.length > 0 && (
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-neutral-300">Children</label>
-                <div className="bg-neutral-800/50 rounded-lg border border-neutral-700 overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-neutral-900/50 border-b border-neutral-700">
-                      <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-neutral-400">Name</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-neutral-400">Birthday</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {profile.children.map((child: any, index: number) => (
-                        <tr key={index} className="border-b border-neutral-700/50 last:border-0">
-                          <td className="px-4 py-2 text-sm text-white">{child.first_name || 'Not specified'}</td>
-                          <td className="px-4 py-2 text-sm text-neutral-300">
-                            {child.birthday ? new Date(child.birthday).toLocaleDateString() : 'Not specified'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            <ProfileField 
-              label={`Current State of ${getVisionCategoryLabel('family')}`}
-              value={editedFields.state_family !== undefined ? editedFields.state_family : profile.state_family}
-              type="story"
-              editable={editingSection === 'family'}
-              fieldKey="state_family"
-              onSave={handleFieldChange}
-              collapsible={true}
-            /></>
-        )
-      
-      case 'health':
-        return (
-          <>
-            <ProfileField 
-              label="Height" 
-              value={profile.height ? `${profile.height} ${profile.units === 'US' ? 'inches' : 'cm'}` : null}
-              editable={editingSection === 'health'}
-              fieldKey="height"
-              onSave={handleFieldChange}
-              type="number"
-            />
-            <ProfileField 
-              label="Weight" 
-              value={profile.weight ? `${profile.weight} ${profile.units === 'US' ? 'lbs' : 'kg'}` : null}
-              editable={editingSection === 'health'}
-              fieldKey="weight"
-              onSave={handleFieldChange}
-              type="number"
-            />
-            <ProfileField 
-              label="Units" 
-              value={editedFields.units !== undefined ? editedFields.units : profile.units}
-              editable={editingSection === 'health'}
-              fieldKey="units"
-              onSave={handleFieldChange}
-              type="select"
-              selectOptions={[
-                { value: 'US', label: 'US (inches, lbs)' },
-                { value: 'Metric', label: 'Metric (cm, kg)' },
-              ]}
-            />
-            <ProfileField 
-              label="Exercise Frequency" 
-              value={editedFields.exercise_frequency !== undefined ? editedFields.exercise_frequency : profile.exercise_frequency}
-              editable={editingSection === 'health'}
-              fieldKey="exercise_frequency"
-              onSave={handleFieldChange}
-              type="select"
-              selectOptions={[
-                { value: 'Never', label: 'Never' },
-                { value: '1-2 times per week', label: '1-2 times per week' },
-                { value: '3-4 times per week', label: '3-4 times per week' },
-                { value: '5+ times per week', label: '5+ times per week' },
-                { value: 'Daily', label: 'Daily' },
-              ]}
-            />
-            <ProfileField 
-              label={`Current State of ${getVisionCategoryLabel('health')}`}
-              value={editedFields.state_health !== undefined ? editedFields.state_health : profile.state_health}
-              type="story"
-              editable={editingSection === 'health'}
-              fieldKey="state_health"
-              onSave={handleFieldChange}
-              collapsible={true}
-            /></>
-        )
-      
-      case 'home':
-        return (
-          <>
-            <ProfileField 
-              label="Living Situation" 
-              value={editedFields.living_situation !== undefined ? editedFields.living_situation : profile.living_situation}
-              editable={editingSection === 'home'}
-              fieldKey="living_situation"
-              onSave={handleFieldChange}
-              type="select"
-              selectOptions={[
-                { value: 'Own', label: 'Own' },
-                { value: 'Rent', label: 'Rent' },
-                { value: 'Living with family', label: 'Living with family' },
-                { value: 'Other', label: 'Other' },
-              ]}
-            />
-            <ProfileField 
-              label="Time at Location" 
-              value={editedFields.time_at_location !== undefined ? editedFields.time_at_location : profile.time_at_location}
-              editable={editingSection === 'home'}
-              fieldKey="time_at_location"
-              onSave={handleFieldChange}
-              type="select"
-              selectOptions={[
-                { value: 'Less than 1 year', label: 'Less than 1 year' },
-                { value: '1-2 years', label: '1-2 years' },
-                { value: '3-5 years', label: '3-5 years' },
-                { value: '6-10 years', label: '6-10 years' },
-                { value: '10+ years', label: '10+ years' },
-              ]}
-            />
-            <ProfileField 
-              label="City" 
-              value={editedFields.city !== undefined ? editedFields.city : profile.city}
-              editable={editingSection === 'home'}
-              fieldKey="city"
-              onSave={handleFieldChange}
-            />
-            <ProfileField 
-              label="State" 
-              value={editedFields.state !== undefined ? editedFields.state : profile.state}
-              editable={editingSection === 'home'}
-              fieldKey="state"
-              onSave={handleFieldChange}
-            />
-            <ProfileField 
-              label="Postal Code" 
-              value={editedFields.postal_code !== undefined ? editedFields.postal_code : profile.postal_code}
-              editable={editingSection === 'home'}
-              fieldKey="postal_code"
-              onSave={handleFieldChange}
-            />
-            <ProfileField 
-              label="Country" 
-              value={editedFields.country !== undefined ? editedFields.country : profile.country}
-              editable={editingSection === 'home'}
-              fieldKey="country"
-              onSave={handleFieldChange}
-            />
-            <ProfileField 
-              label={`Current State of ${getVisionCategoryLabel('home')}`}
-              value={editedFields.state_home !== undefined ? editedFields.state_home : profile.state_home}
-              type="story"
-              editable={editingSection === 'home'}
-              fieldKey="state_home"
-              onSave={handleFieldChange}
-              collapsible={true}
-            /></>
-        )
-      
-      case 'work':
-        return (
-          <>
-            <ProfileField 
-              label="Employment Type" 
-              value={editedFields.employment_type !== undefined ? editedFields.employment_type : profile.employment_type}
-              editable={editingSection === 'work'}
-              fieldKey="employment_type"
-              onSave={handleFieldChange}
-              type="select"
-              selectOptions={[
-                { value: 'Full-time', label: 'Full-time' },
-                { value: 'Part-time', label: 'Part-time' },
-                { value: 'Self-employed', label: 'Self-employed' },
-                { value: 'Business Owner', label: 'Business Owner' },
-                { value: 'Freelance', label: 'Freelance' },
-                { value: 'Unemployed', label: 'Unemployed' },
-                { value: 'Retired', label: 'Retired' },
-                { value: 'Student', label: 'Student' },
-              ]}
-            />
-            <ProfileField 
-              label="Occupation" 
-              value={editedFields.occupation !== undefined ? editedFields.occupation : profile.occupation}
-              editable={editingSection === 'work'}
-              fieldKey="occupation"
-              onSave={handleFieldChange}
-            />
-            <ProfileField 
-              label="Company" 
-              value={editedFields.company !== undefined ? editedFields.company : profile.company}
-              editable={editingSection === 'work'}
-              fieldKey="company"
-              onSave={handleFieldChange}
-            />
-            <ProfileField 
-              label="Time in Role" 
-              value={editedFields.time_in_role !== undefined ? editedFields.time_in_role : profile.time_in_role}
-              editable={editingSection === 'work'}
-              fieldKey="time_in_role"
-              onSave={handleFieldChange}
-              type="select"
-              selectOptions={[
-                { value: 'Less than 1 year', label: 'Less than 1 year' },
-                { value: '1-2 years', label: '1-2 years' },
-                { value: '3-5 years', label: '3-5 years' },
-                { value: '5-10 years', label: '5-10 years' },
-                { value: '10+ years', label: '10+ years' },
-              ]}
-            />
-            <ProfileField 
-              label="Education" 
-              value={editedFields.education !== undefined ? editedFields.education : profile.education}
-              editable={editingSection === 'work'}
-              fieldKey="education"
-              onSave={handleFieldChange}
-              type="select"
-              selectOptions={[
-                { value: 'High School', label: 'High School' },
-                { value: 'Some College', label: 'Some College' },
-                { value: 'Associate Degree', label: 'Associate Degree' },
-                { value: 'Bachelor\'s Degree', label: 'Bachelor\'s Degree' },
-                { value: 'Master\'s Degree', label: 'Master\'s Degree' },
-                { value: 'Doctorate', label: 'Doctorate' },
-                { value: 'Prefer not to say', label: 'Prefer not to say' },
-              ]}
-            />
-            <ProfileField 
-              label="Education Description" 
-              value={editedFields.education_description !== undefined ? editedFields.education_description : profile.education_description}
-              editable={editingSection === 'work'}
-              fieldKey="education_description"
-              onSave={handleFieldChange}
-              type="story"
-            />
-            <ProfileField 
-              label={`Current State of ${getVisionCategoryLabel('work')}`}
-              value={editedFields.state_work !== undefined ? editedFields.state_work : profile.state_work}
-              type="story"
-              editable={editingSection === 'work'}
-              fieldKey="state_work"
-              onSave={handleFieldChange}
-              collapsible={true}
-            /></>
-        )
-      
-      case 'money':
-        return (
-          <>
-            <ProfileField 
-              label="Currency" 
-              value={editedFields.currency !== undefined ? editedFields.currency : profile.currency}
-              editable={editingSection === 'money'}
-              fieldKey="currency"
-              onSave={handleFieldChange}
-              type="select"
-              selectOptions={[
-                { value: 'USD', label: 'USD ($)' },
-                { value: 'EUR', label: 'EUR (€)' },
-                { value: 'GBP', label: 'GBP (£)' },
-                { value: 'CAD', label: 'CAD ($)' },
-                { value: 'AUD', label: 'AUD ($)' },
-              ]}
-            />
-            <ProfileField 
-              label="Household Income" 
-              value={editedFields.household_income !== undefined ? editedFields.household_income : profile.household_income}
-              editable={editingSection === 'money'}
-              fieldKey="household_income"
-              onSave={handleFieldChange}
-              type="select"
-              selectOptions={[
-                { value: 'Under 25,000', label: 'Under $25,000' },
-                { value: '25,000-49,999', label: '$25,000-$49,999' },
-                { value: '50,000-74,999', label: '$50,000-$74,999' },
-                { value: '75,000-99,999', label: '$75,000-$99,999' },
-                { value: '100,000-249,999', label: '$100,000-$249,999' },
-                { value: '250,000-499,999', label: '$250,000-$499,999' },
-                { value: '500,000+', label: '$500,000+' },
-              ]}
-            />
-            <ProfileField 
-              label="Savings & Retirement" 
-              value={editedFields.savings_retirement !== undefined ? editedFields.savings_retirement : profile.savings_retirement}
-              editable={editingSection === 'money'}
-              fieldKey="savings_retirement"
-              onSave={handleFieldChange}
-              type="select"
-              selectOptions={[
-                { value: 'Under 10,000', label: 'Under $10,000' },
-                { value: '10,000-24,999', label: '$10,000-$24,999' },
-                { value: '25,000-49,999', label: '$25,000-$49,999' },
-                { value: '50,000-99,999', label: '$50,000-$99,999' },
-                { value: '100,000-249,999', label: '$100,000-$249,999' },
-                { value: '250,000-499,999', label: '$250,000-$499,999' },
-                { value: '500,000+', label: '$500,000+' },
-              ]}
-            />
-            <ProfileField 
-              label="Assets & Equity" 
-              value={editedFields.assets_equity !== undefined ? editedFields.assets_equity : profile.assets_equity}
-              editable={editingSection === 'money'}
-              fieldKey="assets_equity"
-              onSave={handleFieldChange}
-              type="select"
-              selectOptions={[
-                { value: 'Under 10,000', label: 'Under $10,000' },
-                { value: '10,000-24,999', label: '$10,000-$24,999' },
-                { value: '25,000-49,999', label: '$25,000-$49,999' },
-                { value: '50,000-99,999', label: '$50,000-$99,999' },
-                { value: '100,000-249,999', label: '$100,000-$249,999' },
-                { value: '250,000-499,999', label: '$250,000-$499,999' },
-                { value: '500,000+', label: '$500,000+' },
-              ]}
-            />
-            <ProfileField 
-              label="Consumer Debt" 
-              value={editedFields.consumer_debt !== undefined ? editedFields.consumer_debt : profile.consumer_debt}
-              editable={editingSection === 'money'}
-              fieldKey="consumer_debt"
-              onSave={handleFieldChange}
-              type="select"
-              selectOptions={[
-                { value: 'None', label: 'None' },
-                { value: 'Under 10,000', label: 'Under $10,000' },
-                { value: '10,000-24,999', label: '$10,000-$24,999' },
-                { value: '25,000-49,999', label: '$25,000-$49,999' },
-                { value: '50,000+', label: '$50,000+' },
-              ]}
-            />
-            <ProfileField 
-              label={`Current State of ${getVisionCategoryLabel('money')}`}
-              value={editedFields.state_money !== undefined ? editedFields.state_money : profile.state_money}
-              type="story"
-              editable={editingSection === 'money'}
-              fieldKey="state_money"
-              onSave={handleFieldChange}
-              collapsible={true}
-            /></>
-        )
-      
-      case 'fun':
-        return (
-          <>
-            <ProfileField 
-              label="Current Hobbies" 
-              value={editedFields.hobbies !== undefined ? editedFields.hobbies : profile.hobbies} 
-              type="array"
-              editable={editingSection === 'fun'}
-              fieldKey="hobbies"
-              onSave={handleFieldChange}
-              placeholder="Add a hobby"
-            />
-            <ProfileField 
-              label="Leisure Time Per Week" 
-              value={editedFields.leisure_time_weekly !== undefined ? editedFields.leisure_time_weekly : profile.leisure_time_weekly}
-              editable={editingSection === 'fun'}
-              fieldKey="leisure_time_weekly"
-              onSave={handleFieldChange}
-              type="select"
-              selectOptions={[
-                { value: '0-5 hours', label: '0-5 hours' },
-                { value: '6-15 hours', label: '6-15 hours' },
-                { value: '16-25 hours', label: '16-25 hours' },
-                { value: '25+ hours', label: '25+ hours' },
-              ]}
-            />
-            <ProfileField 
-              label={`Current State of ${getVisionCategoryLabel('fun')}`}
-              value={editedFields.state_fun !== undefined ? editedFields.state_fun : profile.state_fun}
-              type="story"
-              editable={editingSection === 'fun'}
-              fieldKey="state_fun"
-              onSave={handleFieldChange}
-              collapsible={true}
-            /></>
-        )
-      
-      case 'travel':
-        return (
-          <>
-            <ProfileField 
-              label="Travel Frequency" 
-              value={editedFields.travel_frequency !== undefined ? editedFields.travel_frequency : profile.travel_frequency}
-              editable={editingSection === 'travel'}
-              fieldKey="travel_frequency"
-              onSave={handleFieldChange}
-              type="select"
-              selectOptions={[
-                { value: 'never', label: 'Never' },
-                { value: 'yearly', label: 'Yearly' },
-                { value: 'quarterly', label: 'Quarterly' },
-                { value: 'monthly', label: 'Monthly' },
-              ]}
-            />
-            <ProfileField 
-              label="Has Valid Passport" 
-              value={editedFields.passport !== undefined ? editedFields.passport : profile.passport} 
-              type="boolean"
-              editable={editingSection === 'travel'}
-              fieldKey="passport"
-              onSave={handleFieldChange}
-            />
-            <ProfileField 
-              label="Countries Visited" 
-              value={editedFields.countries_visited !== undefined ? editedFields.countries_visited : profile.countries_visited}
-              type="number"
-              editable={editingSection === 'travel'}
-              fieldKey="countries_visited"
-              onSave={handleFieldChange}
-            />
-
-            {/* Trips Table */}
-            {Array.isArray(profile.trips) && profile.trips.length > 0 && (
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-neutral-300">Trips I've Taken</label>
-                <div className="bg-neutral-800/50 rounded-lg border border-neutral-700 overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-neutral-900/50 border-b border-neutral-700">
-                      <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-neutral-400">Destination</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-neutral-400">Year</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-neutral-400">Duration</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {profile.trips.map((trip: any, index: number) => (
-                        <tr key={index} className="border-b border-neutral-700/50 last:border-0">
-                          <td className="px-4 py-2 text-sm text-white">{trip.destination || 'Not specified'}</td>
-                          <td className="px-4 py-2 text-sm text-neutral-300">{trip.year || 'Not specified'}</td>
-                          <td className="px-4 py-2 text-sm text-neutral-300">{trip.duration || 'Not specified'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            <ProfileField 
-              label={`Current State of ${getVisionCategoryLabel('travel')}`}
-              value={editedFields.state_travel !== undefined ? editedFields.state_travel : profile.state_travel}
-              type="story"
-              editable={editingSection === 'travel'}
-              fieldKey="state_travel"
-              onSave={handleFieldChange}
-              collapsible={true}
-            /></>
-        )
-      
-      case 'social':
-        return (
-          <>
-            <ProfileField 
-              label="Close Friends Count" 
-              value={editedFields.close_friends_count !== undefined ? editedFields.close_friends_count : profile.close_friends_count}
-              editable={editingSection === 'social'}
-              fieldKey="close_friends_count"
-              onSave={handleFieldChange}
-              type="select"
-              selectOptions={[
-                { value: '0', label: '0' },
-                { value: '1-3', label: '1-3' },
-                { value: '4-8', label: '4-8' },
-                { value: '9+', label: '9+' },
-              ]}
-            />
-            <ProfileField 
-              label="Social Preference" 
-              value={editedFields.social_preference !== undefined ? editedFields.social_preference : profile.social_preference}
-              editable={editingSection === 'social'}
-              fieldKey="social_preference"
-              onSave={handleFieldChange}
-              type="select"
-              selectOptions={[
-                { value: 'introvert', label: 'Introvert' },
-                { value: 'ambivert', label: 'Ambivert' },
-                { value: 'extrovert', label: 'Extrovert' },
-              ]}
-            />
-            <ProfileField 
-              label={`Current State of ${getVisionCategoryLabel('social')}`}
-              value={editedFields.state_social !== undefined ? editedFields.state_social : profile.state_social}
-              type="story"
-              editable={editingSection === 'social'}
-              fieldKey="state_social"
-              onSave={handleFieldChange}
-              collapsible={true}
-            /></>
-        )
-      
-      case 'stuff':
-        return (
-          <>
-            <ProfileField 
-              label="Lifestyle Category" 
-              value={editedFields.lifestyle_category !== undefined ? editedFields.lifestyle_category : profile.lifestyle_category}
-              editable={editingSection === 'stuff'}
-              fieldKey="lifestyle_category"
-              onSave={handleFieldChange}
-              type="select"
-              selectOptions={[
-                { value: 'minimalist', label: 'Minimalist' },
-                { value: 'moderate', label: 'Moderate' },
-                { value: 'comfortable', label: 'Comfortable' },
-                { value: 'luxury', label: 'Luxury' },
-              ]}
-            />
-
-            {/* Vehicles Table */}
-            {Array.isArray(profile.vehicles) && profile.vehicles.length > 0 && (
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-neutral-300">Vehicles</label>
-                <div className="bg-neutral-800/50 rounded-lg border border-neutral-700 overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-neutral-900/50 border-b border-neutral-700">
-                      <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-neutral-400">Vehicle Name</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-neutral-400">Year Acquired</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-neutral-400">Ownership Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {profile.vehicles.map((vehicle: any, index: number) => (
-                        <tr key={index} className="border-b border-neutral-700/50 last:border-0">
-                          <td className="px-4 py-2 text-sm text-white">{vehicle.name || 'Not specified'}</td>
-                          <td className="px-4 py-2 text-sm text-neutral-300">{vehicle.year_acquired || 'Not specified'}</td>
-                          <td className="px-4 py-2 text-sm text-neutral-300">
-                            {vehicle.ownership_status === 'paid_in_full' && 'Paid In Full'}
-                            {vehicle.ownership_status === 'own_with_payment' && 'Own with a payment'}
-                            {vehicle.ownership_status === 'leased' && 'Leased'}
-                            {vehicle.ownership_status === 'borrowed' && 'Borrowed'}
-                            {!vehicle.ownership_status && 'Not specified'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* Items Table */}
-            {Array.isArray(profile.items) && profile.items.length > 0 && (
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-neutral-300">Items</label>
-                <div className="bg-neutral-800/50 rounded-lg border border-neutral-700 overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-neutral-900/50 border-b border-neutral-700">
-                      <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-neutral-400">Item Name</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-neutral-400">Year Acquired</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-neutral-400">Ownership Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {profile.items.map((item: any, index: number) => (
-                        <tr key={index} className="border-b border-neutral-700/50 last:border-0">
-                          <td className="px-4 py-2 text-sm text-white">{item.name || 'Not specified'}</td>
-                          <td className="px-4 py-2 text-sm text-neutral-300">{item.year_acquired || 'Not specified'}</td>
-                          <td className="px-4 py-2 text-sm text-neutral-300">
-                            {item.ownership_status === 'paid_in_full' && 'Paid In Full'}
-                            {item.ownership_status === 'own_with_payment' && 'Own with a payment'}
-                            {item.ownership_status === 'leased' && 'Leased'}
-                            {item.ownership_status === 'borrowed' && 'Borrowed'}
-                            {!item.ownership_status && 'Not specified'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            <ProfileField 
-              label={`Current State of ${getVisionCategoryLabel('stuff')}`}
-              value={editedFields.state_stuff !== undefined ? editedFields.state_stuff : profile.state_stuff}
-              type="story"
-              editable={editingSection === 'stuff'}
-              fieldKey="state_stuff"
-              onSave={handleFieldChange}
-              collapsible={true}
-            /></>
-        )
-      
-      case 'spirituality':
-        return (
-          <>
-            <ProfileField 
-              label="Spiritual Practice" 
-              value={editedFields.spiritual_practice !== undefined ? editedFields.spiritual_practice : profile.spiritual_practice}
-              editable={editingSection === 'spirituality'}
-              fieldKey="spiritual_practice"
-              onSave={handleFieldChange}
-              type="select"
-              selectOptions={[
-                { value: 'none', label: 'None' },
-                { value: 'religious', label: 'Religious' },
-                { value: 'spiritual', label: 'Spiritual' },
-                { value: 'secular', label: 'Secular' },
-              ]}
-            />
-            <ProfileField 
-              label="Meditation Frequency" 
-              value={editedFields.meditation_frequency !== undefined ? editedFields.meditation_frequency : profile.meditation_frequency}
-              editable={editingSection === 'spirituality'}
-              fieldKey="meditation_frequency"
-              onSave={handleFieldChange}
-              type="select"
-              selectOptions={[
-                { value: 'never', label: 'Never' },
-                { value: 'rarely', label: 'Rarely' },
-                { value: 'weekly', label: 'Weekly' },
-                { value: 'daily', label: 'Daily' },
-              ]}
-            />
-            <ProfileField 
-              label="Personal Growth Focus" 
-              value={editedFields.personal_growth_focus !== undefined ? editedFields.personal_growth_focus : profile.personal_growth_focus} 
-              type="boolean"
-              editable={editingSection === 'spirituality'}
-              fieldKey="personal_growth_focus"
-              onSave={handleFieldChange}
-            />
-            <ProfileField 
-              label={`Current State of ${getVisionCategoryLabel('spirituality')}`}
-              value={editedFields.state_spirituality !== undefined ? editedFields.state_spirituality : profile.state_spirituality}
-              type="story"
-              editable={editingSection === 'spirituality'}
-              fieldKey="state_spirituality"
-              onSave={handleFieldChange}
-              collapsible={true}
-            /></>
-        )
-      
-      case 'giving':
-        return (
-          <>
-            <ProfileField 
-              label="Volunteer Status" 
-              value={editedFields.volunteer_status !== undefined ? editedFields.volunteer_status : profile.volunteer_status}
-              editable={editingSection === 'giving'}
-              fieldKey="volunteer_status"
-              onSave={handleFieldChange}
-              type="select"
-              selectOptions={[
-                { value: 'none', label: 'None' },
-                { value: 'occasional', label: 'Occasional' },
-                { value: 'regular', label: 'Regular' },
-                { value: 'frequent', label: 'Frequent' },
-              ]}
-            />
-            <ProfileField 
-              label="Annual Charitable Giving" 
-              value={editedFields.charitable_giving !== undefined ? editedFields.charitable_giving : profile.charitable_giving}
-              editable={editingSection === 'giving'}
-              fieldKey="charitable_giving"
-              onSave={handleFieldChange}
-              type="select"
-              selectOptions={[
-                { value: 'none', label: 'None' },
-                { value: '<500', label: 'Under $500' },
-                { value: '500-2000', label: '$500-$2,000' },
-                { value: '2000+', label: '$2,000+' },
-              ]}
-            />
-            <ProfileField 
-              label="Legacy Mindset" 
-              value={editedFields.legacy_mindset !== undefined ? editedFields.legacy_mindset : profile.legacy_mindset} 
-              type="boolean"
-              editable={editingSection === 'giving'}
-              fieldKey="legacy_mindset"
-              onSave={handleFieldChange}
-            />
-            <ProfileField 
-              label={`Current State of ${getVisionCategoryLabel('giving')}`}
-              value={editedFields.state_giving !== undefined ? editedFields.state_giving : profile.state_giving}
-              type="story"
-              editable={editingSection === 'giving'}
-              fieldKey="state_giving"
-              onSave={handleFieldChange}
-              collapsible={true}
-            /></>
-        )
-      
-      default:
-        return null
-    }
-  }
-
-  // Keyboard navigation for lightbox
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!lightboxOpen) return
@@ -1414,6 +256,283 @@ export default function ProfileDetailPage() {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [lightboxOpen])
 
+  // Read-only field renderer
+  const renderField = (label: string, value: any) => {
+    if (value === null || value === undefined || value === '') return null
+    const displayValue = typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)
+    return (
+      <div className="flex flex-col gap-0.5">
+        <span className="text-xs text-neutral-500">{label}</span>
+        <span className="text-sm text-neutral-300">{displayValue}</span>
+      </div>
+    )
+  }
+
+  const renderCategoryFields = (categoryId: string) => {
+    switch (categoryId) {
+      case 'love':
+        return (
+          <div className="space-y-3">
+            {renderField('Status', profile.relationship_status)}
+            {renderField('Partner', profile.partner_name)}
+            {renderField('Relationship Length', profile.relationship_length)}
+            {profile.state_love && (
+              <div className="pt-1">
+                <span className="text-xs text-neutral-500">Current State of {getVisionCategoryLabel('love')}</span>
+                <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap mt-1">{profile.state_love}</p>
+              </div>
+            )}
+          </div>
+        )
+      
+      case 'family':
+        return (
+          <div className="space-y-3">
+            {renderField('Has Children', profile.has_children)}
+            {Array.isArray(profile.children) && profile.children.length > 0 && (
+              <div className="space-y-1">
+                <span className="text-xs text-neutral-500">Children</span>
+                <div className="space-y-1">
+                  {profile.children.map((child: any, index: number) => (
+                    <div key={index} className="text-sm text-neutral-300">
+                      {child.first_name || 'Unnamed'}{child.birthday ? ` (${new Date(child.birthday).toLocaleDateString()})` : ''}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {profile.state_family && (
+              <div className="pt-1">
+                <span className="text-xs text-neutral-500">Current State of {getVisionCategoryLabel('family')}</span>
+                <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap mt-1">{profile.state_family}</p>
+              </div>
+            )}
+          </div>
+        )
+      
+      case 'health':
+        return (
+          <div className="space-y-3">
+            {renderField('Height', profile.height ? `${profile.height} ${profile.units === 'US' ? 'inches' : 'cm'}` : null)}
+            {renderField('Weight', profile.weight ? `${profile.weight} ${profile.units === 'US' ? 'lbs' : 'kg'}` : null)}
+            {renderField('Exercise Frequency', profile.exercise_frequency)}
+            {profile.state_health && (
+              <div className="pt-1">
+                <span className="text-xs text-neutral-500">Current State of {getVisionCategoryLabel('health')}</span>
+                <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap mt-1">{profile.state_health}</p>
+              </div>
+            )}
+          </div>
+        )
+      
+      case 'home':
+        return (
+          <div className="space-y-3">
+            {renderField('Living Situation', profile.living_situation)}
+            {renderField('Time at Location', profile.time_at_location)}
+            {renderField('City', profile.city)}
+            {renderField('State', profile.state)}
+            {renderField('Postal Code', profile.postal_code)}
+            {renderField('Country', profile.country)}
+            {profile.state_home && (
+              <div className="pt-1">
+                <span className="text-xs text-neutral-500">Current State of {getVisionCategoryLabel('home')}</span>
+                <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap mt-1">{profile.state_home}</p>
+              </div>
+            )}
+          </div>
+        )
+      
+      case 'work':
+        return (
+          <div className="space-y-3">
+            {renderField('Employment Type', profile.employment_type)}
+            {renderField('Occupation', profile.occupation)}
+            {renderField('Company', profile.company)}
+            {renderField('Time in Role', profile.time_in_role)}
+            {renderField('Education', profile.education)}
+            {profile.education_description && (
+              <div className="pt-1">
+                <span className="text-xs text-neutral-500">Education Description</span>
+                <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap mt-1">{profile.education_description}</p>
+              </div>
+            )}
+            {profile.state_work && (
+              <div className="pt-1">
+                <span className="text-xs text-neutral-500">Current State of {getVisionCategoryLabel('work')}</span>
+                <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap mt-1">{profile.state_work}</p>
+              </div>
+            )}
+          </div>
+        )
+      
+      case 'money':
+        return (
+          <div className="space-y-3">
+            {renderField('Currency', profile.currency)}
+            {renderField('Household Income', profile.household_income)}
+            {renderField('Savings & Retirement', profile.savings_retirement)}
+            {renderField('Assets & Equity', profile.assets_equity)}
+            {renderField('Consumer Debt', profile.consumer_debt)}
+            {profile.state_money && (
+              <div className="pt-1">
+                <span className="text-xs text-neutral-500">Current State of {getVisionCategoryLabel('money')}</span>
+                <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap mt-1">{profile.state_money}</p>
+              </div>
+            )}
+          </div>
+        )
+      
+      case 'fun':
+        return (
+          <div className="space-y-3">
+            {Array.isArray(profile.hobbies) && profile.hobbies.length > 0 && (
+              <div className="space-y-1">
+                <span className="text-xs text-neutral-500">Current Hobbies</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {profile.hobbies.map((hobby: string, index: number) => (
+                    <span key={index} className="text-xs px-2 py-1 rounded-full bg-neutral-800 border border-neutral-700 text-neutral-300">{hobby}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {renderField('Leisure Time Per Week', profile.leisure_time_weekly)}
+            {profile.state_fun && (
+              <div className="pt-1">
+                <span className="text-xs text-neutral-500">Current State of {getVisionCategoryLabel('fun')}</span>
+                <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap mt-1">{profile.state_fun}</p>
+              </div>
+            )}
+          </div>
+        )
+      
+      case 'travel':
+        return (
+          <div className="space-y-3">
+            {renderField('Travel Frequency', profile.travel_frequency)}
+            {renderField('Has Valid Passport', profile.passport)}
+            {renderField('Countries Visited', profile.countries_visited)}
+            {Array.isArray(profile.trips) && profile.trips.length > 0 && (
+              <div className="space-y-1">
+                <span className="text-xs text-neutral-500">Trips Taken</span>
+                <div className="space-y-1">
+                  {profile.trips.map((trip: any, index: number) => (
+                    <div key={index} className="text-sm text-neutral-300">
+                      {trip.destination || 'Unknown'}{trip.year ? ` (${trip.year})` : ''}{trip.duration ? ` - ${trip.duration}` : ''}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {profile.state_travel && (
+              <div className="pt-1">
+                <span className="text-xs text-neutral-500">Current State of {getVisionCategoryLabel('travel')}</span>
+                <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap mt-1">{profile.state_travel}</p>
+              </div>
+            )}
+          </div>
+        )
+      
+      case 'social':
+        return (
+          <div className="space-y-3">
+            {renderField('Close Friends Count', profile.close_friends_count)}
+            {renderField('Social Preference', profile.social_preference)}
+            {profile.state_social && (
+              <div className="pt-1">
+                <span className="text-xs text-neutral-500">Current State of {getVisionCategoryLabel('social')}</span>
+                <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap mt-1">{profile.state_social}</p>
+              </div>
+            )}
+          </div>
+        )
+      
+      case 'stuff':
+        return (
+          <div className="space-y-3">
+            {renderField('Lifestyle Category', profile.lifestyle_category)}
+            {Array.isArray(profile.vehicles) && profile.vehicles.length > 0 && (
+              <div className="space-y-1">
+                <span className="text-xs text-neutral-500">Vehicles</span>
+                <div className="space-y-1">
+                  {profile.vehicles.map((vehicle: any, index: number) => {
+                    const status = vehicle.ownership_status === 'paid_in_full' ? 'Paid In Full'
+                      : vehicle.ownership_status === 'own_with_payment' ? 'Own with a payment'
+                      : vehicle.ownership_status === 'leased' ? 'Leased'
+                      : vehicle.ownership_status === 'borrowed' ? 'Borrowed'
+                      : ''
+                    return (
+                      <div key={index} className="text-sm text-neutral-300">
+                        {vehicle.name || 'Unknown'}{vehicle.year_acquired ? ` (${vehicle.year_acquired})` : ''}{status ? ` - ${status}` : ''}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+            {Array.isArray(profile.items) && profile.items.length > 0 && (
+              <div className="space-y-1">
+                <span className="text-xs text-neutral-500">Items</span>
+                <div className="space-y-1">
+                  {profile.items.map((item: any, index: number) => {
+                    const status = item.ownership_status === 'paid_in_full' ? 'Paid In Full'
+                      : item.ownership_status === 'own_with_payment' ? 'Own with a payment'
+                      : item.ownership_status === 'leased' ? 'Leased'
+                      : item.ownership_status === 'borrowed' ? 'Borrowed'
+                      : ''
+                    return (
+                      <div key={index} className="text-sm text-neutral-300">
+                        {item.name || 'Unknown'}{item.year_acquired ? ` (${item.year_acquired})` : ''}{status ? ` - ${status}` : ''}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+            {profile.state_stuff && (
+              <div className="pt-1">
+                <span className="text-xs text-neutral-500">Current State of {getVisionCategoryLabel('stuff')}</span>
+                <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap mt-1">{profile.state_stuff}</p>
+              </div>
+            )}
+          </div>
+        )
+      
+      case 'spirituality':
+        return (
+          <div className="space-y-3">
+            {renderField('Spiritual Practice', profile.spiritual_practice)}
+            {renderField('Meditation Frequency', profile.meditation_frequency)}
+            {renderField('Personal Growth Focus', profile.personal_growth_focus)}
+            {profile.state_spirituality && (
+              <div className="pt-1">
+                <span className="text-xs text-neutral-500">Current State of {getVisionCategoryLabel('spirituality')}</span>
+                <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap mt-1">{profile.state_spirituality}</p>
+              </div>
+            )}
+          </div>
+        )
+      
+      case 'giving':
+        return (
+          <div className="space-y-3">
+            {renderField('Volunteer Status', profile.volunteer_status)}
+            {renderField('Annual Charitable Giving', profile.charitable_giving)}
+            {renderField('Legacy Mindset', profile.legacy_mindset)}
+            {profile.state_giving && (
+              <div className="pt-1">
+                <span className="text-xs text-neutral-500">Current State of {getVisionCategoryLabel('giving')}</span>
+                <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap mt-1">{profile.state_giving}</p>
+              </div>
+            )}
+          </div>
+        )
+      
+      default:
+        return null
+    }
+  }
+
   if (loading) {
     return (
       <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
@@ -1432,7 +551,7 @@ export default function ProfileDetailPage() {
             </div>
             <h2 className="text-2xl font-bold text-white mb-2">Profile Error</h2>
             <p className="text-neutral-400 mb-6">{error}</p>
-            <Button onClick={fetchProfile} variant="primary">
+            <Button onClick={() => fetchProfileVersion(profileId)} variant="primary">
               Try Again
             </Button>
           </div>
@@ -1453,10 +572,11 @@ export default function ProfileDetailPage() {
   }
 
   return (
-    <div className="py-6">
+    <div className="pb-6">
+      <Stack gap="md">
         {/* Intensive Completion Banner */}
         {isIntensiveMode && isAlreadyCompleted && completedAt && (
-          <Container size="xl" className="mb-8">
+          <Container size="xl">
             <IntensiveCompletionBanner 
               stepTitle="Create Profile"
               completedAt={completedAt}
@@ -1469,90 +589,24 @@ export default function ProfileDetailPage() {
           title={profile.first_name && profile.last_name
             ? `${profile.first_name} ${profile.last_name}`
             : 'My Profile'}
-          className="mb-8"
+          className="mb-4"
         >
           {/* Profile Picture */}
-          <div className="text-center relative">
-            <button
-              ref={photoButtonRef}
-              onClick={() => {
-                if (!isViewingVersion) {
-                  setShowPhotoMenu(!showPhotoMenu)
-                }
-              }}
-              disabled={isViewingVersion}
-              className="inline-block relative group"
-            >
-              <div className="inline-block w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-neutral-800 border-2 border-neutral-700 relative">
-                <NextImage
-                  src={profile.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
-                  alt="Profile picture"
-                  width={128}
-                  height={128}
-                  className="w-full h-full object-cover"
-                />
-                {!isViewingVersion && (
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
-                    <Camera className="w-6 h-6 md:w-8 md:h-8 text-white" />
-                  </div>
-                )}
-              </div>
-            </button>
-            {/* Hidden file input */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/jpg,image/png,image/webp"
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file) {
-                  setSelectedFile(file)
-                  setShowPhotoUpload(true)
-                }
-              }}
-              className="hidden"
-            />
-            
-            {/* Profile Photo Menu */}
-            {showPhotoMenu && !isViewingVersion && (
-              <div 
-                ref={photoMenuRef}
-                className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 z-50"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {/* Caret pointing up to photo */}
-                <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-white"></div>
-                <div className="absolute -top-[9px] left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-b-[5px] border-transparent border-b-white"></div>
-                <Card className="!p-1 min-w-[240px] md:min-w-[200px] shadow-xl relative !border !border-white !bg-white">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleSeeProfilePicture()
-                    }}
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-neutral-100 transition-colors text-left"
-                  >
-                    <Eye className="w-4 h-4 text-[#1F1F1F]" />
-                    <span className="text-[#1F1F1F] text-sm">See profile picture</span>
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleSelectProfilePicture()
-                    }}
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-neutral-100 transition-colors text-left"
-                  >
-                    <Camera className="w-4 h-4 text-[#1F1F1F]" />
-                    <span className="text-[#1F1F1F] text-sm">Update profile picture</span>
-                  </button>
-                </Card>
-              </div>
-            )}
+          <div className="text-center">
+            <div className="inline-block w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-neutral-800 border-2 border-neutral-700">
+              <NextImage
+                src={profile.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
+                alt="Profile picture"
+                width={128}
+                height={128}
+                className="w-full h-full object-cover"
+              />
+            </div>
           </div>
 
-          {/* Centered Version Info with Enhanced Styling */}
+          {/* Version Info */}
           {versionInfo && (
             <div className="text-center">
-              {/* Version, Status & Date Badges */}
               <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
                 <VersionBadge 
                   versionNumber={versionInfo.version_number} 
@@ -1568,237 +622,114 @@ export default function ProfileDetailPage() {
                   <span className="font-medium">Created:</span>
                   <span>{new Date(versionInfo.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                 </div>
-                {/* Profile Completion Percentage */}
                 <span className="text-xs md:text-sm font-semibold text-[#39FF14]">
                   {completionPercentage}%
                 </span>
               </div>
             </div>
           )}
-
         </PageHero>
 
-        {/* Main Content */}
-        <Container size="xl">
-        {/* Quick Stats */}
-        <div className="space-y-4 mb-8">
-            
-            <Card className="p-6 h-full">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                  <User className="w-5 h-5 text-primary-500" />
-                  Personal Information
-                </h3>
-                {editingSection !== 'personal' ? (
-                  <Button
-                    onClick={() => handleSectionEdit('personal')}
-                    variant="outline"
-                    size="sm"
-                    className="!p-2 !aspect-square md:!aspect-auto md:!px-4 md:!py-3"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                    <span className="hidden md:inline">Edit</span>
-                  </Button>
-                ) : (
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={handleSectionCancel}
-                      variant="outline"
-                      size="sm"
-                      disabled={saving}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={handleSectionSave}
-                      variant="primary"
-                      size="sm"
-                      disabled={saving || Object.keys(editedFields).length === 0}
-                    >
-                      {saving ? 'Saving...' : 'Save'}
-                    </Button>
-                  </div>
-                )}
+        {/* Personal Information Card */}
+        <Card className="transition-all duration-300 hover:shadow-lg">
+          <div className="px-1 py-2 md:px-0 md:py-0">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center shrink-0 bg-primary-500">
+                <Icon icon={User} size="xs" color="#000000" />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Full Name - from user_accounts (computed column) */}
-                <div className="flex items-center gap-3">
-                  <div>
-                    <p className="text-sm text-neutral-400">Full Name</p>
-                    <p className="text-white font-medium">
-                      {(profile.first_name || profile.last_name 
-                        ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() 
-                        : 'Not specified')}
-                    </p>
-                  </div>
-                </div>
-                <ProfileField
-                  label="Email"
-                  value={editedFields.email !== undefined ? editedFields.email : profile.email}
-                  editable={editingSection === 'personal'}
-                  fieldKey="email"
-                  onSave={handleFieldChange}
-                  type="text"
-                />
-                <ProfileField
-                  label="Phone"
-                  value={editedFields.phone !== undefined ? formatPhoneNumber(editedFields.phone) : formatPhoneNumber(profile.phone)}
-                  editable={editingSection === 'personal'}
-                  fieldKey="phone"
-                  onSave={handleFieldChange}
-                  type="text"
-                />
-                <ProfileField
-                  label="Birthday"
-                  value={editedFields.date_of_birth !== undefined ? formatDateOfBirth(editedFields.date_of_birth) : formatDateOfBirth(profile.date_of_birth)}
-                  editable={editingSection === 'personal'}
-                  fieldKey="date_of_birth"
-                  onSave={handleFieldChange}
-                  type="text"
-                />
-                <ProfileField
-                  label="Gender"
-                  value={editedFields.gender !== undefined ? editedFields.gender : profile.gender}
-                  editable={editingSection === 'personal'}
-                  fieldKey="gender"
-                  onSave={handleFieldChange}
-                  type="select"
-                  selectOptions={[
-                    { value: 'Male', label: 'Male' },
-                    { value: 'Female', label: 'Female' },
-                    { value: 'Prefer not to say', label: 'Prefer not to say' },
-                  ]}
-                />
-                <ProfileField
-                  label="Ethnicity"
-                  value={editedFields.ethnicity !== undefined ? editedFields.ethnicity : profile.ethnicity}
-                  editable={editingSection === 'personal'}
-                  fieldKey="ethnicity"
-                  onSave={handleFieldChange}
-                  type="select"
-                  selectOptions={[
-                    { value: 'Asian', label: 'Asian' },
-                    { value: 'Black', label: 'Black' },
-                    { value: 'Hispanic', label: 'Hispanic' },
-                    { value: 'Middle Eastern', label: 'Middle Eastern' },
-                    { value: 'Multi-ethnic', label: 'Multi-ethnic' },
-                    { value: 'Native American', label: 'Native American' },
-                    { value: 'Pacific Islander', label: 'Pacific Islander' },
-                    { value: 'White', label: 'White' },
-                    { value: 'Other', label: 'Other' },
-                    { value: 'Prefer not to say', label: 'Prefer not to say' },
-                  ]}
-                />
-              </div>
-            </Card>
-        </div>
+              <h3 className="text-sm font-medium text-neutral-400 uppercase tracking-[0.25em]">Personal Information</h3>
+            </div>
+            <div className="border-b border-neutral-800 mb-2" />
+            <div className="pt-2 grid grid-cols-1 md:grid-cols-2 gap-3">
+              {renderField('Full Name', (profile.first_name || profile.last_name) ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : null)}
+              {renderField('Email', profile.email)}
+              {renderField('Phone', formatPhoneNumber(profile.phone))}
+              {renderField('Birthday', formatDateOfBirth(profile.date_of_birth))}
+              {renderField('Gender', profile.gender)}
+              {renderField('Ethnicity', profile.ethnicity)}
+            </div>
+          </div>
+        </Card>
 
-        {/* Detailed Sections */}
         {/* Media */}
         {Array.isArray(profile.progress_photos) && profile.progress_photos.length > 0 && (
-          <div className="mb-8">
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <Camera className="w-5 h-5 text-primary-500" />
-                Media
-              </h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {profile.progress_photos.map((media, index) => (
-                  <div key={index} className="relative group">
-                    {isVideo(media) ? (
-                      <div className="relative" onClick={() => openLightbox(index)}>
-                        <OptimizedVideo
-                          url={media}
-                          context="list"
-                          lazy={true}
-                          className="w-full aspect-[4/3] rounded-lg"
-                        />
-                      </div>
-                    ) : (
-                      <img
-                        src={media}
-                        alt={`Media ${index + 1}`}
-                        className="w-full aspect-[4/3] object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
-                        onClick={() => openLightbox(index)}
-                      />
-                    )}
-                  </div>
-                ))}
+          <Card className="transition-all duration-300 hover:shadow-lg">
+            <div className="px-1 py-2 md:px-0 md:py-0">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center shrink-0 bg-primary-500">
+                  <Icon icon={Camera} size="xs" color="#000000" />
+                </div>
+                <h3 className="text-sm font-medium text-neutral-400 uppercase tracking-[0.25em]">Media</h3>
               </div>
-              <p className="text-sm text-neutral-400 mt-3">
-                {profile.progress_photos.length} media file{profile.progress_photos.length !== 1 ? 's' : ''} • Click to view in lightbox
-              </p>
-            </Card>
-          </div>
+              <div className="border-b border-neutral-800 mb-2" />
+              <div className="pt-2">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {profile.progress_photos.map((media, index) => (
+                    <div key={index} className="relative group">
+                      {isVideo(media) ? (
+                        <div className="relative" onClick={() => openLightbox(index)}>
+                          <OptimizedVideo
+                            url={media}
+                            context="list"
+                            lazy={true}
+                            className="w-full aspect-[4/3] rounded-lg"
+                          />
+                        </div>
+                      ) : (
+                        <img
+                          src={media}
+                          alt={`Media ${index + 1}`}
+                          className="w-full aspect-[4/3] object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
+                          onClick={() => openLightbox(index)}
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-neutral-500 mt-3">
+                  {profile.progress_photos.length} media file{profile.progress_photos.length !== 1 ? 's' : ''}
+                </p>
+              </div>
+            </div>
+          </Card>
         )}
 
-        {/* Life Category Cards - Ordered by Design System */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {getOrderedProfileCategories().map((category) => {
-            const IconComponent = category.icon
-            
-            return (
-              <Card key={category.id} className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                    <IconComponent className="w-5 h-5 text-primary-500" />
-                    {category.title}
-                  </h3>
-                  {editingSection !== category.id ? (
-                    <Button
-                      onClick={() => handleSectionEdit(category.id)}
-                      variant="outline"
-                      size="sm"
-                      className="!p-2 !aspect-square md:!aspect-auto md:!px-4 md:!py-3"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                      <span className="hidden md:inline">Edit</span>
-                    </Button>
-                  ) : (
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={handleSectionCancel}
-                        variant="outline"
-                        size="sm"
-                        disabled={saving}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={handleSectionSave}
-                        variant="primary"
-                        size="sm"
-                        disabled={saving || Object.keys(editedFields).length === 0}
-                      >
-                        {saving ? 'Saving...' : 'Save'}
-                      </Button>
-                    </div>
-                  )}
+        {/* Life Category Cards */}
+        {getOrderedProfileCategories().map((category) => {
+          const IconComponent = category.icon
+          const fields = renderCategoryFields(category.id)
+          if (!fields) return null
+          
+          return (
+            <Card key={category.id} className="transition-all duration-300 hover:shadow-lg">
+              <div className="px-1 py-2 md:px-0 md:py-0">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center shrink-0 bg-primary-500">
+                    <Icon icon={IconComponent} size="xs" color="#000000" />
+                  </div>
+                  <h3 className="text-sm font-medium text-neutral-400 uppercase tracking-[0.25em]">{category.title}</h3>
                 </div>
-                <div className="space-y-3">
-                  {renderCategoryFields(category.id)}
-                  
-                  {/* Saved Recordings */}
+                <div className="border-b border-neutral-800 mb-2" />
+                <div className="pt-2">
+                  {fields}
                   <SavedRecordings
                     recordings={profile.story_recordings || []}
                     categoryFilter={category.recordingCategory}
                   />
                 </div>
-              </Card>
-            )
-          })}
-        </div>
+              </div>
+            </Card>
+          )
+        })}
 
-        {/* Delete Button - Hidden in intensive mode */}
+        {/* Delete Button */}
         {!isIntensiveMode && (
-          <div className="mt-8 pt-6 border-t border-neutral-800 text-center">
+          <div className="text-center pt-4">
             <Button
               onClick={() => {
                 const currentVersion = getCurrentVersionInfo()
                 if (currentVersion) {
                   handleDeleteVersion(currentVersion)
-                } else if (versions.length > 0) {
-                  handleDeleteVersion(versions[0])
                 }
               }}
               variant="danger"
@@ -1817,6 +748,7 @@ export default function ProfileDetailPage() {
             </Button>
           </div>
         )}
+      </Stack>
 
       {/* Lightbox */}
       {lightboxOpen && Array.isArray(profile.progress_photos) && (
@@ -1828,7 +760,6 @@ export default function ProfileDetailPage() {
             className="relative w-full h-full flex items-center justify-center p-4"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close Button */}
             <button
               onClick={closeLightbox}
               className="absolute top-4 right-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
@@ -1836,7 +767,6 @@ export default function ProfileDetailPage() {
               <X className="w-6 h-6" />
             </button>
 
-            {/* Navigation Buttons */}
             {profile.progress_photos.length > 1 && (
               <>
                 <button
@@ -1854,7 +784,6 @@ export default function ProfileDetailPage() {
               </>
             )}
 
-            {/* Media Content */}
             <div className="max-w-4xl max-h-full w-full h-full flex items-center justify-center">
               {isVideo(profile.progress_photos[lightboxIndex]) ? (
                 <video
@@ -1872,14 +801,12 @@ export default function ProfileDetailPage() {
               )}
             </div>
 
-            {/* Media Counter */}
             {profile.progress_photos.length > 1 && (
               <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
                 {lightboxIndex + 1} of {profile.progress_photos.length}
               </div>
             )}
 
-            {/* Thumbnail Strip */}
             {profile.progress_photos.length > 1 && (
               <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 flex gap-2 max-w-full overflow-x-auto px-4">
                 {profile.progress_photos.map((media, index) => (
@@ -1914,97 +841,6 @@ export default function ProfileDetailPage() {
           </div>
         </div>
       )}
-
-      {/* Profile Photo Lightbox */}
-      {profilePhotoLightboxOpen && (() => {
-        const allPhotos = getAllProfilePhotos()
-        if (allPhotos.length === 0) return null
-        
-        return (
-          <div 
-            className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center"
-            onClick={() => setProfilePhotoLightboxOpen(false)}
-          >
-            <div 
-              className="relative w-full h-full flex items-center justify-center p-4"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Close Button */}
-              <button
-                onClick={() => setProfilePhotoLightboxOpen(false)}
-                className="absolute top-4 right-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
-
-              {/* Navigation Buttons */}
-              {allPhotos.length > 1 && (
-                <>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      prevProfilePhoto()
-                    }}
-                    className="absolute left-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
-                  >
-                    <ChevronLeft className="w-6 h-6" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      nextProfilePhoto()
-                    }}
-                    className="absolute right-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
-                  >
-                    <ChevronRight className="w-6 h-6" />
-                  </button>
-                </>
-              )}
-
-              {/* Photo Content */}
-              <div className="max-w-6xl max-h-full w-full h-full flex items-center justify-center">
-                <img
-                  src={allPhotos[profilePhotoIndex]}
-                  alt={`Profile photo ${profilePhotoIndex + 1}`}
-                  className="max-w-full max-h-[90vh] object-contain rounded-lg"
-                />
-              </div>
-
-              {/* Photo Counter */}
-              {allPhotos.length > 1 && (
-                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-                  {profilePhotoIndex + 1} of {allPhotos.length}
-                </div>
-              )}
-
-              {/* Thumbnail Strip */}
-              {allPhotos.length > 1 && (
-                <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 flex gap-2 max-w-full overflow-x-auto px-4">
-                  {allPhotos.map((photo, index) => (
-                    <button
-                      key={index}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setProfilePhotoIndex(index)
-                      }}
-                      className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
-                        index === profilePhotoIndex ? 'border-primary-500' : 'border-neutral-600'
-                      }`}
-                    >
-                      <img
-                        src={photo}
-                        alt={`Thumbnail ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )
-      })()}
-        </Container>
 
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmationDialog
