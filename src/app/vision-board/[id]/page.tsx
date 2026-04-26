@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, Input, Button, CategoryCard, Container, Stack, PageHero, Spinner, DeleteConfirmationDialog } from '@/lib/design-system'
+import { Card, Input, Button, CategoryGrid, Container, Stack, PageHero, Spinner, DeleteConfirmationDialog } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
@@ -128,7 +128,8 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
 
     try {
       // Get current user
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) {
         alert('Please log in to edit vision board item')
         return
@@ -255,7 +256,8 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
 
     try {
       // Get current user
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) {
         alert('Please log in to delete vision board item')
         return
@@ -760,24 +762,11 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                 <p className="text-sm text-neutral-400 mb-3 text-center">
                   Select categories for your vision item
                 </p>
-                <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
-                  {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => {
-                    const isSelected = formData.categories.includes(category.key)
-                    return (
-                      <CategoryCard
-                        key={category.key}
-                        category={category}
-                        selected={isSelected}
-                        onClick={() => handleCategoryToggle(category.key)}
-                        variant="outlined"
-                        selectionStyle="border"
-                        iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
-                        selectedIconColor="#39FF14"
-                        className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : '!bg-transparent !border-[#333]'}
-                      />
-                    )
-                  })}
-                </div>
+                <CategoryGrid
+                  categories={VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion')}
+                  selectedCategories={formData.categories}
+                  onCategoryClick={handleCategoryToggle}
+                />
               </div>
 
               {/* Actions */}

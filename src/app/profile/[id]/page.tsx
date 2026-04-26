@@ -10,6 +10,9 @@ import { SavedRecordings } from '@/components/SavedRecordings'
 import { DEFAULT_PROFILE_IMAGE_URL } from '../components/ProfilePictureUpload'
 import { formatPhoneDisplay, phoneToDigits } from '@/lib/phone-format'
 import { Icon } from '@/lib/design-system/components'
+import { useProfileStudio } from '@/components/profile-studio/ProfileStudioContext'
+import { loadIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
+import { createClient } from '@/lib/supabase/client'
 import { 
   User, 
   CalendarDays,
@@ -60,11 +63,15 @@ export default function ProfileDetailPage() {
   const router = useRouter()
   const params = useParams()
   const profileId = params.id as string
+  // `versions` comes from ProfileStudioContext (provided by the profile layout).
+  // Previously this page refetched /api/profile?includeVersions=true on every mount,
+  // duplicating what the context already loads — causing 2-4 redundant network calls
+  // per profile navigation.
+  const { versions, refreshVersions } = useProfileStudio()
   const [profile, setProfile] = useState<Partial<UserProfile>>({})
   const [completionPercentage, setCompletionPercentage] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [versions, setVersions] = useState<any[]>([])
   const [deletingVersion, setDeletingVersion] = useState<string | null>(null)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
@@ -84,25 +91,27 @@ export default function ProfileDetailPage() {
   }, [profile])
 
   useEffect(() => {
-    checkIntensiveMode()
-  }, [])
-
-  const checkIntensiveMode = async () => {
-    try {
-      const { getActiveIntensiveClient } = await import('@/lib/intensive/utils-client')
-      const intensiveData = await getActiveIntensiveClient()
-
-      if (intensiveData) {
+    // Use the cached intensive snapshot — this is populated once per session by
+    // GlobalLayout, so the check below is usually synchronous and never hits the DB.
+    let cancelled = false
+    ;(async () => {
+      try {
+        const supabase = createClient()
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session?.user || cancelled) return
+        const snap = await loadIntensiveSnapshot(session.user.id)
+        if (cancelled || !snap?.intensive) return
         setIsIntensiveMode(true)
-        if (intensiveData.profile_completed) {
+        if (snap.intensive.profile_completed) {
           setIsAlreadyCompleted(true)
-          setCompletedAt(intensiveData.profile_completed_at || intensiveData.created_at)
+          setCompletedAt(snap.intensive.profile_completed_at || snap.intensive.created_at)
         }
+      } catch (error) {
+        console.error('Error checking intensive mode:', error)
       }
-    } catch (error) {
-      console.error('Error checking intensive mode:', error)
-    }
-  }
+    })()
+    return () => { cancelled = true }
+  }, [])
 
   useEffect(() => {
     if (profileId) {
@@ -120,12 +129,6 @@ export default function ProfileDetailPage() {
       }
       const data = await response.json()
       setProfile(data.profile || {})
-
-      const versionsResponse = await fetch(`/api/profile?includeVersions=true`)
-      if (versionsResponse.ok) {
-        const versionsData = await versionsResponse.json()
-        setVersions(versionsData.versions || [])
-      }
     } catch (error) {
       console.error('Error fetching profile version:', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to load profile version'
@@ -147,6 +150,9 @@ export default function ProfileDetailPage() {
         throw new Error(errorData.error || 'Failed to delete version')
       }
 
+      // Refresh the shared versions list in the studio context so the next
+      // profile page doesn't render a stale cache entry for the deleted version.
+      await refreshVersions()
       router.push('/profile')
     } catch (error) {
       console.error('Error deleting version:', error)
@@ -202,8 +208,10 @@ export default function ProfileDetailPage() {
         version_number: profileAny.version_number,
         is_draft: profileAny.is_draft,
         is_active: profileAny.is_active,
-        created_at: profile.created_at,
-        updated_at: profile.updated_at
+        // Fallback to empty string so the return type stays compatible with
+        // ProfileVersion (whose created_at is a required string).
+        created_at: profile.created_at ?? '',
+        updated_at: profile.updated_at,
       }
     }
     

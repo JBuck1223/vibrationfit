@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Card, Button, DeleteConfirmationDialog, CategoryCard } from '@/lib/design-system'
+import { Card, Button, DeleteConfirmationDialog, CategoryGrid } from '@/lib/design-system'
 import { Heart, MessageCircle, Trash2, MoreHorizontal, Play, Pencil, Pin, X, Trophy, Sparkles, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react'
 import { VibePost, VibeTag, VIBE_TAG_CONFIG, VIBE_TAGS } from '@/lib/vibe-tribe/types'
 import { UserBadgeIndicator } from '@/components/badges'
@@ -479,23 +479,12 @@ export function PostCard({
                   )}
                 </button>
                 {showEditCategories && (
-                  <div className="mt-2 grid grid-cols-4 md:grid-cols-6 gap-1.5">
-                    {VISION_CATEGORIES.filter(cat => cat.key !== 'forward' && cat.key !== 'conclusion').map((category) => {
-                      const isCatSelected = editCategories.includes(category.key)
-                      return (
-                        <CategoryCard
-                          key={category.key}
-                          category={category}
-                          selected={isCatSelected}
-                          onClick={() => handleEditCategoryToggle(category.key)}
-                          variant="outlined"
-                          selectionStyle="border"
-                          iconColor={isCatSelected ? "#39FF14" : "#FFFFFF"}
-                          selectedIconColor="#39FF14"
-                          className={`!p-2 ${isCatSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.5)]' : '!bg-transparent !border-[#333]'}`}
-                        />
-                      )
-                    })}
+                  <div className="mt-2">
+                    <CategoryGrid
+                      categories={VISION_CATEGORIES.filter(cat => cat.key !== 'forward' && cat.key !== 'conclusion')}
+                      selectedCategories={editCategories}
+                      onCategoryClick={handleEditCategoryToggle}
+                    />
                   </div>
                 )}
               </div>

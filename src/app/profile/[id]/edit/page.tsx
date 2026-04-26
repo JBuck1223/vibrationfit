@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import {  Button, Badge, Card, CategoryCard, WarningConfirmationDialog, Icon, VersionBadge, StatusBadge, PageHero, Container, Stack, Spinner, IntensiveCompletionBanner, IntensiveStepCompleteModal } from '@/lib/design-system/components'
+import {  Button, Badge, Card, CategoryGrid, WarningConfirmationDialog, Icon, VersionBadge, StatusBadge, PageHero, Container, Stack, Spinner, IntensiveCompletionBanner, IntensiveStepCompleteModal } from '@/lib/design-system/components'
 import ProfileVersionManager from '@/components/ProfileVersionManager'
 import VersionStatusIndicator from '@/components/VersionStatusIndicator'
 import VersionActionToolbar from '@/components/VersionActionToolbar'
@@ -1030,41 +1030,17 @@ export default function ProfileEditPage() {
           </div>
 
             {/* Category Grid */}
-            <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:[grid-template-columns:repeat(14,minmax(0,1fr))] gap-1">
-              {profileSections.map((section) => {
+            <CategoryGrid
+              categories={profileSections.map((section) => {
                 const categoryInfo = getCategoryInfo(section.id)
-                const isSelected = selectedCategories.includes(section.id)
-                const isCompleted = completedSections.includes(section.id)
-                const isActive = activeSection === section.id
-                
-                // Create category object for CategoryCard
-                const category = {
-                  key: section.id,
-                  label: categoryInfo.title,
-                  icon: categoryInfo.icon
-                }
-
-                return (
-                  <div key={section.id} className="relative">
-                    {isCompleted && (
-                      <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#333] border-2 border-[#39FF14] flex items-center justify-center z-10">
-                        <Check className="w-3 h-3 text-[#39FF14]" strokeWidth={3} />
-                      </div>
-                    )}
-                    <CategoryCard 
-                      category={category}
-                      selected={isActive}
-                      onClick={() => handleSectionChange(section.id)}
-                      variant="outlined"
-                      selectionStyle="border"
-                      iconColor={isActive ? "#39FF14" : "#FFFFFF"}
-                      selectedIconColor="#39FF14"
-                      className={isActive ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : ''}
-                    />
-                  </div>
-                )
+                return { key: section.id, label: categoryInfo.title, icon: categoryInfo.icon }
               })}
-            </div>
+              activeCategory={activeSection}
+              completedCategories={completedSections}
+              onCategoryClick={handleSectionChange}
+              mode="completion"
+              fillWidth
+            />
         </Card>
 
         {/* Main Content - Full Width */}

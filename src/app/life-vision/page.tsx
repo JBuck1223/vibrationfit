@@ -1,45 +1,34 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
 import { Card, Button, Spinner, Container } from '@/lib/design-system/components'
+import { useLifeVisionStudio } from '@/components/life-vision-studio/LifeVisionStudioContext'
 
 export default function VisionListPage() {
   const router = useRouter()
-  const [loading, setLoading] = useState(true)
-  const [hasVision, setHasVision] = useState(false)
+  const { visions, loading, activeVisionId } = useLifeVisionStudio()
+  const redirected = useRef(false)
 
   useEffect(() => {
-    const loadAndRedirect = async () => {
-      try {
-        const response = await fetch('/api/vision?includeVersions=false')
-        if (!response.ok) {
-          if (response.status === 401) {
-            router.push('/auth/login')
-            return
-          }
-          setLoading(false)
-          return
-        }
+    if (loading || redirected.current) return
 
-        const data = await response.json()
-        if (data.vision?.id) {
-          setHasVision(true)
-          router.replace(`/life-vision/${data.vision.id}`)
-        } else {
-          setLoading(false)
-        }
-      } catch {
-        setLoading(false)
-      }
+    if (activeVisionId) {
+      redirected.current = true
+      router.replace(`/life-vision/${activeVisionId}`)
+      return
     }
 
-    loadAndRedirect()
-  }, [router])
+    const firstVision = visions.find(v => !v.is_draft)
+    if (firstVision?.id) {
+      redirected.current = true
+      router.replace(`/life-vision/${firstVision.id}`)
+    }
+  }, [loading, activeVisionId, visions, router])
 
-  if (loading || hasVision) {
+  if (loading || activeVisionId || visions.some(v => !v.is_draft)) {
     return (
       <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
         <Spinner size="lg" />

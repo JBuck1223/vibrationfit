@@ -57,7 +57,8 @@ export default function ScenesToolPage() {
     if (!selectedCategory) return
     
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) {
         setError('Please log in to continue')
         setLoading(false)
@@ -118,7 +119,8 @@ export default function ScenesToolPage() {
     setError(null)
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) throw new Error('Unauthorized')
 
       // Get all category data
@@ -287,7 +289,8 @@ export default function ScenesToolPage() {
     if (!selectedCategory) return
     
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) throw new Error('Unauthorized')
 
       const deselectedScenes = scenes.filter(s => !selectedScenes.has(s.id))
@@ -349,9 +352,7 @@ export default function ScenesToolPage() {
               completedCategories={completedCategoryKeys}
               onCategoryClick={handleCategorySelect}
               mode="completion"
-              layout="12-column"
-              withCard={true}
-              className="!bg-black/40 backdrop-blur-sm"
+              fillWidth
             />
           </div>
         </PageHero>

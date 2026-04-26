@@ -8,7 +8,7 @@ import {
   Button,
   Spinner,
   Textarea,
-  CategoryCard,
+  CategoryGrid,
   PageHero,
   Video,
 } from '@/lib/design-system/components'
@@ -72,7 +72,8 @@ export default function VibeTribeNewPage() {
   useEffect(() => {
     async function checkAuth() {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       
       if (!user) {
         router.push('/auth/login')
@@ -336,24 +337,12 @@ export default function VibeTribeNewPage() {
                 </button>
                 
                 {showCategories && (
-                  <div className="mt-3 grid grid-cols-4 md:grid-cols-6 gap-2">
-                    {lifeCategories.map((category) => {
-                      const isSelected = selectedCategories.includes(category.key)
-                      return (
-                        <CategoryCard
-                          key={category.key}
-                          category={category}
-                          selected={isSelected}
-                          onClick={() => handleCategoryToggle(category.key)}
-                          variant="outlined"
-                          selectionStyle="border"
-                          iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
-                          selectedIconColor="#39FF14"
-                          allowLabelWrap={category.key === 'spirituality'}
-                          className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.5)]' : '!bg-transparent !border-[#333]'}
-                        />
-                      )
-                    })}
+                  <div className="mt-3">
+                    <CategoryGrid
+                      categories={lifeCategories}
+                      selectedCategories={selectedCategories}
+                      onCategoryClick={handleCategoryToggle}
+                    />
                   </div>
                 )}
               </div>

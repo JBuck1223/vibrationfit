@@ -6,7 +6,7 @@ import { Image as ImageIcon, Video, Send, X, Trophy, Heart, Sparkles, Lightbulb,
 import { VibeTag, VIBE_TAG_CONFIG, VibePost, VIBE_TAGS } from '@/lib/vibe-tribe/types'
 import { UploadProgress } from '@/components/UploadProgress'
 import { uploadMultipleUserFiles, getUploadErrorMessage } from '@/lib/storage/s3-storage-presigned'
-import { CategoryCard, Spinner } from '@/lib/design-system'
+import { CategoryGrid, Spinner } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
 import { useMentionAutocomplete } from '@/hooks/useMentionAutocomplete'
@@ -436,24 +436,12 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
                 </button>
                 
                 {showCategories && (
-                  <div className="mt-2 grid grid-cols-3 sm:grid-cols-6 gap-1.5">
-                    {lifeCategories.map((category) => {
-                      const isSelected = selectedCategories.includes(category.key)
-                      return (
-                        <CategoryCard 
-                          key={category.key} 
-                          category={category} 
-                          selected={isSelected} 
-                          onClick={() => handleCategoryToggle(category.key)}
-                          variant="outlined"
-                          selectionStyle="border"
-                          iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
-                          selectedIconColor="#39FF14"
-                          allowLabelWrap={category.key === 'spirituality'}
-                          className={`!p-2 ${isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.5)]' : '!bg-transparent !border-[#333]'}`}
-                        />
-                      )
-                    })}
+                  <div className="mt-2">
+                    <CategoryGrid
+                      categories={lifeCategories}
+                      selectedCategories={selectedCategories}
+                      onCategoryClick={handleCategoryToggle}
+                    />
                   </div>
                 )}
               </div>

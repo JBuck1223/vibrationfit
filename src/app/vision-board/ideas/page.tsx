@@ -12,6 +12,7 @@ import {
   Badge,
   FullBleed,
   VIVALoadingOverlay,
+  CategoryGrid,
 } from '@/lib/design-system/components'
 import { Sparkles, Plus, Lightbulb, Check } from 'lucide-react'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
@@ -71,7 +72,8 @@ export default function VisionBoardIdeasPage() {
       setError(null)
 
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
 
       if (!user) {
         router.push('/auth/login')
@@ -206,7 +208,8 @@ export default function VisionBoardIdeasPage() {
 
       // Fetch active life vision directly from database
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
 
       if (!user) {
         throw new Error('Please log in to continue')
@@ -566,48 +569,14 @@ export default function VisionBoardIdeasPage() {
 
               {/* Match Card p-4 md:p-6 lg:p-8 so life category pills sit flush on iPad (lg) */}
               <FullBleed className="md:-mx-6 lg:-mx-8">
-                <section className="space-y-2">
-                  <div className="flex items-center justify-between gap-3 mb-1.5 lg:hidden px-4">
-                    <p className="text-[10px] uppercase tracking-wide text-neutral-500">Tag life categories</p>
-                    <span className="text-[10px] text-neutral-600">Scroll to see all &rarr;</span>
-                  </div>
-                  <div className="flex items-center gap-2 pb-1 px-4 md:px-0 max-lg:flex-nowrap max-lg:overflow-x-auto max-lg:justify-start max-lg:scrollbar-hide lg:flex-wrap lg:justify-center">
-                    <button
-                      type="button"
-                      onClick={handleSelectAll}
-                      className={`
-                        shrink-0 whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-colors border
-                        ${selectedCategories.length === categoriesWithout.length
-                          ? 'bg-primary-500 text-black border-primary-500'
-                          : 'bg-[#171717] text-neutral-400 border-[#2A2A2A] hover:text-neutral-200 hover:border-[#3A3A3A]'
-                        }
-                      `}
-                    >
-                      All
-                    </button>
-                    {categoriesWithout.map((category) => {
-                      const CategoryIcon = category.icon
-                      const isSelected = selectedCategories.includes(category.key)
-                      return (
-                        <button
-                          key={category.key}
-                          type="button"
-                          onClick={() => handleCategoryToggle(category.key)}
-                          className={`
-                            shrink-0 inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-colors border
-                            ${isSelected
-                              ? 'bg-primary-500 text-black border-primary-500'
-                              : 'bg-[#171717] text-neutral-400 border-[#2A2A2A] hover:text-neutral-200 hover:border-[#3A3A3A]'
-                            }
-                          `}
-                        >
-                          <CategoryIcon className="w-3.5 h-3.5" />
-                          {category.label}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </section>
+                <CategoryGrid
+                  categories={categoriesWithout}
+                  selectedCategories={selectedCategories}
+                  onCategoryClick={handleCategoryToggle}
+                  showSelectAll
+                  onSelectAll={handleSelectAll}
+                  pillLabel="Tag life categories"
+                />
               </FullBleed>
 
               {error && (

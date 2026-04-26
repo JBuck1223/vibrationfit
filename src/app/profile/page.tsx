@@ -1,49 +1,34 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, User } from 'lucide-react'
 import { Card, Button, Spinner, Container } from '@/lib/design-system/components'
+import { useProfileStudio } from '@/components/profile-studio/ProfileStudioContext'
 
 export default function ProfileListPage() {
   const router = useRouter()
-  const [loading, setLoading] = useState(true)
-  const [hasProfile, setHasProfile] = useState(false)
+  const { versions, loading, activeProfileId } = useProfileStudio()
+  const redirected = useRef(false)
 
   useEffect(() => {
-    const loadAndRedirect = async () => {
-      try {
-        const response = await fetch('/api/profile?includeVersions=true')
-        if (!response.ok) {
-          if (response.status === 401) {
-            router.push('/auth/login')
-            return
-          }
-          setLoading(false)
-          return
-        }
+    if (loading || redirected.current) return
 
-        const data = await response.json()
-        const activeProfile = data.versions?.find((v: any) => v.is_active && !v.is_draft)
-        if (activeProfile?.id) {
-          setHasProfile(true)
-          router.replace(`/profile/${activeProfile.id}`)
-        } else if (data.profile?.id) {
-          setHasProfile(true)
-          router.replace(`/profile/${data.profile.id}`)
-        } else {
-          setLoading(false)
-        }
-      } catch {
-        setLoading(false)
-      }
+    if (activeProfileId) {
+      redirected.current = true
+      router.replace(`/profile/${activeProfileId}`)
+      return
     }
 
-    loadAndRedirect()
-  }, [router])
+    const firstVersion = versions[0]
+    if (firstVersion?.id) {
+      redirected.current = true
+      router.replace(`/profile/${firstVersion.id}`)
+    }
+  }, [loading, activeProfileId, versions, router])
 
-  if (loading || hasProfile) {
+  if (loading || activeProfileId || versions.length > 0) {
     return (
       <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
         <Spinner size="lg" />

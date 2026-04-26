@@ -127,13 +127,13 @@ export const userNavigation: (NavItem | NavGroup)[] = [
   },
   {
     name: 'Profile',
-    href: '/profile/active',
+    href: '/profile',
     icon: User,
     description: 'Your active profile',
   },
   {
     name: 'Life Vision',
-    href: '/life-vision/active',
+    href: '/life-vision',
     icon: Target,
     description: 'My Active Vision',
   },
@@ -240,7 +240,7 @@ export const userNavigationGroups: NavGroup[] = [
         icon: User,
         hasDropdown: true,
         children: [
-          { name: 'My Active Profile', href: '/profile/active', icon: CheckCircle },
+          { name: 'My Active Profile', href: '/profile', icon: CheckCircle },
           { name: 'Assessment', href: '/assessment', icon: Brain },
         ],
       },
@@ -715,15 +715,15 @@ export function isNavItemActive(
   // RULE 3: For children of dropdowns, ONLY exact matches count
   // This prevents "/life-vision" from matching when on "/life-vision/household"
   if (isChildOfDropdown) {
-    // Special case: /life-vision/active should match /life-vision/[uuid]
-    if (item.href === '/life-vision/active') {
+    // /life-vision links should highlight when on any /life-vision/[uuid] page
+    if (item.href === '/life-vision') {
       if (pathname.match(/^\/life-vision\/[a-f0-9-]{36}(\/|$)/)) {
         return true
       }
     }
     
-    // Special case: /profile/active should match /profile/[uuid] if it's the active profile
-    if (item.href === '/profile/active') {
+    // /profile links should highlight when on the active profile page
+    if (item.href === '/profile') {
       const uuidMatch = pathname.match(/^\/profile\/([a-f0-9-]{36})(\/|$)/)
       if (uuidMatch) {
         return uuidMatch[1] === activeProfileId
@@ -785,16 +785,16 @@ export function isNavItemActive(
       }
     }
     
-    // Special handling for /profile/active - match any profile route
-    if (item.href === '/profile/active') {
-      if (pathname.startsWith('/profile')) {
+    // /profile top-level matches any profile route
+    if (item.href === '/profile') {
+      if (pathname.startsWith('/profile/')) {
         return true
       }
     }
     
-    // Special handling for /life-vision/active - match any life-vision route
-    if (item.href === '/life-vision/active') {
-      if (pathname.startsWith('/life-vision')) {
+    // /life-vision top-level matches any life-vision route
+    if (item.href === '/life-vision') {
+      if (pathname.startsWith('/life-vision/')) {
         return true
       }
     }

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Card, Button, Input, CategoryCard, DatePicker, Container, Stack, PageHero, Spinner, Text, Inline } from '@/lib/design-system'
+import { Card, Button, Input, CategoryGrid, DatePicker, Container, Stack, PageHero, Spinner, Text, Inline } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
@@ -62,7 +62,8 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
     async function fetchData() {
       const resolvedParams = await params
       const supabase = createClient()
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      const { data: { session }, error: userError } = await supabase.auth.getSession()
+      const user = session?.user
 
       if (userError || !user) {
         router.push('/auth/login')
@@ -153,7 +154,8 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
     setSubmitError(null)
     setSaving(true)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) {
         setSubmitError('Please log in to update a journal entry.')
         return
@@ -329,24 +331,11 @@ export default function EditJournalEntryPage({ params }: { params: Promise<{ id:
                 <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
                   Life categories
                 </Text>
-                <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
-                  {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => {
-                    const isSelected = formData.categories.includes(category.key)
-                    return (
-                      <CategoryCard
-                        key={category.key}
-                        category={category}
-                        selected={isSelected}
-                        onClick={() => handleCategoryToggle(category.key)}
-                        variant="outlined"
-                        selectionStyle="border"
-                        iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
-                        selectedIconColor="#39FF14"
-                        className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : '!bg-transparent !border-[#333]'}
-                      />
-                    )
-                  })}
-                </div>
+                <CategoryGrid
+                  categories={VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion')}
+                  selectedCategories={formData.categories}
+                  onCategoryClick={handleCategoryToggle}
+                />
               </section>
 
               {/* Evidence / Images */}

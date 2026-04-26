@@ -118,7 +118,8 @@ export default function AudioGeneratePage() {
     setGenerating(true)
     try {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) { alert('You must be logged in to generate audio'); setGenerating(false); return }
 
       let sectionsPayload: { sectionKey: string; text: string }[] = []

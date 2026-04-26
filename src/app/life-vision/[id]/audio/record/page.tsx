@@ -622,10 +622,8 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
           completedCategories={Array.from(recordings.keys())}
           refinedCategories={refinedCategories}
           onCategoryClick={(key) => setActiveSection(key)}
-          layout="14-column"
           mode={refinedCategories.length > 0 ? 'record' : 'completion'}
-          variant="outlined"
-          withCard={true}
+          fillWidth
         />
       </div>
 

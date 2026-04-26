@@ -42,7 +42,8 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
       const resolvedParams = await params
       setEntryId(resolvedParams.id)
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
 
       if (!user) {
         router.push('/auth/login')

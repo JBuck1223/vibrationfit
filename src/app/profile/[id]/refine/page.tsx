@@ -11,7 +11,7 @@ import {
   StatusBadge,
   Badge,
   Container,
-  CategoryCard,
+  CategoryGrid,
   PageHero
 } from '@/lib/design-system/components'
 import { 
@@ -88,8 +88,8 @@ export default function ProfileRefinePage() {
       try {
         setLoading(true)
 
-        // Get user
-        const { data: { user: currentUser } } = await supabase.auth.getUser()
+        const { data: { session } } = await supabase.auth.getSession()
+        const currentUser = session?.user
         if (!currentUser) {
           router.push('/auth/login')
           return
@@ -471,30 +471,14 @@ export default function ProfileRefinePage() {
       {/* Category Selection */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-white mb-6 text-center">Choose a Section to Compare</h2>
-        <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-[repeat(13,minmax(0,1fr))] gap-2">
-          {PROFILE_CATEGORIES.map((category) => {
-            const isRefined = (changedSections[category.key]?.length || 0) > 0
-            return (
-              <div key={category.key} className="relative">
-                {isRefined && (
-                  <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#333] border-2 border-[#FFFF00] flex items-center justify-center z-10">
-                    <Check className="w-3 h-3 text-[#FFFF00]" strokeWidth={3} />
-                  </div>
-                )}
-                <CategoryCard 
-                  category={category} 
-                  selected={selectedCategory === category.key} 
-                  variant="outlined"
-                  selectionStyle="border"
-                  iconColor={isRefined ? NEON_YELLOW : (selectedCategory === category.key ? "#39FF14" : "#FFFFFF")}
-                  selectedIconColor={isRefined ? NEON_YELLOW : "#39FF14"}
-                  className={selectedCategory === category.key ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : ''}
-                  onClick={() => handleCategorySelect(category.key)}
-                />
-              </div>
-            )
-          })}
-        </div>
+        <CategoryGrid
+          categories={PROFILE_CATEGORIES}
+          activeCategory={selectedCategory || undefined}
+          refinedCategories={Object.entries(changedSections).filter(([, fields]) => (fields?.length || 0) > 0).map(([key]) => key)}
+          onCategoryClick={handleCategorySelect}
+          mode="draft"
+          fillWidth
+        />
       </div>
 
       {/* Current Section & Draft Display */}

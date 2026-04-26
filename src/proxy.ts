@@ -40,12 +40,11 @@ export async function proxy(req: NextRequest) {
     }
   )
 
-  // Get user (authenticated by Supabase, not just from cookies)
-  const { data: { user }, error: userError } = await supabase.auth.getUser()
-
-  // Handle admin route protection
+  // Admin routes need server-verified auth via getUser() (network call)
   if (isAdminRoute(pathname)) {
     try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+
       if (userError || !user) {
         return createAdminResponse(req)
       }
@@ -63,8 +62,8 @@ export async function proxy(req: NextRequest) {
     }
   }
 
-  // No intensive redirects - GlobalLayout handles UI/nav changes
-  // Users can navigate freely, they just see intensive sidebar/mobile nav
+  // Non-admin routes: refresh session cookie without a network call
+  await supabase.auth.getSession()
   
   return res
 }

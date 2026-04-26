@@ -13,7 +13,7 @@ import {
   Text,
   PageHero,
   EmptyState,
-  CategoryCard,
+  CategoryGrid,
   DeleteConfirmationDialog,
   ImageLightbox,
 } from '@/lib/design-system/components'
@@ -147,7 +147,8 @@ export default function DailyPaperIndexPage() {
     setDeleting(true)
     try {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) { router.push('/auth/login'); return }
       const { error: delError } = await supabase
         .from('daily_papers')
@@ -406,33 +407,21 @@ export default function DailyPaperIndexPage() {
                   {selectedCategories.includes('all') ? 'Deselect All' : 'Select All'}
                 </Button>
               </div>
-              <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
-                {VISION_CATEGORIES.filter((category) => category.key !== 'forward' && category.key !== 'conclusion').map((category) => {
-                  const isSelected = selectedCategories.includes(category.key) || selectedCategories.includes('all')
-                  return (
-                    <CategoryCard
-                      key={category.key}
-                      category={category}
-                      selected={isSelected}
-                      onClick={() => {
-                        if (selectedCategories.includes(category.key)) {
-                          setSelectedCategories((prev) => prev.filter((cat) => cat !== category.key))
-                        } else {
-                          setSelectedCategories((prev) => {
-                            const filtered = prev.filter((cat) => cat !== 'all')
-                            return [...filtered, category.key]
-                          })
-                        }
-                      }}
-                      variant="outlined"
-                      selectionStyle="border"
-                      iconColor={isSelected ? '#39FF14' : '#FFFFFF'}
-                      selectedIconColor="#39FF14"
-                      className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : '!bg-transparent !border-[#333]'}
-                    />
-                  )
-                })}
-              </div>
+              <CategoryGrid
+                categories={VISION_CATEGORIES.filter((category) => category.key !== 'forward' && category.key !== 'conclusion')}
+                selectedCategories={selectedCategories.includes('all') ? VISION_CATEGORIES.filter(c => c.key !== 'forward' && c.key !== 'conclusion').map(c => c.key) : selectedCategories}
+                onCategoryClick={(key) => {
+                  if (selectedCategories.includes(key)) {
+                    setSelectedCategories((prev) => prev.filter((cat) => cat !== key))
+                  } else {
+                    setSelectedCategories((prev) => {
+                      const filtered = prev.filter((cat) => cat !== 'all')
+                      return [...filtered, key]
+                    })
+                  }
+                }}
+                fillWidth
+              />
             </Card>
           </div>
         )}

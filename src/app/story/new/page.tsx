@@ -242,7 +242,8 @@ export default function NewStoryWizardPage() {
         }
         setEntities(versions)
       } else if (entityType === 'vision_board_item') {
-        const { data: { user } } = await supabase.auth.getUser()
+        const { data: { session } } = await supabase.auth.getSession()
+        const user = session?.user
         if (!user) { router.push('/auth/login'); return }
         const { data } = await supabase
           .from('vision_board_items')
@@ -251,7 +252,8 @@ export default function NewStoryWizardPage() {
           .order('created_at', { ascending: false })
         setEntities(data || [])
       } else if (entityType === 'journal_entry') {
-        const { data: { user } } = await supabase.auth.getUser()
+        const { data: { session } } = await supabase.auth.getSession()
+        const user = session?.user
         if (!user) { router.push('/auth/login'); return }
         const { data } = await supabase
           .from('journal_entries')
@@ -430,7 +432,8 @@ export default function NewStoryWizardPage() {
 
       const entityType = selectedSource.entityType
 
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (user) {
         const { data: storyData } = await supabase
           .from('stories')
@@ -486,7 +489,8 @@ export default function NewStoryWizardPage() {
 
   async function handleCreateManual() {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) throw new Error('Not authenticated')
 
       const entityType = selectedSource?.entityType || 'custom'
@@ -875,10 +879,7 @@ export default function NewStoryWizardPage() {
                                 categories={LIFE_CATEGORIES}
                                 selectedCategories={selectedCategories}
                                 onCategoryClick={handleCategoryToggle}
-                                layout="12-column"
                                 mode="selection"
-                                variant="outlined"
-                                withCard={false}
                               />
                             </div>
 
@@ -1132,10 +1133,7 @@ export default function NewStoryWizardPage() {
                                               categories={LIFE_CATEGORIES}
                                               selectedCategories={customSelectedCategories}
                                               onCategoryClick={handleCustomCategoryToggle}
-                                              layout="12-column"
                                               mode="selection"
-                                              variant="outlined"
-                                              withCard={false}
                                             />
                                           </div>
 

@@ -87,7 +87,7 @@ export const PAGE_CLASSIFICATIONS = {
     // Profile & Account
     '/profile',
     '/profile/create',
-    '/profile/active/edit',
+    '/profile/active',
     '/profile/new',
     '/profile/compare',
     '/profile/[id]',

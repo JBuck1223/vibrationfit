@@ -86,7 +86,8 @@ export default function CategoryPage() {
 
   const loadExistingData = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) {
         setError('Please log in to continue')
         setLoading(false)
@@ -253,7 +254,8 @@ export default function CategoryPage() {
     setIsSaving(true)
     setError(null)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) throw new Error('Unauthorized')
 
       // Save to database - both fields + clarity_keys from profile
@@ -309,7 +311,8 @@ export default function CategoryPage() {
 
   const handleClearCategory = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) return
 
       // Clear the saved data for this category
@@ -403,9 +406,7 @@ export default function CategoryPage() {
           completedCategories={completedCategoryKeys}
           onCategoryClick={(key: string) => router.push(`/life-vision/new/category/${key}`)}
           mode="completion"
-          layout="12-column"
-          withCard={true}
-          className="!bg-black/40 backdrop-blur-sm w-full"
+          fillWidth
         />
 
         {/* Context Card - Profile Details + Current State */}

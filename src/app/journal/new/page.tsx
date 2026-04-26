@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Card, Input, Button, DatePicker, Container, Stack, FullBleed, IntensiveStepCompleteModal } from '@/lib/design-system'
+import { Card, Input, Button, DatePicker, Container, Stack, FullBleed, IntensiveStepCompleteModal, CategoryGrid } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
@@ -58,7 +58,8 @@ export default function NewJournalEntryPage() {
   useEffect(() => {
     const checkIntensiveMode = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
+        const { data: { session } } = await supabase.auth.getSession()
+        const user = session?.user
         if (!user) return
 
         // Check if user has an active intensive checklist
@@ -158,7 +159,8 @@ export default function NewJournalEntryPage() {
     setLoading(true)
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) {
         setSubmitError('Please log in to create a journal entry.')
         return
@@ -340,34 +342,12 @@ export default function NewJournalEntryPage() {
 
               {/* Life Categories */}
               <FullBleed>
-                <section className="space-y-2">
-                  <p className="hidden md:block text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">Tag life categories</p>
-                  <div className="flex items-center justify-between gap-3 mb-1.5 md:hidden px-4">
-                    <p className="text-[10px] uppercase tracking-wide text-neutral-500">Tag life categories</p>
-                    <span className="text-[10px] text-neutral-600">Scroll to see all &rarr;</span>
-                  </div>
-                  <div className="flex items-center md:justify-center gap-2 overflow-x-auto pb-1 px-4 md:px-0 scrollbar-hide">
-                  {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => {
-                    const CatIcon = category.icon
-                    const isSelected = formData.categories.includes(category.key)
-                    return (
-                      <button
-                        key={category.key}
-                        type="button"
-                        onClick={() => handleCategoryToggle(category.key)}
-                        className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                          isSelected
-                            ? 'bg-primary-500/20 border-primary-500/50 text-primary-400'
-                            : 'bg-neutral-900 border-neutral-800 text-neutral-500 hover:border-neutral-600 hover:text-neutral-300'
-                        }`}
-                      >
-                        <CatIcon className="w-3.5 h-3.5" />
-                        {category.label}
-                      </button>
-                    )
-                  })}
-                  </div>
-                </section>
+                <CategoryGrid
+                  categories={VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion')}
+                  selectedCategories={formData.categories}
+                  onCategoryClick={handleCategoryToggle}
+                  pillLabel="Tag life categories"
+                />
               </FullBleed>
 
               {/* Journal Content */}

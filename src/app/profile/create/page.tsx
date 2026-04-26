@@ -17,11 +17,13 @@ function useGuidance() {
   const {
     activeProfileId, activeProfileVersion, activeProfileDate,
     draftId, draftParentId, draftParentVersion, draftCreatedAt,
+    versions,
   } = useProfileStudio()
 
   const hasActiveProfile = !!activeProfileId
   const hasDraft = !!draftId
-  const draftIsFromActive = hasDraft && draftParentId === activeProfileId
+  const nonDraftCount = versions.filter(v => !v.is_draft).length
+  const draftIsFromActive = hasDraft && (draftParentId === activeProfileId || nonDraftCount <= 1)
 
   const vLabel = activeProfileVersion ? `Version ${activeProfileVersion}` : 'your active profile'
   const vDate = formatDate(activeProfileDate)
@@ -76,7 +78,8 @@ export default function ProfileCreatePage() {
     setNavigating(true)
     try {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) { setNavigating(false); return }
 
       const { data: source } = await supabase
@@ -117,7 +120,8 @@ export default function ProfileCreatePage() {
     setNavigating(true)
     try {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) { setNavigating(false); return }
 
       await supabase

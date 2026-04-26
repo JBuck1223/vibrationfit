@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Button, Spinner, Card, Container, Stack, PageHero, StatusBadge, CategoryCard } from '@/lib/design-system/components'
+import { Button, Spinner, Card, Container, Stack, PageHero, StatusBadge, CategoryGrid } from '@/lib/design-system/components'
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckCircle, CalendarDays, Check, Circle } from 'lucide-react'
 import { assessmentQuestions, filterQuestionsByProfile, categoryMetadata } from '@/lib/assessment/questions'
 import { AssessmentQuestion, AssessmentOption, AssessmentCategory } from '@/types/assessment'
@@ -157,7 +157,8 @@ export default function AssessmentPage() {
         try {
           const { createClient } = await import('@/lib/supabase/client')
           const supabase = createClient()
-          const { data: { user } } = await supabase.auth.getUser()
+          const { data: { session } } = await supabase.auth.getSession()
+          const user = session?.user
           
           if (user) {
             const { data: checklist } = await supabase
@@ -677,49 +678,25 @@ export default function AssessmentPage() {
           </div>
 
           {/* Category Grid */}
-          <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-12 gap-1">
-            {assessmentCategoriesOrder.map((categoryKey, index) => {
-              const cat = assessmentQuestions.find(c => c.category === categoryKey)
+          <CategoryGrid
+            categories={assessmentCategoriesOrder.map((categoryKey) => {
               const visionCat = VISION_CATEGORIES.find(v => v.key === categoryKey)
-              const categoryProgress = progress?.categories[categoryKey]
-              const isComplete = categoryProgress && categoryProgress.percentage === 100
-              const isCurrent = currentCategoryIndex === index
-              const hasQuestions = cat && cat.questions && cat.questions.length > 0
-              
-              // Create category object for CategoryCard
-              const category = {
-                key: categoryKey,
-                label: visionCat?.label || categoryKey,
-                icon: visionCat?.icon || Circle
-              }
-
-              return (
-                <div key={categoryKey} className="relative">
-                  {isComplete && (
-                    <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#333] border-2 border-[#39FF14] flex items-center justify-center z-10">
-                      <Check className="w-3 h-3 text-[#39FF14]" strokeWidth={3} />
-                    </div>
-                  )}
-                  <CategoryCard 
-                    category={category}
-                    selected={isCurrent}
-                    onClick={() => {
-                      if (hasQuestions) {
-                        setCurrentCategoryIndex(index)
-                        setCurrentQuestionIndex(0)
-                        setTimeout(() => saveCurrentPosition(), 0)
-                      }
-                    }}
-                    variant="outlined"
-                    selectionStyle="border"
-                    iconColor={isCurrent ? "#39FF14" : "#FFFFFF"}
-                    selectedIconColor="#39FF14"
-                    className={isCurrent ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : ''}
-                  />
-                </div>
-              )
+              return { key: categoryKey, label: visionCat?.label || categoryKey, icon: visionCat?.icon || Circle }
             })}
-          </div>
+            activeCategory={assessmentCategoriesOrder[currentCategoryIndex]}
+            completedCategories={progress ? Object.entries(progress.categories).filter(([, cat]) => cat.percentage === 100).map(([key]) => key) : []}
+            onCategoryClick={(key) => {
+              const index = assessmentCategoriesOrder.indexOf(key as typeof assessmentCategoriesOrder[number])
+              const cat = assessmentQuestions.find(c => c.category === key)
+              if (cat && cat.questions && cat.questions.length > 0) {
+                setCurrentCategoryIndex(index)
+                setCurrentQuestionIndex(0)
+                setTimeout(() => saveCurrentPosition(), 0)
+              }
+            }}
+            mode="completion"
+            fillWidth
+          />
         </Card>
 
         {/* Main Question Content - Full Width */}

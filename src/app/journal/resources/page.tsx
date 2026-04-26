@@ -33,7 +33,8 @@ export default function JournalResourcesPage() {
   const checkIntensiveMode = async () => {
     try {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) return
 
       const { data: checklist } = await supabase

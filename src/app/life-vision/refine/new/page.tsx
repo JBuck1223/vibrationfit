@@ -39,7 +39,8 @@ export default function LifeVisionRefineNewPage() {
   const checkIntensiveMode = async () => {
     try {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) {
         setLoading(false)
         return
@@ -73,7 +74,8 @@ export default function LifeVisionRefineNewPage() {
     try {
       // Initialize Supabase client
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
 
       if (!user) {
         throw new Error('Please log in to continue')

@@ -6,7 +6,7 @@
 import { useEffect, useState, useMemo, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Download, Loader2, FileText, Columns3, Eye, Filter, Image, FileImage, ArrowLeft } from 'lucide-react'
-import { Button, Card, Container, Stack, PageHero, Spinner, CategoryCard, Toggle } from '@/lib/design-system'
+import { Button, Card, Container, Stack, PageHero, Spinner, CategoryGrid, Toggle } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import Link from 'next/link'
@@ -85,7 +85,8 @@ function ExportPageContent() {
     async function fetchItemCount() {
       try {
         const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        const { data: { session } } = await supabase.auth.getSession()
+        const user = session?.user
         if (!user) return
 
         const { data: items } = await supabase
@@ -513,26 +514,12 @@ function ExportPageContent() {
                   {/* Category Filter */}
                   <div>
                     <div className="text-[10px] text-neutral-500 mb-1 uppercase">Categories</div>
-                    <div className="grid grid-cols-4 gap-1">
-                      {VISION_CATEGORIES
-                        .filter(cat => cat.key !== 'forward' && cat.key !== 'conclusion')
-                        .map(category => {
-                          const isSelected = selectedCategories.includes(category.key) || selectedCategories.includes('all')
-                          return (
-                            <CategoryCard
-                              key={category.key}
-                              category={category}
-                              selected={isSelected}
-                              onClick={() => toggleCategory(category.key)}
-                              variant="outlined"
-                              selectionStyle="border"
-                              iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
-                              selectedIconColor="#39FF14"
-                              className={`!p-1 ${isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)]' : '!bg-transparent !border-neutral-700'}`}
-                            />
-                          )
-                        })}
-                    </div>
+                    <CategoryGrid
+                      categories={VISION_CATEGORIES.filter(cat => cat.key !== 'forward' && cat.key !== 'conclusion')}
+                      selectedCategories={selectedCategories.includes('all') ? VISION_CATEGORIES.filter(c => c.key !== 'forward' && c.key !== 'conclusion').map(c => c.key) : selectedCategories}
+                      onCategoryClick={toggleCategory}
+                      fillWidth
+                    />
                     <button
                       onClick={() => setSelectedCategories(['all'])}
                       className="mt-1 text-[10px] text-primary-500 hover:text-primary-400"

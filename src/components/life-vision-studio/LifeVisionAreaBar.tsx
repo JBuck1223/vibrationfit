@@ -42,7 +42,7 @@ export function LifeVisionAreaBar() {
     && !isCreateArea
     && !isHowItWorks
     && !isPrintPage
-    && pathname !== '/life-vision/active'
+    && pathname !== '/life-vision'
     && /^\/life-vision\/[^/]+/.test(pathname)
     && !pathname.startsWith('/life-vision/audio')
 

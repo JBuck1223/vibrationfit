@@ -500,10 +500,8 @@ export default function RecordVisionAudioPage() {
               completedCategories={Array.from(recordings.keys())}
               refinedCategories={refinedCategories}
               onCategoryClick={(key) => setActiveSection(key)}
-              layout="14-column"
               mode={refinedCategories.length > 0 ? 'record' : 'completion'}
-              variant="outlined"
-              withCard={true}
+              fillWidth
             />
           </div>
 

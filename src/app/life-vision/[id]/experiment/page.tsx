@@ -13,7 +13,7 @@ import {
   Spinner,
   Input,
   Textarea,
-  CategoryCard,
+  CategoryGrid,
   Icon,
   Container,
   Stack,
@@ -215,7 +215,8 @@ export default function VisionExperimentPage({ params }: { params: Promise<{ id:
   useEffect(() => {
     const loadData = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
+        const { data: { session } } = await supabase.auth.getSession()
+        const user = session?.user
         if (!user) {
           console.error('No authenticated user found')
           router.push('/auth/login')
@@ -346,7 +347,8 @@ export default function VisionExperimentPage({ params }: { params: Promise<{ id:
         completion_percent: completionPercentage
       }
 
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) return
 
       const { error } = await supabase
@@ -477,16 +479,12 @@ export default function VisionExperimentPage({ params }: { params: Promise<{ id:
           </div>
 
           {/* Category Grid */}
-          <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-3">
-            {VISION_CATEGORIES.map((category) => (
-              <CategoryCard 
-                key={category.key} 
-                category={category} 
-                selected={selectedCategories.includes(category.key)} 
-                onClick={() => handleCategoryToggle(category.key)}
-              />
-            ))}
-          </div>
+          <CategoryGrid
+            categories={VISION_CATEGORIES}
+            selectedCategories={selectedCategories}
+            onCategoryClick={handleCategoryToggle}
+            fillWidth
+          />
 
           {/* Selection Summary */}
           <div className="mt-6 text-center">

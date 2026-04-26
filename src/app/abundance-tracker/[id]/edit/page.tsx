@@ -16,7 +16,7 @@ import {
   DatePicker,
   PageHero,
   Modal,
-  CategoryCard,
+  CategoryGrid,
   Spinner,
 } from '@/lib/design-system/components'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
@@ -86,7 +86,8 @@ export default function AbundanceEditEntryPage({ params }: { params: Promise<{ i
       const resolvedParams = await params
       setEventId(resolvedParams.id)
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
 
       if (!user) {
         router.push('/auth/login')
@@ -136,7 +137,8 @@ export default function AbundanceEditEntryPage({ params }: { params: Promise<{ i
 
     try {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) {
         setErrorMessage('Please log in to update.')
         setIsSubmitting(false)
@@ -307,28 +309,15 @@ export default function AbundanceEditEntryPage({ params }: { params: Promise<{ i
                 <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
                   Vision categories (optional)
                 </Text>
-                <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
-                  {visionCategoriesForAbundance.map((category) => {
-                    const isSelected = visionCategories.includes(category.key)
-                    return (
-                      <CategoryCard
-                        key={category.key}
-                        category={category}
-                        selected={isSelected}
-                        onClick={() => {
-                          setVisionCategories((prev) =>
-                            isSelected ? prev.filter((k) => k !== category.key) : [...prev, category.key]
-                          )
-                        }}
-                        variant="outlined"
-                        selectionStyle="border"
-                        iconColor={isSelected ? '#39FF14' : '#FFFFFF'}
-                        selectedIconColor="#39FF14"
-                        className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : '!bg-transparent !border-[#333]'}
-                      />
+                <CategoryGrid
+                  categories={visionCategoriesForAbundance}
+                  selectedCategories={visionCategories}
+                  onCategoryClick={(key) => {
+                    setVisionCategories((prev) =>
+                      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
                     )
-                  })}
-                </div>
+                  }}
+                />
               </section>
 
               {/* Image (optional) - journal/new dashed block */}

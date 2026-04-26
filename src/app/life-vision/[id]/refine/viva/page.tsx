@@ -39,7 +39,7 @@ import {
   AutoResizeTextarea,
   Icon,
   VIVAButton,
-  CategoryCard,
+  CategoryGrid,
   VersionBadge,
   StatusBadge,
   PageHero,
@@ -482,7 +482,8 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
+        const { data: { session }, error: authError } = await supabase.auth.getSession()
+        const authUser = session?.user
         if (authError) {
           console.error('Auth error in refine page:', authError)
           setError('Please log in to access this page')
@@ -1331,7 +1332,8 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     
     setIsCloning(true)
     try {
-      const { data: { user: authUser } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const authUser = session?.user
       if (!authUser) throw new Error('Not authenticated')
 
       // Delete ALL existing drafts using API route (bypasses RLS recursion issues)
@@ -1561,55 +1563,32 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
         {/* Category Selection */}
         <div>
         <h2 className="text-2xl font-bold text-white mb-6 text-center">Choose a Category to Refine</h2>
-        <div className={`grid grid-cols-4 md:grid-cols-6 gap-2 ${
-          VISION_CATEGORIES.some(cat => cat.key === 'forward' || cat.key === 'conclusion')
-            ? 'lg:grid-cols-[repeat(14,minmax(0,1fr))]'
-            : 'lg:grid-cols-[repeat(12,minmax(0,1fr))]'
-        }`}>
-          {VISION_CATEGORIES.map((category) => {
-            const isRefined = refinedCategories.includes(category.key)
-            return (
-              <div key={category.key} className="relative">
-                {isRefined && (
-                  <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#333] border-2 border-[#FFFF00] flex items-center justify-center z-10">
-                    <Check className="w-3 h-3 text-[#FFFF00]" strokeWidth={3} />
-                  </div>
-                )}
-                <CategoryCard 
-                  category={category} 
-                  selected={selectedCategory === category.key} 
-                  variant="outlined"
-                  selectionStyle="border"
-                  iconColor={isRefined ? colors.energy.yellow[500] : (selectedCategory === category.key ? "#39FF14" : "#FFFFFF")}
-                  selectedIconColor={isRefined ? colors.energy.yellow[500] : "#39FF14"}
-                  className={selectedCategory === category.key ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : ''}
-                  onClick={() => {
-                    setSelectedCategory(category.key)
-                    
-                    // Update URL parameter to reflect the selected category
-                    const currentPath = window.location.pathname
-                    router.replace(`${currentPath}?category=${category.key}`, { scroll: false })
-                    
-                    // Set original vision text from active vision for diff comparison
-                    if (vision) {
-                      const activeValue = getCategoryValue(category.key)
-                      setOriginalVisionText(activeValue)
-                    }
-                    
-                    // Load content from draft vision
-                    if (draftVision) {
-                      const draftValue = draftVision[category.key as keyof VisionData] as string
-                      setCurrentRefinement(draftValue || '')
-                    } else if (vision) {
-                      const categoryValue = getCategoryValue(category.key)
-                      setCurrentRefinement(categoryValue)
-                    }
-                  }}
-                />
-              </div>
-            )
-          })}
-        </div>
+        <CategoryGrid
+          categories={VISION_CATEGORIES}
+          activeCategory={selectedCategory || undefined}
+          refinedCategories={refinedCategories}
+          onCategoryClick={(key) => {
+            setSelectedCategory(key)
+            
+            const currentPath = window.location.pathname
+            router.replace(`${currentPath}?category=${key}`, { scroll: false })
+            
+            if (vision) {
+              const activeValue = getCategoryValue(key)
+              setOriginalVisionText(activeValue)
+            }
+
+            if (draftVision) {
+              const draftValue = draftVision[key as keyof VisionData] as string
+              setCurrentRefinement(draftValue || '')
+            } else if (vision) {
+              const categoryValue = getCategoryValue(key)
+              setCurrentRefinement(categoryValue)
+            }
+          }}
+          mode="draft"
+          fillWidth
+        />
       </div>
 
       {/* VIVA Refine (Refine + Weave) Tool */}

@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { PageLayout } from '@/lib/design-system'
-import { Spinner } from '@/lib/design-system/components'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { SidebarLayout, UserSidebar } from '@/components/Sidebar'
@@ -11,10 +10,15 @@ import { IntensiveSidebar } from '@/components/IntensiveSidebar'
 import { IntensiveLockedOverlay } from '@/components/IntensiveLockedOverlay'
 import { cn } from '@/lib/utils'
 import { getPageType, isStudioRoute } from '@/lib/navigation'
-import { getActiveIntensiveClient, IntensiveData } from '@/lib/intensive/utils-client'
-import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
+import type { IntensiveData } from '@/lib/intensive/utils-client'
 import { createClient } from '@/lib/supabase/client'
 import { useGlobalAudioStore } from '@/lib/stores/global-audio-store'
+import {
+  loadIntensiveSnapshot,
+  peekIntensiveSnapshot,
+  invalidateIntensiveSnapshot,
+  type IntensiveSnapshot,
+} from '@/lib/intensive/intensive-snapshot'
 
 function PlayerSpacer() {
   const hasActive = useGlobalAudioStore(s => s.tracks.length > 0)
@@ -118,68 +122,63 @@ function isPathAccessibleForIntensive(
 
 export function GlobalLayout({ children }: GlobalLayoutProps) {
   const pathname = usePathname()
-  const [intensiveMode, setIntensiveMode] = useState(false)
-  const [intensiveData, setIntensiveData] = useState<IntensiveData | null>(null)
-  const [settingsComplete, setSettingsComplete] = useState(false)
-  const [loadingIntensive, setLoadingIntensive] = useState(true)
+  // Render tree is driven entirely by the session-level snapshot below.
+  // We intentionally start with `null` (matches SSR) and fill in synchronously
+  // from sessionStorage during the first mount effect, so subsequent navigations
+  // inside the same session never re-query the database.
+  const [snapshot, setSnapshot] = useState<IntensiveSnapshot | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
-  
-  // Listen for auth state changes (login/logout)
+
   useEffect(() => {
+    let cancelled = false
     const supabase = createClient()
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+
+    const hydrate = async () => {
+      // getSession reads from the cookie-backed session — no Auth API call.
+      const { data: { session } } = await supabase.auth.getSession()
+      if (cancelled) return
       setIsAuthenticated(!!session)
-    })
-    return () => subscription.unsubscribe()
-  }, [])
-  
-  // Check for active intensive on mount and route changes
-  useEffect(() => {
-    const checkIntensive = async () => {
-      try {
-        const supabase = createClient()
-        
-        // Check auth state (getSession reads from cookie - no network call to Supabase Auth)
-        const { data: { session } } = await supabase.auth.getSession()
-        setIsAuthenticated(!!session)
-        
-        // Check super admin status — super admins bypass all intensive locking
-        if (session?.user) {
-          const { isSuperAdmin: superAdmin } = await checkSuperAdminAccess(supabase)
-          setIsSuperAdmin(superAdmin)
-        }
-        
-        const intensive = await getActiveIntensiveClient()
-        setIntensiveMode(!!intensive)
-        setIntensiveData(intensive)
-        
-        // Check settings completion if in intensive mode
-        if (intensive && session?.user) {
-          const user = session.user
-          const { data: accountData } = await supabase
-            .from('user_accounts')
-            .select('first_name, last_name, email, phone')
-            .eq('id', user.id)
-            .single()
-          
-          const hasSettings = !!(accountData && 
-            accountData.first_name?.trim() && 
-            accountData.last_name?.trim() && 
-            accountData.email?.trim() && 
-            accountData.phone?.trim())
-          setSettingsComplete(hasSettings)
-        }
-      } catch (error) {
-        console.error('Error checking intensive mode:', error)
-        setIntensiveMode(false)
-      } finally {
-        setLoadingIntensive(false)
+      if (!session?.user) return
+
+      // Peek first: if we already have a fresh snapshot for this user in
+      // sessionStorage, paint with it immediately and skip the network round-trip.
+      const cached = peekIntensiveSnapshot(session.user.id)
+      if (cached) {
+        setSnapshot(cached)
+        return
       }
+      const fetched = await loadIntensiveSnapshot(session.user.id)
+      if (!cancelled) setSnapshot(fetched)
     }
-    
-    checkIntensive()
-  }, [pathname])
+
+    hydrate()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (cancelled) return
+      setIsAuthenticated(!!session)
+      if (event === 'SIGNED_OUT') {
+        invalidateIntensiveSnapshot()
+        setSnapshot(null)
+      }
+      if (event === 'SIGNED_IN' && session?.user) {
+        // New session — snapshot tied to a prior user (or none) is stale.
+        invalidateIntensiveSnapshot()
+        loadIntensiveSnapshot(session.user.id).then((snap) => {
+          if (!cancelled) setSnapshot(snap)
+        })
+      }
+    })
+
+    return () => {
+      cancelled = true
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  const intensiveMode = !!snapshot?.hasActiveIntensive
+  const intensiveData: IntensiveData | null = snapshot?.intensive ?? null
+  const settingsComplete = snapshot?.settingsComplete ?? false
+  const isSuperAdmin = snapshot?.isSuperAdmin ?? false
   
   // Only exclude the /html route from layout (for clean PDF generation)
   if (pathname?.endsWith('/html')) {
@@ -225,22 +224,15 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
       )
     }
     
-    // USER pages: Use IntensiveSidebar if in intensive mode, otherwise regular SidebarLayout
+    // USER pages: Use IntensiveSidebar if in intensive mode, otherwise regular SidebarLayout.
+    // We always render children — no blocking spinner — so client-side navigations
+    // don't unmount the page tree. On the very first load of a new session we may
+    // optimistically render the non-intensive layout for a moment before the snapshot
+    // arrives; thereafter the layout is stable because the snapshot is cached.
     if (effectivePageType === 'USER') {
-      // Show loading state briefly
-      if (loadingIntensive) {
-        return (
-          <div className="min-h-screen bg-black flex items-center justify-center">
-            <Spinner size="lg" />
-          </div>
-        )
-      }
-      
-      // Intensive mode: Simplified sidebar + mobile nav + locked overlay on non-accessible pages
       if (intensiveMode) {
-        // Check if current path is accessible based on user's progress
         const isAccessible = isPathAccessibleForIntensive(pathname, intensiveData, settingsComplete)
-        
+
         return (
           <div className="min-h-screen bg-black text-white">
             <IntensiveSidebar />
@@ -254,8 +246,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
           </div>
         )
       }
-      
-      // Regular mode: Full sidebar
+
       return (
         <SidebarLayout isAdmin={false}>
           <PageLayout className={audioPageLayoutClass}>

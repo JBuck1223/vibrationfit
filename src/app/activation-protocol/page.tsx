@@ -176,7 +176,7 @@ export default function ActivationProtocolPage() {
     if (activeVisionId) {
       return `/life-vision/${activeVisionId}${path}`
     }
-    return '/life-vision/active'
+    return '/life-vision'
   }
 
   if (loading) {

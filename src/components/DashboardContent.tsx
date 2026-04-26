@@ -324,18 +324,19 @@ export default function DashboardContent({ user, profileData, visionData, vision
     URL.revokeObjectURL(url)
   }
 
-  // Google Calendar add-event URL (opens Gmail/Google Calendar)
-  const calibrationCallGoogleCalendarUrl = calibrationCall?.session?.scheduled_at
-    ? (() => {
-        const start = new Date(calibrationCall.session.scheduled_at)
-        const end = new Date(start.getTime() + 45 * 60 * 1000)
-        const format = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
-        const title = encodeURIComponent(calibrationCall.session.title || 'Calibration Call')
-        const absoluteJoinLink = `${window.location.origin}${calibrationCall.session.join_link}`
-        const details = encodeURIComponent(`Your 1-on-1 vision calibration session. Join: ${absoluteJoinLink}`)
-        return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${format(start)}/${format(end)}&details=${details}`
-      })()
-    : null
+  // Google Calendar add-event URL (opens Gmail/Google Calendar).
+  // Guard window access — this component renders during SSR too.
+  const calibrationCallGoogleCalendarUrl = (() => {
+    if (!calibrationCall?.session?.scheduled_at) return null
+    if (typeof window === 'undefined') return null
+    const start = new Date(calibrationCall.session.scheduled_at)
+    const end = new Date(start.getTime() + 45 * 60 * 1000)
+    const format = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+    const title = encodeURIComponent(calibrationCall.session.title || 'Calibration Call')
+    const absoluteJoinLink = `${window.location.origin}${calibrationCall.session.join_link}`
+    const details = encodeURIComponent(`Your 1-on-1 vision calibration session. Join: ${absoluteJoinLink}`)
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${format(start)}/${format(end)}&details=${details}`
+  })()
 
   return (
       <Container size="xl">

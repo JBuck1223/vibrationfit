@@ -71,25 +71,31 @@ export default function CategoryGridShowcase() {
         <Card className="p-4 md:p-6">
           <Stack gap="md">
             <h2 className="text-xl md:text-2xl font-bold text-white">
-              Three Modes
+              Four Modes
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card variant="outlined" className="p-4">
-                <h3 className="text-lg font-semibold text-primary-500 mb-2">Selection Mode</h3>
+                <h3 className="text-lg font-semibold text-primary-500 mb-2">Selection</h3>
                 <p className="text-sm text-neutral-400">
-                  Default mode. No badges. Used for filtering content (life-vision, journal, vision-board).
+                  Default mode. No badges. Selected pills show soft green styling.
                 </p>
               </Card>
               <Card variant="outlined" className="p-4">
-                <h3 className="text-lg font-semibold text-primary-500 mb-2">Completion Mode</h3>
+                <h3 className="text-lg font-semibold text-primary-500 mb-2">Completion</h3>
                 <p className="text-sm text-neutral-400">
-                  Shows <span className="text-primary-500">green checkmarks</span> on completed sections. Used for progress tracking.
+                  Shows <span className="text-primary-500">green checkmarks</span> on completed pills. Used for progress tracking.
                 </p>
               </Card>
               <Card variant="outlined" className="p-4">
-                <h3 className="text-lg font-semibold text-[#FFFF00] mb-2">Draft Mode</h3>
+                <h3 className="text-lg font-semibold text-[#FFFF00] mb-2">Draft</h3>
                 <p className="text-sm text-neutral-400">
-                  Shows <span className="text-[#FFFF00]">yellow checkmarks</span> on changed sections. Used for highlighting refinements.
+                  Shows <span className="text-[#FFFF00]">yellow checkmarks</span> on changed pills. Used for refinement flows.
+                </p>
+              </Card>
+              <Card variant="outlined" className="p-4">
+                <h3 className="text-lg font-semibold text-amber-500 mb-2">Record</h3>
+                <p className="text-sm text-neutral-400">
+                  Green check for completed, <span className="text-amber-500">amber refresh</span> for needs re-record.
                 </p>
               </Card>
             </div>

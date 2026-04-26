@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Card, Button, CategoryCard } from '@/lib/design-system'
+import { Card, Button, CategoryGrid } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { UploadProgress } from '@/components/UploadProgress'
 import { uploadMultipleUserFiles, getUploadErrorMessage } from '@/lib/storage/s3-storage-presigned'
@@ -250,23 +250,12 @@ export function PostComposer({
         </button>
         
         {showCategories && (
-          <div className="mt-3 grid grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2">
-            {lifeCategories.map((category) => {
-              const isSelected = selectedCategories.includes(category.key)
-              return (
-                <CategoryCard 
-                  key={category.key} 
-                  category={category} 
-                  selected={isSelected} 
-                  onClick={() => handleCategoryToggle(category.key)}
-                  variant="outlined"
-                  selectionStyle="border"
-                  iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
-                  selectedIconColor="#39FF14"
-                  className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.5)]' : '!bg-transparent !border-[#333]'}
-                />
-              )
-            })}
+          <div className="mt-3">
+            <CategoryGrid
+              categories={lifeCategories}
+              selectedCategories={selectedCategories}
+              onCategoryClick={handleCategoryToggle}
+            />
           </div>
         )}
       </div>

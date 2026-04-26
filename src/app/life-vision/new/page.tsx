@@ -56,7 +56,8 @@ export default function VIVALifeVisionLandingPage() {
   async function loadProgress() {
     try {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       
       if (!user) {
         setLoading(false)
@@ -290,9 +291,7 @@ export default function VIVALifeVisionLandingPage() {
           completedCategories={completedCategoryKeys}
           onCategoryClick={(key: string) => router.push(`/life-vision/new/category/${key}`)}
           mode="completion"
-          layout="12-column"
-          withCard={true}
-          className="!bg-black/40 backdrop-blur-sm w-full"
+          fillWidth
         />
 
         {/* What is a Life Vision? */}

@@ -15,7 +15,7 @@ import {
   DatePicker,
   PageHero,
   Modal,
-  CategoryCard,
+  CategoryGrid,
 } from '@/lib/design-system/components'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { ABUNDANCE_ENTRY_CATEGORIES } from '@/lib/abundance/entry-categories'
@@ -92,7 +92,8 @@ export default function AbundanceNewEntryPage() {
       let imageUrl: string | undefined
       if (imageSource === 'upload' && file) {
         const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        const { data: { session } } = await supabase.auth.getSession()
+        const user = session?.user
         if (!user) {
           setErrorMessage('Please log in to upload an image.')
           setIsSubmitting(false)
@@ -315,28 +316,15 @@ export default function AbundanceNewEntryPage() {
                   </Text>
                 </button>
                 {visionCategoriesOpen && (
-                  <div className="grid grid-cols-4 md:grid-cols-12 gap-2 pt-1">
-                    {visionCategoriesForAbundance.map((category) => {
-                      const isSelected = visionCategories.includes(category.key)
-                      return (
-                        <CategoryCard
-                          key={category.key}
-                          category={category}
-                          selected={isSelected}
-                          onClick={() => {
-                            setVisionCategories((prev) =>
-                              isSelected ? prev.filter((k) => k !== category.key) : [...prev, category.key]
-                            )
-                          }}
-                          variant="outlined"
-                          selectionStyle="border"
-                          iconColor={isSelected ? '#39FF14' : '#FFFFFF'}
-                          selectedIconColor="#39FF14"
-                          className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : '!bg-transparent !border-[#333]'}
-                        />
+                  <CategoryGrid
+                    categories={visionCategoriesForAbundance}
+                    selectedCategories={visionCategories}
+                    onCategoryClick={(key) => {
+                      setVisionCategories((prev) =>
+                        prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
                       )
-                    })}
-                  </div>
+                    }}
+                  />
                 )}
               </section>
 

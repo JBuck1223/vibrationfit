@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
-import { Card, Button, Badge, CategoryCard, DeleteConfirmationDialog, ActionButtons, Icon, Container, Stack, FullBleed, Spinner, Input, Textarea, FileUpload, ImageLightbox, type ImageLightboxImage } from '@/lib/design-system'
+import { Card, Button, Badge, CategoryGrid, DeleteConfirmationDialog, ActionButtons, Icon, Container, Stack, FullBleed, Spinner, Input, Textarea, FileUpload, ImageLightbox, type ImageLightboxImage } from '@/lib/design-system'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { useAreaStats } from '@/hooks/useAreaStats'
@@ -241,7 +241,8 @@ export default function VisionBoardPage() {
   useEffect(() => {
     const recordActivation = async () => {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) return
       await supabase.from('area_activations').insert({
         user_id: user.id,
@@ -254,7 +255,8 @@ export default function VisionBoardPage() {
   const fetchItems = async () => {
     try {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
 
       if (!user) {
         router.push('/auth/login')
@@ -370,7 +372,8 @@ export default function VisionBoardPage() {
   const updateItemStatus = async (itemId: string, newStatus: string) => {
     try {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) return
 
       const { error } = await supabase
@@ -409,7 +412,8 @@ export default function VisionBoardPage() {
   const cycleItemStatus = async (itemId: string) => {
     try {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) return
 
       const currentItem = items.find(item => item.id === itemId)
@@ -497,7 +501,8 @@ export default function VisionBoardPage() {
     setBulkStatusChanging(true)
     try {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) return
 
       const ids = Array.from(selectedItemIds)
@@ -543,7 +548,8 @@ export default function VisionBoardPage() {
     setBulkDeleting(true)
     try {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) throw new Error('Not authenticated')
 
       const itemsToDelete = items.filter(i => selectedItemIds.has(i.id))
@@ -681,7 +687,8 @@ export default function VisionBoardPage() {
     setSaving(true)
     try {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) return
 
       const currentItem = items.find(i => i.id === itemId)
@@ -977,36 +984,12 @@ export default function VisionBoardPage() {
             </section>
 
             <FullBleed>
-              <section className="space-y-2">
-                <p className="hidden md:block text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">
-                  Tag life categories
-                </p>
-                <div className="flex items-center justify-between gap-3 md:hidden px-1">
-                  <p className="text-[10px] uppercase tracking-wide text-neutral-500">Tag life categories</p>
-                  <span className="text-[10px] text-neutral-600">Scroll to see all</span>
-                </div>
-                <div className="flex items-center justify-center gap-2 pb-1 px-4 md:px-0 max-md:flex-nowrap max-md:overflow-x-auto max-md:justify-start max-md:scrollbar-hide md:flex-wrap">
-                  {VISION_CATEGORIES.filter(c => c.key !== 'forward' && c.key !== 'conclusion').map((category) => {
-                    const isSelected = editFormData.categories.includes(category.key)
-                    const CatIcon = category.icon
-                    return (
-                      <button
-                        key={category.key}
-                        type="button"
-                        onClick={() => handleEditCategoryToggle(category.key)}
-                        className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                          isSelected
-                            ? 'bg-primary-500/20 border-primary-500/50 text-primary-400'
-                            : 'bg-neutral-900 border-neutral-800 text-neutral-500 hover:border-neutral-600 hover:text-neutral-300'
-                        }`}
-                      >
-                        <CatIcon className="w-3.5 h-3.5" />
-                        {category.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              </section>
+              <CategoryGrid
+                categories={VISION_CATEGORIES.filter(c => c.key !== 'forward' && c.key !== 'conclusion')}
+                selectedCategories={editFormData.categories}
+                onCategoryClick={handleEditCategoryToggle}
+                pillLabel="Tag life categories"
+              />
             </FullBleed>
 
             <section className="space-y-3">
@@ -1497,24 +1480,11 @@ export default function VisionBoardPage() {
 
         <div>
           <label className="block text-xs font-medium text-neutral-400 mb-2">Categories</label>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-56 overflow-y-auto pr-0.5">
-            {VISION_CATEGORIES.filter(c => c.key !== 'forward' && c.key !== 'conclusion').map((category) => {
-              const isSelected = editFormData.categories.includes(category.key)
-              return (
-                <CategoryCard
-                  key={category.key}
-                  category={category}
-                  selected={isSelected}
-                  onClick={() => handleEditCategoryToggle(category.key)}
-                  variant="outlined"
-                  selectionStyle="border"
-                  iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
-                  selectedIconColor="#39FF14"
-                  className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)]' : '!bg-transparent !border-[#333]'}
-                />
-              )
-            })}
-          </div>
+          <CategoryGrid
+            categories={VISION_CATEGORIES.filter(c => c.key !== 'forward' && c.key !== 'conclusion')}
+            selectedCategories={editFormData.categories}
+            onCategoryClick={handleEditCategoryToggle}
+          />
         </div>
 
         <div className="flex gap-2 pt-2">
@@ -1802,35 +1772,21 @@ export default function VisionBoardPage() {
             </div>
 
             {/* Category Cards Grid */}
-            <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
-              {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => {
-                const isSelected = selectedCategories.includes(category.key) || selectedCategories.includes('all')
-                return (
-                  <CategoryCard 
-                    key={category.key} 
-                    category={category} 
-                    selected={isSelected} 
-                    onClick={() => {
-                      if (selectedCategories.includes(category.key)) {
-                        // Remove category from selection
-                        setSelectedCategories(prev => prev.filter(cat => cat !== category.key))
-                      } else {
-                        // Add category to selection (remove 'all' if it exists)
-                        setSelectedCategories(prev => {
-                          const filtered = prev.filter(cat => cat !== 'all')
-                          return [...filtered, category.key]
-                        })
-                      }
-                    }}
-                    variant="outlined"
-                    selectionStyle="border"
-                    iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
-                    selectedIconColor="#39FF14"
-                    className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : '!bg-transparent !border-[#333]'}
-                  />
-                )
-              })}
-            </div>
+            <CategoryGrid
+              categories={VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion')}
+              selectedCategories={selectedCategories.includes('all') ? VISION_CATEGORIES.filter(c => c.key !== 'forward' && c.key !== 'conclusion').map(c => c.key) : selectedCategories}
+              onCategoryClick={(key) => {
+                if (selectedCategories.includes(key)) {
+                  setSelectedCategories(prev => prev.filter(cat => cat !== key))
+                } else {
+                  setSelectedCategories(prev => {
+                    const filtered = prev.filter(cat => cat !== 'all')
+                    return [...filtered, key]
+                  })
+                }
+              }}
+              fillWidth
+            />
           </Card>
 
           {/* Status Filter */}

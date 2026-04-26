@@ -40,31 +40,24 @@ export function Header() {
 
   useEffect(() => {
     let mounted = true
-    
-    // Lightweight auth check only - no profile fetching
-    const getUser = async () => {
+
+    // getSession() reads from the cookie-backed session — no network call to
+    // the Supabase Auth API. We only need user metadata for header UI, so this
+    // is strictly faster than getUser() with no correctness downside.
+    const loadSession = async () => {
       try {
-        const { data: { user }, error: userError } = await supabase.auth.getUser()
-        
+        const { data: { session } } = await supabase.auth.getSession()
         if (!mounted) return
-        
-        if (userError) {
-          setUser(null)
-          return
-        }
-        
-        setUser(user)
+        setUser(session?.user ?? null)
       } catch (err) {
-        console.error('Header: Error getting user:', err)
-        if (mounted) {
-          setUser(null)
-        }
+        console.error('Header: Error getting session:', err)
+        if (mounted) setUser(null)
       }
     }
 
-    getUser()
+    loadSession()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return
       setUser(session?.user ?? null)
     })

@@ -28,7 +28,7 @@ import {
 import { VersionCard } from '@/app/profile/components/VersionCard'
 import { VisionVersionCard } from '../components/VisionVersionCard'
 import { VisionCategoryCard } from '../components/VisionCategoryCard'
-import { CategoryCard } from '@/lib/design-system'
+import { CategoryGrid } from '@/lib/design-system'
 import { VISION_CATEGORIES, assessmentToVisionKey } from '@/lib/design-system/vision-categories'
 import { colors } from '@/lib/design-system/tokens'
 import { generateVisionPDF } from '@/lib/pdf'
@@ -90,7 +90,6 @@ const VISION_SECTIONS = VISION_CATEGORIES
 
 export default function VisionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
-  const supabase = createClient()
   const { setAudioSets: setContextAudioSets, selectedAudioSetId, setSelectedAudioSetId } = useLifeVisionStudio()
   
   const [loading, setLoading] = useState(true)
@@ -155,6 +154,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
 
     setSaving(true)
     try {
+      const supabase = createClient()
       const { error } = await supabase
         .from('vision_versions')
         .update({ 
@@ -225,9 +225,10 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   }
 
   // Load available audio sets for the dropdown
-  const loadAvailableAudioSets = async (visionId: string) => {
+  const loadAvailableAudioSets = async (visionId: string, supabase?: ReturnType<typeof createClient>) => {
     try {
-      const { data: sets } = await supabase
+      const sb = supabase ?? createClient()
+      const { data: sets } = await sb
         .from('audio_sets')
         .select(`*, audio_tracks(count)`)
         .eq('vision_id', visionId)
@@ -241,7 +242,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
 
       // Check which sets have completed tracks
       const setsWithCounts = await Promise.all(sets.map(async (set: any) => {
-        const { count } = await supabase
+        const { count } = await sb
           .from('audio_tracks')
           .select('*', { count: 'exact', head: true })
           .eq('audio_set_id', set.id)
@@ -281,13 +282,14 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   }
 
   // Load audio tracks - either from a specific set or best-per-section across all standard sets
-  const loadAudioTracks = async (visionId: string, audioSetId?: string | null) => {
+  const loadAudioTracks = async (visionId: string, audioSetId?: string | null, supabase?: ReturnType<typeof createClient>) => {
     try {
+      const sb = supabase ?? createClient()
       let tracks: any[] | null = null
 
       if (audioSetId) {
         // Load from a specific audio set - query the set's variant directly
-        const { data: setData } = await supabase
+        const { data: setData } = await sb
           .from('audio_sets')
           .select('variant, name, voice_id')
           .eq('id', audioSetId)
@@ -296,7 +298,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         const setName = setData?.name || 'Audio Set'
         const voiceName = setData?.variant === 'personal' ? 'Personal Recording' : (VOICE_DISPLAY_NAMES[setData?.voice_id || ''] || setData?.voice_id || '')
 
-        const { data } = await supabase
+        const { data } = await sb
           .from('audio_tracks')
           .select('id, section_key, audio_url, mixed_audio_url, mix_status, created_at')
           .eq('audio_set_id', audioSetId)
@@ -316,7 +318,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         }
       } else {
         // Best-per-section across all standard sets
-        const { data: audioSets } = await supabase
+        const { data: audioSets } = await sb
           .from('audio_sets')
           .select('id, name, voice_id')
           .eq('vision_id', visionId)
@@ -330,7 +332,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
 
         const setLookup = new Map(audioSets.map(s => [s.id, s]))
 
-        const { data } = await supabase
+        const { data } = await sb
           .from('audio_tracks')
           .select('id, section_key, audio_url, audio_set_id, created_at')
           .in('audio_set_id', audioSets.map(s => s.id))
@@ -382,18 +384,13 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   // Load vision data
   useEffect(() => {
     let isMounted = true
-    let hasLoaded = false
     
     const loadData = async () => {
-      // Prevent duplicate calls
-      if (hasLoaded) {
-        console.log('[Vision Detail] Skipping duplicate load')
-        return
-      }
-      hasLoaded = true
+      const supabase = createClient()
       
       try {
-        const { data: { user } } = await supabase.auth.getUser()
+        const { data: { session } } = await supabase.auth.getSession()
+        const user = session?.user
         if (!user) {
           console.error('No authenticated user found')
           router.push('/auth/login')
@@ -470,8 +467,8 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         setSelectedCategories(VISION_SECTIONS.map(cat => cat.key))
         
         // Load audio sets and tracks for this vision
-        await loadAvailableAudioSets(vision.id)
-        await loadAudioTracks(vision.id)
+        await loadAvailableAudioSets(vision.id, supabase)
+        await loadAudioTracks(vision.id, undefined, supabase)
       } catch (error) {
         console.error('Error loading vision:', error)
         console.error('Error details:', {
@@ -507,7 +504,8 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     return () => {
       isMounted = false
     }
-  }, [params, router, supabase, calculateCompletion, getCompletedSections])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Reload audio tracks when the AreaBar audio set selector changes
   useEffect(() => {
@@ -524,7 +522,9 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   // Fetch specific version (kept for backwards compatibility, but versions now navigate directly)
   const fetchVisionVersion = async (versionId: string) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) return
 
       const { data: version, error } = await supabase
@@ -640,10 +640,11 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
 
     setSaving(true)
     try {
+      const supabase = createClient()
       const completionPercentage = calculateCompletion(vision)
       
-      // Get user ID
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) {
         alert('Please log in to save a version')
         return
@@ -723,7 +724,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     } finally {
       setSaving(false)
     }
-  }, [vision, supabase, calculateCompletion])
+  }, [vision, calculateCompletion])
 
   // Commit draft vision as active version
   const commitDraftAsActive = async () => {
@@ -973,44 +974,14 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
 
         {/* Category Filter Strip */}
         <FullBleed>
-          <div>
-            <div className="flex items-center justify-between mb-1.5 md:hidden px-4">
-              <span className="text-[10px] uppercase tracking-wide text-neutral-500">Life Areas</span>
-              <span className="text-[10px] text-neutral-600">Scroll to see all &rarr;</span>
-            </div>
-            <div className="flex items-center md:justify-center gap-2 overflow-x-auto pb-1 px-4 md:px-0 scrollbar-hide">
-            <button
-              type="button"
-              onClick={handleSelectAll}
-              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                selectedCategories.length === VISION_SECTIONS.length
-                  ? 'bg-primary-500/20 border-primary-500/50 text-primary-400'
-                  : 'bg-neutral-900 border-neutral-700 text-neutral-400 hover:border-neutral-500'
-              }`}
-            >
-              All
-            </button>
-            {VISION_SECTIONS.map(cat => {
-              const CatIcon = cat.icon
-              const isSelected = selectedCategories.includes(cat.key)
-              return (
-                <button
-                  key={cat.key}
-                  type="button"
-                  onClick={() => handleCategoryToggle(cat.key)}
-                  className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                    isSelected
-                      ? 'bg-white/10 border-white/20 text-white'
-                      : 'bg-neutral-900 border-neutral-800 text-neutral-500 hover:border-neutral-600 hover:text-neutral-300'
-                  }`}
-                >
-                  <CatIcon className="w-3.5 h-3.5" />
-                  {cat.label}
-                </button>
-              )
-            })}
-            </div>
-          </div>
+          <CategoryGrid
+            categories={VISION_SECTIONS}
+            selectedCategories={selectedCategories}
+            onCategoryClick={handleCategoryToggle}
+            showSelectAll
+            onSelectAll={handleSelectAll}
+            pillLabel="Life Areas"
+          />
         </FullBleed>
 
 

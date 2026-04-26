@@ -23,7 +23,8 @@ export function VisionBoardStudioProvider({ children }: { children: React.ReactN
 
   const loadCount = useCallback(async () => {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { session } } = await supabase.auth.getSession()
+    const user = session?.user
     if (!user) {
       setLoading(false)
       return

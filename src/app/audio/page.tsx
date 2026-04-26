@@ -342,7 +342,8 @@ export default function AudioListenPage() {
 
   async function loadTotalPlays() {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { session } } = await supabase.auth.getSession()
+    const user = session?.user
     if (!user) return
     const { data: playsData } = await supabase.rpc('get_user_total_audio_plays', { p_user_id: user.id })
     setTotalPlays(playsData ?? 0)

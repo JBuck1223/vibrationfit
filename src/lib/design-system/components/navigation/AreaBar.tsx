@@ -48,6 +48,7 @@ export interface VersionOption {
   label: string
   sublabel?: string
   badge?: string
+  badgeVariant?: 'active' | 'draft'
   isActive?: boolean
   icon?: LucideIcon
   iconPosition?: 'left' | 'right'
@@ -226,7 +227,9 @@ function VersionSelectorDropdown({
         )}
         {compact && selected?.badge && (
           <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded flex-shrink-0 ${
-            selected.isActive ? 'text-[#39FF14] bg-[#39FF14]/10' : 'text-neutral-400 bg-neutral-800'
+            selected.badgeVariant === 'draft' ? 'text-[#FFFF00] bg-[#FFFF00]/10'
+            : selected.isActive || selected.badgeVariant === 'active' ? 'text-[#39FF14] bg-[#39FF14]/10'
+            : 'text-neutral-400 bg-neutral-800'
           }`}>{selected.badge}</span>
         )}
         <span className={`text-xs font-medium truncate ${compact ? 'max-w-[10rem]' : 'flex-1'} ${selected ? 'text-white' : 'text-neutral-500'}`}>
@@ -234,7 +237,9 @@ function VersionSelectorDropdown({
         </span>
         {!compact && selected?.badge && (
           <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded flex-shrink-0 ${
-            selected.isActive ? 'text-[#39FF14] bg-[#39FF14]/10' : 'text-neutral-400 bg-neutral-800'
+            selected.badgeVariant === 'draft' ? 'text-[#FFFF00] bg-[#FFFF00]/10'
+            : selected.isActive || selected.badgeVariant === 'active' ? 'text-[#39FF14] bg-[#39FF14]/10'
+            : 'text-neutral-400 bg-neutral-800'
           }`}>{selected.badge}</span>
         )}
         {!compact && selected?.count !== undefined && (
@@ -295,7 +300,9 @@ function VersionSelectorDropdown({
                     </div>
                     {option.badge && (
                       <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded flex-shrink-0 ${
-                        option.isActive ? 'text-[#39FF14] bg-[#39FF14]/10' : 'text-neutral-400 bg-neutral-800'
+                        option.badgeVariant === 'draft' ? 'text-[#FFFF00] bg-[#FFFF00]/10'
+                        : option.isActive || option.badgeVariant === 'active' ? 'text-[#39FF14] bg-[#39FF14]/10'
+                        : 'text-neutral-400 bg-neutral-800'
                       }`}>{option.badge}</span>
                     )}
                     {option.count !== undefined && (
@@ -407,7 +414,9 @@ function VersionSelectorSheet({
                   </div>
                   {option.badge && (
                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded flex-shrink-0 ${
-                      option.isActive ? 'text-[#39FF14] bg-[#39FF14]/10' : 'text-neutral-400 bg-neutral-800'
+                      option.badgeVariant === 'draft' ? 'text-[#FFFF00] bg-[#FFFF00]/10'
+                      : option.isActive || option.badgeVariant === 'active' ? 'text-[#39FF14] bg-[#39FF14]/10'
+                      : 'text-neutral-400 bg-neutral-800'
                     }`}>{option.badge}</span>
                   )}
                   {option.count !== undefined && <span className="text-xs text-neutral-500 flex-shrink-0">{option.count}</span>}
@@ -592,7 +601,9 @@ export function AreaBar({
         {SelectorIcon && <SelectorIcon className="w-3.5 h-3.5 text-[#39FF14] flex-shrink-0" />}
         {selected?.badge && (
           <span className={`w-5 h-5 flex items-center justify-center rounded-full text-[9px] font-bold ${
-            selected.isActive ? 'bg-[#39FF14] text-black' : 'bg-neutral-700 text-neutral-300'
+            selected.badgeVariant === 'draft' ? 'bg-[#FFFF00] text-black'
+            : selected.isActive || selected.badgeVariant === 'active' ? 'bg-[#39FF14] text-black'
+            : 'bg-neutral-700 text-neutral-300'
           }`}>{selected.badge}</span>
         )}
         <ChevronDown className="w-3 h-3 text-neutral-400" />

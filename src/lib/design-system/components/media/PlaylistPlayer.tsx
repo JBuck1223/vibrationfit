@@ -126,7 +126,8 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
     try {
       const { createClient } = await import('@/lib/supabase/client')
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
 
       await supabase.rpc('increment_audio_play', { p_track_id: trackId })
 
