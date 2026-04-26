@@ -8,13 +8,12 @@ import {
   Card,
   Button,
   Stack,
-  PageHero,
   Spinner,
   Badge,
-  CategoryGrid,
+  FullBleed,
   VIVALoadingOverlay,
 } from '@/lib/design-system/components'
-import { Sparkles, Plus, Lightbulb, Check, RefreshCw } from 'lucide-react'
+import { Sparkles, Plus, Lightbulb, Check } from 'lucide-react'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
 interface VisionSuggestion {
@@ -29,6 +28,19 @@ interface VisionSuggestion {
   ideaId?: string
   itemsCreated?: number // Total items created from this idea generation
   createdItemIds?: string[] // IDs of created items
+}
+
+function AppSectionTitle({ title, subtitle }: { title: string; subtitle?: string }) {
+  return (
+    <section className="space-y-3 text-center">
+      <div className="flex items-center gap-3">
+        <div className="h-px flex-1 bg-[#2A2A2A]" />
+        <p className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">{title}</p>
+        <div className="h-px flex-1 bg-[#2A2A2A]" />
+      </div>
+      {subtitle && <p className="text-sm text-neutral-400">{subtitle}</p>}
+    </section>
+  )
 }
 
 export default function VisionBoardIdeasPage() {
@@ -161,15 +173,9 @@ export default function VisionBoardIdeasPage() {
         setExistingCategorySuggestions(categoriesWithSuggestions)
         setHasGenerated(true)
         
-        // Auto-select categories that don't have suggestions yet (only on initial load)
+        // Auto-select all life categories on initial load
         if (!hasAutoSelected) {
-          const categoriesWithoutSuggestions = categoriesWithout
-            .map(c => c.key)
-            .filter(key => !categoriesWithSuggestions.has(key))
-          
-          if (categoriesWithoutSuggestions.length > 0) {
-            setSelectedCategories(categoriesWithoutSuggestions)
-          }
+          setSelectedCategories(categoriesWithout.map(c => c.key))
           setHasAutoSelected(true)
         }
       } else {
@@ -276,11 +282,15 @@ export default function VisionBoardIdeasPage() {
   }
 
   const handleCategoryToggle = (key: string) => {
-    setSelectedCategories(prev => 
-      prev.includes(key) 
-        ? prev.filter(k => k !== key) 
+    setSelectedCategories(prev => {
+      const isAllSelected = prev.length === categoriesWithout.length
+      if (isAllSelected) {
+        return [key]
+      }
+      return prev.includes(key)
+        ? prev.filter(k => k !== key)
         : [...prev, key]
-    )
+    })
   }
 
   const handleSelectAll = () => {
@@ -307,7 +317,7 @@ export default function VisionBoardIdeasPage() {
     setSelectedItems(newSelected)
   }
 
-  const handleAddToBoard = () => {
+  const handleAddToBoard = async () => {
     if (selectedItems.size === 0) {
       alert('Please select at least one item to add to your board')
       return
@@ -337,60 +347,80 @@ export default function VisionBoardIdeasPage() {
       })
     })
 
-    // Store in sessionStorage and navigate to queue
-    sessionStorage.setItem('visionBoardQueue', JSON.stringify(itemsToCreate))
-    router.push('/vision-board/queue')
+    if (itemsToCreate.length === 0) {
+      return
+    }
+
+    try {
+      setAddingToBoard(true)
+      const res = await fetch('/api/vision-board/queue/batches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: itemsToCreate }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(typeof data.error === 'string' ? data.error : 'Failed to create queue')
+      }
+      const batchId = data.batchId as string
+      if (!batchId) {
+        throw new Error('No batch id returned')
+      }
+      router.push(`/vision-board/queue/${encodeURIComponent(batchId)}`)
+    } catch (e) {
+      console.error('Add to board queue error:', e)
+      alert(e instanceof Error ? e.message : 'Failed to add items to queue')
+      setAddingToBoard(false)
+    }
   }
 
   const renderSuggestionsSection = () => (
     <Stack gap="lg">
       {/* Selection Counter and Add Button */}
-      <Card className="p-6 md:p-8 sticky top-4 z-10 bg-[#1F1F1F]/95 backdrop-blur-sm border-primary-500/20">
-        <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:justify-end">
-          <Button
-            onClick={handleAddToBoard}
-            disabled={selectedItems.size === 0 || addingToBoard}
-            variant="primary"
-            className="gap-2 w-full sm:w-auto justify-center"
-          >
-            {addingToBoard ? (
-              <>
-                <Spinner variant="primary" size="sm" />
-                Adding...
-              </>
-            ) : (
-              <>
-                <Plus className="w-4 h-4" />
-                Add to Board ({selectedItems.size})
-              </>
-            )}
-          </Button>
-        </div>
-      </Card>
+      <div className="hidden md:flex sticky top-4 z-10 justify-end">
+        <Button
+          onClick={handleAddToBoard}
+          disabled={selectedItems.size === 0 || addingToBoard}
+          variant="primary"
+          className="gap-2 justify-center"
+        >
+          {addingToBoard ? (
+            <>
+              <Spinner variant="primary" size="sm" />
+              Adding...
+            </>
+          ) : (
+            <>
+              <Plus className="w-4 h-4" />
+              Add to Board ({selectedItems.size})
+            </>
+          )}
+        </Button>
+      </div>
 
       {/* Suggestions by Category */}
       <Stack gap="lg">
         {visionSuggestions.map((categoryData) => (
-          <Card key={categoryData.category} className="p-6 md:p-8">
+          <Card key={categoryData.category}>
             <Stack gap="md">
-              <div className="flex items-center gap-3 mb-4 flex-wrap">
-                <h3 className="text-xl font-semibold text-white">
+              {(() => {
+                const categoryMeta = categoriesWithout.find(c => c.key === categoryData.category)
+                const CategoryIcon = categoryMeta?.icon
+                return (
+              <div className="w-full flex items-center justify-center gap-3 mb-1 flex-wrap text-center">
+                <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-neutral-700 flex items-center justify-center shrink-0">
+                  {CategoryIcon ? (
+                    <CategoryIcon className="w-3.5 h-3.5 text-neutral-200" />
+                  ) : (
+                    <Sparkles className="w-3.5 h-3.5 text-neutral-200" />
+                  )}
+                </div>
+                <h3 className="text-sm font-medium text-neutral-400 uppercase tracking-[0.25em]">
                   {categoryData.categoryLabel}
                 </h3>
-                <Badge variant="info">
-                  {categoryData.suggestions.length} ideas
-                </Badge>
-                {categoryData.itemsCreated !== undefined && categoryData.itemsCreated > 0 && (
-                  <Badge variant="success">
-                    {categoryData.itemsCreated} added to board
-                  </Badge>
-                )}
-                {categoryData.generatedAt && (
-                  <Badge variant="neutral" className="text-xs">
-                    {new Date(categoryData.generatedAt).toLocaleDateString()}
-                  </Badge>
-                )}
               </div>
+                )
+              })()}
 
               <Stack gap="sm">
                 {categoryData.suggestions.map((suggestion, index) => {
@@ -403,43 +433,45 @@ export default function VisionBoardIdeasPage() {
                       key={key}
                       onClick={() => toggleSelection(categoryData.category, index, wasAdded)}
                       className={`
-                        p-4 rounded-lg border-2 transition-all
+                        p-3 md:p-3.5 rounded-xl border transition-all
                         ${wasAdded 
-                          ? 'border-neutral-700 bg-neutral-800/30 opacity-60 cursor-not-allowed' 
+                          ? 'border-neutral-700 bg-neutral-800/30 opacity-60 cursor-not-allowed'
                           : isSelected 
-                            ? 'border-primary-500 bg-primary-500/10 cursor-pointer' 
-                            : 'border-neutral-700 hover:border-neutral-600 bg-neutral-800/50 cursor-pointer'
+                            ? 'border-primary-500 bg-primary-500/10 cursor-pointer'
+                            : 'border-neutral-700/80 hover:border-neutral-500 bg-neutral-800/40 cursor-pointer'
                         }
                       `}
                     >
-                      <div className="flex items-start gap-3">
+                      <div className="flex items-start gap-2.5">
                         {wasAdded ? (
-                          <div className="w-6 h-6 rounded-md border-2 border-primary-500 bg-primary-500 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <Check className="w-4 h-4 text-black" />
+                          <div className="w-5 h-5 rounded-md border border-primary-500 bg-primary-500 flex items-center justify-center flex-shrink-0 -mt-0.5 md:mt-0">
+                            <Check className="w-3.5 h-3.5 text-black" />
                           </div>
                         ) : (
                           <div className={`
-                            w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5
+                            w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 -mt-0.5 md:mt-0
                             ${isSelected 
                               ? 'border-primary-500 bg-primary-500' 
                               : 'border-neutral-600'
                             }
                           `}>
-                            {isSelected && <Check className="w-4 h-4 text-black" />}
+                            {isSelected && <Check className="w-3.5 h-3.5 text-black" />}
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2 mb-1">
-                            <h4 className="text-base font-semibold text-white">
+                          <div className="mb-1 flex items-start justify-between gap-2">
+                            <h4 className="text-sm md:text-base font-semibold text-white leading-tight">
                               {suggestion.name}
                             </h4>
-                            {wasAdded && (
-                              <Badge variant="success" className="text-xs flex-shrink-0">
-                                ✓ Added
-                              </Badge>
-                            )}
+                            <Badge
+                              variant="success"
+                              className={`text-xs flex-shrink-0 inline-flex items-center gap-1 -mt-0.5 md:mt-0 ${wasAdded ? '' : 'invisible'}`}
+                            >
+                              <Check className="w-3 h-3" />
+                              Added
+                            </Badge>
                           </div>
-                          <p className="text-sm text-neutral-300 leading-relaxed">
+                          <p className="text-xs md:text-sm text-neutral-300 leading-relaxed">
                             {suggestion.description}
                           </p>
                         </div>
@@ -453,64 +485,130 @@ export default function VisionBoardIdeasPage() {
         ))}
       </Stack>
 
-      {/* Bottom Add Button */}
-      <Card className="p-6 md:p-8 bg-[#1F1F1F]/95">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-4">
-          <Button
-            onClick={handleAddToBoard}
-            disabled={selectedItems.size === 0 || addingToBoard}
-            variant="primary"
-            className="gap-2 w-full sm:w-auto justify-center"
-          >
-            <Plus className="w-4 h-4" />
-            Add to Board ({selectedItems.size})
-          </Button>
-        </div>
-      </Card>
+      <div className="hidden md:flex justify-end">
+        <Button
+          onClick={handleAddToBoard}
+          disabled={selectedItems.size === 0 || addingToBoard}
+          variant="primary"
+          className="gap-2 justify-center"
+        >
+          {addingToBoard ? (
+            <>
+              <Spinner variant="primary" size="sm" />
+              Adding...
+            </>
+          ) : (
+            <>
+              <Plus className="w-4 h-4" />
+              Add to Board ({selectedItems.size})
+            </>
+          )}
+        </Button>
+      </div>
+
+      <div className="md:hidden fixed bottom-4 left-4 right-4 z-30">
+        <Button
+          onClick={handleAddToBoard}
+          disabled={selectedItems.size === 0 || addingToBoard}
+          variant="primary"
+          className="w-full justify-center gap-2 shadow-lg"
+        >
+          {addingToBoard ? (
+            <>
+              <Spinner variant="primary" size="sm" />
+              Adding...
+            </>
+          ) : (
+            <>
+              <Plus className="w-4 h-4" />
+              Add to Board ({selectedItems.size})
+            </>
+          )}
+        </Button>
+      </div>
     </Stack>
   )
 
+  // Add to Board - must run before the main `!loading && !generating` branch below
+  if (addingToBoard) {
+    return (
+      <Container size="xl">
+        <div className="relative min-h-[100dvh]">
+          <VIVALoadingOverlay
+            isVisible
+            messages={[
+              'Preparing your creation queue...',
+              'Saving your picks to your account...',
+              'Opening the queue...',
+            ]}
+            cycleDuration={3000}
+            estimatedTime="This usually takes a few seconds. Large lists can take a bit longer."
+            estimatedDuration={20000}
+            className="rounded-2xl min-h-[100dvh] !absolute inset-0"
+          />
+        </div>
+      </Container>
+    )
+  }
+
   // Initial state - before generation or with existing suggestions
   if (!loading && !generating) {
-    const categoriesWithoutSuggestions = categoriesWithout.filter(
-      cat => !existingCategorySuggestions.has(cat.key)
-    )
-
     return (
       <Container size="xl">
         <Stack gap="lg">
-          <PageHero
-            title="Vision Board Ideas"
-            subtitle="Select life areas to generate VIVA-powered suggestions for"
-          >
-            {existingCategorySuggestions.size > 0 && (
-              <div className="flex items-center justify-center gap-2 text-sm text-neutral-400">
-                <Check className="w-4 h-4 text-primary-500" />
-                <span>{existingCategorySuggestions.size} categories have suggestions below</span>
-              </div>
-            )}
-          </PageHero>
-          
-          <Card className="p-6 md:p-8">
+          <Card>
             <Stack gap="md">
               <div className="text-center">
                 <h3 className="text-lg font-semibold text-white mb-2">
-                  Select Categories to Generate
+                  Select life categories to generate VIVA-powered suggestions.
                 </h3>
-                <Badge variant="info" className="text-sm">
-                  {selectedCategories.length} selected
-                </Badge>
               </div>
 
-              <CategoryGrid
-                categories={categoriesWithout}
-                selectedCategories={selectedCategories}
-                onCategoryClick={handleCategoryToggle}
-                mode="selection"
-                showSelectAll={true}
-                onSelectAll={handleSelectAll}
-                layout="12-column"
-              />
+              {/* Match Card p-4 md:p-6 lg:p-8 so life category pills sit flush on iPad (lg) */}
+              <FullBleed className="md:-mx-6 lg:-mx-8">
+                <section className="space-y-2">
+                  <div className="flex items-center justify-between gap-3 mb-1.5 lg:hidden px-4">
+                    <p className="text-[10px] uppercase tracking-wide text-neutral-500">Tag life categories</p>
+                    <span className="text-[10px] text-neutral-600">Scroll to see all &rarr;</span>
+                  </div>
+                  <div className="flex items-center gap-2 pb-1 px-4 md:px-0 max-lg:flex-nowrap max-lg:overflow-x-auto max-lg:justify-start max-lg:scrollbar-hide lg:flex-wrap lg:justify-center">
+                    <button
+                      type="button"
+                      onClick={handleSelectAll}
+                      className={`
+                        shrink-0 whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-colors border
+                        ${selectedCategories.length === categoriesWithout.length
+                          ? 'bg-primary-500 text-black border-primary-500'
+                          : 'bg-[#171717] text-neutral-400 border-[#2A2A2A] hover:text-neutral-200 hover:border-[#3A3A3A]'
+                        }
+                      `}
+                    >
+                      All
+                    </button>
+                    {categoriesWithout.map((category) => {
+                      const CategoryIcon = category.icon
+                      const isSelected = selectedCategories.includes(category.key)
+                      return (
+                        <button
+                          key={category.key}
+                          type="button"
+                          onClick={() => handleCategoryToggle(category.key)}
+                          className={`
+                            shrink-0 inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-colors border
+                            ${isSelected
+                              ? 'bg-primary-500 text-black border-primary-500'
+                              : 'bg-[#171717] text-neutral-400 border-[#2A2A2A] hover:text-neutral-200 hover:border-[#3A3A3A]'
+                            }
+                          `}
+                        >
+                          <CategoryIcon className="w-3.5 h-3.5" />
+                          {category.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </section>
+              </FullBleed>
 
               {error && (
                 <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
@@ -521,9 +619,9 @@ export default function VisionBoardIdeasPage() {
               <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
                 <Button 
                   onClick={fetchVisionAndGenerateSuggestions} 
-                  variant="primary"
-                  size="lg"
-                  className="gap-2 w-full sm:w-auto justify-center"
+                  variant="accent"
+                  size="md"
+                  className="gap-2 justify-center"
                   disabled={selectedCategories.length === 0}
                 >
                   <Sparkles className="w-5 h-5" />
@@ -534,9 +632,9 @@ export default function VisionBoardIdeasPage() {
                     onClick={() => {
                       document.getElementById('suggestions')?.scrollIntoView({ behavior: 'smooth' })
                     }}
-                    variant="outline"
-                    size="lg"
-                    className="w-full sm:w-auto justify-center"
+                    variant="outline-purple"
+                    size="md"
+                    className="justify-center antialiased font-semibold"
                   >
                     View Existing Suggestions
                   </Button>
@@ -597,12 +695,12 @@ export default function VisionBoardIdeasPage() {
     return (
       <Container size="xl">
         <Stack gap="lg">
-          <PageHero
-            title="Vision Board Ideas"
+          <AppSectionTitle
+            title="Vision board ideas"
             subtitle="Unable to generate suggestions"
           />
           
-          <Card className="p-8 text-center">
+          <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-6 md:p-8 text-center">
             <Lightbulb className="w-12 h-12 text-neutral-500 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-white mb-2">Unable to Generate Ideas</h2>
             <p className="text-neutral-400 mb-6">{error}</p>

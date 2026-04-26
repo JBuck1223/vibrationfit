@@ -56,6 +56,7 @@ export const PAGE_CLASSIFICATIONS = {
     '/vision-board/create',
     '/vision-board/ideas',
     '/vision-board/queue',
+    '/vision-board/queue/[batchId]',
     '/vision-board/export',
     '/vision-board/gallery',
     '/vision-board/[id]',

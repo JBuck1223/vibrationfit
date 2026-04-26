@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, Input, Button, CategoryCard, Container, Stack, PageHero, Spinner } from '@/lib/design-system'
+import { Card, Input, Button, CategoryCard, Container, Stack, PageHero, Spinner, DeleteConfirmationDialog } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
-import { Calendar, CheckCircle, Circle, XCircle, ArrowLeft, Trash2, Upload, Sparkles, Filter, Edit3, Save, BookOpen } from 'lucide-react'
+import { Calendar, CheckCircle, Circle, XCircle, ArrowLeft, Trash2, Upload, Sparkles, Filter, Edit3, Save } from 'lucide-react'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
@@ -59,10 +59,23 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
   const [actualizedImageSource, setActualizedImageSource] = useState<'upload' | 'ai'>('upload')
   const [aiGeneratedImageUrl, setAiGeneratedImageUrl] = useState<string | null>(null)
   const [actualizedAiGeneratedImageUrl, setActualizedAiGeneratedImageUrl] = useState<string | null>(null)
+  const [showVisionFileDrop, setShowVisionFileDrop] = useState(false)
+  const [showEvidenceFileDrop, setShowEvidenceFileDrop] = useState(false)
+  const editParamAppliedRef = useRef(false)
 
   useEffect(() => {
     fetchItem()
   }, [params])
+
+  useEffect(() => {
+    if (loading || !item) return
+    if (editParamAppliedRef.current) return
+    if (typeof window === 'undefined') return
+    if (new URLSearchParams(window.location.search).get('edit') !== '1') return
+    editParamAppliedRef.current = true
+    setIsEditing(true)
+    router.replace(`/vision-board/${item.id}`, { scroll: false })
+  }, [loading, item, router])
 
   const fetchItem = async () => {
     try {
@@ -88,6 +101,8 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
       setActualizedFile(null)
       setActualizedAiGeneratedImageUrl(null)
       setActualizedImageSource('upload')
+      setShowVisionFileDrop(false)
+      setShowEvidenceFileDrop(false)
     } catch (error) {
       console.error('Error fetching item:', error)
       alert('Failed to load vision board item')
@@ -368,12 +383,6 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Vision Board
               </Button>
-              <Button asChild variant="primary" size="sm">
-                <Link href="/story/new">
-                  <BookOpen className="w-4 h-4 mr-2" />
-                  Create Story
-                </Link>
-              </Button>
             </div>
           </PageHero>
         )}
@@ -433,6 +442,7 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                     onClick={() => {
                       setImageSource('upload')
                       setAiGeneratedImageUrl(null)
+                      setShowVisionFileDrop(true)
                     }}
                     className="w-full sm:flex-1"
                   >
@@ -444,6 +454,7 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                     onClick={() => {
                       setImageSource('ai')
                       setFile(null)
+                      setShowVisionFileDrop(false)
                     }}
                     style={
                       imageSource === 'ai'
@@ -485,7 +496,7 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                 )}
 
                 {/* Enhanced FileUpload Component */}
-                {imageSource === 'upload' && (
+                {imageSource === 'upload' && (showVisionFileDrop || file) && (
                   <FileUpload
                     dragDrop
                     accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
@@ -563,6 +574,7 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                       onClick={() => {
                         setActualizedImageSource('upload')
                         setActualizedAiGeneratedImageUrl(null)
+                        setShowEvidenceFileDrop(true)
                       }}
                       className="w-full sm:flex-1"
                     >
@@ -574,6 +586,7 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                       onClick={() => {
                         setActualizedImageSource('ai')
                         setActualizedFile(null)
+                        setShowEvidenceFileDrop(false)
                       }}
                       style={
                         actualizedImageSource === 'ai'
@@ -615,7 +628,7 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                   )}
 
                   {/* Enhanced FileUpload Component for Actualized Image */}
-                  {actualizedImageSource === 'upload' && (
+                  {actualizedImageSource === 'upload' && (showEvidenceFileDrop || actualizedFile) && (
                     <FileUpload
                       dragDrop
                       accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
@@ -773,7 +786,11 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                   type="button"
                   variant="danger"
                   size="sm"
-                  onClick={() => setIsEditing(false)}
+                  onClick={() => {
+                    setShowVisionFileDrop(false)
+                    setShowEvidenceFileDrop(false)
+                    setIsEditing(false)
+                  }}
                   className="flex-1 sm:flex-none sm:w-auto"
                 >
                   Cancel
@@ -871,13 +888,17 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                     <div className="flex items-center gap-2">
                       <h3 className="text-sm font-medium text-white">Categories:</h3>
                       <div className="flex flex-wrap gap-2">
-                        {item.categories.map((categoryKey: string, index: number) => {
+                        {item.categories.map((categoryKey: string) => {
                           const categoryInfo = VISION_CATEGORIES.find(c => c.key === categoryKey)
+                          const CategoryIcon = categoryInfo?.icon
                           return (
                             <span
-                              key={index}
-                              className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full"
+                              key={categoryKey}
+                              className="inline-flex items-center gap-1.5 text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full"
                             >
+                              {CategoryIcon && (
+                                <CategoryIcon className="w-3.5 h-3.5 shrink-0" aria-hidden />
+                              )}
                               {categoryInfo ? categoryInfo.label : categoryKey}
                             </span>
                           )
@@ -931,39 +952,16 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
           )}
         </Card>
 
-        {/* Delete Confirmation Dialog */}
-        {showDeleteConfirm && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <Card className="max-w-md mx-4">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Trash2 className="w-8 h-8 text-red-400" />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-2">Delete Creation</h3>
-                <p className="text-neutral-300 mb-6">
-                  Are you sure you want to delete "{item?.name}"? This action cannot be undone.
-                </p>
-                <div className="flex gap-3">
-                  <Button
-                    variant="ghost"
-                    onClick={() => setShowDeleteConfirm(false)}
-                    className="flex-1"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleDelete}
-                    loading={deleting}
-                    disabled={deleting}
-                    className="flex-1 bg-red-500 hover:bg-red-600 text-white"
-                  >
-                    {deleting ? 'Deleting...' : 'Delete'}
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          </div>
-        )}
+        <DeleteConfirmationDialog
+          isOpen={showDeleteConfirm}
+          onClose={() => setShowDeleteConfirm(false)}
+          onConfirm={handleDelete}
+          title="Delete Creation"
+          itemName={item?.name || ''}
+          itemType="Creation"
+          isLoading={deleting}
+          loadingText="Deleting..."
+        />
       </Stack>
     </Container>
   )

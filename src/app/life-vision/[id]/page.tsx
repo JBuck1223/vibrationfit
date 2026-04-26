@@ -117,11 +117,18 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
 
   // Card-based view functions
   const handleCategoryToggle = (categoryKey: string) => {
-    setSelectedCategories(prev => 
-      prev.includes(categoryKey) 
+    setSelectedCategories(prev => {
+      const isAllSelected = prev.length === VISION_SECTIONS.length
+
+      // If all are selected, clicking one category isolates that category.
+      if (isAllSelected) {
+        return [categoryKey]
+      }
+
+      return prev.includes(categoryKey)
         ? prev.filter(key => key !== categoryKey)
         : [...prev, categoryKey]
-    )
+    })
   }
 
   const handleSelectAll = () => {
