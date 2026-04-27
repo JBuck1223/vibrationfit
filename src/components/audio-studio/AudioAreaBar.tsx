@@ -106,7 +106,7 @@ export function AudioAreaBar() {
 
       versionSelectors = [{
         id: 'listen-story-filter',
-        label: 'Story type',
+        label: 'Type',
         icon: SOURCE_FILTERS.find(f => f.value === listenStoryFilter)?.icon || Library,
         position: 'contextRow',
         options: SOURCE_FILTERS.map(filter => ({

@@ -69,17 +69,17 @@ export const VersionActionToolbar: React.FC<VersionActionToolbarProps> = ({
     if (isDraft) {
       return [
         {
-          label: 'Commit as Active',
-          icon: <CheckCircle className="w-4 h-4" />,
-          variant: 'primary' as const,
-          onClick: () => handleConfirm('commit-as-active', () => onCommitAsActive?.()),
-          showConfirm: true
-        },
-        {
           label: 'Delete Draft',
           icon: <Trash2 className="w-4 h-4" />,
           variant: 'danger' as const,
           onClick: () => handleConfirm('delete-version', () => onDelete?.()),
+          showConfirm: true
+        },
+        {
+          label: 'Commit as Active',
+          icon: <CheckCircle className="w-4 h-4" />,
+          variant: 'primary' as const,
+          onClick: () => handleConfirm('commit-as-active', () => onCommitAsActive?.()),
           showConfirm: true
         }
       ]
@@ -88,17 +88,17 @@ export const VersionActionToolbar: React.FC<VersionActionToolbarProps> = ({
     // Complete version
     return [
       {
-        label: 'Set as Active',
-        icon: <CheckCircle className="w-4 h-4" />,
-        variant: 'primary' as const,
-        onClick: () => handleConfirm('set-active', () => onSetActive?.()),
-        showConfirm: true
-      },
-      {
         label: 'Delete',
         icon: <Trash2 className="w-4 h-4" />,
         variant: 'danger' as const,
         onClick: () => handleConfirm('delete-version', () => onDelete?.()),
+        showConfirm: true
+      },
+      {
+        label: 'Set as Active',
+        icon: <CheckCircle className="w-4 h-4" />,
+        variant: 'primary' as const,
+        onClick: () => handleConfirm('set-active', () => onSetActive?.()),
         showConfirm: true
       }
     ]

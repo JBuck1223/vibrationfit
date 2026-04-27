@@ -8,7 +8,7 @@ import { useProfileStudio } from './ProfileStudioContext'
 
 const TABS = [
   { label: 'View', path: '/profile', icon: Eye },
-  { label: 'Create', path: '/profile/create', icon: PenLine },
+  { label: 'Update', path: '/profile/create', icon: PenLine },
 ]
 
 const CREATE_AREA_ROUTES = ['/profile/create', '/profile/new', '/profile/compare']
@@ -96,7 +96,7 @@ export function ProfileAreaBar() {
     }
 
     contextNav = [
-      { label: 'Refine and Edit', icon: Sparkles, isActive: false, onClick: handleRefineNav },
+      { label: 'Edit Profile', icon: Sparkles, isActive: false, onClick: handleRefineNav },
       { label: 'Review and Commit', icon: CheckCircle, isActive: true, onClick: handleCommitNav },
     ]
     contextText = 'Review your draft changes and commit when ready.'
@@ -110,10 +110,14 @@ export function ProfileAreaBar() {
     }
 
     contextNav = [
-      { label: 'Refine and Edit', icon: Sparkles, isActive: true, onClick: handleRefineNav },
+      { label: 'Edit Profile', icon: Sparkles, isActive: true, onClick: handleRefineNav },
       { label: 'Review and Commit', icon: CheckCircle, isActive: false, onClick: handleCommitNav },
     ]
-    contextText = 'Edit your draft profile, then review your changes.'
+    contextText = 'Edit your profile, then review your changes.'
+    versionSelectors = buildVersionSelectors(detailProfileId, {
+      includeDrafts: true,
+      onSelectOverride: (id: string) => router.push(`/profile/${id}/edit`),
+    })
   } else if (isDraftSubRoute && detailProfileId) {
     const handleRefineNav = () => {
       router.push(`/profile/${detailProfileId}/edit`)
@@ -123,7 +127,7 @@ export function ProfileAreaBar() {
     }
 
     contextNav = [
-      { label: 'Refine and Edit', icon: Sparkles, isActive: false, onClick: handleRefineNav },
+      { label: 'Edit Profile', icon: Sparkles, isActive: false, onClick: handleRefineNav },
       { label: 'Review and Commit', icon: CheckCircle, isActive: true, onClick: handleCommitNav },
     ]
     contextText = 'Review your draft changes and commit when ready.'

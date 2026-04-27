@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Card, Button, DeleteConfirmationDialog, Heading, Text, Stack, VersionBadge, StatusBadge, Container, PageHero, Spinner, IntensiveCompletionBanner } from '@/lib/design-system/components'
+import { Card, Button, DeleteConfirmationDialog, Heading, Text, Stack, Container, PageHero, Spinner, IntensiveCompletionBanner } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { VISION_CATEGORIES, getVisionCategory, getVisionCategoryLabel, convertCategoryKey, visionToRecordingKey } from '@/lib/design-system/vision-categories'
 import { UserProfile } from '@/lib/supabase/profile'
@@ -15,8 +15,8 @@ import { loadIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
 import { createClient } from '@/lib/supabase/client'
 import { 
   User, 
-  CalendarDays,
   Camera,
+  Info,
   X,
   ChevronLeft,
   ChevronRight,
@@ -24,7 +24,9 @@ import {
   Trash2,
 } from 'lucide-react'
 import NextImage from 'next/image'
-import { calculateProfileCompletion } from '@/lib/utils/profile-completion'
+import { calculateProfileCompletion, getIncompleteFields } from '@/lib/utils/profile-completion'
+import VersionActionToolbar from '@/components/VersionActionToolbar'
+import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
 
 const getCategoryInfo = (categoryId: string) => {
   const visionCategoryKey = convertCategoryKey(categoryId as any, 'vision', 'vision')
@@ -82,6 +84,7 @@ export default function ProfileDetailPage() {
   const [isIntensiveMode, setIsIntensiveMode] = useState(false)
   const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
   const [completedAt, setCompletedAt] = useState<string | null>(null)
+  const [versionToolbarLoading, setVersionToolbarLoading] = useState(false)
 
   useEffect(() => {
     if (Object.keys(profile).length > 0) {
@@ -178,6 +181,64 @@ export default function ProfileDetailPage() {
       console.error('Error deleting version:', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete version. Please try again.'
       alert(errorMessage)
+    }
+  }
+
+  const handleToolbarCommitDraft = async () => {
+    setVersionToolbarLoading(true)
+    try {
+      const response = await fetch('/api/profile/versions', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ draftProfileId: profileId }),
+      })
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: 'Failed to commit draft' }))
+        throw new Error(typeof err.error === 'string' ? err.error : 'Failed to commit draft')
+      }
+      await refreshVersions()
+      await fetchProfileVersion(profileId)
+      setError(null)
+    } catch (err) {
+      console.error('Error committing draft:', err)
+      setError(err instanceof Error ? err.message : 'Failed to commit draft')
+    } finally {
+      setVersionToolbarLoading(false)
+    }
+  }
+
+  const handleToolbarSetActive = async () => {
+    setVersionToolbarLoading(true)
+    try {
+      const response = await fetch('/api/profile/versions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profileId }),
+      })
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: 'Failed to set active' }))
+        throw new Error(typeof err.error === 'string' ? err.error : 'Failed to set active')
+      }
+      await refreshVersions()
+      await fetchProfileVersion(profileId)
+      setError(null)
+    } catch (err) {
+      console.error('Error setting version active:', err)
+      setError(err instanceof Error ? err.message : 'Failed to set active')
+    } finally {
+      setVersionToolbarLoading(false)
+    }
+  }
+
+  const handleToolbarDelete = async () => {
+    setVersionToolbarLoading(true)
+    try {
+      await deleteVersion(profileId)
+    } catch (err) {
+      console.error('Error deleting version:', err)
+      setError(err instanceof Error ? err.message : 'Failed to delete version')
+    } finally {
+      setVersionToolbarLoading(false)
     }
   }
 
@@ -569,7 +630,10 @@ export default function ProfileDetailPage() {
   }
 
   const versionInfo = getCurrentVersionInfo()
-  const displayStatus = versionInfo?.is_active && !versionInfo?.is_draft ? 'active' : versionInfo?.is_draft ? 'draft' : 'complete'
+  /** Draft or inactive version: Review and Commit layout (toolbar + completion card; hero removed). */
+  const showReviewCommitChrome = versionInfo && versionInfo.is_active !== true
+  const incompleteFieldsReview =
+    profile && Object.keys(profile).length > 0 ? getIncompleteFields(profile) : []
 
   if (!profile || Object.keys(profile).length === 0) {
     return (
@@ -592,51 +656,70 @@ export default function ProfileDetailPage() {
           </Container>
         )}
 
-        {/* Page Hero */}
-        <PageHero
-          title={profile.first_name && profile.last_name
-            ? `${profile.first_name} ${profile.last_name}`
-            : 'My Profile'}
-          className="mb-4"
-        >
-          {/* Profile Picture */}
-          <div className="text-center">
-            <div className="inline-block w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-neutral-800 border-2 border-neutral-700">
-              <NextImage
+        {showReviewCommitChrome ? (
+          <>
+            <Container size="xl">
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <VersionActionToolbar
+                  versionId={profileId}
+                  versionNumber={versionInfo.version_number ?? 1}
+                  isActive={false}
+                  isDraft={!!versionInfo.is_draft}
+                  onCommitAsActive={handleToolbarCommitDraft}
+                  onSetActive={handleToolbarSetActive}
+                  onDelete={handleToolbarDelete}
+                  isLoading={versionToolbarLoading}
+                />
+              </div>
+            </Container>
+
+            <Container size="xl">
+              <Card className="relative">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <span className="text-base font-semibold text-primary-500">{completionPercentage}% Complete</span>
+                    {incompleteFieldsReview.length > 0 && (
+                      <span className="text-xs text-neutral-400 flex items-center gap-1">
+                        <Info className="w-3.5 h-3.5 shrink-0" />
+                        {incompleteFieldsReview.length} missing field{incompleteFieldsReview.length !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
+                  <div className="w-full bg-neutral-700 rounded-full h-3 border border-neutral-600">
+                    <div
+                      className="h-3 rounded-full transition-all duration-500 bg-primary-500"
+                      style={{ width: `${completionPercentage}%` }}
+                    />
+                  </div>
+                </div>
+              </Card>
+            </Container>
+          </>
+        ) : (
+          <PageHero
+            title={profile.first_name && profile.last_name
+              ? `${profile.first_name} ${profile.last_name}`
+              : 'My Profile'}
+          >
+            <div className="text-center">
+              <ProfilePictureClickable
                 src={profile.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
                 alt="Profile picture"
-                width={128}
-                height={128}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          </div>
-
-          {/* Version Info */}
-          {versionInfo && (
-            <div className="text-center">
-              <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-                <VersionBadge 
-                  versionNumber={versionInfo.version_number} 
-                  status={displayStatus} 
+                className="inline-flex h-24 w-24 md:h-32 md:w-32 overflow-hidden rounded-full border-2 border-neutral-700 bg-neutral-800"
+              >
+                <NextImage
+                  src={profile.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
+                  alt="Profile picture"
+                  width={512}
+                  height={512}
+                  sizes="(min-width: 768px) 128px, 96px"
+                  quality={92}
+                  className="h-full w-full object-cover"
                 />
-                <StatusBadge 
-                  status={displayStatus} 
-                  subtle={displayStatus !== 'active'}
-                  className="uppercase tracking-[0.25em]"
-                />
-                <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
-                  <CalendarDays className="w-4 h-4 text-neutral-500" />
-                  <span className="font-medium">Created:</span>
-                  <span>{new Date(versionInfo.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                </div>
-                <span className="text-xs md:text-sm font-semibold text-[#39FF14]">
-                  {completionPercentage}%
-                </span>
-              </div>
+              </ProfilePictureClickable>
             </div>
-          )}
-        </PageHero>
+          </PageHero>
+        )}
 
         {/* Personal Information Card */}
         <Card className="transition-all duration-300 hover:shadow-lg">
@@ -648,6 +731,25 @@ export default function ProfileDetailPage() {
               <h3 className="text-sm font-medium text-neutral-400 uppercase tracking-[0.25em]">Personal Information</h3>
             </div>
             <div className="border-b border-neutral-800 mb-2" />
+            {showReviewCommitChrome && (
+              <div className="mb-6 mt-5 flex justify-start">
+                <ProfilePictureClickable
+                  src={profile.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
+                  alt="Profile picture"
+                  className="inline-flex h-28 w-28 md:h-32 md:w-32 overflow-hidden rounded-full border-2 border-neutral-700 bg-neutral-800"
+                >
+                  <NextImage
+                    src={profile.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
+                    alt="Profile picture"
+                    width={512}
+                    height={512}
+                    sizes="(min-width: 768px) 128px, 112px"
+                    quality={92}
+                    className="h-full w-full object-cover"
+                  />
+                </ProfilePictureClickable>
+              </div>
+            )}
             <div className="pt-2 grid grid-cols-1 md:grid-cols-2 gap-3">
               {renderField('Full Name', (profile.first_name || profile.last_name) ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : null)}
               {renderField('Email', profile.email)}
@@ -730,8 +832,25 @@ export default function ProfileDetailPage() {
           )
         })}
 
-        {/* Delete Button */}
-        {!isIntensiveMode && (
+        {showReviewCommitChrome && versionInfo && (
+          <Container size="xl">
+            <div className="flex flex-wrap items-center justify-center gap-2 border-t border-neutral-800 pt-8 mt-2">
+              <VersionActionToolbar
+                versionId={profileId}
+                versionNumber={versionInfo.version_number ?? 1}
+                isActive={false}
+                isDraft={!!versionInfo.is_draft}
+                onCommitAsActive={handleToolbarCommitDraft}
+                onSetActive={handleToolbarSetActive}
+                onDelete={handleToolbarDelete}
+                isLoading={versionToolbarLoading}
+              />
+            </div>
+          </Container>
+        )}
+
+        {/* Delete Version — hidden when non-active (VersionActionToolbar above includes delete) */}
+        {!isIntensiveMode && !(versionInfo && versionInfo.is_active !== true) && (
           <div className="text-center pt-4">
             <Button
               onClick={() => {

@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { Card, SaveButton } from '@/lib/design-system/components'
+import { ProfileSectionCardHeading } from './ProfileSectionCardHeading'
 import { UserProfile } from '@/lib/supabase/profile'
-import { UserPlus } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
-import { getVisionCategoryLabel, visionToRecordingKey } from '@/lib/design-system/vision-categories'
+import { getVisionCategoryLabel, getVisionCategoryIcon, visionToRecordingKey } from '@/lib/design-system/vision-categories'
 
 interface SocialFriendsSectionProps {
   profile: Partial<UserProfile>
@@ -86,14 +86,13 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
     }
   }
 
+  const SocialIcon = getVisionCategoryIcon('social')
+
   return (
     <Card className="p-6">
-      <div className="flex items-center gap-3 mb-6">
-        <UserPlus className="w-6 h-6 text-white" />
-        <h3 className="text-xl font-bold text-white">{getVisionCategoryLabel('social')}</h3>
-      </div>
-      
-      <div className="space-y-6">
+      <ProfileSectionCardHeading icon={SocialIcon} title={getVisionCategoryLabel('social')} />
+
+      <div className="space-y-4">
         {/* Close Friends Count */}
         <div>
           <label className="block text-sm font-medium text-neutral-200 mb-2">
@@ -222,7 +221,7 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
 
       {/* Save Button - Bottom Right */}
       {onSave && (
-        <div className="mt-6">
+        <div className="border-t border-neutral-800/50 pt-2">
           {saveError && hasUnsavedChanges && (
             <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
               <span className="text-sm text-red-400">{saveError}</span>

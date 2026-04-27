@@ -6,6 +6,7 @@ import { Card, Button, Spinner } from '@/lib/design-system'
 import { Heart, FileText, Flame, Calendar, ExternalLink } from 'lucide-react'
 import { VibeUserMiniProfile } from '@/lib/vibe-tribe/types'
 import { formatDistanceToNow } from 'date-fns'
+import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
 
 interface UserMiniProfileProps {
   userId: string
@@ -66,19 +67,25 @@ export function UserMiniProfile({ userId, trigger }: UserMiniProfileProps) {
                 <div>
                   {/* Header */}
                   <div className="flex items-start gap-3 mb-4">
-                    <div className="w-14 h-14 rounded-full bg-neutral-700 overflow-hidden flex-shrink-0">
-                      {profile.profile_picture_url ? (
+                    {profile.profile_picture_url ? (
+                      <ProfilePictureClickable
+                        src={profile.profile_picture_url}
+                        alt={profile.full_name || 'User'}
+                        className="inline-flex h-14 w-14 shrink-0 overflow-hidden rounded-full bg-neutral-700"
+                      >
                         <img
                           src={profile.profile_picture_url}
-                          alt={profile.full_name || 'User'}
-                          className="w-full h-full object-cover"
+                          alt=""
+                          className="h-full w-full object-cover"
                         />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-neutral-400 text-xl font-medium">
+                      </ProfilePictureClickable>
+                    ) : (
+                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-neutral-700">
+                        <span className="text-xl font-medium text-neutral-400">
                           {profile.full_name?.[0] || '?'}
-                        </div>
-                      )}
-                    </div>
+                        </span>
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-white text-lg truncate">
                         {profile.full_name || 'Anonymous'}

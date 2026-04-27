@@ -605,8 +605,12 @@ export default function StoryDetailPage({
 
             {!isEditing && (!!story.metadata?.source_input || story.source === 'ai_generated') && (
               <section className="space-y-3">
-                <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">Generation details</p>
-                <div className="rounded-xl border border-dashed border-[#282828] bg-[#131313] overflow-hidden">
+                <div className="flex items-center gap-3">
+                  <div className="h-px flex-1 bg-[#2A2A2A]" />
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">Generation details</p>
+                  <div className="h-px flex-1 bg-[#2A2A2A]" />
+                </div>
+                <div className="rounded-xl border border-[#282828] bg-[#131313] overflow-hidden">
                   <button
                     type="button"
                     onClick={() => setShowSourceInput(!showSourceInput)}
@@ -619,7 +623,7 @@ export default function StoryDetailPage({
                     }
                   </button>
                   {showSourceInput && (
-                    <div className="px-4 pb-4 pt-1 space-y-4">
+                    <div className="px-4 pb-4 pt-4 space-y-4">
                 {/* Quick facts row */}
                 <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
                   <div>

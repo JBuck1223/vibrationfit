@@ -7,6 +7,7 @@ import { FileUpload } from '@/lib/design-system/components/forms/FileUpload'
 import { Heart, Send, Reply, Pencil, MessageCircle, X, Film, Upload } from 'lucide-react'
 import { format, isToday, isYesterday } from 'date-fns'
 import { uploadMultipleUserFiles } from '@/lib/storage/s3-storage-presigned'
+import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
 
 function isVideoUrl(url: string): boolean {
   const ext = url.split('.').pop()?.split('?')[0]?.toLowerCase()
@@ -544,24 +545,32 @@ function CommentItem({
   return (
     <div className={`relative ${indentClass}`}>
       <div className="flex items-start gap-2 md:gap-3">
-        <Link
-          href={`/snapshot/${comment.user_id}`}
-          className={`rounded-full bg-neutral-700 overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-primary-500 transition-all ${
-            nestingLevel > 0 ? 'w-7 h-7 md:w-10 md:h-10' : 'w-10 h-10'
-          }`}
-        >
-          {comment.user?.profile_picture_url ? (
+        {comment.user?.profile_picture_url ? (
+          <ProfilePictureClickable
+            src={comment.user.profile_picture_url}
+            alt={comment.user.full_name || 'User'}
+            className={`shrink-0 overflow-hidden rounded-full bg-neutral-700 transition-all hover:ring-2 hover:ring-primary-500 ${
+              nestingLevel > 0 ? 'h-7 w-7 md:h-10 md:w-10' : 'h-10 w-10'
+            }`}
+          >
             <img
               src={comment.user.profile_picture_url}
-              alt={comment.user.full_name || 'User'}
-              className="w-full h-full object-cover"
+              alt=""
+              className="h-full w-full object-cover"
             />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-neutral-400 text-sm font-medium">
+          </ProfilePictureClickable>
+        ) : (
+          <Link
+            href={`/snapshot/${comment.user_id}`}
+            className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-700 transition-all hover:ring-2 hover:ring-primary-500 ${
+              nestingLevel > 0 ? 'h-7 w-7 md:h-10 md:w-10' : 'h-10 w-10'
+            }`}
+          >
+            <span className="text-sm font-medium text-neutral-400">
               {comment.user?.full_name?.[0] || '?'}
-            </div>
-          )}
-        </Link>
+            </span>
+          </Link>
+        )}
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
