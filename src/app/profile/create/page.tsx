@@ -25,6 +25,16 @@ function useGuidance() {
   const nonDraftCount = versions.filter(v => !v.is_draft).length
   const draftIsFromActive = hasDraft && (draftParentId === activeProfileId || nonDraftCount <= 1)
 
+  const activeRow = versions.find(v => v.is_active && !v.is_draft)
+  const activeUpdatedAt = activeRow?.updated_at ?? null
+
+  /** True when the active profile row was saved after this draft was created (draft edits do not bump active). */
+  const activeChangedSinceDraft =
+    hasDraft &&
+    !!draftCreatedAt &&
+    !!activeUpdatedAt &&
+    new Date(activeUpdatedAt).getTime() > new Date(draftCreatedAt).getTime()
+
   const vLabel = activeProfileVersion ? `Version ${activeProfileVersion}` : 'your active profile'
   const vDate = formatDate(activeProfileDate)
   const parentLabel = draftParentVersion ? `Version ${draftParentVersion}` : 'a previous version'
@@ -38,14 +48,20 @@ function useGuidance() {
     paragraph = "You don't have a profile yet. Head to How It Works to create your first one."
     continueDescription = ''
     freshDraftDescription = ''
-  } else if (hasDraft && draftIsFromActive) {
-    paragraph = `You have a draft in progress from ${vLabel}. Pick up where you left off, or start a fresh draft from your active profile.`
-    continueDescription = `Your draft was created from ${vLabel} on ${draftDate}. Continue editing where you left off.`
-    freshDraftDescription = `Delete your current draft and clone ${vLabel}${vDate ? ` (created ${vDate})` : ''} to start updating with a clean slate.`
+  } else if (hasDraft && draftIsFromActive && !activeChangedSinceDraft) {
+    paragraph =
+      'You have a draft in progress based on your active profile. No updates have been made to your active profile since this draft began, so we recommend you pick up where you left off by selecting Edit Draft below.'
+    continueDescription = `This draft was created from your Active profile on ${draftDate || 'a recent date'}. Continue editing where you left off.`
+    freshDraftDescription = `Discard this draft and create a new one cloned from your Active profile${vDate ? ` (last updated ${vDate})` : ''}. Use this if you prefer a clean slate even though your active profile has not changed since the draft began.`
+  } else if (hasDraft && draftIsFromActive && activeChangedSinceDraft) {
+    paragraph =
+      'You have a draft in progress based on your active profile. Your active profile has been updated since this draft began, so your draft may no longer match what is live. We recommend Clone and Restart below to work from your latest active profile.'
+    continueDescription = `This draft was created from your Active profile on ${draftDate || 'a recent date'}. You can still open it, but it may be missing updates from your active profile.`
+    freshDraftDescription = `Discard this draft and create a new one cloned from your Active profile${vDate ? ` (last updated ${vDate})` : ''}, so you are working from the latest version of your live profile.`
   } else if (hasDraft && !draftIsFromActive) {
-    paragraph = `You have a draft that was started from ${parentLabel}, not your current active profile (${vLabel}). Continue that draft, or start fresh from your active profile.`
-    continueDescription = `Your draft was created from ${parentLabel} on ${draftDate}. Continue editing where you left off.`
-    freshDraftDescription = `Delete your current draft and clone ${vLabel}${vDate ? ` (created ${vDate})` : ''} to start updating with a clean slate.`
+    paragraph = `You have a draft that was started from ${parentLabel}, not from your current active profile (${vLabel}). Continue that draft, or replace it with a fresh draft cloned from your active profile.`
+    continueDescription = `This draft was created from ${parentLabel} on ${draftDate || 'a recent date'}. Continue editing where you left off.`
+    freshDraftDescription = `Discard this draft and create a new one cloned from your Active profile${vDate ? ` (last updated ${vDate})` : ''} to start from your current live profile instead of ${parentLabel}.`
   } else {
     paragraph = `${vLabel} is ready for its next evolution. Create a new version to capture your latest life updates.`
     continueDescription = ''

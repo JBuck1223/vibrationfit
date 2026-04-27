@@ -262,7 +262,7 @@ export async function GET(request: NextRequest) {
         console.log('🔍 PROFILE API: Fetching versions for user:', user.id)
         const { data: allVersions, error: versionsError } = await supabase
           .from('user_profiles')
-          .select('id, is_draft, is_active, version_notes, created_at, updated_at')
+          .select('id, is_draft, is_active, parent_id, version_notes, created_at, updated_at')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
         
@@ -295,7 +295,7 @@ export async function GET(request: NextRequest) {
               // Re-fetch versions after setting active
               const { data: refreshedVersions } = await supabase
                 .from('user_profiles')
-                .select('id, is_draft, is_active, version_notes, created_at, updated_at')
+                .select('id, is_draft, is_active, parent_id, version_notes, created_at, updated_at')
                 .eq('user_id', user.id)
                 .order('created_at', { ascending: false })
               if (refreshedVersions) {
