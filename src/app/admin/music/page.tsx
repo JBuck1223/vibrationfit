@@ -447,7 +447,7 @@ function TrackEditor({
               <label className="text-[11px] text-neutral-500 mb-0.5 block">{label}</label>
               <input
                 className={inputClass}
-                value={(form as Record<string, string>)[key]}
+                value={(form as unknown as Record<string, string>)[key]}
                 onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
                 placeholder={`https://...`}
               />
@@ -884,7 +884,7 @@ export default function MusicCatalogAdminPage() {
                               </p>
                               {track.is_featured && <Star className="w-3 h-3 text-yellow-400 shrink-0" />}
                               {!track.is_active && <EyeOff className="w-3 h-3 text-neutral-600 shrink-0" />}
-                              {track.synced_lyrics && <AlignLeft className="w-3 h-3 text-cyan-400 shrink-0" title="Has synced lyrics" />}
+                              {track.synced_lyrics && <AlignLeft className="w-3 h-3 text-cyan-400 shrink-0" aria-label="Has synced lyrics" />}
                             </div>
                             <p className="text-xs text-neutral-500 truncate">{track.artist}</p>
                           </div>

@@ -25,7 +25,7 @@ const openai = new OpenAI({
  * Compress audio to a low-bitrate mono MP3 using ffmpeg.
  * Whisper only needs speech intelligibility, not music fidelity.
  */
-async function compressAudio(inputBuffer: Buffer, inputExt: string): Promise<Buffer> {
+async function compressAudio(inputBuffer: Buffer<ArrayBuffer>, inputExt: string): Promise<Buffer<ArrayBuffer>> {
   const id = randomUUID()
   const inputPath = join(tmpdir(), `lyrics-in-${id}.${inputExt}`)
   const outputPath = join(tmpdir(), `lyrics-out-${id}.mp3`)
