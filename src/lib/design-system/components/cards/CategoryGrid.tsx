@@ -24,6 +24,8 @@ interface CategoryGridProps extends React.HTMLAttributes<HTMLDivElement> {
   pillLabel?: string
   getPillClassName?: (categoryKey: string) => string | undefined
   fillWidth?: boolean
+  /** When true (without fillWidth), pills keep natural width and wrap to multiple centered rows on md+ */
+  wrapOnDesktop?: boolean
 }
 
 const pillBase = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer'
@@ -48,6 +50,7 @@ export const CategoryGrid = React.forwardRef<HTMLDivElement, CategoryGridProps>(
     pillLabel,
     getPillClassName,
     fillWidth = false,
+    wrapOnDesktop = false,
     className,
     ...props
   }, ref) => {
@@ -63,10 +66,14 @@ export const CategoryGrid = React.forwardRef<HTMLDivElement, CategoryGridProps>(
           </div>
         )}
 
-        <div className={cn(
-          'flex items-center gap-2 overflow-x-auto pb-1 px-4 md:px-0 scrollbar-hide',
-          fillWidth ? 'md:flex-wrap md:justify-center' : 'md:justify-center'
-        )}>
+        <div
+          className={cn(
+            'flex items-center gap-2 pb-1 px-4 md:px-0 scrollbar-hide',
+            fillWidth || wrapOnDesktop
+              ? 'overflow-x-auto md:overflow-x-visible md:flex-wrap md:justify-center'
+              : 'overflow-x-auto md:justify-center',
+          )}
+        >
           {showSelectAll && onSelectAll && (
             <button
               type="button"

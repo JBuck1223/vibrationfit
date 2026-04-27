@@ -1,0 +1,1 @@
+export { DailyPaperAreaBar } from './DailyPaperAreaBar'

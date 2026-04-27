@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useMemo, useState, useRef, useEffect } from 'react'
-import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   Container,
@@ -9,9 +8,7 @@ import {
   Button,
   Stack,
   Inline,
-  Badge,
   Text,
-  PageHero,
   EmptyState,
   CategoryGrid,
   DeleteConfirmationDialog,
@@ -19,28 +16,11 @@ import {
 } from '@/lib/design-system/components'
 import { useAreaStats } from '@/hooks/useAreaStats'
 import { OptimizedImage } from '@/components/OptimizedImage'
-import { FileText, Sparkles, Plus, Filter, HelpCircle, Flame, Shield, ChevronDown, ChevronRight, Search, X, Edit, Trash2, Paperclip } from 'lucide-react'
+import { FileText, Sparkles, Plus, Filter, HelpCircle, Flame, Shield, ChevronDown, Search, X, Edit, Trash2, Paperclip } from 'lucide-react'
 import { DailyPaperEntry, useDailyPaperEntries } from '@/hooks/useDailyPaper'
 import { createClient } from '@/lib/supabase/client'
+import { DailyPaperEditModal } from '@/components/daily-paper'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
-
-const PREVIEW_LENGTH = 200
-
-function truncate(text: string, length = PREVIEW_LENGTH) {
-  if (!text) return ''
-  if (text.length <= length) return text
-  return `${text.slice(0, length - 1)}…`
-}
-
-function formatDateLabel(value: string) {
-  const date = new Date(`${value}T00:00:00`)
-  return date.toLocaleDateString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
-}
 
 function looksLikeImageUrl(url: string | null | undefined): boolean {
   if (!url) return false
@@ -54,43 +34,92 @@ function isImageEntry(entry: DailyPaperEntry): boolean {
   return entry.attachment_content_type?.startsWith('image/') === true || looksLikeImageUrl(entry.attachment_url)
 }
 
-function calculateCurrentStreak(entries: DailyPaperEntry[]) {
-  if (entries.length === 0) return 0
-
-  const recordedDays = new Set(entries.map((entry) => entry.entry_date))
-  const cursor = new Date()
-
-  let streak = 0
-  while (true) {
-    const key = cursor.toISOString().slice(0, 10)
-    if (!recordedDays.has(key)) break
-    streak += 1
-    cursor.setDate(cursor.getDate() - 1)
-  }
-
-  return streak
-}
-
-function countEntriesInLastDays(entries: DailyPaperEntry[], days: number) {
-  if (entries.length === 0) return 0
-
-  const today = new Date()
-  const threshold = new Date()
-  threshold.setDate(today.getDate() - (days - 1))
-
-  return entries.filter((entry) => {
-    const entryDate = new Date(`${entry.entry_date}T00:00:00`)
-    return entryDate >= threshold && entryDate <= today
-  }).length
-}
-
 type DateFilter = 'all' | '7' | '30'
+
+function DailyPaperPracticeStatsRow({
+  practiceStats,
+  totalEntries,
+  statsExpanded,
+  setStatsExpanded,
+  freezeOpen,
+  setFreezeOpen,
+  freezeRef,
+}: {
+  practiceStats: ReturnType<typeof useAreaStats>['stats']
+  totalEntries: number
+  statsExpanded: boolean
+  setStatsExpanded: React.Dispatch<React.SetStateAction<boolean>>
+  freezeOpen: boolean
+  setFreezeOpen: React.Dispatch<React.SetStateAction<boolean>>
+  freezeRef: React.RefObject<HTMLDivElement | null>
+}) {
+  return (
+    <div className="flex items-center justify-center gap-2 flex-wrap text-[11px] leading-none">
+      <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 text-white font-medium">
+        <Flame className={`w-3 h-3 ${(practiceStats?.currentStreak ?? 0) >= 1 ? 'text-orange-400' : 'text-orange-400/40'}`} />
+        {practiceStats?.currentStreak ?? 0}
+        <span className="text-neutral-500">{(practiceStats?.currentStreak ?? 0) === 1 ? 'day' : 'days'}</span>
+        <span className="relative ml-0.5" ref={freezeRef}>
+          <button
+            type="button"
+            onClick={() => setFreezeOpen(prev => !prev)}
+            className="inline-flex items-center"
+            aria-label="Streak freeze info"
+          >
+            <Shield className={`w-3 h-3 ${
+              practiceStats?.streakFreezeUsedThisWeek
+                ? 'text-blue-500/40'
+                : practiceStats?.streakFreezeAvailable
+                  ? 'text-blue-400'
+                  : 'text-blue-400/40'
+            }`} />
+          </button>
+          <div className={`absolute top-full mt-2 left-1/2 -translate-x-1/2 w-56 rounded-xl bg-neutral-900 border border-blue-500/20 p-3 shadow-xl transition-all duration-200 z-[400] ${freezeOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
+            <p className="text-sm font-semibold text-blue-400 mb-1">
+              Streak Freeze <span className="font-normal text-blue-400/70">({practiceStats?.streakFreezeUsedThisWeek ? 'Used this week' : practiceStats?.streakFreezeAvailable ? 'Available' : 'Not available yet'})</span>
+            </p>
+            <p className="text-xs text-neutral-400 leading-relaxed">
+              {practiceStats?.streakFreezeUsedThisWeek
+                ? 'Your streak was saved this week. You get 1 free grace day per week for each habit.'
+                : 'You get 1 free grace day per week. If you miss a day, your streak stays alive so one off-day does not wipe out your progress.'}
+            </p>
+          </div>
+        </span>
+      </span>
+      <span className="inline-flex items-center rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 text-white font-medium">
+        {practiceStats?.countLast7 ?? 0}<span className="text-neutral-500 ml-1">/7 week</span>
+      </span>
+      <span className="inline-flex items-center rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 text-white font-medium">
+        {practiceStats?.countLast30 ?? 0}<span className="text-neutral-500 ml-1">/30 month</span>
+      </span>
+      {statsExpanded && (
+        <>
+          <span className="inline-flex items-center rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 text-white font-medium">
+            {(practiceStats?.countAllTime ?? 0).toLocaleString()} <span className="text-neutral-500 ml-1">total days</span>
+          </span>
+          <span className="inline-flex items-center rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 text-white font-medium">
+            {totalEntries.toLocaleString()} <span className="text-neutral-500 ml-1">papers</span>
+          </span>
+        </>
+      )}
+      <button
+        type="button"
+        onClick={() => setStatsExpanded(prev => !prev)}
+        className="inline-flex items-center gap-1 rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 text-neutral-400 hover:text-neutral-300 transition-colors"
+        aria-expanded={statsExpanded}
+      >
+        {statsExpanded ? 'Less' : 'More'}
+        <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${statsExpanded ? 'rotate-180' : ''}`} />
+      </button>
+    </div>
+  )
+}
 
 export default function DailyPaperIndexPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { stats: practiceStats } = useAreaStats('daily-paper')
-  const { entries, isLoading, isRefreshing, error, refresh } = useDailyPaperEntries()
+  const { entries, isLoading, error, refresh } = useDailyPaperEntries()
   const [showFilters, setShowFilters] = useState(false)
   const [dateFilter, setDateFilter] = useState<DateFilter>('all')
   const [selectedCategories, setSelectedCategories] = useState<string[]>(['all'])
@@ -102,6 +131,7 @@ export default function DailyPaperIndexPage() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
+  const [editEntry, setEditEntry] = useState<DailyPaperEntry | null>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const freezeRef = useRef<HTMLDivElement>(null)
 
@@ -130,14 +160,6 @@ export default function DailyPaperIndexPage() {
       }, 100)
     }
   }, [searchParams, entries.length, router])
-
-  const metrics = useMemo(() => {
-    const total = entries.length
-    const thisWeek = countEntriesInLastDays(entries, 7)
-    const streak = calculateCurrentStreak(entries)
-    const mostRecent = entries[0] ?? null
-    return { total, thisWeek, streak, mostRecent }
-  }, [entries])
 
   const handleRefresh = () => {
     void refresh()
@@ -194,116 +216,15 @@ export default function DailyPaperIndexPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <PageHero
-          title="Daily Paper"
-          subtitle="Capture gratitude, align three actions, and mark a fun moment. Your archive keeps the story tight and easy to review."
-        >
-          {metrics.mostRecent && (
-            <p className="text-xs md:text-sm text-neutral-500 text-center">
-              Last entry · {formatDateLabel(metrics.mostRecent.entry_date)}
-            </p>
-          )}
-          <div className="flex flex-wrap justify-center gap-2 md:gap-4">
-            <Button
-              asChild
-              variant="primary"
-              size="sm"
-              className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-            >
-              <Link href="/daily-paper/new">
-                <Plus className="w-4 h-4 shrink-0" />
-                <span>New Entry</span>
-              </Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              size="sm"
-              className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-            >
-              <Link href="/daily-paper/resources" className="flex items-center justify-center gap-1 md:gap-2">
-                <HelpCircle className="w-4 h-4 shrink-0" />
-                Resources
-              </Link>
-            </Button>
-          </div>
-        </PageHero>
-
-        {/* Daily Paper Stats */}
-        <div className="relative rounded-2xl border border-white/[0.06] bg-gradient-to-br from-[#FFFF00]/[0.04] via-[#111] to-[#111]">
-          <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(ellipse_at_top_left,_rgba(255,255,0,0.08)_0%,_transparent_50%)] pointer-events-none" />
-          <div className="relative p-5 md:p-6">
-            <div className="flex items-center justify-center gap-2.5 mb-4">
-              <FileText className="w-4 h-4 text-[#FFFF00]" />
-              <h3 className="text-neutral-300 font-medium text-sm tracking-wide uppercase">Daily Paper</h3>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-              {/* Current Streak */}
-              <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-3">
-                <p className="text-neutral-500 text-[11px] leading-tight mb-1.5">Current Streak</p>
-                <div className="flex items-center gap-1.5">
-                  <p className="text-white font-semibold text-lg leading-none flex items-center gap-1.5">
-                    {(practiceStats?.currentStreak ?? 0) >= 1 && <Flame className="w-4 h-4 text-orange-400" />}
-                    {practiceStats?.currentStreak ?? 0}
-                    <span className="font-normal text-neutral-500">{(practiceStats?.currentStreak ?? 0) === 1 ? 'day' : 'days'}</span>
-                  </p>
-                  {(practiceStats?.streakFreezeAvailable || practiceStats?.streakFreezeUsedThisWeek) && (
-                    <div className="relative ml-auto flex items-center" ref={freezeRef}>
-                      <button type="button" className="flex items-center" onClick={() => setFreezeOpen(prev => !prev)}>
-                        <Shield className={`w-3.5 h-3.5 cursor-help ${practiceStats?.streakFreezeUsedThisWeek ? 'text-blue-500/40' : 'text-blue-400'}`} />
-                      </button>
-                      <div className={`absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-56 rounded-xl bg-neutral-900 border border-blue-500/20 p-3 shadow-xl transition-all duration-200 z-[100] ${freezeOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
-                        <p className="text-sm font-semibold text-blue-400 mb-1">
-                          Streak Freeze <span className="font-normal text-blue-400/70">({practiceStats?.streakFreezeUsedThisWeek ? 'Used this week' : 'Available'})</span>
-                        </p>
-                        <p className="text-xs text-neutral-400 leading-relaxed">
-                          {practiceStats?.streakFreezeUsedThisWeek
-                            ? 'Your streak was saved this week. You get 1 free grace day per week for each habit.'
-                            : 'You get 1 free grace day per week. If you miss a day, your streak stays alive so one off-day doesn\'t wipe out your progress.'}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Reps this Week - always visible */}
-              <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-3">
-                <p className="text-neutral-500 text-[11px] leading-tight mb-1.5">Reps this Week</p>
-                <p className="text-white font-semibold text-lg leading-none">{practiceStats?.countLast7 ?? 0}<span className="font-normal text-neutral-500">/7</span></p>
-              </div>
-
-              {/* Remaining stats: always visible on sm+, toggled on mobile */}
-              {[
-                {
-                  label: 'Reps this Month',
-                  value: <>{practiceStats?.countLast30 ?? 0}<span className="font-normal text-neutral-500">/30</span></>,
-                },
-                {
-                  label: 'Total Rep Days',
-                  value: (practiceStats?.countAllTime ?? 0).toLocaleString(),
-                },
-                { label: 'Total Papers', value: metrics.total.toLocaleString() },
-              ].map((stat) => (
-                <div key={stat.label} className={`rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-3 ${statsExpanded ? '' : 'hidden'} sm:block`}>
-                  <p className="text-neutral-500 text-[11px] leading-tight mb-1.5">{stat.label}</p>
-                  <p className="text-white font-semibold text-lg leading-none">{stat.value}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Mobile toggle */}
-            <button
-              type="button"
-              onClick={() => setStatsExpanded(prev => !prev)}
-              className="flex items-center justify-center gap-1.5 w-full mt-3 py-1.5 text-xs text-neutral-400 hover:text-neutral-300 transition-colors sm:hidden"
-            >
-              {statsExpanded ? 'Show less' : 'View all stats'}
-              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${statsExpanded ? 'rotate-180' : ''}`} />
-            </button>
-          </div>
-        </div>
+        <DailyPaperPracticeStatsRow
+          practiceStats={practiceStats}
+          totalEntries={entries.length}
+          statsExpanded={statsExpanded}
+          setStatsExpanded={setStatsExpanded}
+          freezeOpen={freezeOpen}
+          setFreezeOpen={setFreezeOpen}
+          freezeRef={freezeRef}
+        />
 
         {/* Action Bar */}
         <div className="space-y-3">
@@ -510,7 +431,7 @@ export default function DailyPaperIndexPage() {
                   <div className="px-4 py-3.5 md:px-5 md:py-4">
                     {!isExpanded ? (
                       /* Collapsed: date + preview text */
-                      <div className="flex items-center gap-4">
+                      <div className="flex w-full min-w-0 items-center gap-4">
                         <div className="flex-shrink-0 w-11 text-center">
                           <p className="text-[10px] uppercase tracking-wider text-neutral-500 leading-none">{weekday}</p>
                           <p className="text-xl font-semibold text-white leading-tight">{dayNum}</p>
@@ -518,8 +439,8 @@ export default function DailyPaperIndexPage() {
                         </div>
 
                         <div className="flex-1 min-w-0">
-                          <p className="text-[13px] text-neutral-300 leading-relaxed whitespace-pre-line line-clamp-2 md:line-clamp-1">
-                            {truncate(entry.gratitude, 140)}
+                          <p className="w-full min-w-0 text-[13px] text-neutral-300 leading-relaxed line-clamp-2 md:line-clamp-1">
+                            {entry.gratitude?.trim() ? entry.gratitude : '\u2014'}
                           </p>
                         </div>
 
@@ -555,7 +476,10 @@ export default function DailyPaperIndexPage() {
                               <Trash2 className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={(e: React.MouseEvent) => { e.stopPropagation(); router.push(`/daily-paper/${entry.id}/edit`) }}
+                              onClick={(e: React.MouseEvent) => {
+                                e.stopPropagation()
+                                setEditEntry(entry)
+                              }}
                               className="text-neutral-500 hover:text-white transition-colors"
                               aria-label="Edit entry"
                             >
@@ -659,6 +583,17 @@ export default function DailyPaperIndexPage() {
           showNavigation={false}
           showThumbnails={false}
           showCounter={false}
+        />
+
+        <DailyPaperEditModal
+          isOpen={editEntry !== null}
+          entry={editEntry}
+          onClose={() => setEditEntry(null)}
+          onSuccess={() => {
+            const id = editEntry?.id
+            void refresh()
+            if (id) setExpandedId(id)
+          }}
         />
       </Stack>
     </Container>

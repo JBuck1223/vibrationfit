@@ -10,7 +10,6 @@ import {
   Image,
   FileText,
   Target,
-  CalendarDays,
   Clock,
   BookOpen,
   Lightbulb,
@@ -23,7 +22,6 @@ import {
   Edit,
   Save,
   X,
-  ArrowRight,
 } from 'lucide-react'
 import {
   Container,
@@ -31,8 +29,6 @@ import {
   Card,
   Button,
   Spinner,
-  Text,
-  PageHero,
   Input,
   AutoResizeTextarea,
 } from '@/lib/design-system/components'
@@ -326,96 +322,112 @@ export default function StoryDetailPage({
 
   return (
     <Container size="xl">
-      <Stack gap="lg" className="pt-6">
-        {/* PageHero with title + info bar */}
-        <PageHero
-          title={story.title || 'Untitled Story'}
+      <Stack gap="md">
+        <Card
+          variant="outlined"
+          className="!p-0 md:!p-6 lg:!p-8 !bg-transparent !border-transparent !rounded-none md:!rounded-2xl md:!bg-[#101010] md:!border-[#1F1F1F]"
         >
-          <div className="text-center">
-            <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] md:text-xs font-semibold border ${meta.badgeColor}`}>
-                <EntityIcon className="w-3 h-3" />
-                {meta.label}
-              </span>
-              {focusAreas.length > 0 && focusAreas.map((cat: string) => (
-                <span key={cat} className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] md:text-xs font-medium border border-neutral-600/50 text-neutral-300 bg-neutral-800/50">
-                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                </span>
-              ))}
-              {wordCount > 0 && (
-                <div className="flex items-center gap-1.5 text-neutral-300 text-[11px] md:text-xs">
-                  <FileText className="w-3.5 h-3.5 text-neutral-500" />
-                  <span className="font-medium">{wordCount.toLocaleString()}</span>
-                  <span>words</span>
-                  <span className="text-neutral-600">·</span>
-                  <span>{readTime} min read</span>
-                </div>
-              )}
-              <div className="flex items-center gap-1.5 text-neutral-300 text-[11px] md:text-xs">
-                <CalendarDays className="w-3.5 h-3.5 text-neutral-500" />
-                <span className="font-medium">Created:</span>
-                <span>{new Date(story.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-              </div>
+          <Stack gap="lg">
+            <div className="flex justify-between items-center gap-4 flex-wrap">
+              <Button variant="ghost" size="sm" asChild className="text-neutral-400 hover:text-white -ml-2">
+                <Link href="/story" className="inline-flex items-center gap-1.5">
+                  <ChevronLeft className="w-4 h-4 shrink-0" />
+                  All stories
+                </Link>
+              </Button>
+              <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500">
+                {new Date(story.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </p>
             </div>
-          </div>
-        </PageHero>
 
-        {story.status === 'draft' && (
-          <div className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
-            <Text size="sm" className="text-amber-400">
-              This story is a draft. Edit and save to mark it complete, or click the button.
-            </Text>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleMarkComplete}
-              disabled={saving || !story.content?.trim()}
-              className="shrink-0 border-amber-500/50 text-amber-400 hover:bg-amber-500/10"
-            >
-              <Check className="w-4 h-4 mr-1.5" />
-              Mark Complete
-            </Button>
-          </div>
-        )}
+            {!isEditing && (
+              <>
+                <section className="space-y-3 text-center">
+                  <div className="flex items-center gap-3">
+                    <div className="h-px flex-1 bg-[#2A2A2A]" />
+                    <p className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">Story title</p>
+                    <div className="h-px flex-1 bg-[#2A2A2A]" />
+                  </div>
+                  <p className="text-base font-medium text-white text-center rounded-xl border border-[#282828] bg-[#1A1A1A] px-4 py-3">
+                    {story.title || 'Untitled Story'}
+                  </p>
+                </section>
 
-        {/* Story Content */}
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
-          <Stack gap="xl">
+                <section className="space-y-3">
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">Details</p>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] md:text-xs font-semibold border ${meta.badgeColor}`}>
+                      <EntityIcon className="w-3 h-3 shrink-0" />
+                      {meta.label}
+                    </span>
+                    {focusAreas.length > 0 && focusAreas.map((cat: string) => (
+                      <span key={cat} className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] md:text-xs font-medium border border-[#282828] text-neutral-300 bg-[#1A1A1A]">
+                        {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                      </span>
+                    ))}
+                    {wordCount > 0 && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] md:text-xs text-neutral-300 border border-[#282828] bg-[#1A1A1A]">
+                        <FileText className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
+                        <span className="font-medium">{wordCount.toLocaleString()}</span>
+                        <span>words</span>
+                        <span className="text-neutral-600">·</span>
+                        <span>{readTime} min read</span>
+                      </span>
+                    )}
+                  </div>
+                </section>
+              </>
+            )}
+
+            {story.status === 'draft' && (
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 rounded-xl border border-amber-500/30 bg-amber-500/10">
+                <p className="text-sm text-amber-400 leading-relaxed">
+                  This story is a draft. Edit and save to mark it complete, or click the button.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleMarkComplete}
+                  disabled={saving || !story.content?.trim()}
+                  className="shrink-0 border-amber-500/50 text-amber-400 hover:bg-amber-500/10 self-start sm:self-auto"
+                >
+                  <Check className="w-4 h-4 mr-1.5" />
+                  Mark Complete
+                </Button>
+              </div>
+            )}
+
             {isEditing ? (
               <>
-                {/* Edit Mode */}
-                <section className="space-y-4">
-                  <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-                    Story title
-                  </Text>
+                <section className="space-y-3 text-center">
+                  <div className="flex items-center gap-3">
+                    <div className="h-px flex-1 bg-[#2A2A2A]" />
+                    <p className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">Story title</p>
+                    <div className="h-px flex-1 bg-[#2A2A2A]" />
+                  </div>
                   <Input
+                    type="text"
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
                     placeholder="Story title"
-                    className="text-lg font-medium"
+                    className="!bg-[#1A1A1A] !border-[#282828] !text-base !font-medium !text-center"
                   />
                 </section>
 
-                <section className="space-y-4">
-                  <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-                    Story
-                  </Text>
-                  <AutoResizeTextarea
-                    value={editContent}
-                    onChange={setEditContent}
-                    placeholder="Write your story..."
-                    className="min-h-[300px] text-base leading-relaxed"
-                  />
+                <section className="space-y-3">
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">Story</p>
+                  <div className="[&_textarea]:!bg-[#1A1A1A] [&_textarea]:!border-[#282828]">
+                    <AutoResizeTextarea
+                      value={editContent}
+                      onChange={setEditContent}
+                      placeholder="Write your story..."
+                      className="min-h-[300px] text-base leading-relaxed"
+                    />
+                  </div>
                 </section>
 
-                {/* Save / Cancel actions */}
-                <div className="flex flex-row items-center gap-2 sm:gap-3 sm:justify-end pt-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={cancelEditing}
-                    className="flex-1 sm:flex-none sm:w-32"
-                  >
+                <div className="flex flex-row gap-2 sm:gap-3 justify-end">
+                  <Button variant="danger" size="sm" onClick={cancelEditing} className="flex-1 sm:flex-none sm:w-auto">
                     <X className="w-4 h-4 mr-2" />
                     Cancel
                   </Button>
@@ -424,7 +436,7 @@ export default function StoryDetailPage({
                     size="sm"
                     onClick={handleSave}
                     disabled={isSaving}
-                    className="flex-1 sm:flex-none sm:w-32"
+                    className="flex-1 sm:flex-none sm:w-auto"
                   >
                     <Save className="w-4 h-4 mr-2" />
                     {isSaving ? 'Saving...' : 'Save'}
@@ -433,14 +445,10 @@ export default function StoryDetailPage({
               </>
             ) : (
               <>
-                {/* View Mode */}
-                <section className="space-y-4">
-                  <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-                    Story
-                  </Text>
+                <section className="space-y-3">
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">Story</p>
 
-                  {/* Audio row: player left, studio right on desktop */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-2xl bg-[#141414] border border-neutral-800 p-4">
+                  <div className="rounded-xl border border-dashed border-[#282828] bg-[#131313] p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                     {audioOptions.length > 0 ? (
                       <div className="space-y-3">
                         <div className="flex items-center gap-3">
@@ -542,7 +550,7 @@ export default function StoryDetailPage({
                       </div>
                     )}
 
-                    <div className="flex flex-col items-center justify-center text-center gap-3 md:border-l md:border-neutral-800 md:pl-4">
+                    <div className="flex flex-col items-center justify-center text-center gap-3 md:border-l md:border-[#282828] md:pl-4">
                       <Headphones className="w-6 h-6 text-primary-500 hidden md:block" />
                       <p className="text-sm text-neutral-400">
                         {audioOptions.length > 0 ? 'Generate more tracks or record your voice' : 'Generate your first track or record your voice'}
@@ -571,14 +579,13 @@ export default function StoryDetailPage({
                   )}
                 </section>
 
-                {/* Edit / Delete actions */}
-                <div className="flex flex-row items-center gap-2 sm:gap-3 sm:justify-end pt-2">
+                <div className="flex flex-row gap-2 sm:gap-3 justify-end pt-1">
                   <Button
                     variant="danger"
                     size="sm"
                     onClick={handleDelete}
                     disabled={deleting}
-                    className="flex-1 sm:flex-none sm:w-32"
+                    className="flex-1 sm:flex-none sm:w-auto"
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
                     {deleting ? 'Deleting...' : 'Delete'}
@@ -587,7 +594,7 @@ export default function StoryDetailPage({
                     variant="primary"
                     size="sm"
                     onClick={startEditing}
-                    className="flex-1 sm:flex-none sm:w-32"
+                    className="flex-1 sm:flex-none sm:w-auto"
                   >
                     <Edit className="w-4 h-4 mr-2" />
                     Edit
@@ -595,25 +602,24 @@ export default function StoryDetailPage({
                 </div>
               </>
             )}
-          </Stack>
-        </Card>
 
-        {/* Generation Details (collapsed by default) */}
-        {!isEditing && (!!story.metadata?.source_input || story.source === 'ai_generated') && (
-          <div className="rounded-2xl bg-neutral-900/50 border border-neutral-800">
-            <button
-              type="button"
-              onClick={() => setShowSourceInput(!showSourceInput)}
-              className="w-full flex items-center justify-between px-5 py-3 hover:bg-neutral-800/50 transition-colors rounded-2xl"
-            >
-              <span className="text-sm text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">Generation Details</span>
-              {showSourceInput
-                ? <ChevronUp className="w-4 h-4 text-neutral-500" />
-                : <ChevronDown className="w-4 h-4 text-neutral-500" />
-              }
-            </button>
-            {showSourceInput && (
-              <div className="px-5 pb-5 space-y-4">
+            {!isEditing && (!!story.metadata?.source_input || story.source === 'ai_generated') && (
+              <section className="space-y-3">
+                <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">Generation details</p>
+                <div className="rounded-xl border border-dashed border-[#282828] bg-[#131313] overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setShowSourceInput(!showSourceInput)}
+                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#1A1A1A]/80 transition-colors text-left border-b border-[#282828]"
+                  >
+                    <span className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">Show source and context</span>
+                    {showSourceInput
+                      ? <ChevronUp className="w-4 h-4 text-neutral-500 shrink-0" />
+                      : <ChevronDown className="w-4 h-4 text-neutral-500 shrink-0" />
+                    }
+                  </button>
+                  {showSourceInput && (
+                    <div className="px-4 pb-4 pt-1 space-y-4">
                 {/* Quick facts row */}
                 <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
                   <div>
@@ -677,11 +683,14 @@ export default function StoryDetailPage({
                     <p className="text-neutral-400 whitespace-pre-wrap leading-relaxed text-sm">{String(story.metadata.source_input)}</p>
                   </div>
                 )}
-              </div>
+                    </div>
+                  )}
+                </div>
+              </section>
             )}
-          </div>
-        )}
 
+          </Stack>
+        </Card>
       </Stack>
     </Container>
   )
