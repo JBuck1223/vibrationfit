@@ -20,7 +20,6 @@ import {
   Save,
   Edit,
   Trash2,
-  ChevronDown,
   ChevronRight,
   ChevronLeft,
   ChevronsLeft,
@@ -302,7 +301,6 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const [isCloning, setIsCloning] = useState(false)
 
   // VIVA Refine (Refine + Weave) state
-  const [showVivaRefine, setShowVivaRefine] = useState(true)
   const [vivaRevision, setVivaRevision] = useState('')
   const [isVivaRefining, setIsVivaRefining] = useState(false)
   const [currentRefinementId, setCurrentRefinementId] = useState<string | null>(null)
@@ -1543,67 +1541,49 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
             mode="draft"
             fillWidth
             title="Choose a Category to Update"
+            bleedClassName="max-md:-mx-4"
+            pillLabel="scroll"
           />
         </div>
 
-      {/* Active Category Indicator (ProfileSectionCardHeading pattern) */}
-      {selectedCategory && (
-        <div className="flex flex-col items-center gap-2 pt-2 sm:flex-row sm:justify-center sm:gap-3 md:pt-0">
-          {(() => {
-            const categoryInfo = VISION_CATEGORIES.find(cat => cat.key === selectedCategory)
-            return categoryInfo && (
-              <>
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-500 md:h-8 md:w-8">
-                  <Icon icon={categoryInfo.icon} size="xs" color="#000000" />
-                </div>
-                <h3 className="max-w-full text-center text-sm font-medium uppercase tracking-[0.25em] text-neutral-400">
-                  {categoryInfo.label}
-                </h3>
-              </>
-            )
-          })()}
-        </div>
-      )}
+      {/* Overarching Category Card — wraps VIVA tool + compare view */}
+      {selectedCategory && (() => {
+        const categoryInfo = VISION_CATEGORIES.find(cat => cat.key === selectedCategory)
+        const categoryLabel = categoryInfo?.label ?? ''
+        const hasExistingRevision = !!(
+          currentRefinement.trim() &&
+          currentRefinement.trim() !== getCategoryValue(selectedCategory).trim()
+        )
 
-      {/* VIVA Refine (Refine + Weave) Tool */}
-      {selectedCategory && (
-        <div className="space-y-6">
+        return (
           <Card>
-            <div className={`flex flex-col gap-3 md:flex-row md:items-center md:justify-between ${showVivaRefine ? 'mb-6' : ''}`}>
-              <div className="flex flex-col items-center text-center md:flex-row md:items-center md:gap-3 md:text-left">
-                <div className="hidden md:flex w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center shrink-0">
-                  <Wand2 className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-white">
-                    Refine {getVisionCategoryLabel(selectedCategory as any)} With VIVA
+            {/* Card Header — Category identifier */}
+            <div className="mb-2 flex flex-row items-center justify-center gap-2 md:gap-3">
+              {categoryInfo && (
+                <>
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-500 md:h-8 md:w-8">
+                    <Icon icon={categoryInfo.icon} size="xs" color="#000000" />
+                  </div>
+                  <h3 className="max-w-full text-sm font-medium uppercase tracking-[0.25em] text-neutral-400">
+                    {categoryInfo.label}
                   </h3>
-                  <p className="text-sm text-neutral-400">Structured refinement with VIVA's assistance</p>
-                </div>
-              </div>
-              <Button
-                onClick={() => setShowVivaRefine(!showVivaRefine)}
-                variant="outline"
-                size="sm"
-                className="flex items-center justify-center gap-2 self-center md:self-auto"
-              >
-                {showVivaRefine ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                {showVivaRefine ? 'Hide' : 'Show'} Tool
-              </Button>
+                </>
+              )}
             </div>
+            <div className="mb-6 border-b border-neutral-800" />
 
-            {showVivaRefine && (
-              <div>
-                {/* VIVA Refinement Notes */}
+            {/* Section 1: Update with VIVA */}
+            <section className="mb-8">
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-neutral-300 mb-2">
-                    VIVA Refinement Notes
+                  <label className="block text-center text-[11px] uppercase tracking-[0.2em] text-neutral-500 mb-3">
+                    Update Notes
                   </label>
                   <RecordingTextarea
                     value={refinementNotes}
                     onChange={setRefinementNotes}
-                    placeholder="Tell VIVA how to refine this category..."
-                    className="min-h-[100px] w-full"
+                    placeholder="Tell VIVA how to update this category..."
+                    className="min-h-[100px] w-full !bg-[#101010] !border-neutral-800 focus-within:!border-accent-500"
                     rows={4}
                     storageFolder="lifeVision"
                     recordingPurpose="quick"
@@ -1612,10 +1592,8 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                   />
                 </div>
 
-                {/* Refine from revision toggle */}
-                {selectedCategory && currentRefinement.trim() &&
-                  currentRefinement.trim() !== getCategoryValue(selectedCategory).trim() && (
-                  <label className="flex items-center justify-center gap-2 pt-3 cursor-pointer select-none">
+                {hasExistingRevision && (
+                  <label className="flex items-center justify-center gap-2 pt-1 cursor-pointer select-none">
                     <div
                       role="switch"
                       aria-checked={refineFromRevision}
@@ -1629,13 +1607,12 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                       }`} />
                     </div>
                     <span className="text-sm text-neutral-300">
-                      Refine from current revision
+                      Update from current revision
                     </span>
                   </label>
                 )}
 
-                {/* Generate Button */}
-                <div className="flex justify-center pt-4">
+                <div className="flex justify-center pt-2">
                   <Button
                     onClick={handleVivaRefine}
                     disabled={isVivaRefining || !selectedCategory || !getCategoryValue(selectedCategory).trim()}
@@ -1646,239 +1623,188 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                     {isVivaRefining ? (
                       <>
                         <Spinner variant="secondary" size="sm" />
-                        Refining with VIVA...
+                        Updating with VIVA...
                       </>
                     ) : (
                       <>
                         <Wand2 className="w-5 h-5" />
-                        {refineFromRevision && currentRefinement.trim() && selectedCategory &&
-                          currentRefinement.trim() !== getCategoryValue(selectedCategory).trim()
-                          ? 'Revise Current Revision'
-                          : 'Generate VIVA Revision'}
+                        {refineFromRevision && hasExistingRevision
+                          ? `Update ${categoryLabel} Revision`
+                          : `Update ${categoryLabel} With VIVA`}
                       </>
                     )}
                   </Button>
                 </div>
               </div>
-            )}
-          </Card>
-        </div>
-      )}
+            </section>
 
-      {/* Current Vision & Refinement Display */}
-      {selectedCategory && (
-        <div className="mb-8">
-          {/* Mobile Toggle Buttons */}
-          <div className="lg:hidden mb-4 space-y-2">
-            <Button
-              onClick={() => setShowCurrentVision(!showCurrentVision)}
-              variant={showCurrentVision ? "primary" : "outline"}
-              size="sm"
-              className="w-full flex items-center justify-center gap-2"
-            >
-              {showCurrentVision ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-              {showCurrentVision ? 'Hide' : 'Show'} Current Vision
-            </Button>
-            <Button
-              onClick={() => setShowRefinement(!showRefinement)}
-              variant={showRefinement ? "accent" : "outline"}
-              size="sm"
-              className="w-full flex items-center justify-center gap-2"
-            >
-              {showRefinement ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-              {showRefinement ? 'Hide' : 'Show'} Refinement
-            </Button>
-          </div>
+            {/* Section 2: Compare */}
+            <section className="border-t border-neutral-800 pt-6">
+              <div className="mb-5 text-center">
+                <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">
+                  Compare
+                </h4>
+              </div>
 
-          {/* Desktop Toggle Buttons - Above the grid */}
-          <div className="hidden lg:flex gap-4 mb-4">
-            <Button
-              onClick={() => setShowCurrentVision(!showCurrentVision)}
-              variant={showCurrentVision ? "primary" : "outline"}
-              size="sm"
-              className="flex-1 flex items-center justify-center gap-2"
-            >
-              {showCurrentVision ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-              {showCurrentVision ? 'Hide' : 'Show'} Current Vision
-            </Button>
-            <Button
-              onClick={() => setShowRefinement(!showRefinement)}
-              variant={showRefinement ? "accent" : "outline"}
-              size="sm"
-              className="flex-1 flex items-center justify-center gap-2"
-            >
-              {showRefinement ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-              {showRefinement ? 'Hide' : 'Show'} Refinement
-            </Button>
-          </div>
+              {/* Toggle switches — replace Show/Hide buttons */}
+              <div className="mb-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <div
+                    role="switch"
+                    aria-checked={showCurrentVision}
+                    onClick={() => setShowCurrentVision(!showCurrentVision)}
+                    className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ${
+                      showCurrentVision ? 'bg-primary-500' : 'bg-neutral-600'
+                    }`}
+                  >
+                    <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform duration-200 ${
+                      showCurrentVision ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                    }`} />
+                  </div>
+                  <span className="text-sm text-neutral-300">Show Current Vision</span>
+                </label>
 
-          <div className={`space-y-6 ${showCurrentVision && showRefinement ? 'lg:grid lg:grid-cols-2' : ''} lg:gap-6 lg:space-y-0`}>
-            {/* Current Vision Card - Toggle visibility */}
-            <div className={`${showCurrentVision ? 'block' : 'hidden'}`}>
-              <Card>
-                {/* Centered Header */}
-                <div className="text-center mb-4 md:mb-6 lg:mb-8">
-                  <h3 className="text-sm font-semibold text-primary-500 tracking-widest mb-3">
-                    CURRENT VISION
-                  </h3>
-                  <div className="flex flex-row items-center justify-center gap-2">
-                    {(() => {
-                      const categoryInfo = VISION_CATEGORIES.find(cat => cat.key === selectedCategory)
-                      return categoryInfo && (
-                        <>
-                          <categoryInfo.icon className="w-6 h-6 text-primary-500" />
-                          <span className="text-base font-semibold text-primary-500">
-                            {categoryInfo.label}
-                          </span>
-                        </>
-                      )
-                    })()}
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <div
+                    role="switch"
+                    aria-checked={showRefinement}
+                    onClick={() => setShowRefinement(!showRefinement)}
+                    className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ${
+                      showRefinement ? 'bg-accent-500' : 'bg-neutral-600'
+                    }`}
+                  >
+                    <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform duration-200 ${
+                      showRefinement ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                    }`} />
+                  </div>
+                  <span className="text-sm text-neutral-300">Show Update</span>
+                </label>
+              </div>
+
+              <div className={`space-y-6 ${showCurrentVision && showRefinement ? 'lg:grid lg:grid-cols-2' : ''} lg:gap-6 lg:space-y-0`}>
+                {/* Current Vision Panel */}
+                <div className={`${showCurrentVision ? 'block' : 'hidden'}`}>
+                  <div className="rounded-2xl border border-primary-500/30 bg-[#1A1A1A] p-4 md:p-5">
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-primary-500">
+                        Current Vision
+                      </h5>
+                      {vision && (
+                        <span className="text-[11px] text-neutral-400">
+                          Active V{vision.version_number ?? 1} · {new Date(vision.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      )}
+                    </div>
+
+                    <AutoResizeTextarea
+                      value={getCategoryValue(selectedCategory) || "No vision content available for this category."}
+                      onChange={() => {}}
+                      readOnly
+                      className="!bg-[#101010] !border-neutral-800 text-sm cursor-default !rounded-lg !px-4 !py-3 scroll-mt-24"
+                      minHeight={120}
+                    />
+
+                    <div className="mt-4 flex justify-center">
+                      <Button
+                        onClick={() => setCurrentRefinement(getCategoryValue(selectedCategory!))}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
+                        <Copy className="w-4 h-4" />
+                        Copy to Update
+                      </Button>
+                    </div>
                   </div>
                 </div>
-                
-                {/* Active Vision Info */}
-                <div className="flex items-center justify-center mb-4" style={{ minHeight: '48px' }}>
-                  {vision && (
-                    <div className="inline-flex rounded-lg border-2 border-primary-500 bg-neutral-800 px-4 py-2">
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-medium text-primary-500">
-                          Active V{vision.version_number ?? 1}
-                        </span>
-                        <span className="text-sm text-neutral-400">
-                          {new Date(vision.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                        </span>
+
+                {/* Update (Refinement) Panel */}
+                <div className={`${showRefinement ? 'block' : 'hidden'}`} style={{ overflowAnchor: 'none' } as React.CSSProperties}>
+                  <div className="rounded-2xl border border-accent-500/30 bg-[#1A1A1A] p-4 md:p-5" data-refinement-section>
+                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <h5 className="text-xs font-semibold uppercase tracking-[0.25em]" style={{ color: colors.accent[500] }}>
+                        Update {categoryLabel} With VIVA
+                      </h5>
+
+                      {/* Edit / Highlight Toggle */}
+                      <div className="inline-flex self-center sm:self-auto rounded-lg border border-accent-500/40 bg-[#101010] p-1">
+                        <button
+                          onClick={() => setViewMode('edit')}
+                          className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
+                            viewMode === 'edit'
+                              ? 'bg-accent-500 text-white'
+                              : 'text-neutral-300 hover:text-white'
+                          }`}
+                        >
+                          <Edit className="w-3.5 h-3.5 inline mr-1.5" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => setViewMode('highlight')}
+                          disabled={!originalVisionText || !currentRefinement}
+                          className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
+                            viewMode === 'highlight'
+                              ? 'bg-accent-500 text-white'
+                              : 'text-neutral-300 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed'
+                          }`}
+                        >
+                          <Sparkles className="w-3.5 h-3.5 inline mr-1.5" />
+                          Highlight
+                        </button>
                       </div>
                     </div>
-                  )}
-                </div>
-                
-                {/* Text Area */}
-                <AutoResizeTextarea
-                  value={getCategoryValue(selectedCategory) || "No vision content available for this category."}
-                  onChange={() => {}}
-                  readOnly
-                  className="!bg-neutral-800/50 !border-primary-500 text-sm cursor-default !rounded-lg !px-4 !py-3 scroll-mt-24"
-                  minHeight={120}
-                />
-                
-                {/* Centered Copy Button */}
-                <div className="flex justify-center mt-4 md:mt-5 lg:mt-6">
-                  <Button
-                    onClick={() => setCurrentRefinement(getCategoryValue(selectedCategory!))}
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-2"
-                  >
-                    <Copy className="w-4 h-4" />
-                    Copy to Refinement
-                  </Button>
-                </div>
-              </Card>
-            </div>
 
-            {/* Refinement Card - Toggle visibility */}
-            <div className={`${showRefinement ? 'block' : 'hidden'}`} style={{ overflowAnchor: 'none' } as React.CSSProperties}>
-              <Card data-refinement-section>
-                {/* Centered Header */}
-                <div className="text-center mb-4 md:mb-6 lg:mb-8">
-                  <h3 className="text-sm font-semibold tracking-widest mb-3" style={{ color: colors.accent[500] }}>
-                    REFINE {getVisionCategoryLabel(selectedCategory as any).toUpperCase()} WITH VIVA
-                  </h3>
-                  <div className="flex flex-row items-center justify-center gap-2">
-                    {(() => {
-                      const categoryInfo = VISION_CATEGORIES.find(cat => cat.key === selectedCategory)
-                      return categoryInfo && (
-                        <>
-                          <categoryInfo.icon className="w-6 h-6" style={{ color: colors.accent[500] }} />
-                          <span className="text-base font-semibold" style={{ color: colors.accent[500] }}>
-                            {categoryInfo.label}
-                          </span>
-                        </>
-                      )
-                    })()}
+                    {viewMode === 'highlight' && originalVisionText && currentRefinement && !isVivaRefining ? (
+                      renderDiff(originalVisionText, currentRefinement)
+                    ) : (
+                      <AutoResizeTextarea
+                        value={currentRefinement}
+                        onChange={setCurrentRefinement}
+                        placeholder="Your updated vision will stream here..."
+                        className="!bg-[#101010] !border-neutral-800 text-sm !rounded-lg !px-4 !py-3"
+                        style={{ overflowAnchor: 'none' } as React.CSSProperties}
+                        minHeight={120}
+                      />
+                    )}
+
+                    <div className="mt-4 flex flex-wrap justify-center gap-3">
+                      {previousRefinement && !isVivaRefining && (
+                        <Button
+                          onClick={() => {
+                            setCurrentRefinement(previousRefinement)
+                            setPreviousRefinement(null)
+                            setShowRefinement(true)
+                          }}
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center gap-2"
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                          Revert to Previous
+                        </Button>
+                      )}
+                      <SaveButton
+                        saveLabel="Save Update"
+                        hasUnsavedChanges={
+                          !!(
+                            selectedCategory &&
+                            draftVision &&
+                            currentRefinement.trim() !==
+                              ((draftVision[selectedCategory as keyof VisionData] as string) || '').trim()
+                          )
+                        }
+                        isSaving={isDraftSaving}
+                        onClick={saveDraft}
+                        disabled={!selectedCategory || !draftVision || !currentRefinement.trim()}
+                      />
+                    </div>
                   </div>
                 </div>
-                
-                {/* Edit / Highlight Toggle */}
-                <div className="flex items-center justify-center mb-4" style={{ minHeight: '48px' }}>
-                  <div className="inline-flex rounded-lg border-2 border-accent-500 bg-neutral-800 p-1">
-                    <button
-                      onClick={() => setViewMode('edit')}
-                      className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                        viewMode === 'edit'
-                          ? 'bg-accent-500 text-white'
-                          : 'text-neutral-300 hover:text-white'
-                      }`}
-                    >
-                      <Edit className="w-4 h-4 inline mr-2" />
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => setViewMode('highlight')}
-                      disabled={!originalVisionText || !currentRefinement}
-                      className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                        viewMode === 'highlight'
-                          ? 'bg-accent-500 text-white'
-                          : 'text-neutral-300 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed'
-                      }`}
-                    >
-                      <Sparkles className="w-4 h-4 inline mr-2" />
-                      Highlight
-                    </button>
-                  </div>
-                </div>
-                
-                {/* Text Area or Diff View */}
-                {viewMode === 'highlight' && originalVisionText && currentRefinement && !isVivaRefining ? (
-                  renderDiff(originalVisionText, currentRefinement)
-                ) : (
-                  <AutoResizeTextarea
-                    value={currentRefinement}
-                    onChange={setCurrentRefinement}
-                    placeholder="VIVA refinement will stream here..."
-                    className="!bg-neutral-800/50 text-sm !rounded-lg !px-4 !py-3"
-                    style={{ overflowAnchor: 'none', borderColor: colors.accent[500], borderWidth: '2px' } as React.CSSProperties}
-                    minHeight={120}
-                  />
-                )}
-                
-                {/* Action Buttons */}
-                <div className="flex flex-wrap justify-center gap-3 mt-4 md:mt-5 lg:mt-6">
-                  {previousRefinement && !isVivaRefining && (
-                    <Button
-                      onClick={() => {
-                        setCurrentRefinement(previousRefinement)
-                        setPreviousRefinement(null)
-                        setShowRefinement(true)
-                      }}
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-2"
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                      Revert to Previous
-                    </Button>
-                  )}
-                  <SaveButton
-                    saveLabel="Save Refinement"
-                    hasUnsavedChanges={
-                      !!(
-                        selectedCategory &&
-                        draftVision &&
-                        currentRefinement.trim() !==
-                          ((draftVision[selectedCategory as keyof VisionData] as string) || '').trim()
-                      )
-                    }
-                    isSaving={isDraftSaving}
-                    onClick={saveDraft}
-                    disabled={!selectedCategory || !draftVision || !currentRefinement.trim()}
-                  />
-                </div>
-              </Card>
-            </div>
-          </div>
-        </div>
-      )}
+              </div>
+            </section>
+          </Card>
+        )
+      })()}
 
       {/* Chat Interface - REMOVED */}
       {false && selectedCategory && (
@@ -2023,15 +1949,17 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
             </Button>
           </div>
 
-          <div className="flex items-center gap-2 text-sm text-neutral-400">
-            <span>{getCurrentCategoryIndex() + 1} of {VISION_CATEGORIES.length}</span>
-            <span>•</span>
-            <span>{currentCategoryLabel}</span>
+          <div className="flex flex-col items-center gap-0.5 text-sm text-neutral-400 md:flex-row md:gap-2">
+            <div className="flex items-center gap-2">
+              <span>{getCurrentCategoryIndex() + 1} of {VISION_CATEGORIES.length}</span>
+              <span>•</span>
+              <span>{currentCategoryLabel}</span>
+            </div>
             {refinedCategories.includes(selectedCategory) && (
-              <>
-                <span>•</span>
+              <div className="flex items-center gap-2">
+                <span className="hidden md:inline">•</span>
                 <span className="text-primary-500">Updated</span>
-              </>
+              </div>
             )}
           </div>
 
