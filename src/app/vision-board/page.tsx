@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
-import { Card, Button, Badge, CategoryGrid, DeleteConfirmationDialog, ActionButtons, Icon, Container, Stack, FullBleed, Spinner, Input, Textarea, FileUpload, ImageLightbox, type ImageLightboxImage } from '@/lib/design-system'
+import { Card, Button, Badge, CategoryGrid, DeleteConfirmationDialog, ActionButtons, Icon, Container, Stack, Spinner, Input, Textarea, FileUpload, ImageLightbox, type ImageLightboxImage } from '@/lib/design-system'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { useAreaStats } from '@/hooks/useAreaStats'
@@ -983,14 +983,15 @@ export default function VisionBoardPage() {
               </div>
             </section>
 
-            <FullBleed>
-              <CategoryGrid
-                categories={VISION_CATEGORIES.filter(c => c.key !== 'forward' && c.key !== 'conclusion')}
-                selectedCategories={editFormData.categories}
-                onCategoryClick={handleEditCategoryToggle}
-                pillLabel="Tag life categories"
-              />
-            </FullBleed>
+            <CategoryGrid
+              title="Tag life categories"
+              categories={VISION_CATEGORIES.filter(c => c.key !== 'forward' && c.key !== 'conclusion')}
+              selectedCategories={editFormData.categories}
+              onCategoryClick={handleEditCategoryToggle}
+              pillLabel="Tag life categories"
+              wrapOnDesktop
+              bleedClassName="-mx-4 sm:-mx-5 md:-mx-6 lg:-mx-8"
+            />
 
             <section className="space-y-3">
               <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">Description</p>
@@ -1162,13 +1163,13 @@ export default function VisionBoardPage() {
               />
             )}
 
-            <div className="flex flex-row gap-2 sm:gap-3 sm:justify-end pt-2">
+            <div className="flex flex-row gap-2 sm:gap-3 justify-center pt-2">
               <Button
                 type="button"
                 variant="danger"
                 size="sm"
                 onClick={cancelEditing}
-                className="flex-1 sm:flex-none sm:min-w-[100px]"
+                className="flex-1 max-w-[180px]"
               >
                 Cancel
               </Button>
@@ -1178,7 +1179,7 @@ export default function VisionBoardPage() {
                 onClick={() => handleInlineSave(item.id)}
                 loading={saving}
                 disabled={saving}
-                className="flex-1 sm:flex-none sm:min-w-[100px]"
+                className="flex-1 max-w-[180px]"
               >
                 {saving ? 'Saving...' : (
                   <>
@@ -2275,7 +2276,7 @@ export default function VisionBoardPage() {
 
               {editingItemId === currentItem.id && editFormData ? (
                 <div
-                  className="relative w-full max-w-2xl md:max-w-3xl max-h-[96vh] overflow-y-auto px-3 pb-2 sm:px-4"
+                  className="relative w-full max-w-2xl md:max-w-5xl lg:max-w-6xl xl:max-w-7xl max-h-[96vh] overflow-y-auto px-3 pb-2 sm:px-4"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {renderInlineEditForm(currentItem, { layout: 'newStyle' })}

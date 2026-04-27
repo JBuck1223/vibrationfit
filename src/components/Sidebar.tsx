@@ -827,7 +827,7 @@ export function SidebarLayout({ children, className, isAdmin = false }: SidebarL
       ) : (
         <UserSidebar className={className} />
       )}
-      <main className={cn('flex-1 overflow-auto min-h-0', className)}>
+      <main className={cn('min-w-0 flex-1 overflow-auto min-h-0', className)}>
         <div className="w-full">
           {children}
         </div>

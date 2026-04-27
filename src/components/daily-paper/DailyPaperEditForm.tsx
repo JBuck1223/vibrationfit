@@ -622,14 +622,14 @@ export function DailyPaperEditForm({
             </div>
           )}
 
-          <div className="flex flex-row gap-2 sm:gap-3 justify-end">
+          <div className="flex flex-row gap-2 sm:gap-3 items-center justify-center">
             <Button
               type="button"
               variant="danger"
               size="sm"
               onClick={onCancel}
               disabled={isSubmitting || isSaving}
-              className="flex-1 sm:flex-none sm:w-auto"
+              className="flex-1 max-w-[180px]"
             >
               Cancel
             </Button>
@@ -638,7 +638,7 @@ export function DailyPaperEditForm({
               size="sm"
               loading={isSubmitting || isSaving}
               disabled={isSubmitting || isSaving}
-              className="flex-1 sm:flex-none sm:w-auto"
+              className="flex-1 max-w-[180px]"
             >
               <Save className="w-4 h-4 mr-2" />
               {(isSubmitting || isSaving) ? 'Saving...' : 'Save'}

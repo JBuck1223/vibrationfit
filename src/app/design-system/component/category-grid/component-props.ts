@@ -97,6 +97,18 @@ export const componentProps = {
       type: 'string',
       optional: true,
       description: 'Custom color for refinement badges. Default: "#FFFF00" (yellow)'
+    },
+    {
+      name: 'title',
+      type: 'string',
+      optional: true,
+      description: 'Centered uppercase label rendered above the pills (e.g. "Tag life categories"). Stays inside the parent\'s padding and does not bleed when bleedClassName is used.'
+    },
+    {
+      name: 'bleedClassName',
+      type: 'string',
+      optional: true,
+      description: 'Optional className applied only to the pill row wrapper (not the title). Use to bleed the pill strip out of a padded card on mobile, e.g. "-mx-3 md:-mx-4" to counter a card with `!p-3 md:!p-4`.'
     }
   ],
   usage: `import { CategoryGrid } from '@/lib/design-system/components'
@@ -127,6 +139,18 @@ import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
   onCategoryClick={handleNav}
   mode="completion"
   fillWidth
+/>
+
+// Titled section with edge bleed inside a padded card (e.g. modal)
+// The title stays at the card's padding edge, the pill strip bleeds to the card edges on mobile
+<CategoryGrid
+  title="Tag life categories"
+  categories={VISION_CATEGORIES}
+  selectedCategories={selected}
+  onCategoryClick={handleToggle}
+  pillLabel="Tag life categories"
+  wrapOnDesktop
+  bleedClassName="-mx-3 md:-mx-4"
 />`,
   notes: [
     'Renders as a horizontal pill strip -- scrollable on mobile, centered on desktop',
@@ -134,6 +158,8 @@ import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
     'Badges render as small circles in the upper-right corner of each pill',
     'Use fillWidth when you want pills to stretch and fill the row (replaces the old grid fill behavior)',
     'pillLabel (truthy) adds a mobile-only centered "Scroll to see all" hint below the pills',
+    'title renders a centered uppercase section label above the pills (stays inside parent padding)',
+    'bleedClassName is applied only to the pill row wrapper -- pair with `title` to keep the label inside a padded card while the pill strip bleeds to the edges on mobile',
     'getPillClassName allows per-pill class overrides for special states (e.g., intensive mode needed categories)',
     'Supports custom categories: pass any array with {key, label, icon} structure',
     'Used across ~28 files: life-vision, profile, journal, vision-board, audio, assessment, vibe-tribe, and more'

@@ -40,7 +40,7 @@ export function DailyPaperEditModal({
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-start md:items-center justify-center overflow-y-auto bg-black/95 px-3 pt-14 pb-6 md:p-4"
+      className="fixed inset-0 z-[200] flex items-start md:items-center justify-center overflow-y-auto bg-black/95 px-3 pt-14 pb-[calc(2.5rem+env(safe-area-inset-bottom))] md:p-4"
       role="dialog"
       aria-modal="true"
       aria-label="Edit daily paper"
@@ -57,7 +57,7 @@ export function DailyPaperEditModal({
 
       <div className="relative flex w-full max-w-[700px] md:max-w-none justify-center">
         <div
-          className="relative w-full max-w-2xl md:max-w-3xl max-h-[96vh] overflow-y-auto px-3 pb-2 sm:px-4"
+          className="relative w-full max-w-2xl md:max-w-5xl lg:max-w-6xl xl:max-w-7xl max-h-[96vh] overflow-y-auto px-3 pb-2 sm:px-4"
           onClick={(e) => e.stopPropagation()}
         >
           <DailyPaperEditForm
@@ -68,7 +68,7 @@ export function DailyPaperEditModal({
               onSuccess()
               onClose()
             }}
-            cardClassName="!rounded-2xl !bg-[#101010] !border-[#1F1F1F] !p-3 md:!p-4"
+            cardClassName="!rounded-2xl !bg-[#101010] !border-[#1F1F1F] !p-3 !pb-8 md:!p-4"
           />
         </div>
       </div>
