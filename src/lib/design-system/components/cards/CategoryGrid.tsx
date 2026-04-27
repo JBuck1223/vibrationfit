@@ -27,6 +27,10 @@ interface CategoryGridProps extends React.HTMLAttributes<HTMLDivElement> {
   fillWidth?: boolean
   /** When true (without fillWidth), pills keep natural width and wrap to multiple centered rows on md+ */
   wrapOnDesktop?: boolean
+  /** Optional centered uppercase label rendered above the pills (stays inside parent padding, does not bleed). */
+  title?: string
+  /** Optional className applied to the pill row wrapper (not the title). Use to bleed the pill strip out of a padded card on mobile, e.g. "-mx-3 md:-mx-4". */
+  bleedClassName?: string
 }
 
 const pillBase = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer'
@@ -52,6 +56,8 @@ export const CategoryGrid = React.forwardRef<HTMLDivElement, CategoryGridProps>(
     getPillClassName,
     fillWidth = false,
     wrapOnDesktop = false,
+    title,
+    bleedClassName,
     className,
     ...props
   }, ref) => {
@@ -130,32 +136,41 @@ export const CategoryGrid = React.forwardRef<HTMLDivElement, CategoryGridProps>(
     )
 
     return (
-      <div ref={ref} className={cn(className)} {...props}>
-        {fillWidth ? (
-          /* Outer: full card width scrollport; inner: px-4 start/end inset so first pill aligns with card body, scroll reveals edge */
-          <div className="scrollbar-hide max-md:-mx-4 max-md:overflow-x-auto md:mx-0 md:overflow-visible">
-            <div className="flex min-w-max items-center gap-2 pb-1 max-md:px-4 md:min-w-0 md:w-full md:flex-wrap md:justify-center md:px-0">
-              {pills}
-            </div>
-          </div>
-        ) : (
-          <div
-            className={cn(
-              'flex items-center gap-2 pb-1 scrollbar-hide overflow-x-auto px-4 md:px-0',
-              wrapOnDesktop
-                ? 'md:overflow-x-visible md:flex-wrap md:justify-center'
-                : 'md:justify-center',
-            )}
-          >
-            {pills}
-          </div>
-        )}
-
-        {pillLabel ? (
-          <p className="mt-2 text-center text-[10px] text-neutral-600 md:hidden">
-            Scroll to see all <span aria-hidden="true">&rarr;</span>
+      /* min-w-0: flex/grid children default to min-width:auto — without this, min-w-max pills expand the whole page horizontally */
+      <div ref={ref} className={cn('min-w-0 w-full max-w-full', className)} {...props}>
+        {title ? (
+          <p className="mb-2 text-center text-[11px] uppercase tracking-[0.2em] text-neutral-500">
+            {title}
           </p>
         ) : null}
+
+        <div className={cn(bleedClassName)}>
+          {fillWidth ? (
+            /* Scrollport must be width-bounded so pills scroll inside the card, not grow the viewport */
+            <div className="scrollbar-hide w-full min-w-0 max-w-full max-md:overflow-x-auto md:overflow-visible">
+              <div className="flex min-w-max items-center gap-2 pb-1 max-md:px-4 md:min-w-0 md:w-full md:flex-wrap md:justify-center md:px-0">
+                {pills}
+              </div>
+            </div>
+          ) : (
+            <div
+              className={cn(
+                'flex w-full min-w-0 max-w-full items-center gap-2 pb-1 scrollbar-hide overflow-x-auto px-4 md:px-0',
+                wrapOnDesktop
+                  ? 'md:overflow-x-visible md:flex-wrap md:justify-center'
+                  : 'md:justify-center',
+              )}
+            >
+              {pills}
+            </div>
+          )}
+
+          {pillLabel ? (
+            <p className="mt-2 text-center text-[10px] text-neutral-600 md:hidden">
+              Scroll to see all <span aria-hidden="true">&rarr;</span>
+            </p>
+          ) : null}
+        </div>
       </div>
     )
   }

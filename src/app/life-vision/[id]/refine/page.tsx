@@ -22,10 +22,11 @@ import {
   Trash2,
   ChevronDown,
   ChevronRight,
+  ChevronLeft,
+  ChevronsLeft,
+  ChevronsRight,
   Clock,
-  Eye,
   Gem,
-  CheckCircle,
   X,
   RotateCcw
 } from 'lucide-react'
@@ -41,9 +42,6 @@ import {
   Icon,
   VIVAButton,
   CategoryGrid,
-  VersionBadge,
-  StatusBadge,
-  PageHero,
   Container,
   Stack
 } from '@/lib/design-system'
@@ -294,6 +292,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const [initializationStep, setInitializationStep] = useState<string>('')
   const chatEndRef = useRef<HTMLDivElement>(null)
   const previousCategoryRef = useRef<string | null>(null)
+  const categoryGridRef = useRef<HTMLDivElement>(null)
 
   const [availableConversations, setAvailableConversations] = useState<any[]>([])
   const [showConversationSelector, setShowConversationSelector] = useState(false)
@@ -1471,125 +1470,100 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     )
   }
 
-  // Determine display status based on is_active and is_draft
-  const getDisplayStatus = () => {
-    if (!draftVision) return 'active'
-    
-    const isActive = draftVision.is_active === true
-    const isDraft = draftVision.is_draft === true
-    
-    if (isActive && !isDraft) return 'active'
-    else if (!isActive && isDraft) return 'draft'
-    else return 'complete'
+  // Category navigation helpers (mirrors /profile/[id]/edit pattern)
+  const getCurrentCategoryIndex = () => {
+    if (!selectedCategory) return 0
+    const idx = VISION_CATEGORIES.findIndex(c => c.key === selectedCategory)
+    return idx >= 0 ? idx : 0
   }
 
-  const displayStatus = getDisplayStatus()
+  const isFirstCategory = () => getCurrentCategoryIndex() === 0
+  const isLastCategory = () => getCurrentCategoryIndex() === VISION_CATEGORIES.length - 1
+  const canReviewFromLast = isLastCategory() && !!draftVision && refinedCategories.length > 0
+
+  const currentCategoryLabel = selectedCategory
+    ? (VISION_CATEGORIES.find(c => c.key === selectedCategory)?.label ?? '')
+    : ''
+
+  const applyCategorySelection = (key: string) => {
+    setSelectedCategory(key)
+    setPreviousRefinement(null)
+    setRefineFromRevision(false)
+
+    const currentPath = window.location.pathname
+    router.replace(`${currentPath}?category=${key}`, { scroll: false })
+
+    if (vision) {
+      const activeValue = getCategoryValue(key)
+      setOriginalVisionText(activeValue)
+    }
+
+    if (draftVision) {
+      const draftValue = draftVision[key as keyof VisionData] as string
+      setCurrentRefinement(draftValue || '')
+    } else if (vision) {
+      const categoryValue = getCategoryValue(key)
+      setCurrentRefinement(categoryValue)
+    }
+  }
+
+  const handleCategoryChange = (key: string) => {
+    applyCategorySelection(key)
+    requestAnimationFrame(() => {
+      categoryGridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
+
+  const goToPreviousCategory = () => {
+    const idx = getCurrentCategoryIndex()
+    if (idx > 0) handleCategoryChange(VISION_CATEGORIES[idx - 1].key)
+  }
+
+  const goToNextCategory = () => {
+    const idx = getCurrentCategoryIndex()
+    if (idx < VISION_CATEGORIES.length - 1) {
+      handleCategoryChange(VISION_CATEGORIES[idx + 1].key)
+      return
+    }
+    if (canReviewFromLast && draftVision) {
+      router.push(`/life-vision/${draftVision.id}/draft`)
+    }
+  }
 
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {/* Header */}
-        <PageHero
-          eyebrow={draftVision?.household_id ? "THE LIFE WE CHOOSE" : "THE LIFE I CHOOSE"}
-          title={draftVision?.household_id ? "Refine Our Life Vision" : "Refine Life Vision"}
-          subtitle="Select a category and let VIVA help you refine your vision."
-        >
-          {/* Version Info & Status Badges */}
-          {draftVision && (
-            <div className="text-center">
-              <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-                
-                {/* Version Circle Badge */}
-                <VersionBadge 
-                  versionNumber={draftVision.version_number ?? 1} 
-                  status="draft"
-                  isHouseholdVision={!!draftVision.household_id}
-                />
-                
-                {/* Status Badge */}
-                <StatusBadge 
-                  status="draft" 
-                  subtle={true}
-                  className="uppercase tracking-[0.25em]"
-                />
-                
-                {/* Created Date */}
-                <span className="text-neutral-300 text-xs md:text-sm">
-                  Created: {new Date(draftVision.created_at).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
-                </span>
-                
-                {/* Draft Categories Count */}
-                {refinedCategories.length > 0 && (
-                  <Badge 
-                    variant="warning" 
-                    className="!bg-[#FFFF00]/20 !text-[#FFFF00] !border-[#FFFF00]/30"
-                  >
-                    {refinedCategories.length} of {VISION_CATEGORIES.length} Refined
-                  </Badge>
-                )}
-                
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex flex-row flex-wrap lg:flex-nowrap gap-2 md:gap-4 max-w-3xl mx-auto justify-center">
-            <Button
-              onClick={() => router.push(draftVision ? `/life-vision/${draftVision.id}/draft` : '/life-vision')}
-              variant="outline"
-              size="sm"
-              className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-            >
-              <Icon icon={Eye} size="sm" className="shrink-0" />
-              <span>View Draft</span>
-            </Button>
-            
-            {draftVision && refinedCategories.length > 0 && (
-              <Button
-                onClick={() => router.push(`/life-vision/${draftVision.id}/draft`)}
-                variant="primary"
-                size="sm"
-                className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-              >
-                <Icon icon={CheckCircle} size="sm" className="shrink-0" />
-                <span>Review & Commit</span>
-              </Button>
-            )}
-          </div>
-        </PageHero>
-
         {/* Category Selection */}
-        <div>
-        <h2 className="text-2xl font-bold text-white mb-6 text-center">Choose a Category to Refine</h2>
-        <CategoryGrid
-          categories={VISION_CATEGORIES}
-          activeCategory={selectedCategory || undefined}
-          refinedCategories={refinedCategories}
-          onCategoryClick={(key) => {
-            setSelectedCategory(key)
-            setPreviousRefinement(null)
-            setRefineFromRevision(false)
-            
-            const currentPath = window.location.pathname
-            router.replace(`${currentPath}?category=${key}`, { scroll: false })
-            
-            if (vision) {
-              const activeValue = getCategoryValue(key)
-              setOriginalVisionText(activeValue)
-            }
-            
-            if (draftVision) {
-              const draftValue = draftVision[key as keyof VisionData] as string
-              setCurrentRefinement(draftValue || '')
-            } else if (vision) {
-              const categoryValue = getCategoryValue(key)
-              setCurrentRefinement(categoryValue)
-            }
-          }}
-          mode="draft"
-          fillWidth
-        />
-      </div>
+        <div ref={categoryGridRef}>
+          <CategoryGrid
+            categories={VISION_CATEGORIES}
+            activeCategory={selectedCategory || undefined}
+            refinedCategories={refinedCategories}
+            onCategoryClick={(key) => handleCategoryChange(key)}
+            mode="draft"
+            fillWidth
+            title="Choose a Category to Update"
+          />
+        </div>
+
+      {/* Active Category Indicator (ProfileSectionCardHeading pattern) */}
+      {selectedCategory && (
+        <div className="flex flex-col items-center gap-2 pt-2 sm:flex-row sm:justify-center sm:gap-3 md:pt-0">
+          {(() => {
+            const categoryInfo = VISION_CATEGORIES.find(cat => cat.key === selectedCategory)
+            return categoryInfo && (
+              <>
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-500 md:h-8 md:w-8">
+                  <Icon icon={categoryInfo.icon} size="xs" color="#000000" />
+                </div>
+                <h3 className="max-w-full text-center text-sm font-medium uppercase tracking-[0.25em] text-neutral-400">
+                  {categoryInfo.label}
+                </h3>
+              </>
+            )
+          })()}
+        </div>
+      )}
 
       {/* VIVA Refine (Refine + Weave) Tool */}
       {selectedCategory && (
@@ -2029,6 +2003,51 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
               userProfile={userProfile}
             />
           )}
+        </div>
+      )}
+
+      {/* Previous / Progress / Next Footer (mirrors /profile/[id]/edit pattern) */}
+      {selectedCategory && (
+        <div className="flex items-center justify-between px-4 md:px-0">
+          <div className="flex-1 flex justify-start">
+            <Button
+              onClick={goToPreviousCategory}
+              disabled={isFirstCategory()}
+              variant="outline"
+              size="sm"
+              className="w-24 md:w-auto"
+            >
+              <ChevronsLeft className="w-4 h-4 flex-shrink-0 md:hidden" />
+              <ChevronLeft className="w-4 h-4 flex-shrink-0 hidden md:block" />
+              <span className="hidden md:inline">Previous</span>
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-2 text-sm text-neutral-400">
+            <span>{getCurrentCategoryIndex() + 1} of {VISION_CATEGORIES.length}</span>
+            <span>•</span>
+            <span>{currentCategoryLabel}</span>
+            {refinedCategories.includes(selectedCategory) && (
+              <>
+                <span>•</span>
+                <span className="text-primary-500">Updated</span>
+              </>
+            )}
+          </div>
+
+          <div className="flex-1 flex justify-end">
+            <Button
+              onClick={goToNextCategory}
+              disabled={isLastCategory() && !canReviewFromLast}
+              variant={canReviewFromLast ? 'primary' : 'outline'}
+              size="sm"
+              className="w-24 md:w-auto"
+            >
+              <span className="hidden md:inline">{canReviewFromLast ? 'Review' : 'Next'}</span>
+              <ChevronsRight className="w-4 h-4 flex-shrink-0 md:hidden" />
+              <ChevronRight className="w-4 h-4 flex-shrink-0 hidden md:block" />
+            </Button>
+          </div>
         </div>
       )}
 

@@ -7,7 +7,6 @@ import {
   Button,
   DatePicker,
   Stack,
-  FullBleed,
   CategoryGrid,
 } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
@@ -73,6 +72,9 @@ export interface JournalEditFormProps {
   cardClassName?: string
   /** When true (e.g. edit modal), life category pills wrap on desktop at natural width (same pill styling as default) */
   categoryGridWrapOnDesktop?: boolean
+  /** Optional negative-margin class for the category strip so it spans the full card width.
+   *  Should counter the enclosing Card's horizontal padding (e.g. modal uses `!p-3 md:!p-4` → `-mx-3 md:-mx-4`). */
+  categoryGridBleedClass?: string
 }
 
 export function JournalEditForm({
@@ -81,6 +83,7 @@ export function JournalEditForm({
   onSuccess,
   cardClassName,
   categoryGridWrapOnDesktop = false,
+  categoryGridBleedClass,
 }: JournalEditFormProps) {
   const supabase = createClient()
   const [saving, setSaving] = useState(false)
@@ -317,22 +320,17 @@ export function JournalEditForm({
               </div>
             </section>
 
-            <section className="md:space-y-2">
-              <p className="hidden md:block text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">
-                Tag life categories
-              </p>
-              <FullBleed>
-                <CategoryGrid
-                  categories={VISION_CATEGORIES.filter(
-                    (category) => category.key !== 'forward' && category.key !== 'conclusion'
-                  )}
-                  selectedCategories={formData.categories}
-                  onCategoryClick={handleCategoryToggle}
-                  pillLabel="Tag life categories"
-                  wrapOnDesktop={categoryGridWrapOnDesktop}
-                />
-              </FullBleed>
-            </section>
+            <CategoryGrid
+              title="Tag life categories"
+              categories={VISION_CATEGORIES.filter(
+                (category) => category.key !== 'forward' && category.key !== 'conclusion'
+              )}
+              selectedCategories={formData.categories}
+              onCategoryClick={handleCategoryToggle}
+              pillLabel="Tag life categories"
+              wrapOnDesktop={categoryGridWrapOnDesktop}
+              bleedClassName={categoryGridBleedClass}
+            />
 
             <section className="space-y-3">
               <p
@@ -496,14 +494,14 @@ export function JournalEditForm({
               </div>
             )}
 
-            <div className="flex flex-row gap-2 sm:gap-3 justify-end">
+            <div className="flex flex-row gap-2 sm:gap-3 items-center justify-center">
               <Button
                 type="button"
                 variant="danger"
                 size="sm"
                 onClick={onCancel}
                 disabled={saving}
-                className="flex-1 sm:flex-none sm:w-auto"
+                className="flex-1 max-w-[180px]"
               >
                 Cancel
               </Button>
@@ -512,7 +510,7 @@ export function JournalEditForm({
                 size="sm"
                 loading={saving}
                 disabled={saving}
-                className="flex-1 sm:flex-none sm:w-auto"
+                className="flex-1 max-w-[180px]"
               >
                 <Save className="w-4 h-4 mr-2" />
                 {saving ? 'Saving...' : 'Save'}

@@ -286,12 +286,15 @@ export default function VIVALifeVisionLandingPage() {
 
         {/* Categories bar - progress tracker under hero */}
         <CategoryGrid
+          title="Life categories"
           categories={categoriesWithout}
           selectedCategories={[]}
           completedCategories={completedCategoryKeys}
           onCategoryClick={(key: string) => router.push(`/life-vision/new/category/${key}`)}
           mode="completion"
           fillWidth
+          pillLabel="Life categories"
+          bleedClassName="max-md:-mx-[var(--content-px,0px)]"
         />
 
         {/* What is a Life Vision? */}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, usePathname } from 'next/navigation'
-import { Target, PenLine, Eye, Download, HelpCircle, Users, Headphones, Sparkles, CheckCircle, Layers, Wand2 } from 'lucide-react'
+import { Target, PenLine, Eye, Download, HelpCircle, Users, Headphones, CheckCircle, Layers, Wand2 } from 'lucide-react'
 import { AreaBar, type AreaBarContextNavItem, type AreaBarVersionSelector } from '@/lib/design-system/components'
 import { useLifeVisionStudio } from './LifeVisionStudioContext'
 
@@ -175,14 +175,62 @@ export function LifeVisionAreaBar() {
       }
 
       contextNav = [
-        { label: 'Refine and Edit', icon: Sparkles, isActive: isOnRefineSubpage, onClick: handleRefineNav },
+        { label: 'Update with VIVA', icon: Target, isActive: isOnRefineSubpage, onClick: handleRefineNav },
         { label: 'Review and Commit', icon: CheckCircle, isActive: isOnCommitSubpage, onClick: handleCommitNav },
       ]
 
       if (isOnRefineSubpage) {
-        contextText = 'Refine your vision with VIVA, then review your changes.'
+        contextText = 'Update your vision with VIVA, then review your changes.'
       } else if (isOnCommitSubpage) {
         contextText = 'Review your draft changes and commit when ready.'
+      }
+
+      // Version selector — draft (current) at top, then all prior non-draft versions
+      const draft = visions.find(v => v.is_draft)
+      const nonDraftVisions = visions.filter(v => !v.is_draft)
+      if ((isOnRefineSubpage || isOnCommitSubpage) && (draft || nonDraftVisions.length > 0)) {
+        // Draft version_number in context is 0 as a marker; the draft will become
+        // nonDraftVisions.length + 1 when committed, so show that as its label.
+        const draftDisplayVersion = nonDraftVisions.length + 1
+        const draftOption = draft
+          ? [{
+              id: draft.id,
+              label: `Version ${draftDisplayVersion}`,
+              sublabel: new Date(draft.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+              badge: 'Draft',
+              badgeVariant: 'draft' as const,
+              isActive: false,
+              icon: draft.household_id ? Users : undefined,
+              iconPosition: (draft.household_id ? 'right' : undefined) as ('right' | undefined),
+            }]
+          : []
+
+        const nonDraftOptions = nonDraftVisions.map(v => ({
+          id: v.id,
+          label: `Version ${v.version_number}`,
+          sublabel: new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          badge: v.is_active ? 'Active' : undefined,
+          badgeVariant: v.is_active ? ('active' as const) : undefined,
+          isActive: v.is_active,
+          icon: v.household_id ? Users : undefined,
+          iconPosition: (v.household_id ? 'right' : undefined) as ('right' | undefined),
+        }))
+
+        versionSelectors = [{
+          id: 'vision-version',
+          label: 'Vision',
+          position: 'contextRow',
+          options: [...draftOption, ...nonDraftOptions],
+          selectedId: draft ? draft.id : (activeVisionId ?? nonDraftVisions[0]?.id ?? ''),
+          onSelect: (id: string) => {
+            if (draft && id === draft.id) {
+              if (isOnCommitSubpage) router.push(`/life-vision/${id}/draft`)
+              else router.push(`/life-vision/${id}/refine`)
+              return
+            }
+            router.push(`/life-vision/${id}`)
+          },
+        }]
       }
     } else if (isFreshFlow) {
       contextNav = [

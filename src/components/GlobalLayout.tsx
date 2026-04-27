@@ -236,7 +236,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
         return (
           <div className="min-h-screen bg-black text-white">
             <IntensiveSidebar />
-            <div className="md:ml-[280px]">
+            <div className="min-w-0 md:ml-[280px]">
               <PageLayout className={audioPageLayoutClass}>
                 {children}
                 <PlayerSpacer />

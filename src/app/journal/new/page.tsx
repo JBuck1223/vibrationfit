@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Card, Input, Button, DatePicker, Container, Stack, FullBleed, IntensiveStepCompleteModal, CategoryGrid } from '@/lib/design-system'
+import { Card, Input, Button, DatePicker, Container, Stack, IntensiveStepCompleteModal, CategoryGrid } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
@@ -340,20 +340,13 @@ export default function NewJournalEntryPage() {
                 </div>
               </section>
 
-              {/* Life Categories — one section so Stack gap matches Entry type */}
-              <section className="md:space-y-2">
-                <p className="hidden md:block text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">
-                  Tag life categories
-                </p>
-                <FullBleed>
-                  <CategoryGrid
-                    categories={VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion')}
-                    selectedCategories={formData.categories}
-                    onCategoryClick={handleCategoryToggle}
-                    pillLabel="Tag life categories"
-                  />
-                </FullBleed>
-              </section>
+              <CategoryGrid
+                title="Tag life categories"
+                categories={VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion')}
+                selectedCategories={formData.categories}
+                onCategoryClick={handleCategoryToggle}
+                pillLabel="Tag life categories"
+              />
 
               {/* Journal Content */}
               <section className="space-y-3">
