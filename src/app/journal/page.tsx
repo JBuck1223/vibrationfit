@@ -8,6 +8,7 @@ import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import Link from 'next/link'
 import { Plus, FileText, ChevronDown, Filter, BookOpen, Flame, Shield, Search, X, Edit, Trash2, ImageOff, Play } from 'lucide-react'
+import { JournalEditModal, type JournalEditEntry } from '@/components/journal'
 import { useEffect, useState, useRef, useMemo } from 'react'
 
 function JournalImage({ src, alt, className, onClick, loading }: {
@@ -49,14 +50,9 @@ interface JournalEntry {
   image_urls: string[]
   thumbnail_urls?: string[]
   audio_recordings: any[]
+  journal_tag?: string | null
   created_at: string
   updated_at: string
-}
-
-function truncate(text: string, length = 140) {
-  if (!text) return ''
-  if (text.length <= length) return text
-  return `${text.slice(0, length - 1)}…`
 }
 
 const isVideo = (url: string) => {
@@ -170,6 +166,7 @@ export default function JournalPage() {
   const [lightboxImages, setLightboxImages] = useState<{ url: string; alt?: string }[]>([])
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [editEntry, setEditEntry] = useState<JournalEntry | null>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const freezeRef = useRef<HTMLDivElement>(null)
 
@@ -253,6 +250,26 @@ export default function JournalPage() {
       }, 100)
     }
   }, [searchParams, entries.length, router])
+
+  const handleEditSuccess = async () => {
+    if (!user || !editEntry) return
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('journal_entries')
+      .select('*')
+      .eq('id', editEntry.id)
+      .single()
+    if (data) {
+      setEntries((prev) => {
+        const i = prev.findIndex((e) => e.id === data.id)
+        if (i < 0) return prev
+        const next = [...prev]
+        next[i] = data as JournalEntry
+        return next
+      })
+    }
+    setExpandedId(editEntry.id)
+  }
 
   const handleDelete = async (entryId: string) => {
     if (!user) return
@@ -476,7 +493,7 @@ export default function JournalPage() {
                 >
                   <div className="px-4 py-3.5 md:px-5 md:py-4">
                     {!isExpanded ? (
-                      <div className="flex items-center gap-4">
+                      <div className="flex w-full min-w-0 items-center gap-4">
                         <div className="flex-shrink-0 w-11 text-center">
                           <p className="text-[10px] uppercase tracking-wider text-neutral-500 leading-none">{weekday}</p>
                           <p className="text-xl font-semibold text-white leading-tight">{dayNum}</p>
@@ -487,8 +504,8 @@ export default function JournalPage() {
                           {entry.title && (
                             <p className="text-base font-medium text-white truncate mb-0.5">{entry.title}</p>
                           )}
-                          <p className="text-[13px] text-neutral-300 leading-relaxed whitespace-pre-line line-clamp-2 md:line-clamp-1">
-                            {truncate(entry.content, 140)}
+                          <p className="w-full min-w-0 text-[13px] text-neutral-300 leading-relaxed line-clamp-2 md:line-clamp-1">
+                            {entry.content || '\u2014'}
                           </p>
                         </div>
 
@@ -521,7 +538,10 @@ export default function JournalPage() {
                               <Trash2 className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={(e: React.MouseEvent) => { e.stopPropagation(); router.push(`/journal/${entry.id}/edit`) }}
+                              onClick={(e: React.MouseEvent) => {
+                                e.stopPropagation()
+                                setEditEntry(entry)
+                              }}
                               className="text-neutral-500 hover:text-white transition-colors"
                               aria-label="Edit entry"
                             >
@@ -674,6 +694,13 @@ export default function JournalPage() {
           onNavigate={setLightboxIndex}
           showCopyButton={false}
           showCounter={true}
+        />
+
+        <JournalEditModal
+          isOpen={editEntry !== null}
+          entry={editEntry as JournalEditEntry}
+          onClose={() => setEditEntry(null)}
+          onSuccess={handleEditSuccess}
         />
       </Stack>
     </Container>

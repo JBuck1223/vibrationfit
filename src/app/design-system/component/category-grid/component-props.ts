@@ -78,7 +78,13 @@ export const componentProps = {
       name: 'fillWidth',
       type: 'boolean',
       optional: true,
-      description: 'When true, pills wrap and stretch to fill the row evenly on desktop. Default: false (compact scrollable strip)'
+      description: 'When true, pills wrap on desktop and each pill stretches to share row width evenly (flex-1). Default: false (compact scrollable strip)'
+    },
+    {
+      name: 'wrapOnDesktop',
+      type: 'boolean',
+      optional: true,
+      description: 'When true without fillWidth, pills keep natural size and icons and wrap to multiple centered rows on md+. Mobile stays horizontal scroll. Default: false'
     },
     {
       name: 'completionBadgeColor',

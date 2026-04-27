@@ -8,11 +8,9 @@ import {
   Stack,
   Inline,
   Text,
-  Video,
-  PageHero,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
-import { Download, Heart, Target, Sparkles, Plus, Eye } from 'lucide-react'
+import { Download, Heart, Target, Sparkles } from 'lucide-react'
 
 const HALF_PAGE_PDF =
   'https://media.vibrationfit.com/site-assets/processes/daily-paper/daily-paper-for-print.pdf'
@@ -25,33 +23,13 @@ export default function DailyPaperResourcesPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <PageHero
-          title="Daily Paper Resources"
-          subtitle="Learn the daily practice that keeps you vibrationally aligned"
-        >
-          <div className="mx-auto w-full max-w-3xl mb-6">
-            <OptimizedVideo
-              url={DAILY_PAPER_VIDEO}
-              context="single"
-              className="w-full"
-            />
-          </div>
-          
-          <div className="grid grid-cols-2 md:flex md:flex-row gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
-            <Button variant="primary" size="sm" asChild className="w-full md:w-auto md:flex-none flex items-center justify-center gap-2">
-              <Link href="/daily-paper/new" className="flex items-center justify-center gap-2">
-                <Plus className="w-4 h-4 shrink-0" />
-                Add entry
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" asChild className="w-full md:w-auto md:flex-none flex items-center justify-center gap-2">
-              <Link href="/daily-paper" className="flex items-center justify-center gap-2">
-                <Eye className="w-4 h-4 shrink-0" />
-                See All
-              </Link>
-            </Button>
-          </div>
-        </PageHero>
+        <div className="mx-auto w-full max-w-3xl">
+          <OptimizedVideo
+            url={DAILY_PAPER_VIDEO}
+            context="single"
+            className="w-full"
+          />
+        </div>
 
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
           <Stack gap="md">

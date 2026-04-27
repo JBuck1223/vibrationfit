@@ -340,15 +340,20 @@ export default function NewJournalEntryPage() {
                 </div>
               </section>
 
-              {/* Life Categories */}
-              <FullBleed>
-                <CategoryGrid
-                  categories={VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion')}
-                  selectedCategories={formData.categories}
-                  onCategoryClick={handleCategoryToggle}
-                  pillLabel="Tag life categories"
-                />
-              </FullBleed>
+              {/* Life Categories — one section so Stack gap matches Entry type */}
+              <section className="md:space-y-2">
+                <p className="hidden md:block text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">
+                  Tag life categories
+                </p>
+                <FullBleed>
+                  <CategoryGrid
+                    categories={VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion')}
+                    selectedCategories={formData.categories}
+                    onCategoryClick={handleCategoryToggle}
+                    pillLabel="Tag life categories"
+                  />
+                </FullBleed>
+              </section>
 
               {/* Journal Content */}
               <section className="space-y-3">

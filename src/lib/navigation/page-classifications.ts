@@ -356,6 +356,7 @@ export function getPagesByType(type: PageType): readonly string[] {
  */
 export const STUDIO_ROUTE_PREFIXES = [
   '/audio',
+  '/daily-paper',
   '/life-vision',
   '/journal',
   '/profile',
