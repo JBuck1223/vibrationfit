@@ -117,7 +117,7 @@ export default function UnifiedCategoryPage() {
       // Load draft vision
       if (draftId) {
         queries.push(
-          supabase.from('vision_versions').select('*').eq('id', draftId).single()
+          Promise.resolve(supabase.from('vision_versions').select('*').eq('id', draftId).single())
             .then(r => ({ type: 'draft', data: r.data }))
         )
       } else {
@@ -127,7 +127,7 @@ export default function UnifiedCategoryPage() {
       // Load active vision
       if (activeVisionId) {
         queries.push(
-          supabase.from('vision_versions').select('*').eq('id', activeVisionId).single()
+          Promise.resolve(supabase.from('vision_versions').select('*').eq('id', activeVisionId).single())
             .then(r => ({ type: 'active', data: r.data }))
         )
       } else {
@@ -136,8 +136,8 @@ export default function UnifiedCategoryPage() {
 
       // Load profile
       queries.push(
-        supabase.from('user_profiles').select('*')
-          .eq('user_id', user.id).eq('is_active', true).eq('is_draft', false).maybeSingle()
+        Promise.resolve(supabase.from('user_profiles').select('*')
+          .eq('user_id', user.id).eq('is_active', true).eq('is_draft', false).maybeSingle())
           .then(r => ({ type: 'profile', data: r.data }))
       )
 
