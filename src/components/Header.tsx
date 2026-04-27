@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
@@ -14,12 +14,14 @@ import { clearAllProfileCache } from '@/lib/supabase/profile-client'
 import { User } from '@supabase/supabase-js'
 import { ChevronDown, LogOut } from 'lucide-react'
 import { getPageType, headerAccountMenu } from '@/lib/navigation'
+import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
 
 export function Header() {
   const [user, setUser] = useState<User | null>(null)
   const [mounted, setMounted] = useState(false)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [buttonRect, setButtonRect] = useState<DOMRect | null>(null)
+  const accountMenuRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const pathname = usePathname()
   // Memoize supabase client to prevent dependency array issues
@@ -100,46 +102,55 @@ export function Header() {
               <div className="w-20 h-8 bg-neutral-800 rounded animate-pulse" />
             ) : user ? (
               <div className="relative">
-                <button
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    const rect = e.currentTarget.getBoundingClientRect()
-                    setButtonRect(rect)
-                    setOpenDropdown(openDropdown === 'account' ? null : 'account')
-                  }}
-                  className="flex items-center gap-3 px-3 py-2 rounded-full hover:bg-neutral-800 transition-colors"
+                <div
+                  ref={accountMenuRef}
+                  className="flex items-center gap-3 rounded-full px-3 py-2 hover:bg-neutral-800 transition-colors"
                 >
-                  {/* Avatar - profile picture from metadata or initials */}
                   {user.user_metadata?.profile_picture_url ? (
-                    <div className="w-8 h-8 rounded-full overflow-hidden bg-neutral-800 flex items-center justify-center">
-                      <img 
-                        src={user.user_metadata.profile_picture_url} 
-                        alt="Profile" 
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
+                    <ProfilePictureClickable
+                      src={user.user_metadata.profile_picture_url}
+                      alt="Profile"
+                      className="flex shrink-0 rounded-full"
+                    >
+                      <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-neutral-800">
+                        <img
+                          src={user.user_metadata.profile_picture_url}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    </ProfilePictureClickable>
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-[#39FF14] flex items-center justify-center text-black font-semibold text-sm">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#39FF14] text-sm font-semibold text-black">
                       {(() => {
-                        // Extract first initial from full_name if available
                         const fullName = user.user_metadata?.full_name || ''
                         const firstName = user.user_metadata?.first_name || fullName.split(' ')[0] || ''
                         return (firstName[0] || user.email?.[0] || 'U').toUpperCase()
                       })()}
                     </div>
                   )}
-                  
-                  {/* Name - from metadata or email */}
-                  <span className="text-white font-medium">
-                    {user.user_metadata?.first_name || 
-                     (user.user_metadata?.full_name?.split(' ')[0]) || // Extract first name from full_name
-                     user.email?.split('@')[0] || 
-                     'User'}
-                  </span>
-                  
-                  <ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform ${openDropdown === 'account' ? 'rotate-180' : ''}`} />
-                </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      const rect = accountMenuRef.current?.getBoundingClientRect()
+                      if (rect) setButtonRect(rect)
+                      setOpenDropdown(openDropdown === 'account' ? null : 'account')
+                    }}
+                    className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                  >
+                    <span className="font-medium text-white">
+                      {user.user_metadata?.first_name ||
+                        user.user_metadata?.full_name?.split(' ')[0] ||
+                        user.email?.split('@')[0] ||
+                        'User'}
+                    </span>
+                    <ChevronDown
+                      className={`h-4 w-4 shrink-0 text-neutral-400 transition-transform ${openDropdown === 'account' ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+                </div>
 
                 {/* Account Dropdown */}
                 {mounted && openDropdown === 'account' && buttonRect && createPortal(

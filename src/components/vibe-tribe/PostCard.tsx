@@ -12,6 +12,7 @@ import { VibeTagBadge } from './VibeTagBadge'
 import { CommentSection } from './CommentSection'
 import { format, isToday, isYesterday } from 'date-fns'
 import { renderContentWithMentions, MentionedUser } from '@/lib/vibe-tribe/render-mentions'
+import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
 
 const EDIT_ICON_MAP: Record<VibeTag, any> = {
   win: Trophy,
@@ -255,24 +256,31 @@ export function PostCard({
       <Link href={`/vibe-tribe/posts/${post.id}`}>
         <Card className="p-4 hover:border-neutral-500 transition-all cursor-pointer h-full">
           <div className="flex items-start gap-3 mb-3">
-          {/* Avatar - Links to user snapshot */}
-          <Link 
-            href={`/snapshot/${post.user_id}`}
-            onClick={(e) => e.stopPropagation()}
-            className="w-8 h-8 rounded-full bg-neutral-700 overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-primary-500 transition-all"
-          >
-            {post.user?.profile_picture_url ? (
+          {/* Avatar — tap photo to enlarge (span trigger: inside post Link) */}
+          {post.user?.profile_picture_url ? (
+            <ProfilePictureClickable
+              src={post.user.profile_picture_url}
+              alt={post.user.full_name || 'User'}
+              avoidNestedButton
+              className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-neutral-700 transition-all hover:ring-2 hover:ring-primary-500"
+            >
               <img
                 src={post.user.profile_picture_url}
-                alt={post.user.full_name || 'User'}
-                className="w-full h-full object-cover"
+                alt=""
+                className="h-full w-full object-cover"
               />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-neutral-400 text-sm font-medium">
+            </ProfilePictureClickable>
+          ) : (
+            <Link
+              href={`/snapshot/${post.user_id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-700 transition-all hover:ring-2 hover:ring-primary-500"
+            >
+              <span className="text-sm font-medium text-neutral-400">
                 {post.user?.full_name?.[0] || '?'}
-              </div>
-            )}
-          </Link>
+              </span>
+            </Link>
+          )}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <Link 
@@ -319,23 +327,29 @@ export function PostCard({
     <div className="py-4">
       {/* Post Row */}
       <div className="flex items-start gap-3">
-        {/* Avatar - Links to user snapshot */}
-        <Link 
-          href={`/snapshot/${post.user_id}`}
-          className="w-10 h-10 rounded-full bg-neutral-700 overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-primary-500 transition-all"
-        >
-          {post.user?.profile_picture_url ? (
+        {/* Avatar — tap photo to enlarge */}
+        {post.user?.profile_picture_url ? (
+          <ProfilePictureClickable
+            src={post.user.profile_picture_url}
+            alt={post.user.full_name || 'User'}
+            className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-neutral-700 transition-all hover:ring-2 hover:ring-primary-500"
+          >
             <img
               src={post.user.profile_picture_url}
-              alt={post.user.full_name || 'User'}
-              className="w-full h-full object-cover"
+              alt=""
+              className="h-full w-full object-cover"
             />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-neutral-400 text-sm font-medium">
+          </ProfilePictureClickable>
+        ) : (
+          <Link
+            href={`/snapshot/${post.user_id}`}
+            className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-700 transition-all hover:ring-2 hover:ring-primary-500"
+          >
+            <span className="text-sm font-medium text-neutral-400">
               {post.user?.full_name?.[0] || '?'}
-            </div>
-          )}
-        </Link>
+            </span>
+          </Link>
+        )}
         
         {/* Content Column */}
         <div className="flex-1 min-w-0">

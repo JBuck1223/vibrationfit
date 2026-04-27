@@ -23,6 +23,7 @@ import {
 import { userNavigation, userNavigationGroups, adminNavigation, mobileNavigation, isNavItemActive, type NavItem, type NavGroup } from '@/lib/navigation'
 import { useAdminNotificationCount } from '@/hooks/useAdminNotificationCount'
 import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
+import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
 
 interface SidebarProps {
   className?: string
@@ -229,12 +230,18 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
             {loading ? (
               <div className="w-8 h-8 rounded-full bg-neutral-700 animate-pulse flex-shrink-0" />
             ) : (
-              <img
+              <ProfilePictureClickable
                 src={profile?.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
                 alt={profile?.first_name || 'Profile'}
-                className="w-8 h-8 rounded-full object-cover border-2 border-primary-500 flex-shrink-0"
-                loading="eager"
-              />
+                className="h-8 w-8 shrink-0 rounded-full"
+              >
+                <img
+                  src={profile?.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
+                  alt=""
+                  className="h-8 w-8 rounded-full border-2 border-primary-500 object-cover"
+                  loading="eager"
+                />
+              </ProfilePictureClickable>
             )}
             {loading ? (
               <div className="w-24 h-4 bg-neutral-700 rounded animate-pulse" />

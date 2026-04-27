@@ -66,7 +66,7 @@ export const componentProps = {
       name: 'pillLabel',
       type: 'string',
       optional: true,
-      description: 'Mobile-only label above the strip (e.g., "Life Areas"). Shows "Scroll to see all" hint. Hidden on md+.'
+      description: 'When truthy, shows a mobile-only centered "Scroll to see all" line below the pills (string value is not displayed). Hidden on md+.'
     },
     {
       name: 'getPillClassName',
@@ -133,7 +133,7 @@ import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
     'Four modes: selection (no badges), completion (green check), draft (yellow check), record (check + refresh)',
     'Badges render as small circles in the upper-right corner of each pill',
     'Use fillWidth when you want pills to stretch and fill the row (replaces the old grid fill behavior)',
-    'pillLabel adds a mobile-only header row with label + "Scroll to see all" hint',
+    'pillLabel (truthy) adds a mobile-only centered "Scroll to see all" hint below the pills',
     'getPillClassName allows per-pill class overrides for special states (e.g., intensive mode needed categories)',
     'Supports custom categories: pass any array with {key, label, icon} structure',
     'Used across ~28 files: life-vision, profile, journal, vision-board, audio, assessment, vibe-tribe, and more'

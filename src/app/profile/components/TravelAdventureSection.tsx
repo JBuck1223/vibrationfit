@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { Card, Input, Button, SaveButton, Checkbox } from '@/lib/design-system/components'
+import { ProfileSectionCardHeading } from './ProfileSectionCardHeading'
 import { UserProfile } from '@/lib/supabase/profile'
-import { Plane, Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
-import { getVisionCategoryLabel, visionToRecordingKey } from '@/lib/design-system/vision-categories'
+import { getVisionCategoryLabel, getVisionCategoryIcon, visionToRecordingKey } from '@/lib/design-system/vision-categories'
 import * as tokens from '@/lib/design-system/tokens'
 
 interface TravelAdventureSectionProps {
@@ -140,14 +141,13 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
     }
   }
 
+  const TravelIcon = getVisionCategoryIcon('travel')
+
   return (
     <Card className="p-6">
-      <div className="flex items-center gap-3 mb-6">
-        <Plane className="w-6 h-6 text-white" />
-        <h3 className="text-xl font-bold text-white">{getVisionCategoryLabel('travel')}</h3>
-      </div>
-      
-      <div className="space-y-6">
+      <ProfileSectionCardHeading icon={TravelIcon} title={getVisionCategoryLabel('travel')} />
+
+      <div className="space-y-4">
         {/* Travel Frequency */}
         <div>
           <label className="block text-sm font-medium text-neutral-200 mb-2">
@@ -343,7 +343,7 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
 
       {/* Save Button - Bottom Right */}
       {onSave && (
-        <div className="mt-6">
+        <div className="border-t border-neutral-800/50 pt-2">
           {saveError && hasUnsavedChanges && (
             <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
               <span className="text-sm text-red-400">{saveError}</span>

@@ -11,6 +11,7 @@ import { useMentionAutocomplete } from '@/hooks/useMentionAutocomplete'
 import { MentionDropdown } from './MentionDropdown'
 import { EmojiPickerButton } from './EmojiPickerButton'
 import { renderContentWithMentions } from '@/lib/vibe-tribe/render-mentions'
+import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
 
 interface CommentSectionProps {
   postId: string
@@ -483,25 +484,33 @@ function CommentItem({
   return (
     <div className={`relative ${indentClass}`}>
       <div className="flex items-start gap-2 md:gap-3">
-        {/* Avatar - Links to user snapshot */}
-        <Link 
-          href={`/snapshot/${comment.user_id}`}
-          className={`rounded-full bg-neutral-700 overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-primary-500 transition-all ${
-            nestingLevel > 0 ? 'w-7 h-7 md:w-10 md:h-10' : 'w-10 h-10'
-          }`}
-        >
-          {comment.user?.profile_picture_url ? (
+        {/* Avatar — tap photo to enlarge; name links to snapshot */}
+        {comment.user?.profile_picture_url ? (
+          <ProfilePictureClickable
+            src={comment.user.profile_picture_url}
+            alt={comment.user.full_name || 'User'}
+            className={`shrink-0 overflow-hidden rounded-full bg-neutral-700 transition-all hover:ring-2 hover:ring-primary-500 ${
+              nestingLevel > 0 ? 'h-7 w-7 md:h-10 md:w-10' : 'h-10 w-10'
+            }`}
+          >
             <img
               src={comment.user.profile_picture_url}
-              alt={comment.user.full_name || 'User'}
-              className="w-full h-full object-cover"
+              alt=""
+              className="h-full w-full object-cover"
             />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-neutral-400 text-sm font-medium">
+          </ProfilePictureClickable>
+        ) : (
+          <Link
+            href={`/snapshot/${comment.user_id}`}
+            className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-700 transition-all hover:ring-2 hover:ring-primary-500 ${
+              nestingLevel > 0 ? 'h-7 w-7 md:h-10 md:w-10' : 'h-10 w-10'
+            }`}
+          >
+            <span className="text-sm font-medium text-neutral-400">
               {comment.user?.full_name?.[0] || '?'}
-            </div>
-          )}
-        </Link>
+            </span>
+          </Link>
+        )}
         
         <div className="flex-1 min-w-0">
           {/* User info row */}

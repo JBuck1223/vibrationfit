@@ -2,10 +2,9 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import {  Button, Badge, Card, CategoryGrid, WarningConfirmationDialog, Icon, VersionBadge, StatusBadge, PageHero, Container, Stack, Spinner, IntensiveCompletionBanner, IntensiveStepCompleteModal } from '@/lib/design-system/components'
+import {  Button, Badge, Card, CategoryGrid, WarningConfirmationDialog, Icon, Container, Stack, Spinner, IntensiveCompletionBanner, IntensiveStepCompleteModal } from '@/lib/design-system/components'
 import ProfileVersionManager from '@/components/ProfileVersionManager'
 import VersionStatusIndicator from '@/components/VersionStatusIndicator'
-import VersionActionToolbar from '@/components/VersionActionToolbar'
 import { VISION_CATEGORIES, getVisionCategory } from '@/lib/design-system/vision-categories'
 import { PersonalInfoSection } from '../../components/PersonalInfoSection'
 import { RelationshipSection } from '../../components/RelationshipSection'
@@ -22,7 +21,7 @@ import { PossessionsLifestyleSection } from '../../components/PossessionsLifesty
 import { SpiritualityGrowthSection } from '../../components/SpiritualityGrowthSection'
 import { GivingLegacySection } from '../../components/GivingLegacySection'
 import { UserProfile } from '@/lib/supabase/profile'
-import { Save, AlertCircle, CheckCircle, Loader2, History, Eye, Plus, ArrowLeft, Edit3, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckCircle2, FileText, User, Camera, Check, CalendarDays, Info, X } from 'lucide-react'
+import { Save, AlertCircle, CheckCircle, Loader2, History, Eye, Plus, ArrowLeft, Edit3, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckCircle2, FileText, User, Camera, Check, Info, X } from 'lucide-react'
 import { getIncompleteFields, calculateProfileCompletion } from '@/lib/utils/profile-completion'
 import { markIntensiveStep, isInIntensiveMode } from '@/lib/intensive/checklist'
 
@@ -174,15 +173,24 @@ export default function ProfileEditPage() {
     }
   }
 
-  const goToNextSection = () => {
+  const goToNextSection = async () => {
     const currentIndex = getCurrentSectionIndex()
     if (currentIndex < profileSections.length - 1) {
-      handleSectionChange(profileSections[currentIndex + 1].id)
+      await handleSectionChange(profileSections[currentIndex + 1].id)
+      return
+    }
+    // 14 of 14 (Media): when the profile is fully complete, go to Review and Commit
+    if (completionPercentage >= 100 && profileId) {
+      if (hasUnsavedChanges) {
+        await saveProfile(profileRef.current)
+      }
+      router.push(`/profile/${profileId}`)
     }
   }
 
   const isFirstSection = () => getCurrentSectionIndex() === 0
   const isLastSection = () => getCurrentSectionIndex() === profileSections.length - 1
+  const canOpenReviewFromLastSection = isLastSection() && completionPercentage >= 100
 
   // Manual save only - no auto-save timeout needed
 
@@ -727,12 +735,14 @@ export default function ProfileEditPage() {
           <div className="flex-1 flex justify-end">
             <Button
               onClick={goToNextSection}
-              disabled={isLastSection()}
-              variant="outline"
+              disabled={isLastSection() && !canOpenReviewFromLastSection}
+              variant={canOpenReviewFromLastSection ? 'primary' : 'outline'}
               size="sm"
               className="w-24 md:w-auto"
             >
-              <span className="hidden md:inline">Next</span>
+              <span className="hidden md:inline">
+                {canOpenReviewFromLastSection ? 'Review' : 'Next'}
+              </span>
               <ChevronsRight className="w-4 h-4 flex-shrink-0 md:hidden" />
               <ChevronRight className="w-4 h-4 flex-shrink-0 hidden md:block" />
             </Button>
@@ -751,33 +761,6 @@ export default function ProfileEditPage() {
     )
   }
 
-  // Determine display status based on is_active and is_draft (matches life-vision pattern)
-  const getDisplayStatus = () => {
-    if (!profile || Object.keys(profile).length === 0) return 'complete'
-    
-    const profileAny = profile as any
-    // Explicitly check for true values (handle null/undefined)
-    const isActive = profileAny.is_active === true
-    const isDraft = profileAny.is_draft === true
-    
-    if (isActive && !isDraft) {
-      return 'active'
-    } else if (!isActive && isDraft) {
-      return 'draft'
-    } else {
-      return 'complete'
-    }
-  }
-
-  const displayStatus = getDisplayStatus()
-  
-  // Use profile data directly (matches life-vision pattern)
-  const profileAny = profile as any
-  const badgeVersionNumber = profileAny?.version_number || 1
-  const badgeCreatedAt = profile?.created_at || ''
-  // Always use real-time calculated completion percentage
-  const badgeCompletionPercentage = completionPercentage
-
   return (
     <Container size="xl">
       <Stack gap="lg">
@@ -789,94 +772,15 @@ export default function ProfileEditPage() {
           />
         )}
 
-        {/* Header */}
-        <PageHero
-          title="Edit Profile"
-          subtitle={!profileId ? "Help VIVA understand you better. The more complete your profile, the more personalized your guidance becomes." : undefined}
-        >
-          {/* Centered Version Info with Enhanced Styling */}
-          {profileId && profile && Object.keys(profile).length > 0 && badgeCreatedAt && (
-            <div className="text-center">
-              {/* Version, Status & Date Badges */}
-              <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-                <VersionBadge 
-                  versionNumber={badgeVersionNumber} 
-                  status={displayStatus} 
-                />
-                <StatusBadge 
-                  status={displayStatus} 
-                  subtle={displayStatus !== 'active'} 
-                  className="uppercase tracking-[0.25em]" 
-                />
-                <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
-                  <CalendarDays className="w-4 h-4 text-neutral-500" />
-                  <span className="font-medium">Created:</span>
-                  <span>{new Date(badgeCreatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                </div>
-                {/* Profile Completion Percentage */}
-                <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
-                  <span className="font-medium">Complete:</span>
-                  <span className="font-semibold text-[#39FF14]">{badgeCompletionPercentage}%</span>
-                </div>
-              </div>
-            </div>
-          )}
-        </PageHero>
-
         {/* Profile Completion Progress - Clickable */}
         {(() => {
-          // Calculate locally to stay in sync with incomplete fields display
           const localCompletion = calculateProfileCompletion(profile)
           const incompleteFields = getIncompleteFields(profile)
-          
-          // Debug: Log completion details to console
-          console.log('🔍 Profile Completion Debug:')
-          console.log('  Completion:', localCompletion + '%')
-          console.log('  leisure_time_weekly value:', (profile as any).leisure_time_weekly, '| type:', typeof (profile as any).leisure_time_weekly)
-          console.log('  Incomplete fields from getIncompleteFields():', incompleteFields)
-          
-          if (localCompletion < 100) {
-            console.log('  Profile data keys:', Object.keys(profile))
-            
-            // Check specific fields that might be missing
-            const fieldsToCheck = [
-              'first_name', 'last_name', 'email', 'phone', 'date_of_birth', 'gender', 'ethnicity',
-              'relationship_status', 'has_children',
-              'units', 'height', 'weight', 'exercise_frequency',
-              'living_situation', 'time_at_location', 'city', 'state', 'postal_code', 'country',
-              'employment_type', 'occupation', 'company', 'time_in_role', 'education',
-              'currency', 'household_income', 'savings_retirement', 'assets_equity', 'consumer_debt',
-              'hobbies', 'leisure_time_weekly',
-              'travel_frequency', 'passport', 'countries_visited',
-              'close_friends_count', 'social_preference',
-              'lifestyle_category',
-              'spiritual_practice', 'meditation_frequency', 'personal_growth_focus',
-              'volunteer_status', 'charitable_giving', 'legacy_mindset',
-              'state_fun', 'state_health', 'state_travel', 'state_love', 'state_family',
-              'state_social', 'state_home', 'state_work', 'state_money', 'state_stuff',
-              'state_giving', 'state_spirituality'
-            ]
-            
-            const missingOrEmpty = fieldsToCheck.filter(field => {
-              const value = (profile as any)[field]
-              if (value === undefined || value === null || value === '') return true
-              if (Array.isArray(value) && value.length === 0) return true
-              return false
-            })
-            console.log('  Fields with no value:', missingOrEmpty)
-            
-            // Check conditionals
-            if ((profile as any).relationship_status !== 'Single') {
-              console.log('  Relationship conditionals - partner_name:', (profile as any).partner_name, 'relationship_length:', (profile as any).relationship_length)
-            }
-            if ((profile as any).has_children === true) {
-              console.log('  Children conditionals - children array:', (profile as any).children)
-            }
-          }
-          
+
           return (
             <Card className="relative">
-              <button 
+              <button
+                type="button"
                 onClick={() => setShowIncompleteFields(!showIncompleteFields)}
                 className="w-full text-left focus:outline-none"
               >
@@ -894,17 +798,17 @@ export default function ProfileEditPage() {
                     <div
                       className="h-3 rounded-full transition-all duration-500 bg-primary-500"
                       style={{ width: `${localCompletion}%` }}
-                    ></div>
+                    />
                   </div>
                 </div>
               </button>
-              
-              {/* Incomplete Fields Dropdown */}
+
               {showIncompleteFields && incompleteFields.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-neutral-700">
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="text-sm font-semibold text-neutral-200">Missing Fields ({incompleteFields.length})</h4>
-                    <button 
+                    <button
+                      type="button"
                       onClick={() => setShowIncompleteFields(false)}
                       className="text-neutral-400 hover:text-white"
                     >
@@ -912,35 +816,33 @@ export default function ProfileEditPage() {
                     </button>
                   </div>
                   <div className="max-h-64 overflow-y-auto space-y-2">
-                    {(() => {
-                      // Group by section
-                      const grouped = incompleteFields.reduce((acc, field) => {
+                    {Object.entries(
+                      incompleteFields.reduce((acc, field) => {
                         if (!acc[field.section]) acc[field.section] = []
                         acc[field.section].push(field)
                         return acc
                       }, {} as Record<string, typeof incompleteFields>)
-                      
-                      return Object.entries(grouped).map(([section, fields]) => (
-                        <div key={section} className="bg-neutral-800/50 rounded-lg p-3">
-                          <h5 className="text-xs font-semibold text-primary-400 mb-2">{section}</h5>
-                          <div className="flex flex-wrap gap-1.5">
-                            {fields.map(field => (
-                              <button
-                                key={field.field}
-                                onClick={() => {
-                                  setShowIncompleteFields(false)
-                                  setHighlightedField(field.field)
-                                  handleSectionChange(field.sectionId)
-                                }}
-                                className="text-xs bg-neutral-700 text-neutral-300 px-2 py-1 rounded hover:bg-primary-500/30 hover:text-primary-300 transition-colors cursor-pointer"
-                              >
-                                {field.label}
-                              </button>
-                            ))}
-                          </div>
+                    ).map(([section, fields]) => (
+                      <div key={section} className="bg-neutral-800/50 rounded-lg p-3">
+                        <h5 className="text-xs font-semibold text-primary-400 mb-2">{section}</h5>
+                        <div className="flex flex-wrap gap-1.5">
+                          {fields.map(field => (
+                            <button
+                              key={field.field}
+                              type="button"
+                              onClick={() => {
+                                setShowIncompleteFields(false)
+                                setHighlightedField(field.field)
+                                handleSectionChange(field.sectionId)
+                              }}
+                              className="text-xs bg-neutral-700 text-neutral-300 px-2 py-1 rounded hover:bg-primary-500/30 hover:text-primary-300 transition-colors cursor-pointer"
+                            >
+                              {field.label}
+                            </button>
+                          ))}
                         </div>
-                      ))
-                    })()}
+                      </div>
+                    ))}
                   </div>
                   <p className="text-xs text-neutral-500 mt-3">
                     Note: Media uploads (photos, videos) are optional and don't affect completion.
@@ -976,24 +878,6 @@ export default function ProfileEditPage() {
           </Card>
         )}
         
-        {/* Version Actions - Only show for non-active versions (drafts/completed) */}
-        {currentVersionId && profileAny?.is_active !== true && (
-          <VersionActionToolbar
-            versionId={currentVersionId}
-            versionNumber={badgeVersionNumber}
-            isActive={profileAny?.is_active === true}
-            isDraft={profileAny?.is_draft === true}
-            onSaveAsDraft={() => saveAsVersion(true)}
-            onCommitAsActive={() => saveAsVersion(false)}
-            onCreateDraft={() => saveAsVersion(true)}
-            onSetActive={() => {
-              // This would be handled by the toolbar
-            }}
-            onDelete={() => handleVersionDelete(currentVersionId)}
-            isLoading={isSaving}
-          />
-        )}
-
         {/* Error Display */}
         {error && (
           <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
@@ -1040,6 +924,7 @@ export default function ProfileEditPage() {
               onCategoryClick={handleSectionChange}
               mode="completion"
               fillWidth
+              pillLabel="Life Areas"
             />
         </Card>
 

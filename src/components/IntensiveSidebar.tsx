@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { getActiveProfileClient } from '@/lib/supabase/profile-client'
 import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
+import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
 import { Button } from '@/lib/design-system/components'
 import { 
   LayoutDashboard,
@@ -443,12 +444,18 @@ export function IntensiveSidebar() {
         {/* User Info */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3 min-w-0">
-            <img
+            <ProfilePictureClickable
               src={profile?.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
               alt={profile?.first_name || 'Profile'}
-              className="w-8 h-8 rounded-full object-cover border-2 border-primary-500 flex-shrink-0"
-              loading="eager"
-            />
+              className="h-8 w-8 shrink-0 rounded-full"
+            >
+              <img
+                src={profile?.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
+                alt=""
+                className="h-8 w-8 rounded-full border-2 border-primary-500 object-cover"
+                loading="eager"
+              />
+            </ProfilePictureClickable>
             {profile?.first_name ? (
               <span className="text-white font-medium truncate">
                 {profile.first_name}

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { Card, SaveButton } from '@/lib/design-system/components'
+import { ProfileSectionCardHeading } from './ProfileSectionCardHeading'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
@@ -159,12 +160,9 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload, on
   
   return (
     <Card className="p-6">
-      <div className="flex items-center gap-3 mb-6">
-        <MoneyIcon className="w-6 h-6 text-white" />
-        <h3 className="text-xl font-bold text-white">{getVisionCategoryLabel('money')}</h3>
-      </div>
-      
-      <div className="space-y-6">
+      <ProfileSectionCardHeading icon={MoneyIcon} title={getVisionCategoryLabel('money')} />
+
+      <div className="space-y-4">
         {/* Currency */}
         <div>
           <label className="block text-sm font-medium text-neutral-200 mb-2">
@@ -452,7 +450,7 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload, on
           onDelete={handleDeleteRecording}
         />      </div>
 
-      <div className="mt-6 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
+      <div className="mt-3 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
         <p className="text-sm text-neutral-400">
           <span className="font-medium text-primary-400">Privacy Assured:</span> All financial information is encrypted and used solely to personalize your AI assistant's guidance. This data is never shared or used for marketing purposes.
         </p>
@@ -460,7 +458,7 @@ export function FinancialSection({ profile, onProfileChange, onProfileReload, on
 
       {/* Save Button - Bottom Right */}
       {onSave && (
-        <div className="mt-6">
+        <div className="border-t border-neutral-800/50 pt-2">
           {saveError && hasUnsavedChanges && (
             <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
               <span className="text-sm text-red-400">{saveError}</span>

@@ -54,7 +54,7 @@ export function StoryAreaBar() {
     versionSelectors = [
       {
         id: 'story-type',
-        label: 'Story type',
+        label: 'Type',
         icon: SOURCE_FILTERS.find(f => f.value === activeFilter)?.icon || Library,
         position: 'contextRow',
         options: SOURCE_FILTERS.map(filter => ({

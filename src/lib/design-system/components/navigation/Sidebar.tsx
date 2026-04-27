@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import { getActiveProfileClient } from '@/lib/supabase/profile-client'
 import { useStorageData } from '@/hooks/useStorageData'
 import { userNavigation, adminNavigation as centralAdminNav, isNavItemActive, type NavItem, type NavGroup } from '@/lib/navigation'
+import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
 
 // Sidebar Component
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -106,11 +107,17 @@ export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
               {loading ? (
                 <div className="w-8 h-8 rounded-full bg-neutral-700 animate-pulse flex-shrink-0" />
               ) : profile?.profile_picture_url ? (
-                <img
+                <ProfilePictureClickable
                   src={profile.profile_picture_url}
                   alt={profile.first_name || 'Profile'}
-                  className="w-8 h-8 rounded-full object-cover border-2 border-primary-500"
-                />
+                  className="inline-flex h-8 w-8 shrink-0 rounded-full"
+                >
+                  <img
+                    src={profile.profile_picture_url}
+                    alt=""
+                    className="h-8 w-8 rounded-full border-2 border-primary-500 object-cover"
+                  />
+                </ProfilePictureClickable>
               ) : profile?.first_name ? (
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white font-semibold text-sm">
                   {profile.first_name[0].toUpperCase()}

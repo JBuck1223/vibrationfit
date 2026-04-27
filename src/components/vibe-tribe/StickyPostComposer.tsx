@@ -9,6 +9,7 @@ import { uploadMultipleUserFiles, getUploadErrorMessage } from '@/lib/storage/s3
 import { CategoryGrid, Spinner } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
+import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
 import { useMentionAutocomplete } from '@/hooks/useMentionAutocomplete'
 import { MentionDropdown } from './MentionDropdown'
 import { EmojiPickerButton } from './EmojiPickerButton'
@@ -254,16 +255,17 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
         <div className="max-w-[772px] mx-auto px-4 py-3">
           <div className="flex items-center gap-3">
             {/* Profile Picture — links to own snapshot */}
-            <Link 
-              href={`/snapshot/${userId}`}
-              className="w-10 h-10 rounded-full bg-neutral-700 overflow-hidden flex-shrink-0 ring-2 ring-neutral-600 hover:ring-[#39FF14]/50 transition-all"
+            <ProfilePictureClickable
+              src={userProfile?.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
+              alt={userProfile?.full_name || 'Profile'}
+              className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-neutral-700 ring-2 ring-neutral-600 transition-all hover:ring-[#39FF14]/50"
             >
               <img
                 src={userProfile?.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
-                alt={userProfile?.full_name || 'User'}
-                className="w-full h-full object-cover"
+                alt=""
+                className="h-full w-full object-cover"
               />
-            </Link>
+            </ProfilePictureClickable>
 
             {/* Clickable placeholder */}
             <button
@@ -331,13 +333,17 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
             <div className="flex-1 overflow-y-auto min-h-0">
               {/* User info */}
               <div className="flex items-center gap-3 px-5 pt-4 pb-2">
-                <div className="w-10 h-10 rounded-full bg-neutral-700 overflow-hidden flex-shrink-0">
+                <ProfilePictureClickable
+                  src={userProfile?.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
+                  alt={userProfile?.full_name || 'Profile'}
+                  className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-neutral-700"
+                >
                   <img
                     src={userProfile?.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
-                    alt={userProfile?.full_name || 'User'}
-                    className="w-full h-full object-cover"
+                    alt=""
+                    className="h-full w-full object-cover"
                   />
-                </div>
+                </ProfilePictureClickable>
                 <div>
                   <p className="text-sm font-semibold text-white leading-tight">{userProfile?.full_name || 'Tribe Member'}</p>
                 </div>

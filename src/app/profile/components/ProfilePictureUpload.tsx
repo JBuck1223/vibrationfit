@@ -10,6 +10,7 @@ import ReactCrop, { Crop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
 import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
+import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
 
 export const DEFAULT_PROFILE_IMAGE_URL = 'https://media.vibrationfit.com/site-assets/brand/default-profile-image/default-profile-image.jpg'
 
@@ -95,8 +96,8 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError, 
       const canvas = document.createElement('canvas')
       const scaleX = image.naturalWidth / image.width
       const scaleY = image.naturalHeight / image.height
-      canvas.width = 300
-      canvas.height = 300
+      canvas.width = 512
+      canvas.height = 512
       const ctx = canvas.getContext('2d')
 
       if (ctx) {
@@ -128,7 +129,7 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError, 
             resolve(new File([blob], 'profile-picture.jpg', { type: 'image/jpeg' }))
           },
           'image/jpeg',
-          0.9
+          0.92
         )
       })
     },
@@ -247,24 +248,30 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError, 
 
         {/* Current Image - shown when not cropping */}
         {!showCropper && (
-          <div className="relative inline-block mb-4">
-            <div className="w-32 h-32 rounded-full overflow-hidden bg-neutral-800 border-2 border-neutral-700 flex items-center justify-center">
+          <div className="relative mb-4 inline-block">
+            <ProfilePictureClickable
+              src={previewUrl || currentImageUrl || DEFAULT_PROFILE_IMAGE_URL}
+              alt="Profile picture"
+              className="inline-flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border-2 border-neutral-700 bg-neutral-800"
+            >
               {imageLoadError ? (
-                <div className="w-full h-full flex items-center justify-center bg-neutral-700">
-                  <Upload className="w-8 h-8 text-neutral-400" />
+                <div className="flex h-full w-full items-center justify-center bg-neutral-700">
+                  <Upload className="h-8 w-8 text-neutral-400" />
                 </div>
               ) : (
                 <NextImage
                   src={previewUrl || currentImageUrl || DEFAULT_PROFILE_IMAGE_URL}
                   alt="Profile picture"
-                  width={128}
-                  height={128}
-                  className="w-full h-full object-cover"
+                  width={512}
+                  height={512}
+                  sizes="128px"
+                  quality={92}
+                  className="h-full w-full object-cover"
                   onError={() => setImageLoadError(true)}
                   unoptimized={!(previewUrl || currentImageUrl)}
                 />
               )}
-            </div>
+            </ProfilePictureClickable>
           </div>
         )}
 

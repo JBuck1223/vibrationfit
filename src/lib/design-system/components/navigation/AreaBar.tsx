@@ -220,7 +220,7 @@ function VersionSelectorDropdown({
     : 'w-full px-3 py-2 md:py-1.5 min-h-[38px] md:min-h-[34px] rounded-xl md:rounded-lg bg-neutral-900/80 md:bg-black/40 border border-neutral-700/50 hover:border-neutral-600 active:bg-neutral-800 transition-colors flex items-center gap-2.5 text-left'
 
   return (
-    <div className="relative" ref={ref}>
+    <div className={`relative ${compact ? '' : 'w-full min-w-0'}`} ref={ref}>
       <button type="button" onClick={() => { setIsOpen(p => !p); setSearch('') }} className={triggerCls}>
         {SelectorIcon && (
           <SelectorIcon className={`${compact ? 'w-3.5 h-3.5' : 'w-4 h-4 md:w-3.5 md:h-3.5'} text-[#39FF14] flex-shrink-0`} />
@@ -522,29 +522,33 @@ export function AreaBar({
           <div className={rowCls}>
             {sep}
             <div className={innerPad}>
-              {isMobile ? (
-                <div className="flex flex-col gap-2">
-                  {contextRowSelectors.map(sel => (
-                    <div key={sel.id} className="flex items-center gap-2.5">
-                      <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-500 shrink-0 whitespace-nowrap">{sel.label}</p>
-                      <div className="flex-1 min-w-0">
-                        <VersionSelectorDropdown selector={sel} />
-                      </div>
+              <div
+                className={
+                  isMobile
+                    ? 'grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2.5 gap-y-2'
+                    : 'mx-auto grid max-w-2xl items-center gap-x-3 gap-y-2'
+                }
+                style={
+                  isMobile
+                    ? undefined
+                    : {
+                        gridTemplateColumns: contextRowSelectors
+                          .map(() => 'auto minmax(0,1fr)')
+                          .join(' '),
+                      }
+                }
+              >
+                {contextRowSelectors.map(sel => (
+                  <React.Fragment key={sel.id}>
+                    <p className="shrink-0 whitespace-nowrap text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+                      {sel.label}
+                    </p>
+                    <div className="min-w-0">
+                      <VersionSelectorDropdown selector={sel} />
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex items-center gap-3 max-w-2xl mx-auto">
-                  {contextRowSelectors.map(sel => (
-                    <div key={sel.id} className="flex items-center gap-3 flex-1 min-w-0">
-                      <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-500 shrink-0 whitespace-nowrap">{sel.label}</p>
-                      <div className="relative flex-1 min-w-0">
-                        <VersionSelectorDropdown selector={sel} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                  </React.Fragment>
+                ))}
+              </div>
             </div>
           </div>
         )}
