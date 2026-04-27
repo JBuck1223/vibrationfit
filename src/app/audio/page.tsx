@@ -17,6 +17,7 @@ import { useAreaStats, type AreaStats } from '@/hooks/useAreaStats'
 import { VISION_CATEGORIES, LIFE_CATEGORY_KEYS } from '@/lib/design-system/vision-categories'
 import { EmbeddedPlayer, type MixDetails } from '@/lib/design-system/components'
 import { useGlobalAudioStore } from '@/lib/stores/global-audio-store'
+import { SyncedLyricsDisplay } from '@/components/audio-studio/SyncedLyricsDisplay'
 
 interface AudioTrack extends BaseAudioTrack {
   sectionKey: string
@@ -986,6 +987,12 @@ export default function AudioListenPage() {
                     </div>
                   }
                 />
+                {activeMusicCatalogRow?.synced_lyrics && (
+                  <SyncedLyricsDisplay
+                    syncedLyrics={activeMusicCatalogRow.synced_lyrics}
+                    className="mt-4"
+                  />
+                )}
                 {activeMusicCatalogRow && (
                   <div className="mt-4 px-1">
                     <p className="text-xs text-neutral-500 mb-2">Stream full tracks on your favorite service</p>
