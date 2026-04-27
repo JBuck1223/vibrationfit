@@ -14,6 +14,8 @@ export interface VisionData {
   is_draft: boolean
   is_active: boolean
   completion_percent?: number
+  parent_id?: string | null
+  perspective?: string | null
   
   // Category fields
   forward: string

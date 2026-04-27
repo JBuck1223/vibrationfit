@@ -1476,7 +1476,7 @@ function MemberDetailContent() {
                           </div>
                           <div className="flex items-center gap-3 mt-0.5 text-xs text-neutral-500">
                             <span>{formatDate(order.paid_at || order.created_at)}</span>
-                            {order.metadata?.product_key && (
+                            {!!order.metadata?.product_key && (
                               <span className="truncate">{String(order.metadata.product_key)}</span>
                             )}
                           </div>
