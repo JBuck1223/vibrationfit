@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, usePathname } from 'next/navigation'
-import { Target, PenLine, Eye, Download, HelpCircle, Users, Headphones, Sparkles, CheckCircle, Layers, Wand2, Info } from 'lucide-react'
+import { Target, PenLine, Eye, Download, Users, Headphones, Sparkles, CheckCircle, Layers, Wand2, Info } from 'lucide-react'
 import { AreaBar, type AreaBarContextNavItem, type AreaBarVersionSelector } from '@/lib/design-system/components'
 import { useLifeVisionStudio } from './LifeVisionStudioContext'
 
@@ -152,9 +152,8 @@ export function LifeVisionAreaBar() {
       || pathname.startsWith('/life-vision/refinements')
     const isOnCommitSubpage = /^\/life-vision\/[^/]+\/draft/.test(pathname)
       || pathname.startsWith('/life-vision/manual')
-    const isNewLanding = pathname === '/life-vision/new' || pathname === '/life-vision/new/'
-    const isOnCategoryPage = isNewLanding || pathname.startsWith('/life-vision/new/category')
     const isOnAssemblyPage = pathname === '/life-vision/new/assembly' || pathname.startsWith('/life-vision/new/assembly/')
+    const isOnCategoryPage = isFreshFlow && !isOnAssemblyPage
 
     if (isCreateLanding) {
       // No context nav on the landing — the two cards handle navigation
@@ -229,13 +228,19 @@ export function LifeVisionAreaBar() {
         }]
       }
     } else if (isFreshFlow) {
+      const draft = visions.find(v => v.is_draft)
+      const nonDraftVisions = visions.filter(v => !v.is_draft)
+      const draftDisplayVersion = nonDraftVisions.length + 1
+
       contextNav = [
         { label: 'Generate', path: '/life-vision/new', icon: Wand2, isActive: isOnCategoryPage },
         { label: 'Assemble', path: '/life-vision/new/assembly', icon: Layers, isActive: isOnAssemblyPage },
       ]
 
       if (isOnCategoryPage) {
-        contextText = 'Build each category of your new Life Vision with VIVA.'
+        contextText = draft
+          ? `Editing Version ${draftDisplayVersion} Draft`
+          : 'Build each category of your new Life Vision with VIVA.'
       } else if (isOnAssemblyPage) {
         contextText = 'VIVA will weave your categories into a complete Life Vision document.'
       }

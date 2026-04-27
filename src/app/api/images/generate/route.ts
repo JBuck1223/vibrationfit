@@ -60,14 +60,13 @@ export async function POST(request: NextRequest) {
             { status: 400 }
           )
         }
-        // Enhance prompt to explicitly exclude people and text
         const enhancedPrompt = `${prompt}
 
-CRITICAL REQUIREMENTS:
-- NO people, faces, or human figures in the image
-- NO text, words, or letters in the image
-- Focus on objects, places, nature, symbols, and abstract visuals
-- Pure visual representation without any textual elements`
+STYLE DIRECTION:
+- Focus entirely on environments, objects, landscapes, architecture, nature, and symbols
+- Emphasize rich colors, cinematic lighting, and aspirational atmosphere
+- Depict empty scenes — serene spaces, untouched interiors, still-life arrangements, wide vistas
+- Keep the composition clean and free of any written text or lettering`
         
         result = await generateImage({
           userId: user.id,
