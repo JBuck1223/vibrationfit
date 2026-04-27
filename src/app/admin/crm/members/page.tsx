@@ -6,7 +6,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Card, Badge, Container, Spinner, Input, Textarea, Stack, PageHero } from '@/lib/design-system/components'
-import { Mail, MessageSquare, Send } from 'lucide-react'
+import { Mail, MessageSquare, Send, Search } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Member {
@@ -14,6 +14,7 @@ interface Member {
   email: string
   full_name: string
   phone: string
+  role: string
   subscription_tier: string
   engagement_status: string
   health_status: string
@@ -30,6 +31,7 @@ export default function MembersPage() {
   const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<string>('all')
+  const [searchTerm, setSearchTerm] = useState('')
   
   // Bulk messaging state
   const [selectedMembers, setSelectedMembers] = useState<string[]>([])
@@ -66,6 +68,16 @@ export default function MembersPage() {
     }
   }
 
+  const filteredMembers = members.filter(m => {
+    if (!searchTerm) return true
+    const q = searchTerm.toLowerCase()
+    return (
+      (m.full_name || '').toLowerCase().includes(q) ||
+      (m.email || '').toLowerCase().includes(q) ||
+      m.user_id.toLowerCase().includes(q)
+    )
+  })
+
   function toggleMember(userId: string) {
     setSelectedMembers(prev =>
       prev.includes(userId)
@@ -75,10 +87,10 @@ export default function MembersPage() {
   }
 
   function toggleSelectAll() {
-    if (selectedMembers.length === members.length) {
+    if (selectedMembers.length === filteredMembers.length) {
       setSelectedMembers([])
     } else {
-      setSelectedMembers(members.map(m => m.user_id))
+      setSelectedMembers(filteredMembers.map(m => m.user_id))
     }
   }
 
@@ -160,7 +172,7 @@ export default function MembersPage() {
         {/* Header */}
         <PageHero
           title="Members"
-          subtitle={`${members.length} total members`}
+          subtitle={`${filteredMembers.length}${searchTerm ? ` of ${members.length}` : ''} members`}
         >
           <div className="flex gap-2">
             <Button 
@@ -173,19 +185,30 @@ export default function MembersPage() {
           </div>
         </PageHero>
 
-        {/* Filters */}
-        <div className="flex flex-wrap gap-2">
-        {['all', 'active', 'at_risk', 'champion', 'inactive'].map((status) => (
-          <Button
-            key={status}
-            variant={filter === status ? 'primary' : 'outline'}
-            size="sm"
-            onClick={() => setFilter(status)}
-          >
-            {status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')}
-          </Button>
-        ))}
-      </div>
+        {/* Search + Filters */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-4 h-4" />
+            <Input
+              placeholder="Search by name, email, or ID..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 text-sm"
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {['all', 'active', 'at_risk', 'champion', 'inactive'].map((status) => (
+              <Button
+                key={status}
+                variant={filter === status ? 'primary' : 'outline'}
+                size="sm"
+                onClick={() => setFilter(status)}
+              >
+                {status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')}
+              </Button>
+            ))}
+          </div>
+        </div>
 
       {/* Bulk Action Bar */}
       {selectedMembers.length > 0 && (
@@ -214,9 +237,9 @@ export default function MembersPage() {
       )}
 
       {/* Member list */}
-      {members.length === 0 ? (
+      {filteredMembers.length === 0 ? (
         <Card className="text-center p-8 md:p-12">
-          <p className="text-sm md:text-base text-neutral-400">No members yet</p>
+          <p className="text-sm md:text-base text-neutral-400">{searchTerm ? 'No members match your search' : 'No members yet'}</p>
         </Card>
       ) : (
         <Card className="p-0 overflow-x-auto">
@@ -227,7 +250,7 @@ export default function MembersPage() {
                   <th className="py-3 md:py-4 px-3 md:px-4 w-12">
                     <input
                       type="checkbox"
-                      checked={selectedMembers.length === members.length && members.length > 0}
+                      checked={selectedMembers.length === filteredMembers.length && filteredMembers.length > 0}
                       onChange={toggleSelectAll}
                       className="w-4 h-4 rounded border-[#333] bg-[#1F1F1F] text-primary-500 focus:ring-primary-500"
                     />
@@ -242,7 +265,7 @@ export default function MembersPage() {
                 </tr>
               </thead>
               <tbody>
-                {members.map((member) => (
+                {filteredMembers.map((member) => (
                   <tr
                     key={member.user_id}
                     className="border-b border-[#333] hover:bg-[#1F1F1F] cursor-pointer transition-colors"

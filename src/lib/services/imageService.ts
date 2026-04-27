@@ -651,13 +651,13 @@ export async function generateVisionBoardImage({
 Category: ${category}
 Vision: ${visionText.substring(0, 500)}
 
-Style: Modern, aspirational, emotionally uplifting. Use vibrant colors and clear imagery that captures the essence of this vision. The image should feel like a beacon of possibility and achievement.
+Style: Modern, aspirational, emotionally uplifting. Use vibrant colors, cinematic lighting, and clear imagery that captures the essence of this vision. The image should feel like a beacon of possibility and achievement.
 
-CRITICAL REQUIREMENTS:
-- NO people, faces, or human figures in the image
-- NO text, words, or letters in the image
-- Focus on objects, places, nature, symbols, and abstract visuals
-- Pure visual representation without any textual elements`
+STYLE DIRECTION:
+- Focus entirely on environments, objects, landscapes, architecture, nature, and symbols
+- Depict empty scenes — serene spaces, untouched interiors, still-life arrangements, wide vistas
+- Emphasize rich textures, atmospheric depth, and aspirational mood
+- Keep the composition clean and free of any written text or lettering`
 
   return generateImage({
     userId,

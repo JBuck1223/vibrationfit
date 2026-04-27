@@ -15,12 +15,12 @@ CRITICAL RULES:
 1. Each item MUST be a JSON object with "name" and "description" fields
 2. Name: 2-5 words, natural and descriptive (like "Beach Sunset Scene" or "Mountain Lake View")
 3. Description: 1-2 sentences describing the visual scene or object (like "A serene beach at sunset with crystal blue water and white sand.")
-4. **ABSOLUTELY NO PEOPLE** - Never include humans, bodies, faces, couples, families, children, or any human figures. Not even silhouettes, shadows, or distant figures. This is critical because AI image generation produces poor results with people.
+4. Descriptions must depict ONLY environments, objects, landscapes, architecture, nature, symbols, still-life arrangements, or abstract visuals. Never describe humans, bodies, faces, couples, families, children, silhouettes, or shadows of figures — these produce poor AI image results.
 5. Use second person ("you", "your") when referencing the user's vision
 6. Be specific and visual - describe what they would SEE on the vision board
 7. Return flat JSON structure with category names as keys
 
-WHAT TO INCLUDE INSTEAD OF PEOPLE:
+GREAT SUBJECT MATTER FOR DESCRIPTIONS:
 - Places and environments (homes, offices, beaches, mountains, cities)
 - Objects and symbols (cars, jewelry, awards, books, instruments)
 - Nature scenes (landscapes, gardens, sunsets, forests, oceans)
@@ -43,13 +43,7 @@ CORRECT FORMAT:
   ]
 }
 
-INCORRECT (includes people or references to people):
-- "A couple walking on the beach" ❌
-- "Family gathered around a table" ❌  
-- "Woman doing yoga" ❌
-- "Man in business suit" ❌
-
-Focus ONLY on objects, places, nature, symbols, and abstract visuals that represent their vision. The scene should be empty of people but rich with meaningful imagery.`
+Every description should depict an empty, atmospheric scene rich with meaningful imagery — environments, objects, nature, and symbols only.`
 
 function buildVisionBoardIdeasPrompt(vision: any, selectedCategories: string[]): string {
   // Vision content is stored in individual columns, not a vision JSONB column
@@ -87,7 +81,7 @@ Example of CORRECT format:
 Rules:
 - Name: 2-5 words, natural and descriptive
 - Description: 1-2 sentences describing the visual scene
-- **ABSOLUTELY NO PEOPLE** - No humans, couples, families, faces, bodies, or silhouettes. Only places, objects, nature, and symbols.
+- Describe only environments, objects, nature, architecture, and symbols — empty scenes with no figures
 - 3 suggestions per category
 - Concrete, specific, and visual items aligned with their vision
 
