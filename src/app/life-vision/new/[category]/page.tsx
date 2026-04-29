@@ -7,6 +7,7 @@ import {
   Sparkles,
   Edit,
   Wand2,
+  PenLine,
   ChevronRight,
   ChevronLeft,
   ChevronsLeft,
@@ -19,7 +20,6 @@ import {
 import {
   Card,
   Button,
-  Badge,
   Spinner,
   SaveButton,
   AutoResizeTextarea,
@@ -40,13 +40,14 @@ import { getFilteredQuestionsForCategory } from '@/lib/life-vision/ideal-state-q
 import { useLifeVisionStudio } from '@/components/life-vision-studio/LifeVisionStudioContext'
 
 type SourceMode = 'profile' | 'vision'
+type EditMode = 'viva' | 'manual'
 
 export default function UnifiedCategoryPage() {
   const router = useRouter()
   const params = useParams()
   const categoryKey = params.category as string
   const supabase = createClient()
-  const { draftId, activeVisionId, refreshVisions } = useLifeVisionStudio()
+  const { draftId, activeVisionId, visions, refreshVisions } = useLifeVisionStudio()
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -57,6 +58,11 @@ export default function UnifiedCategoryPage() {
   const [refinedCategories, setRefinedCategories] = useState<string[]>([])
 
   const [sourceMode, setSourceMode] = useState<SourceMode>('profile')
+  const [editMode, setEditMode] = useState<EditMode>('viva')
+  const [manualText, setManualText] = useState('')
+  const [manualViewMode, setManualViewMode] = useState<'edit' | 'highlight'>('edit')
+  const [showManualCurrent, setShowManualCurrent] = useState(true)
+  const [showManualNew, setShowManualNew] = useState(true)
   const hasActiveContent = !!(activeVision && (activeVision[categoryKey as keyof VisionData] as string)?.trim())
 
   // Profile mode state
@@ -165,6 +171,7 @@ export default function UnifiedCategoryPage() {
       if (activeResult) {
         setActiveVision(activeResult)
         setOriginalVisionText(activeValue)
+        setManualText(activeValue)
 
         if (activeValue.trim()) {
           setSourceMode('vision')
@@ -388,7 +395,26 @@ export default function UnifiedCategoryPage() {
     setPreviousRefinement(null)
     setRefineFromRevision(false)
     setCurrentRefinementId(null)
+    setManualText('')
     router.push(`/life-vision/new/${key}`)
+  }
+
+  const saveManualEdit = async () => {
+    if (!draftVision || !manualText.trim()) return
+
+    const scrollPosition = window.scrollY
+    setIsDraftSaving(true)
+    try {
+      const updatedDraft = await updateDraftCategory(draftVision.id, categoryKey, manualText)
+      setDraftVision(updatedDraft)
+      setRefinedCategories(updatedDraft.refined_categories || [])
+      await refreshVisions()
+      setTimeout(() => window.scrollTo({ top: scrollPosition, behavior: 'instant' as ScrollBehavior }), 0)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save')
+    } finally {
+      setIsDraftSaving(false)
+    }
   }
 
   const goToPreviousCategory = () => {
@@ -403,7 +429,7 @@ export default function UnifiedCategoryPage() {
     }
   }
 
-  // Diff renderer
+  // Diff renderers
   const renderDiff = (oldText: string, newText: string) => {
     const diff = Diff.diffWords(oldText, newText)
     return (
@@ -413,6 +439,38 @@ export default function UnifiedCategoryPage() {
           if (part.removed) return <span key={i} className="bg-red-500/30 text-red-300 px-1 rounded line-through">{part.value}</span>
           return <span key={i}>{part.value}</span>
         })}
+      </div>
+    )
+  }
+
+  const normalizeText = (text: string) => text.replace(/\r\n/g, '\n').replace(/[ \t]+$/gm, '').trim()
+
+  const renderRemovedDiff = (oldText: string, newText: string) => {
+    const diff = Diff.diffSentences(oldText, newText)
+    return (
+      <div className="space-y-2 w-full">
+        <div className="w-full px-4 py-3 bg-[#101010] border-2 border-neutral-800 rounded-lg min-h-[200px] whitespace-pre-wrap text-sm leading-[1.75] text-neutral-100">
+          {diff.map((part, i) => {
+            if (part.added) return null
+            if (part.removed) return <span key={i} className="bg-red-500/30 text-red-300 px-1 rounded line-through">{part.value}</span>
+            return <span key={i}>{part.value}</span>
+          })}
+        </div>
+      </div>
+    )
+  }
+
+  const renderAddedDiff = (oldText: string, newText: string) => {
+    const diff = Diff.diffSentences(oldText, newText)
+    return (
+      <div className="space-y-2 w-full">
+        <div className="w-full px-4 py-3 bg-[#101010] border-2 border-neutral-800 rounded-lg min-h-[200px] whitespace-pre-wrap text-sm leading-[1.75] text-neutral-100">
+          {diff.map((part, i) => {
+            if (part.removed) return null
+            if (part.added) return <span key={i} className="bg-green-500/30 text-green-200 px-1 rounded">{part.value}</span>
+            return <span key={i}>{part.value}</span>
+          })}
+        </div>
       </div>
     )
   }
@@ -439,6 +497,11 @@ export default function UnifiedCategoryPage() {
   const isFirstTime = !activeVision || !activeValue.trim()
   const gridMode = draftVision?.parent_id ? 'draft' : 'completion'
 
+  const nonDraftVisions = visions.filter(v => !v.is_draft)
+  const activeVisionVersion = nonDraftVisions.find(v => v.is_active)?.version_number ?? nonDraftVisions.length
+  const draftVersionLabel = `V${nonDraftVisions.length + 1}`
+  const activeVersionLabel = `V${activeVisionVersion}`
+
   return (
     <Container size="xl">
       <Stack gap="lg">
@@ -460,25 +523,188 @@ export default function UnifiedCategoryPage() {
 
         {/* Overarching Category Card */}
         <Card>
-          {/* Card Header with Version Badge */}
-          <div className="mb-2 flex flex-row items-center justify-center gap-2 md:gap-3">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-500 md:h-8 md:w-8">
-              <Icon icon={category.icon} size="xs" color="#000000" />
+          {/* Card Header */}
+          <div className="mb-6 flex items-center gap-3 md:gap-4">
+            <div className="h-px flex-1 bg-neutral-800" />
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-500 md:h-8 md:w-8">
+                <Icon icon={category.icon} size="xs" color="#000000" />
+              </div>
+              <h3 className="text-sm font-medium uppercase tracking-[0.25em] text-neutral-400">
+                {category.label}
+              </h3>
             </div>
-            <h3 className="max-w-full text-sm font-medium uppercase tracking-[0.25em] text-neutral-400">
-              {category.label}
-            </h3>
-            {draftVision && (
-              <Badge
-                variant={draftVision.parent_id ? 'warning' : 'success'}
-                className="ml-2 text-[10px]"
-              >
-                {draftVision.parent_id ? 'Draft' : 'Version 1'}
-              </Badge>
-            )}
+            <div className="h-px flex-1 bg-neutral-800" />
           </div>
-          <div className="mb-6 border-b border-neutral-800" />
 
+          {/* Edit Mode Toggle — Edit with VIVA / Edit Manually */}
+          {hasActiveContent && (
+            <div className="mb-6 flex justify-center">
+              <div className="inline-flex rounded-lg border border-neutral-700 bg-[#101010] p-1">
+                <button
+                  onClick={() => setEditMode('viva')}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                    editMode === 'viva'
+                      ? 'bg-accent-500 text-white'
+                      : 'text-neutral-300 hover:text-white'
+                  }`}
+                >
+                  <Wand2 className="w-3.5 h-3.5" />
+                  Edit with VIVA
+                </button>
+                <button
+                  onClick={() => setEditMode('manual')}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                    editMode === 'manual'
+                      ? 'bg-primary-500 text-black'
+                      : 'text-neutral-300 hover:text-white'
+                  }`}
+                >
+                  <PenLine className="w-3.5 h-3.5" />
+                  Edit Manually
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Manual Edit Mode — toggle switches + side-by-side */}
+          {editMode === 'manual' && hasActiveContent ? (
+            <section>
+              {/* Compare header + toggle switches */}
+              <div className="mb-6 flex flex-col items-center gap-3">
+                <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">Compare</h4>
+                <div className="flex items-center gap-2">
+                  <span className="flex items-center gap-1.5 text-sm text-neutral-300">
+                    {activeVersionLabel}
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded text-[#39FF14] bg-[#39FF14]/10">Active</span>
+                  </span>
+                  <div
+                    role="switch"
+                    aria-checked={showManualCurrent}
+                    onClick={() => setShowManualCurrent(!showManualCurrent)}
+                    className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 cursor-pointer ${
+                      showManualCurrent ? 'bg-primary-500' : 'bg-neutral-600'
+                    }`}
+                  >
+                    <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform duration-200 ${
+                      showManualCurrent ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                    }`} />
+                  </div>
+                  <div className="w-px h-4 bg-neutral-700 mx-1" />
+                  <div
+                    role="switch"
+                    aria-checked={showManualNew}
+                    onClick={() => setShowManualNew(!showManualNew)}
+                    className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 cursor-pointer ${
+                      showManualNew ? 'bg-accent-500' : 'bg-neutral-600'
+                    }`}
+                  >
+                    <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform duration-200 ${
+                      showManualNew ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                    }`} />
+                  </div>
+                  <span className="flex items-center gap-1.5 text-sm text-neutral-300">
+                    {draftVersionLabel}
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded text-[#FFFF00] bg-[#FFFF00]/10">Draft</span>
+                  </span>
+                </div>
+              </div>
+
+              <div className={`space-y-6 ${showManualCurrent && showManualNew ? 'lg:grid lg:grid-cols-2' : ''} lg:gap-6 lg:space-y-0`}>
+                {/* Current Vision */}
+                <div className={showManualCurrent ? 'block' : 'hidden'}>
+                  <div className="rounded-2xl border border-primary-500/30 bg-[#1A1A1A] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
+                    <div className="mb-2 flex items-center justify-between gap-3 min-h-[32px]">
+                      <div className="flex items-center gap-2">
+                        <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Version {activeVisionVersion}</h5>
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded text-[#39FF14] bg-[#39FF14]/10">Active</span>
+                      </div>
+                      {activeVision && (
+                        <span className="text-[11px] text-neutral-400">
+                          {new Date(activeVision.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      )}
+                    </div>
+                    <AutoResizeTextarea
+                      value={activeValue}
+                      onChange={() => {}}
+                      readOnly
+                      className="!bg-[#101010] !border-neutral-800 text-sm cursor-default !rounded-lg !px-4 !py-3 !leading-[1.75]"
+                      minHeight={200}
+                    />
+                  </div>
+                </div>
+
+                {/* New Version — with Edit/Highlight toggle in header */}
+                <div className={showManualNew ? 'block' : 'hidden'}>
+                  <div className="rounded-2xl border border-accent-500/30 bg-[#1A1A1A] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
+                    <div className="mb-2 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Version {nonDraftVisions.length + 1}</h5>
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded text-[#FFFF00] bg-[#FFFF00]/10">Draft</span>
+                        {manualViewMode === 'highlight' && normalizeText(manualText) === normalizeText(activeValue) && (
+                          <span className="text-[11px] text-neutral-500 italic">No changes to highlight</span>
+                        )}
+                      </div>
+                      <div className="inline-flex rounded-md border border-neutral-700 bg-[#101010] p-0.5">
+                        <button
+                          onClick={() => setManualViewMode('edit')}
+                          className={`px-2.5 py-1 rounded text-xs font-medium transition-all duration-200 ${
+                            manualViewMode === 'edit' ? 'bg-accent-500 text-white' : 'text-neutral-300 hover:text-white'
+                          }`}
+                        >
+                          <Edit className="w-3 h-3 inline mr-1" />Edit
+                        </button>
+                        <button
+                          onClick={() => setManualViewMode('highlight')}
+                          className={`px-2.5 py-1 rounded text-xs font-medium transition-all duration-200 ${
+                            manualViewMode === 'highlight' ? 'bg-accent-500 text-white' : 'text-neutral-300 hover:text-white'
+                          }`}
+                        >
+                          <Sparkles className="w-3 h-3 inline mr-1" />Highlight
+                        </button>
+                      </div>
+                    </div>
+                    {manualViewMode === 'highlight' ? (
+                      normalizeText(manualText) !== normalizeText(activeValue)
+                        ? renderAddedDiff(normalizeText(activeValue), normalizeText(manualText))
+                        : (
+                          <AutoResizeTextarea
+                            value={manualText}
+                            onChange={() => {}}
+                            readOnly
+                            className="!bg-[#101010] !border-neutral-800 text-sm cursor-default !rounded-lg !px-4 !py-3 !leading-[1.75]"
+                            minHeight={200}
+                          />
+                        )
+                    ) : (
+                      <AutoResizeTextarea
+                        value={manualText}
+                        onChange={setManualText}
+                        placeholder="Write your updated vision text here..."
+                        className="!bg-[#101010] !border-neutral-800 text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]"
+                        minHeight={200}
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-6 flex justify-center">
+                <SaveButton
+                  saveLabel="Save to Draft"
+                  hasUnsavedChanges={!!(
+                    draftVision &&
+                    manualText.trim() &&
+                    manualText.trim() !== ((draftVision[categoryKey as keyof VisionData] as string) || '').trim()
+                  )}
+                  isSaving={isDraftSaving}
+                  onClick={saveManualEdit}
+                  disabled={!draftVision || !manualText.trim()}
+                />
+              </div>
+            </section>
+          ) : (
+          <>
           {/* Source Mode Toggle — only show when active vision has content */}
           {hasActiveContent && (
             <div className="mb-6 flex flex-col items-center gap-3">
@@ -880,6 +1106,8 @@ export default function UnifiedCategoryPage() {
                 </div>
               </div>
             </section>
+          )}
+          </>
           )}
         </Card>
 
