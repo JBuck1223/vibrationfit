@@ -1,30 +1,46 @@
-"use client"
+'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Container, StatusBadge, Icon, Spinner, Stack, IntensiveStepCompleteModal } from '@/lib/design-system/components'
-import { useAudioStudio, AudioSourceSelector } from '@/components/audio-studio'
+import { Button, Card, Container, Icon, Spinner, Stack, IntensiveStepCompleteModal, FullBleed } from '@/lib/design-system/components'
+import { useAudioStudio, AudioSourceSelector, QueueStatusBanner } from '@/components/audio-studio'
 import type { AudioSourceSelection } from '@/components/audio-studio'
 import type { VisionData } from '@/components/audio-studio'
 import type { Story } from '@/lib/stories/types'
 import { CategoryGrid } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { MediaRecorderComponent } from '@/components/MediaRecorder'
-import { CheckCircle, Headphones, Mic, Wand2, RefreshCw } from 'lucide-react'
+import { CheckCircle, Check, Headphones, Mic, Wand2, RefreshCw, Home, Library } from 'lucide-react'
 import Link from 'next/link'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
-const VISION_SECTIONS = [
-  { key: 'forward', label: 'Forward', description: 'Your opening vision statement', order: 0, icon: Mic },
-  ...VISION_CATEGORIES.filter(c => c.order > 0 && c.order < 13).map(c => ({
-    key: c.key,
-    label: c.label,
-    description: c.description,
-    order: c.order,
-    icon: c.icon
-  })),
-  { key: 'conclusion', label: 'Conclusion', description: 'Your vision conclusion', order: 14, icon: Mic },
-]
+
+function CompletedStepRow({
+  step,
+  label,
+  value,
+  onChange,
+}: {
+  step: number
+  label: string
+  value: React.ReactNode
+  onChange: () => void
+}) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-neutral-700/50 bg-neutral-900/40">
+      <span className="w-7 h-7 rounded-full bg-primary-500/15 text-primary-500 flex items-center justify-center flex-shrink-0">
+        <Check className="w-4 h-4" />
+      </span>
+      <div className="flex-1 min-w-0 flex items-center gap-2 text-sm">
+        <span className="text-neutral-400 flex-shrink-0">{step}. {label}:</span>
+        <span className="text-white font-medium truncate">{value}</span>
+      </div>
+      <Button variant="ghost" size="sm" onClick={onChange} className="flex-shrink-0">
+        Change
+      </Button>
+    </div>
+  )
+}
 
 export default function RecordVisionAudioPage() {
   const router = useRouter()
@@ -50,6 +66,16 @@ export default function RecordVisionAudioPage() {
   // Story recording state
   const [storyRecording, setStoryRecording] = useState<{ url: string; duration: number } | null>(null)
 
+  const [currentStep, setCurrentStep] = useState<1 | 2>(1)
+  const step1Ref = useRef<HTMLDivElement>(null)
+  const step2Ref = useRef<HTMLDivElement>(null)
+
+  const scrollToStep = (ref: React.RefObject<HTMLDivElement | null>) => {
+    requestAnimationFrame(() => {
+      ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
+
   function handleSourceSelected(selection: AudioSourceSelection) {
     setSelectedSource(selection)
     setRecordings(new Map())
@@ -58,6 +84,8 @@ export default function RecordVisionAudioPage() {
     setHasFullTrack(false)
     setRefinedCategories([])
     setLoading(true)
+    setCurrentStep(2)
+    scrollToStep(step2Ref)
   }
 
   useEffect(() => {
@@ -217,9 +245,9 @@ export default function RecordVisionAudioPage() {
       setRefinedCategories(refined)
 
       const firstNeedsReRecord = refined.length > 0
-        ? VISION_SECTIONS.find(s => refined.includes(s.key) && !recordingMap.has(s.key))
+        ? VISION_CATEGORIES.find(s => refined.includes(s.key) && !recordingMap.has(s.key))
         : null
-      const firstIncomplete = VISION_SECTIONS.find(section => !recordingMap.has(section.key))
+      const firstIncomplete = VISION_CATEGORIES.find(section => !recordingMap.has(section.key))
       const autoSelect = firstNeedsReRecord || firstIncomplete
       if (autoSelect) setActiveSection(autoSelect.key)
     } else if (activeSourceType === 'story' && selectedStory && user) {
@@ -345,9 +373,9 @@ export default function RecordVisionAudioPage() {
         }
 
         setRecordings(new Map(recordings.set(sectionKey, { url: s3Url, duration })))
-        const currentIndex = VISION_SECTIONS.findIndex(s => s.key === sectionKey)
-        if (currentIndex < VISION_SECTIONS.length - 1) {
-          setActiveSection(VISION_SECTIONS[currentIndex + 1].key)
+        const currentIndex = VISION_CATEGORIES.findIndex(s => s.key === sectionKey)
+        if (currentIndex < VISION_CATEGORIES.length - 1) {
+          setActiveSection(VISION_CATEGORIES[currentIndex + 1].key)
         }
       } else if (activeSourceType === 'story') {
         setStoryRecording({ url: s3Url, duration: validDuration })
@@ -417,8 +445,8 @@ export default function RecordVisionAudioPage() {
 
   // Vision recording state
   const completedCount = recordings.size
-  const totalCount = VISION_SECTIONS.length
-  const activeSessionSection = VISION_SECTIONS.find(s => s.key === activeSection)
+  const totalCount = VISION_CATEGORIES.length
+  const activeSessionSection = VISION_CATEGORIES.find(s => s.key === activeSection)
   const sectionText = activeSourceType === 'life_vision' ? getSectionText(activeSection) : ''
   const hasText = sectionText.trim().length > 0
   const isRecorded = recordings.has(activeSection)
@@ -427,26 +455,66 @@ export default function RecordVisionAudioPage() {
   const sectionsNeedingReRecord = refinedCategories.filter(key => !recordings.has(key))
   const activeNeedsReRecord = refinedCategories.includes(activeSection) && !isRecorded
 
+  const sourceSummaryValue =
+    activeSourceType === 'life_vision' && selectedVision
+      ? (
+          <span className="inline-flex items-center gap-1.5">
+            Life Vision — Version {selectedVision.version_number}
+            {selectedVision.household_id && <Home className="w-3.5 h-3.5 text-secondary-500" />}
+          </span>
+        )
+      : activeSourceType === 'story' && selectedStory
+      ? `Story — ${selectedStory.title || 'Untitled'}`
+      : ''
+
   return (
-    <Container size="xl" className="py-6">
-      <Stack gap="lg">
+    <Container size="xl">
+      <Stack gap="lg" className="overflow-visible">
         <h1 className="sr-only">Record Audio</h1>
 
-        {/* Source Selector */}
-        <AudioSourceSelector
-          onSourceSelected={handleSourceSelected}
-          initialSourceType={sourceType}
-          initialSourceId={sourceId}
-        />
+        <QueueStatusBanner />
 
-      {loading && (
-        <div className="flex min-h-[calc(100vh-16rem)] items-center justify-center">
-          <Spinner size="lg" />
+        <div ref={step1Ref}>
+          <div className={currentStep === 1 ? 'block' : 'hidden'}>
+            <AudioSourceSelector
+              onSourceSelected={handleSourceSelected}
+              initialSourceType={sourceType}
+              initialSourceId={sourceId}
+              stepNumber={1}
+            />
+          </div>
+          {currentStep !== 1 && selectedSource && (
+            <CompletedStepRow
+              step={1}
+              label="Source"
+              value={sourceSummaryValue}
+              onChange={() => { setCurrentStep(1); scrollToStep(step1Ref) }}
+            />
+          )}
         </div>
-      )}
+
+        {selectedSource && currentStep === 2 && (
+          <div ref={step2Ref}>
+            {loading ? (
+              <div className="flex min-h-[40vh] items-center justify-center">
+                <Spinner size="lg" />
+              </div>
+            ) : (
+              <>
+      <div className="flex flex-col items-center text-center gap-1 mb-2">
+        <div className="flex items-center justify-center gap-2">
+          <span className="w-7 h-7 rounded-full bg-primary-500/15 text-primary-500 text-sm font-semibold flex items-center justify-center flex-shrink-0">
+            2
+          </span>
+          <h2 className="text-lg font-semibold text-white">Record</h2>
+        </div>
+        <p className="text-sm text-neutral-400 max-w-md">
+          Read your vision or story aloud with your own voice, then save each recording.
+        </p>
+      </div>
 
       {/* Life Vision Recording Flow */}
-      {selectedSource && !loading && activeSourceType === 'life_vision' && selectedVision && (
+      {activeSourceType === 'life_vision' && selectedVision && (
         <>
           {/* Stats Bar */}
           <div className="mb-6 flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50">
@@ -487,57 +555,72 @@ export default function RecordVisionAudioPage() {
             </Card>
           )}
 
-          <div className="mb-6">
-            <div className="mb-4 text-center">
-              <h3 className="text-lg font-semibold text-white mb-1">Select Section to Record</h3>
-              <p className="text-sm text-neutral-400">
-                Recording {VISION_SECTIONS.findIndex(s => s.key === activeSection) + 1} of {VISION_SECTIONS.length}
-                {completedCount > 0 && (
-                  <span className="ml-2 text-[#39FF14]">
-                    • {completedCount} completed
-                  </span>
-                )}
-              </p>
-            </div>
-            <CategoryGrid
-              categories={VISION_SECTIONS}
-              activeCategory={activeSection}
-              completedCategories={Array.from(recordings.keys())}
-              refinedCategories={refinedCategories}
-              onCategoryClick={(key) => setActiveSection(key)}
-              mode={refinedCategories.length > 0 ? 'record' : 'completion'}
-              fillWidth
-            />
+          <div className="mb-6 min-w-0">
+            <p className="text-sm text-neutral-400 text-center mb-3">
+              Recording {VISION_CATEGORIES.findIndex(s => s.key === activeSection) + 1} of {VISION_CATEGORIES.length}
+              {completedCount > 0 && (
+                <span className="ml-2 text-[#39FF14]">
+                  {completedCount} completed
+                </span>
+              )}
+            </p>
+            <FullBleed>
+              <CategoryGrid
+                categories={VISION_CATEGORIES}
+                activeCategory={activeSection}
+                completedCategories={Array.from(recordings.keys())}
+                refinedCategories={refinedCategories}
+                onCategoryClick={(key) => setActiveSection(key)}
+                mode={refinedCategories.length > 0 ? 'record' : 'completion'}
+                fillWidth
+                title="Select Section to Record"
+                bleedClassName="max-md:-mx-4"
+                pillLabel="scroll"
+              />
+            </FullBleed>
           </div>
 
           {activeSessionSection && (
             <div>
-              <Card className="p-6 md:p-8 mb-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3 flex-1">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary-500">
-                      <Icon icon={activeSessionSection.icon} size="sm" color="#000000" />
+              <Card variant="glass" className="p-6 md:p-8 mb-6">
+                {/* Match VisionCategoryCard (editable={false}) on /life-vision/[id] */}
+                <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3 mb-2">
+                  <div className="flex items-center gap-3 flex-1 min-w-0 w-full md:flex-1 md:min-w-0 justify-center md:justify-start">
+                    <div
+                      className={`w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                        activeNeedsReRecord
+                          ? 'bg-energy-500'
+                          : isRecorded
+                            ? 'bg-primary-500'
+                            : 'bg-neutral-700'
+                      }`}
+                    >
+                      <Icon
+                        icon={activeSessionSection.icon}
+                        size="xs"
+                        color="#000000"
+                      />
                     </div>
-                    <div className="flex-1">
-                      <h2 className="text-lg font-semibold text-white">{activeSessionSection.label}</h2>
-                      <p className="text-sm text-neutral-400">{activeSessionSection.description}</p>
-                    </div>
+                    <h3 className="text-sm font-medium text-neutral-400 uppercase tracking-[0.25em]">
+                      {activeSessionSection.label}
+                    </h3>
                   </div>
-                  {isRecorded && (
-                    <div className="ml-4">
+                  <div className="flex shrink-0 items-center justify-center md:justify-end gap-2 w-full md:w-auto">
+                    {isRecorded && (
                       <div className="w-12 h-12 rounded-full bg-primary-500 flex items-center justify-center">
                         <CheckCircle className="w-6 h-6 text-black" />
                       </div>
-                    </div>
-                  )}
-                  {activeNeedsReRecord && (
-                    <div className="ml-4">
+                    )}
+                    {activeNeedsReRecord && (
                       <div className="w-12 h-12 rounded-full bg-[#FFFF00]/20 border-2 border-[#FFFF00]/40 flex items-center justify-center">
                         <RefreshCw className="w-6 h-6 text-[#FFFF00]" />
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
+
+                <div className="border-b border-neutral-800 mb-4" />
+                <p className="text-sm text-neutral-400 mb-4">{activeSessionSection.description}</p>
 
                 {activeNeedsReRecord && (
                   <div className="mt-4 p-3 rounded-lg bg-[#FFFF00]/5 border border-[#FFFF00]/20">
@@ -627,18 +710,23 @@ export default function RecordVisionAudioPage() {
       )}
 
       {/* Story Recording Flow */}
-      {selectedSource && !loading && activeSourceType === 'story' && selectedStory && (
+      {activeSourceType === 'story' && selectedStory && (
         <>
-          <Card className="p-6 md:p-8 mb-6">
-            <div className="flex items-start justify-between mb-6">
-              <div className="flex-1">
-                <h2 className="text-lg font-semibold text-white mb-1">{selectedStory.title || 'Story Recording'}</h2>
-                <p className="text-sm text-neutral-400">
-                  {selectedStory.word_count?.toLocaleString() || 0} words
-                </p>
+          <Card variant="glass" className="p-6 md:p-8 mb-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
+              <div className="flex items-start gap-3 flex-1 min-w-0">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-teal-500/15 border border-teal-500/30">
+                  <Library className="w-5 h-5 text-teal-400" />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-lg font-semibold text-white">{selectedStory.title || 'Story Recording'}</h2>
+                  <p className="text-sm text-neutral-400">
+                    {selectedStory.word_count?.toLocaleString() || 0} words
+                  </p>
+                </div>
               </div>
               {storyRecording && (
-                <div className="ml-4">
+                <div className="sm:ml-4 shrink-0 flex justify-end">
                   <div className="w-12 h-12 rounded-full bg-primary-500 flex items-center justify-center">
                     <CheckCircle className="w-6 h-6 text-black" />
                   </div>
@@ -703,7 +791,12 @@ export default function RecordVisionAudioPage() {
           )}
         </>
       )}
-    </Stack>
+
+              </>
+            )}
+          </div>
+        )}
+      </Stack>
     </Container>
   )
 }

@@ -1,13 +1,43 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Card, Spinner, Container, Stack } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
-import { CheckCircle, Play, X, ChevronDown, ChevronUp, AudioLines, Search } from 'lucide-react'
+import { CheckCircle, Check, Play, X, ChevronDown, ChevronUp, AudioLines, Search, Home } from 'lucide-react'
 import { getVisionCategoryKeys } from '@/lib/design-system'
 import { useAudioStudio, QueueStatusBanner, AudioSourceSelector } from '@/components/audio-studio'
 import type { AudioSourceSelection } from '@/components/audio-studio'
+
+function CompletedStepRow({
+  step,
+  label,
+  value,
+  valueIcon,
+  onChange,
+}: {
+  step: number
+  label: string
+  value: React.ReactNode
+  valueIcon?: React.ReactNode
+  onChange: () => void
+}) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-neutral-700/50 bg-neutral-900/40">
+      <span className="w-7 h-7 rounded-full bg-primary-500/15 text-primary-500 flex items-center justify-center flex-shrink-0">
+        <Check className="w-4 h-4" />
+      </span>
+      <div className="flex-1 min-w-0 flex items-center gap-2 text-sm">
+        <span className="text-neutral-400 flex-shrink-0">{step}. {label}:</span>
+        {valueIcon}
+        <span className="text-white font-medium truncate">{value}</span>
+      </div>
+      <Button variant="ghost" size="sm" onClick={onChange} className="flex-shrink-0">
+        Change
+      </Button>
+    </div>
+  )
+}
 
 export default function AudioGeneratePage() {
   const router = useRouter()
@@ -24,11 +54,23 @@ export default function AudioGeneratePage() {
   const [voices, setVoices] = useState<{ id: string; name: string; previewUrl?: string }[]>([])
   const [dataLoading, setDataLoading] = useState(false)
 
-  const [selectedVoiceForNew, setSelectedVoiceForNew] = useState<string>('alloy')
+  const [selectedVoiceForNew, setSelectedVoiceForNew] = useState<string>('')
   const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null)
   const [previewProgress, setPreviewProgress] = useState<number>(0)
   const [voiceSearch, setVoiceSearch] = useState('')
   const audioRef = React.useRef<HTMLAudioElement | null>(null)
+  const [lastBatchVoiceId, setLastBatchVoiceId] = useState<string | null>(null)
+
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1)
+  const step1Ref = useRef<HTMLDivElement>(null)
+  const step2Ref = useRef<HTMLDivElement>(null)
+  const step3Ref = useRef<HTMLDivElement>(null)
+
+  const scrollToStep = (ref: React.RefObject<HTMLDivElement | null>) => {
+    requestAnimationFrame(() => {
+      ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
 
   // Voice preview (same pattern as binaural list on /audio/mix)
   useEffect(() => {
@@ -45,6 +87,26 @@ export default function AudioGeneratePage() {
         audioRef.current.src = ''
       }
     }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadLastBatchVoice() {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user || cancelled) return
+      const { data, error } = await supabase
+        .from('audio_generation_batches')
+        .select('voice_id')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (cancelled || error || !data?.voice_id) return
+      setLastBatchVoiceId(data.voice_id)
+    }
+    loadLastBatchVoice()
+    return () => { cancelled = true }
   }, [])
 
   const handleVoicePreview = (e: React.MouseEvent, trackUrl: string, voiceId: string) => {
@@ -88,6 +150,20 @@ export default function AudioGeneratePage() {
   function handleSourceSelected(selection: AudioSourceSelection) {
     setSelectedSource(selection)
     setDataLoading(true)
+    setCurrentStep(2)
+    scrollToStep(step2Ref)
+  }
+
+  function handleVoiceSelect(voiceId: string) {
+    if (selectedVoiceForNew !== voiceId && audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.currentTime = 0
+      setPreviewingVoiceId(null)
+      setPreviewProgress(0)
+    }
+    setSelectedVoiceForNew(voiceId)
+    setCurrentStep(3)
+    scrollToStep(step3Ref)
   }
 
   useEffect(() => {
@@ -184,6 +260,8 @@ export default function AudioGeneratePage() {
 
       if (batchError || !batch) { alert('Failed to create generation batch.'); setGenerating(false); return }
 
+      setLastBatchVoiceId(selectedVoiceForNew)
+
       const generatePayload: Record<string, unknown> = {
         sections: sectionsPayload,
         voice: selectedVoiceForNew,
@@ -229,6 +307,29 @@ export default function AudioGeneratePage() {
     [voices, voiceSearch]
   )
 
+  const sourceComplete = !!selectedSource
+  const selectedVoiceObj = voices.find(v => v.id === selectedVoiceForNew) || null
+
+  const sourceSummaryValue =
+    activeSourceType === 'life_vision' && selectedVision
+      ? (
+          <span className="inline-flex items-center gap-1.5">
+            Life Vision — Version {selectedVision.version_number}
+            {selectedVision.household_id && <Home className="w-3.5 h-3.5 text-secondary-500" />}
+          </span>
+        )
+      : activeSourceType === 'story' && selectedStory
+      ? `Story — ${selectedStory.title || 'Untitled'}`
+      : ''
+
+  const voiceSummaryValue = selectedVoiceObj?.name || selectedVoiceForNew
+
+  const lastVoiceNoteLabel = useMemo(() => {
+    if (!lastBatchVoiceId) return null
+    const fromList = voices.find(v => v.id === lastBatchVoiceId)
+    return fromList?.name ?? lastBatchVoiceId
+  }, [lastBatchVoiceId, voices])
+
   return (
     <Container size="xl">
       <Stack gap="lg" className="overflow-visible">
@@ -236,38 +337,69 @@ export default function AudioGeneratePage() {
 
         <QueueStatusBanner />
 
-        <AudioSourceSelector
-          onSourceSelected={handleSourceSelected}
-          initialSourceType={sourceType}
-          initialSourceId={sourceId}
-        />
+        {/* Step 1: Source (always mounted so re-opening via Change doesn't retrigger hydration auto-advance) */}
+        <div ref={step1Ref}>
+          <div className={currentStep === 1 ? 'block' : 'hidden'}>
+            <AudioSourceSelector
+              onSourceSelected={handleSourceSelected}
+              initialSourceType={sourceType}
+              initialSourceId={sourceId}
+              stepNumber={1}
+            />
+          </div>
+          {currentStep !== 1 && (
+            <CompletedStepRow
+              step={1}
+              label="Source"
+              value={sourceSummaryValue}
+              onChange={() => { setCurrentStep(1); scrollToStep(step1Ref) }}
+            />
+          )}
+        </div>
 
-        {selectedSource && !dataLoading && (
-          <>
-            <Card variant="glass" className="p-4 md:p-6">
-              <div className="space-y-6">
-                <div className="py-2">
-                  <div className="flex flex-col items-center text-center mb-4">
-                    <h3 className="text-lg font-semibold text-white">Select Voice</h3>
-                    <p className="text-sm text-neutral-400">Preview samples, select a voice, then click the Generate button below.</p>
-                  </div>
-                  {voices.length > 6 && (
-                    <div className="relative max-w-md mx-auto mb-4">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
-                      <input
-                        type="text"
-                        value={voiceSearch}
-                        onChange={e => setVoiceSearch(e.target.value)}
-                        placeholder="Search voices..."
-                        className="w-full pl-9 pr-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#39FF14]/50"
-                      />
+        {/* Step 2: Voice */}
+        {sourceComplete && (
+          <div ref={step2Ref}>
+            {dataLoading && currentStep === 2 ? (
+              <div className="flex min-h-[20vh] items-center justify-center">
+                <Spinner size="lg" />
+              </div>
+            ) : currentStep === 2 ? (
+              <Card variant="glass" className="p-4 md:p-6">
+                <div className="space-y-6">
+                  <div>
+                    <div className="flex flex-col items-center text-center mb-4">
+                      <div className="flex items-center justify-center gap-2">
+                        <span className="w-7 h-7 rounded-full bg-primary-500/15 text-primary-500 text-sm font-semibold flex items-center justify-center flex-shrink-0">
+                          2
+                        </span>
+                        <h3 className="text-lg font-semibold text-white">Select Voice</h3>
+                      </div>
+                      <p className="text-sm text-neutral-400">Preview samples, then select a voice to continue.</p>
+                      {lastVoiceNoteLabel && (
+                        <p className="text-xs text-neutral-500 max-w-md mx-auto mt-3 leading-relaxed">
+                          Last time you generated audio, you used{' '}
+                          <span className="text-neutral-300 font-medium">{lastVoiceNoteLabel}</span>.
+                        </p>
+                      )}
                     </div>
-                  )}
-                  <div className="space-y-2 max-h-80 overflow-y-auto pr-0.5">
-                    {voices.length > 0 && filteredVoices.length === 0 && (
-                      <p className="text-sm text-neutral-500 text-center py-6">No voices match your search.</p>
+                    {voices.length > 6 && (
+                      <div className="relative max-w-md mx-auto mb-4">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
+                        <input
+                          type="text"
+                          value={voiceSearch}
+                          onChange={e => setVoiceSearch(e.target.value)}
+                          placeholder="Search voices..."
+                          className="w-full pl-9 pr-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#39FF14]/50"
+                        />
+                      </div>
                     )}
-                    {filteredVoices.map(voice => {
+                    <div className="space-y-2 max-h-80 overflow-y-auto pr-0.5">
+                      {voices.length > 0 && filteredVoices.length === 0 && (
+                        <p className="text-sm text-neutral-500 text-center py-6">No voices match your search.</p>
+                      )}
+                      {filteredVoices.map(voice => {
                         const isSelected = selectedVoiceForNew === voice.id
                         const isThisPreviewing = previewingVoiceId === voice.id
                         const canPreview = Boolean(voice.previewUrl)
@@ -279,15 +411,7 @@ export default function AudioGeneratePage() {
                                 ? 'bg-primary-500/10 border border-primary-500'
                                 : 'bg-neutral-800/50 border border-transparent hover:bg-neutral-800'
                             }`}
-                            onClick={() => {
-                              if (selectedVoiceForNew !== voice.id && audioRef.current) {
-                                audioRef.current.pause()
-                                audioRef.current.currentTime = 0
-                                setPreviewingVoiceId(null)
-                                setPreviewProgress(0)
-                              }
-                              setSelectedVoiceForNew(voice.id)
-                            }}
+                            onClick={() => handleVoiceSelect(voice.id)}
                           >
                             {isSelected && (
                               <CheckCircle className="w-5 h-5 text-primary-500 flex-shrink-0" />
@@ -337,78 +461,93 @@ export default function AudioGeneratePage() {
                           </div>
                         )
                       })}
-                  </div>
-                </div>
-
-                {activeSourceType === 'story' && selectedStory && (
-                  <>
-                    <div className="border-t border-[#333]" />
-                    <div className="pt-2">
-                      <p className="text-xs text-neutral-500 text-center mb-2">Optional: preview the text that will be narrated</p>
-                      <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg overflow-hidden">
-                        <button
-                          type="button"
-                          onClick={() => setStoryContentExpanded(!storyContentExpanded)}
-                          className="w-full flex items-center justify-between p-4 hover:bg-neutral-700/20 transition-colors"
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-xs uppercase tracking-wider text-neutral-500 font-semibold truncate">
-                              {selectedStory.title || 'Story'}
-                            </span>
-                            <span className="text-xs text-neutral-400 flex-shrink-0">
-                              ({selectedStory.word_count?.toLocaleString() || 0} words)
-                            </span>
-                          </div>
-                          {storyContentExpanded
-                            ? <ChevronUp className="w-4 h-4 text-neutral-400 flex-shrink-0" />
-                            : <ChevronDown className="w-4 h-4 text-neutral-400 flex-shrink-0" />
-                          }
-                        </button>
-                        {storyContentExpanded && (
-                          <div className="p-4 pt-0 border-t border-neutral-700 max-h-[60vh] overflow-y-auto">
-                            <p className="text-neutral-300 text-sm leading-relaxed whitespace-pre-wrap pt-4">
-                              {selectedStory.content}
-                            </p>
-                          </div>
-                        )}
-                      </div>
                     </div>
-                  </>
-                )}
-              </div>
-            </Card>
+                  </div>
 
-            <div className="flex flex-col items-center text-center gap-4 px-4">
-              <p className="text-sm text-neutral-400 max-w-xl">
-                {activeSourceType === 'life_vision'
-                  ? 'Audio will be generated for your Life Vision in your selected voice (up to 14 total tracks: Forward, 12 life categories, and Conclusion).'
-                  : 'VIVA will narrate your selected story in your selected voice as a single audio track.'}
-              </p>
-              <Button
-                variant="primary"
-                onClick={handleGenerate}
-                disabled={generating || !selectedVoiceForNew}
-                className="min-w-[12rem] justify-center"
-              >
-                {generating ? (
-                  <span className="inline-flex items-center gap-2">
-                    <Spinner size="sm" />
-                    Generating...
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-2">
-                    <AudioLines className="w-5 h-5" />
-                    Generate
-                  </span>
-                )}
-              </Button>
-            </div>
-          </>
+                  {activeSourceType === 'story' && selectedStory && (
+                    <>
+                      <div className="border-t border-[#333]" />
+                      <div className="pt-2">
+                        <p className="text-xs text-neutral-500 text-center mb-2">Preview the text that will be narrated</p>
+                        <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg overflow-hidden">
+                          <button
+                            type="button"
+                            onClick={() => setStoryContentExpanded(!storyContentExpanded)}
+                            className="w-full flex items-center justify-between p-4 hover:bg-neutral-700/20 transition-colors"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-xs uppercase tracking-wider text-neutral-500 font-semibold truncate">
+                                {selectedStory.title || 'Story'}
+                              </span>
+                              <span className="text-xs text-neutral-400 flex-shrink-0">
+                                ({selectedStory.word_count?.toLocaleString() || 0} words)
+                              </span>
+                            </div>
+                            {storyContentExpanded
+                              ? <ChevronUp className="w-4 h-4 text-neutral-400 flex-shrink-0" />
+                              : <ChevronDown className="w-4 h-4 text-neutral-400 flex-shrink-0" />
+                            }
+                          </button>
+                          {storyContentExpanded && (
+                            <div className="p-4 pt-0 border-t border-neutral-700 max-h-[60vh] overflow-y-auto">
+                              <p className="text-neutral-300 text-sm leading-relaxed whitespace-pre-wrap pt-4">
+                                {selectedStory.content}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </Card>
+            ) : (
+              <CompletedStepRow
+                step={2}
+                label="Voice"
+                value={voiceSummaryValue}
+                onChange={() => { setCurrentStep(2); scrollToStep(step2Ref) }}
+              />
+            )}
+          </div>
         )}
 
-        {selectedSource && dataLoading && (
-          <div className="flex min-h-[20vh] items-center justify-center">
-            <Spinner size="lg" />
+        {/* Step 3: Generate */}
+        {sourceComplete && currentStep === 3 && (
+          <div ref={step3Ref}>
+            <Card variant="glass" className="p-4 md:p-6">
+              <div className="flex flex-col items-center text-center gap-4">
+                <div className="flex items-center justify-center gap-2">
+                  <span className="w-7 h-7 rounded-full bg-primary-500/15 text-primary-500 text-sm font-semibold flex items-center justify-center flex-shrink-0">
+                    3
+                  </span>
+                  <h3 className="text-lg font-semibold text-white">Generate</h3>
+                </div>
+                <p className="text-sm text-neutral-400 max-w-xl">
+                  {activeSourceType === 'life_vision'
+                    ? 'Audio will be generated for your Life Vision in your selected voice (up to 14 total tracks: Forward, 12 life categories, and Conclusion).'
+                    : 'VIVA will narrate your selected story in your selected voice as a single audio track.'}
+                </p>
+                <Button
+                  variant="primary"
+                  onClick={handleGenerate}
+                  disabled={generating || !selectedVoiceForNew}
+                  className="min-w-[12rem] justify-center"
+                >
+                  {generating ? (
+                    <span className="inline-flex items-center gap-2">
+                      <Spinner size="sm" />
+                      Generating...
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-2">
+                      <AudioLines className="w-5 h-5" />
+                      Generate
+                    </span>
+                  )}
+                </Button>
+              </div>
+            </Card>
           </div>
         )}
       </Stack>
