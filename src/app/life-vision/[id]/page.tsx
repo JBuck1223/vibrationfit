@@ -33,6 +33,7 @@ import { VISION_CATEGORIES, assessmentToVisionKey } from '@/lib/design-system/vi
 import { colors } from '@/lib/design-system/tokens'
 import { generateVisionPDF } from '@/lib/pdf'
 import { useLifeVisionStudio } from '@/components/life-vision-studio/LifeVisionStudioContext'
+import { VersionActionToolbar } from '@/components/VersionActionToolbar'
 
 interface VisionData {
   id: string
@@ -111,8 +112,8 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   const [audioTracks, setAudioTracks] = useState<Record<string, { id: string; url: string; title: string; setName?: string; voiceName?: string }>>({})
   const [availableAudioSets, setAvailableAudioSets] = useState<AudioSetOption[]>([])
   const [userProfile, setUserProfile] = useState<{ first_name?: string; full_name?: string } | null>(null)
-  const [isCommitting, setIsCommitting] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [versionToolbarLoading, setVersionToolbarLoading] = useState(false)
 
   // Card-based view functions
   const handleCategoryToggle = (categoryKey: string) => {
@@ -418,11 +419,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
           throw new Error('Vision not found')
         }
 
-        // Redirect drafts to the draft route
-        if (vision.is_draft === true) {
-          router.push(`/life-vision/${vision.id}/draft`)
-          return
-        }
+        // Drafts are now displayed inline with commit/delete toolbar
 
         const actualCompletion = calculateCompletion(vision)
         const completed = getCompletedSections(vision)
@@ -727,36 +724,31 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   }, [vision, calculateCompletion])
 
   // Commit draft vision as active version
-  const commitDraftAsActive = async () => {
-    if (!vision) {
-      alert('No draft vision to commit')
-      return
-    }
-
-    const refinedCount = getRefinedCategories(vision).length
-    if (refinedCount === 0) {
-      alert('No refined categories to commit')
-      return
-    }
-
-    if (!confirm(`Are you sure you want to commit this draft vision with ${refinedCount} refined ${refinedCount === 1 ? 'category' : 'categories'} as your active vision? This will create a new version.`)) {
-      return
-    }
-
-    setIsCommitting(true)
+  const handleToolbarCommitDraft = async () => {
+    if (!vision) return
+    setVersionToolbarLoading(true)
     try {
-      // Use the commitDraft helper
       const newActive = await commitDraft(vision.id)
-      
-      console.log('Draft committed successfully:', newActive.id)
-      
-      // Redirect to the new active vision
       router.push(`/life-vision/${newActive.id}`)
     } catch (error) {
       console.error('Error committing draft:', error)
-      alert(`Failed to commit draft: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      setError(error instanceof Error ? error.message : 'Failed to commit draft')
     } finally {
-      setIsCommitting(false)
+      setVersionToolbarLoading(false)
+    }
+  }
+
+  const handleToolbarDeleteDraft = async () => {
+    if (!vision) return
+    setVersionToolbarLoading(true)
+    try {
+      await fetch(`/api/vision/draft?draftId=${vision.id}`, { method: 'DELETE' })
+      router.push('/life-vision')
+    } catch (error) {
+      console.error('Error deleting draft:', error)
+      setError(error instanceof Error ? error.message : 'Failed to delete draft')
+    } finally {
+      setVersionToolbarLoading(false)
     }
   }
 
@@ -852,31 +844,20 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   return (
     <div className="pb-6">
       <Stack gap="md">
-        {displayStatus === 'draft' && (
-          <Card className="p-4 text-center">
-            <p className="text-sm text-neutral-400 mb-3">
-              Refined categories will show in yellow. Once you are happy with your refinement(s), commit as your active vision.
-            </p>
-            <Button
-              onClick={commitDraftAsActive}
-              disabled={isCommitting || getRefinedCategories(vision).length === 0}
-              variant="primary"
-              size="sm"
-              className="flex items-center justify-center gap-2 mx-auto text-xs md:text-sm"
-            >
-              {isCommitting ? (
-                <>
-                  <Spinner variant="primary" size="sm" />
-                  <span>Committing...</span>
-                </>
-              ) : (
-                <>
-                  <Icon icon={CheckCircle} size="sm" className="shrink-0" />
-                  <span>Commit as Active Vision</span>
-                </>
-              )}
-            </Button>
-          </Card>
+        {displayStatus === 'draft' && vision && (
+          <Container size="xl">
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <VersionActionToolbar
+                versionId={vision.id}
+                versionNumber={vision.version_number ?? 1}
+                isActive={false}
+                isDraft={true}
+                onCommitAsActive={handleToolbarCommitDraft}
+                onDelete={handleToolbarDeleteDraft}
+                isLoading={versionToolbarLoading}
+              />
+            </div>
+          </Container>
         )}
 
         {/* Versions Dropdown */}

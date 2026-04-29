@@ -110,7 +110,6 @@ export default function RecordVisionAudioPage() {
       }
 
       let refined: string[] = Array.isArray(selectedVision?.refined_categories) ? selectedVision.refined_categories : []
-      setRefinedCategories(refined)
 
       const { data: existingSet } = await supabase
         .from('audio_sets')
@@ -120,6 +119,7 @@ export default function RecordVisionAudioPage() {
         .maybeSingle()
 
       let recordingMap = new Map<string, { url: string; duration: number }>()
+      const sectionsWithPriorRecording = new Set<string>()
 
       if (existingSet) {
         setAudioSetId(existingSet.id)
@@ -135,6 +135,7 @@ export default function RecordVisionAudioPage() {
             if (track.section_key === 'full') {
               fullTrackExists = true
             } else {
+              sectionsWithPriorRecording.add(track.section_key)
               recordingMap.set(track.section_key, { url: track.audio_url, duration: track.duration_seconds || 0 })
             }
           })
@@ -142,6 +143,9 @@ export default function RecordVisionAudioPage() {
           setHasFullTrack(fullTrackExists)
         }
       }
+
+      // Only surface "re-record" for sections that both changed (refined_categories) and already had a voice track on this vision
+      refined = refined.filter(key => sectionsWithPriorRecording.has(key))
 
       // Recovery logic for previous vision versions
       if (recordingMap.size === 0 && user && selectedVision) {
@@ -227,7 +231,6 @@ export default function RecordVisionAudioPage() {
                   }
                   if (changedSections.length > 0 && refined.length === 0) {
                     refined = changedSections
-                    setRefinedCategories(changedSections)
                   }
                   setRecordings(new Map(recordingMap))
                 }
@@ -238,6 +241,8 @@ export default function RecordVisionAudioPage() {
           console.warn('Personal recording recovery failed (non-blocking):', recoveryErr)
         }
       }
+
+      setRefinedCategories(refined)
 
       const firstNeedsReRecord = refined.length > 0
         ? VISION_CATEGORIES.find(s => refined.includes(s.key) && !recordingMap.has(s.key))
