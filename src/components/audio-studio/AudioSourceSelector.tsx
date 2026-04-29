@@ -414,6 +414,7 @@ interface AudioSourceSelectorProps {
   filterVisions?: (vision: VisionData) => boolean
   initialSourceType?: AudioSourceType
   initialSourceId?: string | null
+  stepNumber?: number
 }
 
 export function AudioSourceSelector({
@@ -423,6 +424,7 @@ export function AudioSourceSelector({
   filterVisions,
   initialSourceType,
   initialSourceId,
+  stepNumber,
 }: AudioSourceSelectorProps) {
   const {
     allVisions,
@@ -482,7 +484,14 @@ export function AudioSourceSelector({
   return (
     <Card variant="glass" className="p-4 md:p-6 relative z-10">
       <div className="flex flex-col items-center text-center mb-4">
-        <h3 className="text-lg font-semibold text-white">Select Source</h3>
+        <div className="flex items-center justify-center gap-2">
+          {stepNumber !== undefined && (
+            <span className="w-7 h-7 rounded-full bg-primary-500/15 text-primary-500 text-sm font-semibold flex items-center justify-center flex-shrink-0">
+              {stepNumber}
+            </span>
+          )}
+          <h3 className="text-lg font-semibold text-white">Select Source</h3>
+        </div>
         <p className="text-sm text-neutral-400">Choose what content to use for your audio.</p>
       </div>
 
