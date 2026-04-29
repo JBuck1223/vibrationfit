@@ -8,6 +8,8 @@ import {
   Clock,
   Play,
   CheckCircle,
+  ExternalLink,
+  Presentation,
 } from 'lucide-react'
 import Markdown from 'react-markdown'
 import {
@@ -32,6 +34,13 @@ type SessionWithParticipants = VideoSession & {
 
 type NullableSession = SessionWithParticipants | null
 
+const SESSION_SLIDE_DECKS: Record<string, { url: string; title: string }> = {
+  '256cb678-d743-49f1-95a0-f4c0bf1aceff': {
+    url: '/slide-decks/journey-to-conscious-allower.html',
+    title: 'The Journey to Conscious Allower Slide Deck',
+  },
+}
+
 export default function AlignmentGymSessionPage() {
   const params = useParams()
   const router = useRouter()
@@ -43,6 +52,7 @@ export default function AlignmentGymSessionPage() {
   const [error, setError] = useState(null as string | null)
   const [recapOpen, setRecapOpen] = useState(false)
   const [transcriptOpen, setTranscriptOpen] = useState(false)
+  const [slidesOpen, setSlidesOpen] = useState(false)
 
   const fetchSession = useCallback(async () => {
     try {
@@ -119,6 +129,7 @@ export default function AlignmentGymSessionPage() {
   const skip = session.recording_playback_start_seconds ?? 0
   const hasSummaryContent = Boolean(session.session_summary?.trim())
   const hasTranscript = Boolean(session.transcript_text?.trim())
+  const slideDeck = SESSION_SLIDE_DECKS[sessionId]
 
   return (
     <Container size="xl">
@@ -260,6 +271,67 @@ export default function AlignmentGymSessionPage() {
                   >
                     {session.session_summary}
                   </Markdown>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {slideDeck && (
+          <div className="rounded-2xl border-2 border-[#333] bg-[#1F1F1F] overflow-hidden transition-all duration-300 hover:border-[#444]">
+            <button
+              type="button"
+              onClick={() => setSlidesOpen(o => !o)}
+              aria-expanded={slidesOpen}
+              className="w-full flex items-center justify-between gap-4 py-6 md:p-8 px-6 text-left group"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-1 h-8 rounded-full bg-[#BF00FF] shrink-0" />
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Presentation className="w-5 h-5 text-[#BF00FF] shrink-0" />
+                  <h2 className="text-lg md:text-xl font-bold text-white truncate">
+                    {slideDeck.title}
+                  </h2>
+                </div>
+              </div>
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 ${slidesOpen ? 'bg-[#BF00FF]/20' : 'bg-neutral-700/50 group-hover:bg-neutral-700'}`}
+              >
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform duration-300 ${slidesOpen ? 'rotate-180 text-[#BF00FF]' : 'text-neutral-400'}`}
+                />
+              </div>
+            </button>
+            <div
+              className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${slidesOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
+            >
+              <div className="overflow-hidden min-h-0">
+                <div className="px-6 md:px-8 pb-6 md:pb-8">
+                  <div
+                    className="relative w-full rounded-xl overflow-hidden bg-black border border-neutral-800"
+                    style={{ aspectRatio: '16 / 10' }}
+                  >
+                    <iframe
+                      src={slideDeck.url}
+                      title={slideDeck.title}
+                      className="absolute inset-0 w-full h-full"
+                      allow="fullscreen"
+                    />
+                  </div>
+                  <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <p className="text-xs text-neutral-500">
+                      Tap the left or right side of the deck, use the arrow buttons, or press the arrow keys to navigate.
+                    </p>
+                    <a
+                      href={slideDeck.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs text-[#BF00FF] hover:text-[#BF00FF]/80 underline underline-offset-2 transition-colors duration-300 shrink-0"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      Open full screen
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>

@@ -37,7 +37,7 @@ const LISTEN_CONTENT_SUBTEXT: Record<string, string> = {
 
 const CREATE_TOOL_SUBTEXT: Record<string, string> = {
   '/audio/generate':
-    'Choose a source and voice to create VIVA narration of your Life Vision or Story.',
+    'Generate VIVA narration of your Life Vision or Story.',
   '/audio/record':
     'Read your Life Vision or Story aloud and create a personal voice recording.',
   '/audio/mix':

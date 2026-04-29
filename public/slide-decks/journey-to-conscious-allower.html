@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>The Journey to Conscious Allower — VibrationFit</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #000000;
+        --fg: #ffffff;
+        --muted: rgba(255, 255, 255, 0.72);
+        --subtle: rgba(255, 255, 255, 0.45);
+        --accent: rgba(255, 255, 255, 0.12);
+        --panel: rgba(255, 255, 255, 0.04);
+
+        --c1: #ff0040; /* Unaware */
+        --c2: #ff6600; /* Aware */
+        --c3: #ffff00; /* Knowledge Seeker */
+        --c4: #39ff14; /* Practitioner - brand primary */
+        --c5: #00ffff; /* Conscious Observer - brand secondary */
+        --c6: #06b6d4; /* Conscious Creator */
+        --c7: #bf00ff; /* Conscious Allower - brand accent */
+
+        --trap: #ff0040;
+        --trap-soft: rgba(255, 0, 64, 0.18);
+        --trap-glow: rgba(255, 102, 0, 0.25);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: "Poppins", system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        overflow: hidden;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background:
+          radial-gradient(60% 40% at 20% 10%, rgba(57, 255, 20, 0.08), transparent 60%),
+          radial-gradient(50% 40% at 80% 100%, rgba(191, 0, 255, 0.1), transparent 60%),
+          radial-gradient(40% 40% at 100% 20%, rgba(0, 255, 255, 0.06), transparent 60%);
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .deck {
+        position: relative;
+        z-index: 1;
+        height: 100vh;
+        width: 100%;
+        display: block;
+      }
+
+      .slide {
+        display: none;
+        position: absolute;
+        inset: 0;
+        padding: clamp(1.5rem, 4vw, 3rem) clamp(1.5rem, 5vw, 4rem);
+        width: 100%;
+        height: 100vh;
+        flex-direction: column;
+      }
+
+      .slide.active {
+        display: flex;
+      }
+
+      .slide-content {
+        flex: 0 0 auto;
+        max-width: 1100px;
+        margin: 0 auto;
+        width: 100%;
+        padding-top: clamp(1rem, 4vh, 3rem);
+      }
+
+      /* Typography */
+      h1 {
+        font-size: clamp(2rem, 5.2vw, 4rem);
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin: 0 0 0.75rem;
+        line-height: 1.05;
+      }
+
+      h1 .gradient {
+        background: linear-gradient(135deg, #39ff14, #00ffff, #bf00ff);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      h2 {
+        font-size: clamp(1.5rem, 3.2vw, 2.4rem);
+        font-weight: 700;
+        margin: 0 0 0.5rem;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+      }
+
+      .eyebrow {
+        display: inline-block;
+        font-size: clamp(0.7rem, 1.2vw, 0.8rem);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.22em;
+        color: var(--muted);
+        margin-bottom: 0.75rem;
+        padding: 0.35rem 0.75rem;
+        border: 1px solid var(--accent);
+        border-radius: 999px;
+      }
+
+      .level-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.6rem;
+        font-size: clamp(0.75rem, 1.3vw, 0.85rem);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        margin-bottom: 0.85rem;
+      }
+
+      .level-badge .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+        box-shadow: 0 0 10px currentColor;
+      }
+
+      .quote {
+        font-size: clamp(1.15rem, 2.6vw, 1.6rem);
+        line-height: 1.35;
+        margin: 0 0 1rem;
+        color: var(--fg);
+        font-weight: 500;
+        font-style: italic;
+        max-width: 32ch;
+      }
+
+      .quote::before {
+        content: "\201C";
+        margin-right: 0.1em;
+      }
+
+      .quote::after {
+        content: "\201D";
+        margin-left: 0.1em;
+      }
+
+      .lead {
+        font-size: clamp(0.95rem, 1.8vw, 1.1rem);
+        line-height: 1.55;
+        margin: 0 0 0.85rem;
+        color: var(--muted);
+        max-width: 52ch;
+      }
+
+      ul.bullets {
+        margin: 0 0 1rem;
+        padding: 0;
+        list-style: none;
+        color: var(--muted);
+        font-size: clamp(0.9rem, 1.6vw, 1rem);
+        line-height: 1.5;
+        max-width: 48ch;
+      }
+
+      ul.bullets li {
+        position: relative;
+        padding-left: 1.5rem;
+        margin-bottom: 0.4rem;
+      }
+
+      ul.bullets li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0.65em;
+        width: 0.6rem;
+        height: 0.6rem;
+        background: currentColor;
+        border-radius: 50%;
+        opacity: 0.5;
+      }
+
+      .callout {
+        margin-top: 0.5rem;
+        padding: 1rem 1.25rem;
+        border-left: 3px solid currentColor;
+        background: var(--panel);
+        border-radius: 0 12px 12px 0;
+        max-width: 56ch;
+      }
+
+      .callout-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        opacity: 0.75;
+        margin-bottom: 0.4rem;
+        font-weight: 700;
+      }
+
+      .callout p {
+        margin: 0;
+        font-size: clamp(0.95rem, 1.7vw, 1.05rem);
+        line-height: 1.45;
+        color: var(--fg);
+        font-weight: 500;
+      }
+
+      /* Per-level color variables */
+      .slide[data-level="1"] .level-badge,
+      .slide[data-level="1"] .callout { color: var(--c1); }
+      .slide[data-level="2"] .level-badge,
+      .slide[data-level="2"] .callout { color: var(--c2); }
+      .slide[data-level="3"] .level-badge,
+      .slide[data-level="3"] .callout { color: var(--c3); }
+      .slide[data-level="4"] .level-badge,
+      .slide[data-level="4"] .callout { color: var(--c4); }
+      .slide[data-level="5"] .level-badge,
+      .slide[data-level="5"] .callout { color: var(--c5); }
+      .slide[data-level="6"] .level-badge,
+      .slide[data-level="6"] .callout { color: var(--c6); }
+      .slide[data-level="7"] .level-badge,
+      .slide[data-level="7"] .callout { color: var(--c7); }
+
+      .slide[data-trap] .level-badge,
+      .slide[data-trap] .callout { color: var(--trap); }
+
+      /* TITLE slide */
+      .title-slide .slide-content {
+        margin: auto;
+        text-align: center;
+        padding: 0;
+      }
+
+      .title-slide h1 {
+        font-size: clamp(2.2rem, 6vw, 5rem);
+        font-weight: 800;
+      }
+
+      .title-slide .subtitle {
+        font-size: clamp(1rem, 2vw, 1.3rem);
+        color: var(--muted);
+        max-width: 46ch;
+        margin: 1rem auto 2rem;
+      }
+
+      .title-slide .hint {
+        font-size: 0.8rem;
+        color: var(--subtle);
+        letter-spacing: 0.1em;
+      }
+
+      .title-slide .hint kbd {
+        background: var(--accent);
+        border-radius: 4px;
+        padding: 0.15rem 0.45rem;
+        font-family: inherit;
+        font-weight: 600;
+        color: var(--fg);
+        margin: 0 0.2rem;
+      }
+
+      /* Overview and recap columns */
+      .two-col {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+      }
+
+      @media (min-width: 800px) {
+        .two-col {
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1.25rem;
+        }
+      }
+
+      .trap-card {
+        padding: 1rem 1.15rem;
+        background: rgba(255, 0, 64, 0.06);
+        border: 1px solid rgba(255, 0, 64, 0.35);
+        border-radius: 14px;
+      }
+
+      .trap-card h3 {
+        margin: 0 0 0.35rem;
+        font-size: 1rem;
+        color: var(--trap);
+        font-weight: 700;
+        letter-spacing: 0.01em;
+      }
+
+      .trap-card p {
+        margin: 0;
+        font-size: 0.9rem;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+
+      /* CTA slide */
+      .cta-slide .slide-content {
+        margin: auto;
+        text-align: center;
+      }
+
+      .cta-slide h1 {
+        font-size: clamp(2rem, 5vw, 3.5rem);
+      }
+
+      .cta-slide .lead {
+        margin: 1rem auto 1.5rem;
+        max-width: 56ch;
+        color: var(--fg);
+        font-size: clamp(1rem, 2vw, 1.2rem);
+      }
+
+      .cta-button {
+        display: inline-block;
+        margin-top: 1rem;
+        padding: 0.85rem 2rem;
+        background: linear-gradient(135deg, #39ff14, #00ffff);
+        color: #000;
+        font-weight: 700;
+        border-radius: 999px;
+        font-size: 1rem;
+        letter-spacing: 0.02em;
+        box-shadow: 0 8px 24px rgba(57, 255, 20, 0.25);
+      }
+
+      /* ===== STAIRCASE ===== */
+      .staircase-wrap {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 45vh;
+        min-height: 260px;
+        padding: 1rem clamp(1rem, 3vw, 2.5rem) 2.5rem;
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      .staircase {
+        width: 100%;
+        height: 100%;
+        max-width: 1400px;
+        margin: 0 auto;
+        display: block;
+      }
+
+      .step {
+        transition: opacity 600ms cubic-bezier(0.22, 0.61, 0.36, 1),
+          transform 600ms cubic-bezier(0.22, 0.61, 0.36, 1),
+          filter 600ms ease;
+        transform-box: fill-box;
+        transform-origin: bottom center;
+        opacity: 0.12;
+        transform: translateY(12px) scaleY(0.92);
+      }
+
+      .step.revealed {
+        opacity: 0.55;
+        transform: translateY(0) scaleY(1);
+      }
+
+      .step.active {
+        opacity: 1;
+        transform: translateY(0) scaleY(1);
+      }
+
+      .step-number {
+        transition: opacity 600ms ease, transform 600ms ease;
+        opacity: 0.2;
+        transform: translateY(8px);
+        transform-box: fill-box;
+        transform-origin: center;
+      }
+
+      .step-number.revealed { opacity: 0.7; transform: translateY(0); }
+      .step-number.active { opacity: 1; transform: translateY(0); }
+
+      .step-number circle {
+        transition: filter 600ms ease;
+      }
+
+      .step-label {
+        font-family: "Poppins", sans-serif;
+        font-weight: 700;
+        font-size: 13px;
+        fill: #000;
+        transition: opacity 500ms ease;
+        opacity: 0.15;
+        pointer-events: none;
+      }
+
+      .step-label.revealed { opacity: 0.85; }
+      .step-label.active { opacity: 1; }
+
+      /* Trap overlays */
+      .trap {
+        opacity: 0;
+        transition: opacity 500ms ease;
+        pointer-events: none;
+      }
+
+      .trap.visible {
+        opacity: 1;
+      }
+
+      .trap-band {
+        fill: rgba(255, 0, 64, 0.14);
+        stroke: rgba(255, 0, 64, 0.7);
+        stroke-width: 2;
+        stroke-dasharray: 8 6;
+      }
+
+      .trap-band.pulse {
+        animation: trapPulse 2.4s ease-in-out infinite;
+      }
+
+      @keyframes trapPulse {
+        0%, 100% { fill: rgba(255, 0, 64, 0.12); }
+        50% { fill: rgba(255, 0, 64, 0.28); }
+      }
+
+      .trap-label {
+        font-family: "Poppins", sans-serif;
+        font-weight: 700;
+        font-size: 15px;
+        fill: #ff0040;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+
+      .trap-label-sub {
+        font-family: "Poppins", sans-serif;
+        font-weight: 500;
+        font-size: 11px;
+        fill: rgba(255, 255, 255, 0.75);
+      }
+
+      .ground-line {
+        stroke: rgba(255, 255, 255, 0.08);
+        stroke-width: 1;
+        stroke-dasharray: 3 4;
+      }
+
+      /* Brand mark on staircase */
+      .brand-mark {
+        position: fixed;
+        bottom: 0.75rem;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 0.7rem;
+        color: var(--subtle);
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        z-index: 2;
+        pointer-events: none;
+      }
+
+      /* Navigation */
+      nav.dots {
+        position: fixed;
+        top: 1.25rem;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 0.4rem;
+        z-index: 3;
+      }
+
+      nav.dots button {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        border: none;
+        padding: 0;
+        background: rgba(255, 255, 255, 0.2);
+        cursor: pointer;
+        transition: all 200ms ease;
+      }
+
+      nav.dots button[aria-current="true"] {
+        background: #fff;
+        transform: scale(1.3);
+      }
+
+      nav.dots button.trap-dot {
+        background: rgba(255, 0, 64, 0.35);
+      }
+
+      nav.dots button.trap-dot[aria-current="true"] {
+        background: var(--trap);
+      }
+
+      .slide-counter {
+        position: fixed;
+        top: 1.25rem;
+        right: 1.5rem;
+        font-size: 0.75rem;
+        letter-spacing: 0.18em;
+        color: var(--subtle);
+        font-variant-numeric: tabular-nums;
+        z-index: 3;
+      }
+
+      /* Navigation arrows */
+      .nav-arrows {
+        position: fixed;
+        top: 50%;
+        left: 0;
+        right: 0;
+        transform: translateY(-50%);
+        display: flex;
+        justify-content: space-between;
+        padding: 0 clamp(0.75rem, 2vw, 1.5rem);
+        pointer-events: none;
+        z-index: 3;
+      }
+
+      .nav-arrow {
+        pointer-events: auto;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        color: rgba(255, 255, 255, 0.88);
+        width: clamp(2.75rem, 4vw, 3.5rem);
+        height: clamp(2.75rem, 4vw, 3.5rem);
+        border-radius: 999px;
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: background 200ms ease, opacity 200ms ease,
+          transform 200ms ease, border-color 200ms ease;
+      }
+
+      .nav-arrow:hover:not(:disabled) {
+        background: rgba(57, 255, 20, 0.15);
+        border-color: rgba(57, 255, 20, 0.5);
+        transform: scale(1.08);
+      }
+
+      .nav-arrow:active:not(:disabled) {
+        transform: scale(0.95);
+      }
+
+      .nav-arrow:disabled {
+        opacity: 0.2;
+        cursor: not-allowed;
+      }
+
+      .nav-arrow svg {
+        width: 1.25rem;
+        height: 1.25rem;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2.25;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      /* Tap zones on mobile become wider */
+      @media (max-width: 640px) {
+        .nav-arrows {
+          padding: 0 0.5rem;
+        }
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+      }
+
+      /* Responsive: hide staircase visualization on very short screens */
+      @media (max-height: 520px) {
+        .staircase-wrap { display: none; }
+        .slide { padding-bottom: 4rem; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="slide-counter" id="counter">01 / 13</div>
+
+    <div class="deck" id="deck">
+      <!-- 0: TITLE -->
+      <section class="slide title-slide active" data-index="0" data-progress="0" aria-label="Title">
+        <div class="slide-content">
+          <div class="eyebrow">The Alignment Gym</div>
+          <h1>The Journey to<br/><span class="gradient">Conscious Allower</span></h1>
+          <p class="subtitle">
+            Seven levels. Three traps. One roadmap for the path from
+            &ldquo;life just happens&rdquo; to inner freedom.
+          </p>
+          <p class="hint">Press <kbd>&rarr;</kbd> or click anywhere to begin</p>
+        </div>
+      </section>
+
+      <!-- 1: OVERVIEW -->
+      <section class="slide" data-index="1" data-progress="7" data-trap="all" aria-label="The Roadmap">
+        <div class="slide-content">
+          <div class="eyebrow">The Full Roadmap</div>
+          <h2>Seven levels. Three traps.</h2>
+          <p class="lead">
+            Every person moving toward conscious creation passes through the
+            same seven stages &mdash; and gets stuck in the same three places.
+            Naming them is the first step to moving through them.
+          </p>
+          <div class="two-col">
+            <div class="trap-card">
+              <h3>The Buffet Trap</h3>
+              <p>Levels 2&ndash;4. Crystals, sage, cards, random methods. Always shopping, never installing.</p>
+            </div>
+            <div class="trap-card">
+              <h3>The Inconsistency Trap</h3>
+              <p>Between 4 and 5. Practicing without a feedback loop. No proof, no confidence, no reps.</p>
+            </div>
+            <div class="trap-card">
+              <h3>The Happiness Trap</h3>
+              <p>Between 6 and 7. You got what you wanted. You still feel negative sometimes.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2: LEVEL 1 -->
+      <section class="slide" data-index="2" data-progress="1" data-active="1" data-level="1" aria-label="Level 1 Unaware">
+        <div class="slide-content">
+          <div class="level-badge"><span class="dot" style="background: var(--c1)"></span>Level 1 &middot; Unaware</div>
+          <p class="quote">I guess life just happens.</p>
+          <p class="lead">
+            No concept of a creative process. Life is something that happens
+            <em>to</em> you. Good days, bad days, random weather.
+          </p>
+          <ul class="bullets" style="color: var(--c1)">
+            <li>You have no awareness that thought creates reality</li>
+            <li>You blame circumstance, luck, or other people</li>
+            <li>Your identity is reactive, not creative</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 3: LEVEL 2 -->
+      <section class="slide" data-index="3" data-progress="2" data-active="2" data-level="2" aria-label="Level 2 Aware">
+        <div class="slide-content">
+          <div class="level-badge"><span class="dot" style="background: var(--c2)"></span>Level 2 &middot; Aware</div>
+          <p class="quote">There&rsquo;s some kind of creative process that works for people.</p>
+          <p class="lead">
+            You&rsquo;ve seen Law of Attraction, manifestation, or mindset work
+            for other people. The door is open &mdash; but you haven&rsquo;t
+            walked through it yet.
+          </p>
+          <ul class="bullets" style="color: var(--c2)">
+            <li>You have vague hope, but no plan</li>
+            <li>You collect evidence from other people&rsquo;s stories</li>
+            <li>You&rsquo;re still waiting for the &ldquo;right time&rdquo;</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 4: TRAP 1 — BUFFET -->
+      <section class="slide" data-index="4" data-progress="2" data-trap="buffet" aria-label="The Buffet Trap">
+        <div class="slide-content">
+          <div class="eyebrow" style="border-color: var(--trap); color: var(--trap)">Trap 01 &middot; Levels 2 &mdash; 4</div>
+          <h2>The Buffet Trap</h2>
+          <p class="lead">
+            Crystals. Sage. Oracle cards. Breathwork. Gurus.
+            Years of exploring powerful tools, but no single installed
+            system. It always feels like you&rsquo;re one more technique
+            away from the life you want.
+          </p>
+          <ul class="bullets" style="color: var(--trap)">
+            <li>You&rsquo;re constantly shopping for methods</li>
+            <li>You stack practices that never compound</li>
+            <li>You have no single operating system to run</li>
+          </ul>
+          <div class="callout">
+            <p>
+              The problem isn&rsquo;t you &mdash; it&rsquo;s the buffet.
+              You don&rsquo;t need more stuff. You need <strong>one system</strong>.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5: LEVEL 3 -->
+      <section class="slide" data-index="5" data-progress="3" data-active="3" data-level="3" aria-label="Level 3 Knowledge Seeker">
+        <div class="slide-content">
+          <div class="level-badge"><span class="dot" style="background: var(--c3)"></span>Level 3 &middot; Knowledge Seeker</div>
+          <p class="quote">I&rsquo;m trying to find the process.</p>
+          <p class="lead">
+            Books stacked on your nightstand. Programs half-finished. Five
+            different gurus in your podcast queue. You&rsquo;re
+            intellectually rich and energetically scattered.
+          </p>
+          <ul class="bullets" style="color: var(--c3)">
+            <li>You consume more than you apply</li>
+            <li>You compare teachers instead of running one method</li>
+            <li>You&rsquo;re deep in the Buffet Trap</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 6: LEVEL 4 -->
+      <section class="slide" data-index="6" data-progress="4" data-active="4" data-level="4" aria-label="Level 4 Spaghetti Practitioner">
+        <div class="slide-content">
+          <div class="level-badge"><span class="dot" style="background: var(--c4)"></span>Level 4 &middot; Spaghetti Practitioner</div>
+          <p class="quote">I&rsquo;m trying a bunch of things.</p>
+          <p class="lead">
+            You&rsquo;re finally in motion &mdash; but you&rsquo;re throwing
+            spaghetti at the wall. Meditate some days, journal others, skip
+            a week, binge a course. No feedback loop, so no confidence.
+          </p>
+          <ul class="bullets" style="color: var(--c4)">
+            <li>You&rsquo;re in action, but it&rsquo;s inconsistent and random</li>
+            <li>You can&rsquo;t tell what&rsquo;s working because nothing is measured</li>
+            <li>One bad week feels like proof it doesn&rsquo;t work</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 7: TRAP 2 — INCONSISTENCY -->
+      <section class="slide" data-index="7" data-progress="4" data-trap="inconsistency" aria-label="The Inconsistency Trap">
+        <div class="slide-content">
+          <div class="eyebrow" style="border-color: var(--trap); color: var(--trap)">Trap 02 &middot; Between Level 4 and 5</div>
+          <h2>The Inconsistency Trap</h2>
+          <p class="lead">
+            This is where most people quit. You practice, but not long
+            enough or consistently enough to see reality respond. Without
+            reps, there&rsquo;s no proof. Without proof, there&rsquo;s no belief.
+            Without belief, you drop the practice.
+          </p>
+          <ul class="bullets" style="color: var(--trap)">
+            <li>Inconsistent reps &rarr; inconsistent results</li>
+            <li>Inconsistent results &rarr; fragile belief</li>
+            <li>Fragile belief &rarr; first hard week ends the practice</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 8: LEVEL 5 -->
+      <section class="slide" data-index="8" data-progress="5" data-active="5" data-level="5" aria-label="Level 5 Conscious Observer">
+        <div class="slide-content">
+          <div class="level-badge"><span class="dot" style="background: var(--c5)"></span>Level 5 &middot; Conscious Observer</div>
+          <p class="quote">I can see reality responding to my practice.</p>
+          <p class="lead">
+            The first time you clearly connect a shift in your inner state
+            to a shift in your outer reality. It stops feeling like hope.
+            It starts feeling like <em>physics</em>.
+          </p>
+          <ul class="bullets" style="color: var(--c5)">
+            <li>You see clear cause-and-effect between practice and reality</li>
+            <li>You have confidence in the <em>system</em>, not just the hype</li>
+            <li>You have enough reps that you can&rsquo;t unsee it</li>
+          </ul>
+          <div class="callout">
+            <div class="callout-label">The shift</div>
+            <p>From &ldquo;I hope this works&rdquo; to &ldquo;I know this works.&rdquo;</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 9: LEVEL 6 -->
+      <section class="slide" data-index="9" data-progress="6" data-active="6" data-level="6" aria-label="Level 6 Conscious Creator">
+        <div class="slide-content">
+          <div class="level-badge"><span class="dot" style="background: var(--c6)"></span>Level 6 &middot; Conscious Creator</div>
+          <p class="quote">I can reliably create time, location, and financial freedom.</p>
+          <p class="lead">
+            Your vision is mostly realized. The life on your vision board is
+            the life in your calendar. And right here &mdash; right when you
+            thought the journey was over &mdash; the last trap appears.
+          </p>
+          <ul class="bullets" style="color: var(--c6)">
+            <li>Your outer results are consistent and repeatable</li>
+            <li>You create from desire, not desperation</li>
+            <li>You discover the subtle gap between <em>got it</em> and <em>happy</em></li>
+          </ul>
+          <div class="callout">
+            <div class="callout-label">The surprise</div>
+            <p>Outer freedom does not automatically produce inner freedom.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 10: TRAP 3 — HAPPINESS -->
+      <section class="slide" data-index="10" data-progress="6" data-trap="happiness" aria-label="The Happiness Trap">
+        <div class="slide-content">
+          <div class="eyebrow" style="border-color: var(--trap); color: var(--trap)">Trap 03 &middot; Between Level 6 and 7</div>
+          <h2>The Happiness Trap</h2>
+          <p class="lead">
+            &ldquo;I got what I wanted &mdash; and I still feel negative sometimes.&rdquo;
+            The achievement didn&rsquo;t automatically come with happiness as
+            a byproduct. The world kept being the world.
+          </p>
+          <ul class="bullets" style="color: var(--trap)">
+            <li>Control becomes your new drug</li>
+            <li>You ask circumstance to carry your inner state</li>
+            <li>Tiny fluctuations in reality feel bigger than they are</li>
+          </ul>
+          <div class="callout">
+            <div class="callout-label">The Shift</div>
+            <p>You realize that more stuff won&rsquo;t make you feel better. Now it&rsquo;s a game of scaling your inner freedom.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 11: LEVEL 7 -->
+      <section class="slide" data-index="11" data-progress="7" data-active="7" data-level="7" aria-label="Level 7 Conscious Allower">
+        <div class="slide-content">
+          <div class="level-badge"><span class="dot" style="background: var(--c7)"></span>Level 7 &middot; Conscious Allower</div>
+          <p class="quote">I don&rsquo;t need anything or anyone to change in order to feel good.</p>
+          <p class="lead">
+            Inner freedom <em>on top of</em> outer freedom. Not controlling
+            circumstance &mdash; allowing it. You become a beacon, transmitting
+            the awareness without needing to manage everyone else&rsquo;s
+            experience.
+          </p>
+          <ul class="bullets" style="color: var(--c7)">
+            <li>Your peace isn&rsquo;t dependent on the weather</li>
+            <li>You keep creating &mdash; from overflow, not lack</li>
+            <li>You stop trying to control; you start being the signal</li>
+          </ul>
+          <div class="callout">
+            <div class="callout-label">The destination</div>
+            <p>Free inside. Creating outside. Letting the world be the world.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 12: FINALE -->
+      <section class="slide" data-index="12" data-progress="7" data-trap="all" aria-label="The Journey to Conscious Allower">
+        <div class="slide-content">
+          <div class="eyebrow">The Full Journey</div>
+          <h1>The Journey to<br/><span class="gradient">Conscious Allower</span></h1>
+          <p class="lead">
+            Seven levels. Three traps. One path from &ldquo;life just
+            happens&rdquo; to inner freedom.
+          </p>
+          <div class="two-col">
+            <div class="trap-card">
+              <h3>The Buffet Trap</h3>
+              <p>Levels 2 &ndash; 4. One system beats ten techniques.</p>
+            </div>
+            <div class="trap-card">
+              <h3>The Inconsistency Trap</h3>
+              <p>Between 4 and 5. Reps &rarr; proof &rarr; belief.</p>
+            </div>
+            <div class="trap-card">
+              <h3>The Happiness Trap</h3>
+              <p>Between 6 and 7. Inner freedom on top of outer.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ===== PERSISTENT STAIRCASE VISUALIZATION ===== -->
+    <div class="staircase-wrap" aria-hidden="true">
+      <svg
+        class="staircase"
+        viewBox="0 0 1200 500"
+        preserveAspectRatio="xMidYMax meet"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <!-- Ground line -->
+        <line class="ground-line" x1="60" y1="450" x2="1140" y2="450" />
+
+        <!-- Step definitions:
+             7 steps, 140px wide, 10px gap.
+             Heights grow by 40px per step.
+             Layout: x = 80 + i * 150, width = 140
+             height = 80 + i * 40 -->
+
+        <!-- Step 1: Unaware -->
+        <g class="step-group" data-step="1">
+          <rect class="step step-1" x="80" y="370" width="140" height="80" rx="6" fill="#ff0040" />
+          <text class="step-label" x="150" y="415" text-anchor="middle">Unaware</text>
+        </g>
+        <g class="step-number number-1" data-step="1">
+          <circle cx="150" cy="340" r="18" fill="#ff0040" />
+          <text x="150" y="345" text-anchor="middle" fill="#000" font-weight="700" font-size="15">1</text>
+        </g>
+
+        <!-- Step 2: Aware -->
+        <g class="step-group" data-step="2">
+          <rect class="step step-2" x="230" y="330" width="140" height="120" rx="6" fill="#ff6600" />
+          <text class="step-label" x="300" y="395" text-anchor="middle">Aware</text>
+        </g>
+        <g class="step-number number-2" data-step="2">
+          <circle cx="300" cy="300" r="18" fill="#ff6600" />
+          <text x="300" y="305" text-anchor="middle" fill="#000" font-weight="700" font-size="15">2</text>
+        </g>
+
+        <!-- Step 3: Knowledge Seeker -->
+        <g class="step-group" data-step="3">
+          <rect class="step step-3" x="380" y="290" width="140" height="160" rx="6" fill="#ffff00" />
+          <text class="step-label" x="450" y="365" text-anchor="middle" fill="#000">Knowledge</text>
+          <text class="step-label" x="450" y="382" text-anchor="middle" fill="#000">Seeker</text>
+        </g>
+        <g class="step-number number-3" data-step="3">
+          <circle cx="450" cy="260" r="18" fill="#ffff00" />
+          <text x="450" y="265" text-anchor="middle" fill="#000" font-weight="700" font-size="15">3</text>
+        </g>
+
+        <!-- Step 4: Spaghetti Practitioner -->
+        <g class="step-group" data-step="4">
+          <rect class="step step-4" x="530" y="250" width="140" height="200" rx="6" fill="#39ff14" />
+          <text class="step-label" x="600" y="335" text-anchor="middle" fill="#000">Spaghetti</text>
+          <text class="step-label" x="600" y="352" text-anchor="middle" fill="#000">Practitioner</text>
+        </g>
+        <g class="step-number number-4" data-step="4">
+          <circle cx="600" cy="220" r="18" fill="#39ff14" />
+          <text x="600" y="225" text-anchor="middle" fill="#000" font-weight="700" font-size="15">4</text>
+        </g>
+
+        <!-- Step 5: Conscious Observer -->
+        <g class="step-group" data-step="5">
+          <rect class="step step-5" x="680" y="210" width="140" height="240" rx="6" fill="#00ffff" />
+          <text class="step-label" x="750" y="315" text-anchor="middle" fill="#000">Conscious</text>
+          <text class="step-label" x="750" y="332" text-anchor="middle" fill="#000">Observer</text>
+        </g>
+        <g class="step-number number-5" data-step="5">
+          <circle cx="750" cy="180" r="18" fill="#00ffff" />
+          <text x="750" y="185" text-anchor="middle" fill="#000" font-weight="700" font-size="15">5</text>
+        </g>
+
+        <!-- Step 6: Conscious Creator -->
+        <g class="step-group" data-step="6">
+          <rect class="step step-6" x="830" y="170" width="140" height="280" rx="6" fill="#06b6d4" />
+          <text class="step-label" x="900" y="295" text-anchor="middle">Conscious</text>
+          <text class="step-label" x="900" y="312" text-anchor="middle">Creator</text>
+        </g>
+        <g class="step-number number-6" data-step="6">
+          <circle cx="900" cy="140" r="18" fill="#06b6d4" />
+          <text x="900" y="145" text-anchor="middle" fill="#fff" font-weight="700" font-size="15">6</text>
+        </g>
+
+        <!-- Step 7: Conscious Allower -->
+        <g class="step-group" data-step="7">
+          <rect class="step step-7" x="980" y="130" width="140" height="320" rx="6" fill="#bf00ff" />
+          <text class="step-label" x="1050" y="275" text-anchor="middle">Conscious</text>
+          <text class="step-label" x="1050" y="292" text-anchor="middle">Allower</text>
+        </g>
+        <g class="step-number number-7" data-step="7">
+          <circle cx="1050" cy="100" r="18" fill="#bf00ff" />
+          <text x="1050" y="105" text-anchor="middle" fill="#fff" font-weight="700" font-size="15">7</text>
+        </g>
+
+        <!-- ===== TRAP OVERLAYS ===== -->
+
+        <!-- Buffet Trap: spans steps 2, 3, 4 -->
+        <g class="trap" data-trap="buffet">
+          <rect class="trap-band pulse" x="220" y="115" width="460" height="345" rx="10" />
+          <text class="trap-label" x="450" y="100" text-anchor="middle">The Buffet Trap</text>
+          <text class="trap-label-sub" x="450" y="122" text-anchor="middle">Levels 2 &#8211; 4 &middot; Always shopping, never installing</text>
+        </g>
+
+        <!-- Inconsistency Trap: between step 4 and step 5 -->
+        <g class="trap" data-trap="inconsistency">
+          <rect class="trap-band pulse" x="660" y="115" width="40" height="345" rx="6" />
+          <text class="trap-label" x="680" y="100" text-anchor="middle">Inconsistency Trap</text>
+          <text class="trap-label-sub" x="680" y="122" text-anchor="middle">Between 4 and 5 &middot; No reps, no proof</text>
+        </g>
+
+        <!-- Happiness Trap: between step 6 and step 7 -->
+        <g class="trap" data-trap="happiness">
+          <rect class="trap-band pulse" x="960" y="75" width="40" height="385" rx="6" />
+          <text class="trap-label" x="980" y="60" text-anchor="middle">Happiness Trap</text>
+          <text class="trap-label-sub" x="980" y="82" text-anchor="middle">Between 6 and 7 &middot; Inner vs outer freedom</text>
+        </g>
+
+        <!-- All-traps mode (overview + recap) -->
+        <g class="trap" data-trap="all">
+          <rect class="trap-band" x="220" y="115" width="460" height="345" rx="10" opacity="0.6" />
+          <rect class="trap-band" x="660" y="115" width="40" height="345" rx="6" opacity="0.6" />
+          <rect class="trap-band" x="960" y="75" width="40" height="385" rx="6" opacity="0.6" />
+          <text class="trap-label" x="450" y="100" text-anchor="middle" font-size="13">Buffet</text>
+          <text class="trap-label" x="680" y="100" text-anchor="middle" font-size="13">Inconsistency</text>
+          <text class="trap-label" x="980" y="60" text-anchor="middle" font-size="13">Happiness</text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="brand-mark">VibrationFit &middot; Alignment Gym</div>
+
+    <div class="nav-arrows">
+      <button class="nav-arrow" id="navPrev" aria-label="Previous slide" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <button class="nav-arrow" id="navNext" aria-label="Next slide" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+
+    <nav class="dots" id="dots" aria-label="Slides"></nav>
+
+    <script>
+      (function () {
+        var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+        var steps = Array.prototype.slice.call(document.querySelectorAll(".step-group"));
+        var numbers = Array.prototype.slice.call(document.querySelectorAll(".step-number"));
+        var traps = Array.prototype.slice.call(document.querySelectorAll(".trap"));
+        var dotsNav = document.getElementById("dots");
+        var counter = document.getElementById("counter");
+        var prevBtn = document.getElementById("navPrev");
+        var nextBtn = document.getElementById("navNext");
+        var index = 0;
+
+        var trapSlides = { 4: true, 7: true, 10: true };
+
+        function renderDots() {
+          dotsNav.innerHTML = "";
+          slides.forEach(function (_, i) {
+            var b = document.createElement("button");
+            b.type = "button";
+            b.setAttribute("aria-label", "Go to slide " + (i + 1));
+            if (trapSlides[i]) b.classList.add("trap-dot");
+            if (i === index) b.setAttribute("aria-current", "true");
+            b.addEventListener("click", function (ev) {
+              ev.stopPropagation();
+              go(i);
+            });
+            dotsNav.appendChild(b);
+          });
+        }
+
+        function updateStaircase(slide) {
+          var progress = parseInt(slide.getAttribute("data-progress") || "0", 10);
+          var active = slide.getAttribute("data-active");
+          var trap = slide.getAttribute("data-trap");
+
+          steps.forEach(function (s) {
+            var stepNum = parseInt(s.getAttribute("data-step"), 10);
+            var rect = s.querySelector(".step");
+            var label = s.querySelector(".step-label");
+            var labels = s.querySelectorAll(".step-label");
+
+            [rect].forEach(function (el) {
+              el.classList.remove("revealed", "active");
+            });
+            labels.forEach(function (l) { l.classList.remove("revealed", "active"); });
+
+            if (stepNum <= progress) {
+              rect.classList.add("revealed");
+              labels.forEach(function (l) { l.classList.add("revealed"); });
+            }
+            if (active && stepNum === parseInt(active, 10)) {
+              rect.classList.add("active");
+              labels.forEach(function (l) { l.classList.add("active"); });
+            }
+          });
+
+          numbers.forEach(function (n) {
+            var stepNum = parseInt(n.getAttribute("data-step"), 10);
+            n.classList.remove("revealed", "active");
+            if (stepNum <= progress) n.classList.add("revealed");
+            if (active && stepNum === parseInt(active, 10)) n.classList.add("active");
+          });
+
+          traps.forEach(function (t) {
+            var name = t.getAttribute("data-trap");
+            t.classList.toggle("visible", trap === name);
+          });
+        }
+
+        function go(i) {
+          index = Math.max(0, Math.min(slides.length - 1, i));
+          slides.forEach(function (s, j) {
+            s.classList.toggle("active", j === index);
+          });
+          updateStaircase(slides[index]);
+          renderDots();
+          counter.textContent =
+            String(index + 1).padStart(2, "0") +
+            " / " +
+            String(slides.length).padStart(2, "0");
+          prevBtn.disabled = index === 0;
+          nextBtn.disabled = index === slides.length - 1;
+        }
+
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") {
+            e.preventDefault();
+            go(index + 1);
+          } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+            e.preventDefault();
+            go(index - 1);
+          } else if (e.key === "Home") {
+            go(0);
+          } else if (e.key === "End") {
+            go(slides.length - 1);
+          }
+        });
+
+        prevBtn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          go(index - 1);
+        });
+
+        nextBtn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          go(index + 1);
+        });
+
+        document.body.addEventListener("click", function (e) {
+          if (
+            e.target.closest("nav.dots") ||
+            e.target.closest(".nav-arrow")
+          ) {
+            return;
+          }
+          var vw = window.innerWidth || document.documentElement.clientWidth;
+          if (e.clientX < vw / 2) {
+            go(index - 1);
+          } else {
+            go(index + 1);
+          }
+        });
+
+        go(0);
+        renderDots();
+      })();
+    </script>
+  </body>
+</html>
