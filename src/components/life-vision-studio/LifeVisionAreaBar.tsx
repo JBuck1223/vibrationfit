@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, usePathname } from 'next/navigation'
-import { Target, PenLine, Eye, Download, Users, Headphones, Sparkles, CheckCircle, Layers, Wand2, Info } from 'lucide-react'
+import { Target, PenLine, Eye, Download, Users, Headphones, Sparkles, CheckCircle, Info } from 'lucide-react'
 import { AreaBar, type AreaBarContextNavItem, type AreaBarVersionSelector } from '@/lib/design-system/components'
 import { useLifeVisionStudio } from './LifeVisionStudioContext'
 
@@ -13,7 +13,7 @@ const VOICE_DISPLAY_NAMES: Record<string, string> = {
 const TABS = [
   { label: 'View', path: '/life-vision', icon: Eye },
   { label: 'About', path: '/life-vision/about', icon: Info },
-  { label: 'Update', path: '/life-vision/create', icon: PenLine },
+  { label: 'Update', path: '/life-vision/new/fun', icon: PenLine },
 ]
 
 const CREATE_AREA_ROUTES = [
@@ -233,16 +233,11 @@ export function LifeVisionAreaBar() {
       const draftDisplayVersion = nonDraftVisions.length + 1
 
       contextNav = [
-        { label: 'Generate', path: '/life-vision/new', icon: Wand2, isActive: isOnCategoryPage },
-        { label: 'Assemble', path: '/life-vision/new/assembly', icon: Layers, isActive: isOnAssemblyPage },
+        ...(draft ? [{ label: 'Review Draft', path: `/life-vision/${draft.id}`, icon: Eye }] : []),
       ]
 
-      if (isOnCategoryPage) {
-        contextText = draft
-          ? `Editing Version ${draftDisplayVersion} Draft`
-          : 'Build each category of your new Life Vision with VIVA.'
-      } else if (isOnAssemblyPage) {
-        contextText = 'VIVA will weave your categories into a complete Life Vision document.'
+      if (isOnCategoryPage && !draft) {
+        contextText = 'Build each category of your new Life Vision with VIVA.'
       }
 
       if (draft || nonDraftVisions.length > 0) {
@@ -285,7 +280,7 @@ export function LifeVisionAreaBar() {
     }
   }
 
-  const isOnCreateSubPage = isCreateArea && pathname !== '/life-vision/create'
+  const isOnCreateSubPage = isCreateArea && pathname !== '/life-vision/new/fun'
 
   return (
     <AreaBar
@@ -295,7 +290,7 @@ export function LifeVisionAreaBar() {
       contextText={contextText}
       versionSelectors={versionSelectors}
       keepTabActive={!isOnCreateSubPage}
-      activeParentPath={isOnCreateSubPage ? '/life-vision/create' : undefined}
+      activeParentPath={isOnCreateSubPage ? '/life-vision/new/fun' : undefined}
       variant="default"
       appLikePrimaryTabs
     />
