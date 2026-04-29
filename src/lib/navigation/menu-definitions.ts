@@ -390,18 +390,18 @@ export const adminNavigation: NavItem[] = [
     icon: UserCheck,
     requiresAdmin: true,
     hasDropdown: true,
-    description: 'Member management, tiers, and programs',
+    description: 'User directory, subscriptions, orders, and programs',
     children: [
-      { name: 'Members List', href: '/admin/crm/members', icon: UserCheck, description: 'Platform members management' },
+      { name: 'Members List', href: '/admin/crm/members', icon: UserCheck, description: 'All users with engagement, revenue, and actions' },
       { name: 'Members Board', href: '/admin/crm/members/board', icon: Kanban, description: 'Kanban board for members' },
-      { name: 'All Users', href: '/admin/users', icon: Users, description: 'View and manage all users' },
-      { name: 'Orders', href: '/admin/orders', icon: ShoppingCart, description: 'Order status & email delivery' },
-      { name: 'Member Storage', href: '/admin/member-storage', icon: HardDrive, description: 'Browse member uploaded files and storage' },
+      { name: 'Orders', href: '/admin/orders', icon: ShoppingCart, description: 'Order status & email delivery pipeline' },
       { name: 'Membership Tiers', href: '/admin/membership-tiers', icon: Layers, description: 'Token grants & storage quotas' },
       { name: 'Token Analytics', href: '/admin/token-usage', icon: BarChart3, description: 'User token usage analytics' },
+      { name: 'Member Storage', href: '/admin/member-storage', icon: HardDrive, description: 'Browse member uploaded files and storage' },
       { name: 'Badges', href: '/admin/badges', icon: Award, description: 'Award and manage badges' },
       { name: 'Intensive Dashboard', href: '/admin/intensive/dashboard', icon: Rocket, description: 'Enrollment status and step progress' },
       { name: 'Intensive Tester', href: '/admin/intensive/tester', icon: Wrench, description: 'Test intensive flows' },
+      { name: 'All Users (Legacy)', href: '/admin/users', icon: Users, description: 'Technical user list with admin tools' },
     ]
   },
 

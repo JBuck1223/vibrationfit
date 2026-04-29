@@ -55,11 +55,16 @@ export async function GET(request: NextRequest) {
 
     // Run independent queries in parallel using admin client
     const [
+      { data: userAccounts },
       { data: activeProfiles },
       { data: subscriptions },
       { data: activityMetrics },
       { data: paymentTotals },
     ] = await Promise.all([
+      adminClient
+        .from('user_accounts')
+        .select('id, full_name, first_name, last_name, phone, role')
+        .in('id', userIds),
       adminClient
         .from('user_profiles')
         .select('user_id, first_name, last_name, phone')
@@ -99,6 +104,7 @@ export async function GET(request: NextRequest) {
 
     // Combine the data - ONE entry per auth user
     const members = allUsers.map((authUser) => {
+      const account = userAccounts?.find((a) => a.id === authUser.id)
       const profile = activeProfiles?.find((p) => p.user_id === authUser.id)
       const subscription = subscriptions?.find((s) => s.user_id === authUser.id)
       const activity = activityMetrics?.find((a) => a.user_id === authUser.id) || {}
@@ -134,13 +140,20 @@ export async function GET(request: NextRequest) {
         ? Math.floor((Date.now() - firstPayment.getTime()) / (1000 * 60 * 60 * 24))
         : 0
 
+      // Resolve the best name available
+      const fullName = account?.full_name
+        || (profile?.first_name && profile?.last_name ? `${profile.first_name} ${profile.last_name}` : null)
+        || (account?.first_name && account?.last_name ? `${account.first_name} ${account.last_name}` : null)
+        || profile?.first_name || profile?.last_name
+        || account?.first_name || account?.last_name
+        || authUser.email?.split('@')[0] || 'Unknown'
+
       return {
         user_id: authUser.id,
         email: authUser.email,
-        phone: profile?.phone || authUser.phone || null,
-        full_name: profile?.first_name && profile?.last_name 
-          ? `${profile.first_name} ${profile.last_name}` 
-          : profile?.first_name || profile?.last_name || authUser.email?.split('@')[0] || 'Unknown',
+        phone: account?.phone || profile?.phone || authUser.phone || null,
+        full_name: fullName,
+        role: account?.role || 'member',
         subscription_tier: tier?.name || 'Free',
         subscription_status: subscription?.status || null,
         stripe_customer_id: subscription?.stripe_customer_id || null,

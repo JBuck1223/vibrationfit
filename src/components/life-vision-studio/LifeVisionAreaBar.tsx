@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, usePathname } from 'next/navigation'
-import { Target, PenLine, Eye, Download, HelpCircle, Users, Headphones, CheckCircle, Layers, Wand2 } from 'lucide-react'
+import { Target, PenLine, Eye, Download, Users, Headphones, Sparkles, CheckCircle, Layers, Wand2, Info } from 'lucide-react'
 import { AreaBar, type AreaBarContextNavItem, type AreaBarVersionSelector } from '@/lib/design-system/components'
 import { useLifeVisionStudio } from './LifeVisionStudioContext'
 
@@ -12,13 +12,13 @@ const VOICE_DISPLAY_NAMES: Record<string, string> = {
 
 const TABS = [
   { label: 'View', path: '/life-vision', icon: Eye },
-  { label: 'Create', path: '/life-vision/create', icon: PenLine },
+  { label: 'About', path: '/life-vision/about', icon: Info },
+  { label: 'Update', path: '/life-vision/create', icon: PenLine },
 ]
 
 const CREATE_AREA_ROUTES = [
   '/life-vision/create',
-  '/life-vision/new/assembly',
-  '/life-vision/new/category',
+  '/life-vision/new',
   '/life-vision/manual',
   '/life-vision/refine',
   '/life-vision/refinements',
@@ -30,7 +30,7 @@ export function LifeVisionAreaBar() {
   const { visions, activeVisionId, draftId, audioSets, selectedAudioSetId, setSelectedAudioSetId } = useLifeVisionStudio()
 
   const isVisionList = pathname === '/life-vision' || pathname === '/life-vision/'
-  const isHowItWorks = pathname === '/life-vision/new' || pathname === '/life-vision/new/'
+  const isAboutPage = pathname === '/life-vision/about' || pathname === '/life-vision/about/'
   const isPrintPage = /^\/life-vision\/[^/]+\/print/.test(pathname)
   const isHousehold = pathname.startsWith('/life-vision/household')
   const isCreateArea = CREATE_AREA_ROUTES.some(r => pathname === r || pathname.startsWith(r + '/'))
@@ -40,13 +40,13 @@ export function LifeVisionAreaBar() {
   const isVisionDetail = !isVisionList
     && !isHousehold
     && !isCreateArea
-    && !isHowItWorks
+    && !isAboutPage
     && !isPrintPage
     && pathname !== '/life-vision'
     && /^\/life-vision\/[^/]+/.test(pathname)
     && !pathname.startsWith('/life-vision/audio')
 
-  const isViewOverview = isVisionList || isHowItWorks || isPrintPage || isVisionDetail
+  const isViewOverview = isVisionList || isPrintPage || isVisionDetail
 
   let versionSelectors: AreaBarVersionSelector[] | undefined
   let contextNav: AreaBarContextNavItem[] | undefined
@@ -60,7 +60,6 @@ export function LifeVisionAreaBar() {
 
     contextNav = [
       { label: 'My Visions', path: '/life-vision', icon: Target, isActive: isVisionList || isVisionDetail },
-      { label: 'How It Works', path: '/life-vision/new', icon: HelpCircle, isActive: isHowItWorks },
       ...(pdfPath ? [{ label: 'Download PDF', path: pdfPath, icon: Download, isActive: isPrintPage }] : []),
     ]
 
@@ -86,8 +85,6 @@ export function LifeVisionAreaBar() {
           onSelect: (id: string) => router.push(`/life-vision/${id}/print`),
         }]
       }
-    } else if (isHowItWorks) {
-      contextText = 'Learn how the Life Vision process works.'
     } else {
       contextText = 'Read or listen to your Life Vision.'
 
@@ -142,10 +139,8 @@ export function LifeVisionAreaBar() {
   } else if (isCreateArea) {
     const isCreateLanding = pathname === '/life-vision/create' || pathname === '/life-vision/create/'
 
-    const isFreshFlow = CREATE_AREA_ROUTES.some(r =>
-      (r === '/life-vision/new/assembly' || r === '/life-vision/new/category')
-      && (pathname === r || pathname.startsWith(r + '/'))
-    )
+    const isFreshFlow = pathname === '/life-vision/new' || pathname === '/life-vision/new/'
+      || pathname.startsWith('/life-vision/new/')
     const isRefineFlow = /^\/life-vision\/[^/]+\/refine/.test(pathname)
       || pathname.startsWith('/life-vision/refine')
       || pathname.startsWith('/life-vision/refinements')
@@ -157,8 +152,8 @@ export function LifeVisionAreaBar() {
       || pathname.startsWith('/life-vision/refinements')
     const isOnCommitSubpage = /^\/life-vision\/[^/]+\/draft/.test(pathname)
       || pathname.startsWith('/life-vision/manual')
-    const isOnCategoryPage = pathname.startsWith('/life-vision/new/category')
     const isOnAssemblyPage = pathname === '/life-vision/new/assembly' || pathname.startsWith('/life-vision/new/assembly/')
+    const isOnCategoryPage = isFreshFlow && !isOnAssemblyPage
 
     if (isCreateLanding) {
       // No context nav on the landing — the two cards handle navigation
@@ -233,15 +228,59 @@ export function LifeVisionAreaBar() {
         }]
       }
     } else if (isFreshFlow) {
+      const draft = visions.find(v => v.is_draft)
+      const nonDraftVisions = visions.filter(v => !v.is_draft)
+      const draftDisplayVersion = nonDraftVisions.length + 1
+
       contextNav = [
         { label: 'Generate', path: '/life-vision/new', icon: Wand2, isActive: isOnCategoryPage },
         { label: 'Assemble', path: '/life-vision/new/assembly', icon: Layers, isActive: isOnAssemblyPage },
       ]
 
       if (isOnCategoryPage) {
-        contextText = 'Build each category of your new Life Vision with VIVA.'
+        contextText = draft
+          ? `Editing Version ${draftDisplayVersion} Draft`
+          : 'Build each category of your new Life Vision with VIVA.'
       } else if (isOnAssemblyPage) {
         contextText = 'VIVA will weave your categories into a complete Life Vision document.'
+      }
+
+      if (draft || nonDraftVisions.length > 0) {
+        const draftOption = draft
+          ? [{
+              id: draft.id,
+              label: `Version ${draftDisplayVersion}`,
+              sublabel: new Date(draft.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+              badge: 'Draft',
+              badgeVariant: 'draft' as const,
+              isActive: false,
+              icon: draft.household_id ? Users : undefined,
+              iconPosition: (draft.household_id ? 'right' : undefined) as ('right' | undefined),
+            }]
+          : []
+
+        const nonDraftOptions = nonDraftVisions.map(v => ({
+          id: v.id,
+          label: `Version ${v.version_number}`,
+          sublabel: new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          badge: v.is_active ? 'Active' : undefined,
+          badgeVariant: v.is_active ? ('active' as const) : undefined,
+          isActive: v.is_active,
+          icon: v.household_id ? Users : undefined,
+          iconPosition: (v.household_id ? 'right' : undefined) as ('right' | undefined),
+        }))
+
+        versionSelectors = [{
+          id: 'vision-version',
+          label: 'Vision',
+          position: 'contextRow',
+          options: [...draftOption, ...nonDraftOptions],
+          selectedId: draft ? draft.id : (activeVisionId ?? nonDraftVisions[0]?.id ?? ''),
+          onSelect: (id: string) => {
+            if (draft && id === draft.id) return
+            router.push(`/life-vision/${id}`)
+          },
+        }]
       }
     }
   }

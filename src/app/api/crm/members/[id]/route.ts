@@ -60,7 +60,11 @@ export async function GET(
       { count: audioCount },
       { data: manualMetrics },
       { data: subscriptions },
+      { data: allSubscriptions },
       { data: payments },
+      { data: orders },
+      { data: intensiveChecklists },
+      { data: tokenTransactions },
       { data: smsMessages },
       { data: emailMessages },
       { data: tickets },
@@ -116,11 +120,49 @@ export async function GET(
         .eq('user_id', id)
         .in('status', ['active', 'trialing']),
       adminClient
+        .from('customer_subscriptions')
+        .select(`
+          id,
+          user_id,
+          stripe_subscription_id,
+          stripe_customer_id,
+          status,
+          cancel_at_period_end,
+          current_period_start,
+          current_period_end,
+          created_at,
+          canceled_at,
+          membership_tier_id,
+          membership_tiers (
+            name,
+            tier_type
+          )
+        `)
+        .eq('user_id', id)
+        .order('created_at', { ascending: false }),
+      adminClient
         .from('payment_history')
         .select('amount, paid_at, status')
         .eq('user_id', id)
         .eq('status', 'succeeded')
         .order('paid_at', { ascending: true }),
+      adminClient
+        .from('orders')
+        .select('id, user_id, total_amount, currency, status, paid_at, promo_code, referral_source, metadata, created_at, stripe_payment_intent_id')
+        .eq('user_id', id)
+        .order('created_at', { ascending: false })
+        .limit(50),
+      adminClient
+        .from('intensive_checklist')
+        .select('*')
+        .eq('user_id', id)
+        .order('created_at', { ascending: false }),
+      adminClient
+        .from('token_transactions')
+        .select('*')
+        .eq('user_id', id)
+        .order('created_at', { ascending: false })
+        .limit(20),
       adminClient
         .from('sms_messages')
         .select('*')
@@ -262,6 +304,10 @@ export async function GET(
         revenue_metrics: revenueMetrics,
       },
       profile: profile || null,
+      orders: orders || [],
+      subscriptions: allSubscriptions || [],
+      intensive: { checklists: intensiveChecklists || [] },
+      tokens: { recentTransactions: tokenTransactions || [] },
       smsMessages: smsMessages || [],
       emailMessages: emailMessages || [],
       tickets: tickets || [],

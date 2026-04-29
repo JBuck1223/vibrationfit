@@ -568,15 +568,15 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
           setOriginalVisionText(activeValue)
         }
         
-        // Load content from draft vision for this category
+        // Load content from draft vision for this category only if it's been refined
         if (draftVision) {
           console.log('Loading category from draft vision:', categoryParam)
-          const draftValue = draftVision[categoryParam as keyof VisionData] as string
-          setCurrentRefinement(draftValue || '')
-        } else if (vision) {
-          // Fallback to active vision if no draft yet
-          const categoryValue = getCategoryValue(categoryParam)
-          setCurrentRefinement(categoryValue)
+          const draftValue = draftVision[categoryParam as keyof VisionData] as string || ''
+          const activeValue = vision ? (vision[categoryParam as keyof VisionData] as string || '') : ''
+          const hasBeenRefined = draftValue.trim() !== activeValue.trim()
+          setCurrentRefinement(hasBeenRefined ? draftValue : '')
+        } else {
+          setCurrentRefinement('')
         }
       }
     }
@@ -1497,11 +1497,12 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     }
 
     if (draftVision) {
-      const draftValue = draftVision[key as keyof VisionData] as string
-      setCurrentRefinement(draftValue || '')
-    } else if (vision) {
-      const categoryValue = getCategoryValue(key)
-      setCurrentRefinement(categoryValue)
+      const draftValue = draftVision[key as keyof VisionData] as string || ''
+      const activeValue = vision ? (vision[key as keyof VisionData] as string || '') : ''
+      const hasBeenRefined = draftValue.trim() !== activeValue.trim()
+      setCurrentRefinement(hasBeenRefined ? draftValue : '')
+    } else {
+      setCurrentRefinement('')
     }
   }
 
@@ -1687,7 +1688,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                   <div className="rounded-2xl border border-primary-500/30 bg-[#1A1A1A] p-4 md:p-5">
                     <div className="mb-4 flex items-center justify-between gap-3">
                       <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-primary-500">
-                        Current Vision
+                        Current {categoryLabel}
                       </h5>
                       {vision && (
                         <span className="text-[11px] text-neutral-400">
@@ -1721,13 +1722,13 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                 {/* Update (Refinement) Panel */}
                 <div className={`${showRefinement ? 'block' : 'hidden'}`} style={{ overflowAnchor: 'none' } as React.CSSProperties}>
                   <div className="rounded-2xl border border-accent-500/30 bg-[#1A1A1A] p-4 md:p-5" data-refinement-section>
-                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="mb-4 flex items-center justify-between gap-3">
                       <h5 className="text-xs font-semibold uppercase tracking-[0.25em]" style={{ color: colors.accent[500] }}>
-                        Update {categoryLabel} With VIVA
+                        Updated {categoryLabel}
                       </h5>
 
                       {/* Edit / Highlight Toggle */}
-                      <div className="inline-flex self-center sm:self-auto rounded-lg border border-accent-500/40 bg-[#101010] p-1">
+                      <div className="inline-flex rounded-lg border border-accent-500/40 bg-[#101010] p-1">
                         <button
                           onClick={() => setViewMode('edit')}
                           className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
