@@ -230,7 +230,7 @@ export default function AudioGeneratePage() {
   )
 
   return (
-    <Container size="xl" className="py-4 md:py-6">
+    <Container size="xl">
       <Stack gap="lg" className="overflow-visible">
         <h1 className="sr-only">Generate Audio</h1>
 
@@ -375,29 +375,34 @@ export default function AudioGeneratePage() {
                     </div>
                   </>
                 )}
-
-                <div className="flex justify-center pb-2">
-                  <Button
-                    variant="primary"
-                    onClick={handleGenerate}
-                    disabled={generating || !selectedVoiceForNew}
-                    className="min-w-[12rem] justify-center"
-                  >
-                    {generating ? (
-                      <span className="inline-flex items-center gap-2">
-                        <Spinner size="sm" />
-                        Generating...
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-2">
-                        <AudioLines className="w-5 h-5" />
-                        Generate
-                      </span>
-                    )}
-                  </Button>
-                </div>
               </div>
             </Card>
+
+            <div className="flex flex-col items-center text-center gap-4 px-4">
+              <p className="text-sm text-neutral-400 max-w-xl">
+                {activeSourceType === 'life_vision'
+                  ? 'Audio will be generated for your Life Vision in your selected voice (up to 14 total tracks: Forward, 12 life categories, and Conclusion).'
+                  : 'VIVA will narrate your selected story in your selected voice as a single audio track.'}
+              </p>
+              <Button
+                variant="primary"
+                onClick={handleGenerate}
+                disabled={generating || !selectedVoiceForNew}
+                className="min-w-[12rem] justify-center"
+              >
+                {generating ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Spinner size="sm" />
+                    Generating...
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-2">
+                    <AudioLines className="w-5 h-5" />
+                    Generate
+                  </span>
+                )}
+              </Button>
+            </div>
           </>
         )}
 
