@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Container, Icon, Spinner, Stack, IntensiveStepCompleteModal, FullBleed } from '@/lib/design-system/components'
+import { Button, Card, Container, Icon, Spinner, Stack, IntensiveStepCompleteModal } from '@/lib/design-system/components'
 import { useAudioStudio, AudioSourceSelector, QueueStatusBanner } from '@/components/audio-studio'
 import type { AudioSourceSelection } from '@/components/audio-studio'
 import type { VisionData } from '@/components/audio-studio'
@@ -27,17 +27,28 @@ function CompletedStepRow({
   onChange: () => void
 }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-neutral-700/50 bg-neutral-900/40">
-      <span className="w-7 h-7 rounded-full bg-primary-500/15 text-primary-500 flex items-center justify-center flex-shrink-0">
-        <Check className="w-4 h-4" />
-      </span>
-      <div className="flex-1 min-w-0 flex items-center gap-2 text-sm">
-        <span className="text-neutral-400 flex-shrink-0">{step}. {label}:</span>
-        <span className="text-white font-medium truncate">{value}</span>
+    <div
+      className="rounded-2xl border border-neutral-700/50 bg-neutral-900/40 px-4 py-3 cursor-pointer transition-colors active:bg-neutral-800/55 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#39FF14]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-900"
+      onClick={() => onChange()}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onChange()
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={`Edit ${label.toLowerCase()} step`}
+    >
+      <div className="flex items-center gap-3">
+        <span className="w-7 h-7 rounded-full bg-primary-500/15 text-primary-500 flex items-center justify-center shrink-0">
+          <Check className="w-4 h-4" />
+        </span>
+        <div className="min-w-0 flex-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm leading-normal">
+          <span className="text-neutral-400 shrink-0">{step}. {label}:</span>
+          <span className="text-white font-medium break-words min-w-0 md:truncate">{value}</span>
+        </div>
       </div>
-      <Button variant="ghost" size="sm" onClick={onChange} className="flex-shrink-0">
-        Change
-      </Button>
     </div>
   )
 }
@@ -67,6 +78,8 @@ export default function RecordVisionAudioPage() {
   const [storyRecording, setStoryRecording] = useState<{ url: string; duration: number } | null>(null)
 
   const [currentStep, setCurrentStep] = useState<1 | 2>(1)
+  /** Incremented on every source confirmation so load runs even when re-selecting the same vision/story. */
+  const [sourceSelectionEpoch, setSourceSelectionEpoch] = useState(0)
   const step1Ref = useRef<HTMLDivElement>(null)
   const step2Ref = useRef<HTMLDivElement>(null)
 
@@ -78,6 +91,7 @@ export default function RecordVisionAudioPage() {
 
   function handleSourceSelected(selection: AudioSourceSelection) {
     setSelectedSource(selection)
+    setSourceSelectionEpoch(n => n + 1)
     setRecordings(new Map())
     setStoryRecording(null)
     setAudioSetId(null)
@@ -91,11 +105,12 @@ export default function RecordVisionAudioPage() {
   useEffect(() => {
     if (!selectedSource) return
     loadData()
-  }, [selectedSource?.sourceId])
+  }, [selectedSource?.sourceId, sourceSelectionEpoch])
 
   async function loadData() {
-    if (!activeSourceId) return
-    const supabase = createClient()
+    try {
+      if (!activeSourceId) return
+      const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (activeSourceType === 'life_vision' && selectedVision) {
@@ -274,8 +289,9 @@ export default function RecordVisionAudioPage() {
         }
       }
     }
-
-    setLoading(false)
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function handleSaveRecording(sectionKey: string, s3Url: string, duration: number) {
@@ -488,7 +504,11 @@ export default function RecordVisionAudioPage() {
               step={1}
               label="Source"
               value={sourceSummaryValue}
-              onChange={() => { setCurrentStep(1); scrollToStep(step1Ref) }}
+              onChange={() => {
+                setLoading(false)
+                setCurrentStep(1)
+                scrollToStep(step1Ref)
+              }}
             />
           )}
         </div>
@@ -496,28 +516,28 @@ export default function RecordVisionAudioPage() {
         {selectedSource && currentStep === 2 && (
           <div ref={step2Ref}>
             {loading ? (
-              <div className="flex min-h-[40vh] items-center justify-center">
+              <Card variant="glass" className="flex min-h-[40vh] items-center justify-center py-16 p-3 md:p-5 lg:p-6">
                 <Spinner size="lg" />
-              </div>
+              </Card>
             ) : (
-              <>
-      <div className="flex flex-col items-center text-center gap-1 mb-2">
-        <div className="flex items-center justify-center gap-2">
-          <span className="w-7 h-7 rounded-full bg-primary-500/15 text-primary-500 text-sm font-semibold flex items-center justify-center flex-shrink-0">
-            2
-          </span>
-          <h2 className="text-lg font-semibold text-white">Record</h2>
-        </div>
-        <p className="text-sm text-neutral-400 max-w-md">
-          Read your vision or story aloud with your own voice, then save each recording.
-        </p>
-      </div>
+              <Card variant="glass" className="space-y-6 p-3 md:p-5 lg:p-6">
+                <div className="flex flex-col items-center text-center gap-1 pb-4 border-b border-neutral-800">
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="w-7 h-7 rounded-full bg-primary-500/15 text-primary-500 text-sm font-semibold flex items-center justify-center shrink-0">
+                      2
+                    </span>
+                    <h2 className="text-lg font-semibold text-white">Record</h2>
+                  </div>
+                  <p className="w-full text-center text-sm text-neutral-400">
+                    Read your vision or story aloud with your own voice, then save each recording.
+                  </p>
+                </div>
 
-      {/* Life Vision Recording Flow */}
-      {activeSourceType === 'life_vision' && selectedVision && (
-        <>
-          {/* Stats Bar */}
-          <div className="mb-6 flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50">
+                {/* Life Vision Recording Flow */}
+                {activeSourceType === 'life_vision' && selectedVision && (
+        <div className="space-y-6">
+          {/* Stats row — pills only, no outer card */}
+          <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3">
             <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs md:text-sm font-semibold border bg-[#39FF14]/20 text-[#39FF14] border-[#39FF14]/30">
               <Mic className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1" />
               {completedCount} of {totalCount} recorded
@@ -540,7 +560,7 @@ export default function RecordVisionAudioPage() {
           </div>
 
           {sectionsNeedingReRecord.length > 0 && (
-            <Card className="mb-6 p-4 border-[#FFFF00]/30 bg-[#FFFF00]/5">
+            <Card className="p-4 border-[#FFFF00]/30 bg-[#FFFF00]/5">
               <div className="flex items-start gap-3">
                 <RefreshCw className="w-5 h-5 text-[#FFFF00] shrink-0 mt-0.5" />
                 <div>
@@ -555,37 +575,27 @@ export default function RecordVisionAudioPage() {
             </Card>
           )}
 
-          <div className="mb-6 min-w-0">
-            <p className="text-sm text-neutral-400 text-center mb-3">
-              Recording {VISION_CATEGORIES.findIndex(s => s.key === activeSection) + 1} of {VISION_CATEGORIES.length}
-              {completedCount > 0 && (
-                <span className="ml-2 text-[#39FF14]">
-                  {completedCount} completed
-                </span>
-              )}
-            </p>
-            <FullBleed>
-              <CategoryGrid
-                categories={VISION_CATEGORIES}
-                activeCategory={activeSection}
-                completedCategories={Array.from(recordings.keys())}
-                refinedCategories={refinedCategories}
-                onCategoryClick={(key) => setActiveSection(key)}
-                mode={refinedCategories.length > 0 ? 'record' : 'completion'}
-                fillWidth
-                title="Select Section to Record"
-                bleedClassName="max-md:-mx-4"
-                pillLabel="scroll"
-              />
-            </FullBleed>
+          <div className="min-w-0 w-full">
+            <CategoryGrid
+              categories={VISION_CATEGORIES}
+              activeCategory={activeSection}
+              completedCategories={Array.from(recordings.keys())}
+              refinedCategories={refinedCategories}
+              onCategoryClick={(key) => setActiveSection(key)}
+              mode={refinedCategories.length > 0 ? 'record' : 'completion'}
+              lifeVisionCategoryStrip
+              title="Select Section to Record"
+              pillLabel="scroll"
+            />
           </div>
 
           {activeSessionSection && (
-            <div>
-              <Card variant="glass" className="p-6 md:p-8 mb-6">
-                {/* Match VisionCategoryCard (editable={false}) on /life-vision/[id] */}
-                <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3 mb-2">
-                  <div className="flex items-center gap-3 flex-1 min-w-0 w-full md:flex-1 md:min-w-0 justify-center md:justify-start">
+            <div className="space-y-6">
+              <div className="rounded-2xl border border-neutral-700/50 bg-neutral-900/40 px-4 pb-4 pt-1 md:px-6 md:pb-6 md:pt-2">
+                {/* Icon + title centered on desktop; status chips in right column */}
+                <div className="mb-2 flex flex-col items-center gap-2 md:grid md:grid-cols-[1fr_auto_1fr] md:items-center md:gap-3">
+                  <div className="hidden min-w-0 md:block" aria-hidden="true" />
+                  <div className="flex min-w-0 items-center justify-center gap-3">
                     <div
                       className={`w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center shrink-0 ${
                         activeNeedsReRecord
@@ -598,14 +608,18 @@ export default function RecordVisionAudioPage() {
                       <Icon
                         icon={activeSessionSection.icon}
                         size="xs"
-                        color="#000000"
+                        color={
+                          activeNeedsReRecord || isRecorded
+                            ? '#000000'
+                            : '#39FF14'
+                        }
                       />
                     </div>
-                    <h3 className="text-sm font-medium text-neutral-400 uppercase tracking-[0.25em]">
+                    <h3 className="text-sm font-medium text-neutral-400 uppercase tracking-[0.25em] text-center md:text-left">
                       {activeSessionSection.label}
                     </h3>
                   </div>
-                  <div className="flex shrink-0 items-center justify-center md:justify-end gap-2 w-full md:w-auto">
+                  <div className="flex w-full shrink-0 items-center justify-center gap-2 md:w-auto md:justify-end">
                     {isRecorded && (
                       <div className="w-12 h-12 rounded-full bg-primary-500 flex items-center justify-center">
                         <CheckCircle className="w-6 h-6 text-black" />
@@ -620,7 +634,6 @@ export default function RecordVisionAudioPage() {
                 </div>
 
                 <div className="border-b border-neutral-800 mb-4" />
-                <p className="text-sm text-neutral-400 mb-4">{activeSessionSection.description}</p>
 
                 {activeNeedsReRecord && (
                   <div className="mt-4 p-3 rounded-lg bg-[#FFFF00]/5 border border-[#FFFF00]/20">
@@ -640,19 +653,11 @@ export default function RecordVisionAudioPage() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="mt-6">
-                    <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg overflow-hidden">
-                      <div className="flex items-center gap-2 p-4 pb-3 border-b border-neutral-700">
-                        <span className="text-xs uppercase tracking-wider text-neutral-500 font-semibold">Your Vision Text:</span>
-                        <span className="text-xs text-neutral-400">({sectionText.length} characters)</span>
-                      </div>
-                      <div className="p-4 max-h-[400px] overflow-y-auto">
-                        <p className="text-neutral-300 text-sm leading-relaxed whitespace-pre-wrap">{sectionText}</p>
-                      </div>
-                    </div>
+                  <div className="mt-6 max-h-[400px] overflow-y-auto">
+                    <p className="text-neutral-300 text-sm leading-relaxed whitespace-pre-wrap">{sectionText}</p>
                   </div>
                 )}
-              </Card>
+              </div>
 
               {hasText && (
                 <MediaRecorderComponent
@@ -687,7 +692,7 @@ export default function RecordVisionAudioPage() {
           )}
 
           {completedCount === totalCount && (
-            <Card className="mt-8 p-8 text-center bg-gradient-to-br from-primary-500/10 to-transparent border-2 border-primary-500/30">
+            <Card className="p-8 text-center bg-gradient-to-br from-primary-500/10 to-transparent border-2 border-primary-500/30">
               <div className="max-w-md mx-auto">
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary-500/20 flex items-center justify-center">
                   <CheckCircle className="w-8 h-8 text-primary-500" />
@@ -706,14 +711,14 @@ export default function RecordVisionAudioPage() {
             onClose={() => setShowStepCompleteModal(false)}
             stepId="record_audio"
           />
-        </>
+        </div>
       )}
 
       {/* Story Recording Flow */}
       {activeSourceType === 'story' && selectedStory && (
         <>
-          <Card variant="glass" className="p-6 md:p-8 mb-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
+          <div className="space-y-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex items-start gap-3 flex-1 min-w-0">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-teal-500/15 border border-teal-500/30">
                   <Library className="w-5 h-5 text-teal-400" />
@@ -734,7 +739,7 @@ export default function RecordVisionAudioPage() {
               )}
             </div>
 
-            <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg overflow-hidden mb-6">
+            <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg overflow-hidden">
               <div className="flex items-center gap-2 p-4 pb-3 border-b border-neutral-700">
                 <span className="text-xs uppercase tracking-wider text-neutral-500 font-semibold">Story Text</span>
               </div>
@@ -744,7 +749,7 @@ export default function RecordVisionAudioPage() {
                 </p>
               </div>
             </div>
-          </Card>
+          </div>
 
           <MediaRecorderComponent
             mode="audio"
@@ -791,8 +796,7 @@ export default function RecordVisionAudioPage() {
           )}
         </>
       )}
-
-              </>
+              </Card>
             )}
           </div>
         )}

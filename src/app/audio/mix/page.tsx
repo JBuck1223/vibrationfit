@@ -1,5 +1,5 @@
 "use client"
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Card, Spinner, Badge, Container, Stack, Toggle, Select } from '@/lib/design-system/components'
 import { useAudioStudio, QueueStatusBanner, AudioSourceSelector } from '@/components/audio-studio'
@@ -7,7 +7,7 @@ import type { AudioSourceSelection } from '@/components/audio-studio'
 import type { VisionData } from '@/components/audio-studio'
 import type { Story } from '@/lib/stories/types'
 import { createClient } from '@/lib/supabase/client'
-import { Headphones, CheckCircle, Play, Moon, Zap, Sparkles, Music, X, Wand2, Mic, Clock, Music2, Plus, ChevronDown, ChevronUp, Waves, Search } from 'lucide-react'
+import { Headphones, CheckCircle, Check, Play, Moon, Zap, Sparkles, Music, X, Wand2, Mic, Clock, Music2, Plus, ChevronDown, ChevronUp, Waves, Search, Home } from 'lucide-react'
 import Link from 'next/link'
 import { getVisionCategoryKeys, VISION_CATEGORIES } from '@/lib/design-system'
 import { SectionSelector } from '@/components/SectionSelector'
@@ -67,6 +67,44 @@ function calculateAdjustedVolumes(voiceVol: number, bgVol: number, binauralVol: 
   }
 }
 
+function CompletedStepRow({
+  step,
+  label,
+  value,
+  onChange,
+}: {
+  step: number
+  label: string
+  value: React.ReactNode
+  onChange: () => void
+}) {
+  return (
+    <div
+      className="rounded-2xl border border-neutral-700/50 bg-neutral-900/40 px-4 py-3 cursor-pointer transition-colors active:bg-neutral-800/55 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#39FF14]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-900"
+      onClick={() => onChange()}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onChange()
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={`Edit ${label.toLowerCase()} step`}
+    >
+      <div className="flex items-center gap-3">
+        <span className="w-7 h-7 rounded-full bg-primary-500/15 text-primary-500 flex items-center justify-center shrink-0">
+          <Check className="w-4 h-4" />
+        </span>
+        <div className="min-w-0 flex-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm leading-normal">
+          <span className="text-neutral-400 shrink-0">{step}. {label}:</span>
+          <span className="text-white font-medium break-words min-w-0 md:truncate">{value}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function AudioMixPage() {
   const router = useRouter()
   const { refreshAudioSets, refreshBatches, sourceType, sourceId } = useAudioStudio()
@@ -79,6 +117,18 @@ export default function AudioMixPage() {
   const activeSourceId = selectedSource?.sourceId || null
 
   const [loading, setLoading] = useState(false)
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1)
+  const [sourceSelectionEpoch, setSourceSelectionEpoch] = useState(0)
+  const step1Ref = useRef<HTMLDivElement>(null)
+  const step2Ref = useRef<HTMLDivElement>(null)
+  const step3Ref = useRef<HTMLDivElement>(null)
+
+  const scrollToStep = (ref: React.RefObject<HTMLDivElement | null>) => {
+    requestAnimationFrame(() => {
+      ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
+
   const [generating, setGenerating] = useState(false)
   const [generatingComboId, setGeneratingComboId] = useState<string | null>(null)
   const [voices, setVoices] = useState<Voice[]>([])
@@ -215,12 +265,15 @@ export default function AudioMixPage() {
     setExistingVoiceSets([])
     setSelectedBaseVoiceSetId('')
     setLoading(true)
+    setSourceSelectionEpoch(n => n + 1)
+    setCurrentStep(2)
+    scrollToStep(step2Ref)
   }
 
   useEffect(() => {
     if (!selectedSource) return
     loadData()
-  }, [selectedSource?.sourceId])
+  }, [selectedSource?.sourceId, sourceSelectionEpoch])
 
   async function loadData() {
     if (!activeSourceId) return
@@ -305,11 +358,6 @@ export default function AudioMixPage() {
     })
 
     setExistingVoiceSets(voiceSets)
-    
-    // Auto-select first voice if available
-    if (voiceSets.length > 0 && !selectedBaseVoiceSetId) {
-      setSelectedBaseVoiceSetId(voiceSets[0].id)
-    }
 
     // Load background tracks (excluding frequency enhancement tracks)
     const { data: tracks } = await supabase
@@ -766,27 +814,60 @@ export default function AudioMixPage() {
     }
   }
 
+  const sourceComplete = !!selectedSource
+
+  const sourceSummaryValue =
+    activeSourceType === 'life_vision' && selectedVision
+      ? (
+          <span className="inline-flex items-center gap-1.5">
+            Life Vision — Version {selectedVision.version_number}
+            {selectedVision.household_id && <Home className="w-3.5 h-3.5 text-secondary-500" />}
+          </span>
+        )
+      : activeSourceType === 'story' && selectedStory
+        ? `Story — ${selectedStory.title || 'Untitled'}`
+        : ''
+
+  const baseVoiceSummaryValue = selectedBaseVoiceSet?.voice_name || 'Base voice'
+
   return (
-    <Container size="xl" className="py-6">
-      <Stack gap="lg">
+    <Container size="xl">
+      <Stack gap="lg" className="overflow-visible">
         <h1 className="sr-only">Mix Audio</h1>
 
         <QueueStatusBanner />
 
-        {/* Source Selector */}
-        <AudioSourceSelector
-          onSourceSelected={handleSourceSelected}
-          initialSourceType={sourceType}
-          initialSourceId={sourceId}
-        />
-
-        {loading && (
-          <div className="flex min-h-[20vh] items-center justify-center">
-            <Spinner size="lg" />
+        <div ref={step1Ref}>
+          <div className={currentStep === 1 ? 'block' : 'hidden'}>
+            <AudioSourceSelector
+              onSourceSelected={handleSourceSelected}
+              initialSourceType={sourceType}
+              initialSourceId={sourceId}
+              stepNumber={1}
+            />
           </div>
-        )}
+          {currentStep !== 1 && (
+            <CompletedStepRow
+              step={1}
+              label="Source"
+              value={sourceSummaryValue}
+              onChange={() => {
+                setLoading(false)
+                setCurrentStep(1)
+                scrollToStep(step1Ref)
+              }}
+            />
+          )}
+        </div>
 
-        {selectedSource && !loading && existingVoiceSets.length === 0 && (
+        {sourceComplete && currentStep >= 2 && (
+          <div ref={step2Ref}>
+            {loading && currentStep === 2 ? (
+              <div className="flex min-h-[20vh] items-center justify-center">
+                <Spinner size="lg" />
+              </div>
+            ) : currentStep === 2 ? (
+              existingVoiceSets.length === 0 ? (
           <Card variant="glass" className="p-6 md:p-8 text-center">
             <div className="w-16 h-16 bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
               <Mic className="w-8 h-8 text-neutral-500" />
@@ -802,20 +883,19 @@ export default function AudioMixPage() {
               </Link>
             </Button>
           </Card>
-        )}
-
-        {selectedSource && !loading && existingVoiceSets.length > 0 && (
-          <>
-
-        {/* Step 1: Select Base Voice */}
-        <Card variant="glass" className="p-4 md:p-6">
-          <div className="flex flex-col items-center text-center mb-6">
-            <div className="w-12 h-12 bg-[#39FF14]/20 rounded-full flex items-center justify-center mb-3">
-              <span className="text-2xl font-bold text-[#39FF14]">1</span>
+              ) : (
+        <Card variant="glass" className="p-3 md:p-5 lg:p-6">
+          <div className="flex flex-col items-center text-center gap-1 pb-4 border-b border-neutral-800">
+            <div className="flex items-center justify-center gap-2">
+              <span className="w-7 h-7 rounded-full bg-primary-500/15 text-primary-500 text-sm font-semibold flex items-center justify-center shrink-0">
+                2
+              </span>
+              <h2 className="text-lg font-semibold text-white">Select Base Voice</h2>
             </div>
-            <h2 className="text-lg md:text-xl font-semibold text-white">Select Base Voice</h2>
-            <p className="text-sm text-neutral-400">Choose which voice recording to mix</p>
+            <p className="w-full text-sm text-neutral-400">Choose which voice recording to mix</p>
           </div>
+
+          <div className="mt-6 space-y-6">
 
           {existingVoiceSets.length > 5 && (
             <div className="relative max-w-md mx-auto mb-4">
@@ -853,7 +933,11 @@ export default function AudioMixPage() {
                       ? 'border-primary-500 bg-primary-500/10'
                       : ''
                   }`}
-                  onClick={() => setSelectedBaseVoiceSetId(set.id)}
+                  onClick={() => {
+                    setSelectedBaseVoiceSetId(set.id)
+                    setCurrentStep(3)
+                    scrollToStep(step3Ref)
+                  }}
                 >
                   <div className="flex items-center gap-3">
                     {selectedBaseVoiceSetId === set.id ? (
@@ -931,7 +1015,7 @@ export default function AudioMixPage() {
           </div>
 
           {/* Generate New Base Voice Button */}
-          <div className="flex justify-center mt-6">
+          <div className="flex justify-center pt-2">
             <Button variant="outline" asChild>
               <Link href="/audio/generate" className="flex items-center gap-2">
                 <Waves className="w-5 h-5" />
@@ -939,17 +1023,41 @@ export default function AudioMixPage() {
               </Link>
             </Button>
           </div>
+          </div>
         </Card>
+              )
+            ) : (
+              <CompletedStepRow
+                step={2}
+                label="Base voice"
+                value={baseVoiceSummaryValue}
+                onChange={() => {
+                  setLoading(false)
+                  setCurrentStep(2)
+                  scrollToStep(step2Ref)
+                }}
+              />
+            )}
+          </div>
+        )}
 
-        {/* Step 2: Mix Mode Toggle */}
-        <Card variant="glass" className="p-4 md:p-6">
-          <div className="flex flex-col items-center text-center mb-6">
-            <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center mb-3">
-              <span className="text-2xl font-bold text-purple-400">2</span>
+        {sourceComplete && !loading && existingVoiceSets.length > 0 && currentStep === 3 && (
+          <div ref={step3Ref}>
+        {/* Step 3: Mix Mode + options */}
+        <Card variant="glass" className="p-3 md:p-5 lg:p-6">
+          <div className="flex flex-col items-center text-center gap-1 pb-4 border-b border-neutral-800">
+            <div className="flex items-center justify-center gap-2">
+              <span className="w-7 h-7 rounded-full bg-primary-500/15 text-primary-500 text-sm font-semibold flex items-center justify-center shrink-0">
+                3
+              </span>
+              <h2 className="text-lg font-semibold text-white">Create Your Mix</h2>
             </div>
-            <h2 className="text-lg md:text-xl font-semibold text-white">Create Your Mix</h2>
-            <p className="text-sm text-neutral-400 mb-4">Choose how you want to create your mix</p>
-            
+            <p className="w-full text-sm text-neutral-400">
+              Choose how you want to create your mix
+            </p>
+          </div>
+
+          <div className="flex justify-center mt-6 mb-6">
             <Toggle
               value={mixMode}
               onChange={setMixMode}
@@ -1676,7 +1784,7 @@ export default function AudioMixPage() {
             </>
           )}
         </Card>
-        </>
+          </div>
         )}
       </Stack>
     </Container>

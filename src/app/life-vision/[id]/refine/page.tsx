@@ -1540,7 +1540,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
             refinedCategories={refinedCategories}
             onCategoryClick={(key) => handleCategoryChange(key)}
             mode="draft"
-            fillWidth
+            lifeVisionCategoryStrip
             title="Choose a Category to Update"
             bleedClassName="max-md:-mx-4"
             pillLabel="scroll"

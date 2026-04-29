@@ -317,6 +317,7 @@ export default function AbundanceEditEntryPage({ params }: { params: Promise<{ i
                       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
                     )
                   }}
+                  lifeVisionCategoryStrip
                 />
               </section>
 

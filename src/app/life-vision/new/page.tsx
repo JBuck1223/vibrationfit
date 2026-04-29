@@ -292,7 +292,7 @@ export default function VIVALifeVisionLandingPage() {
           completedCategories={completedCategoryKeys}
           onCategoryClick={(key: string) => router.push(`/life-vision/new/category/${key}`)}
           mode="completion"
-          fillWidth
+          lifeVisionCategoryStrip
           pillLabel="Life categories"
           bleedClassName="max-md:-mx-[var(--content-px,0px)]"
         />

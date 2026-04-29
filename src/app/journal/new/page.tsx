@@ -346,6 +346,7 @@ export default function NewJournalEntryPage() {
                 selectedCategories={formData.categories}
                 onCategoryClick={handleCategoryToggle}
                 pillLabel="Tag life categories"
+                lifeVisionCategoryStrip
               />
 
               {/* Journal Content */}

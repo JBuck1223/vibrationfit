@@ -493,7 +493,7 @@ export default function UnifiedCategoryPage() {
             completedCategories={gridMode === 'completion' ? refinedCategories : undefined}
             onCategoryClick={handleCategoryChange}
             mode={gridMode as any}
-            fillWidth
+            lifeVisionCategoryStrip
             title={isFirstTime ? 'Choose a Category' : 'Choose a Category to Update'}
             bleedClassName="max-md:-mx-4"
             pillLabel="scroll"

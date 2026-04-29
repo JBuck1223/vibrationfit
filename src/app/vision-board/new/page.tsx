@@ -408,6 +408,7 @@ export default function NewVisionBoardItemPage() {
                         ? 'bg-primary-500/10 border-primary-500/50 text-primary-300'
                         : undefined
                     }
+                    lifeVisionCategoryStrip
                   />
                 </section>
               </FullBleed>

@@ -518,7 +518,7 @@ function ExportPageContent() {
                       categories={VISION_CATEGORIES.filter(cat => cat.key !== 'forward' && cat.key !== 'conclusion')}
                       selectedCategories={selectedCategories.includes('all') ? VISION_CATEGORIES.filter(c => c.key !== 'forward' && c.key !== 'conclusion').map(c => c.key) : selectedCategories}
                       onCategoryClick={toggleCategory}
-                      fillWidth
+                      lifeVisionCategoryStrip
                     />
                     <button
                       onClick={() => setSelectedCategories(['all'])}

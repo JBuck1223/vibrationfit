@@ -324,6 +324,7 @@ export default function AbundanceNewEntryPage() {
                         prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
                       )
                     }}
+                    lifeVisionCategoryStrip
                   />
                 )}
               </section>

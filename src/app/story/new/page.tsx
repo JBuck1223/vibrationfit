@@ -880,6 +880,7 @@ export default function NewStoryWizardPage() {
                                 selectedCategories={selectedCategories}
                                 onCategoryClick={handleCategoryToggle}
                                 mode="selection"
+                                lifeVisionCategoryStrip
                               />
                             </div>
 
@@ -1134,6 +1135,7 @@ export default function NewStoryWizardPage() {
                                               selectedCategories={customSelectedCategories}
                                               onCategoryClick={handleCustomCategoryToggle}
                                               mode="selection"
+                                              lifeVisionCategoryStrip
                                             />
                                           </div>
 

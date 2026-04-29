@@ -68,7 +68,6 @@ export function JournalEditModal({
               onClose()
             }}
             cardClassName="!rounded-2xl !bg-[#101010] !border-[#1F1F1F] !p-3 !pb-8 md:!p-4"
-            categoryGridWrapOnDesktop
             categoryGridBleedClass="-mx-3 md:-mx-4"
           />
         </div>

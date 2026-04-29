@@ -989,7 +989,7 @@ export default function VisionBoardPage() {
               selectedCategories={editFormData.categories}
               onCategoryClick={handleEditCategoryToggle}
               pillLabel="Tag life categories"
-              wrapOnDesktop
+              lifeVisionCategoryStrip
               bleedClassName="-mx-4 sm:-mx-5 md:-mx-6 lg:-mx-8"
             />
 
@@ -1485,6 +1485,7 @@ export default function VisionBoardPage() {
             categories={VISION_CATEGORIES.filter(c => c.key !== 'forward' && c.key !== 'conclusion')}
             selectedCategories={editFormData.categories}
             onCategoryClick={handleEditCategoryToggle}
+            lifeVisionCategoryStrip
           />
         </div>
 
@@ -1786,7 +1787,7 @@ export default function VisionBoardPage() {
                   })
                 }
               }}
-              fillWidth
+              lifeVisionCategoryStrip
             />
           </Card>
 

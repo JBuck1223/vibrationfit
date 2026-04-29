@@ -447,6 +447,7 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
                       categories={lifeCategories}
                       selectedCategories={selectedCategories}
                       onCategoryClick={handleCategoryToggle}
+                      lifeVisionCategoryStrip
                     />
                   </div>
                 )}

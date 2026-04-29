@@ -627,7 +627,7 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
           refinedCategories={refinedCategories}
           onCategoryClick={(key) => setActiveSection(key)}
           mode={refinedCategories.length > 0 ? 'record' : 'completion'}
-          fillWidth
+          lifeVisionCategoryStrip
         />
       </div>
 

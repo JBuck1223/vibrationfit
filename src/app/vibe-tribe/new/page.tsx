@@ -342,6 +342,7 @@ export default function VibeTribeNewPage() {
                       categories={lifeCategories}
                       selectedCategories={selectedCategories}
                       onCategoryClick={handleCategoryToggle}
+                      lifeVisionCategoryStrip
                     />
                   </div>
                 )}

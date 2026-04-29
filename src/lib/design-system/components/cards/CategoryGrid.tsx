@@ -3,6 +3,7 @@
 import React from 'react'
 import { Check, RefreshCw } from 'lucide-react'
 import { cn } from '../shared-utils'
+import { Button } from '../forms/Button'
 
 interface CategoryGridProps extends React.HTMLAttributes<HTMLDivElement> {
   categories: ReadonlyArray<{
@@ -19,18 +20,34 @@ interface CategoryGridProps extends React.HTMLAttributes<HTMLDivElement> {
   showSelectAll?: boolean
   onSelectAll?: () => void
   selectAllLabel?: string
+  /**
+   * Where to render the select-all control when `showSelectAll` is true.
+   * `above` = compact button row above the pills (recommended with `lifeVisionCategoryStrip`).
+   * Default: `above` when both `lifeVisionCategoryStrip` and `showSelectAll` are set; otherwise `inline` (All as first pill).
+   */
+  selectAllPlacement?: 'inline' | 'above'
   completionBadgeColor?: string
   refinementBadgeColor?: string
   /** When truthy, shows a mobile-only centered Scroll to see all hint below the pills (value not shown). */
   pillLabel?: string
   getPillClassName?: (categoryKey: string) => string | undefined
   fillWidth?: boolean
+  /** With fillWidth: on md+ use a 7-column grid so 14 pills become two rows (e.g. Life Vision record). */
+  twoLineDesktop?: boolean
   /** When true (without fillWidth), pills keep natural width and wrap to multiple centered rows on md+ */
   wrapOnDesktop?: boolean
   /** Optional centered uppercase label rendered above the pills (stays inside parent padding, does not bleed). */
   title?: string
   /** Optional className applied to the pill row wrapper (not the title). Use to bleed the pill strip out of a padded card on mobile, e.g. "-mx-3 md:-mx-4". */
   bleedClassName?: string
+  /** Brand green (#39FF14) icons; labels keep selected/unselected text colors (e.g. audio record Life Vision). */
+  brandGreenIcons?: boolean
+  /**
+   * Life Vision category pill preset: sets `fillWidth`, `twoLineDesktop`, and `brandGreenIcons` for the standard
+   * full-category strip (mobile horizontal scroll, desktop two rows of seven). Ignores `fillWidth`, `twoLineDesktop`,
+   * `brandGreenIcons`, and `wrapOnDesktop` when true.
+   */
+  lifeVisionCategoryStrip?: boolean
 }
 
 const pillBase = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer'
@@ -50,29 +67,45 @@ export const CategoryGrid = React.forwardRef<HTMLDivElement, CategoryGridProps>(
     showSelectAll = false,
     onSelectAll,
     selectAllLabel,
+    selectAllPlacement,
     completionBadgeColor = '#39FF14',
     refinementBadgeColor = '#FFFF00',
     pillLabel,
     getPillClassName,
     fillWidth = false,
+    twoLineDesktop = false,
     wrapOnDesktop = false,
     title,
     bleedClassName,
+    brandGreenIcons = false,
+    lifeVisionCategoryStrip = false,
     className,
     ...props
   }, ref) => {
+    const useFillWidth = lifeVisionCategoryStrip ? true : fillWidth
+    const useTwoLineDesktop = lifeVisionCategoryStrip ? true : twoLineDesktop
+    const useBrandGreenIcons = lifeVisionCategoryStrip ? true : brandGreenIcons
+    const useWrapOnDesktop = lifeVisionCategoryStrip ? false : wrapOnDesktop
+
+    const useSelectAllAbove =
+      selectAllPlacement === 'above' ||
+      (selectAllPlacement === undefined && lifeVisionCategoryStrip && showSelectAll)
+
     const allSelected = selectedCategories.length === categories.length
     const hasBadges = mode !== 'selection'
+    const gridDesktop = useFillWidth && useTwoLineDesktop
+
+    const selectAllText = selectAllLabel ?? (allSelected ? 'Deselect all' : 'Select all')
 
     const pills = (
       <>
-        {showSelectAll && onSelectAll && (
+        {showSelectAll && onSelectAll && !useSelectAllAbove && (
           <button
             type="button"
             onClick={onSelectAll}
             className={cn(pillBase, 'shrink-0', hasBadges && 'mt-2 mr-0.5', allSelected ? pillSelected : allPillUnselected)}
           >
-            {selectAllLabel || 'All'}
+            {selectAllText}
           </button>
         )}
 
@@ -100,7 +133,11 @@ export const CategoryGrid = React.forwardRef<HTMLDivElement, CategoryGridProps>(
           return (
             <div key={category.key} className={cn(
               'relative',
-              fillWidth ? 'shrink-0 md:flex-1 md:min-w-0' : 'shrink-0',
+              useFillWidth
+                ? gridDesktop
+                  ? 'shrink-0 md:w-full md:min-w-0'
+                  : 'shrink-0 md:flex-1 md:min-w-0'
+                : 'shrink-0',
               hasBadges && 'pt-2 pr-2',
             )}>
               {showBadge && (
@@ -121,13 +158,23 @@ export const CategoryGrid = React.forwardRef<HTMLDivElement, CategoryGridProps>(
                 onClick={() => onCategoryClick?.(category.key)}
                 className={cn(
                   pillBase,
-                  fillWidth ? 'shrink-0 md:w-full md:justify-center' : 'shrink-0',
+                  useFillWidth ? 'shrink-0 md:w-full md:justify-center' : 'shrink-0',
                   isSelected ? pillSelected : pillUnselected,
                   extraClass,
                 )}
               >
-                <CatIcon className="w-3.5 h-3.5" />
-                {category.label}
+                <CatIcon
+                  className={cn(
+                    'w-3.5 h-3.5 shrink-0',
+                    useBrandGreenIcons && 'text-[#39FF14]',
+                    useBrandGreenIcons && !isSelected && 'opacity-[0.72]',
+                  )}
+                />
+                {useBrandGreenIcons ? (
+                  <span className={isSelected ? 'text-primary-400' : 'text-neutral-400'}>{category.label}</span>
+                ) : (
+                  category.label
+                )}
               </button>
             </div>
           )
@@ -145,10 +192,31 @@ export const CategoryGrid = React.forwardRef<HTMLDivElement, CategoryGridProps>(
         ) : null}
 
         <div className={cn(bleedClassName)}>
-          {fillWidth ? (
+          {showSelectAll && onSelectAll && useSelectAllAbove && (
+            <div className="mb-2 flex justify-center max-md:px-4 md:px-0">
+              <Button
+                type="button"
+                variant={allSelected ? 'primary' : 'outline'}
+                size="sm"
+                onClick={onSelectAll}
+                className="!h-auto min-h-0 !px-3 !py-1.5 !text-xs font-medium antialiased shrink-0 md:!px-3 md:!py-1.5"
+              >
+                {selectAllText}
+              </Button>
+            </div>
+          )}
+
+          {useFillWidth ? (
             /* Scrollport must be width-bounded so pills scroll inside the card, not grow the viewport */
             <div className="scrollbar-hide w-full min-w-0 max-w-full max-md:overflow-x-auto md:overflow-visible">
-              <div className="flex min-w-max items-center gap-2 pb-1 max-md:px-4 md:min-w-0 md:w-full md:flex-wrap md:justify-center md:px-0">
+              <div
+                className={cn(
+                  'gap-2 pb-1 max-md:px-4 md:min-w-0 md:w-full md:px-0',
+                  gridDesktop
+                    ? 'flex min-w-max items-center max-md:overflow-x-auto md:grid md:grid-cols-7 md:gap-2'
+                    : 'flex min-w-max items-center md:flex-wrap md:justify-center',
+                )}
+              >
                 {pills}
               </div>
             </div>
@@ -156,7 +224,7 @@ export const CategoryGrid = React.forwardRef<HTMLDivElement, CategoryGridProps>(
             <div
               className={cn(
                 'flex w-full min-w-0 max-w-full items-center gap-2 pb-1 scrollbar-hide overflow-x-auto px-4 md:px-0',
-                wrapOnDesktop
+                useWrapOnDesktop
                   ? 'md:overflow-x-visible md:flex-wrap md:justify-center'
                   : 'md:justify-center',
               )}

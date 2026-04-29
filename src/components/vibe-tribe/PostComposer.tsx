@@ -255,6 +255,7 @@ export function PostComposer({
               categories={lifeCategories}
               selectedCategories={selectedCategories}
               onCategoryClick={handleCategoryToggle}
+              lifeVisionCategoryStrip
             />
           </div>
         )}

@@ -483,7 +483,7 @@ export default function VisionExperimentPage({ params }: { params: Promise<{ id:
             categories={VISION_CATEGORIES}
             selectedCategories={selectedCategories}
             onCategoryClick={handleCategoryToggle}
-            fillWidth
+            lifeVisionCategoryStrip
           />
 
           {/* Selection Summary */}
