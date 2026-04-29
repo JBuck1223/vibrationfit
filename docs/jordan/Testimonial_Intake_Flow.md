@@ -4,60 +4,59 @@ Perfect adds. They map directly to core product behaviors (iterating vision + re
 
 Here’s the updated **baseline survey** with your two questions integrated and the wording cleaned up:
 
-1. On a scale 0–10, how clear is your vision for your life right now?  
-2. On a scale 0–10, how often do you feel “in vibrational harmony” with that vision?  
-3. On a scale 0–10, how clear is your current roadmap for how to activate your life vision in your day‑to‑day reality?  
-4. On a scale 0–10, how easy is it for you to create new iterations of your life vision?  
-5. On a scale 0–10, how easy is it for you to create new iterations of your life vision audios?  
-6. On a scale 0–10, how well are you set up to track major life transformations over time?  
-7. On a scale 0–10, how clear are you on your vibrational constraints?  
+1. On a scale 1-10, how clear is your vision for your life right now?  
+2. On a scale 1-10, how often do you feel “in vibrational harmony” with that vision?  
+3. On a scale 1-10, how clear is your current roadmap for how to activate your life vision in your day‑to‑day reality?  
+4. On a scale 1-10, how easy is it for you to create new iterations of your life vision?  
+5. On a scale 1-10, how easy is it for you to create new iterations of your life vision audios?  
+6. On a scale 1-10, how well are you set up to track major life transformations over time?  
+7. On a scale 1-10, how clear are you on your vibrational constraints?  
    *(If you don’t know what this means, put 0.)*  
 8. Do you currently have audio tracks of your life vision?  
    - No  
    - Yes, but I rarely listen  
    - Yes, and I listen often  
-9. On a scale 0–10, how easy is it for you to view and manage the items on your vision board?  
+9. On a scale 1-10, how easy is it for you to view and manage the items on your vision board?  
    *(Put 0 if you don’t have one.)*  
-10. On a scale 0–10, how well are you capturing your conscious creation journey (thoughts, synchronicities, patterns) over time?  
+10. On a scale 1-10, how well are you capturing your conscious creation journey (thoughts, synchronicities, patterns) over time?  
 11. What have you already tried to consciously create your dream life?  
 12. Consent checkbox:  
     “I’m open to you using my feedback and results as anonymized or named testimonials once I approve them.”
 
-Then for the **post‑Intensive survey**, you mirror questions 1–5, 6, 7, 9, 10 as new 0–10 scores. Most of these should be autopopulated based on the Objective data from their user id. I want each to have REAL statistics from their user id to back up the number. Example - Life-vision (X Visions Created, X in draft) Each should have as much supporting evidence as possible from their data.
+Then for the **post‑Intensive survey** on intensive/intake/unlock, you mirror questions 1–5, 6, 7, 9, 10 as new 1-10 scores. Most of these should be autopopulated based on the Objective data from their user id. I want each to have REAL statistics from their user id to back up the number. Example - Life-vision (X Visions Created, X in draft) Each should have as much supporting evidence as possible from their data.
 
 Vision clarity
-“Right now, after completing the Intensive, how clear is your vision for your life? (0–10)”
+“Right now, after completing the Intensive, how clear is your vision for your life? (1-10)”
 
 Harmony
-“Right now, how often do you feel ‘in vibrational harmony’ with that vision? (0–10)”
+“Right now, how often do you feel ‘in vibrational harmony’ with that vision? (1-10)”
 
 Roadmap / activation
-“How clear is your roadmap for how to activate your life vision in your day‑to‑day reality? (0–10)”
+“How clear is your roadmap for how to activate your life vision in your day‑to‑day reality? (1-10)”
 
 Iterating the vision
-“How easy is it for you to create new iterations of your life vision when things change? (0–10)”
+“How easy is it for you to create new iterations of your life vision when things change? (1-10)”
 
 Iterating the audios
-“How easy is it for you to create new iterations of your life vision audios? (0–10)”
+“How easy is it for you to create new iterations of your life vision audios? (1-10)”
 
 Tracking transformations
-“How well are you now set up to track major life transformations over time? (0–10)”
+“How well are you now set up to track major life transformations over time? (1-10)”
 
 Vibrational constraints
-“How clear are you now on your vibrational constraints and what throws off your signal? (0–10)”
+“How clear are you now on your vibrational constraints and what throws off your signal? (1-10)”
 
 Vision audios status
 “After the Intensive, which best describes your life vision audios?”
 
-I don’t have any vision audios
-I have audios but rarely listen
-I have audios and listen sometimes
-I have audios and listen often
+I have vision audios now!
+I do not have vision audios.
+
 Vision board
-“How easy is it for you now to view and manage the items on your vision board? (0–10)”
+“How easy is it for you now to view and manage the items on your vision board? (1-10)”
 
 Capturing the journey
-“How well are you capturing your conscious creation journey (thoughts, synchronicities, patterns) over time now? (0–10)”
+“How well are you setup to capture your conscious creation journey (thoughts, synchronicities, patterns) over time now? (1-10)”
 
 Biggest shift
 “In your own words, what feels most different for you after completing the 72‑Hour Activation Intensive?”
@@ -75,7 +74,7 @@ All of this directly sells the software, not just the vibe.
 
 You already built the data spine with the surveys. The live post‑Intensive meeting is where you wrap *story and emotion* around those numbers so the market actually cares.
 
-Use the 6‑point testimonial script from the Marketing Machine, but anchor every section to one or more of your 0–10 metrics. [$100M Playbook Marketing Machine, Page 18]
+Use the 6‑point testimonial script from the Marketing Machine, but anchor every section to one or more of your 1-10 metrics. [$100M Playbook Marketing Machine, Page 18]
 
 Here’s the exact format.
 
