@@ -463,7 +463,7 @@ export default function JournalPage() {
                     })
                   }
                 }}
-                fillWidth
+                lifeVisionCategoryStrip
               />
             </Card>
           </div>

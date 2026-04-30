@@ -4,40 +4,11 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Card, Spinner, Container, Stack } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
-import { CheckCircle, Check, Play, X, ChevronDown, ChevronUp, AudioLines, Search, Home } from 'lucide-react'
+import { CheckCircle, Play, X, ChevronDown, ChevronUp, AudioLines, Search, Home } from 'lucide-react'
 import { getVisionCategoryKeys } from '@/lib/design-system'
 import { useAudioStudio, QueueStatusBanner, AudioSourceSelector } from '@/components/audio-studio'
 import type { AudioSourceSelection } from '@/components/audio-studio'
-
-function CompletedStepRow({
-  step,
-  label,
-  value,
-  valueIcon,
-  onChange,
-}: {
-  step: number
-  label: string
-  value: React.ReactNode
-  valueIcon?: React.ReactNode
-  onChange: () => void
-}) {
-  return (
-    <div className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-neutral-700/50 bg-neutral-900/40">
-      <span className="w-7 h-7 rounded-full bg-primary-500/15 text-primary-500 flex items-center justify-center flex-shrink-0">
-        <Check className="w-4 h-4" />
-      </span>
-      <div className="flex-1 min-w-0 flex items-center gap-2 text-sm">
-        <span className="text-neutral-400 flex-shrink-0">{step}. {label}:</span>
-        {valueIcon}
-        <span className="text-white font-medium truncate">{value}</span>
-      </div>
-      <Button variant="ghost" size="sm" onClick={onChange} className="flex-shrink-0">
-        Change
-      </Button>
-    </div>
-  )
-}
+import { CompletedStepRow } from '@/components/CompletedStepRow'
 
 export default function AudioGeneratePage() {
   const router = useRouter()
@@ -62,6 +33,8 @@ export default function AudioGeneratePage() {
   const [lastBatchVoiceId, setLastBatchVoiceId] = useState<string | null>(null)
 
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1)
+  /** Incremented on every source confirmation so load runs even when re-selecting the same vision/story. */
+  const [sourceSelectionEpoch, setSourceSelectionEpoch] = useState(0)
   const step1Ref = useRef<HTMLDivElement>(null)
   const step2Ref = useRef<HTMLDivElement>(null)
   const step3Ref = useRef<HTMLDivElement>(null)
@@ -149,6 +122,7 @@ export default function AudioGeneratePage() {
 
   function handleSourceSelected(selection: AudioSourceSelection) {
     setSelectedSource(selection)
+    setSourceSelectionEpoch(n => n + 1)
     setDataLoading(true)
     setCurrentStep(2)
     scrollToStep(step2Ref)
@@ -169,24 +143,26 @@ export default function AudioGeneratePage() {
   useEffect(() => {
     if (!selectedSource) return
     loadPageData()
-  }, [selectedSource?.sourceId])
+  }, [selectedSource?.sourceId, sourceSelectionEpoch])
 
   async function loadPageData() {
-    if (!activeSourceId) return
-
-    let voiceList: { id: string; name: string; previewUrl?: string }[] = []
     try {
-      const resp = await fetch('/api/audio/voices', { cache: 'no-store' })
-      const data = await resp.json()
-      voiceList = (data.voices || []).map((v: { id: string; brandName?: string; name?: string; gender?: string; previewUrl?: string }) => ({
-        id: v.id,
-        name: `${v.brandName || v.name} (${v.gender})`,
-        previewUrl: v.previewUrl,
-      }))
-      setVoices(voiceList)
-    } catch { /* keep empty */ }
+      if (!activeSourceId) return
 
-    setDataLoading(false)
+      let voiceList: { id: string; name: string; previewUrl?: string }[] = []
+      try {
+        const resp = await fetch('/api/audio/voices', { cache: 'no-store' })
+        const data = await resp.json()
+        voiceList = (data.voices || []).map((v: { id: string; brandName?: string; name?: string; gender?: string; previewUrl?: string }) => ({
+          id: v.id,
+          name: `${v.brandName || v.name} (${v.gender})`,
+          previewUrl: v.previewUrl,
+        }))
+        setVoices(voiceList)
+      } catch { /* keep empty */ }
+    } finally {
+      setDataLoading(false)
+    }
   }
 
   async function handleGenerate() {
@@ -352,7 +328,11 @@ export default function AudioGeneratePage() {
               step={1}
               label="Source"
               value={sourceSummaryValue}
-              onChange={() => { setCurrentStep(1); scrollToStep(step1Ref) }}
+              onChange={() => {
+                setDataLoading(false)
+                setCurrentStep(1)
+                scrollToStep(step1Ref)
+              }}
             />
           )}
         </div>
@@ -506,7 +486,11 @@ export default function AudioGeneratePage() {
                 step={2}
                 label="Voice"
                 value={voiceSummaryValue}
-                onChange={() => { setCurrentStep(2); scrollToStep(step2Ref) }}
+                onChange={() => {
+                  setDataLoading(false)
+                  setCurrentStep(2)
+                  scrollToStep(step2Ref)
+                }}
               />
             )}
           </div>

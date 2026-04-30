@@ -695,7 +695,7 @@ export default function AssessmentPage() {
               }
             }}
             mode="completion"
-            fillWidth
+            lifeVisionCategoryStrip
           />
         </Card>
 

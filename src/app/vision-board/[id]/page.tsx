@@ -766,6 +766,7 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                   categories={VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion')}
                   selectedCategories={formData.categories}
                   onCategoryClick={handleCategoryToggle}
+                  lifeVisionCategoryStrip
                 />
               </div>
 

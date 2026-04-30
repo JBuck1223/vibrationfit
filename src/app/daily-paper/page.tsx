@@ -341,7 +341,7 @@ export default function DailyPaperIndexPage() {
                     })
                   }
                 }}
-                fillWidth
+                lifeVisionCategoryStrip
               />
             </Card>
           </div>

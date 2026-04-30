@@ -406,7 +406,7 @@ export default function CategoryPage() {
           completedCategories={completedCategoryKeys}
           onCategoryClick={(key: string) => router.push(`/life-vision/new/category/${key}`)}
           mode="completion"
-          fillWidth
+          lifeVisionCategoryStrip
         />
 
         {/* Context Card - Profile Details + Current State */}

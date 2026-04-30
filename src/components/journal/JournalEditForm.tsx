@@ -70,8 +70,6 @@ export interface JournalEditFormProps {
   onCancel: () => void
   onSuccess: () => void
   cardClassName?: string
-  /** When true (e.g. edit modal), life category pills wrap on desktop at natural width (same pill styling as default) */
-  categoryGridWrapOnDesktop?: boolean
   /** Optional negative-margin class for the category strip so it spans the full card width.
    *  Should counter the enclosing Card's horizontal padding (e.g. modal uses `!p-3 md:!p-4` → `-mx-3 md:-mx-4`). */
   categoryGridBleedClass?: string
@@ -82,7 +80,6 @@ export function JournalEditForm({
   onCancel,
   onSuccess,
   cardClassName,
-  categoryGridWrapOnDesktop = false,
   categoryGridBleedClass,
 }: JournalEditFormProps) {
   const supabase = createClient()
@@ -328,7 +325,7 @@ export function JournalEditForm({
               selectedCategories={formData.categories}
               onCategoryClick={handleCategoryToggle}
               pillLabel="Tag life categories"
-              wrapOnDesktop={categoryGridWrapOnDesktop}
+              lifeVisionCategoryStrip
               bleedClassName={categoryGridBleedClass}
             />
 

@@ -352,7 +352,7 @@ export default function ScenesToolPage() {
               completedCategories={completedCategoryKeys}
               onCategoryClick={handleCategorySelect}
               mode="completion"
-              fillWidth
+              lifeVisionCategoryStrip
             />
           </div>
         </PageHero>

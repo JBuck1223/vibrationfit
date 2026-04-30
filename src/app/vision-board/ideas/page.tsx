@@ -575,6 +575,7 @@ export default function VisionBoardIdeasPage() {
                   onCategoryClick={handleCategoryToggle}
                   showSelectAll
                   onSelectAll={handleSelectAll}
+                  lifeVisionCategoryStrip
                   pillLabel="Tag life categories"
                 />
               </FullBleed>

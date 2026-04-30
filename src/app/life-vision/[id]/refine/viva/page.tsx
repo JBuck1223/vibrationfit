@@ -1587,7 +1587,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
             }
           }}
           mode="draft"
-          fillWidth
+          lifeVisionCategoryStrip
         />
       </div>
 

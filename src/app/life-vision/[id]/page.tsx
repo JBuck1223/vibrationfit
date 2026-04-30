@@ -961,6 +961,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
             onCategoryClick={handleCategoryToggle}
             showSelectAll
             onSelectAll={handleSelectAll}
+            lifeVisionCategoryStrip
             pillLabel="Life Areas"
           />
         </FullBleed>

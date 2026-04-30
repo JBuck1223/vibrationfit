@@ -415,6 +415,8 @@ interface AudioSourceSelectorProps {
   initialSourceType?: AudioSourceType
   initialSourceId?: string | null
   stepNumber?: number
+  /** Override subtext under Life Vision / Story cards (e.g. personal recording vs VIVA narration). */
+  sourceTypeDescriptions?: Partial<Record<'life_vision' | 'story', string>>
 }
 
 export function AudioSourceSelector({
@@ -425,6 +427,7 @@ export function AudioSourceSelector({
   initialSourceType,
   initialSourceId,
   stepNumber,
+  sourceTypeDescriptions,
 }: AudioSourceSelectorProps) {
   const {
     allVisions,
@@ -506,6 +509,7 @@ export function AudioSourceSelector({
         {sourceTypes.map(st => {
           const Icon = st.icon
           const isSelected = selectedType === st.type
+          const description = (st.type && sourceTypeDescriptions?.[st.type]) ?? st.description
           return (
             <div
               key={st.type}
@@ -525,7 +529,7 @@ export function AudioSourceSelector({
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-white">{st.label}</p>
-                  <p className="text-xs text-neutral-400">{st.description}</p>
+                  <p className="text-xs text-neutral-400">{description}</p>
                 </div>
                 {isSelected && <Check className="w-5 h-5 text-primary-500 flex-shrink-0" />}
               </button>

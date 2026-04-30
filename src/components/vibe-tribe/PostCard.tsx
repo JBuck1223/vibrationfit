@@ -498,6 +498,7 @@ export function PostCard({
                       categories={VISION_CATEGORIES.filter(cat => cat.key !== 'forward' && cat.key !== 'conclusion')}
                       selectedCategories={editCategories}
                       onCategoryClick={handleEditCategoryToggle}
+                      lifeVisionCategoryStrip
                     />
                   </div>
                 )}

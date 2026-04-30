@@ -48,19 +48,25 @@ export const componentProps = {
       name: 'showSelectAll',
       type: 'boolean',
       optional: true,
-      description: 'Show an "All" pill at the start of the strip. Default: false'
+      description: 'Show a select-all control. Default: false. With `lifeVisionCategoryStrip`, the control is a compact button above the pills unless `selectAllPlacement` is `inline`.'
     },
     {
       name: 'onSelectAll',
       type: '() => void',
       optional: true,
-      description: 'Callback for the "All" pill (required if showSelectAll is true)'
+      description: 'Callback when select-all is clicked (required if showSelectAll is true)'
     },
     {
       name: 'selectAllLabel',
       type: 'string',
       optional: true,
-      description: 'Custom label for the All pill. Default: "All"'
+      description: 'Overrides both states if set. Otherwise the control shows "Select all" / "Deselect all" based on selection.'
+    },
+    {
+      name: 'selectAllPlacement',
+      type: '"inline" | "above"',
+      optional: true,
+      description: '`inline` = All as the first pill. `above` = small outline Button above the strip. Default: `above` when both `lifeVisionCategoryStrip` and `showSelectAll` are true; otherwise `inline`.'
     },
     {
       name: 'pillLabel',
@@ -78,13 +84,31 @@ export const componentProps = {
       name: 'fillWidth',
       type: 'boolean',
       optional: true,
-      description: 'When true, pills wrap on desktop and each pill stretches to share row width evenly (flex-1). Default: false (compact scrollable strip)'
+      description: 'When true, pills wrap on desktop and each pill stretches to share row width evenly (flex-1). Default: false (compact scrollable strip). Ignored when lifeVisionCategoryStrip is true.'
+    },
+    {
+      name: 'twoLineDesktop',
+      type: 'boolean',
+      optional: true,
+      description: 'With fillWidth: on md+ use a 7-column grid so ~14 pills form two rows. Ignored when lifeVisionCategoryStrip is true.'
+    },
+    {
+      name: 'brandGreenIcons',
+      type: 'boolean',
+      optional: true,
+      description: 'Brand lime icon stroke on pills; label colors adjusted. Ignored when lifeVisionCategoryStrip is true.'
+    },
+    {
+      name: 'lifeVisionCategoryStrip',
+      type: 'boolean',
+      optional: true,
+      description: 'Preset for the full Life Vision category strip: sets fillWidth, twoLineDesktop, and brandGreenIcons. Use anywhere the standard 12–14 life category pills appear for consistent layout and icon color.'
     },
     {
       name: 'wrapOnDesktop',
       type: 'boolean',
       optional: true,
-      description: 'When true without fillWidth, pills keep natural size and icons and wrap to multiple centered rows on md+. Mobile stays horizontal scroll. Default: false'
+      description: 'When true without fillWidth, pills keep natural size and icons and wrap to multiple centered rows on md+. Mobile stays horizontal scroll. Default: false. Ignored when lifeVisionCategoryStrip is true.'
     },
     {
       name: 'completionBadgeColor',
