@@ -105,6 +105,7 @@ export interface UserProfile {
   charitable_giving?: string | null
   legacy_mindset?: boolean | null
   ai_tags?: any | null
+  /** DB column — not authoritative; use `get_profile_version_number` RPC for display. */
   version_number?: number
   is_draft?: boolean
   is_active?: boolean

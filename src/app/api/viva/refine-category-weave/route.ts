@@ -31,6 +31,7 @@ interface RefineCategoryWeaveRequest {
   refinement?: RefinementInputs;
   weave?: WeaveInputs;
   perspective?: 'singular' | 'plural';
+  profileContext?: { state?: string; story?: string };
 }
 
 /**
@@ -69,8 +70,18 @@ export async function POST(req: NextRequest) {
           currentVisionText,
           refinement,
           weave,
-          perspective = 'singular'
+          perspective = 'singular',
+          profileContext,
         } = body;
+
+        const profileForPrompt =
+          profileContext &&
+          (profileContext.state?.trim() || profileContext.story?.trim())
+            ? {
+                state: profileContext.state?.trim() || undefined,
+                story: profileContext.story?.trim() || undefined,
+              }
+            : undefined;
 
         // Validate
         if (!visionId || !category || !currentVisionText) {
@@ -165,7 +176,8 @@ export async function POST(req: NextRequest) {
           categoryKey,
           categoryInfo.label,
           visionTextWithBlocks,
-          perspective
+          perspective,
+          profileForPrompt
         );
 
         // Get AI tool config
