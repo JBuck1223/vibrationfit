@@ -144,7 +144,9 @@ export function buildImaginationStarterPrompt(
   perspective: 'singular' | 'plural' = 'singular'
 ): string {
   const pronoun = perspective === 'plural' ? 'we/our' : 'I/my'
-  const emotionalTarget = CATEGORY_EMOTIONAL_TARGETS[categoryKey]
+  const emotionalTarget =
+    CATEGORY_EMOTIONAL_TARGETS[categoryKey] ??
+    'Warm, embodied presence — honor their real life with certainty and joy.'
   const profileContext = formatProfileContext(categoryKey, profileData)
   
   const { totalWords, richness } = calculateInputRichness(stateText, profileData)

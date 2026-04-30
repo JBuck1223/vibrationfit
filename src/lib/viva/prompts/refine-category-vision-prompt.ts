@@ -86,6 +86,38 @@ export function buildWeaveBlock(inputs: WeaveInputs): string {
   return parts.join('\n')
 }
 
+export interface ProfileContextInput {
+  state?: string
+  story?: string
+}
+
+function buildProfileContextSection(profile?: ProfileContextInput): string {
+  if (!profile) return ''
+  const state = profile.state?.trim()
+  const story = profile.story?.trim()
+  if (!state && !story) return ''
+  const parts: string[] = [
+    '',
+    '═══════════════════════════════════════════════════════════════',
+    'PROFILE CONTEXT (inform tone and specifics — do not quote verbatim)',
+    '═══════════════════════════════════════════════════════════════',
+    '',
+  ]
+  if (state) {
+    parts.push('CURRENT STATE (from their profile):')
+    parts.push(state)
+    parts.push('')
+  }
+  if (story) {
+    parts.push('STORY / NARRATIVE (from their profile):')
+    parts.push(story)
+    parts.push('')
+  }
+  parts.push('Use this context to align the refinement with their real life. Do not paste chunks of it into the output.')
+  parts.push('')
+  return parts.join('\n')
+}
+
 /**
  * Build refinement prompt with REFINEMENT and WEAVE instructions
  */
@@ -93,12 +125,14 @@ export function buildRefineCategoryPrompt(
   categoryKey: string,
   categoryLabel: string,
   currentVisionText: string,
-  perspective: 'singular' | 'plural' = 'singular'
+  perspective: 'singular' | 'plural' = 'singular',
+  profileContext?: ProfileContextInput
 ): string {
+  const profileBlock = buildProfileContextSection(profileContext)
   return `You are VIVA. Your job is to REFINE the member's existing vision text.
 
 CATEGORY: ${categoryLabel}
-
+${profileBlock}
 ═══════════════════════════════════════════════════════════════
 CURRENT VISION TEXT (PRIMARY SOURCE)
 ═══════════════════════════════════════════════════════════════

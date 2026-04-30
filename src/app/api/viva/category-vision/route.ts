@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
       getMeStartedText = '',
       imaginationText = '',
       currentStateText = '',
+      profileStoryText = '',
       perspective = 'singular'
     } = body
 
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`[CategoryVision] Starting ${categoryKey} (streaming)`)
-    console.log(`[CategoryVision] Input sizes: getMeStarted=${getMeStartedText?.length || 0}, imagination=${imaginationText?.length || 0}, state=${currentStateText?.length || 0}`)
+    console.log(`[CategoryVision] Input sizes: getMeStarted=${getMeStartedText?.length || 0}, imagination=${imaginationText?.length || 0}, state=${currentStateText?.length || 0}, story=${profileStoryText?.length || 0}`)
 
     // Build the prompt
     const prompt = buildIndividualCategoryPrompt(
@@ -72,7 +73,8 @@ export async function POST(request: NextRequest) {
       getMeStartedText,
       imaginationText,
       currentStateText,
-      perspective as 'singular' | 'plural'
+      perspective as 'singular' | 'plural',
+      typeof profileStoryText === 'string' ? profileStoryText : ''
     )
 
     console.log(`[CategoryVision] Prompt length: ${prompt.length} chars`)

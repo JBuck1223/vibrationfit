@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { normalizeProfileVersionFromRpc } from '@/lib/profile/profile-version-from-rpc'
 
 // ============================================================================
 // Individual Profile Version API Endpoints
@@ -49,17 +50,14 @@ export async function GET(
     }
     const accountData = accountResult.data
 
-    // Calculate version number based on chronological order (matches vision API pattern)
-    let profileVersionNumber = profile.version_number || 1
-    try {
-      const { data: calculatedVersionNumber } = await supabase
-        .rpc('get_profile_version_number', { p_profile_id: profile.id })
-      
-      profileVersionNumber = calculatedVersionNumber || profile.version_number || 1
-    } catch (error) {
-      // If RPC function doesn't exist yet, use stored version_number
-      console.warn('Could not calculate version number, using stored:', error)
+    const { data: calculatedVersionNumber, error: rpcError } = await supabase.rpc(
+      'get_profile_version_number',
+      { p_profile_id: profile.id }
+    )
+    if (rpcError) {
+      console.error('get_profile_version_number RPC failed:', rpcError)
     }
+    const profileVersionNumber = normalizeProfileVersionFromRpc(calculatedVersionNumber)
 
     // Merge account data into profile (user_accounts is source of truth for these fields)
     const profileWithVersion = {

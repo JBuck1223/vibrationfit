@@ -20,8 +20,33 @@ import {
   getVisionCategory, 
   isValidVisionCategory,
   getCategoryStateField,
-  type LifeCategoryKey 
+  LIFE_CATEGORY_KEYS,
+  META_CATEGORY_KEYS,
+  type LifeCategoryKey,
+  type MetaCategoryKey,
+  type VisionCategoryKey,
 } from '@/lib/design-system/vision-categories'
+
+/** Join non-empty state_* fields so Get Me Started works when one category is sparse or meta (Forward has no single state column). */
+function aggregateLifeCategoryStates(profile: Record<string, unknown>): string {
+  const parts: string[] = []
+  for (const key of LIFE_CATEGORY_KEYS) {
+    const field = getCategoryStateField(key)
+    const t = String(profile[field] ?? '').trim()
+    if (t) parts.push(t)
+  }
+  return parts.join('\n\n')
+}
+
+function resolveStarterStateText(categoryKey: VisionCategoryKey, profile: Record<string, unknown>): string {
+  const isMeta = META_CATEGORY_KEYS.includes(categoryKey as MetaCategoryKey)
+  if (!isMeta) {
+    const field = getCategoryStateField(categoryKey as LifeCategoryKey)
+    const direct = String(profile[field] ?? '').trim()
+    if (direct) return direct
+  }
+  return aggregateLifeCategoryStates(profile)
+}
 import { getFilteredQuestionsForCategory } from '@/lib/life-vision/ideal-state-questions'
 
 export const maxDuration = 60 // 1 minute max
@@ -76,14 +101,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Extract state from profile
-    const stateField = getCategoryStateField(categoryKey as LifeCategoryKey)
-    const stateText = profile[stateField] || ''
+    // Primary: this category's state_*; fallback: all life-area states (covers Forward/meta + sparse fun state)
+    const stateText = resolveStarterStateText(categoryKey as VisionCategoryKey, profile as Record<string, unknown>)
 
-    // Check if we have any content to work with
-    if (!stateText) {
+    if (!stateText.trim()) {
       return NextResponse.json(
-        { error: `No state data found for ${category.label}. Please complete your profile first.` },
+        {
+          error:
+            'No profile state found yet. Add your current-state answers for at least one life area in your profile, then try Get Me Started again.',
+        },
         { status: 400 }
       )
     }
