@@ -8,50 +8,12 @@ import type { AudioSourceSelection } from '@/components/audio-studio'
 import type { VisionData } from '@/components/audio-studio'
 import type { Story } from '@/lib/stories/types'
 import { CategoryGrid } from '@/lib/design-system'
+import { CompletedStepRow } from '@/components/CompletedStepRow'
 import { createClient } from '@/lib/supabase/client'
 import { MediaRecorderComponent } from '@/components/MediaRecorder'
-import { CheckCircle, Check, Headphones, Mic, Wand2, RefreshCw, Home, Library } from 'lucide-react'
+import { CheckCircle, Headphones, Mic, Wand2, RefreshCw, Home, Library } from 'lucide-react'
 import Link from 'next/link'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
-
-
-function CompletedStepRow({
-  step,
-  label,
-  value,
-  onChange,
-}: {
-  step: number
-  label: string
-  value: React.ReactNode
-  onChange: () => void
-}) {
-  return (
-    <div
-      className="rounded-2xl border border-neutral-700/50 bg-neutral-900/40 px-4 py-3 cursor-pointer transition-colors active:bg-neutral-800/55 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#39FF14]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-900"
-      onClick={() => onChange()}
-      onKeyDown={e => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          onChange()
-        }
-      }}
-      role="button"
-      tabIndex={0}
-      aria-label={`Edit ${label.toLowerCase()} step`}
-    >
-      <div className="flex items-center gap-3">
-        <span className="w-7 h-7 rounded-full bg-primary-500/15 text-primary-500 flex items-center justify-center shrink-0">
-          <Check className="w-4 h-4" />
-        </span>
-        <div className="min-w-0 flex-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm leading-normal">
-          <span className="text-neutral-400 shrink-0">{step}. {label}:</span>
-          <span className="text-white font-medium break-words min-w-0 md:truncate">{value}</span>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 export default function RecordVisionAudioPage() {
   const router = useRouter()
@@ -497,6 +459,10 @@ export default function RecordVisionAudioPage() {
               initialSourceType={sourceType}
               initialSourceId={sourceId}
               stepNumber={1}
+              sourceTypeDescriptions={{
+                life_vision: 'Record your Life Vision in your own voice.',
+                story: 'Record your story in your own voice.',
+              }}
             />
           </div>
           {currentStep !== 1 && selectedSource && (

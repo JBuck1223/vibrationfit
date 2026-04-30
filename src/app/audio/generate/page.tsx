@@ -4,51 +4,11 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Card, Spinner, Container, Stack } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
-import { CheckCircle, Check, Play, X, ChevronDown, ChevronUp, AudioLines, Search, Home } from 'lucide-react'
+import { CheckCircle, Play, X, ChevronDown, ChevronUp, AudioLines, Search, Home } from 'lucide-react'
 import { getVisionCategoryKeys } from '@/lib/design-system'
 import { useAudioStudio, QueueStatusBanner, AudioSourceSelector } from '@/components/audio-studio'
 import type { AudioSourceSelection } from '@/components/audio-studio'
-
-function CompletedStepRow({
-  step,
-  label,
-  value,
-  valueIcon,
-  onChange,
-}: {
-  step: number
-  label: string
-  value: React.ReactNode
-  valueIcon?: React.ReactNode
-  onChange: () => void
-}) {
-  return (
-    <div
-      className="rounded-2xl border border-neutral-700/50 bg-neutral-900/40 px-4 py-3 cursor-pointer transition-colors active:bg-neutral-800/55 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#39FF14]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-900"
-      onClick={() => onChange()}
-      onKeyDown={e => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          onChange()
-        }
-      }}
-      role="button"
-      tabIndex={0}
-      aria-label={`Edit ${label.toLowerCase()} step`}
-    >
-      <div className="flex items-center gap-3">
-        <span className="w-7 h-7 rounded-full bg-primary-500/15 text-primary-500 flex items-center justify-center shrink-0">
-          <Check className="w-4 h-4" />
-        </span>
-        <div className="min-w-0 flex-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm leading-normal">
-          <span className="text-neutral-400 shrink-0">{step}. {label}:</span>
-          {valueIcon}
-          <span className="text-white font-medium break-words min-w-0 md:truncate">{value}</span>
-        </div>
-      </div>
-    </div>
-  )
-}
+import { CompletedStepRow } from '@/components/CompletedStepRow'
 
 export default function AudioGeneratePage() {
   const router = useRouter()

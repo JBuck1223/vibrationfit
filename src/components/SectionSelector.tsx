@@ -9,6 +9,8 @@ interface SectionSelectorProps {
   onAllSelectedChange: (value: boolean) => void
   selectedSections: string[]
   onSelectedSectionsChange: (sections: string[]) => void
+  /** Passed to design-system `Toggle` (default pill lime). */
+  toggleVariant?: 'pill' | 'segmented'
   label?: string
   description?: string
   /** 
@@ -24,6 +26,7 @@ export function SectionSelector({
   onAllSelectedChange,
   selectedSections,
   onSelectedSectionsChange,
+  toggleVariant = 'pill',
   label = 'All 14 Sections',
   description,
   availableSections
@@ -82,6 +85,7 @@ export function SectionSelector({
         {/* Mobile Toggle (wider, shorter labels) */}
         <div className="sm:hidden">
           <Toggle
+            variant={toggleVariant}
             value={allSelected ? 'all' : 'specific'}
             onChange={(val) => onAllSelectedChange(val === 'all')}
             options={[
@@ -93,6 +97,7 @@ export function SectionSelector({
         {/* Desktop Toggle (full labels) */}
         <div className="hidden sm:block">
           <Toggle
+            variant={toggleVariant}
             value={allSelected ? 'all' : 'specific'}
             onChange={(val) => onAllSelectedChange(val === 'all')}
             options={[

@@ -1,17 +1,18 @@
 "use client"
 import React, { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Spinner, Badge, Container, Stack, Toggle, Select } from '@/lib/design-system/components'
+import { Button, Card, Spinner, Container, Stack, Toggle } from '@/lib/design-system/components'
 import { useAudioStudio, QueueStatusBanner, AudioSourceSelector } from '@/components/audio-studio'
 import type { AudioSourceSelection } from '@/components/audio-studio'
 import type { VisionData } from '@/components/audio-studio'
 import type { Story } from '@/lib/stories/types'
 import { createClient } from '@/lib/supabase/client'
-import { Headphones, CheckCircle, Check, Play, Moon, Zap, Sparkles, Music, X, Wand2, Mic, Clock, Music2, Plus, ChevronDown, ChevronUp, Waves, Search, Home } from 'lucide-react'
+import { Headphones, CheckCircle, Play, Moon, Zap, Sparkles, Music, X, Wand2, Mic, Clock, Music2, Plus, Waves, Search, Home } from 'lucide-react'
 import Link from 'next/link'
 import { getVisionCategoryKeys, VISION_CATEGORIES } from '@/lib/design-system'
 import { SectionSelector } from '@/components/SectionSelector'
 import { FormatSelector, OutputFormat } from '@/components/FormatSelector'
+import { CompletedStepRow } from '@/components/CompletedStepRow'
 
 interface Voice {
   id: string
@@ -65,44 +66,6 @@ function calculateAdjustedVolumes(voiceVol: number, bgVol: number, binauralVol: 
     bg: Math.round((bgVol / total) * remaining),
     binaural: binauralVol
   }
-}
-
-function CompletedStepRow({
-  step,
-  label,
-  value,
-  onChange,
-}: {
-  step: number
-  label: string
-  value: React.ReactNode
-  onChange: () => void
-}) {
-  return (
-    <div
-      className="rounded-2xl border border-neutral-700/50 bg-neutral-900/40 px-4 py-3 cursor-pointer transition-colors active:bg-neutral-800/55 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#39FF14]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-900"
-      onClick={() => onChange()}
-      onKeyDown={e => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          onChange()
-        }
-      }}
-      role="button"
-      tabIndex={0}
-      aria-label={`Edit ${label.toLowerCase()} step`}
-    >
-      <div className="flex items-center gap-3">
-        <span className="w-7 h-7 rounded-full bg-primary-500/15 text-primary-500 flex items-center justify-center shrink-0">
-          <Check className="w-4 h-4" />
-        </span>
-        <div className="min-w-0 flex-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm leading-normal">
-          <span className="text-neutral-400 shrink-0">{step}. {label}:</span>
-          <span className="text-white font-medium break-words min-w-0 md:truncate">{value}</span>
-        </div>
-      </div>
-    </div>
-  )
 }
 
 export default function AudioMixPage() {
@@ -160,13 +123,53 @@ export default function AudioMixPage() {
   
   // Intensive mode: hide Binaural Enhancement until user completes intensive (graduate unlock)
   const [isIntensiveMode, setIsIntensiveMode] = useState(false)
-  // Section visibility toggles (all expanded by default)
-  const [showBackgroundSection, setShowBackgroundSection] = useState(true)
-  const [showMixRatioSection, setShowMixRatioSection] = useState(true)
-  const [showBinauralSection, setShowBinauralSection] = useState(true)
-  const [showSectionsSection, setShowSectionsSection] = useState(true)
-  const [showOutputFormatSection, setShowOutputFormatSection] = useState(true)
-  
+
+  // Section Selection for Custom Mixing (before wizard-derived values)
+  const [mixAllSections, setMixAllSections] = useState(true)
+  const [selectedMixSections, setSelectedMixSections] = useState<string[]>([])
+  const [mixOutputFormat, setMixOutputFormat] = useState<OutputFormat>('individual')
+
+  /** Build My Own sequential wizard */
+  type CustomMixWizardStep = 'ratio' | 'background' | 'binaural' | 'sections' | 'output' | 'review'
+  const [customMixStep, setCustomMixStep] = useState<CustomMixWizardStep>('ratio')
+  /** User clicked a binaural option (None or track) before Continue */
+  const [customBinauralAck, setCustomBinauralAck] = useState(false)
+  const customRatioRef = useRef<HTMLDivElement>(null)
+  const customBgRef = useRef<HTMLDivElement>(null)
+  const customBinRef = useRef<HTMLDivElement>(null)
+  const customSectionsRef = useRef<HTMLDivElement>(null)
+  const customOutputRef = useRef<HTMLDivElement>(null)
+  const customReviewRef = useRef<HTMLDivElement>(null)
+
+  const scrollToCustomPanel = (ref: React.RefObject<HTMLDivElement | null>) => {
+    requestAnimationFrame(() => {
+      ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
+
+  useEffect(() => {
+    if (customMixStep !== 'binaural') return
+    if (!selectedBinauralTrack && binauralVolume === 0) {
+      setCustomBinauralAck(true)
+    }
+  }, [customMixStep, selectedBinauralTrack, binauralVolume])
+
+  // Recommended Combos / Build My Own (must be before handleMixModeChange)
+  const [recommendedCombos, setRecommendedCombos] = useState<any[]>([])
+  const [mixMode, setMixMode] = useState<'recommended' | 'custom'>('recommended')
+
+  const handleMixModeChange = (mode: 'recommended' | 'custom') => {
+    setMixMode(mode)
+    if (mode === 'custom') {
+      setCustomMixStep('ratio')
+      setCustomBinauralAck(false)
+      setSelectedMixRatio('')
+      setSelectedBackgroundTrack('')
+      setSelectedBinauralTrack('')
+      setBinauralVolume(0)
+    }
+  }
+
   // Audio preview
   const [previewingTrack, setPreviewingTrack] = useState<string | null>(null)
   const [previewProgress, setPreviewProgress] = useState<number>(0)
@@ -176,7 +179,55 @@ export default function AudioMixPage() {
     const ratio = mixRatios.find(r => r.id === selectedMixRatio)
     return ratio ? ratio.bg_volume === 0 : false
   })()
-  
+
+  const availableSectionsForMix = selectedBaseVoiceSet?.available_sections || []
+  const effectiveSectionCountForMix = mixAllSections
+    ? availableSectionsForMix.length
+    : selectedMixSections.filter((s) => availableSectionsForMix.includes(s)).length
+  const customShowOutputStep = effectiveSectionCountForMix > 1
+  const customShowBinauralStep =
+    !isVoiceOnly && binauralTracks.length > 0 && !isIntensiveMode
+
+  const pickMixRatio = (id: string) => {
+    const r = mixRatios.find((x) => x.id === id)
+    const vo = r ? r.bg_volume === 0 : false
+    if (vo) {
+      setSelectedBackgroundTrack('')
+      setSelectedBinauralTrack('')
+      setBinauralVolume(0)
+    }
+    setSelectedMixRatio(id)
+    if (vo) {
+      setCustomMixStep('sections')
+      scrollToCustomPanel(customSectionsRef)
+    } else {
+      setCustomMixStep('background')
+      scrollToCustomPanel(customBgRef)
+    }
+  }
+
+  const pickBackgroundTrack = (trackId: string) => {
+    const backgroundChanged = trackId !== selectedBackgroundTrack
+    setSelectedBackgroundTrack(trackId)
+    if (backgroundChanged) {
+      setSelectedBinauralTrack('')
+      setBinauralVolume(0)
+    }
+    if (!isVoiceOnly && binauralTracks.length > 0 && !isIntensiveMode) {
+      setCustomBinauralAck(true)
+      setCustomMixStep('binaural')
+      scrollToCustomPanel(customBinRef)
+    } else {
+      setCustomMixStep('sections')
+      scrollToCustomPanel(customSectionsRef)
+    }
+  }
+
+  const finishBinauralStep = () => {
+    setCustomMixStep('sections')
+    scrollToCustomPanel(customSectionsRef)
+  }
+
   // Initialize audio element on mount
   useEffect(() => {
     if (!audioRef.current) {
@@ -250,16 +301,7 @@ export default function AudioMixPage() {
       setPreviewingTrack(trackId)
     }
   }
-  
-  // Recommended Combos
-  const [recommendedCombos, setRecommendedCombos] = useState<any[]>([])
-  const [mixMode, setMixMode] = useState<'recommended' | 'custom'>('recommended')
-  
-  // Section Selection for Custom Mixing
-  const [mixAllSections, setMixAllSections] = useState(true)
-  const [selectedMixSections, setSelectedMixSections] = useState<string[]>([])
-  const [mixOutputFormat, setMixOutputFormat] = useState<OutputFormat>('individual')
-  
+
   function handleSourceSelected(selection: AudioSourceSelection) {
     setSelectedSource(selection)
     setExistingVoiceSets([])
@@ -369,9 +411,6 @@ export default function AudioMixPage() {
     
     if (tracks) {
       setBackgroundTracks(tracks)
-      if (tracks.length > 0 && !selectedBackgroundTrack) {
-        setSelectedBackgroundTrack(tracks[0].id)
-      }
     }
     
     // Load frequency enhancement tracks (pure solfeggio + solfeggio binaural + future non-solfeggio binaural)
@@ -395,10 +434,6 @@ export default function AudioMixPage() {
     
     if (ratios) {
       setMixRatios(ratios)
-      const balanced = ratios.find(r => r.voice_volume === 50)
-      if (balanced && !selectedMixRatio) {
-        setSelectedMixRatio(balanced.id)
-      }
     }
 
     // Load recommended combos
@@ -837,30 +872,37 @@ export default function AudioMixPage() {
 
         <QueueStatusBanner />
 
-        <div ref={step1Ref}>
-          <div className={currentStep === 1 ? 'block' : 'hidden'}>
-            <AudioSourceSelector
-              onSourceSelected={handleSourceSelected}
-              initialSourceType={sourceType}
-              initialSourceId={sourceId}
-              stepNumber={1}
-            />
+        <div className="flex flex-col gap-4">
+          <div ref={step1Ref}>
+            <div className={currentStep === 1 ? 'block' : 'hidden'}>
+              <AudioSourceSelector
+                onSourceSelected={handleSourceSelected}
+                initialSourceType={sourceType}
+                initialSourceId={sourceId}
+                stepNumber={1}
+                sourceTypeDescriptions={{
+                  life_vision:
+                    'Add background music and binaural beats to your Life Vision voice tracks.',
+                  story:
+                    "Add background music and binaural beats to your story's voice track.",
+                }}
+              />
+            </div>
+            {currentStep !== 1 && (
+              <CompletedStepRow
+                step={1}
+                label="Source"
+                value={sourceSummaryValue}
+                onChange={() => {
+                  setLoading(false)
+                  setCurrentStep(1)
+                  scrollToStep(step1Ref)
+                }}
+              />
+            )}
           </div>
-          {currentStep !== 1 && (
-            <CompletedStepRow
-              step={1}
-              label="Source"
-              value={sourceSummaryValue}
-              onChange={() => {
-                setLoading(false)
-                setCurrentStep(1)
-                scrollToStep(step1Ref)
-              }}
-            />
-          )}
-        </div>
 
-        {sourceComplete && currentStep >= 2 && (
+          {sourceComplete && currentStep >= 2 && (
           <div ref={step2Ref}>
             {loading && currentStep === 2 ? (
               <div className="flex min-h-[20vh] items-center justify-center">
@@ -910,7 +952,7 @@ export default function AudioMixPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="space-y-2 max-h-80 overflow-y-auto">
             {(baseVoiceSearch.trim()
               ? existingVoiceSets.filter(set => {
                   const q = baseVoiceSearch.toLowerCase()
@@ -923,15 +965,14 @@ export default function AudioMixPage() {
               : existingVoiceSets
             ).map((set) => {
               const isPreviewing = previewingTrack === set.id
+              const isSelected = selectedBaseVoiceSetId === set.id
               return (
-                <Card 
-                  key={set.id} 
-                  variant="default" 
-                  hover
-                  className={`cursor-pointer ${
-                    selectedBaseVoiceSetId === set.id
-                      ? 'border-primary-500 bg-primary-500/10'
-                      : ''
+                <div
+                  key={set.id}
+                  className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${
+                    isSelected
+                      ? 'bg-primary-500/10 border border-primary-500'
+                      : 'bg-neutral-800/50 border border-transparent hover:bg-neutral-800'
                   }`}
                   onClick={() => {
                     setSelectedBaseVoiceSetId(set.id)
@@ -939,77 +980,71 @@ export default function AudioMixPage() {
                     scrollToStep(step3Ref)
                   }}
                 >
-                  <div className="flex items-center gap-3">
-                    {selectedBaseVoiceSetId === set.id ? (
-                      <CheckCircle className="w-5 h-5 text-primary-500 flex-shrink-0" />
-                    ) : set.variant === 'personal' ? (
-                      <Mic className="w-5 h-5 text-[#BF00FF] flex-shrink-0" />
-                    ) : null}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white font-medium">{set.voice_name}</p>
-                      <p className="text-xs text-neutral-400">
-                        {(() => {
-                          const t = VISION_CATEGORIES.length
-                          const n = set.track_count
-                          const hasFull = set.hasFullCombinedTrack
-                          if (hasFull) {
-                            if (n === 0) {
-                              return 'Full life vision in one combined file'
-                            }
-                            if (n < t) {
-                              return `Full combined file + ${n} per-section file${n === 1 ? '' : 's'}`
-                            }
-                            return `Full combined + ${n} per-section files`
+                  {isSelected && (
+                    <CheckCircle className="w-5 h-5 text-primary-500 flex-shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-medium text-sm md:text-base">{set.voice_name}</p>
+                    <p className="text-xs md:text-sm text-neutral-400">
+                      {(() => {
+                        const t = VISION_CATEGORIES.length
+                        const n = set.track_count
+                        const hasFull = set.hasFullCombinedTrack
+                        if (hasFull) {
+                          if (n === 0) {
+                            return 'Full life vision in one combined file'
                           }
                           if (n < t) {
-                            return `${n} of ${t} per-section files (not a full 14 set)`
+                            return `Full combined file + ${n} per-section file${n === 1 ? '' : 's'}`
                           }
-                          return `${n} per-section files (full 14 set)`
-                        })()}
-                      </p>
-                    </div>
-                    {set.sample_audio_url && (
-                      <div className="relative flex-shrink-0 w-9 h-9">
-                        {/* Circular progress indicator */}
-                        {isPreviewing && (
-                          <svg className="absolute inset-0 w-9 h-9 -rotate-90 pointer-events-none" viewBox="0 0 36 36" style={{ zIndex: 10 }}>
-                            {/* Background track */}
-                            <circle
-                              cx="18"
-                              cy="18"
-                              r="16"
-                              fill="none"
-                              stroke="rgba(31,31,31,0.3)"
-                              strokeWidth="2"
-                            />
-                            {/* Progress */}
-                            <circle
-                              cx="18"
-                              cy="18"
-                              r="16"
-                              fill="none"
-                              stroke="#1F1F1F"
-                              strokeWidth="2"
-                              strokeDasharray="100.53"
-                              strokeDashoffset={100.53 - (100.53 * previewProgress / 100)}
-                              className="transition-all duration-100"
-                            />
-                          </svg>
-                        )}
-                        <button
-                          onClick={(e) => handlePreview(e, set.sample_audio_url!, set.id)}
-                          className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
-                            isPreviewing 
-                              ? 'bg-primary-500' 
-                              : 'bg-neutral-800 hover:bg-neutral-700'
-                          }`}
-                        >
-                          {isPreviewing ? <X className="w-4 h-4 text-[#1F1F1F]" /> : <Play className="w-4 h-4 text-neutral-400" />}
-                        </button>
-                      </div>
-                    )}
+                          return `Full combined + ${n} per-section files`
+                        }
+                        if (n < t) {
+                          return `${n} of ${t} per-section files (not a full 14 set)`
+                        }
+                        return `${n} per-section files (full 14 set)`
+                      })()}
+                    </p>
                   </div>
-                </Card>
+                  {set.sample_audio_url && (
+                    <div className="relative flex-shrink-0 w-9 h-9">
+                      {isPreviewing && (
+                        <svg className="absolute inset-0 w-9 h-9 -rotate-90 pointer-events-none" viewBox="0 0 36 36" style={{ zIndex: 10 }}>
+                          <circle
+                            cx="18"
+                            cy="18"
+                            r="16"
+                            fill="none"
+                            stroke="rgba(31,31,31,0.3)"
+                            strokeWidth="2"
+                          />
+                          <circle
+                            cx="18"
+                            cy="18"
+                            r="16"
+                            fill="none"
+                            stroke="#1F1F1F"
+                            strokeWidth="2"
+                            strokeDasharray="100.53"
+                            strokeDashoffset={100.53 - (100.53 * previewProgress / 100)}
+                            className="transition-all duration-100"
+                          />
+                        </svg>
+                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => handlePreview(e, set.sample_audio_url!, set.id)}
+                        className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
+                          isPreviewing
+                            ? 'bg-primary-500'
+                            : 'bg-neutral-800 hover:bg-neutral-700'
+                        }`}
+                      >
+                        {isPreviewing ? <X className="w-4 h-4 text-[#1F1F1F]" /> : <Play className="w-4 h-4 text-neutral-400" />}
+                      </button>
+                    </div>
+                  )}
+                </div>
               )
             })}
           </div>
@@ -1039,7 +1074,8 @@ export default function AudioMixPage() {
               />
             )}
           </div>
-        )}
+          )}
+        </div>
 
         {sourceComplete && !loading && existingVoiceSets.length > 0 && currentStep === 3 && (
           <div ref={step3Ref}>
@@ -1059,8 +1095,9 @@ export default function AudioMixPage() {
 
           <div className="flex justify-center mt-6 mb-6">
             <Toggle
+              variant="segmented"
               value={mixMode}
-              onChange={setMixMode}
+              onChange={handleMixModeChange}
               options={[
                 { value: 'recommended', label: 'Recommended Combos' },
                 { value: 'custom', label: 'Build My Own' }
@@ -1248,162 +1285,253 @@ export default function AudioMixPage() {
             </>
           )}
 
-          {/* CUSTOM BUILD MODE */}
+          {/* CUSTOM BUILD MODE — sequential wizard */}
           {mixMode === 'custom' && (
             <>
-              {/* 1. Mix Ratio Selection */}
-              <Card variant="glass" className="p-4 md:p-6 mb-6 overflow-visible relative z-30">
-                <button 
-                  onClick={() => setShowMixRatioSection(!showMixRatioSection)}
-                  className={`w-full relative flex flex-col items-center justify-center ${showMixRatioSection ? 'mb-3' : ''}`}
-                >
-                  <h3 className="text-base font-semibold text-white">Choose Mix Ratio</h3>
-                  {!showMixRatioSection && (
-                    <p className="text-xs text-neutral-400 mt-1">
-                      {selectedMixRatio 
-                        ? (() => {
-                            const ratio = mixRatios.find(r => r.id === selectedMixRatio)
-                            if (!ratio) return 'None selected'
-                            return `${ratio.voice_volume}% Voice / ${ratio.bg_volume}% BG`
-                          })()
-                        : 'None selected'}
-                    </p>
-                  )}
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2">
-                    {showMixRatioSection ? (
-                      <ChevronUp className="w-5 h-5 text-neutral-400" />
-                    ) : (
-                      <ChevronDown className="w-5 h-5 text-neutral-400" />
-                    )}
-                  </div>
-                </button>
-                
-                {showMixRatioSection && (
-                <>
-                <p className="text-sm text-neutral-400 mb-3 text-center">
-                  {selectedBinauralTrack && binauralVolume > 0
-                    ? `Voice + Background ratio (Binaural at ${binauralVolume}%)`
-                    : 'Voice + Background balance'}
-                </p>
-                <Select
-                  value={selectedMixRatio}
-                  onChange={(value) => setSelectedMixRatio(value)}
-                  placeholder="Select a mix ratio..."
-                  options={mixRatios.map((ratio) => {
-                    const cleanName = ratio.name.replace(/\s*\(\d+\/\d+\)\s*$/, '')
-                    const adjusted = (selectedBinauralTrack && binauralVolume > 0)
-                      ? calculateAdjustedVolumes(ratio.voice_volume, ratio.bg_volume, binauralVolume)
-                      : { voice: ratio.voice_volume, bg: ratio.bg_volume, binaural: 0 }
-                    
-                    return {
-                      value: ratio.id,
-                      label: `${cleanName} - ${adjusted.voice}% Voice / ${adjusted.bg}% BG${adjusted.binaural > 0 ? ` / ${adjusted.binaural}% Binaural` : ''}`
-                    }
-                  })}
-                />
-                </>
+              <div className="space-y-3 mb-4">
+                {selectedMixRatio && customMixStep !== 'ratio' && (
+                  <CompletedStepRow
+                    step={1}
+                    badgeVariant="accent"
+                    label="Mix ratio"
+                    value={(() => {
+                      const r = mixRatios.find((x) => x.id === selectedMixRatio)
+                      if (!r) return ''
+                      const name = r.name.replace(/\s*\(\d+\/\d+\)\s*$/, '')
+                      const sub =
+                        r.bg_volume === 0
+                          ? `${r.voice_volume}% voice (voice only)`
+                          : `${r.voice_volume}% voice / ${r.bg_volume}% background`
+                      return `${name} — ${sub}`
+                    })()}
+                    onChange={() => {
+                      setCustomMixStep('ratio')
+                      scrollToCustomPanel(customRatioRef)
+                    }}
+                  />
                 )}
-              </Card>
 
-              {/* 2. Background Track Selection (hidden when ratio is voice-only) */}
-              {!isVoiceOnly && (
-              <Card variant="glass" className="p-4 md:p-6 mb-6">
-                <button 
-                  onClick={() => setShowBackgroundSection(!showBackgroundSection)}
-                  className={`w-full relative flex flex-col items-center justify-center ${showBackgroundSection ? 'mb-3' : ''}`}
-                >
-                  <h3 className="text-base font-semibold text-white">Choose Background Track</h3>
-                  {!showBackgroundSection && (
-                    <p className="text-xs text-neutral-400 mt-1">
-                      {selectedBackgroundTrack 
-                        ? backgroundTracks.find(t => t.id === selectedBackgroundTrack)?.display_name || 'Selected'
-                        : 'None selected'}
-                    </p>
-                  )}
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2">
-                    {showBackgroundSection ? (
-                      <ChevronUp className="w-5 h-5 text-neutral-400" />
-                    ) : (
-                      <ChevronDown className="w-5 h-5 text-neutral-400" />
-                    )}
-                  </div>
-                </button>
-                
-                {showBackgroundSection && (
-                <>
-                <div className="flex gap-2 mb-4 flex-wrap justify-center">
-                  <Button
-                    variant={selectedCategory === 'all' ? 'primary' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedCategory('all')}
-                  >
-                    All Tracks
-                  </Button>
-                  {Array.from(new Set(backgroundTracks.map(t => t.category))).map(category => (
-                    <Button
-                      key={category}
-                      variant={selectedCategory === category ? 'primary' : 'outline'}
-                      size="sm"
-                      onClick={() => setSelectedCategory(category)}
-                    >
-                      {category.charAt(0).toUpperCase() + category.slice(1)}
-                    </Button>
-                  ))}
-                </div>
-
-                {backgroundTracks.length > 6 && (
-                  <div className="relative max-w-md mx-auto mb-4">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
-                    <input
-                      type="text"
-                      value={bgTrackSearch}
-                      onChange={(e) => setBgTrackSearch(e.target.value)}
-                      placeholder="Search tracks by name or description..."
-                      className="w-full pl-9 pr-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#39FF14]/50"
+                {!isVoiceOnly &&
+                  selectedBackgroundTrack &&
+                  !['ratio', 'background'].includes(customMixStep) && (
+                    <CompletedStepRow
+                      step={2}
+                      badgeVariant="accent"
+                      label="Background track"
+                      value={
+                        backgroundTracks.find((t) => t.id === selectedBackgroundTrack)?.display_name ||
+                        'Selected'
+                      }
+                      onChange={() => {
+                        setCustomMixStep('background')
+                        scrollToCustomPanel(customBgRef)
+                      }}
                     />
-                  </div>
-                )}
+                  )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {backgroundTracks
-                    .filter(track => selectedCategory === 'all' || track.category === selectedCategory)
-                    .filter(track => {
-                      if (!bgTrackSearch.trim()) return true
-                      const q = bgTrackSearch.toLowerCase()
+                {customShowBinauralStep &&
+                  ['sections', 'output', 'review'].includes(customMixStep) && (
+                    <CompletedStepRow
+                      step={3}
+                      badgeVariant="accent"
+                      label="Binaural enhancement"
+                      value={
+                        selectedBinauralTrack
+                          ? binauralTracks.find((t) => t.id === selectedBinauralTrack)?.display_name ||
+                            'Selected'
+                          : 'None'
+                      }
+                      onChange={() => {
+                        setCustomMixStep('binaural')
+                        scrollToCustomPanel(customBinRef)
+                      }}
+                    />
+                  )}
+
+                {(customMixStep === 'output' || customMixStep === 'review') &&
+                  (mixAllSections || selectedMixSections.length > 0) && (
+                    <CompletedStepRow
+                      step={customShowBinauralStep ? 4 : 2}
+                      badgeVariant="accent"
+                      label="Sections"
+                      value={
+                        mixAllSections
+                          ? `All ${availableSectionsForMix.length} sections`
+                          : `${selectedMixSections.length} section${selectedMixSections.length !== 1 ? 's' : ''} selected`
+                      }
+                      onChange={() => {
+                        setCustomMixStep('sections')
+                        scrollToCustomPanel(customSectionsRef)
+                      }}
+                    />
+                  )}
+
+                {customShowOutputStep &&
+                  customMixStep === 'review' &&
+                  (mixAllSections || selectedMixSections.length > 0) && (
+                    <CompletedStepRow
+                      step={customShowBinauralStep ? 5 : 3}
+                      badgeVariant="accent"
+                      label="Output format"
+                      value={
+                        mixOutputFormat === 'individual'
+                          ? 'Individual sections'
+                          : 'Combined full track'
+                      }
+                      onChange={() => {
+                        setCustomMixStep('output')
+                        scrollToCustomPanel(customOutputRef)
+                      }}
+                    />
+                  )}
+              </div>
+
+              <div ref={customRatioRef}>
+                <div className={customMixStep === 'ratio' ? 'block' : 'hidden'}>
+                <Card variant="glass" className="p-4 md:p-6 mb-6 overflow-visible relative z-30">
+                  <div className="flex flex-col items-center text-center gap-1 mb-4">
+                    <h3 className="text-base font-semibold text-white">Choose Mix Ratio</h3>
+                    <p className="text-sm text-neutral-400">
+                      Voice and background balance for your mix.
+                    </p>
+                  </div>
+                  <div className="space-y-2 max-h-80 overflow-y-auto">
+                    {mixRatios.map((ratio) => {
+                      const isSelected = selectedMixRatio === ratio.id
+                      const cleanName = ratio.name.replace(/\s*\(\d+\/\d+\)\s*$/, '')
+                      const sub =
+                        ratio.bg_volume === 0
+                          ? `${ratio.voice_volume}% voice — voice only`
+                          : `${ratio.voice_volume}% voice / ${ratio.bg_volume}% background`
                       return (
-                        track.display_name.toLowerCase().includes(q) ||
-                        (track.description || '').toLowerCase().includes(q)
-                      )
-                    })
-                    .map((track) => {
-                      const isSelected = selectedBackgroundTrack === track.id
-                      const isPreviewing = previewingTrack === track.id
-                      return (
-                        <Card
-                          key={track.id}
-                          variant="default"
-                          hover
-                          className={`cursor-pointer ${
-                            isSelected ? 'border-primary-500 bg-primary-500/10' : ''
+                        <div
+                          key={ratio.id}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault()
+                              pickMixRatio(ratio.id)
+                            }
+                          }}
+                          className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${
+                            isSelected
+                              ? 'bg-primary-500/10 border border-primary-500'
+                              : 'bg-neutral-800/50 border border-transparent hover:bg-neutral-800'
                           }`}
-                          onClick={() => setSelectedBackgroundTrack(isSelected ? '' : track.id)}
+                          onClick={() => pickMixRatio(ratio.id)}
                         >
-                          <div className="flex items-center gap-3">
+                          {isSelected && (
+                            <CheckCircle className="w-5 h-5 text-primary-500 flex-shrink-0" />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white font-medium text-sm md:text-base">{cleanName}</p>
+                            <p className="text-xs md:text-sm text-neutral-400 mt-1">{sub}</p>
+                            {ratio.description && (
+                              <p className="text-xs text-neutral-500 mt-1">{ratio.description}</p>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </Card>
+                </div>
+              </div>
+              {!isVoiceOnly && (
+                <div ref={customBgRef}>
+                  <div className={customMixStep === 'background' ? 'block' : 'hidden'}>
+                <Card variant="glass" className="p-4 md:p-6 mb-6">
+                  <div className="flex flex-col items-center text-center gap-1 mb-4">
+                    <h3 className="text-base font-semibold text-white">Choose Background Track</h3>
+                    <p className="text-sm text-neutral-400">Pick the ambience behind your voice.</p>
+                  </div>
+                  <div
+                    className="flex w-full flex-wrap justify-center gap-1.5 mb-3 md:gap-2 md:mb-4"
+                    role="toolbar"
+                    aria-label="Background track category"
+                  >
+                    <Button
+                      variant={selectedCategory === 'all' ? 'primary' : 'outline'}
+                      size="sm"
+                      className="shrink-0 !border !px-3 !py-1.5 text-xs md:!px-3.5 md:!py-2 md:text-sm"
+                      onClick={() => setSelectedCategory('all')}
+                    >
+                      <span className="sm:hidden">All</span>
+                      <span className="hidden sm:inline">All Tracks</span>
+                    </Button>
+                    {Array.from(new Set(backgroundTracks.map((t) => t.category))).map((category) => (
+                      <Button
+                        key={category}
+                        variant={selectedCategory === category ? 'primary' : 'outline'}
+                        size="sm"
+                        className="shrink-0 !border !px-3 !py-1.5 text-xs md:!px-3.5 md:!py-2 md:text-sm"
+                        onClick={() => setSelectedCategory(category)}
+                      >
+                        {category.charAt(0).toUpperCase() + category.slice(1)}
+                      </Button>
+                    ))}
+                  </div>
+
+                  {backgroundTracks.length > 6 && (
+                    <div className="relative max-w-md mx-auto mb-4">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
+                      <input
+                        type="text"
+                        value={bgTrackSearch}
+                        onChange={(e) => setBgTrackSearch(e.target.value)}
+                        placeholder="Search tracks by name or description..."
+                        className="w-full pl-9 pr-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#39FF14]/50"
+                      />
+                    </div>
+                  )}
+
+                  <div className="space-y-2 mb-4 max-h-80 overflow-y-auto">
+                    {backgroundTracks
+                      .filter(
+                        (track) => selectedCategory === 'all' || track.category === selectedCategory
+                      )
+                      .filter((track) => {
+                        if (!bgTrackSearch.trim()) return true
+                        const q = bgTrackSearch.toLowerCase()
+                        return (
+                          track.display_name.toLowerCase().includes(q) ||
+                          (track.description || '').toLowerCase().includes(q)
+                        )
+                      })
+                      .map((track) => {
+                        const isSelected = selectedBackgroundTrack === track.id
+                        const isPreviewing = previewingTrack === track.id
+                        return (
+                          <div
+                            key={track.id}
+                            className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${
+                              isSelected
+                                ? 'bg-primary-500/10 border border-primary-500'
+                                : 'bg-neutral-800/50 border border-transparent hover:bg-neutral-800'
+                            }`}
+                            onClick={() => pickBackgroundTrack(track.id)}
+                          >
                             {isSelected && (
                               <CheckCircle className="w-5 h-5 text-primary-500 flex-shrink-0" />
                             )}
                             <div className="flex-1 min-w-0">
-                              <p className="text-white font-medium text-sm md:text-base">{track.display_name}</p>
+                              <p className="text-white font-medium text-sm md:text-base">
+                                {track.display_name}
+                              </p>
                               {track.description && (
-                                <p className="text-xs md:text-sm text-neutral-400 mt-1">{track.description}</p>
+                                <p className="text-xs md:text-sm text-neutral-400 mt-1">
+                                  {track.description}
+                                </p>
                               )}
-                              <Badge variant="neutral" className="mt-2 text-xs">
-                                {track.category}
-                              </Badge>
                             </div>
                             <div className="relative flex-shrink-0 w-9 h-9">
                               {isPreviewing && (
-                                <svg className="absolute inset-0 w-9 h-9 -rotate-90 pointer-events-none" viewBox="0 0 36 36" style={{ zIndex: 10 }}>
+                                <svg
+                                  className="absolute inset-0 w-9 h-9 -rotate-90 pointer-events-none"
+                                  viewBox="0 0 36 36"
+                                  style={{ zIndex: 10 }}
+                                >
                                   <circle
                                     cx="18"
                                     cy="18"
@@ -1420,69 +1548,104 @@ export default function AudioMixPage() {
                                     stroke="#1F1F1F"
                                     strokeWidth="2"
                                     strokeDasharray="100.53"
-                                    strokeDashoffset={100.53 - (100.53 * previewProgress / 100)}
+                                    strokeDashoffset={100.53 - (100.53 * previewProgress) / 100}
                                     className="transition-all duration-100"
                                   />
                                 </svg>
                               )}
                               <button
+                                type="button"
                                 onClick={(e) => handlePreview(e, track.file_url, track.id)}
                                 className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
-                                  isPreviewing 
-                                    ? 'bg-primary-500' 
+                                  isPreviewing
+                                    ? 'bg-primary-500'
                                     : 'bg-neutral-800 hover:bg-neutral-700'
                                 }`}
                               >
-                                {isPreviewing ? <X className="w-4 h-4 text-[#1F1F1F]" /> : <Play className="w-4 h-4 text-neutral-400" />}
+                                {isPreviewing ? (
+                                  <X className="w-4 h-4 text-[#1F1F1F]" />
+                                ) : (
+                                  <Play className="w-4 h-4 text-neutral-400" />
+                                )}
                               </button>
                             </div>
                           </div>
-                        </Card>
-                      )
-                    })}
+                        )
+                      })}
+                  </div>
+                </Card>
+                  </div>
                 </div>
-                </>
-                )}
-              </Card>
               )}
-
-              {/* 3. Optional Binaural Enhancement (hidden when voice-only or during intensive) */}
-              {!isVoiceOnly && binauralTracks.length > 0 && !isIntensiveMode && (
+              {customShowBinauralStep && (
+                <div ref={customBinRef}>
+                  <div className={customMixStep === 'binaural' ? 'block' : 'hidden'}>
                 <Card variant="glass" className="p-4 md:p-6 mb-6 relative z-10">
-                  <button 
-                    onClick={() => setShowBinauralSection(!showBinauralSection)}
-                    className={`w-full relative flex flex-col items-center justify-center ${showBinauralSection ? 'mb-3' : ''}`}
-                  >
+                  <div className="flex flex-col items-center text-center gap-1 mb-4">
                     <h3 className="text-base font-semibold text-white">Binaural Enhancement (Optional)</h3>
-                    {!showBinauralSection && (
-                      <p className="text-xs text-neutral-400 mt-1">
-                        {selectedBinauralTrack 
-                          ? binauralTracks.find(t => t.id === selectedBinauralTrack)?.display_name || 'Selected'
-                          : 'None selected'}
-                      </p>
-                    )}
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2">
-                      {showBinauralSection ? (
-                        <ChevronUp className="w-5 h-5 text-neutral-400" />
-                      ) : (
-                        <ChevronDown className="w-5 h-5 text-neutral-400" />
-                      )}
-                    </div>
-                  </button>
-                  
-                  {showBinauralSection && (
-                  <>
-                  <p className="text-sm text-neutral-400 mb-4 text-center">
-                    Add healing frequencies or brainwave entrainment to your mix.
-                  </p>
-                  
-                  <div className="flex flex-wrap gap-2 mb-4 justify-center">
-                    <Button size="sm" variant={binauralFilter === 'all' ? 'primary' : 'outline'} onClick={() => setBinauralFilter('all')}>All</Button>
-                    <Button size="sm" variant={binauralFilter === 'pure' ? 'primary' : 'outline'} onClick={() => setBinauralFilter('pure')}>Pure Solfeggio</Button>
-                    <Button size="sm" variant={binauralFilter === 'delta' ? 'primary' : 'outline'} onClick={() => setBinauralFilter('delta')}>Delta (Sleep)</Button>
-                    <Button size="sm" variant={binauralFilter === 'theta' ? 'primary' : 'outline'} onClick={() => setBinauralFilter('theta')}>Theta (Meditation)</Button>
-                    <Button size="sm" variant={binauralFilter === 'alpha' ? 'primary' : 'outline'} onClick={() => setBinauralFilter('alpha')}>Alpha (Focus)</Button>
-                    <Button size="sm" variant={binauralFilter === 'beta' ? 'primary' : 'outline'} onClick={() => setBinauralFilter('beta')}>Beta (Alert)</Button>
+                    <p className="text-sm text-neutral-400">
+                      Add healing frequencies or brainwave entrainment to your mix.
+                    </p>
+                  </div>
+
+                  <div
+                    className="mb-3 w-full max-md:grid max-md:grid-cols-3 max-md:gap-1.5 max-md:[&_button]:min-w-0 max-md:[&_button]:w-full md:mb-4 md:flex md:flex-wrap md:justify-center md:gap-2"
+                    role="toolbar"
+                    aria-label="Binaural filter"
+                  >
+                    <Button
+                      size="sm"
+                      className="shrink-0 !border !px-3 !py-1.5 text-xs md:!px-3.5 md:!py-2 md:text-sm"
+                      variant={binauralFilter === 'all' ? 'primary' : 'outline'}
+                      onClick={() => setBinauralFilter('all')}
+                    >
+                      All
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="shrink-0 !border !px-3 !py-1.5 text-xs md:!px-3.5 md:!py-2 md:text-sm"
+                      variant={binauralFilter === 'pure' ? 'primary' : 'outline'}
+                      onClick={() => setBinauralFilter('pure')}
+                    >
+                      <span className="md:hidden">Pure</span>
+                      <span className="hidden md:inline">Pure Solfeggio</span>
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="shrink-0 !border !px-3 !py-1.5 text-xs md:!px-3.5 md:!py-2 md:text-sm"
+                      variant={binauralFilter === 'delta' ? 'primary' : 'outline'}
+                      onClick={() => setBinauralFilter('delta')}
+                    >
+                      <span className="md:hidden">Delta</span>
+                      <span className="hidden md:inline">Delta (Sleep)</span>
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="shrink-0 !border !px-3 !py-1.5 text-xs md:!px-3.5 md:!py-2 md:text-sm"
+                      variant={binauralFilter === 'theta' ? 'primary' : 'outline'}
+                      onClick={() => setBinauralFilter('theta')}
+                    >
+                      <span className="md:hidden">Theta</span>
+                      <span className="hidden md:inline">Theta (Meditation)</span>
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="shrink-0 !border !px-3 !py-1.5 text-xs md:!px-3.5 md:!py-2 md:text-sm"
+                      variant={binauralFilter === 'alpha' ? 'primary' : 'outline'}
+                      onClick={() => setBinauralFilter('alpha')}
+                    >
+                      <span className="md:hidden">Alpha</span>
+                      <span className="hidden md:inline">Alpha (Focus)</span>
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="shrink-0 !border !px-3 !py-1.5 text-xs md:!px-3.5 md:!py-2 md:text-sm"
+                      variant={binauralFilter === 'beta' ? 'primary' : 'outline'}
+                      onClick={() => setBinauralFilter('beta')}
+                    >
+                      <span className="md:hidden">Beta</span>
+                      <span className="hidden md:inline">Beta (Alert)</span>
+                    </Button>
                   </div>
 
                   {binauralTracks.length > 6 && (
@@ -1497,33 +1660,37 @@ export default function AudioMixPage() {
                       />
                     </div>
                   )}
-                  
+
                   <div className="space-y-2 mb-4 max-h-80 overflow-y-auto">
                     <div
                       className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${
-                        !selectedBinauralTrack 
-                          ? 'bg-primary-500/10 border border-primary-500' 
+                        customBinauralAck && !selectedBinauralTrack
+                          ? 'bg-primary-500/10 border border-primary-500'
                           : 'bg-neutral-800/50 border border-transparent hover:bg-neutral-800'
                       }`}
-                      onClick={() => { setSelectedBinauralTrack(''); setBinauralVolume(0) }}
+                      onClick={() => {
+                        setSelectedBinauralTrack('')
+                        setBinauralVolume(0)
+                        setCustomBinauralAck(true)
+                      }}
                     >
-                      {!selectedBinauralTrack && (
+                      {customBinauralAck && !selectedBinauralTrack && (
                         <CheckCircle className="w-5 h-5 text-primary-500 flex-shrink-0" />
                       )}
                       <div className="flex-1">
                         <p className="text-white font-medium text-sm md:text-base">None</p>
-                        <p className="text-xs md:text-sm text-neutral-400">No binaural</p>
+                        <p className="text-xs md:text-sm text-neutral-400">No binaural layer</p>
                       </div>
                     </div>
-                    
+
                     {binauralTracks
-                      .filter(track => {
+                      .filter((track) => {
                         if (!track.name) return false
                         if (binauralFilter === 'all') return true
                         if (binauralFilter === 'pure') return track.name.includes('-pure')
                         return track.name.includes(`-${binauralFilter}`)
                       })
-                      .filter(track => {
+                      .filter((track) => {
                         if (!binauralSearch.trim()) return true
                         const q = binauralSearch.toLowerCase()
                         return (
@@ -1538,32 +1705,34 @@ export default function AudioMixPage() {
                           <div
                             key={track.id}
                             className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${
-                              isSelected 
-                                ? 'bg-purple-500/10 border border-purple-500' 
+                              isSelected
+                                ? 'bg-purple-500/10 border border-purple-500'
                                 : 'bg-neutral-800/50 border border-transparent hover:bg-neutral-800'
                             }`}
                             onClick={() => {
-                              if (isSelected) {
-                                setSelectedBinauralTrack('')
-                                setBinauralVolume(0)
-                              } else {
-                                setSelectedBinauralTrack(track.id)
-                                if (binauralVolume === 0) setBinauralVolume(15)
-                              }
+                              setSelectedBinauralTrack(track.id)
+                              if (binauralVolume === 0) setBinauralVolume(15)
+                              setCustomBinauralAck(true)
                             }}
                           >
                             {isSelected && (
                               <CheckCircle className="w-5 h-5 text-purple-500 flex-shrink-0" />
                             )}
                             <div className="flex-1 min-w-0">
-                              <p className="text-white font-medium text-sm md:text-base">{track.display_name}</p>
+                              <p className="text-white font-medium text-sm md:text-base">
+                                {track.display_name}
+                              </p>
                               {track.description && (
                                 <p className="text-xs md:text-sm text-neutral-400">{track.description}</p>
                               )}
                             </div>
                             <div className="relative flex-shrink-0 w-9 h-9">
                               {isPreviewing && (
-                                <svg className="absolute inset-0 w-9 h-9 -rotate-90 pointer-events-none" viewBox="0 0 36 36" style={{ zIndex: 10 }}>
+                                <svg
+                                  className="absolute inset-0 w-9 h-9 -rotate-90 pointer-events-none"
+                                  viewBox="0 0 36 36"
+                                  style={{ zIndex: 10 }}
+                                >
                                   <circle
                                     cx="18"
                                     cy="18"
@@ -1580,29 +1749,32 @@ export default function AudioMixPage() {
                                     stroke="#1F1F1F"
                                     strokeWidth="2"
                                     strokeDasharray="100.53"
-                                    strokeDashoffset={100.53 - (100.53 * previewProgress / 100)}
+                                    strokeDashoffset={100.53 - (100.53 * previewProgress) / 100}
                                     className="transition-all duration-100"
                                   />
                                 </svg>
                               )}
                               <button
+                                type="button"
                                 onClick={(e) => handlePreview(e, track.file_url, track.id)}
                                 className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
-                                  isPreviewing 
-                                    ? 'bg-purple-500' 
-                                    : 'bg-neutral-800 hover:bg-neutral-700'
+                                  isPreviewing ? 'bg-purple-500' : 'bg-neutral-800 hover:bg-neutral-700'
                                 }`}
                               >
-                                {isPreviewing ? <X className="w-4 h-4 text-[#1F1F1F]" /> : <Play className="w-4 h-4 text-neutral-400" />}
+                                {isPreviewing ? (
+                                  <X className="w-4 h-4 text-[#1F1F1F]" />
+                                ) : (
+                                  <Play className="w-4 h-4 text-neutral-400" />
+                                )}
                               </button>
                             </div>
                           </div>
                         )
                       })}
                   </div>
-                  
+
                   {selectedBinauralTrack && (
-                    <div className="bg-neutral-900/60 border border-neutral-700 rounded-xl p-4">
+                    <div className="bg-neutral-900/60 border border-neutral-700 rounded-xl p-4 mb-4">
                       <label className="block text-sm font-medium text-white mb-2">
                         Binaural Volume: {binauralVolume}%
                       </label>
@@ -1611,7 +1783,7 @@ export default function AudioMixPage() {
                         min="0"
                         max="30"
                         value={binauralVolume}
-                        onChange={(e) => setBinauralVolume(parseInt(e.target.value))}
+                        onChange={(e) => setBinauralVolume(parseInt(e.target.value, 10))}
                         className="w-full h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
                       />
                       <div className="flex justify-between text-xs text-neutral-400 mt-1">
@@ -1622,165 +1794,190 @@ export default function AudioMixPage() {
                       </div>
                     </div>
                   )}
-                  </>
-                  )}
-                </Card>
-              )}
 
-              {/* 4. Section Selection */}
-              <Card variant="glass" className="p-4 md:p-6 mb-6 relative z-10">
-                <button 
-                  onClick={() => setShowSectionsSection(!showSectionsSection)}
-                  className={`w-full relative flex flex-col items-center justify-center ${showSectionsSection ? 'mb-3' : ''}`}
-                >
-                  <h3 className="text-base font-semibold text-white">Which Sections to Mix?</h3>
-                  {!showSectionsSection && (
-                    <p className="text-xs text-neutral-400 mt-1">
-                      {mixAllSections 
-                        ? 'All sections' 
-                        : selectedMixSections.length > 0 
-                          ? `${selectedMixSections.length} section${selectedMixSections.length > 1 ? 's' : ''} selected`
-                          : 'None selected'}
-                    </p>
-                  )}
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2">
-                    {showSectionsSection ? (
-                      <ChevronUp className="w-5 h-5 text-neutral-400" />
-                    ) : (
-                      <ChevronDown className="w-5 h-5 text-neutral-400" />
-                    )}
-                  </div>
-                </button>
-                
-                {showSectionsSection && (
-                <>
-                <p className="text-sm text-neutral-400 mb-4 text-center">
-                  Mix all sections or select specific ones for a focused audio set.
-                </p>
-                <SectionSelector
-                  allSelected={mixAllSections}
-                  onAllSelectedChange={setMixAllSections}
-                  selectedSections={selectedMixSections}
-                  onSelectedSectionsChange={setSelectedMixSections}
-                  label="Mix All Sections"
-                  availableSections={selectedBaseVoiceSet?.available_sections}
-                />
-                </>
-                )}
-              </Card>
-
-              {/* Output Format - only show if more than 1 section available */}
-              {(() => {
-                const availableSectionsForVoice = selectedBaseVoiceSet?.available_sections || []
-                const effectiveSectionCount = mixAllSections 
-                  ? availableSectionsForVoice.length 
-                  : selectedMixSections.filter(s => availableSectionsForVoice.includes(s)).length
-                
-                // Only show format options if more than 1 section
-                if (effectiveSectionCount <= 1) return null
-                
-                return (
-                  <Card variant="glass" className="p-4 md:p-6 mb-6 relative z-10">
-                    <button 
-                      onClick={() => setShowOutputFormatSection(!showOutputFormatSection)}
-                      className={`w-full relative flex flex-col items-center justify-center ${showOutputFormatSection ? 'mb-3' : ''}`}
+                  <div className="flex justify-center mt-2">
+                    <Button
+                      variant="primary"
+                      disabled={!customBinauralAck}
+                      onClick={() => finishBinauralStep()}
                     >
-                      <h3 className="text-base font-semibold text-white">Output Format</h3>
-                      {!showOutputFormatSection && (
-                        <p className="text-xs text-neutral-400 mt-1">
-                          {mixOutputFormat === 'individual' ? 'Individual Sections' : 'Combined Full Track'}
-                        </p>
-                      )}
-                      <div className="absolute right-0 top-1/2 -translate-y-1/2">
-                        {showOutputFormatSection ? (
-                          <ChevronUp className="w-5 h-5 text-neutral-400" />
-                        ) : (
-                          <ChevronDown className="w-5 h-5 text-neutral-400" />
-                        )}
-                      </div>
-                    </button>
-                    
-                    {showOutputFormatSection && (
-                    <FormatSelector
-                      value={mixOutputFormat}
-                      onChange={setMixOutputFormat}
-                      disabled={generating}
-                    />
-                    )}
-                  </Card>
-                )
-              })()}
+                      Continue
+                    </Button>
+                  </div>
+                </Card>
+                  </div>
+                </div>
+              )}
+              <div ref={customSectionsRef}>
+                <div className={customMixStep === 'sections' ? 'block' : 'hidden'}>
+                <Card variant="glass" className="p-4 md:p-6 mb-6 relative z-10">
+                  <div className="flex flex-col items-center text-center gap-1 mb-4">
+                    <h3 className="text-base font-semibold text-white">Which Sections to Mix?</h3>
+                    <p className="text-sm text-neutral-400">
+                      Mix all sections or select specific ones for a focused audio set.
+                    </p>
+                  </div>
+                  <SectionSelector
+                    toggleVariant="segmented"
+                    allSelected={mixAllSections}
+                    onAllSelectedChange={setMixAllSections}
+                    selectedSections={selectedMixSections}
+                    onSelectedSectionsChange={setSelectedMixSections}
+                    label="Mix All Sections"
+                    availableSections={selectedBaseVoiceSet?.available_sections}
+                  />
+                  <div className="flex justify-center mt-6">
+                    <Button
+                      variant="primary"
+                      disabled={!mixAllSections && selectedMixSections.length === 0}
+                      onClick={() => {
+                        if (!mixAllSections && selectedMixSections.length === 0) return
+                        if (customShowOutputStep) {
+                          setCustomMixStep('output')
+                          scrollToCustomPanel(customOutputRef)
+                        } else {
+                          setCustomMixStep('review')
+                          scrollToCustomPanel(customReviewRef)
+                        }
+                      }}
+                    >
+                      Continue
+                    </Button>
+                  </div>
+                </Card>
+                </div>
+              </div>
 
-              {/* Mix Summary */}
-              {selectedMixRatio && (isVoiceOnly || selectedBackgroundTrack) && (
-                <div className="mb-6">
-                  <Card variant="glass" className="p-4">
-                    <h4 className="text-base font-semibold text-white mb-4 text-center">Final Mix Preview</h4>
-                    <div className="space-y-2">
-                      {(() => {
-                        const selectedRatio = mixRatios.find(r => r.id === selectedMixRatio)
-                        if (!selectedRatio) return null
-                        
-                        const adjusted = (selectedBinauralTrack && binauralVolume > 0)
-                          ? calculateAdjustedVolumes(selectedRatio.voice_volume, selectedRatio.bg_volume, binauralVolume)
-                          : { voice: selectedRatio.voice_volume, bg: selectedRatio.bg_volume, binaural: 0 }
-                        
-                        const selectedBg = backgroundTracks.find(t => t.id === selectedBackgroundTrack)
-                        const selectedBin = (selectedBinauralTrack && binauralVolume > 0) ? binauralTracks.find(t => t.id === selectedBinauralTrack) : null
-                        
-                        return (
-                          <>
-                            <div className="flex items-center justify-between">
-                              <span className="text-neutral-300">Your Voice:</span>
-                              <span className="text-white font-semibold">{adjusted.voice}%</span>
-                            </div>
-                            {!isVoiceOnly && selectedBg && (
-                              <div className="flex items-center justify-between">
-                                <span className="text-neutral-300">{selectedBg.display_name}:</span>
-                                <span className="text-white font-semibold">{adjusted.bg}%</span>
-                              </div>
-                            )}
-                            {selectedBin && (
-                              <div className="flex items-center justify-between">
-                                <span className="text-purple-300">{selectedBin.display_name}:</span>
-                                <span className="text-purple-400 font-semibold">{adjusted.binaural}%</span>
-                              </div>
-                            )}
-                            <div className="pt-2 mt-2 border-t border-neutral-700">
-                              <div className="flex items-center justify-between">
-                                <span className="text-neutral-400 text-sm">Total:</span>
-                                <span className="text-white font-semibold">100%</span>
-                              </div>
-                            </div>
-                          </>
-                        )
-                      })()}
-                    </div>
-                  </Card>
+              {customShowOutputStep && (
+                <div ref={customOutputRef}>
+                  <div className={customMixStep === 'output' ? 'block' : 'hidden'}>
+                <Card variant="glass" className="p-4 md:p-6 mb-6 relative z-10">
+                  <div className="flex flex-col items-center text-center gap-1 mb-4">
+                    <h3 className="text-base font-semibold text-white">Output Format</h3>
+                    <p className="text-sm text-neutral-400">
+                      Choose how your sections are delivered as audio files.
+                    </p>
+                  </div>
+                  <FormatSelector
+                    value={mixOutputFormat}
+                    onChange={setMixOutputFormat}
+                    disabled={generating}
+                  />
+                  <div className="flex justify-center mt-6">
+                    <Button
+                      variant="primary"
+                      onClick={() => {
+                        setCustomMixStep('review')
+                        scrollToCustomPanel(customReviewRef)
+                      }}
+                    >
+                      Continue
+                    </Button>
+                  </div>
+                </Card>
+                  </div>
                 </div>
               )}
 
-              {/* Generate Button */}
-              <div className="flex justify-center">
-                <Button 
-                  variant="primary" 
-                  onClick={handleGenerateCustomMix}
-                  disabled={generating || !selectedMixRatio || !selectedBaseVoiceSetId || (!isVoiceOnly && !selectedBackgroundTrack) || (!mixAllSections && selectedMixSections.length === 0)}
-                  className="w-full md:w-auto"
-                >
-                  {generating ? (
-                    <>
-                      <Spinner size="sm" className="mr-2" />
-                      Generating Mix...
-                    </>
-                  ) : (
-                    <>
-                      <Music className="w-4 h-4 mr-2" />
-                      Generate Mix ({mixAllSections ? 'All Sections' : `${selectedMixSections.length} Section${selectedMixSections.length !== 1 ? 's' : ''}`})
-                    </>
-                  )}
-                </Button>
-              </div>
+              {selectedMixRatio &&
+                (isVoiceOnly || selectedBackgroundTrack) && (
+                  <div ref={customReviewRef}>
+                    <div
+                      className={customMixStep === 'review' ? 'block' : 'hidden'}
+                    >
+                  <div className="space-y-6">
+                    <Card variant="glass" className="p-4">
+                      <h4 className="text-base font-semibold text-white mb-4 text-center">
+                        Final Mix Preview
+                      </h4>
+                      <div className="space-y-2">
+                        {(() => {
+                          const selectedRatio = mixRatios.find((r) => r.id === selectedMixRatio)
+                          if (!selectedRatio) return null
+
+                          const adjusted =
+                            selectedBinauralTrack && binauralVolume > 0
+                              ? calculateAdjustedVolumes(
+                                  selectedRatio.voice_volume,
+                                  selectedRatio.bg_volume,
+                                  binauralVolume
+                                )
+                              : {
+                                  voice: selectedRatio.voice_volume,
+                                  bg: selectedRatio.bg_volume,
+                                  binaural: 0,
+                                }
+
+                          const selectedBg = backgroundTracks.find((t) => t.id === selectedBackgroundTrack)
+                          const selectedBin =
+                            selectedBinauralTrack && binauralVolume > 0
+                              ? binauralTracks.find((t) => t.id === selectedBinauralTrack)
+                              : null
+
+                          return (
+                            <>
+                              <div className="flex items-center justify-between">
+                                <span className="text-neutral-300">Your Voice:</span>
+                                <span className="text-white font-semibold">{adjusted.voice}%</span>
+                              </div>
+                              {!isVoiceOnly && selectedBg && (
+                                <div className="flex items-center justify-between">
+                                  <span className="text-neutral-300">{selectedBg.display_name}:</span>
+                                  <span className="text-white font-semibold">{adjusted.bg}%</span>
+                                </div>
+                              )}
+                              {selectedBin && (
+                                <div className="flex items-center justify-between">
+                                  <span className="text-purple-300">{selectedBin.display_name}:</span>
+                                  <span className="text-purple-400 font-semibold">{adjusted.binaural}%</span>
+                                </div>
+                              )}
+                              <div className="pt-2 mt-2 border-t border-neutral-700">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-neutral-400 text-sm">Total:</span>
+                                  <span className="text-white font-semibold">100%</span>
+                                </div>
+                              </div>
+                            </>
+                          )
+                        })()}
+                      </div>
+                    </Card>
+
+                    <div className="flex justify-center">
+                      <Button
+                        variant="primary"
+                        onClick={handleGenerateCustomMix}
+                        disabled={
+                          generating ||
+                          !selectedMixRatio ||
+                          !selectedBaseVoiceSetId ||
+                          (!isVoiceOnly && !selectedBackgroundTrack) ||
+                          (!mixAllSections && selectedMixSections.length === 0)
+                        }
+                        className="w-full md:w-auto"
+                      >
+                        {generating ? (
+                          <>
+                            <Spinner size="sm" className="mr-2" />
+                            Generating Mix...
+                          </>
+                        ) : (
+                          <>
+                            <Music className="w-4 h-4 mr-2" />
+                            Generate Mix (
+                            {mixAllSections
+                              ? 'All Sections'
+                              : `${selectedMixSections.length} Section${selectedMixSections.length !== 1 ? 's' : ''}`}
+                            )
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                    </div>
+                  </div>
+                )}
             </>
           )}
         </Card>
