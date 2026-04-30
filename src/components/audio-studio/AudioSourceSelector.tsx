@@ -509,7 +509,7 @@ export function AudioSourceSelector({
         {sourceTypes.map(st => {
           const Icon = st.icon
           const isSelected = selectedType === st.type
-          const description = sourceTypeDescriptions?.[st.type] ?? st.description
+          const description = (st.type && sourceTypeDescriptions?.[st.type]) ?? st.description
           return (
             <div
               key={st.type}
