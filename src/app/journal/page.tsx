@@ -464,6 +464,7 @@ export default function JournalPage() {
                   }
                 }}
                 lifeVisionCategoryStrip
+                desktopColumnCount={6}
               />
             </Card>
           </div>
@@ -588,12 +589,16 @@ export default function JournalPage() {
                               <div className="flex flex-wrap gap-2">
                                 {entry.categories.map((categoryKey: string) => {
                                   const categoryInfo = VISION_CATEGORIES.find(c => c.key === categoryKey)
+                                  const CategoryIcon = categoryInfo?.icon
                                   return (
                                     <span
                                       key={categoryKey}
-                                      className="text-xs bg-primary-500/20 text-primary-500 px-2.5 py-1 rounded-full"
+                                      className="inline-flex max-w-full items-center gap-1.5 truncate rounded-full border border-[#39FF14]/35 bg-[#39FF14]/10 px-2 py-1 text-xs text-[#39FF14]"
                                     >
-                                      {categoryInfo ? categoryInfo.label : categoryKey}
+                                      {CategoryIcon ? (
+                                        <CategoryIcon className="h-3.5 w-3.5 shrink-0 text-[#39FF14]" aria-hidden />
+                                      ) : null}
+                                      <span className="truncate">{categoryInfo ? categoryInfo.label : categoryKey}</span>
                                     </span>
                                   )
                                 })}
